@@ -25,6 +25,10 @@ export const COMMIT_CUSTOM_FIELDS_SYMBOL: unique symbol;
 
 export const RUST_ERROR_SYMBOL: unique symbol;
 
+export const CIRCULAR_CONNECTION_SYMBOL: unique symbol;
+export const TRANSITIVE_ONLY_SYMBOL: unique symbol;
+export type ConnectionState = boolean | typeof CIRCULAR_CONNECTION_SYMBOL | typeof TRANSITIVE_ONLY_SYMBOL;
+
 interface KnownBuildInfo {
 	[BUILD_INFO_ASSETS_SYMBOL]: Assets,
 	[BUILD_INFO_FILE_DEPENDENCIES_SYMBOL]: string[],
@@ -118,8 +122,8 @@ export declare class AsyncDependenciesBlock {
 
 export declare class Chunk {
   get name(): string | undefined
-  get id(): string | undefined
-  get ids(): Array<string>
+  get id(): string | number | undefined
+  get ids(): Array<string | number>
   get idNameHints(): Array<string>
   get filenameTemplate(): string | undefined
   get cssFilenameTemplate(): string | undefined
@@ -212,6 +216,7 @@ export declare class Dependency {
   get type(): string
   get category(): string
   get request(): string | undefined
+  get attributes(): Record<string, string> | undefined
   get critical(): boolean
   set critical(val: boolean)
   get ids(): Array<string> | undefined
@@ -452,6 +457,7 @@ export declare class ModuleGraphConnection {
   get module(): Module | null
   get resolvedModule(): Module | null
   get originModule(): Module | null
+  getActiveState(runtime: string | string[] | undefined): ConnectionState
 }
 
 export declare class NativeWatcher {
@@ -530,6 +536,7 @@ export declare enum BuiltinPluginName {
   DynamicEntryPlugin = 'DynamicEntryPlugin',
   ExternalsPlugin = 'ExternalsPlugin',
   NodeTargetPlugin = 'NodeTargetPlugin',
+  EsmNodeTargetPlugin = 'EsmNodeTargetPlugin',
   ElectronTargetPlugin = 'ElectronTargetPlugin',
   EnableChunkLoadingPlugin = 'EnableChunkLoadingPlugin',
   EnableLibraryPlugin = 'EnableLibraryPlugin',
@@ -543,20 +550,23 @@ export declare enum BuiltinPluginName {
   HotModuleReplacementPlugin = 'HotModuleReplacementPlugin',
   LimitChunkCountPlugin = 'LimitChunkCountPlugin',
   WorkerPlugin = 'WorkerPlugin',
-  WebWorkerTemplatePlugin = 'WebWorkerTemplatePlugin',
   MergeDuplicateChunksPlugin = 'MergeDuplicateChunksPlugin',
   SplitChunksPlugin = 'SplitChunksPlugin',
   RemoveDuplicateModulesPlugin = 'RemoveDuplicateModulesPlugin',
   ShareRuntimePlugin = 'ShareRuntimePlugin',
+  SharedUsedExportsOptimizerPlugin = 'SharedUsedExportsOptimizerPlugin',
   ContainerPlugin = 'ContainerPlugin',
   ContainerReferencePlugin = 'ContainerReferencePlugin',
   ProvideSharedPlugin = 'ProvideSharedPlugin',
   ConsumeSharedPlugin = 'ConsumeSharedPlugin',
+  CollectSharedEntryPlugin = 'CollectSharedEntryPlugin',
+  SharedContainerPlugin = 'SharedContainerPlugin',
   ModuleFederationRuntimePlugin = 'ModuleFederationRuntimePlugin',
   ModuleFederationManifestPlugin = 'ModuleFederationManifestPlugin',
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
   DeterministicChunkIdsPlugin = 'DeterministicChunkIdsPlugin',
@@ -604,6 +614,7 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
+  CircularModulesInfoPlugin = 'CircularModulesInfoPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
@@ -717,18 +728,21 @@ export interface JsBeforeEmitData {
   uid?: number
 }
 
+export interface JsBeforeModuleIdsArg {
+  modules: Array<JsModuleForIds>
+}
+
+export interface JsBeforeModuleIdsResult {
+  assignments: Record<string, string | number>
+}
+
 export interface JsBuildMeta {
   strictEsmModule?: boolean
   hasTopLevelAwait?: boolean
   esm?: boolean
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
-  defaultObject?: undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn
+  defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
-  exportsFinalName?: Array<[string, string]> | undefined
-}
-
-export interface JsBuildMetaDefaultObjectRedirectWarn {
-  redirectWarn: JsDefaultObjectRedirectWarnObject
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -790,10 +804,6 @@ export interface JsCreateLinkData {
 export interface JsCreateScriptData {
   code: string
   chunk: Chunk
-}
-
-export interface JsDefaultObjectRedirectWarnObject {
-  ignore: boolean
 }
 
 export interface JsDiagnostic {
@@ -980,6 +990,10 @@ export interface JsModuleDescriptor {
   id?: string | number | null
 }
 
+export interface JsModuleForIds {
+  identifier: string
+}
+
 export interface JsNormalModuleFactoryCreateModuleArgs {
   dependencyType: string
   rawRequest: string
@@ -1042,9 +1056,16 @@ export interface JsRscClientPluginOptions {
   coordinator: JsCoordinator
 }
 
+export interface JsRscCssLinkOptions {
+  precedence?: string | boolean
+  props?: Record<string, string>
+}
+
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
-  onServerComponentChanges?: (() => void) | undefined | null
+  cssLink?: JsRscCssLinkOptions | undefined | null
+  onServerComponentChanges?: (() => void | Promise<void>) | undefined | null
+  onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
 export interface JsRsdoctorAsset {
@@ -1084,6 +1105,30 @@ export interface JsRsdoctorChunkModules {
   modules: Array<number>
 }
 
+export interface JsRsdoctorConnection {
+  ukey: number
+  dependencyId: string
+  module: number
+  originModule?: number
+  resolvedModule: number
+  dependencyType: string
+  userRequest: string
+  loc?: string
+  active: boolean
+}
+
+export interface JsRsdoctorConnectionsOnlyImport {
+  moduleUkey: number
+  modulePath: string
+  connections: Array<JsRsdoctorConnectionsOnlyImportConnection>
+}
+
+export interface JsRsdoctorConnectionsOnlyImportConnection {
+  originModule?: number
+  dependencyType: string
+  userRequest: string
+}
+
 export interface JsRsdoctorDependency {
   ukey: number
   kind: string
@@ -1109,7 +1154,11 @@ export interface JsRsdoctorExportInfo {
   from?: number
   variable?: number
   identifier?: JsRsdoctorStatement
-  sideEffects: Array<number>
+}
+
+export interface JsRsdoctorJsonModuleSize {
+  identifier: string
+  size: number
 }
 
 export interface JsRsdoctorModule {
@@ -1126,12 +1175,15 @@ export interface JsRsdoctorModule {
   chunks: Array<number>
   issuerPath: Array<number>
   bailoutReason: Array<string>
+  sideEffectsLocations: Array<JsRsdoctorSideEffectLocation>
+  exportsType: string
 }
 
 export interface JsRsdoctorModuleGraph {
   modules: Array<JsRsdoctorModule>
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
+  connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1160,6 +1212,7 @@ export interface JsRsdoctorModuleOriginalSource {
 
 export interface JsRsdoctorModuleSourcesPatch {
   moduleOriginalSources: Array<JsRsdoctorModuleOriginalSource>
+  jsonModuleSizes: Array<JsRsdoctorJsonModuleSize>
 }
 
 export interface JsRsdoctorSideEffect {
@@ -1172,6 +1225,13 @@ export interface JsRsdoctorSideEffect {
   fromDependency?: number
   exports: Array<number>
   variable?: number
+}
+
+export interface JsRsdoctorSideEffectLocation {
+  location: string
+  nodeType: string
+  module: number
+  request: string
 }
 
 export interface JsRsdoctorSourceMapFeatures {
@@ -1268,10 +1328,10 @@ export interface JsStatsAsset {
   emitted: boolean
   chunkNames: Array<string>
   chunkIdHints: Array<string>
-  chunks: Array<string | undefined | null>
+  chunks: Array<string | number | undefined | null>
   auxiliaryChunkNames: Array<string>
   auxiliaryChunkIdHints: Array<string>
-  auxiliaryChunks: Array<string | undefined | null>
+  auxiliaryChunks: Array<string | number | undefined | null>
 }
 
 export interface JsStatsAssetInfo {
@@ -1308,17 +1368,17 @@ export interface JsStatsChunk {
   type: string
   files: Array<string>
   auxiliaryFiles: Array<string>
-  id?: string
+  id?: string | number | undefined
   idHints: Array<string>
   hash?: string
   entry: boolean
   initial: boolean
   names: Array<string>
   size: number
-  parents?: Array<string>
-  children?: Array<string>
-  siblings?: Array<string>
-  childrenByOrder: Record<string, Array<string>>
+  parents?: Array<string | number> | undefined
+  children?: Array<string | number> | undefined
+  siblings?: Array<string | number> | undefined
+  childrenByOrder: Record<string, Array<string | number>>
   runtime: Array<string>
   reason?: string
   rendered: boolean
@@ -1329,7 +1389,7 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  chunks: Array<string>
+  chunks: Array<string | number>
   assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
@@ -1418,7 +1478,7 @@ export interface JsStatsModuleCommonAttributes {
   failed?: boolean
   errors?: number
   warnings?: number
-  chunks?: Array<string>
+  chunks?: Array<string | number> | undefined
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
   providedExports?: Array<string>
@@ -1831,6 +1891,7 @@ export interface RawCacheGroupOptions {
   minChunks?: number
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
   maxInitialSize?: number | RawSplitChunkSizes
@@ -1852,6 +1913,7 @@ export interface RawCacheOptionsPersistent {
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
+  readonly?: boolean
 }
 
 export interface RawCircularDependencyRspackPluginOptions {
@@ -1862,6 +1924,11 @@ export interface RawCircularDependencyRspackPluginOptions {
   onIgnored?: (entrypoint: Module, modules: string[]) => void
   onStart?: () => void
   onEnd?: () => void
+}
+
+export interface RawCollectShareEntryPluginOptions {
+  consumes: Array<RawConsumeOptions>
+  filename?: string
 }
 
 export interface RawCompilerPlatform {
@@ -1878,12 +1945,13 @@ export interface RawConsumeOptions {
   import?: string
   importResolved?: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   requiredVersion?: string | false | undefined
   packageName?: string
   strictVersion: boolean
   singleton: boolean
   eager: boolean
+  treeShakingMode?: string
 }
 
 export interface RawConsumeSharedPluginOptions {
@@ -1893,7 +1961,7 @@ export interface RawConsumeSharedPluginOptions {
 
 export interface RawContainerPluginOptions {
   name: string
-  shareScope: string
+  shareScope: string | Array<string>
   library: JsLibraryOptions
   runtime?: false | string
   filename?: string
@@ -1904,7 +1972,7 @@ export interface RawContainerPluginOptions {
 export interface RawContainerReferencePluginOptions {
   remoteType: string
   remotes: Array<RawRemoteOptions>
-  shareScope?: string
+  shareScope?: string | Array<string>
   enhanced: boolean
 }
 
@@ -2024,18 +2092,6 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCssAutoGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
-  exportsOnly?: boolean
-  localIdentName?: string
-  esModule?: boolean
-}
-
-export interface RawCssAutoParserOptions {
-  namedExports?: boolean
-  url?: boolean
-}
-
 export interface RawCssChunkingPluginOptions {
   strict?: boolean
   minSize?: number
@@ -2060,9 +2116,21 @@ export interface RawCssGeneratorOptions {
   esModule?: boolean
 }
 
+export interface RawCssImportContext {
+  url: string
+  media?: string
+  resourcePath: string
+  supports?: string
+  layer?: string
+}
+
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  localIdentHashDigest?: string
+  localIdentHashDigestLength?: number
+  localIdentHashFunction?: string
+  localIdentHashSalt?: string
   localIdentName?: string
   esModule?: boolean
 }
@@ -2070,11 +2138,13 @@ export interface RawCssModuleGeneratorOptions {
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
   url?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
 }
 
 export interface RawDllEntryPluginOptions {
@@ -2115,6 +2185,12 @@ export interface RawDynamicEntryPluginOptions {
   entry: () => Promise<RawEntryDynamicResult[]>
 }
 
+export interface RawEnableLibraryPluginOptions {
+  libraryType: string
+  preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
+}
+
 export interface RawEntryDynamicResult {
   import: Array<string>
   options: JsEntryOptions
@@ -2141,6 +2217,7 @@ export interface RawEnvironment {
 
 export interface RawEsmLibraryPlugin {
   preserveModules?: string
+  splitChunks?: RawSplitChunksOptions
 }
 
 export interface RawEvalDevToolModulePluginOptions {
@@ -2153,6 +2230,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  pureFunctions: boolean
 }
 
 export interface RawExposeOptions {
@@ -2191,6 +2269,7 @@ export interface RawExternalsPresets {
 export interface RawExtractComments {
   banner?: string | boolean
   condition?: string
+  conditionFlags?: string
 }
 
 export interface RawFallbackCacheGroupOptions {
@@ -2216,14 +2295,22 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
-  cssAuto?: RawCssAutoGeneratorOptions
+  cssAuto?: RawCssModuleGeneratorOptions
+  cssGlobal?: RawCssModuleGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
   json?: RawJsonGeneratorOptions
+}
+
+export interface RawHashedModuleIdsPluginOptions {
+  context?: string
+  hashFunction?: string
+  hashDigest?: string
+  hashDigestLength?: number
 }
 
 export interface RawHtmlRspackPluginBaseOptions {
@@ -2283,6 +2370,7 @@ export interface RawIncremental {
   finishModules: boolean
   optimizeDependencies: boolean
   buildChunkGraph: boolean
+  optimizeChunkModules: boolean
   moduleIds: boolean
   chunkIds: boolean
   modulesHashes: boolean
@@ -2335,41 +2423,42 @@ export interface RawJavascriptParserOptions {
   exprContextCritical?: boolean
   unknownContextCritical?: boolean
   wrappedContextCritical?: boolean
+  strictThisContextOnImports?: boolean
   wrappedContextRegExp?: RegExp
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  strictExportPresence?: boolean
   worker?: Array<string>
   overrideStrict?: string
-  importMeta?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAlias?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireAsExpression?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireDynamic?: boolean
-  /**
-   * This option is experimental in Rspack only and subject to change or be removed anytime.
-   * @experimental
-   */
-  requireResolve?: boolean
+  importMeta?: string
+  commonjsMagicComments?: boolean
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
+deferImport?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireAlias?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireAsExpression?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireDynamic?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+requireResolve?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
  */
 importDynamic?: boolean
-commonjsMagicComments?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
@@ -2380,7 +2469,17 @@ typeReexportsPresence?: string
  * @experimental
  */
 jsx?: boolean
-deferImport?: boolean
+/**
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+importMetaResolve?: boolean
+/**
+ * Flag top-level exported functions as side-effect-free for pure-function-based tree shaking.
+ * This option is experimental in Rspack only and subject to change or be removed anytime.
+ * @experimental
+ */
+pureFunctions?: Array<string>
 }
 
 export interface RawJsonGeneratorOptions {
@@ -2514,7 +2613,6 @@ export interface RawModuleOptions {
   parser?: Record<string, RawParserOptions>
   generator?: Record<string, RawGeneratorOptions>
   noParse?: string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]
-  unsafeCache?: boolean | RegExp
 }
 
 export interface RawModuleRule {
@@ -2590,7 +2688,6 @@ export interface RawOccurrenceChunkIdsPluginOptions {
 }
 
 export interface RawOptimizationOptions {
-  removeAvailableModules: boolean
   sideEffects: boolean | string
   usedExports: boolean | string
   providedExports: boolean
@@ -2600,6 +2697,12 @@ export interface RawOptimizationOptions {
   inlineExports: boolean
   concatenateModules: boolean
   avoidEntryIife: boolean
+}
+
+export interface RawOptimizeSharedConfig {
+  shareKey: string
+  treeShaking: boolean
+  usedExports?: Array<string>
 }
 
 export interface RawOptions {
@@ -2668,10 +2771,11 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
+  type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
-  cssAuto?: RawCssAutoParserOptions
+  cssAuto?: RawCssModuleParserOptions
+  cssGlobal?: RawCssModuleParserOptions
   cssModule?: RawCssModuleParserOptions
   javascript?: RawJavascriptParserOptions
   json?: RawJsonParserOptions
@@ -2683,24 +2787,32 @@ export interface RawPathData {
   url?: string
 }
 
+export interface RawProgressPluginHandlerInfo {
+  /** Number of built modules */
+  builtModules: number
+  /** Identifier of the active module (only provided during `build modules` updates) */
+  moduleIdentifier?: string
+}
+
 export interface RawProgressPluginOptions {
   prefix?: string
   profile?: boolean
   template?: string
   tick?: string | Array<string>
   progressChars?: string
-  handler?: (percent: number, msg: string, items: string[]) => void
+  handler?: (percent: number, msg: string, info: RawProgressPluginHandlerInfo) => void
 }
 
 export interface RawProvideOptions {
   key: string
   shareKey: string
-  shareScope: string
+  shareScope: string | Array<string>
   version?: string | false | undefined
   eager: boolean
   singleton?: boolean
   requiredVersion?: string | false | undefined
   strictVersion?: boolean
+  treeShakingMode?: string
 }
 
 export interface RawRelated {
@@ -2715,7 +2827,7 @@ export interface RawRemoteAliasTarget {
 export interface RawRemoteOptions {
   key: string
   external: Array<string>
-  shareScope: string
+  shareScope: string | Array<string>
 }
 
 export interface RawResolveOptions {
@@ -2793,6 +2905,17 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   forceNodeShims?: boolean
+  /**
+   * Auto downgrade module external type to node-commonjs for CJS require of node builtins
+   * @default `false`
+   */
+  autoCjsNodeBuiltin?: boolean
+  /** Emit isolated declaration files for modules transformed by `builtin:swc-loader` */
+  emitDts?: RawSwcEmitDtsOptions
+}
+
+export interface RawRstestDynamicImportOriginOptions {
+  functionName?: string
 }
 
 export interface RawRstestPluginOptions {
@@ -2801,6 +2924,8 @@ export interface RawRstestPluginOptions {
   hoistMockModule: boolean
   manualMockRoot: string
   preserveNewUrl?: Array<string>
+  globals?: boolean
+injectDynamicImportOrigin?: boolean | { functionName?: string }
 }
 
 export interface RawRuleSetCondition {
@@ -2832,6 +2957,21 @@ export interface RawRuntimeChunkNameFnCtx {
 
 export interface RawRuntimeChunkOptions {
   name: string | ((entrypoint: { name: string }) => string)
+}
+
+export interface RawSharedContainerPluginOptions {
+  name: string
+  request: string
+  version: string
+  fileName?: string
+  library: JsLibraryOptions
+}
+
+export interface RawSharedUsedExportsOptimizerPluginOptions {
+  shared: Array<RawOptimizeSharedConfig>
+  injectTreeShakingUsedExports?: boolean
+  manifestFileName?: string
+  statsFileName?: string
 }
 
 export interface RawSizeLimitsPluginOptions {
@@ -2867,7 +3007,7 @@ export interface RawSplitChunksOptions {
   hidePathInfo?: boolean
   minSize?: number | RawSplitChunkSizes
   minSizeReduction?: number | RawSplitChunkSizes
-  enforceSizeThreshold?: number
+  enforceSizeThreshold?: number | RawSplitChunkSizes
   minRemainingSize?: number | RawSplitChunkSizes
   maxSize?: number | RawSplitChunkSizes
   maxAsyncSize?: number | RawSplitChunkSizes
@@ -2877,6 +3017,8 @@ export interface RawSplitChunksOptions {
 export interface RawStatsBuildInfo {
   buildVersion: string
   buildName?: string
+  target?: Array<string>
+  plugins?: Array<string>
 }
 
 export interface RawStatsOptions {
@@ -2892,6 +3034,11 @@ export interface RawSubresourceIntegrityPluginOptions {
   integrityCallback?: (data: RawIntegrityData) => void
   hashFuncNames: Array<string>
   htmlPlugin: "JavaScript" | "Native" | "Disabled"
+}
+
+export interface RawSwcEmitDtsOptions {
+  rootDir: string
+  declarationDir: string
 }
 
 export interface RawSwcJsMinimizerOptions {
@@ -2937,8 +3084,7 @@ export interface RealDependencyLocation {
   end?: SourcePosition
 }
 
-/**
- * this is a process level tracing, which means it would be shared by all compilers in the same process
+/** * this is a process level tracing, which means it would be shared by all compilers in the same process
  * only the first call would take effect, the following calls would be ignored
  * Some code is modified based on
  * https://github.com/swc-project/swc/blob/d1d0607158ab40463d1b123fed52cc526eba8385/bindings/binding_core_node/src/util.rs#L29-L58
@@ -2966,39 +3112,40 @@ export declare enum RegisterJsTapKind {
   CompilationAfterOptimizeModules = 14,
   CompilationOptimizeTree = 15,
   CompilationOptimizeChunkModules = 16,
-  CompilationAdditionalTreeRuntimeRequirements = 17,
-  CompilationRuntimeRequirementInTree = 18,
-  CompilationRuntimeModule = 19,
-  CompilationChunkHash = 20,
-  CompilationChunkAsset = 21,
-  CompilationProcessAssets = 22,
-  CompilationAfterProcessAssets = 23,
-  CompilationSeal = 24,
-  CompilationAfterSeal = 25,
-  NormalModuleFactoryBeforeResolve = 26,
-  NormalModuleFactoryFactorize = 27,
-  NormalModuleFactoryResolve = 28,
-  NormalModuleFactoryAfterResolve = 29,
-  NormalModuleFactoryCreateModule = 30,
-  NormalModuleFactoryResolveForScheme = 31,
-  ContextModuleFactoryBeforeResolve = 32,
-  ContextModuleFactoryAfterResolve = 33,
-  JavascriptModulesChunkHash = 34,
-  HtmlPluginBeforeAssetTagGeneration = 35,
-  HtmlPluginAlterAssetTags = 36,
-  HtmlPluginAlterAssetTagGroups = 37,
-  HtmlPluginAfterTemplateExecution = 38,
-  HtmlPluginBeforeEmit = 39,
-  HtmlPluginAfterEmit = 40,
-  RuntimePluginCreateScript = 41,
-  RuntimePluginCreateLink = 42,
-  RuntimePluginLinkPreload = 43,
-  RuntimePluginLinkPrefetch = 44,
-  RsdoctorPluginModuleGraph = 45,
-  RsdoctorPluginChunkGraph = 46,
-  RsdoctorPluginModuleIds = 47,
-  RsdoctorPluginModuleSources = 48,
-  RsdoctorPluginAssets = 49
+  CompilationBeforeModuleIds = 17,
+  CompilationAdditionalTreeRuntimeRequirements = 18,
+  CompilationRuntimeRequirementInTree = 19,
+  CompilationRuntimeModule = 20,
+  CompilationChunkHash = 21,
+  CompilationChunkAsset = 22,
+  CompilationProcessAssets = 23,
+  CompilationAfterProcessAssets = 24,
+  CompilationSeal = 25,
+  CompilationAfterSeal = 26,
+  NormalModuleFactoryBeforeResolve = 27,
+  NormalModuleFactoryFactorize = 28,
+  NormalModuleFactoryResolve = 29,
+  NormalModuleFactoryAfterResolve = 30,
+  NormalModuleFactoryCreateModule = 31,
+  NormalModuleFactoryResolveForScheme = 32,
+  ContextModuleFactoryBeforeResolve = 33,
+  ContextModuleFactoryAfterResolve = 34,
+  JavascriptModulesChunkHash = 35,
+  HtmlPluginBeforeAssetTagGeneration = 36,
+  HtmlPluginAlterAssetTags = 37,
+  HtmlPluginAlterAssetTagGroups = 38,
+  HtmlPluginAfterTemplateExecution = 39,
+  HtmlPluginBeforeEmit = 40,
+  HtmlPluginAfterEmit = 41,
+  RuntimePluginCreateScript = 42,
+  RuntimePluginCreateLink = 43,
+  RuntimePluginLinkPreload = 44,
+  RuntimePluginLinkPrefetch = 45,
+  RsdoctorPluginModuleGraph = 46,
+  RsdoctorPluginChunkGraph = 47,
+  RsdoctorPluginModuleIds = 48,
+  RsdoctorPluginModuleSources = 49,
+  RsdoctorPluginAssets = 50
 }
 
 export interface RegisterJsTaps {
@@ -3022,6 +3169,7 @@ export interface RegisterJsTaps {
   registerCompilationAfterOptimizeModulesTaps: (stages: Array<number>) => Array<{ function: (() => void); stage: number; }>
   registerCompilationOptimizeTreeTaps: (stages: Array<number>) => Array<{ function: (() => Promise<void>); stage: number; }>
   registerCompilationOptimizeChunkModulesTaps: (stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>
+  registerCompilationBeforeModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>
   registerCompilationChunkHashTaps: (stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>
   registerCompilationChunkAssetTaps: (stages: Array<number>) => Array<{ function: ((arg: JsChunkAssetArgs) => void); stage: number; }>
   registerCompilationProcessAssetsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCompilation) => Promise<void>); stage: number; }>
@@ -3148,7 +3296,7 @@ export interface TsconfigOptions {
    */
   configFile: string
   /**
-   * Support for Typescript Project References.
+   * Support for TypeScript Project References.
    *
    * * `'auto'`: use the `references` field from tsconfig of `config_file`.
    * * `string[]`: manually provided relative or absolute path.

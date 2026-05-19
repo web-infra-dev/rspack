@@ -55,7 +55,12 @@ rustflags = [
 [target.wasm32-wasip1-threads]
 rustflags = [
   "-C",
-  "target-feature=+simd128", 
+  "target-feature=+simd128",
+  "-C",
+  # Set initial and max memory to 2GB to disable memory.grow at runtime.
+  # The allocator uses this link-time value to decide whether to call memory.grow,
+  # so it must match the runtime initial pages to ensure memory.grow is never called.
+  "link-args=--initial-memory=2147483648 --max-memory=2147483648",
   "--cfg", "tokio_unstable"
 ]
 

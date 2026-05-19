@@ -1,0 +1,47 @@
+```mjs title=async1.mjs
+
+// ./async1.js
+
+
+
+export { value } from "./lib_js.mjs";
+
+```
+
+```mjs title=async2.mjs
+
+// ./async2.js
+
+
+
+export { value } from "./lib_js.mjs";
+
+```
+
+```mjs title=lib_js.mjs
+// ./lib.js
+const value = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+import { value } from "./lib_js.mjs";
+
+// ./index2.js
+
+
+const {value: valueAsync1} = await import("./async1.mjs");
+
+
+it('should have correct value', async () => {
+  expect(value).toBe(valueAsync1);
+  const {value: valueAsync2} = await import("./async2.mjs");
+  expect(valueAsync1).toBe(valueAsync2);
+  expect(value()).toBe(42);
+})
+// ./index.js
+
+export {};
+
+```

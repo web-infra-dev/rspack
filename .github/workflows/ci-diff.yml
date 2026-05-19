@@ -17,9 +17,17 @@ on:
       - '**/*.md'
       - 'website/**'
 
+  workflow_dispatch:
+    inputs:
+      target_branch:
+        description: 'Target branch to compare against'
+        required: false
+        default: 'main'
+        type: string
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.ref_name != 'main' && github.ref_name != 'v1.x' }}
 
 permissions:
   # Allow commenting on issues for `reusable-build.yml`
@@ -35,8 +43,6 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
       test: false
-      bench: false
-      prefer_docker: false
       ref: ${{ github.event.pull_request.head.sha }}
 
   diff-projects:
@@ -48,7 +54,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -66,7 +72,7 @@ jobs:
           node-version: 24
 
       - name: Pnpm Install
-        uses: ./.github/actions/pnpm/install-dependencies
+        run: pnpm i
 
       - name: Build JS
         run: pnpm run build:js
@@ -83,15 +89,15 @@ jobs:
           npm pkg set "devDependencies.@rspack/core=link:../rspack/packages/rspack"
           npm pkg set "devDependencies.@rspack/cli=link:../rspack/packages/rspack-cli"
           # Use --no-frozen-lockfile to allow updating lockfile after modifying package.json
-          pnpm install --no-frozen-lockfile
+          pnpm i --no-frozen-lockfile
 
       - name: Build cases
         working-directory: ../build-tools-performance
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@5b30d999c6e0a7840df1445d222b020ef282ed6f
+        uses: web-infra-dev/rsdoctor-action@d3a7ae073bc63dcc4a16fba339414cbf4f9c476c
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
-          target_branch: 'main'
+          target_branch: ${{ inputs.target_branch || 'main' }}

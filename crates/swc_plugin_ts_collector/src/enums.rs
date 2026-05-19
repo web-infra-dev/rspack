@@ -20,6 +20,7 @@ type EnumKeyValueMap = FxHashMap<Wtf8Atom, EnumMemberValue>;
 pub struct ExportedEnumCollector<'a> {
   const_only: bool,
   export_idents: FxHashSet<Atom>,
+  bailout_idents: FxHashSet<Atom>,
   unresolved_ctxt: SyntaxContext,
   collected: &'a mut FxHashMap<Atom, EnumKeyValueMap>,
 }
@@ -40,9 +41,15 @@ impl<'a> ExportedEnumCollector<'a> {
     Self {
       const_only,
       export_idents: Default::default(),
+      bailout_idents: Default::default(),
       unresolved_ctxt,
       collected,
     }
+  }
+
+  fn bailout(&mut self, id: &Atom) {
+    self.bailout_idents.insert(id.clone());
+    self.collected.remove(id);
   }
 
   fn collect(&mut self, enum_decl: &TsEnumDecl) {
@@ -50,6 +57,9 @@ impl<'a> ExportedEnumCollector<'a> {
       return;
     }
     let enum_id = &enum_decl.id.sym;
+    if self.bailout_idents.contains(enum_id) {
+      return;
+    }
     // remove existing enum members for enum merging
     let mut enum_members = self.collected.remove(enum_id).unwrap_or_default();
     // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/js_parser/js_parser.go#L11263-L11320
@@ -100,14 +110,14 @@ impl<'a> ExportedEnumCollector<'a> {
       {
         EnumMemberValue::Number(f64::INFINITY)
       }
-      Expr::Ident(ident) => existing_enum_members
-        .get(ident.sym.borrow())
-        .map(|value| match value {
+      Expr::Ident(ident) => existing_enum_members.get(ident.sym.borrow()).map_or_else(
+        || EnumMemberValue::Unknown,
+        |value| match value {
           EnumMemberValue::String(s) => EnumMemberValue::String(s.clone()),
           EnumMemberValue::Number(n) => EnumMemberValue::Number(*n),
           _ => EnumMemberValue::Unknown,
-        })
-        .unwrap_or_else(|| EnumMemberValue::Unknown),
+        },
+      ),
       Expr::Paren(e) => self.evaluate_expr(&e.expr, enum_id, existing_enum_members),
       Expr::Unary(e) => self.evaluate_unary(e, enum_id, existing_enum_members),
       Expr::Bin(e) => self.evaluate_bin(e, enum_id, existing_enum_members),
@@ -293,7 +303,7 @@ fn js_number_to_uint32(n: f64) -> u32 {
   }
 
   // pow(2, 32) = 4294967296
-  n.trunc().rem_euclid(4294967296.0) as u32
+  n.trunc().rem_euclid(4_294_967_296.0) as u32
 }
 
 fn js_number_to_int32(n: f64) -> i32 {
@@ -307,6 +317,15 @@ impl Visit for ExportedEnumCollector<'_> {
     };
     for decl in node.body.iter().filter_map(|item| item.as_module_decl()) {
       match decl {
+        // bailout for `export namespace Enum {}`
+        ModuleDecl::ExportDecl(ExportDecl {
+          decl: Decl::TsModule(module_decl),
+          ..
+        }) => {
+          if let Some(id) = module_decl.id.as_ident() {
+            self.bailout(&id.sym);
+          }
+        }
         ModuleDecl::ExportDecl(ExportDecl {
           decl: Decl::TsEnum(enum_decl),
           ..
@@ -318,16 +337,13 @@ impl Visit for ExportedEnumCollector<'_> {
             return;
           }
           for specifier in &named_export.specifiers {
-            match specifier {
-              ExportSpecifier::Named(specifier) => {
-                if specifier.is_type_only {
-                  continue;
-                }
-                self
-                  .export_idents
-                  .insert(specifier.orig.atom().into_owned());
+            if let ExportSpecifier::Named(specifier) = specifier {
+              if specifier.is_type_only {
+                continue;
               }
-              _ => continue,
+              self
+                .export_idents
+                .insert(specifier.orig.atom().into_owned());
             }
           }
         }

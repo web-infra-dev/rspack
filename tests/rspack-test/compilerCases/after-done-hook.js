@@ -104,9 +104,8 @@ module.exports = [(() => {
     },
   }
 })(), (() => {
-  const instanceCb = rstest.fn();
+  const afterDoneHookCb = rstest.fn();
   const doneHookCb = rstest.fn();
-  let rejection = null;
   return {
     description: "should call afterDone hook after other callbacks (instance cb)",
     options(context) {
@@ -114,25 +113,16 @@ module.exports = [(() => {
         entry: "./c",
       };
     },
-    compilerCallback(err, stats) {
-      if (err) {
-        rejection(err);
-      };
-      instanceCb();
+    compilerCallback() {
+      expect(doneHookCb).toHaveBeenCalled();
+      expect(afterDoneHookCb).toHaveBeenCalled();
     },
     async compiler(context, compiler) {
       compiler.outputFileSystem = createFsFromVolume(new Volume());
       compiler.hooks.done.tap("afterDoneRunTest", doneHookCb);
     },
     async build(context, compiler) {
-      return new Promise((resolve, reject) => {
-        rejection = reject;
-        compiler.hooks.afterDone.tap("afterDoneRunTest", () => {
-          expect(instanceCb).toHaveBeenCalled();
-          expect(doneHookCb).toHaveBeenCalled();
-          resolve();
-        });
-      });
-    },
+      compiler.hooks.afterDone.tap("afterDoneRunTest", afterDoneHookCb);
+    }
   };
 })()];

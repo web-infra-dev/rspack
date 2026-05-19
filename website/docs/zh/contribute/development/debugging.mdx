@@ -1,3 +1,7 @@
+---
+description: '其他工具集成的一般是 Rspack 的 release 版本，其中并不包含调试信息，这时候需要使用对应的含有debug 的版本进行override替换，方可调试。'
+---
+
 # Debugging
 
 ## 通过 VS Code 调试
@@ -10,6 +14,34 @@
 :::note
 其他工具集成的一般是 Rspack 的 release 版本，其中并不包含调试信息，这时候需要使用对应的含有debug 的版本进行override替换，方可调试。
 :::
+
+## 使用 `@rspack-debug/core`
+
+集成 Rspack 的框架或工具通常依赖 release 版本的 `@rspack/core`。release 包适合正常构建，但不包含部分仅用于调试的能力。当你需要在本地排查问题时，可以在实际执行构建的项目中通过 package manager override 将 `@rspack/core` 替换为 `@rspack-debug/core`。
+
+以 pnpm 为例：
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+然后重新安装依赖，并继续运行原来的构建命令。例如项目通过 Rsbuild 构建时：
+
+```bash
+pnpm install
+RSPACK_PROFILE=OVERVIEW RSPACK_TRACE_LAYER=perfetto rsbuild build
+```
+
+`@rspack-debug/core` 仅建议用于本地调试和问题诊断。如果正在排查特定版本的问题，建议将它固定到与原 `@rspack/core` 相同的版本；排查结束后应移除 override。
 
 ### 常见调试场景指南
 

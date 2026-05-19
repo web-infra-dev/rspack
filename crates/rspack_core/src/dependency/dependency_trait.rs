@@ -12,9 +12,9 @@ use super::{
   dependency_template::AsDependencyCodeGeneration, module_dependency::*,
 };
 use crate::{
-  AsContextDependency, ConnectionState, Context, ExtendedReferencedExport, ForwardId,
-  ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer,
-  RuntimeSpec, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ExtendedReferencedExport,
+  ForwardId, ImportAttributes, ImportPhase, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Clone, Copy)]
@@ -67,6 +67,7 @@ pub trait Dependency:
     &self,
     _mg: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     None
   }
@@ -75,6 +76,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -101,6 +103,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     None
   }
@@ -109,6 +112,7 @@ pub trait Dependency:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     create_exports_object_referenced()
@@ -123,6 +127,8 @@ pub trait Dependency:
   fn lazy(&self) -> Option<LazyUntil> {
     None
   }
+
+  fn set_lazy(&mut self) {}
 
   fn unset_lazy(&mut self) -> bool {
     false

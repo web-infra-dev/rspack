@@ -49,6 +49,7 @@
   "cSpell.words": [
     "contextify",
     "Ctxt",
+    "dedupe",
     "Deque",
     "ecma",
     "napi",
@@ -56,12 +57,18 @@
     "pxtorem",
     "rslib",
     "Rslib",
+    "rslint",
     "rspack",
     "rstack",
     "rstackjs",
+    "rstest",
+    "taplo",
     "threejs",
     "tokio",
     "ukey",
     "Ukey"
-  ]
+  ],
+  "[rust]": {
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+  }
 }

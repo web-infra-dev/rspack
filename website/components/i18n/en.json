@@ -11,7 +11,6 @@
   "css-minimizer-webpack-plugin-desc": "Rspack provides [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) to deliver better performance",
   "tsconfig-paths-webpack-plugin-desc": "Use [resolve.tsConfig](/config/resolve#resolvetsconfig) instead",
   "pnp-webpack-plugin-desc": "Use [resolve.pnp](/config/resolve#resolvepnp) instead",
-  "image-minimizer-webpack-plugin-desc": "Only supports using [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) standalone",
   "case-sensitive-paths-webpack-plugin-desc": "`useBeforeEmitHook` option not supported",
   "moment-locales-webpack-plugin-desc": "Support for this plugin was implemented in v0.7.0, please upgrade the Rspack version to use it",
   "resolve-plugin-un-support-desc": "`resolve.plugins` option not supported",

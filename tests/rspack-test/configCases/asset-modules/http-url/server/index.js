@@ -37,7 +37,6 @@ function createServer() {
 		);
 		res.end(file);
 	});
-	server.unref();
 	return server;
 }
 

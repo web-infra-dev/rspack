@@ -2,8 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -62,6 +62,7 @@ impl Dependency for RequireContextDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);
@@ -151,6 +152,6 @@ impl DependencyTemplate for RequireContextDependencyTemplate {
 
     let content =
       runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
-    source.replace(dep.range.start, dep.range.end, &content, None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

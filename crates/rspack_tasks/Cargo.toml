@@ -14,3 +14,7 @@ version.workspace       = true
 tokio = { workspace = true }
 [lints]
 workspace = true
+
+[lib]
+doctest = false
+test    = false

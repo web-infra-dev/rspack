@@ -1,7 +1,5 @@
 use super::{Cache, memory::MemoryCache, persistent::PersistentCache};
-use crate::{
-  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::Compilation;
 
 /// Mixed cache implementation
 ///
@@ -50,29 +48,16 @@ impl Cache for MixedCache {
   }
 
   // BUILD_MODULE_GRAPH hooks
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
     // First try memory cache (for rebuild)
-    self
-      .memory
-      .before_build_module_graph(make_artifact, incremental)
-      .await;
+    self.memory.before_build_module_graph(compilation).await;
     // Then try persistent cache (for initial build)
-    self
-      .persistent
-      .before_build_module_graph(make_artifact, incremental)
-      .await;
+    self.persistent.before_build_module_graph(compilation).await;
   }
 
-  async fn after_build_module_graph(&self, make_artifact: &BuildModuleGraphArtifact) {
+  async fn after_build_module_graph(&mut self, compilation: &Compilation) {
     // Save to persistent cache
-    self
-      .persistent
-      .after_build_module_graph(make_artifact)
-      .await;
+    self.persistent.after_build_module_graph(compilation).await;
   }
 
   // FINISH_MODULES hooks
@@ -109,8 +94,25 @@ impl Cache for MixedCache {
     self.persistent.before_build_chunk_graph(compilation).await;
   }
 
-  async fn after_build_chunk_graph(&self, compilation: &Compilation) {
+  async fn after_build_chunk_graph(&mut self, compilation: &mut Compilation) {
+    self.memory.after_build_chunk_graph(compilation).await;
     self.persistent.after_build_chunk_graph(compilation).await;
+  }
+
+  // OPTIMIZE_CHUNK_MODULES hooks
+  async fn before_optimize_chunk_modules(&mut self, compilation: &mut Compilation) {
+    self.memory.before_optimize_chunk_modules(compilation).await;
+    self
+      .persistent
+      .before_optimize_chunk_modules(compilation)
+      .await;
+  }
+
+  async fn after_optimize_chunk_modules(&self, compilation: &Compilation) {
+    self
+      .persistent
+      .after_optimize_chunk_modules(compilation)
+      .await;
   }
 
   // MODULE_IDS hooks
@@ -211,6 +213,15 @@ impl Cache for MixedCache {
     self.persistent.after_chunk_asset(compilation).await;
   }
 
+  // PROCESS_ASSETS hooks
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    self.persistent.before_process_assets(compilation).await;
+  }
+
+  async fn after_process_assets(&mut self, compilation: &Compilation) {
+    self.persistent.after_process_assets(compilation).await;
+  }
+
   // EMIT_ASSETS hooks
   async fn before_emit_assets(&mut self, compilation: &mut Compilation) {
     self.memory.before_emit_assets(compilation).await;
@@ -219,5 +230,9 @@ impl Cache for MixedCache {
 
   async fn after_emit_assets(&self, compilation: &Compilation) {
     self.persistent.after_emit_assets(compilation).await;
+  }
+
+  async fn close(&self) {
+    self.persistent.close().await;
   }
 }

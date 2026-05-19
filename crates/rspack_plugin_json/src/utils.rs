@@ -20,13 +20,13 @@ pub fn escape_json(input: &str) -> Cow<'_, str> {
     // "\u2028\u2029\u2028"
     // ```
     // The final vec would be `[(0, '\u{2028}'),(2, '\u{2028}'),(1, '\u{2029}'),]`
-    vec.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+    vec.sort_unstable_by_key(|a| a.0);
     // Length of `\u2028` and `\u2029` are both 3 , and would be replaced by raw string `r#"\\u2028"#` or `r#"\\u2029"#`
     // which length is 7.That's why we need to allocate extra `vec.len() * (7 - 3)` bytes.
     let mut ret = String::with_capacity(input.len() + vec.len() * 4);
     let mut last = 0;
     // The replace algorithm is copied from rust std lib https://doc.rust-lang.org/src/alloc/str.rs.html#288
-    for (i, str) in vec.into_iter() {
+    for (i, str) in vec {
       ret.push_str(unsafe { input.get_unchecked(last..i) });
       ret.push_str(if str == "\u{2028}" { U2028 } else { U2029 });
       last = i + ESCAPE_STRING_LENGTH;

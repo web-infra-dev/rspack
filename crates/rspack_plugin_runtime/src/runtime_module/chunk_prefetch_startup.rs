@@ -1,15 +1,21 @@
+use std::sync::LazyLock;
+
 use itertools::Itertools;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
+
+use crate::extract_runtime_globals_from_ejs;
+
+static CHUNK_PREFETCH_STARTUP_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_startup.ejs");
+static CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_STARTUP_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct ChunkPrefetchStartupRuntimeModule {
-  id: Identifier,
   startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
-  chunk: Option<ChunkUkey>,
 }
 
 impl ChunkPrefetchStartupRuntimeModule {
@@ -17,35 +23,24 @@ impl ChunkPrefetchStartupRuntimeModule {
     runtime_template: &RuntimeTemplate,
     startup_chunks: Vec<(Vec<ChunkUkey>, Vec<ChunkUkey>)>,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}chunk_prefetch_startup",
-        runtime_template.runtime_module_prefix()
-      )),
-      startup_chunks,
-      None,
-    )
+    Self::with_default(runtime_template, startup_chunks)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
-      include_str!("runtime/chunk_prefetch_startup.ejs").to_string(),
+      CHUNK_PREFETCH_STARTUP_TEMPLATE.to_string(),
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     let chunk_ukey = self.chunk.expect("chunk do not attached");
 
     let source = self
@@ -57,6 +52,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           .filter_map(|c| {
             if c.to_owned().eq(&chunk_ukey) {
               compilation
+                .build_chunk_graph_artifact
                 .chunk_by_ukey
                 .expect_get(c)
                 .id()
@@ -70,13 +66,14 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           .iter()
           .filter_map(|c| {
             compilation
+              .build_chunk_graph_artifact
               .chunk_by_ukey
               .expect_get(c)
               .id()
           })
           .collect_vec();
 
-        let source = compilation.runtime_template.render(
+        let source = context.runtime_template.render(
           &self.id,
           Some(serde_json::json!({
             "_chunk_ids": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
@@ -94,5 +91,9 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    *CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS
   }
 }

@@ -1,13 +1,13 @@
-const { CaseSensitivePlugin } = require("@rspack/core");
+const { CaseSensitivePlugin } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	entry: {
-		a: "./index.js?1",
-		A: "./index.js?2"
-	},
-	output: {
-		filename: "[name].js"
-	},
-	plugins: [new CaseSensitivePlugin()]
+  entry: {
+    a: './index.js?1',
+    A: './index.js?2',
+  },
+  output: {
+    filename: '[name].js',
+  },
+  plugins: [new CaseSensitivePlugin()],
 };

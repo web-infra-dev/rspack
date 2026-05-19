@@ -1,5 +1,6 @@
 ---
-date: 2025-1-21 16:00:00
+description: 'Rspack 1.2 has been released, introducing experimental persistent caching, a faster code splitting algorithm, and Yarn PnP support.'
+date: 2025-01-21 16:00:00
 sidebar: false
 ---
 
@@ -139,7 +140,7 @@ new rspack.SwcJsMinimizerRspackPlugin({
 });
 ```
 
-[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
+[passes](https://swc.rs/docs/configuration/minification#jscminifycompress) is the maximum number of times to run compress. In some cases, more than one pass leads to further compressed code. Given Rspack's inherent speed, we've determined that using `2` passes by default strikes an optimal balance between build performance and bundle size.
 
 > See [feat: set default SWC minimizer passes to 2 to reduce bundle size](https://github.com/web-infra-dev/rspack/pull/8853) for more details.
 
@@ -157,7 +158,7 @@ Nx team core member [Colum Ferry](https://github.com/Coly010) has brought comple
 
 With the newly released `@ng-rsbuild/plugin-angular` and `@ng-rspack/build` packages, developers can now use Rspack or Rsbuild to build Angular applications, with faster build performance and module federation support.
 
-Please visit [Angular Rspack](https://github.com/nrwl/angular-rspack) for more information.
+Please visit [Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack) for more information.
 
 ### Rsbuild v1.2
 

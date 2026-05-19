@@ -1,5 +1,5 @@
 module.exports = {
-	output: {
-		clean: false
-	}
+  output: {
+    clean: false,
+  },
 };

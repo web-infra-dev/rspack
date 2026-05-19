@@ -52,7 +52,7 @@ production:
     ./dz.js xx bytes [built] [code generated]
     ./module.js?chunk xx bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
-  runtime modules xx KiB 20 modules
+  runtime modules xx KiB 18 modules
   cacheable modules xx KiB
     ./a.js xx bytes [built] [code generated]
       [no exports used]
@@ -129,7 +129,7 @@ development:
       [used exports unknown]
     ./module.js?chunk xx bytes [dependent] [built] [code generated]
       [used exports unknown]
-  runtime modules xx KiB 20 modules
+  runtime modules xx KiB 18 modules
   cacheable modules xx KiB
     ./a.js xx bytes [built] [code generated]
       [used exports unknown]
@@ -206,7 +206,7 @@ global:
     ./dz.js xx bytes [built] [code generated]
     ./module.js?chunk xx bytes [dependent] [built] [code generated]
       [only some exports used: identity, w, x, y, z]
-  runtime modules xx KiB 20 modules
+  runtime modules xx KiB 18 modules
   cacheable modules xx KiB
     ./a.js xx bytes [built] [code generated]
       [no exports used]

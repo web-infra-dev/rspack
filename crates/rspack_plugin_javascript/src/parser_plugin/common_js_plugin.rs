@@ -9,6 +9,7 @@ use crate::{
 
 pub struct CommonJsPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for CommonJsPlugin {
   fn evaluate_identifier(
     &self,
@@ -40,7 +41,6 @@ impl JavascriptParserPlugin for CommonJsPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "'object'".into(),
-        None,
       )));
       Some(true)
     } else {
@@ -55,26 +55,18 @@ impl JavascriptParserPlugin for CommonJsPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module.id" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_ID,
       )));
-      parser.build_info.module_concatenation_bailout = Some(
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_ID),
-      );
+      parser.build_info.module_concatenation_bailout = Some(for_name.to_string());
       return Some(true);
     }
 
     if for_name == "module.loaded" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::MODULE_LOADED,
       )));
-      parser.build_info.module_concatenation_bailout = Some(
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_LOADED),
-      );
+      parser.build_info.module_concatenation_bailout = Some(for_name.to_string());
       return Some(true);
     }
 

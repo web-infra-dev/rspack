@@ -1,12 +1,12 @@
-const path = require("path");
+const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	context: __dirname,
-	cache: {
-		type: "persistent",
-		snapshot: {
-			managedPaths: [path.join(__dirname, "./test_lib")]
-		}
-	}
+  context: __dirname,
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      managedPaths: [path.join(__dirname, './test_lib')],
+    },
+  },
 };

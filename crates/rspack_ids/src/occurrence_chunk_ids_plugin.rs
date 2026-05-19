@@ -1,15 +1,15 @@
-use std::collections::HashMap;
-
 use itertools::Itertools;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin,
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
+use rustc_hash::FxHashMap as HashMap;
 
-use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
+use crate::id_helpers::{
+  NaturalChunkCompareCache, assign_ascending_chunk_ids, compare_chunks_natural,
+};
 
 #[derive(Debug)]
 pub struct OccurrenceChunkIdsPluginOptions {
@@ -45,9 +45,9 @@ async fn chunk_ids(
     diagnostics.push(diagnostic);
   }
 
-  let chunk_graph = &compilation.chunk_graph;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-  let mut occurs_in_initial_chunks_map = HashMap::new();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  let mut occurs_in_initial_chunks_map = HashMap::default();
 
   for chunk in chunk_by_ukey.values() {
     let mut occurs = 0;
@@ -65,7 +65,7 @@ async fn chunk_ids(
     occurs_in_initial_chunks_map.insert(chunk.ukey(), occurs);
   }
 
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
   let chunks = chunk_by_ukey
     .values()
     .map(|chunk| chunk as &Chunk)
@@ -86,11 +86,11 @@ async fn chunk_ids(
 
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,
-        &mut ordered_chunk_modules_cache,
+        &mut chunk_compare_cache,
       )
     })
     .map(|chunk| chunk.ukey())

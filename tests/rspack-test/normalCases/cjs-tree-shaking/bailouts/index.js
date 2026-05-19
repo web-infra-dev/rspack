@@ -28,9 +28,10 @@ it("should not mangle or remove nested properties", () => {
 });
 
 it("should be able to access the exports via call context", () => {
-	expect(require("./accessing-call-context?1").func().abc).toBe("abc");
-	var cc = require("./accessing-call-context?2");
-	expect(cc.func().abc).toBe("abc");
+	// We have different design about strictThisContextOnImports, this should covered by tests/rspack-test/configCases/parsing/statical-require-this
+	// expect(require("./accessing-call-context?1").func().abc).toBe("abc");
+	// var cc = require("./accessing-call-context?2");
+	// expect(cc.func().abc).toBe("abc");
 	var func = require("./accessing-call-context?3").func;
 	expect(func()).toBe(undefined);
 });

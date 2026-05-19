@@ -10,24 +10,7 @@ var installChunk = <%- basicFunction("data") %> {
     while (chunkIds.length) installedChunks[chunkIds.pop()] = 1;
     parentChunkLoadingFunction(data);
 };
-<% if (_with_loading) { %>
-<%- ENSURE_CHUNK_HANDLERS %>.i = <%- basicFunction("chunkId, promises") %> {
-    <% if (_js_matcher == "false") { %>
-    installedChunks[chunkId] = 1;
-    <% } else { %>
-    // "1" is the signal for "already loaded
-    if (!installedChunks[chunkId]) {
-        if (<%- _js_matcher %>) {
-            <% if (_with_create_script_url) { %>
-            importScripts(<%- CREATE_SCRIPT_URL %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
-            <% } else { %>
-            importScripts(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId));
-            <% } %>
-        }
-    }
-    <% } %>
-};
-<% } %>
+
 var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
 var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);
 chunkLoadingGlobal.push = installChunk;

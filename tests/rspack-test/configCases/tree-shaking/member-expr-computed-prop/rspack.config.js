@@ -1,8 +1,8 @@
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
-	context: __dirname,
+  context: __dirname,
 
-	optimization: {
-		sideEffects: true
-	}
+  optimization: {
+    sideEffects: true,
+  },
 };

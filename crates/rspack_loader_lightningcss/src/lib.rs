@@ -4,6 +4,7 @@ use std::{
 };
 
 use config::Config;
+use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
@@ -15,7 +16,10 @@ use lightningcss::{
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
-  rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings},
+  rspack_sources::{
+    MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
+    SourceMapSourceOptions, encode_mappings,
+  },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::Identifier;
@@ -146,14 +150,16 @@ impl LightningCssLoader {
         .config
         .include
         .as_ref()
-        .map(|include| Features::from_bits_truncate(*include))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |include| {
+          Features::from_bits_truncate(*include)
+        }),
       exclude: self
         .config
         .exclude
         .as_ref()
-        .map(|exclude| Features::from_bits_truncate(*exclude))
-        .unwrap_or(Features::empty()),
+        .map_or(Features::empty(), |exclude| {
+          Features::from_bits_truncate(*exclude)
+        }),
     };
 
     let unused_symbols = self
@@ -170,31 +176,11 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let mut source_map = if loader_context.context.source_map_kind.enabled() {
-      Some(
-        loader_context
-          .source_map()
-          .map(|input_source_map| -> Result<_> {
-            let mut sm = parcel_sourcemap::SourceMap::new(
-              input_source_map
-                .source_root()
-                .unwrap_or(&loader_context.context.options.context),
-            );
-            sm.add_source(&filename);
-            sm.set_source_content(0, &content_str).to_rspack_result()?;
-            Ok(sm)
-          })
-          .transpose()?
-          .unwrap_or_else(|| {
-            let mut source_map =
-              parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-            let source_idx = source_map.add_source(&filename);
-            source_map
-              .set_source_content(source_idx as usize, &content_str)
-              .expect("should set source content");
-            source_map
-          }),
-      )
+    let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
+      let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
+      sm.add_source(&filename);
+      sm.set_source_content(0, &content_str).to_rspack_result()?;
+      Some(sm)
     } else {
       None
     };
@@ -202,7 +188,7 @@ impl LightningCssLoader {
     let content = stylesheet
       .to_css(PrinterOptions {
         minify: self.config.minify.unwrap_or(false),
-        source_map: source_map.as_mut(),
+        source_map: parcel_source_map.as_mut(),
         project_root: None,
         targets,
         analyze_dependencies: None,
@@ -220,36 +206,72 @@ impl LightningCssLoader {
       })
       .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
-    if let Some(source_map) = source_map {
-      let mappings = encode_mappings(source_map.get_mappings().iter().map(|mapping| Mapping {
-        generated_line: mapping.generated_line,
-        generated_column: mapping.generated_column,
-        original: mapping.original.map(|original| OriginalLocation {
-          source_index: original.source,
-          original_line: original.original_line,
-          original_column: original.original_column,
-          name_index: original.name,
-        }),
+    if let Some(parcel_source_map) = parcel_source_map {
+      let mappings = encode_mappings(parcel_source_map.get_mappings().iter().map(|mapping| {
+        // Parcel source map uses 0-based line numbers, while Rspack source map uses 1-based
+        Mapping {
+          generated_line: mapping.generated_line + 1,
+          generated_column: mapping.generated_column,
+          original: mapping.original.map(|original| OriginalLocation {
+            source_index: original.source,
+            original_line: original.original_line + 1,
+            original_column: original.original_column,
+            name_index: original.name,
+          }),
+        }
       }));
+
+      let mut posix_context = loader_context
+        .context
+        .options
+        .context
+        .cow_replace("\\", "/");
+      if !posix_context.ends_with('/') {
+        posix_context.to_mut().push('/');
+      }
+      let posix_context = posix_context.into_owned();
+
       let rspack_source_map = SourceMap::new(
         mappings,
-        source_map
+        // Parcel stores sources relative to project_root, while Rspack source maps
+        // use absolute module paths for downstream loader/plugin handling.
+        parcel_source_map
           .get_sources()
           .iter()
-          .map(ToString::to_string)
+          .map(|source| {
+            if source.starts_with('/') || source.contains(':') {
+              source.clone()
+            } else {
+              let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
+              absolute_source.push_str(&posix_context);
+              absolute_source.push_str(source);
+              absolute_source
+            }
+          })
           .collect::<Vec<_>>(),
-        source_map
+        parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Arc::from(source_content.to_string()))
+          .map(|source_content| Arc::from(source_content.clone()))
           .collect::<Vec<_>>(),
-        source_map
+        parcel_source_map
           .get_names()
           .iter()
           .map(ToString::to_string)
           .collect::<Vec<_>>(),
       );
-      loader_context.finish_with((content.code, rspack_source_map));
+
+      let posix_name = filename.cow_replace("\\", "/");
+      let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
+        value: content.code.clone(),
+        name: posix_name,
+        source_map: rspack_source_map,
+        original_source: None,
+        inner_source_map: loader_context.take_source_map(),
+        remove_original_source: false,
+      });
+      let source_map = source_map_source.map(&ObjectPool::default(), &MapOptions::default());
+      loader_context.finish_with((content.code, source_map));
     } else {
       loader_context.finish_with(content.code);
     }

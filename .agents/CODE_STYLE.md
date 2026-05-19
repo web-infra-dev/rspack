@@ -105,8 +105,8 @@ let result = str.cow_replace("old", "new");
 
 ### TS/JS Formatting
 
-- Use Prettier (configured in `biome.jsonc`)
-- Use Biome for linting
+- Use Prettier
+- Use Rslint for linting
 - **Indentation**: Tabs
 - **Semicolons**: Use semicolons
 - **Quotes**: Double quotes
@@ -249,8 +249,8 @@ packages/xxx/
 
 - **Rust formatting**: `cargo fmt`
 - **Rust linting**: `cargo clippy`
-- **TypeScript formatting**: Prettier (via Biome)
-- **TypeScript linting**: Biome
+- **TypeScript formatting**: Prettier
+- **TypeScript linting**: Rslint
 - **Type checking**: TypeScript compiler
 
 ## Resources
@@ -258,4 +258,3 @@ packages/xxx/
 - [Rust API Guidelines](https://rust-lang.github.io/api-guidelines/)
 - [Rust Book](https://doc.rust-lang.org/book/)
 - [TypeScript Handbook](https://www.typescriptlang.org/docs/handbook/intro.html)
-- [Biome Documentation](https://biomejs.dev/)

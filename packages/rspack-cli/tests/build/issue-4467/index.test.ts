@@ -1,7 +1,9 @@
 import path from 'path';
 import { run } from '../../utils/test-utils';
 
-it.concurrent('should not print the warning for child compiler', async () => {
+const test = process.env.WASM ? it : it.concurrent;
+
+test('should not print the warning for child compiler', async () => {
   const cwd = path.resolve(__dirname, './child');
   const { exitCode, stderr } = await run(
     cwd,
@@ -15,7 +17,7 @@ it.concurrent('should not print the warning for child compiler', async () => {
   expect(stderr).not.toContain('deprecated');
 });
 
-it.concurrent('should print the warning for root compiler', async () => {
+test('should print the warning for root compiler', async () => {
   const cwd = path.resolve(__dirname, './root');
   const { exitCode } = await run(
     cwd,

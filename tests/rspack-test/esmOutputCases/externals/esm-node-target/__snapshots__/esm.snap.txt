@@ -1,0 +1,29 @@
+```mjs title=main.mjs
+import { resolve } from "path";
+
+// path
+
+// fs
+
+// ./index.js
+
+
+
+it("should externalize node builtins with correct external types", async () => {
+	const main = await import(/* webpackIgnore: true */ "./main.mjs");
+	const nodePath = await import(/* webpackIgnore: true */ "path");
+	const nodeFs = await import(/* webpackIgnore: true */ "fs");
+
+	// esm import should use "module" external type
+	expect(resolve).toBe(nodePath.resolve);
+	// esm re-export should use "module" external type
+	expect(main.readFileSync).toBe(nodeFs.readFileSync);
+
+	// dynamic import should use "import" external type
+	const dynamicOs = await import("os");
+	expect(dynamicOs.platform).toBeDefined();
+});
+
+export { readFileSync } from "fs";
+
+```

@@ -1,4 +1,4 @@
-use std::{fmt::Display, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
@@ -17,10 +17,10 @@ use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
 
 #[inline]
-pub fn eval_source<T: Display>(
+pub fn eval_source(
   parser: &mut JavascriptParser,
   source: String,
-  error_title: T,
+  error_title: String,
 ) -> Option<BasicEvaluatedExpression<'static>> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(Arc::new(FileName::Anon), source);
@@ -33,7 +33,6 @@ pub fn eval_source<T: Display>(
   );
   match result {
     Err(err) => {
-      // Push the error to diagnostics
       let mut error = Error::from_string(
         Some(fm.src.clone().into_string()),
         err.span().real_lo() as usize,

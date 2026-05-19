@@ -11,16 +11,15 @@ mod chunk_render_cache_artifact;
 mod code_generate_cache_artifact;
 mod code_generation_results;
 mod dependencies_diagnostics_artifact;
+mod exports_info_artifact;
 mod imported_by_defer_modules_artifact;
 mod module_graph_cache_artifact;
 mod module_ids_artifact;
-mod module_static_cache_artifact;
 mod process_runtime_requirements_cache_artifact;
 mod side_effects_do_optimize_artifact;
+mod side_effects_state_artifact;
 
-use std::{mem, sync::Arc};
-
-use atomic_refcell::AtomicRefCell;
+use std::mem;
 
 use crate::incremental::{Incremental, IncrementalPasses};
 
@@ -36,8 +35,8 @@ pub trait ArtifactExt: Sized {
 
   /// Determines whether this artifact should be recovered from the previous compilation.
   ///
-  /// Returns `true` if the artifact's pass is empty (always recover) or if
-  /// the incremental system has readable mutations for this artifact's pass.
+  /// Returns `true` when the incremental system has readable mutations for
+  /// this artifact's pass.
   fn should_recover(incremental: &Incremental) -> bool {
     incremental.mutations_readable(Self::PASS)
   }
@@ -82,17 +81,6 @@ impl<T: ArtifactExt + Into<crate::BindingCell<T>>> ArtifactExt for crate::Bindin
   }
 }
 
-// Implementation for Arc<AtomicRefCell<T>> - used for shared artifacts
-impl<T: ArtifactExt> ArtifactExt for Arc<AtomicRefCell<T>> {
-  const PASS: IncrementalPasses = T::PASS;
-
-  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
-    if Self::should_recover(incremental) {
-      mem::swap(new, old);
-    }
-  }
-}
-
 pub use async_modules_artifact::AsyncModulesArtifact;
 pub(crate) use build_chunk_graph_artifact::use_code_splitting_cache;
 pub use build_chunk_graph_artifact::*;
@@ -107,9 +95,10 @@ pub use chunk_render_cache_artifact::ChunkRenderCacheArtifact;
 pub use code_generate_cache_artifact::CodeGenerateCacheArtifact;
 pub use code_generation_results::*;
 pub use dependencies_diagnostics_artifact::DependenciesDiagnosticsArtifact;
+pub use exports_info_artifact::ExportsInfoArtifact;
 pub use imported_by_defer_modules_artifact::ImportedByDeferModulesArtifact;
 pub use module_graph_cache_artifact::*;
 pub use module_ids_artifact::ModuleIdsArtifact;
-pub use module_static_cache_artifact::*;
 pub use process_runtime_requirements_cache_artifact::ProcessRuntimeRequirementsCacheArtifact;
 pub use side_effects_do_optimize_artifact::*;
+pub use side_effects_state_artifact::*;

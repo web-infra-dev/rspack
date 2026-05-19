@@ -1,6 +1,5 @@
 mod amd;
 mod api_plugin;
-mod check_var_decl;
 mod common_js_exports_parse_plugin;
 mod common_js_imports_parse_plugin;
 mod common_js_plugin;
@@ -17,7 +16,7 @@ mod import_meta_plugin;
 mod import_parser_plugin;
 mod initialize_evaluating;
 mod inline_const;
-mod inner_graph;
+pub(crate) mod inner_graph;
 mod is_included_plugin;
 mod javascript_meta_info_plugin;
 pub mod node_stuff_plugin;
@@ -34,15 +33,17 @@ pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
 pub mod side_effects_parser_plugin;
 
-pub use self::r#trait::{BoxJavascriptParserPlugin, JavascriptParserPlugin};
+pub use self::r#trait::{
+  BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
+  JavascriptParserPluginHooks,
+};
 pub(crate) use self::{
   amd::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,
   },
   api_plugin::APIPlugin,
-  check_var_decl::CheckVarDeclaratorIdent,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
-  common_js_imports_parse_plugin::CommonJsImportsParserPlugin,
+  common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
   r#const::{ConstPlugin, is_logic_op},
@@ -57,7 +58,7 @@ pub(crate) use self::{
   import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,
   inline_const::InlineConstPlugin,
-  inner_graph::{connection_active_used_by_exports, plugin::*, state::InnerGraphState},
+  inner_graph::{connection_active_used_by_exports, plugin::*, runtime_condition_used_by_exports},
   is_included_plugin::IsIncludedPlugin,
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,

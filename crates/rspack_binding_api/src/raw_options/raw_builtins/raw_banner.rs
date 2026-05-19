@@ -1,7 +1,6 @@
 use derive_more::Debug;
 use napi::Either;
 use napi_derive::napi;
-use rspack_collections::DatabaseItem;
 use rspack_error::Result;
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_banner::{BannerContent, BannerContentFnCtx, BannerPluginOptions};

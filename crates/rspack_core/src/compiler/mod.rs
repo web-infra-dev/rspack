@@ -15,9 +15,9 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
-  ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
+  CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -35,6 +35,7 @@ define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilerShouldRecord: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilerEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
@@ -49,6 +50,7 @@ pub struct CompilerHooks {
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
   pub should_emit: CompilerShouldEmitHook,
+  pub should_record: CompilerShouldRecordHook,
   pub emit: CompilerEmitHook,
   pub after_emit: CompilerAfterEmitHook,
   pub asset_emitted: CompilerAssetEmittedHook,
@@ -99,6 +101,7 @@ pub struct Compiler {
   pub emitted_asset_versions: HashMap<String, String>,
   pub platform: Arc<CompilerPlatform>,
   compiler_context: Arc<CompilerContext>,
+  last_records: Option<Arc<CompilationRecords>>,
 }
 
 impl Compiler {
@@ -147,6 +150,7 @@ impl Compiler {
     });
 
     let options = Arc::new(options);
+    let compilation_logging: CompilationLogging = Default::default();
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
@@ -155,12 +159,13 @@ impl Compiler {
       options.clone(),
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
+      compilation_logging.clone(),
     );
     let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
 
     let id = CompilerId::new();
-    let compiler_context = compiler_context.unwrap_or(Arc::new(CompilerContext::new()));
+    let compiler_context = compiler_context.unwrap_or_else(|| Arc::new(CompilerContext::new()));
     Self {
       id,
       compiler_path,
@@ -176,6 +181,7 @@ impl Compiler {
         None,
         incremental,
         Some(module_executor),
+        compilation_logging,
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -195,6 +201,7 @@ impl Compiler {
       input_filesystem,
       platform,
       compiler_context,
+      last_records: None,
     }
   }
 
@@ -238,6 +245,8 @@ impl Compiler {
     let plugin_driver_clone = self.plugin_driver.clone();
     let compilation_id = self.compilation.id();
     let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
+    let compilation_logging = self.compilation.get_logging().clone();
+    compilation_logging.clear();
 
     fast_set(
       &mut self.compilation,
@@ -252,6 +261,7 @@ impl Compiler {
         None,
         Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
+        compilation_logging,
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),
@@ -314,6 +324,20 @@ impl Compiler {
   async fn compile_done(&mut self) -> Result<()> {
     let logger = self.compilation.get_logger("rspack.Compiler");
 
+    let should_record = !matches!(
+      self
+        .plugin_driver
+        .compiler_hooks
+        .should_record
+        .call(&mut self.compilation)
+        .await?,
+      Some(false)
+    );
+
+    if should_record {
+      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
+    }
+
     if matches!(
       self
         .plugin_driver
@@ -358,7 +382,7 @@ impl Compiler {
       .incremental
       .passes_enabled(IncrementalPasses::EMIT_ASSETS);
 
-    rspack_futures::scope(|token| {
+    rspack_parallel::scope(|token| {
       self
         .compilation
         .assets()
@@ -512,24 +536,19 @@ impl Compiler {
     }
 
     let assets = self.compilation.assets();
-    join_all(
-      self
-        .emitted_asset_versions
-        .iter()
-        .filter_map(|(filename, _version)| {
-          if !assets.contains_key(filename) {
-            let filename = filename.to_owned();
-            Some(async {
-              if !clean_options.keep(&filename).await {
-                let filename = output_path.join(filename);
-                let _ = self.output_filesystem.remove_file(&filename).await;
-              }
-            })
-          } else {
-            None
+    join_all(self.emitted_asset_versions.keys().filter_map(|filename| {
+      if !assets.contains_key(filename) {
+        let filename = filename.to_owned();
+        Some(async {
+          if !clean_options.keep(&filename).await {
+            let filename = output_path.join(filename);
+            let _ = self.output_filesystem.remove_file(&filename).await;
           }
-        }),
-    )
+        })
+      } else {
+        None
+      }
+    }))
     .await;
 
     Ok(())
@@ -557,6 +576,8 @@ impl Compiler {
       .close
       .call(&self.compilation)
       .await?;
+
+    self.cache.close().await;
 
     Ok(())
   }

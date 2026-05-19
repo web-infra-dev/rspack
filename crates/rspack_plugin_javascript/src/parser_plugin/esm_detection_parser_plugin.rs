@@ -32,7 +32,7 @@ impl JavascriptParser<'_> {
       self.build_meta.has_top_level_await = true;
     } else {
       self.throw_top_level_await_error(
-        "Top-level-await is only supported in EcmaScript Modules".into(),
+        "Top-level-await is only supported in ECMAScript Modules".into(),
         span,
       );
     }
@@ -48,6 +48,7 @@ fn is_non_esm_identifier(name: &str) -> bool {
 }
 
 // Port from https://github.com/webpack/webpack/blob/main/lib/dependencies/HarmonyDetectionParserPlugin.js
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ESMDetectionParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let is_strict_esm = matches!(parser.module_type, ModuleType::JsEsm);

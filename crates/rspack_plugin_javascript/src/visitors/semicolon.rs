@@ -10,12 +10,16 @@ use swc_core::{
 
 /// Auto inserted semicolon
 /// See: https://262.ecma-international.org/7.0/#sec-rules-of-automatic-semicolon-insertion
-pub(crate) struct InsertedSemicolons<'a> {
-  pub(crate) semicolons: &'a mut FxHashSet<BytePos>,
-  pub(crate) tokens: &'a Vec<TokenAndSpan>,
+pub struct InsertedSemicolons<'a> {
+  semicolons: &'a mut FxHashSet<BytePos>,
+  tokens: &'a [TokenAndSpan],
 }
 
-impl InsertedSemicolons<'_> {
+impl<'a> InsertedSemicolons<'a> {
+  pub fn new(semicolons: &'a mut FxHashSet<BytePos>, tokens: &'a [TokenAndSpan]) -> Self {
+    Self { semicolons, tokens }
+  }
+
   /// Find the starting token of this span.
   /// Returns [None] if there's no token is found.
   /// This might be happen if there's an error in the lexer.

@@ -1,3 +1,7 @@
+---
+description: 'NormalModuleReplacementPlugin 可以帮你把 resourceRegExp 匹配的 import/require 等模块请求（后面简称 请求 或 request）替换为 newResource。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/plugins/normal-module-replacement-plugin/" />
@@ -45,7 +49,7 @@ new rspack.NormalModuleReplacementPlugin(
 假设你希望为不同的构建目标使用不同的配置：
 
 ```js
-module.exports = function getRspackConfig(env) {
+export default function getRspackConfig(env) {
   const appTarget = env.APP_TARGET || 'VERSION_A';
   return {
     plugins: [
@@ -60,7 +64,7 @@ module.exports = function getRspackConfig(env) {
       ),
     ],
   };
-};
+}
 ```
 
 创建两个配置文件：

@@ -1,3 +1,7 @@
+---
+description: 'list of plugins used internally by Rspack, aligned with the plugins used internally by webpack'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/internal-plugins/" />
@@ -71,11 +75,17 @@ Similar to `EntryPlugin` but accepts a function as the `entry` argument. This fu
 
 Decorates the module template by wrapping each module in a `eval` annotated with `// @sourceURL`.
 
+### JsonpTemplatePlugin
+
+`web.JsonpTemplatePlugin()`
+
+Chunks are loaded by `jsonp` in web environments.
+
 ### WebWorkerTemplatePlugin
 
 `webworker.WebWorkerTemplatePlugin(options)`
 
-Chunks are loaded by `importScripts`.
+Chunks are loaded by `importScripts` in web worker environments.
 
 `options` are the output options.
 

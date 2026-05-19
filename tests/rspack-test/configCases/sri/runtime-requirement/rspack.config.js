@@ -1,13 +1,13 @@
-const { SubresourceIntegrityPlugin } = require("@rspack/core");
+const { SubresourceIntegrityPlugin } = require('@rspack/core');
 
 module.exports = {
-	mode: "production",
-	target: "web",
-	entry: {
-		main: "./index.js"
-	},
-	output: {
-		crossOriginLoading: "anonymous",
-	},
-	plugins: [new SubresourceIntegrityPlugin()],
+  mode: 'production',
+  target: 'web',
+  entry: {
+    main: './index.js',
+  },
+  output: {
+    crossOriginLoading: 'anonymous',
+  },
+  plugins: [new SubresourceIntegrityPlugin()],
 };

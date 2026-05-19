@@ -16,7 +16,7 @@ module.exports = class TestPlugin {
 					for (const file of Object.keys(assets)) {
 						compilation.updateAsset(file, old => {
 							const newContent = `${list.join("\n")}\n${old.source().toString()}`;
-							return new compiler.webpack.sources.RawSource(newContent);
+							return new compiler.rspack.sources.RawSource(newContent);
 						});
 					}
 				}

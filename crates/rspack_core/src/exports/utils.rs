@@ -178,8 +178,6 @@ impl UsageKey {
   }
 }
 
-pub type UsageFilterFnTy<T> = Box<dyn Fn(&T) -> bool>;
-
 #[derive(Debug, PartialEq, Copy, Clone, Default, Hash, PartialOrd, Ord, Eq)]
 pub enum UsageState {
   Unused = 0,
@@ -192,7 +190,47 @@ pub enum UsageState {
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum UsedByExports {
+pub struct UsedByExports {
+  pub condition: UsedByExportsCondition,
+  #[cacheable(with=AsVec)]
+  pub deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
+}
+
+impl UsedByExports {
+  pub fn set(exports: HashSet<Atom>) -> Self {
+    Self {
+      condition: UsedByExportsCondition::Set(exports),
+      deferred_pure_checks: Vec::new(),
+    }
+  }
+
+  pub fn bool(used: bool) -> Self {
+    Self {
+      condition: UsedByExportsCondition::Bool(used),
+      deferred_pure_checks: Vec::new(),
+    }
+  }
+
+  pub fn with_deferred_pure_checks(
+    mut self,
+    deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
+  ) -> Self {
+    self.deferred_pure_checks = deferred_pure_checks;
+    self
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum UsedByExportsCondition {
   Set(#[cacheable(with=AsVec<AsPreset>)] HashSet<Atom>),
   Bool(bool),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct UsedByExportsDeferredPureCheck {
+  pub dep_id: DependencyId,
+  #[cacheable(with=AsPreset)]
+  pub atom: Atom,
 }

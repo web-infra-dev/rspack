@@ -47,7 +47,7 @@ pub struct RawSplitChunksOptions<'a> {
   pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
-  pub enforce_size_threshold: Option<f64>,
+  pub enforce_size_threshold: Option<Either<f64, RawSplitChunkSizes>>,
   pub min_remaining_size: Option<Either<f64, RawSplitChunkSizes>>,
   // layer: String,
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
@@ -85,7 +85,7 @@ pub struct RawCacheGroupOptions<'a> {
   pub min_size: Option<Either<f64, RawSplitChunkSizes>>,
   pub min_size_reduction: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_size_reduction: usize,
-  //   pub enforce_size_threshold: usize,
+  pub enforce_size_threshold: Option<Either<f64, RawSplitChunkSizes>>,
   //   pub min_remaining_size: usize,
   // layer: String,
   pub max_size: Option<Either<f64, RawSplitChunkSizes>>,
@@ -135,6 +135,8 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
     let overall_min_size = create_sizes(raw_opts.min_size);
 
     let overall_min_size_reduction = create_sizes(raw_opts.min_size_reduction);
+
+    let overall_enforce_size_threshold = create_sizes(raw_opts.enforce_size_threshold);
 
     let overall_max_size = create_sizes(raw_opts.max_size);
 
@@ -189,15 +191,15 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             .min_chunks
             .unwrap_or(if enforce { 1 } else { overall_min_chunks });
 
-          let r#type = v
-            .r#type
-            .map(create_module_type_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_type_filter);
+          let r#type = v.r#type.map_or_else(
+            rspack_plugin_split_chunks::create_default_module_type_filter,
+            create_module_type_filter,
+          );
 
-          let layer = v
-            .layer
-            .map(create_module_layer_filter)
-            .unwrap_or_else(rspack_plugin_split_chunks::create_default_module_layer_filter);
+          let layer = v.layer.map_or_else(
+            rspack_plugin_split_chunks::create_default_module_layer_filter,
+            create_module_layer_filter,
+          );
 
           let mut name = v.name.map_or(default_chunk_option_name(), |name| {
             normalize_raw_chunk_name(name)
@@ -213,14 +215,19 @@ impl<'a> From<RawSplitChunksOptions<'a>> for rspack_plugin_split_chunks::PluginO
             test: v.test.map_or(default_cache_group_test(), |test| {
               normalize_raw_cache_group_test(test)
             }),
-            chunk_filter: v.chunks.map(create_chunks_filter).unwrap_or_else(|| {
-              overall_chunk_filter
-                .clone()
-                .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
-            }),
+            chunk_filter: v.chunks.map_or_else(
+              || {
+                overall_chunk_filter
+                  .clone()
+                  .unwrap_or_else(rspack_plugin_split_chunks::create_async_chunk_filter)
+              },
+              create_chunks_filter,
+            ),
             min_chunks,
             min_size,
             min_size_reduction,
+            enforce_size_threshold: create_sizes(v.enforce_size_threshold)
+              .merge(&overall_enforce_size_threshold),
             automatic_name_delimiter: v
               .automatic_name_delimiter
               .unwrap_or(overall_automatic_name_delimiter.clone()),

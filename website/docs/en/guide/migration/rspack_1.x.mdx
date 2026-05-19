@@ -1,0 +1,596 @@
+---
+description: 'If you are using a Coding Agent that supports Skills, install the rspack-v2-upgrade skill to help with the upgrade process from v1 to v2'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Upgrading from v1 to v2
+
+This document lists the breaking changes from Rspack 1.x to 2.0.
+
+- For more details, see [Breaking changes in Rspack 2.0](https://github.com/web-infra-dev/rspack/discussions/9270)
+- For Rsbuild users, see [Rsbuild - Upgrading from v1 to v2](https://v2.rsbuild.rs/guide/upgrade/v1-to-v2)
+
+## Using Agent Skills
+
+If your Coding Agent supports Skills, install the [rspack-v2-upgrade](https://github.com/rstackjs/agent-skills#rspack-v2-upgrade) skill to help with the migration.
+
+```bash
+npx skills add rstackjs/agent-skills --skill rspack-v2-upgrade
+```
+
+After installation, let the agent guide you through the upgrade.
+
+## Upgrade Rspack to v2
+
+- Upgrade `@rspack/core` to the 2.0 release.
+- If you use `@rspack/cli`, `@rspack/dev-server`, or `@rspack/plugin-react-refresh`, upgrade them to the latest compatible versions so they stay in sync with `@rspack/core`. For example:
+
+```json
+{
+  "devDependencies": {
+    "@rspack/core": "^2.0.0",
+    "@rspack/cli": "^2.0.0",
+    "@rspack/dev-server": "^2.0.0",
+    "@rspack/plugin-react-refresh": "^2.0.0"
+  }
+}
+```
+
+## Upgrade Node.js
+
+Rspack 2.0 requires a minimum Node.js version of **20.19+** or **22.12+**, and Node.js 18 is no longer supported.
+
+## Pure ESM packages
+
+`@rspack/core`, `@rspack/cli`, `@rspack/dev-server` and `@rspack/plugin-react-refresh` are now published as **pure ESM** packages, with CommonJS builds removed.
+
+In Node.js 20 and later, the runtime natively supports loading ESM modules via [require(esm)](https://nodejs.org/api/modules.html#loading-ecmascript-modules-using-require), so for most projects that use Rspack through its JavaScript API, this change should have no practical impact and does not require code changes.
+
+> This does not affect Rspack's ability to build CommonJS output. All related build behavior and configuration remain unchanged.
+
+## Dev server
+
+[@rspack/dev-server](https://npmjs.com/package/@rspack/dev-server) 2.0 includes the following changes:
+
+- `@rspack/cli` no longer depends on `@rspack/dev-server` by default, since some workflows do not require a dev server. When using the `rspack dev` or `rspack serve` commands, install `@rspack/dev-server` manually:
+
+<PackageManagerTabs command="add @rspack/dev-server -D" />
+
+- Some [devServer](/config/dev-server) options have changed, including `devServer.proxy` and `devServer.watchFiles`. See the [upgrade guide](https://github.com/rstackjs/rspack-dev-server/blob/main/docs/migrate-v1-to-v2.md) for details.
+
+`@rspack/dev-server` dependencies are now more streamlined and modernized:
+
+- It introduces the new [@rspack/dev-middleware](https://github.com/rstackjs/rspack-dev-middleware) package to replace `webpack-dev-middleware`.
+- It uses [connect-next](https://github.com/rstackjs/connect-next) instead of Express v4 as the default middleware framework.
+
+## Bundle analysis
+
+The built-in `webpack-bundler-analyzer` has been removed from `@rspack/cli`, and the `--analyze` flag is no longer available.
+
+If you need to analyze bundle outputs, it is recommended to use [Rsdoctor](/guide/optimization/use-rsdoctor), which provides more powerful analysis capabilities.
+
+## Module compilation changes
+
+### Changed default value of module.parser.javascript.exportsPresence
+
+The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
+
+If you want to restore the old behavior, you can explicitly set it to `auto`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'auto',
+      },
+    },
+  },
+};
+```
+
+### Removed module.parser.javascript.strictExportPresence
+
+`module.parser.javascript.strictExportPresence` has been removed. You can use [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) to control the behavior when exports don't exist.
+
+### Changed default value of module.parser.javascript.requireAlias
+
+The default value of [module.parser.javascript.requireAlias](/config/module#moduleparserjavascriptrequirealias) changed from `true` to `false`. If your code relies on renamed `require` calls being parsed and bundled, explicitly enable it:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        requireAlias: true,
+      },
+    },
+  },
+};
+```
+
+### Disabled builtin:swc-loader reading .swcrc
+
+In Rspack 2.0, `builtin:swc-loader` no longer supports reading `.swcrc` files. Move your SWC configuration into the loader options in `rspack.config.js`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+          jsc: {
+            transform: {
+              react: {
+                runtime: 'automatic',
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Removed builtin:swc-loader's rspackExperiments.collectTypeScriptInfo
+
+The `rspackExperiments.collectTypeScriptInfo` option of `builtin:swc-loader` has been removed. Use [collectTypeScriptInfo](/guide/features/builtin-swc-loader#collecttypescriptinfo) to control TypeScript information collection:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          collectTypeScriptInfo: {
+            typeExports: true,
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### Moved builtin:swc-loader's rspackExperiments.import
+
+The `rspackExperiments.import` option of `builtin:swc-loader` has been moved to the top-level [transformImport](/guide/features/builtin-swc-loader#transformimport) option. `rspackExperiments.import` is still supported as a deprecated alias in Rspack 2.0, but you should migrate to `transformImport` to avoid future breakage:
+
+```diff title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+-         rspackExperiments: {
+-           import: [
+-             {
+-               libraryName: 'antd',
+-               style: true,
+-             },
+-           ],
+-         },
++         transformImport: [
++           {
++             libraryName: 'antd',
++             style: true,
++           },
++         ],
+        },
+      },
+    ],
+  },
+};
+```
+
+### Derive loader and plugin targets from target
+
+In Rspack 2.0, the `targets` configuration for `builtin:swc-loader`, `builtin:lightningcss-loader`, and `rspack.LightningCssMinimizerRspackPlugin` now defaults to the [target](/config/target) configuration. If you need different targets, configure them in the loader or plugin options:
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            targets: 'chrome >= 87',
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+### New `experiments.pureFunctions` for function-level tree shaking
+
+Rspack 2.0 adds an experimental [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) switch for finer-grained, pure-function-based tree shaking across modules.
+
+After enabling it, you can choose one of these entry points depending on your code ownership:
+
+- Use [module.parser.javascript.pureFunctions](/config/module#moduleparserjavascriptpurefunctions) to manually mark top-level exported functions in matched third-party modules such as packages in `node_modules`.
+- Use `/*#__NO_SIDE_EFFECTS__*/` on function definitions when you can modify the source code directly.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index.js/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
+      },
+    ],
+  },
+};
+```
+
+For more details, see the [pureFunctions section](/guide/optimization/tree-shaking#purefunctions) and the [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation) in the [tree shaking guide](/guide/optimization/tree-shaking).
+
+## Output configuration changes
+
+### Moved output library options
+
+- `output.libraryTarget`: moved to [output.library.type](/config/output#outputlibrarytype)
+- `output.libraryExport`: moved to [output.library.export](/config/output#outputlibraryexport)
+- `output.umdNamedDefine`: moved to [output.library.umdNamedDefine](/config/output#outputlibraryumdnameddefine)
+- `output.auxiliaryComment`: moved to [output.library.auxiliaryComment](/config/output#outputlibraryauxiliarycomment)
+
+### Changed default value of output.chunkLoadingGlobal
+
+The default value of [output.chunkLoadingGlobal](/config/output#outputchunkloadingglobal) changed from `webpackChunk${output.uniqueName}` to `rspackChunk${output.uniqueName}`. If your application depends on the old name, configure it explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    chunkLoadingGlobal: 'webpackChunkMyApp',
+  },
+};
+```
+
+### Changed default value of output.hotUpdateGlobal
+
+The default value of [output.hotUpdateGlobal](/config/output#outputhotupdateglobal) changed from `webpackHotUpdate${output.uniqueName}` to `rspackHotUpdate${output.uniqueName}`. If your application depends on the old name, configure it explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    hotUpdateGlobal: 'webpackHotUpdateMyApp',
+  },
+};
+```
+
+### Changed default value of output.bundlerInfo.force
+
+The default value of [output.bundlerInfo.force](/config/output#outputbundlerinfo) changed from `true` to `false`. In Rspack 2.0, `__rspack_version__` and `__rspack_unique_id__` are injected on demand by default instead of always being added as runtime modules. If your application depends on the previous always-injected behavior, configure it explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    bundlerInfo: {
+      force: true,
+    },
+  },
+};
+```
+
+### Changed default fallback value of output.trustedTypes.policyName
+
+The fallback value of [output.trustedTypes.policyName](/config/output#outputtrustedtypes) changed from `'webpack'` to `'rspack'`. `policyName` still defaults to `output.uniqueName`, and the fallback is only used when `uniqueName` is not set. If your project relies on the old fallback, update your CSP configuration or set it explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: {
+      policyName: 'webpack',
+    },
+  },
+};
+```
+
+### Removed output.charset
+
+The `output.charset` configuration has been removed. It only added a `charset` attribute to generated `<script>` tags, and modern browsers already default to UTF-8.
+
+### Removed optimization.removeAvailableModules
+
+The `optimization.removeAvailableModules` configuration has been removed. It had no actual effect in Rspack and can be safely removed from your configuration.
+
+## Stats changes
+
+### Changed default parameters of stats.toJson()
+
+When `stats.toJson()` is called without parameters, these fields now default to `false`:
+
+- `modules`: Module information
+- `assets`: Asset information
+- `chunks`: Chunk information
+- `chunkGroups`: Chunk group information
+- `entryPoints`: Entry point information
+
+By default, `stats.toJson()` no longer includes these details, so the returned object is more compact. If you need them, pass the parameters explicitly:
+
+```js
+const statsData = stats.toJson({
+  modules: true,
+  assets: true,
+  chunks: true,
+  chunkGroups: true,
+  entryPoints: true,
+});
+```
+
+> For detailed parameter configuration, refer to [Stats](/config/stats).
+
+### Removed profile and stats.profile configuration
+
+The top-level `profile` configuration and `stats.profile` configuration have been removed. Use [Rsdoctor](/guide/optimization/use-rsdoctor) for performance analysis:
+
+```diff title="rspack.config.mjs"
+export default {
+-  profile: true,
+  stats: {
+-    profile: true,
+  },
+};
+```
+
+## Plugin changes
+
+### Removed EsmLibraryPlugin
+
+The `rspack.EsmLibraryPlugin` plugin has been removed. Configure [output.library](/config/output#outputlibrary) to generate ESM output:
+
+```diff title="rspack.config.mjs"
+-import { EsmLibraryPlugin } from '@rspack/core';
+
+export default {
+-  plugins: [new EsmLibraryPlugin()],
++  output: {
++    library: {
++      type: 'modern-module',
++    },
++  },
+};
+```
+
+### Removed WarnCaseSensitiveModulesPlugin
+
+`WarnCaseSensitiveModulesPlugin` has been renamed to [CaseSensitivePlugin](/plugins/webpack/case-sensitive-plugin), which covers all of its functionality.
+
+### Removed getHooks method from some plugins
+
+The `getHooks` method on `HtmlRspackPlugin`, `RsdoctorPlugin`, and `RuntimePlugin` has been removed. It was only a deprecated alias of `getCompilationHooks`, so migrate to `getCompilationHooks` directly.
+
+### Adjusted HtmlRspackPlugin configuration
+
+The `sri` configuration of [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) has been removed. If you need SRI functionality, use the [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) plugin.
+
+```diff title="rspack.config.mjs"
+export default {
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+-      sri: "sha256",
+    }),
++    new rspack.SubresourceIntegrityPlugin({
++      hashFuncNames: ["sha256"],
++    }),
+  ],
+};
+```
+
+### Adjusted LightningCssMinimizerRspackPlugin configuration
+
+The following [LightningCssMinimizerRspackPlugin](/plugins/rspack/lightning-css-minimizer-rspack-plugin) options have changed:
+
+- `draft`: removed; use `drafts` instead
+- `cssHeadDataCompression`: removed; delete this option directly
+
+## Resolve behavior changes
+
+### Default extensions change
+
+Rspack 2.0 no longer includes `.wasm` in the default [resolve.extensions](/config/resolve#resolveextensions) used for JavaScript requests. That means extension-less requests such as `import './module'` or `require('./module')` no longer try `./module.wasm` by default, while explicit imports like `import './module.wasm'` are not affected. If you need the previous behavior, add `.wasm` back to the corresponding `resolve.byDependency` entries:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      esm: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+      commonjs: {
+        extensions: ['.js', '.json', '.wasm'],
+      },
+    },
+  },
+};
+```
+
+### CSS resolve conditions
+
+Rspack 2.0 no longer includes `webpack` in the default CSS `@import` resolve conditions. If you need the previous behavior, add `webpack` back explicitly:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    byDependency: {
+      'css-import': {
+        conditionNames: ['webpack', '...'],
+      },
+    },
+  },
+};
+```
+
+## Other changes
+
+### Changed `devtool` default value
+
+The default value of the [devtool](/config/devtool) option has changed:
+
+- When `mode` is `development`, the default value of `devtool` has been changed from `eval` to `cheap-module-source-map`
+- When `mode` is `production` and you are using `@rspack/cli`, the default value of `devtool` has been changed from `source-map` to `false`
+
+If you need source maps in production, set `devtool` to `source-map` or `hidden-source-map`:
+
+```js title="rspack.config.mjs"
+const isProd = process.env.NODE_ENV === 'production';
+
+export default {
+  devtool: isProd ? 'source-map' : 'cheap-module-source-map',
+};
+```
+
+### Removed runtime module deprecated properties
+
+The following deprecated properties of Runtime module have been removed:
+
+- `constructorName` - Constructor name property
+- `moduleIdentifier` - Module identifier property
+
+If you used these properties in custom plugins, update your code as follows:
+
+```diff title="my-plugin.js"
+class MyPlugin {
+  apply(compiler) {
+    compiler.hooks.compilation.tap('MyPlugin', (compilation) => {
+      compilation.hooks.runtimeModule.tap('MyPlugin', (module) => {
+-       const name = module.constructorName;
+-       const id = module.moduleIdentifier;
++       // Use alternative ways to get module information
++       const name = module.constructor.name;
++       const id = module.identifier();
+      });
+    });
+  }
+}
+```
+
+### ProgressPlugin handler signature change
+
+The `ProgressPlugin` custom handler's third argument changed from `items: string[]` to a structured `info` object.
+
+```diff
+- (percent, msg, items) => void
++ (percent, msg, info) => void
+```
+
+`info` includes:
+
+- `builtModules: number`: Number of modules built so far
+- `moduleIdentifier?: string`: Identifier of the module being built (only provided during `build modules` updates)
+
+### Changed default value of `resolve.roots`
+
+The [resolve.roots](/config/resolve#resolveroots) configuration default value changed from `[context]` to `[]`.
+
+In Rspack 1.x, `resolve.roots` implicitly included the project `context`, so the following CSS import could be resolved as `<context>/node_modules/lib/style.css`:
+
+```css title="styles.css"
+@import '/node_modules/lib/style.css';
+```
+
+In Rspack 2.0, this implicit behavior has been removed to align with standard module resolution. Requests starting with `/` are treated as file-system absolute paths.
+
+Use a package request or a relative path instead:
+
+```css title="styles.css"
+@import 'lib/style.css';
+@import '../node_modules/lib/style.css';
+```
+
+If you do rely on the previous behavior, add the following configuration:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    roots: [import.meta.dirname],
+  },
+};
+```
+
+### Removed `readResourceForScheme` hook
+
+`NormalModule.getCompilationHooks(compilation).readResourceForScheme` has been removed. This hook was only a legacy alias for `readResource.for(scheme)`, so migrate to that API directly.
+
+### `@module-federation/runtime-tools` is declared as optional peerDependency
+
+The `@module-federation/runtime-tools` package has changed from `dependencies` to optional `peerDependencies` (declared via `peerDependencies` + `peerDependenciesMeta.optional`). If you are using [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin), ensure that this package is explicitly installed in your project.
+
+### Removed `module.unsafeCache`
+
+`module.unsafeCache` was previously a performance optimization option. Because it conflicts with Rspack's Incremental Build and Persistent Cache mechanisms, it has been officially removed.
+
+## Experimental configuration changes
+
+### Remove experiments.css
+
+`experiments.css` has been removed. CSS processing capability is now available by default, but you still need to configure the corresponding `type` in `module.rules` to enable it:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto', // Auto-detect CSS Modules
+      },
+    ],
+  },
+};
+```
+
+Available `type` options:
+
+- **`css`**: Process CSS as plain CSS, without CSS Modules
+- **`css/module`**: Force enable CSS Modules
+- **`css/auto`**: Auto-detect, enable CSS Modules for `.module.css` files, and process plain `.css` files as regular CSS
+
+> For more details, refer to [CSS](/guide/tech/css)
+
+### experiments.asyncWebAssembly enabled by default
+
+The default value of [experiments.asyncWebAssembly](/config/experiments#experimentsasyncwebassembly) changed from `false` to `true`. Files with the `.wasm` extension will now be handled using the built-in `webassembly/async` rule. If you don't need this feature, you can explicitly disable it:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    asyncWebAssembly: false,
+  },
+};
+```
+
+### Other experimental configuration changes
+
+- `experiments.cache`: moved to the top-level [cache](/config/cache).
+- `experiments.rspackFuture`: removed; `bundlerInfo` has moved to [output.bundlerInfo](/config/output#outputbundlerinfo).
+- `experiments.incremental`: moved to the top-level [incremental](/config/incremental).
+- `experiments.layers`: removed; layers are now stable and enabled by default, but you still need to configure `layer` in `module.rules`.
+- `experiments.topLevelAwait`: removed; top-level await is now stable and enabled by default in ESM modules.
+- `experiments.lazyCompilation`: moved to the top-level [lazyCompilation](/config/lazy-compilation).
+- `experiments.lazyCompilationMiddleware`: moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server).
+- `experiments.lazyBarrel`: removed; the [Lazy barrel](/guide/optimization/lazy-barrel) optimization is now enabled by default.
+- `experiments.typeReexportsPresence`: removed; use [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) directly to control the behavior when re-exporting types.
+- `experiments.inlineConst`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control constant inlining optimization.
+- `experiments.inlineEnum`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) and `builtin:swc-loader`'s [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control enum inlining optimization.
+- `experiments.outputModule`: removed; use [output.module](/config/output#outputmodule) directly to output ESM artifacts.
+- `experiments.parallelLoader`: removed; loader parallelization is now stable and enabled by default, but you still need to configure [module.rules.use.parallel](/config/module-rules#rulesuseparallel) to opt in.
+- `experiments.SubResourceIntegrityPlugin`: moved to the top-level [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin).

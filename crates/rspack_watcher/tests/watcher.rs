@@ -46,6 +46,7 @@ macro_rules! load {
   };
 }
 
+#[allow(unused_macro_rules)]
 macro_rules! watch {
   ($helper:expr, $($files:expr),*) => {
     watch!(files @ $helper, $($files),*)

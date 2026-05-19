@@ -1,4 +1,8 @@
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+---
+description: '在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。'
+---
+
+import { ApiMeta } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
@@ -29,80 +33,6 @@ export default {
   },
 };
 ```
-
-## experiments.outputModule
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启之后，将尽可能输出符合 ECMAScript 语法的代码。例如，使用 `import()` 加载 chunk，使用 ESM exports 等等。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    outputModule: true,
-  },
-};
-```
-
-## experiments.css
-
-<ApiMeta stability={Stability.Deprecated} />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-:::warning 已弃用
-此选项在 Rspack 2.0 中已弃用。现在手动添加 CSS type 将模块标记为 CSS 模块。
-:::
-
-### 迁移
-
-要在 Rspack 2.0 中使用 CSS，需要手动添加 CSS 规则到配置中：
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/i,
-        type: 'css/auto',
-      },
-    ],
-  },
-};
-```
-
-### 旧用法（已弃用）
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    css: true,
-  },
-};
-```
-
-## experiments.futureDefaults
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    futureDefaults: true,
-  },
-};
-```
-
-## experiments.incremental
-
-<ApiMeta stability={Stability.Deprecated} />
-
-此选项已移动至顶层 [`incremental`](/config/incremental)。
 
 ## experiments.buildHttp
 
@@ -176,6 +106,121 @@ import { something } from 'https://example.com/module.js';
 import imageUrl from 'https://example.com/image.png';
 ```
 
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。Rspack 支持 `import defer * as ns from "./module"` 和 `import.defer()` 两种语法。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+:::info 已知的限制
+目前在使用 `output.module: true` 时，对 external 模块使用 `defer import` 语法会被编译为普通的 `import` 语法。
+
+例如，当 `jquery` 配置为 external 时：
+
+```js
+import defer * as $ from 'jquery';
+```
+
+将会生成：
+
+```js
+import * as __rspack_external_jquery from 'jquery';
+```
+
+这是因为目前尚未有运行时支持 `defer import` 语法。未来当更多运行时支持该语法后，Rspack 将会根据 target 配置决定是否保留 `defer import` 语法，生成如下代码：
+
+```js
+import defer * as __rspack_external_jquery from 'jquery';
+```
+
+:::
+
+## experiments.futureDefaults
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+使用下一个主版本 Rspack 的默认值，并在任何有问题的地方显示警告。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    futureDefaults: true,
+  },
+};
+```
+
+## experiments.nativeWatcher
+
+<ApiMeta addedVersion="1.4.7" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
+例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #223](https://github.com/webpack/watchpack/issues/223)。
+
+如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
+
+启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    // Other watch options...
+  },
+  experiments: {
+    nativeWatcher: true,
+  },
+};
+```
+
+## experiments.pureFunctions
+
+<ApiMeta addedVersion="2.0.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启跨模块的无副作用函数调用优化，包括 `/*#__NO_SIDE_EFFECTS__*/` 注解和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置。被注解或用户配置标记的无副作用函数如果没有被真正使用到，则不会被打包进产物。
+
+更多背景可参考 [pureFunctions](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
+
+这个选项用于开启能力本身。若要手动为命中的模块标记标识符 —— 既可以是第三方库中的导出函数，也可以是你自己代码中的 import 或本地声明 —— 推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
+      },
+    ],
+  },
+};
+```
+
+:::warning
+这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
+:::
+
 ## experiments.useInputFileSystem
 
 <ApiMeta addedVersion="1.3.14" />
@@ -190,7 +235,7 @@ import imageUrl from 'https://example.com/image.png';
 因此，Rspack 提供了 `useInputFileSystem` 配置项，用于控制是使用原生文件系统还是自定义的 inputFileSystem。
 一般项目中，只有少量文件需要通过自定义文件系统访问，合理配置 `experiments.useInputFileSystem` 可以确保 Rspack 高效运行。
 
-下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/zh/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
+下面的例子演示了如何替换默认的 inputFileSystem 为一个自定义的文件系统，只要自定义文件系统满足 [`InputFileSystem`](/api/javascript-api/compiler#inputfilesystem-1) 的接口定义。
 更多细节参考[测试用例](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases/input-file-system/webpack.config.js)。
 
 ```js title="rspack.config.mjs"
@@ -249,45 +294,3 @@ export default {
 ```
 
 当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
-
-## experiments.nativeWatcher
-
-<ApiMeta addedVersion="1.4.7" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-默认情况下，Rspack 使用 Watchpack 来监听文件变化，这在大多数情况下都能正常工作，但在某些特定的环境下可能会出现问题。
-例如在大量文件变化时，Watchpack 可能会出现性能问题, 更多详情请参考 [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223)。
-
-如果你使用默认的 watcher 出现性能问题，可以尝试启用 `nativeWatcher`。
-
-启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
-
-```js title="rspack.config.mjs"
-export default {
-  watchOptions: {
-    // Other watch options...
-  }
-  experiments: {
-    nativeWatcher: true,
-  },
-};
-```
-
-## experiments.deferImport
-
-<ApiMeta addedVersion="1.6.0" />
-
-- **类型：** `boolean`
-- **默认值：** `false`
-
-开启后 Rspack 会支持打包 [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) 提案，该功能允许延迟模块的执行直到首次使用。目前仅支持 `import defer * as ns from "./module"`，`import.defer()` 会在后续版本支持。
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    deferImport: true,
-  },
-};
-```

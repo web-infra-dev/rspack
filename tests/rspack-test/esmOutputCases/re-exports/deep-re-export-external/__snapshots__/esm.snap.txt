@@ -8,6 +8,12 @@ __webpack_require__.r(externals_namespaceObject);
 __webpack_require__.d(externals_namespaceObject, { 
   "default": () => (__rspack_external_fs["default"]),
   readFile: () => (__rspack_external_fs.readFile) });
+var externals_namespaceObject_starExports = __rspack_external_fs;
+Object.keys(externals_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __webpack_require__.d(externals_namespaceObject, { [key]: function() { return externals_namespaceObject_starExports[key]; } });
+  }
+});
 
 
 // fs
@@ -41,31 +47,9 @@ export default default_0;
 ```
 
 ```mjs title=runtime.mjs
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+// The require scope
+var __webpack_require__ = {};
 
-// Return the exports of the module
-return module.exports;
-}
-
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {

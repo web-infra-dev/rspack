@@ -1,8 +1,8 @@
-use std::{collections::HashMap, time::SystemTime};
+use std::time::SystemTime;
 
 use rspack_fs::FileMetadata;
 use rspack_paths::Utf8Path;
-use ustr::Ustr;
+use ustr::{Ustr, UstrMap};
 
 use crate::virtual_modules::VirtualFileStore;
 
@@ -15,7 +15,7 @@ struct FileNode {
 struct DirectoryNode {
   ctime: u64,
   mtime: u64,
-  children: HashMap<Ustr, TrieNode>,
+  children: UstrMap<TrieNode>,
 }
 
 enum TrieNode {
@@ -28,7 +28,7 @@ impl TrieNode {
     Self::Directory(DirectoryNode {
       ctime: time,
       mtime: time,
-      children: HashMap::default(),
+      children: UstrMap::default(),
     })
   }
 

@@ -46,7 +46,7 @@ it("should tree-shake if its member call and strictThisContextOnImports is false
 	expect(m.usedExports).toEqual(["f", "usedExports"]);
 	let m2 = await import("./dir4/lib");
 	expect(m2.b.f()).toBe(1);
-	expect(m2.b.usedExports).toEqual(true);
+	expect(m2.b.usedExports).toEqual(["f", "usedExports"]);
 	expect(m2.usedExports).toEqual(["b", "usedExports"]);
 });
 
@@ -60,11 +60,20 @@ it("should analyze arguments in call member chain", async () => {
 });
 
 it("should analyze usage of variable that in correct scope", async () => {
-	var m = { b: 1 };
+	let m = { b: 1 };
 	expect(m.b).toBe(1);
 	await (async () => {
-		var m = await import("./dir4/a?3");
+		let m = await import("./dir4/a?3");
 		expect(m.a).toBe(1);
 		expect(m.usedExports).toEqual(["a", "usedExports"]);
 	})();
+});
+
+it("should correctly analyze usage of variable for var declaration", async () => {
+	var m = await import("./dir4/a?4");
+	expect(m.a).toBe(1);
+	expect(m.usedExports).toEqual(true);
+	var m = await import("./dir4/a?5");
+	expect(m.a).toBe(1);
+	expect(m.usedExports).toEqual(true);
 });

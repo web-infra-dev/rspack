@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -9,7 +11,7 @@ use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
   assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules,
+  get_used_module_ids_and_modules_with_artifact,
 };
 
 #[plugin]
@@ -34,7 +36,8 @@ async fn module_ids(
     module_ids.clear();
   }
 
-  let (mut used_ids, modules) = get_used_module_ids_and_modules(compilation, None);
+  let (mut used_ids, modules) =
+    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
 
   let mut module_ids_map = std::mem::take(module_ids);
   let context = compilation.options.context.as_ref();
@@ -59,10 +62,12 @@ async fn module_ids(
   assign_deterministic_ids(
     modules,
     |m| {
-      module_names
-        .get(&m.identifier())
-        .expect("should have generated full module name")
-        .to_string()
+      Cow::Borrowed(
+        module_names
+          .get(&m.identifier())
+          .expect("should have generated full module name")
+          .as_str(),
+      )
     },
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(

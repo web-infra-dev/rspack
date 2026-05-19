@@ -14,8 +14,7 @@ pub struct ImportMetaResolveHeaderDependency {
 }
 
 impl ImportMetaResolveHeaderDependency {
-  pub fn new(range: DependencyRange, source: Option<&str>) -> Self {
-    let loc = range.to_loc(source);
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self {
       id: DependencyId::new(),
       range,
@@ -71,7 +70,7 @@ impl DependencyTemplate for ImportMetaResolveHeaderDependencyTemplate {
       .downcast_ref::<ImportMetaResolveHeaderDependency>()
       .expect("ImportMetaResolveHeaderDependencyTemplate should only be used for ImportMetaResolveHeaderDependency");
 
-    source.replace(
+    source.replace_static(
       dep.range.start,
       dep.range.end,
       "/*import.meta.resolve*/",

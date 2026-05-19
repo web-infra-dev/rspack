@@ -1,6 +1,7 @@
 use rspack_core::{
   ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, NormalInitFragment, Plugin,
+  RuntimeCodeTemplate,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -34,6 +35,7 @@ async fn render_module_content(
   module: &dyn Module,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   if module.build_info().need_create_require {
     let need_prefix = compilation
@@ -59,6 +61,10 @@ async fn render_module_content(
         InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
         None,
       )
+      .with_top_level_decl_symbols(vec![
+        "__rspack_createRequire".into(),
+        "__rspack_createRequire_require".into(),
+      ])
       .boxed(),
     );
   }

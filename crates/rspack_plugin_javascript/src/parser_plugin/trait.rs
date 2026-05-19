@@ -8,6 +8,163 @@ use swc_core::{
   },
 };
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
+pub enum JavascriptParserPluginHook {
+  PreStatement,
+  BlockPreStatement,
+  TopLevelAwaitExpr,
+  TopLevelForOfAwaitStmt,
+  CanRename,
+  Rename,
+  Program,
+  Statement,
+  UnusedStatement,
+  ModuleDeclaration,
+  BlockPreModuleDeclaration,
+  PreDeclarator,
+  Evaluate,
+  EvaluateTypeof,
+  EvaluateCallExpression,
+  EvaluateCallExpressionMember,
+  EvaluateIdentifier,
+  CanCollectDestructuringAssignmentProperties,
+  Pattern,
+  Call,
+  CallMemberChain,
+  Member,
+  MemberChain,
+  UnhandledExpressionMemberChain,
+  MemberChainOfCallMemberChain,
+  CallMemberChainOfCallMemberChain,
+  Typeof,
+  ExpressionLogicalOperator,
+  BinaryExpression,
+  StatementIf,
+  ClassExtendsExpression,
+  ClassBodyElement,
+  ClassBodyValue,
+  Declarator,
+  NewExpression,
+  Identifier,
+  This,
+  Assign,
+  AssignMemberChain,
+  ImportCall,
+  MetaProperty,
+  Import,
+  ImportSpecifier,
+  ExportImport,
+  Export,
+  ExportImportSpecifier,
+  ExportSpecifier,
+  ExportExpression,
+  OptionalChaining,
+  ExpressionConditionalOperation,
+  Finish,
+  IsPure,
+  ImportMetaPropertyInDestructuring,
+}
+
+impl JavascriptParserPluginHook {
+  pub const COUNT: usize = Self::ImportMetaPropertyInDestructuring as usize + 1;
+  pub const ALL_MASK: u64 = if Self::COUNT == u64::BITS as usize {
+    u64::MAX
+  } else {
+    (1u64 << Self::COUNT) - 1
+  };
+
+  pub const ALL: [Self; Self::COUNT] = [
+    Self::PreStatement,
+    Self::BlockPreStatement,
+    Self::TopLevelAwaitExpr,
+    Self::TopLevelForOfAwaitStmt,
+    Self::CanRename,
+    Self::Rename,
+    Self::Program,
+    Self::Statement,
+    Self::UnusedStatement,
+    Self::ModuleDeclaration,
+    Self::BlockPreModuleDeclaration,
+    Self::PreDeclarator,
+    Self::Evaluate,
+    Self::EvaluateTypeof,
+    Self::EvaluateCallExpression,
+    Self::EvaluateCallExpressionMember,
+    Self::EvaluateIdentifier,
+    Self::CanCollectDestructuringAssignmentProperties,
+    Self::Pattern,
+    Self::Call,
+    Self::CallMemberChain,
+    Self::Member,
+    Self::MemberChain,
+    Self::UnhandledExpressionMemberChain,
+    Self::MemberChainOfCallMemberChain,
+    Self::CallMemberChainOfCallMemberChain,
+    Self::Typeof,
+    Self::ExpressionLogicalOperator,
+    Self::BinaryExpression,
+    Self::StatementIf,
+    Self::ClassExtendsExpression,
+    Self::ClassBodyElement,
+    Self::ClassBodyValue,
+    Self::Declarator,
+    Self::NewExpression,
+    Self::Identifier,
+    Self::This,
+    Self::Assign,
+    Self::AssignMemberChain,
+    Self::ImportCall,
+    Self::MetaProperty,
+    Self::Import,
+    Self::ImportSpecifier,
+    Self::ExportImport,
+    Self::Export,
+    Self::ExportImportSpecifier,
+    Self::ExportSpecifier,
+    Self::ExportExpression,
+    Self::OptionalChaining,
+    Self::ExpressionConditionalOperation,
+    Self::Finish,
+    Self::IsPure,
+    Self::ImportMetaPropertyInDestructuring,
+  ];
+
+  pub const fn mask(self) -> u64 {
+    1u64 << (self as u8)
+  }
+}
+
+const _: () = assert!(
+  JavascriptParserPluginHook::COUNT <= 64,
+  "The number of JavascriptParserPluginHook variants exceeds 64, which cannot be safely stored in a u64 bitmask."
+);
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct JavascriptParserPluginHooks(u64);
+
+impl JavascriptParserPluginHooks {
+  pub const fn empty() -> Self {
+    Self(0)
+  }
+
+  pub const fn all() -> Self {
+    Self(JavascriptParserPluginHook::ALL_MASK)
+  }
+
+  pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
+    self.0 & hook.mask() != 0
+  }
+
+  pub const fn bits(self) -> u64 {
+    self.0
+  }
+
+  pub const fn with(self, hook: JavascriptParserPluginHook) -> Self {
+    Self(self.0 | hook.mask())
+  }
+}
+
 use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
@@ -20,6 +177,46 @@ use crate::{
 type KeepRight = bool;
 
 pub trait JavascriptParserPlugin {
+  /// Used by the parser drive to precompute which hook paths this plugin
+  /// actually implements.
+  ///
+  /// # Why this exists (performance)
+  ///
+  /// `JavaScriptParserPluginDrive` needs to call many hook methods while walking the AST.
+  /// Calling every hook on every plugin would be very expensive.
+  ///
+  /// Instead, rspack precomputes a *hook mask* for each plugin at construction time:
+  ///
+  /// - Each plugin reports which hooks it actually implements via this method.
+  /// - The drive groups plugins by hook up-front.
+  /// - During parsing, the drive only iterates plugins that declared the current hook.
+  ///
+  /// This cuts a large amount of useless dynamic dispatch at runtime.
+  ///
+  /// # How to implement
+  ///
+  /// Do **NOT** implement this method manually.
+  ///
+  /// Use the proc-macro attribute `#[rspack_plugin_javascript::implemented_javascript_parser_hooks]`
+  /// (or `#[rspack_macros::implemented_javascript_parser_hooks]` inside the workspace).
+  /// The macro inspects the `impl JavascriptParserPlugin for ...` block and generates an
+  /// efficient `implemented_hooks` implementation automatically.
+  fn implemented_hooks(&self) -> JavascriptParserPluginHooks {
+    // NOTE: The intended implementation is generated by the
+    // `implemented_javascript_parser_hooks` attribute.
+    // If we end up here, it usually means the attribute was forgotten.
+    if cfg!(debug_assertions) {
+      panic!(
+        "`implemented_hooks` must be generated by the `implemented_javascript_parser_hooks` macro (attribute). \
+Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_plugin_javascript::implemented_javascript_parser_hooks]` \
+(or `#[rspack_macros::implemented_javascript_parser_hooks]` inside the repository)."
+      );
+    }
+
+    // Production fallback: assume the plugin may implement any hook.
+    JavascriptParserPluginHooks::all()
+  }
+
   /// Return:
   /// - `Some(true)` signifies the termination of the current
   ///   statement's visit during the pre-walk phase.
@@ -51,6 +248,17 @@ pub trait JavascriptParserPlugin {
   }
 
   fn statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
+    None
+  }
+
+  /// Called for statements after a terminating point (when only function
+  /// declarations should still be processed). Plugins may eliminate or
+  /// transform such unused statements.
+  ///
+  /// Return:
+  /// - `Some(true)` means the statement is fully handled and should be skipped
+  /// - Other values mean the parser should still walk the statement
+  fn unused_statement(&self, _parser: &mut JavascriptParser, _stmt: Statement) -> Option<bool> {
     None
   }
 
@@ -104,6 +312,17 @@ pub trait JavascriptParserPlugin {
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
+    None
+  }
+
+  /// Evaluate CallExpression when callee is an Identifier (e.g. String(), Number()).
+  /// Mirrors webpack's hooks.evaluateCallExpression.
+  fn evaluate_call_expression<'a>(
+    &self,
+    _parser: &mut JavascriptParser,
+    _name: &str,
+    _expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     None
   }
 
@@ -336,6 +555,7 @@ pub trait JavascriptParserPlugin {
     _parser: &mut JavascriptParser,
     _expr: &CallExpr,
     _import_then: Option<&CallExpr>,
+    _members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
     None
   }

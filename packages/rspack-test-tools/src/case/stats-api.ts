@@ -2,7 +2,7 @@ import type fs from 'node:fs';
 import type { Compiler, RspackOptions, Stats } from '@rspack/core';
 import { createFsFromVolume, Volume } from 'memfs';
 import { BasicCaseCreator } from '../test/creator';
-import type { ITestContext, ITestEnv } from '../type';
+import type { ITestContext, ITestEnv, MaybePromise } from '../type';
 
 let addedSerializer = false;
 
@@ -10,9 +10,9 @@ export type TStatsAPICaseConfig = {
   description: string;
   options?: (context: ITestContext) => RspackOptions;
   snapshotName?: string;
-  compiler?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  build?: (context: ITestContext, compiler: Compiler) => Promise<void>;
-  check?: (stats: Stats, compiler: Compiler) => Promise<void>;
+  compiler?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  build?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>;
+  check?: (stats: Stats, compiler: Compiler) => MaybePromise<void>;
 };
 
 const creator = new BasicCaseCreator({
@@ -22,14 +22,18 @@ const creator = new BasicCaseCreator({
     const config = caseConfig as TStatsAPICaseConfig;
     return [
       {
-        config: async (context: ITestContext) => {
+        config: (context: ITestContext) => {
           const compiler = context.getCompiler();
           compiler.setOptions(options(context, config.options));
         },
         compiler: async (context: ITestContext) => {
           const compilerManager = context.getCompiler();
           compilerManager.createCompiler();
-          compiler(context, compilerManager.getCompiler()!, config.compiler);
+          await compiler(
+            context,
+            compilerManager.getCompiler()!,
+            config.compiler,
+          );
         },
         build: async (context: ITestContext) => {
           const compiler = context.getCompiler();
@@ -92,7 +96,7 @@ function options(
 async function compiler(
   context: ITestContext,
   compiler: Compiler,
-  custom?: (context: ITestContext, compiler: Compiler) => Promise<void>,
+  custom?: (context: ITestContext, compiler: Compiler) => MaybePromise<void>,
 ) {
   if (custom) {
     await custom(context, compiler);
@@ -108,7 +112,7 @@ async function check(
   env: ITestEnv,
   context: ITestContext,
   name: string,
-  custom?: (stats: Stats, compiler: Compiler) => Promise<void>,
+  custom?: (stats: Stats, compiler: Compiler) => MaybePromise<void>,
 ) {
   const manager = context.getCompiler();
   const stats = manager.getStats()! as Stats;

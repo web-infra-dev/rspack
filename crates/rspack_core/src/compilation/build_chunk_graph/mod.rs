@@ -3,31 +3,28 @@
 
 use tracing::instrument;
 
-use crate::{Compilation, incremental::IncrementalPasses};
+use crate::Compilation;
 pub(crate) mod code_splitter;
 pub(crate) mod incremental;
 pub(crate) mod pass;
 
 #[instrument("Compilation:build_chunk_graph", skip_all)]
 pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<()> {
-  let enable_incremental = compilation
-    .incremental
-    .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  // TODO: heuristic incremental update is temporarily disabled
+  // Original code:
+  // let enable_incremental = compilation
+  //   .incremental
+  //   .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+  let enable_incremental = false;
   let mut splitter = if enable_incremental {
-    std::mem::take(
-      &mut compilation
-        .build_chunk_graph_artifact
-        .code_splitting_cache
-        .code_splitter,
-    )
+    std::mem::take(&mut compilation.build_chunk_graph_artifact.code_splitter)
   } else {
     Default::default()
   };
 
   let all_modules = compilation
     .get_module_graph()
-    .modules()
-    .keys()
+    .modules_keys()
     .copied()
     .collect::<Vec<_>>();
 
@@ -47,13 +44,15 @@ pub fn build_chunk_graph(compilation: &mut Compilation) -> rspack_error::Result<
 
   // make sure all module (weak dependency particularly) has a cgm
   for module_identifier in all_modules {
-    compilation.chunk_graph.add_module(module_identifier)
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_module(module_identifier)
   }
 
   compilation
     .build_chunk_graph_artifact
-    .code_splitting_cache
-    .code_splitter = splitter;
+    .set_code_splitter(splitter);
 
   Ok(())
 }

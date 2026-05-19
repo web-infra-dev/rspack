@@ -7,9 +7,8 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::AssertUtf8;
+use rspack_paths::{ArcPathSet, AssertUtf8};
 use rspack_util::location::byte_line_column_to_offset;
-use rustc_hash::FxHashSet as HashSet;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
@@ -17,12 +16,14 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone)]
-pub struct ResolveContext {
+pub struct ResolveDependencies {
   /// Files that was found on file system
-  pub file_dependencies: HashSet<PathBuf>,
+  pub file_dependencies: ArcPathSet,
   /// Dependencies that was not found on file system
-  pub missing_dependencies: HashSet<PathBuf>,
+  pub missing_dependencies: ArcPathSet,
 }
+
+pub type ResolveContext = ResolveDependencies;
 
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
 #[derive(Debug)]
@@ -161,20 +162,28 @@ impl Resolver {
     &self,
     path: &Path,
     request: &str,
-    resolve_context: &mut ResolveContext,
-  ) -> Result<ResolveResult, ResolveInnerError> {
+  ) -> (
+    Result<ResolveResult, ResolveInnerError>,
+    ResolveDependencies,
+  ) {
     let resolver = &self.resolver;
     let mut context = Default::default();
     let result = resolver
       .resolve_with_context(path, request, &mut context)
       .await;
-    resolve_context
-      .file_dependencies
-      .extend(context.file_dependencies);
-    resolve_context
-      .missing_dependencies
-      .extend(context.missing_dependencies);
-    match result {
+    let dependencies = ResolveDependencies {
+      file_dependencies: context
+        .file_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect(),
+      missing_dependencies: context
+        .missing_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect(),
+    };
+    let result = match result {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
@@ -185,7 +194,8 @@ impl Resolver {
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
-    }
+    };
+    (result, dependencies)
   }
 
   pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {
@@ -299,7 +309,6 @@ fn to_rspack_resolver_options(
     .into_iter()
     .map(PathBuf::from)
     .collect();
-
   rspack_resolver::ResolveOptions {
     fallback,
     modules,
@@ -324,6 +333,7 @@ fn to_rspack_resolver_options(
     builtin_modules: options.builtin_modules,
     imports_fields,
     enable_pnp: options.pnp.unwrap_or(false),
+    node_path: false,
   }
 }
 

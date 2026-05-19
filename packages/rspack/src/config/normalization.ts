@@ -256,7 +256,6 @@ export const getNormalizedRspackOptions = (
       ),
       defaultRules: optionalNestedArray(module.defaultRules, (r) => [...r]),
       rules: nestedArray(module.rules, (r) => [...r]),
-      unsafeCache: module.unsafeCache,
     })),
     target: config.target,
     externals: config.externals,
@@ -302,6 +301,7 @@ export const getNormalizedRspackOptions = (
           ),
         },
         portable: cache.portable,
+        readonly: cache.readonly,
       };
     }),
     stats: nestedConfig(config.stats, (stats) => {
@@ -447,7 +447,8 @@ const getNormalizedIncrementalOptions = (
       buildModuleGraph: true,
       finishModules: false,
       optimizeDependencies: false,
-      buildChunkGraph: false,
+      buildChunkGraph: true,
+      optimizeChunkModules: false,
       moduleIds: false,
       chunkIds: false,
       modulesHashes: false,
@@ -587,7 +588,6 @@ export interface ModuleOptionsNormalized {
   parser: ParserOptionsByModuleType;
   generator: GeneratorOptionsByModuleType;
   noParse?: NoParseOption;
-  unsafeCache?: boolean | RegExp;
 }
 
 export type CacheNormalized =
@@ -613,13 +613,13 @@ export type CacheNormalized =
 
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
-  outputModule?: boolean;
   css?: boolean;
   futureDefaults?: boolean;
   buildHttp?: HttpUriPluginOptions;
   useInputFileSystem?: false | RegExp[];
   nativeWatcher?: boolean;
   deferImport?: boolean;
+  pureFunctions?: boolean;
 }
 
 export type IgnoreWarningsNormalized = ((
@@ -661,7 +661,7 @@ export interface RspackOptionsNormalized {
   incremental?: false | Incremental;
   watch?: Watch;
   watchOptions: WatchOptions;
-  devServer?: DevServer;
+  devServer?: false | DevServer;
   ignoreWarnings?: IgnoreWarningsNormalized;
   performance?: Performance;
   amd?: Amd;

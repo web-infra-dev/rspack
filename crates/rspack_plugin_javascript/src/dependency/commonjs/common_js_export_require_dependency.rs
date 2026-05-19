@@ -6,17 +6,18 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
-  ExportProvided, ExportSpec, ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, ExportsType,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, Nullable, PrefetchExportsInfoMode, ReferencedExport,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  property_access, to_normal_comment,
+  ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleIdentifier, Nullable, ReferencedExport, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, property_access,
+  to_normal_comment,
 };
 use rustc_hash::FxHashSet;
 use swc_core::atoms::Atom;
 
 use super::ExportsBase;
+use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[allow(unused)]
@@ -67,30 +68,29 @@ impl CommonJsExportRequireDependency {
     &self,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
     imported_module: &ModuleIdentifier,
   ) -> Option<FxHashSet<Atom>> {
     let ids = self.get_ids(mg);
     let mut imported_exports_info =
-      Some(mg.get_prefetched_exports_info(imported_module, PrefetchExportsInfoMode::Nested(ids)));
+      Some(exports_info_artifact.get_exports_info_data(imported_module));
 
     if !ids.is_empty() {
       let Some(nested_exports_info) = &imported_exports_info else {
         unreachable!();
       };
       let nested = nested_exports_info
-        .get_nested_exports_info(Some(ids))
+        .get_nested_exports_info(exports_info_artifact, Some(ids))
         .map(|data| data.id());
 
-      imported_exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
+      imported_exports_info = nested.map(|id| exports_info_artifact.get_exports_info_by_id(&id));
     }
 
     let mut exports_info = Some(
-      mg.get_prefetched_exports_info(
+      exports_info_artifact.get_exports_info_data(
         mg.get_parent_module(&self.id)
           .expect("Should get parent module"),
-        PrefetchExportsInfoMode::Nested(&self.names),
       ),
     );
 
@@ -99,10 +99,9 @@ impl CommonJsExportRequireDependency {
         unreachable!();
       };
       let nested = nested_exports_info
-        .get_nested_exports_info(Some(&self.names))
+        .get_nested_exports_info(exports_info_artifact, Some(&self.names))
         .map(|data| data.id());
-      exports_info =
-        nested.map(|id| ExportsInfoGetter::prefetch(&id, mg, PrefetchExportsInfoMode::Default));
+      exports_info = nested.map(|id| exports_info_artifact.get_exports_info_by_id(&id));
     };
 
     let no_extra_exports = imported_exports_info.as_ref().is_some_and(|data| {
@@ -124,7 +123,7 @@ impl CommonJsExportRequireDependency {
     let is_namespace_import = matches!(
       mg.module_by_identifier(imported_module)
         .expect("Should get imported module")
-        .get_exports_type(mg, mg_cache, false),
+        .get_exports_type(mg, mg_cache, exports_info_artifact, false),
       ExportsType::Namespace
     );
 
@@ -134,7 +133,7 @@ impl CommonJsExportRequireDependency {
       let Some(exports_info) = &exports_info else {
         unreachable!();
       };
-      for (_, export_info) in exports_info.exports() {
+      for export_info in exports_info.exports().values() {
         let name = export_info.name();
         if matches!(export_info.get_used(runtime), UsageState::Unused) {
           continue;
@@ -160,7 +159,7 @@ impl CommonJsExportRequireDependency {
       let Some(imported_exports_info) = &imported_exports_info else {
         unreachable!();
       };
-      for (_, imported_export_info) in imported_exports_info.exports() {
+      for imported_export_info in imported_exports_info.exports().values() {
         let name = imported_export_info.name();
         if let Some(name) = name {
           if matches!(
@@ -189,8 +188,11 @@ impl CommonJsExportRequireDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map(|meta| meta.ids.as_slice())
-      .unwrap_or_else(|| self.ids.as_slice())
+      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+  }
+
+  fn is_all_exported_by_module_exports(&self) -> bool {
+    self.base.is_module_exports() && self.names.is_empty()
   }
 }
 
@@ -212,6 +214,7 @@ impl Dependency for CommonJsExportRequireDependency {
     &self,
     mg: &ModuleGraph,
     mg_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     let ids = self.get_ids(mg);
 
@@ -224,7 +227,7 @@ impl Dependency for CommonJsExportRequireDependency {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
           from: Some(from.to_owned()),
-          can_mangle: Some(false),
+          can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
           export: Some(if ids.is_empty() {
             Nullable::Null
           } else {
@@ -237,9 +240,13 @@ impl Dependency for CommonJsExportRequireDependency {
       })
     } else if self.names.is_empty() {
       let from = mg.connection_by_dependency_id(&self.id)?;
-      if let Some(reexport_info) =
-        self.get_star_reexports(mg, mg_cache, None, from.module_identifier())
-      {
+      if let Some(reexport_info) = self.get_star_reexports(
+        mg,
+        mg_cache,
+        exports_info_artifact,
+        None,
+        from.module_identifier(),
+      ) {
         Some(ExportsSpec {
           exports: ExportsOfExportsSpec::Names(
             reexport_info
@@ -251,7 +258,8 @@ impl Dependency for CommonJsExportRequireDependency {
                   name: name.to_owned(),
                   from: Some(from.to_owned()),
                   export: Some(Nullable::Value(export)),
-                  can_mangle: Some(false),
+                  // `module.exports = require("./m")` can't be mangled
+                  can_mangle: Some(!self.is_all_exported_by_module_exports()),
                   ..Default::default()
                 })
               })
@@ -268,7 +276,8 @@ impl Dependency for CommonJsExportRequireDependency {
           } else {
             None
           },
-          can_mangle: Some(false),
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: Some(!self.is_all_exported_by_module_exports()),
           dependencies: Some(vec![*from.module_identifier()]),
           ..Default::default()
         })
@@ -280,7 +289,7 @@ impl Dependency for CommonJsExportRequireDependency {
       Some(ExportsSpec {
         exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.to_owned(),
-          can_mangle: Some(false),
+          can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
           ..Default::default()
         })]),
         dependencies: None,
@@ -293,6 +302,7 @@ impl Dependency for CommonJsExportRequireDependency {
     &self,
     mg: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     let ids = self.get_ids(mg);
@@ -302,18 +312,19 @@ impl Dependency for CommonJsExportRequireDependency {
       } else {
         vec![ExtendedReferencedExport::Export(ReferencedExport {
           name: ids.to_vec(),
-          can_mangle: false,
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })]
       }
     };
     if self.result_used {
       return get_full_result();
     }
-    let mut exports_info = mg.get_prefetched_exports_info(
+    let mut exports_info = exports_info_artifact.get_exports_info_data(
       mg.get_parent_module(&self.id)
         .expect("Can not get parent module"),
-      PrefetchExportsInfoMode::Nested(&self.names),
     );
 
     for name in &self.names {
@@ -327,7 +338,7 @@ impl Dependency for CommonJsExportRequireDependency {
       }
 
       match export_info.exports_info() {
-        Some(v) => exports_info = exports_info.redirect(v, false),
+        Some(v) => exports_info = v.as_data(exports_info_artifact),
         None => return get_full_result(),
       };
     }
@@ -340,7 +351,7 @@ impl Dependency for CommonJsExportRequireDependency {
     }
 
     let mut referenced_exports = vec![];
-    for (_, export_info) in exports_info.exports() {
+    for export_info in exports_info.exports().values() {
       let prefix = ids
         .iter()
         .chain(if let Some(name) = export_info.name() {
@@ -350,7 +361,7 @@ impl Dependency for CommonJsExportRequireDependency {
         })
         .collect_vec();
       collect_referenced_export_items(
-        mg,
+        exports_info_artifact,
         runtime,
         &mut referenced_exports,
         prefix,
@@ -365,8 +376,10 @@ impl Dependency for CommonJsExportRequireDependency {
       .map(|name| {
         ExtendedReferencedExport::Export(ReferencedExport {
           name: name.into_iter().map(|i| i.to_owned()).collect_vec(),
-          can_mangle: false,
+          // `module.exports = require("./m")` can't be mangled
+          can_mangle: !self.is_all_exported_by_module_exports(),
           can_inline: false,
+          ns_access: false,
         })
       })
       .collect_vec()
@@ -447,24 +460,10 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
-    let used = if dep.names.is_empty() {
-      let exports_info_used = mg.get_prefetched_exports_info_used(&module.identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.names,
-      )
-    } else {
-      let exports_info = mg.get_prefetched_exports_info(
-        &module.identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.names),
-      );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.names,
-      )
-    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let base = if dep.base.is_exports() {
       runtime_template.render_exports_argument(exports_argument)
@@ -481,18 +480,11 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
 
     let require_expr = if let Some(imported_module) = mg.get_module_by_dependency_id(&dep.id)
       && let ids = dep.get_ids(mg)
-      && let Some(used_imported) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&mg.get_prefetched_exports_info(
-          &imported_module.identifier(),
-          if ids.is_empty() {
-            PrefetchExportsInfoMode::Default
-          } else {
-            PrefetchExportsInfoMode::Nested(ids)
-          },
-        )),
-        *runtime,
-        ids,
-      ) {
+      && let Some(used_imported) = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&imported_module.identifier())
+        .get_used_name(&compilation.exports_info_artifact, *runtime, ids)
+    {
       match used_imported {
         UsedName::Normal(used_imported) => {
           format!(
@@ -522,9 +514,9 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
         }
         None => format!("/* unused reexport */ {require_expr}"),
       };
-      source.replace(dep.range.start, dep.range.end, expr.as_str(), None)
+      source.replace(dep.range.start, dep.range.end, expr, None)
     } else if dep.base.is_define_property() {
-      panic!("TODO")
+      todo!("CommonJsExportRequireDependency define_property base type")
     } else {
       panic!("Unexpected type");
     }

@@ -201,8 +201,7 @@ async fn resolve_in_scheme(
     .dependencies
     .first()
     .and_then(|dep| dep.as_module_dependency())
-    .map(|dep| dep.dependency_type().as_str() != "url")
-    .unwrap_or(true);
+    .is_none_or(|dep| dep.dependency_type().as_str() != "url");
 
   // Only handle relative urls (./xxx, ../xxx, /xxx, //xxx) and non-url dependencies
   let resource = resource_data.resource();
@@ -299,7 +298,7 @@ impl HttpUriOptionsAllowedUris {
 
   fn condition_to_string(&self, condition: &AssetCondition) -> String {
     match condition {
-      AssetCondition::String(s) => s.to_string(),
+      AssetCondition::String(s) => s.clone(),
       AssetCondition::Regexp(r) => r.to_source_string(),
     }
   }

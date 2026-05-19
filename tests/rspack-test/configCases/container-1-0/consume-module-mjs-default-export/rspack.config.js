@@ -1,13 +1,13 @@
-"use strict";
+'use strict';
 
-const { rspack } = require("@rspack/core");
+const { rspack } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "development",
-	plugins: [
+  mode: 'development',
+  plugins: [
     new rspack.container.ModuleFederationPluginV1({
-      shared: ["./shared-esm-pkg/index.js"]
+      shared: ['./shared-esm-pkg/index.js'],
     }),
-	]
+  ],
 };

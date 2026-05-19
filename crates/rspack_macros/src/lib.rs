@@ -1,4 +1,5 @@
 mod hook;
+mod javascript_parser_plugin_hooks;
 mod merge;
 mod plugin;
 mod runtime_module;
@@ -37,6 +38,14 @@ pub fn plugin_hook(
   let args = syn::parse_macro_input!(args as plugin::HookArgs);
   let input = syn::parse_macro_input!(tokens as syn::ItemFn);
   plugin::expand_fn(args, input)
+}
+
+#[proc_macro_attribute]
+pub fn implemented_javascript_parser_hooks(
+  args: proc_macro::TokenStream,
+  tokens: proc_macro::TokenStream,
+) -> proc_macro::TokenStream {
+  javascript_parser_plugin_hooks::expand(args, tokens)
 }
 
 #[proc_macro]

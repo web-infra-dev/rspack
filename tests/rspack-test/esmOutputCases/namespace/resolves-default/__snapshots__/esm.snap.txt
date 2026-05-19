@@ -1,0 +1,21 @@
+```mjs title=main.mjs
+// ./mod.js
+/* export default */ function mod() {
+  return 42;
+}
+
+// ./index.js
+
+
+/* export default */ const index = (mod());
+
+it("should expose the default export through a namespace object", async () => {
+  const out = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod()).toBe(42);
+  expect(out.default).toBe(42);
+});
+
+export default index;
+
+```

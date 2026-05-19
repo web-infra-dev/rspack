@@ -56,7 +56,7 @@ pub(super) enum BuiltinPluginOptions {
   // Optimization plugins
   EnsureChunkConditionsPlugin,
   MergeDuplicateChunksPlugin,
-  SideEffectsFlagPlugin,
+  SideEffectsFlagPlugin(bool),
   FlagDependencyExportsPlugin,
   FlagDependencyUsagePlugin(bool),
   ModuleConcatenationPlugin,
@@ -77,6 +77,7 @@ pub(super) enum BuiltinPluginOptions {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
   DeterministicChunkIdsPlugin,
@@ -254,8 +255,10 @@ impl BuilderContext {
           rspack_plugin_merge_duplicate_chunks::MergeDuplicateChunksPlugin::default().boxed(),
         );
       }
-      BuiltinPluginOptions::SideEffectsFlagPlugin => {
-        plugins.push(rspack_plugin_javascript::SideEffectsFlagPlugin::default().boxed());
+      BuiltinPluginOptions::SideEffectsFlagPlugin(analyze_side_effects_free) => {
+        plugins.push(
+          rspack_plugin_javascript::SideEffectsFlagPlugin::new(analyze_side_effects_free).boxed(),
+        );
       }
       BuiltinPluginOptions::FlagDependencyExportsPlugin => {
         plugins.push(rspack_plugin_javascript::FlagDependencyExportsPlugin::default().boxed());
@@ -279,7 +282,7 @@ impl BuilderContext {
 
       // Output plugins
       BuiltinPluginOptions::EnableLibraryPlugin(library_type) => {
-        rspack_plugin_library::enable_library_plugin(library_type, &mut plugins)
+        rspack_plugin_library::enable_library_plugin(library_type, None, None, &mut plugins)
       }
       // BuiltinPluginOptions::SplitChunksPlugin => {
       // plugins.push(rspack_plugin_split_chunks::SplitChunksPlugin::default().boxed())
@@ -300,6 +303,10 @@ impl BuilderContext {
       BuiltinPluginOptions::DeterministicModuleIdsPlugin => {
         plugins.push(rspack_ids::DeterministicModuleIdsPlugin::default().boxed())
       }
+      BuiltinPluginOptions::HashedModuleIdsPlugin => plugins.push(
+        rspack_ids::HashedModuleIdsPlugin::new(rspack_ids::HashedModuleIdsPluginOptions::default())
+          .boxed(),
+      ),
       BuiltinPluginOptions::NaturalChunkIdsPlugin => {
         plugins.push(rspack_ids::NaturalChunkIdsPlugin::default().boxed())
       }

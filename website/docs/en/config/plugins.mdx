@@ -1,3 +1,7 @@
+---
+description: 'The plugins option is used to register a set of Rspack or webpack plugins to customize the build process'
+---
+
 # Plugins
 
 - **Type:**
@@ -31,7 +35,6 @@ For example, [`DefinePlugin`](/plugins/webpack/define-plugin) allows you to repl
 import { rspack } from '@rspack/core';
 
 export default {
-  //...
   plugins: [
     new rspack.DefinePlugin({
       // pass plugin options
@@ -49,7 +52,6 @@ import { rspack } from '@rspack/core';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
-  //...
   plugins: [new HtmlWebpackPlugin()],
 };
 ```

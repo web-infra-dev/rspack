@@ -4,21 +4,21 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, utils::json_stringify};
+use crate::{ConsumeOptions, ShareScope};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -38,16 +38,20 @@ pub struct ConsumeSharedModule {
 }
 
 impl ConsumeSharedModule {
+  pub fn share_scope(&self) -> &ShareScope {
+    &self.options.share_scope
+  }
+
   pub fn new(context: Context, options: ConsumeOptions) -> Self {
+    let scopes_key = options.share_scope.key();
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
-      &options.share_scope,
+      &scopes_key,
       &options.share_key,
       options
         .required_version
         .as_ref()
-        .map(|v| v.to_string())
-        .unwrap_or_else(|| "*".to_string()),
+        .map_or_else(|| "*".to_string(), |v| v.to_string()),
       if options.strict_version {
         " (strict)"
       } else {
@@ -75,7 +79,7 @@ impl ConsumeSharedModule {
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
         "webpack/sharing/consume/{}/{}{}",
-        &options.share_scope,
+        &scopes_key,
         &options.share_key,
         options
           .import
@@ -159,13 +163,14 @@ impl Module for ConsumeSharedModule {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &rspack_core::ExportsInfoArtifact,
     _strict: bool,
   ) -> ExportsType {
     ExportsType::Dynamic
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -182,9 +187,10 @@ impl Module for ConsumeSharedModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
-      ..Default::default()
+      optimization_bailouts: vec![],
     })
   }
 
@@ -207,7 +213,7 @@ impl Module for ConsumeSharedModule {
     let mut function = String::from("loaders.load");
     let mut args = vec![
       json_stringify(&self.options.share_scope),
-      json_stringify(&self.options.share_key),
+      json_stringify_str(&self.options.share_key),
     ];
     if let Some(version) = &self.options.required_version {
       if self.options.strict_version {
@@ -216,7 +222,7 @@ impl Module for ConsumeSharedModule {
       if self.options.singleton {
         function += "Singleton";
       }
-      let version = json_stringify(&version.to_string());
+      let version = json_stringify_str(&version.to_string());
       args.push(format!("loaders.parseRange({version})"));
       function += "VersionCheck";
     } else if self.options.singleton {
@@ -240,6 +246,7 @@ impl Module for ConsumeSharedModule {
         singleton: self.options.singleton,
         eager: self.options.eager,
         fallback: factory,
+        tree_shaking_mode: self.options.tree_shaking_mode.clone(),
       });
     Ok(code_generation_result)
   }

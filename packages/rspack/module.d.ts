@@ -176,7 +176,10 @@ declare namespace Rspack {
     id: ModuleId;
     loaded: boolean;
     parents: NodeJS.Module['id'][] | null | undefined;
-    children: NodeJS.Module['id'][];
+    // Keep `any[]` for compatibility:
+    // - Rspack runtime uses module ids
+    // - `@types/node` defines `children` as `Module[]`.
+    children: any[];
     hot?: Hot;
   }
 
@@ -210,7 +213,6 @@ declare namespace Rspack {
   interface Process {
     env: {
       [key: string]: any;
-      NODE_ENV: 'development' | 'production' | (string & {});
     };
   }
 }
@@ -233,6 +235,12 @@ interface ImportMeta {
       mode?: 'sync' | 'eager' | 'weak' | 'lazy' | 'lazy-once';
     },
   ) => Rspack.Context;
+  /**
+   * Available in server components when using the RSC plugins.
+   */
+  rspackRsc?: {
+    loadCss(): any;
+  };
 }
 
 declare const __resourceQuery: string;

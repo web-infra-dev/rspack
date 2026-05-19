@@ -15,7 +15,7 @@ pnpm-lock.yaml
 
 # Infra
 
-Cargo.toml @quininer
+Cargo.toml
 /.github/workflows @stormslowly
 /.github/actions @stormslowly
 /.github/ISSUE_TEMPLATE @chenjiahan
@@ -25,13 +25,13 @@ Cargo.toml @quininer
 # Crates in alphabetical order
 
 /crates/node_binding
-/crates/rspack @h-a-n-a
+/crates/rspack
 /crates/rspack_base64
 /crates/rspack_binding_api
-/crates/rspack_binding_build @h-a-n-a
-/crates/rspack_binding_builder @h-a-n-a
-/crates/rspack_binding_builder_macros @h-a-n-a
-/crates/rspack_binding_builder_testing @h-a-n-a
+/crates/rspack_binding_build
+/crates/rspack_binding_builder
+/crates/rspack_binding_builder_macros
+/crates/rspack_binding_builder_testing
 /crates/rspack_browserslist @hardfist
 /crates/rspack_cacheable @jerrykingxyz
 /crates/rspack_cacheable_test @jerrykingxyz
@@ -50,7 +50,7 @@ Cargo.toml @quininer
 /crates/rspack_loader_swc
 /crates/rspack_loader_preact_refresh @LingyuCoder
 /crates/rspack_loader_react_refresh @ahabhgk
-/crates/rspack_loader_runner @h-a-n-a
+/crates/rspack_loader_runner
 
 # Plugins
 

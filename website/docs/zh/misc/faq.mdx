@@ -1,4 +1,5 @@
 ---
+description: '我们和 webpack 团队确立了合作关系，Rspack 是 webpack 通过 Rust 进行性能优化的一个尝试，并已经取得了良好进展。'
 sidebar: false
 ---
 
@@ -18,7 +19,7 @@ sidebar: false
 
 ## 不使用 babel-loader 的话，如何实现兼容性降级编译？
 
-Rspack 内部使用 SWC 进行代码的降级编译（通过 [builtin:swc-loader](/guide/features/builtin-swc-loader.html)），因此无需通过 babel-loader 来进行代码的降级编译。
+Rspack 内部使用 SWC 进行代码的降级编译（通过 [builtin:swc-loader](/guide/features/builtin-swc-loader)），因此无需通过 babel-loader 来进行代码的降级编译。
 
 ## Rspack 对 webpack API 是 100% 兼容吗？
 
@@ -31,7 +32,3 @@ Rspack 内部使用 SWC 进行代码的降级编译（通过 [builtin:swc-loader
 ## 自定义插件和自定义 Loader 需要使用 Rust 进行开发吗？
 
 不需要。你可以像开发 webpack 插件和 loader 一样，使用 JavaScript 来开发插件和 loader。你也可以选择使用 Rust 来开发插件和 loader，参考 [rspack-binding-template](https://github.com/rstackjs/rspack-binding-template)。
-
-## Rspack 计划支持 React Server Components 吗？
-
-Rspack 团队正在支持 React Server Components，相关 PR：[#12012](https://github.com/web-infra-dev/rspack/pull/12012)。

@@ -1,3 +1,4 @@
+import './checkNodeVersion';
 import * as rspackExports from './exports';
 import { rspack as rspackFn } from './rspack';
 
@@ -11,6 +12,5 @@ const rspack: Rspack = fn;
 
 export * from './exports';
 export default rspack;
-export { rspack };
 // make require esm default export compatible with commonjs
-export { rspack as 'module.exports' };
+export { rspack, rspack as 'module.exports' };

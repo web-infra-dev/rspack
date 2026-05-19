@@ -5,20 +5,21 @@ use rspack_core::{
 };
 
 use super::provide_shared_plugin::ProvideVersion;
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ProvideSharedDependency {
   id: DependencyId,
   request: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub name: String,
   pub version: ProvideVersion,
   pub eager: bool,
   pub singleton: Option<bool>,
   pub required_version: Option<ConsumeVersion>,
   pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
@@ -26,7 +27,7 @@ pub struct ProvideSharedDependency {
 impl ProvideSharedDependency {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: String,
+    share_scope: ShareScope,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -34,10 +35,11 @@ impl ProvideSharedDependency {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    tree_shaking_mode: Option<String>,
   ) -> Self {
     let resource_identifier = format!(
       "provide module ({}) {} as {} @ {} {}",
-      &share_scope,
+      share_scope.key(),
       &request,
       &name,
       &version,
@@ -54,6 +56,7 @@ impl ProvideSharedDependency {
       singleton,
       required_version,
       strict_version,
+      tree_shaking_mode,
       resource_identifier,
       factorize_info: Default::default(),
     }

@@ -1,0 +1,24 @@
+```mjs title=main.mjs
+// ./foo.js
+function foo() {
+  return "foo";
+}
+
+// ./index.js
+
+
+function a() {
+  return [foo(), foo()];
+}
+
+/* export default */ const index = (a().join(","));
+
+it("should optimize repeated namespace lookups in one function", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toBe("foo,foo");
+});
+
+export default index;
+
+```

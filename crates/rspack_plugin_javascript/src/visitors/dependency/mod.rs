@@ -5,7 +5,7 @@ mod util;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
   CompilerOptions, FactoryMeta, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ParserOptions, ResourceData, RuntimeTemplate, SideEffectsBailoutItemWithSpan,
+  ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
 use rspack_javascript_compiler::ast::Program;
@@ -15,13 +15,14 @@ use swc_core::common::{BytePos, Mark, comments::Comments};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
-    AllowedMemberTypes, CallExpressionInfo, CallHooksName, DestructuringAssignmentProperties,
-    DestructuringAssignmentProperty, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    RootName, TagInfoData, TopLevelScope, ast::*, estree::*,
+    AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
+    DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
+    JavascriptParser, MemberExpressionInfo, MemberRanges, OptionalMembers, RootName,
+    ScopeTerminated, TagInfoData, TopLevelScope, ast::*, estree::*,
   },
   util::*,
 };
-use crate::BoxJavascriptParserPlugin;
+use crate::{BoxJavascriptParserPlugin, parser_and_generator::ParserRuntimeRequirementsData};
 
 pub struct ScanDependenciesResult {
   pub dependencies: Vec<BoxDependency>,
@@ -48,7 +49,7 @@ pub fn scan_dependencies(
   unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
-  runtime_template: &RuntimeTemplate,
+  parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source,
@@ -68,7 +69,7 @@ pub fn scan_dependencies(
     unresolved_mark,
     parser_plugins,
     parse_meta,
-    runtime_template,
+    parser_runtime_requirements,
   );
 
   parser.walk_program(program.get_inner_program());

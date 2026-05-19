@@ -2,13 +2,13 @@ use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryAuxiliaryComment,
-  LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
-  ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin, RuntimeGlobals, RuntimeModule,
-  SourceType,
+  CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
+  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_error::{Result, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
@@ -98,6 +98,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());
@@ -107,10 +108,14 @@ async fn render(
     .output
     .environment
     .supports_arrow_function();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()
@@ -129,8 +134,16 @@ async fn render(
   let externals = modules.clone();
 
   if self.optional_amd_external_as_global {
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
     for module in &externals {
-      if module_graph.is_optional(&module.id, module_graph_cache) {
+      if module_graph.is_optional(
+        &module.id,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      ) {
         optional_externals.push(*module);
       } else {
         required_externals.push(*module);
@@ -169,7 +182,7 @@ async fn render(
   let define = if let (Some(amd), Some(_)) = &(&names.amd, named_define) {
     format!(
       "define({}, {}, {amd_factory});\n",
-      library_name(&[amd.to_string()], chunk, compilation).await?,
+      library_name(std::slice::from_ref(amd), chunk, compilation).await?,
       externals_dep_array(&required_externals)?
     )
   } else {
@@ -184,16 +197,29 @@ async fn render(
   } else if let Some(root) = &names.root {
     library_name(root, chunk, compilation).await?
   } else {
-    "".to_string()
+    String::new()
   };
 
   let factory = if names.commonjs.is_some() || names.root.is_some() {
+    let commonjs_externals = {
+      let side_effects_state_artifact = &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact;
+      externals_require_array(
+        "commonjs",
+        &externals,
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      )?
+    };
     let commonjs_code = format!(
       "{}
       exports[{}] = factory({});\n",
       get_auxiliary_comment("commonjs", auxiliary_comment),
       name,
-      externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
+      commonjs_externals,
     );
     let root_code = format!(
       "{}
@@ -225,9 +251,22 @@ async fn render(
     let value = if externals.is_empty() {
       "var a = factory();\n".to_string()
     } else {
+      let commonjs_externals = {
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
+        externals_require_array(
+          "commonjs",
+          &externals,
+          module_graph,
+          module_graph_cache,
+          side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        )?
+      };
       format!(
         "var a = typeof exports === 'object' ? factory({}) : factory({});\n",
-        externals_require_array("commonjs", &externals, module_graph, module_graph_cache)?,
+        commonjs_externals,
         externals_root_array(&externals)?
       )
     };
@@ -243,13 +282,26 @@ async fn render(
   source.add(RawStringSource::from(
     "(function webpackUniversalModuleDefinition(root, factory) {\n",
   ));
+  let commonjs2_externals = {
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    externals_require_array(
+      "commonjs2",
+      &externals,
+      module_graph,
+      module_graph_cache,
+      side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    )?
+  };
   source.add(RawStringSource::from(format!(
     r#"{}
       if(typeof exports === 'object' && typeof module === 'object') {{
           module.exports = factory({});
       }}"#,
     get_auxiliary_comment("commonjs2", auxiliary_comment),
-    externals_require_array("commonjs2", &externals, module_graph, module_graph_cache)?
+    commonjs2_externals
   )));
   source.add(RawStringSource::from(format!(
     "else if(typeof define === 'function' && define.amd) {{
@@ -318,8 +370,7 @@ impl Plugin for UmdLibraryPlugin {
 }
 
 async fn library_name(v: &[String], chunk: &Chunk, compilation: &Compilation) -> Result<String> {
-  let value =
-    serde_json::to_string(v.last().expect("should have last")).expect("invalid module_id");
+  let value = rspack_util::json_stringify_str(v.last().expect("should have last"));
   replace_keys(value, chunk, compilation).await
 }
 
@@ -348,6 +399,8 @@ fn externals_require_array(
   externals: &[&ExternalModule],
   module_graph: &ModuleGraph,
   module_graph_cache: &ModuleGraphCacheArtifact,
+  side_effects_state_artifact: &SideEffectsStateArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
 ) -> Result<String> {
   Ok(
     externals
@@ -359,13 +412,18 @@ fn externals_require_array(
             .get(external_type)
             .ok_or_else(|| error!("Missing external configuration for type: {external_type}"))?,
         };
-        let primary = serde_json::to_string(request.primary()).to_rspack_result()?;
+        let primary = rspack_util::json_stringify_str(request.primary());
         let mut expr = if let Some(rest) = request.rest() {
           format!("require({}){}", primary, &accessor_to_object_access(rest))
         } else {
           format!("require({primary})")
         };
-        if module_graph.is_optional(&m.id, module_graph_cache) {
+        if module_graph.is_optional(
+          &m.id,
+          module_graph_cache,
+          side_effects_state_artifact,
+          exports_info_artifact,
+        ) {
           expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)
@@ -398,14 +456,8 @@ fn externals_root_array(modules: &[&ExternalModule]) -> Result<String> {
 fn accessor_to_object_access<S: AsRef<str>>(accessor: impl IntoIterator<Item = S>) -> String {
   accessor
     .into_iter()
-    .map(|s| {
-      format!(
-        "[{}]",
-        serde_json::to_string(s.as_ref()).expect("failed to serde_json::to_string")
-      )
-    })
-    .collect::<Vec<_>>()
-    .join("")
+    .map(|s| format!("[{}]", rspack_util::json_stringify_str(s.as_ref())))
+    .collect::<String>()
 }
 
 fn accessor_access(base: Option<&str>, accessor: &[String]) -> String {
@@ -446,5 +498,5 @@ fn get_auxiliary_comment(t: &str, auxiliary_comment: Option<&LibraryAuxiliaryCom
   {
     return format!("\t// {value} \n");
   }
-  "".to_string()
+  String::new()
 }

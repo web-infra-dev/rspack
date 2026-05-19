@@ -1,10 +1,14 @@
+---
+description: 'module.rules defines how Rspack processes different types of modules during the build'
+---
+
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
-# Module Rules
+# Module rules
 
 - **Type:** `(Rule | Falsy)[]`
 - **Default:** `[]`
@@ -24,7 +28,7 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         use: 'builtin:swc-loader',
         options: {
           // loader options...
@@ -437,16 +441,14 @@ export default {
         type: 'asset/resource',
       },
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
             experimental: {
 +             keepImportAttributes: true,
-            },
-            parser: {
-              syntax: 'typescript',
             },
           },
         },
@@ -461,9 +463,42 @@ export default {
 
 `rules[].loader` is a shortcut to `rules[].use: [ { loader } ]`. See [rules[].use](/config/module-rules#rulesuse) for details.
 
+For example, use the built-in swc-loader to compile TypeScript files:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|ts)$/,
+        loader: 'builtin:swc-loader',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].options
 
 `rules[].options` is a shortcut to `rules[].use: [ { options } ]`. See [rules[].use](/config/module-rules#rulesuse) for details.
+
+For example, pass options to the swc-loader:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## rules[].parser
 
@@ -588,6 +623,7 @@ type RuleType =
   | 'asset'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -626,7 +662,7 @@ The meanings of all `type` options are as follows:
 - `'javascript/esm'`: JavaScript modules, treated as strict ES modules.
 - `'javascript/dynamic'`: JavaScript modules, treated as Script.
 - `'json'`: JSON data module, see [JSON](/guide/tech/json).
-- `'css' | 'css/module' | 'css/auto'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`: CSS module, see [Built-in CSS support](/guide/tech/css#built-in-css-support).
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`: Asset module, see [Asset Module](/guide/features/asset-module).
 
 ## rules[].layer
@@ -675,11 +711,9 @@ Loaders will be executed in right-to-left order.
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {
-        //...
         use: [
           'svgr-loader',
           {
@@ -699,7 +733,6 @@ A function can also be used:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {

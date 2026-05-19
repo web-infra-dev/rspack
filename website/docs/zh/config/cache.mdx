@@ -1,3 +1,7 @@
+---
+description: '缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。'
+---
+
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 
@@ -7,9 +11,7 @@ import PropertyType from '@components/PropertyType';
 
 缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
 
-- **类型：** `CacheOptions`
-
-- **默认值：** production 模式为 `false`, development 模式为 `true`
+- **类型：**
 
 ```ts
 type CacheOptions =
@@ -22,6 +24,7 @@ type CacheOptions =
       buildDependencies?: string[];
       version?: string;
       portable?: boolean;
+      readonly?: boolean;
       snapshot?: {
         immutablePaths?: Array<string | RegExp>;
         unmanagedPaths?: Array<string | RegExp>;
@@ -33,6 +36,8 @@ type CacheOptions =
       };
     };
 ```
+
+- **默认值：** development 模式为 `true`，production 模式和 none 模式为 `false`
 
 ## 禁用缓存
 
@@ -85,14 +90,24 @@ export default {
 `cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 会使用这些文件的哈希值来使持久化缓存失效。
 
 :::tip
-建议在 rspack 配置中设置 `cache.buildDependencies`: [__filename]，以获取最新的配置。
+与 webpack 不同，Rspack 默认不预设任何构建依赖。建议将项目配置文件添加到 `cache.buildDependencies`，以确保配置变更时缓存能及时失效。
+
+注意：使用 Rspack CLI 时，配置文件会自动被添加到 `cache.buildDependencies` 中。
+
+在解析构建依赖文件时，Rspack 会通过 AST 递归解析 JS/TS 文件，追踪其传递依赖。对于 `node_modules` 下的包，Rspack 会停止递归解析，转而追踪该包的 `package.json`。
 :::
 
 ```js title="rspack.config.mjs"
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 export default {
   cache: {
     type: 'persistent',
-    buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+    buildDependencies: [__filename, join(__dirname, './tsconfig.json')],
   },
 };
 ```
@@ -104,6 +119,10 @@ export default {
 - **默认值:** `""`
 
 缓存版本，不同版本的缓存彼此隔离。
+
+:::warning
+不要在不同配置之间共享同一份缓存（相同的 `version` 和 `storage.directory`），这样可能导致错误的缓存命中。
+:::
 
 :::tip 持久化缓存失效
 
@@ -147,9 +166,35 @@ export default {
 
 :::
 
+### cache.readonly
+
+- **类型：** `boolean`
+
+- **默认值：** `false`
+
+启用只读缓存模式。启用后，缓存将仅从磁盘读取而不会被写入，这在 CI 环境中非常有用，可以使用预热的缓存而不修改它。
+
+**示例：**
+
+仅在 CI 启用：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    // 请确保你的 CI 环境设置了 `process.env.CI`（或类似的环境变量）
+    readonly: Boolean(process.env.CI),
+  },
+};
+```
+
 ### cache.snapshot
 
-配置快照策略。快照用于在关闭期间确定哪些文件已被修改。支持以下配置：
+- **类型：** `object`
+
+- **默认值：** `{}`
+
+配置快照策略。快照用于确定自上次构建以来哪些文件发生了变化。支持以下配置：
 
 #### snapshot.immutablePaths
 
@@ -157,7 +202,7 @@ export default {
 
 - **默认值：** `[]`
 
-不可变文件的路径数组，热重启期间对这些路径的更改将被忽略。
+不可变文件的路径数组。热重启时，这些路径下的文件变更将被忽略，缓存会直接视为有效而无需重新检查文件内容。适用于保证写入后永不变更的内容寻址路径。
 
 #### snapshot.managedPaths
 
@@ -165,7 +210,7 @@ export default {
 
 - **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
 
-包管理器管理的路径数组。在热启动时，将基于 package.json 中的版本来确定是否修改该路径。
+包管理器管理的路径数组。在热启动时，Rspack 会通过对应 `package.json` 中的 `version` 字段来判断包是否发生变化，而无需对文件内容进行哈希。这可以加速对仅通过包管理器更新的依赖包的缓存校验。
 
 #### snapshot.unmanagedPaths
 
@@ -173,11 +218,11 @@ export default {
 
 - **默认值：** `[]`
 
-指定 `snapshot.managedPaths` 中不受包管理器管理的路径数组
+指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
 ### cache.storage
 
-- **类型：** `{ type: 'filesystem', directory: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string }`
 
 - **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 
@@ -200,6 +245,37 @@ Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/conf
 
 Rspack 会在启动时自动清理长时间（7 天）未访问的缓存文件夹。
 :::
+
+### 查看持久化缓存日志
+
+持久化缓存相关日志会通过 `rspack.persistentCache` logger 输出。可以开启 `stats.logging`，在构建 stats 中查看这些日志：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: 'info',
+  },
+};
+```
+
+日志会包含持久化缓存的关键信息，例如持久化缓存是否启用、构建依赖是否有效、缓存恢复是否成功，以及持久化缓存失效的原因，同时也会包含其他 logger 的日志。
+
+如果只想打印 `rspack.persistentCache` 相关日志，可以将 `stats.logging` 设置为 `false` 来关闭其他 logger 的输出，并通过 `stats.loggingDebug` 包含这个 logger：
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: false,
+    loggingDebug: /^rspack\.persistentCache$/,
+  },
+};
+```
 
 ## 从 webpack 配置迁移
 

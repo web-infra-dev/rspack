@@ -3,7 +3,7 @@ use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
 use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
 use napi_derive::napi;
-use rspack_collections::{Identifier, IdentifierMap, UkeyMap};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
@@ -15,6 +15,7 @@ use rspack_napi::{
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_util::source_map::SourceMapKind;
+use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES, JsCompiler,
@@ -30,9 +31,9 @@ use crate::{
 };
 
 define_symbols! {
-  MODULE_IDENTIFIER_SYMBOL => "MODULE_IDENTIFIER_SYMBOL",
-  MODULE_BUILD_INFO_SYMBOL => "MODULE_BUILD_INFO_SYMBOL",
-  COMPILATION_HOOKS_MAP_SYMBOL => "COMPILATION_HOOKS_MAP_SYMBOL",
+  MODULE_IDENTIFIER_SYMBOL => "rspack.module.identifier",
+  MODULE_BUILD_INFO_SYMBOL => "rspack.module.buildInfo",
+  COMPILATION_HOOKS_MAP_SYMBOL => "rspack.compilation.hooksMap",
 }
 
 #[napi(object)]
@@ -201,10 +202,7 @@ impl Module {
           let name_clone = Object::from_raw(env.raw(), name.raw());
           let name_str = name_clone.coerce_to_string()?.into_string();
           // known build info properties
-          if name_str == "assets" {
-            // TODO: Currently, setting assets is not supported.
-            continue;
-          } else {
+          if name_str != "assets" {
             let value = input_object.get_property::<Unknown, Unknown>(name)?;
             new_instance.set_property::<Unknown, Unknown>(name, value)?;
           }
@@ -496,7 +494,7 @@ type ModuleInstanceMutRef<'a> = Either5<
 
 type ModuleInstanceNapiRefs = IdentifierMap<ModuleInstanceNapiRef>;
 
-type ModuleInstanceNapiRefsByCompilerId = RefCell<UkeyMap<CompilerId, ModuleInstanceNapiRefs>>;
+type ModuleInstanceNapiRefsByCompilerId = RefCell<FxHashMap<CompilerId, ModuleInstanceNapiRefs>>;
 
 thread_local! {
   static MODULE_INSTANCE_REFS: ModuleInstanceNapiRefsByCompilerId = Default::default();
@@ -772,6 +770,7 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
+      chunk: None,
       id: Identifier::from(value.name),
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
@@ -795,11 +794,9 @@ pub struct JsBuildMeta {
   pub esm: Option<bool>,
   #[napi(ts_type = "undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'")]
   pub exports_type: Option<String>,
-  #[napi(ts_type = "undefined | 'false' | 'redirect' | JsBuildMetaDefaultObjectRedirectWarn")]
-  pub default_object: Option<JsBuildMetaDefaultObject>,
+  #[napi(ts_type = "undefined | 'false' | 'redirect' | 'redirect-warn'")]
+  pub default_object: Option<String>,
   pub side_effect_free: Option<bool>,
-  #[napi(ts_type = "Array<[string, string]> | undefined")]
-  pub exports_final_name: Option<Vec<Vec<String>>>,
 }
 
 impl From<JsBuildMeta> for BuildMeta {
@@ -809,21 +806,16 @@ impl From<JsBuildMeta> for BuildMeta {
       has_top_level_await,
       esm,
       default_object: raw_default_object,
-      exports_final_name: raw_exports_final_name,
       side_effect_free,
       exports_type: raw_exports_type,
     } = value;
 
     let default_object = if let Some(raw_default_object) = raw_default_object {
-      match raw_default_object {
-        Either::A(s) => match s.as_str() {
-          "false" => BuildMetaDefaultObject::False,
-          "redirect" => BuildMetaDefaultObject::Redirect,
-          _ => unreachable!(),
-        },
-        Either::B(default_object) => BuildMetaDefaultObject::RedirectWarn {
-          ignore: default_object.redirect_warn.ignore,
-        },
+      match raw_default_object.as_str() {
+        "false" => BuildMetaDefaultObject::False,
+        "redirect" => BuildMetaDefaultObject::Redirect,
+        "redirect-warn" => BuildMetaDefaultObject::RedirectWarn,
+        _ => unreachable!(),
       }
     } else {
       BuildMetaDefaultObject::False
@@ -842,23 +834,6 @@ impl From<JsBuildMeta> for BuildMeta {
       BuildMetaExportsType::Unset
     };
 
-    let exports_final_name = raw_exports_final_name.map(|exports_name| {
-      exports_name
-        .into_iter()
-        .map(|export_name| {
-          let first = export_name
-            .first()
-            .expect("The buildMeta exportsFinalName item should have first value")
-            .clone();
-          let second = export_name
-            .get(1)
-            .expect("The buildMeta exportsFinalName item should have second value")
-            .clone();
-          (first, second)
-        })
-        .collect::<Vec<_>>()
-    });
-
     Self {
       strict_esm_module: strict_esm_module.unwrap_or_default(),
       has_top_level_await: has_top_level_await.unwrap_or_default(),
@@ -866,27 +841,6 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_type,
       default_object,
       side_effect_free,
-      exports_final_name,
     }
   }
 }
-
-#[napi(object)]
-pub struct JsBuildMetaDefaultObjectRedirectWarn {
-  pub redirect_warn: JsDefaultObjectRedirectWarnObject,
-}
-
-impl From<JsBuildMetaDefaultObjectRedirectWarn> for BuildMetaDefaultObject {
-  fn from(value: JsBuildMetaDefaultObjectRedirectWarn) -> Self {
-    Self::RedirectWarn {
-      ignore: value.redirect_warn.ignore,
-    }
-  }
-}
-
-#[napi(object)]
-pub struct JsDefaultObjectRedirectWarnObject {
-  pub ignore: bool,
-}
-
-pub type JsBuildMetaDefaultObject = Either<String, JsBuildMetaDefaultObjectRedirectWarn>;

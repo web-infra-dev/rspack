@@ -1,3 +1,7 @@
+---
+description: 'Rspack 配置总览，涵盖核心选项、产物行为、构建优化、开发调试、工具链设置与常见配置入口，帮助快速定位相关信息。'
+---
+
 import { PackageManagerTabs } from '@theme';
 import { Tabs, Tab } from '@theme';
 
@@ -57,18 +61,22 @@ export default defineConfig({
 
 Rspack 支持以下配置文件格式：
 
-- `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 "module" 则变成 `ES modules` 格式。
 - `rspack.config.ts`: `TypeScript` 格式，参考 [TypeScript 配置文件](#typescript-配置文件) 了解更多。
-- `rspack.config.cjs`: 强制为 `CommonJS` 格式。
+- `rspack.config.js`: 默认为 `CommonJS` 格式，如果所在 package.json 的 type 为 "module" 则变成 `ES modules` 格式。
+- `rspack.config.mts`: 强制为 `ES modules` + `TypeScript` 格式。
 - `rspack.config.mjs`: 强制为 `ES modules` 格式。
+- `rspack.config.cts`: 强制为 `CommonJS` + `TypeScript` 格式。
+- `rspack.config.cjs`: 强制为 `CommonJS` 格式。
 
-注意，Rspack 将首先搜索 JS 配置文件，然后才是 TS 配置文件。
+Rspack 默认会按以下顺序解析配置文件：
+
+`rspack.config.ts` > `rspack.config.js` > `rspack.config.mts` > `rspack.config.mjs` > `rspack.config.cts` > `rspack.config.cjs`
 
 > `CommonJS` 和 `ES modules`的区别请参考 [ES modules](https://nodejs.org/api/esm.html#modules-ecmascript-modules) 和 [CommonJS](https://nodejs.org/api/modules.html)。
 
 ## 扩展配置
 
-参考[扩展配置](./extends.mdx)了解如何从其他文件或包中扩展配置。
+参考[扩展配置](./extends)了解如何从其他文件或包中扩展配置。
 
 ## TypeScript 配置文件
 
@@ -76,13 +84,19 @@ Rspack 支持以下配置文件格式：
 
 ### 默认行为
 
-Rspack CLI 从 1.5.0 版本开始内置对 TypeScript 配置的支持，默认使用 SWC 来将 TypeScript 代码转换为 CommonJS 格式的 JavaScript 代码。
+Rspack CLI 从 1.5.0 版本开始内置对 TypeScript 配置的支持。
 
-如果你使用的 Rspack CLI 版本小于 1.5.0，建议升级到最新版本，无需再通过 `ts-node` 或 `esbuild-register` 加载配置文件，这些依赖可以被移除。
+默认情况下，Rspack CLI 使用 `--configLoader=auto`：
+
+- JavaScript 配置文件使用运行时原生加载器。
+- 当运行时原生支持 TypeScript 时，会优先尝试原生加载，失败后回退到 [Jiti](https://github.com/unjs/jiti)。
+- 当运行时不支持原生 TypeScript 时，会直接使用 Jiti 加载 TypeScript 配置文件。
+
+如果你使用的 Rspack CLI 版本小于 1.5.0，建议升级到最新版本。
 
 ### 原生支持
 
-如果你使用的 JavaScript 运行时已经原生支持 TypeScript，你可以使用内置的 TS 转换来加载配置文件，确保模块解析行为与原生行为一致。
+如果你使用的 JavaScript 运行时已经原生支持 TypeScript，你可以强制使用原生加载器来加载配置文件，确保模块解析行为与原生行为一致。
 
 例如，Node.js 已经原生支持 TypeScript，你可以使用以下命令来使用 Node.js 原生加载器来加载配置文件：
 
@@ -97,6 +111,18 @@ Rspack CLI 从 1.5.0 版本开始内置对 TypeScript 配置的支持，默认�
 ```
 
 详见 [Node.js - Running TypeScript Natively](https://nodejs.org/en/learn/typescript/run-natively#running-typescript-natively)。
+
+### Jiti 加载器
+
+你也可以强制使用 Jiti 来加载 TypeScript 配置文件：
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build --configLoader=jiti"
+  }
+}
+```
 
 ### 配置类型检查
 
@@ -198,7 +224,7 @@ export default function (env, argv) {
 
 ## 合并配置
 
-使用 Rspack 的 [extends](/config/extends) 选项或者 [webpack-merge](https://npmjs.com/package/webpack-merge) 包来合并多个 Rspack 配置。
+使用 Rspack 的 [extends](/config/extends) 选项或者 [rspack-merge](https://github.com/rstackjs/rspack-merge) 包来合并多个 Rspack 配置。
 
 ### extends 选项
 
@@ -215,18 +241,18 @@ export default {
 
 > 该选项仅在 `@rspack/cli` 中有效，查看 [extends](/config/extends) 了解更多用法。
 
-### webpack-merge
+### rspack-merge
 
-`webpack-merge` 是一个社区库，用于合并多个 webpack 配置，也能用于合并 Rspack 配置。
+`rspack-merge` 是一个库，用于合并多个 Rspack 配置。
 
-首先安装 `webpack-merge`：
+首先安装 `rspack-merge`：
 
-<PackageManagerTabs command="add webpack-merge -D" />
+<PackageManagerTabs command="add rspack-merge -D" />
 
 然后你就可以使用它的 `merge` 函数来合并配置：
 
 ```js title="rspack.config.mjs"
-import { merge } from 'webpack-merge';
+import { merge } from 'rspack-merge';
 
 const isDev = process.env.NODE_ENV === 'development';
 const base = {};
@@ -237,4 +263,4 @@ const dev = {
 export default isDev ? merge(base, dev) : base;
 ```
 
-> 查看 [webpack-merge 文档](https://npmjs.com/package/webpack-merge) 了解更多。
+> 查看 [rspack-merge 文档](https://github.com/rstackjs/rspack-merge) 了解更多。

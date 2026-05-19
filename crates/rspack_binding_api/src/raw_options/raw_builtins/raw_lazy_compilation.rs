@@ -10,6 +10,7 @@ use rspack_core::{CompilationId, CompilerId, Module, ModuleIdentifier};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_plugin_lazy_compilation::{Backend, LazyCompilationTest, LazyCompilationTestCheck};
 use rspack_regex::RspackRegex;
+use rustc_hash::FxHashSet as HashSet;
 
 use crate::module::ModuleObject;
 
@@ -86,7 +87,7 @@ pub struct RawModuleInfo {
 
 #[napi(object, object_to_js = false)]
 pub struct RawLazyCompilationOption {
-  pub current_active_modules: ThreadsafeFunction<(), std::collections::HashSet<String>>,
+  pub current_active_modules: ThreadsafeFunction<(), HashSet<String>>,
   pub test: Option<RawLazyCompilationTest>,
   pub entries: bool,
   pub imports: bool,
@@ -94,7 +95,7 @@ pub struct RawLazyCompilationOption {
 }
 
 pub(crate) struct JsBackend {
-  current_active_modules: ThreadsafeFunction<(), std::collections::HashSet<String>>,
+  current_active_modules: ThreadsafeFunction<(), HashSet<String>>,
 }
 
 impl std::fmt::Debug for JsBackend {

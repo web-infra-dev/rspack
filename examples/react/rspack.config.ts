@@ -4,13 +4,11 @@ import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-// Target browsers, see: https://github.com/browserslist/browserslist
-const targets = ['last 2 versions', '> 0.2%', 'not dead', 'Firefox ESR'];
-
 export default defineConfig({
   entry: {
     index: './src/index.tsx',
   },
+  target: ['browserslist:last 2 versions, > 0.2%, not dead, Firefox ESR'],
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
   },
@@ -25,16 +23,13 @@ export default defineConfig({
         type: 'asset',
       },
       {
-        test: /\.(jsx?|tsx?)$/,
+        test: /\.(?:js|jsx|mjs|cjs|ts|tsx|mts|cts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
+              detectSyntax: 'auto',
               jsc: {
-                parser: {
-                  syntax: 'typescript',
-                  tsx: true,
-                },
                 transform: {
                   react: {
                     runtime: 'automatic',
@@ -43,7 +38,6 @@ export default defineConfig({
                   },
                 },
               },
-              env: { targets },
             } satisfies SwcLoaderOptions,
           },
         ],
@@ -54,14 +48,6 @@ export default defineConfig({
     new rspack.HtmlRspackPlugin({
       template: './index.html',
     }),
-    isDev ? new ReactRefreshRspackPlugin() : null,
+    isDev && new ReactRefreshRspackPlugin(),
   ],
-  optimization: {
-    minimizer: [
-      new rspack.SwcJsMinimizerRspackPlugin(),
-      new rspack.LightningCssMinimizerRspackPlugin({
-        minimizerOptions: { targets },
-      }),
-    ],
-  },
 });

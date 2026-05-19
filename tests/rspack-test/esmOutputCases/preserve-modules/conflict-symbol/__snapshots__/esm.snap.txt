@@ -1,12 +1,12 @@
 ```mjs title=demo/index.mjs
-import { other_demo } from "./other.mjs";
+import { demo as other_demo } from "./other.mjs";
 
 // ./src/demo/index.js
 
 
 const demo = () => 'demo'
 other_demo;
-export { demo as local };
+export { demo, demo as local };
 
 ```
 
@@ -19,7 +19,7 @@ const other_demo = () => 'otherDemo'
 	console.log.bind(demo)
 }
 
-export { other_demo };
+export { other_demo as demo };
 
 ```
 

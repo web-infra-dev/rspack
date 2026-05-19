@@ -1,12 +1,32 @@
-use super::*;
-use crate::{ModuleCodeGenerationContext, logger::Logger};
+use async_trait::async_trait;
 
-pub async fn code_generation_pass(
-  compilation: &mut Compilation,
-  plugin_driver: SharedPluginDriver,
-) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compilation");
-  let start = logger.time("code generation");
+use super::*;
+use crate::{
+  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
+};
+
+pub struct CodeGenerationPass;
+
+#[async_trait]
+impl PassExt for CodeGenerationPass {
+  fn name(&self) -> &'static str {
+    "code generation"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_modules_codegen(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    code_generation_pass_impl(compilation).await
+  }
+
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.after_modules_codegen(compilation).await;
+  }
+}
+
+async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> {
   let code_generation_modules = if let Some(mutations) = compilation
     .incremental
     .mutations_read(IncrementalPasses::MODULES_CODEGEN)
@@ -35,22 +55,23 @@ pub async fn code_generation_pass(
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      compilation.get_module_graph().modules().len()
+      compilation.get_module_graph().modules_len()
     ));
     modules
   } else {
-    compilation.code_generation_results = Default::default();
+    *compilation.code_generation_results = Default::default();
     compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect()
   };
-  compilation.code_generation(code_generation_modules).await?;
+  code_generation(compilation, code_generation_modules).await?;
 
   let mut diagnostics = vec![];
-  plugin_driver
+  compilation
+    .plugin_driver
+    .clone()
     .compilation_hooks
     .after_code_generation
     .call(compilation, &mut diagnostics)
@@ -58,163 +79,180 @@ pub async fn code_generation_pass(
     .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
   compilation.extend_diagnostics(diagnostics);
 
-  logger.time_end(start);
   Ok(())
 }
 
-impl Compilation {
-  #[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
-  async fn code_generation(&mut self, modules: IdentifierSet) -> Result<()> {
-    let logger = self.get_logger("rspack.Compilation");
-    let mut codegen_cache_counter = match self.options.cache {
-      CacheOptions::Disabled => None,
-      _ => Some(logger.cache("module code generation cache")),
-    };
+#[instrument("Compilation:code_generation",target=TRACING_BENCH_TARGET, skip_all)]
+pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierSet) -> Result<()> {
+  let logger = compilation.get_logger("rspack.Compilation");
+  let codegen_cache_counter = match compilation.options.cache {
+    CacheOptions::Disabled => None,
+    _ => Some(logger.cache("module code generation cache")),
+  };
 
-    let module_graph = self.get_module_graph();
-    let mut no_codegen_dependencies_modules = IdentifierSet::default();
-    let mut has_codegen_dependencies_modules = IdentifierSet::default();
-    for module_identifier in modules {
-      let module = module_graph
-        .module_by_identifier(&module_identifier)
-        .expect("should have module");
-      if module.get_code_generation_dependencies().is_none() {
-        no_codegen_dependencies_modules.insert(module_identifier);
-      } else {
-        has_codegen_dependencies_modules.insert(module_identifier);
-      }
+  let module_graph = compilation.get_module_graph();
+  let mut no_codegen_dependencies_modules = IdentifierSet::default();
+  let mut has_codegen_dependencies_modules = IdentifierSet::default();
+  for module_identifier in modules {
+    let module = module_graph
+      .module_by_identifier(&module_identifier)
+      .expect("should have module");
+    if module.get_code_generation_dependencies().is_none() {
+      no_codegen_dependencies_modules.insert(module_identifier);
+    } else {
+      has_codegen_dependencies_modules.insert(module_identifier);
     }
-
-    self
-      .code_generation_modules(&mut codegen_cache_counter, no_codegen_dependencies_modules)
-      .await?;
-    self
-      .code_generation_modules(&mut codegen_cache_counter, has_codegen_dependencies_modules)
-      .await?;
-
-    if let Some(counter) = codegen_cache_counter {
-      logger.cache_end(counter);
-    }
-
-    Ok(())
   }
 
-  pub(crate) async fn code_generation_modules(
-    &mut self,
-    cache_counter: &mut Option<CacheCount>,
-    modules: IdentifierSet,
-  ) -> Result<()> {
-    let chunk_graph = &self.chunk_graph;
-    let module_graph = self.get_module_graph();
-    let mut jobs = Vec::new();
-    for module in modules {
-      let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
-      for runtime in chunk_graph.get_module_runtimes_iter(module, &self.chunk_by_ukey) {
-        let hash = ChunkGraph::get_module_hash(self, module, runtime)
-          .expect("should have cgm.hash in code generation");
-        let scope = self
-          .plugin_driver
-          .compilation_hooks
-          .concatenation_scope
-          .call(self, module)
-          .await?;
-        if let Some(job) = map.get_mut(hash) {
-          job.runtimes.push(runtime.clone());
-        } else {
-          map.insert(
-            hash.clone(),
-            CodeGenerationJob {
-              module,
-              hash: hash.clone(),
-              runtime: runtime.clone(),
-              runtimes: vec![runtime.clone()],
-              scope,
-            },
-          );
-        }
+  code_generation_modules(
+    compilation,
+    codegen_cache_counter.as_ref(),
+    no_codegen_dependencies_modules,
+  )
+  .await?;
+  code_generation_modules(
+    compilation,
+    codegen_cache_counter.as_ref(),
+    has_codegen_dependencies_modules,
+  )
+  .await?;
+
+  if let Some(counter) = codegen_cache_counter {
+    logger.cache_end(counter);
+  }
+
+  Ok(())
+}
+
+pub(crate) async fn code_generation_modules(
+  compilation: &mut Compilation,
+  cache_counter: Option<&CacheCount>,
+  modules: IdentifierSet,
+) -> Result<()> {
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let module_graph = compilation.get_module_graph();
+  let mut jobs = Vec::new();
+  for module in modules {
+    let mut map: HashMap<RspackHashDigest, CodeGenerationJob> = HashMap::default();
+    for runtime in chunk_graph.get_module_runtimes_iter(
+      module,
+      &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+    ) {
+      let hash = ChunkGraph::get_module_hash(compilation, module, runtime)
+        .expect("should have cgm.hash in code generation");
+      let scope = compilation
+        .plugin_driver
+        .compilation_hooks
+        .concatenation_scope
+        .call(compilation, module)
+        .await?;
+      if let Some(job) = map.get_mut(hash) {
+        job.runtimes.push(runtime.clone());
+      } else {
+        map.insert(
+          hash.clone(),
+          CodeGenerationJob {
+            module,
+            hash: hash.clone(),
+            runtime: runtime.clone(),
+            runtimes: vec![runtime.clone()],
+            scope,
+          },
+        );
       }
-      jobs.extend(map.into_values());
     }
+    jobs.extend(map.into_values());
+  }
 
-    let results = rspack_futures::scope::<_, _>(|token| {
-      jobs.into_iter().for_each(|job| {
-        // SAFETY: await immediately and trust caller to poll future entirely
-        let s = unsafe { token.used((&self, &module_graph, job)) };
+  let compilation_ref = &*compilation;
+  let results = rspack_parallel::scope::<_, _>(|token| {
+    jobs.into_iter().for_each(|job| {
+      // SAFETY: await immediately and trust caller to poll future entirely
+      let s = unsafe { token.used((compilation_ref, &module_graph, cache_counter, job)) };
 
-        s.spawn(|(this, module_graph, job)| async {
-          let options = &this.options;
+      s.spawn(|(this, module_graph, cache_counter, job)| async move {
+        let options = &this.options;
 
-          let module = module_graph
-            .module_by_identifier(&job.module)
-            .expect("should have module");
-          let codegen_res = this
-            .code_generate_cache_artifact
-            .use_cache(&job, || async {
-              let mut runtime_template = this
-                .runtime_template
-                .create_module_codegen_runtime_template();
-              let mut code_generation_context = ModuleCodeGenerationContext {
-                compilation: this,
-                runtime: Some(&job.runtime),
-                concatenation_scope: job.scope.clone(),
-                runtime_template: &mut runtime_template,
-              };
+        let module = module_graph
+          .module_by_identifier(&job.module)
+          .expect("should have module");
+        let (codegen_res, from_cache) = this
+          .code_generate_cache_artifact
+          .use_cache(&job, || async {
+            let mut runtime_template = this.runtime_template.create_module_code_template();
+            let mut code_generation_context = ModuleCodeGenerationContext {
+              compilation: this,
+              runtime: Some(&job.runtime),
+              concatenation_scope: job.scope.clone(),
+              runtime_template: &mut runtime_template,
+            };
 
-              module
-                .code_generation(&mut code_generation_context)
-                .await
-                .map(|mut codegen_res| {
-                  codegen_res
-                    .runtime_requirements
-                    .extend(*runtime_template.runtime_requirements());
+            module
+              .code_generation(&mut code_generation_context)
+              .await
+              .map(|mut codegen_res| {
+                codegen_res
+                  .runtime_requirements
+                  .extend(*runtime_template.runtime_requirements());
+                if module.as_concatenated_module().is_some() {
+                  // Concatenated modules are special here: `job.hash` already
+                  // fingerprints the generated module bodies, so we only need
+                  // to fold in the remaining codegen metadata.
+                  codegen_res.set_hash_for_concatenated_module(
+                    &job.hash,
+                    &options.output.hash_function,
+                    &options.output.hash_digest,
+                    &options.output.hash_salt,
+                  );
+                } else {
                   codegen_res.set_hash(
                     &options.output.hash_function,
                     &options.output.hash_digest,
                     &options.output.hash_salt,
                   );
-                  codegen_res
-                })
-            })
-            .await;
+                }
+                codegen_res
+              })
+          })
+          .await;
+        if let Some(counter) = cache_counter {
+          if from_cache {
+            counter.hit();
+          } else {
+            counter.miss();
+          }
+        }
 
-          (job.module, job.runtimes, codegen_res)
-        })
+        (job.module, job.runtimes, codegen_res)
       })
     })
-    .await;
-    let results = results
-      .into_iter()
-      .map(|res| res.to_rspack_result())
-      .collect::<Result<Vec<_>>>()?;
+  })
+  .await;
+  let results = results
+    .into_iter()
+    .map(|res| res.to_rspack_result())
+    .collect::<Result<Vec<_>>>()?;
 
-    for (module, runtimes, (codegen_res, from_cache)) in results {
-      if let Some(counter) = cache_counter {
-        if from_cache {
-          counter.hit();
-        } else {
-          counter.miss();
-        }
+  for (module, runtimes, codegen_res) in results {
+    let codegen_res = match codegen_res {
+      Ok(codegen_res) => codegen_res,
+      Err(err) => {
+        let mut diagnostic = Diagnostic::from(err);
+        diagnostic.module_identifier = Some(module);
+        compilation.push_diagnostic(diagnostic);
+        let mut codegen_res = CodeGenerationResult::default();
+        codegen_res.set_hash(
+          &compilation.options.output.hash_function,
+          &compilation.options.output.hash_digest,
+          &compilation.options.output.hash_salt,
+        );
+        codegen_res
       }
-      let codegen_res = match codegen_res {
-        Ok(codegen_res) => codegen_res,
-        Err(err) => {
-          let mut diagnostic = Diagnostic::from(err);
-          diagnostic.module_identifier = Some(module);
-          self.push_diagnostic(diagnostic);
-          let mut codegen_res = CodeGenerationResult::default();
-          codegen_res.set_hash(
-            &self.options.output.hash_function,
-            &self.options.output.hash_digest,
-            &self.options.output.hash_salt,
-          );
-          codegen_res
-        }
-      };
-      self
-        .code_generation_results
-        .insert(module, codegen_res, runtimes);
-      self.code_generated_modules.insert(module);
-    }
-    Ok(())
+    };
+    compilation
+      .code_generation_results
+      .insert(module, codegen_res, runtimes);
+    compilation.code_generated_modules.insert(module);
   }
+  Ok(())
 }

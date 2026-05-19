@@ -1,0 +1,224 @@
+---
+description: 'Use Rspack to build Node.js applications, covering runtime targets, external dependencies, development scripts, and native addons.'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Node.js
+
+Rspack can build Node.js applications by bundling application code, transforming TypeScript with SWC, keeping runtime dependencies external, and emitting assets that Node.js can load at runtime.
+
+For modern Node.js applications, see [Use ESM output](#use-esm-output).
+
+## Install dependencies
+
+Install Rspack and the helper dependencies used by the examples on this page:
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
+
+## Basic concepts
+
+- **Node.js target** ([`target: 'node'`](/config/target)): Generates output suitable for Node.js instead of the browser.
+- **External dependencies**: Server applications usually do not need to bundle every package in `node_modules`. Externalizing dependencies keeps the bundle smaller and allows Node.js to load packages normally at runtime.
+- **Development HMR**: In development, the Node.js process needs to restart or accept updates after Rspack rebuilds the server bundle.
+- **Native addons**: Dependencies or application code may reference `.node` files. These files need to be emitted as separate assets and loaded by Node.js at runtime.
+
+## Configure Rspack
+
+The following configuration targets Node.js, externalizes `node_modules`, writes development output to disk, and starts the generated bundle during development:
+
+```js title="rspack.config.mjs"
+// @ts-check
+import { defineConfig } from '@rspack/cli';
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  target: 'node',
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+  output: {
+    clean: true,
+  },
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|ts)$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.node$/,
+        type: 'asset/resource',
+      },
+    ],
+  },
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
+  ],
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+});
+```
+
+## Configure scripts
+
+Use `rspack dev` for development and `rspack build` for production builds:
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev",
+    "start": "node dist/main.js"
+  }
+}
+```
+
+- `dev`: Runs Rspack Dev Server, writes the server bundle to disk, and starts `dist/main.js`.
+- `build`: Creates a production bundle without the HMR polling entry.
+- `start`: Runs the production output with Node.js.
+
+## Configure development HMR
+
+Add `@rspack/core/hot/poll` only to the development entry, since including it in the production bundle will crash the Node.js application because HMR is not available in build mode:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+};
+```
+
+Because the server process is started from the generated bundle, `devServer.devMiddleware.writeToDisk` must be enabled:
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+};
+```
+
+`RunScriptWebpackPlugin` starts the generated `main.js` file during development:
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+
+export default {
+  plugins: [
+    new RunScriptWebpackPlugin({
+      name: 'main.js',
+      autoRestart: false,
+    }),
+  ],
+};
+```
+
+The HMR polling runtime must be allowlisted when `webpack-node-externals` is used so it is bundled into the server output instead of being treated as an external dependency.
+
+## Externalize dependencies
+
+Use [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) to externalize packages from `node_modules`:
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## Use ESM output
+
+For modern Node.js applications, follow the [ESM guide](/guide/features/esm) to output ESM bundles. When using `webpack-node-externals` with ESM output, add `importType: 'module'` so external dependencies are loaded with ESM imports:
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  output: {
+    module: true,
+  },
+  externals: [
+    nodeExternals({
+      importType: 'module',
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## Native node modules
+
+When building Node.js applications with Rspack, you may encounter dependencies that include Node.js native addon dependencies (`.node` modules). Because `.node` modules cannot be packaged into JavaScript artifacts, emit them as assets and load them with Node.js.
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    // Use the default publicPath or `publicPath: 'auto'` so emitted addon
+    // URLs stay relative to the generated bundle.
+  },
+  module: {
+    rules: [
+      {
+        test: /\.node$/,
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+Then load the emitted addon from application code with `dlopen`:
+
+```js title="src/addon.mjs"
+import { dlopen } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const file = new URL('./file.node', import.meta.url);
+const addon = { exports: {} };
+
+try {
+  dlopen(addon, fileURLToPath(file));
+} catch (error) {
+  // Handle addon loading errors here.
+}
+
+export default addon.exports;
+```

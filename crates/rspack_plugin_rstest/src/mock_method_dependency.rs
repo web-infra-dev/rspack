@@ -1,21 +1,19 @@
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, ConditionalInitFragment, DependencyCodeGeneration,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt,
   InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
-use swc_core::common::Span;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct MockMethodDependency {
-  #[cacheable(with=Skip)]
-  call_expr_span: Span,
-  #[cacheable(with=Skip)]
-  callee_span: Span,
-  #[cacheable(with=Skip)]
-  statement_span: Option<Span>,
+  call_expr_range: DependencyRange,
+  callee_range: DependencyRange,
+  // Intentionally stored as `DependencyRange` so hoist insertion positions
+  // remain cacheable and survive persistent cache restore.
+  statement_range: Option<DependencyRange>,
   request: String,
   hoist: bool,
   method: MockMethod,
@@ -36,34 +34,34 @@ pub enum MockMethod {
 
 impl MockMethodDependency {
   pub fn new(
-    call_expr_span: Span,
-    callee_span: Span,
+    call_expr_range: DependencyRange,
+    callee_range: DependencyRange,
     request: String,
     hoist: bool,
     method: MockMethod,
   ) -> Self {
     Self {
-      call_expr_span,
-      callee_span,
-      statement_span: None,
+      call_expr_range,
+      callee_range,
+      statement_range: None,
       request,
       hoist,
       method,
     }
   }
 
-  pub fn new_with_statement_span(
-    call_expr_span: Span,
-    callee_span: Span,
-    statement_span: Span,
+  pub fn new_with_statement_range(
+    call_expr_range: DependencyRange,
+    callee_range: DependencyRange,
+    statement_range: DependencyRange,
     request: String,
     hoist: bool,
     method: MockMethod,
   ) -> Self {
     Self {
-      call_expr_span,
-      callee_span,
-      statement_span: Some(statement_span),
+      call_expr_range,
+      callee_range,
+      statement_range: Some(statement_range),
       request,
       hoist,
       method,
@@ -110,20 +108,38 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
 
     let request = &dep.request;
     let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let hoist_id = dep.hoist_id();
 
     let hoist_flag = Self::get_hoist_flag(&dep.method);
     let mock_method = Self::get_mock_method(&dep.method);
 
     // Step 1: Add placeholder init fragment for hoistable methods
     if let Some(flag) = hoist_flag {
-      Self::add_placeholder_fragment(init_fragments, flag, request);
+      Self::add_placeholder_fragment(init_fragments, flag, &hoist_id, request);
     }
 
     // Step 2: Hoist @rstest/core import to ensure it comes before all hoisted code
     Self::hoist_rstest_core_import(init_fragments);
 
     // Step 3: Transform the source code
-    Self::transform_source(source, dep, &require_name, mock_method, hoist_flag, request);
+    Self::transform_source(
+      source,
+      dep,
+      &require_name,
+      mock_method,
+      hoist_flag,
+      &hoist_id,
+      request,
+    );
+  }
+}
+
+impl MockMethodDependency {
+  fn hoist_id(&self) -> String {
+    format!(
+      "{}-{}",
+      self.call_expr_range.start, self.call_expr_range.end
+    )
   }
 }
 
@@ -156,13 +172,14 @@ impl MockMethodDependencyTemplate {
   fn add_placeholder_fragment(
     init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
     flag: &str,
+    hoist_id: &str,
     request: &str,
   ) {
     let init = NormalInitFragment::new(
-      format!("/* RSTEST:{flag}_PLACEHOLDER:{request} */;"),
+      format!("/* RSTEST:{flag}:{hoist_id}:{request}:PLACEHOLDER */;"),
       InitFragmentStage::StageESMImports,
       0,
-      InitFragmentKey::Const(format!("rstest mock_hoist {request}")),
+      InitFragmentKey::Const(format!("rstest mock_hoist {hoist_id}")),
       None,
     );
     init_fragments.push(init.boxed());
@@ -215,12 +232,13 @@ impl MockMethodDependencyTemplate {
     require_name: &str,
     mock_method: &str,
     hoist_flag: Option<&str>,
+    hoist_id: &str,
     request: &str,
   ) {
-    let callee_range: DependencyRange = dep.callee_span.into();
     let should_hoist = hoist_flag.is_some() && dep.hoist;
+    let hoist_marker = hoist_flag.map(|flag| format!("{flag}:{hoist_id}:{request}"));
 
-    if should_hoist && dep.statement_span.is_some() {
+    if should_hoist && dep.statement_range.is_some() {
       // Case 1: Variable declaration with hoisting (e.g., `const mocks = rs.hoisted(...)`)
       // Wrap the entire statement with hoist markers
       Self::transform_with_statement_hoist(
@@ -228,9 +246,10 @@ impl MockMethodDependencyTemplate {
         dep,
         require_name,
         mock_method,
-        hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
-        request,
-        &callee_range,
+        hoist_marker
+          .as_deref()
+          .expect("hoist marker should exist when should_hoist is true"),
+        &dep.callee_range,
       );
     } else if should_hoist {
       // Case 2: Standalone call with hoisting (e.g., `rs.hoisted(...)` or `rs.mock(...)`)
@@ -240,14 +259,15 @@ impl MockMethodDependencyTemplate {
         dep,
         require_name,
         mock_method,
-        hoist_flag.expect("hoist_flag should be Some when should_hoist is true"),
-        request,
-        &callee_range,
+        hoist_marker
+          .as_deref()
+          .expect("hoist marker should exist when should_hoist is true"),
+        &dep.callee_range,
       );
     } else {
       // Case 3: No hoisting needed (e.g., `rs.doMock(...)`)
       // Just replace the callee
-      Self::transform_without_hoist(source, require_name, mock_method, &callee_range);
+      Self::transform_without_hoist(source, require_name, mock_method, &dep.callee_range);
     }
   }
 
@@ -259,20 +279,18 @@ impl MockMethodDependencyTemplate {
     dep: &MockMethodDependency,
     require_name: &str,
     mock_method: &str,
-    flag: &str,
-    request: &str,
+    hoist_marker: &str,
     callee_range: &DependencyRange,
   ) {
-    let stmt_range: DependencyRange = dep
-      .statement_span
-      .expect("statement_span should be Some when transform_with_statement_hoist is called")
-      .into();
+    let stmt_range = dep
+      .statement_range
+      .expect("statement_range should be Some when transform_with_statement_hoist is called");
 
     // Insert HOIST_START before the statement
     source.replace(
       stmt_range.start,
       stmt_range.start,
-      &format!("/* RSTEST:{flag}_HOIST_START:{request} */"),
+      format!("/* RSTEST:{hoist_marker}:HOIST_START */"),
       None,
     );
 
@@ -280,17 +298,17 @@ impl MockMethodDependencyTemplate {
     source.replace(
       stmt_range.end,
       stmt_range.end,
-      &format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
+      format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
       None,
     );
 
     // Comment out original callee and replace with runtime method
     // `rs.hoisted` -> `/* rs.hoisted */ __webpack_require__.rstest_hoisted`
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ {require_name}.{mock_method}"),
+      format!(" */ {require_name}.{mock_method}"),
       None,
     );
   }
@@ -303,25 +321,23 @@ impl MockMethodDependencyTemplate {
     dep: &MockMethodDependency,
     require_name: &str,
     mock_method: &str,
-    flag: &str,
-    request: &str,
+    hoist_marker: &str,
     callee_range: &DependencyRange,
   ) {
     // Comment out original callee and add HOIST_START + runtime method
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ /* RSTEST:{flag}_HOIST_START:{request} */{require_name}.{mock_method}"),
+      format!(" */ /* RSTEST:{hoist_marker}:HOIST_START */{require_name}.{mock_method}"),
       None,
     );
 
     // Insert HOIST_END after the call expression
-    let call_range: DependencyRange = dep.call_expr_span.into();
     source.replace(
-      call_range.end,
-      call_range.end,
-      &format!("\n/* RSTEST:{flag}_HOIST_END:{request} */"),
+      dep.call_expr_range.end,
+      dep.call_expr_range.end,
+      format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
       None,
     );
   }
@@ -335,11 +351,11 @@ impl MockMethodDependencyTemplate {
     mock_method: &str,
     callee_range: &DependencyRange,
   ) {
-    source.replace(callee_range.start, callee_range.start, "/* ", None);
+    source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
       callee_range.end,
-      &format!(" */ {require_name}.{mock_method}"),
+      format!(" */ {require_name}.{mock_method}"),
       None,
     );
   }

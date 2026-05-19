@@ -1,4 +1,5 @@
 ---
+description: 'Rspack 1.7 版本发布，提升了 SWC Wasm 插件兼容性，支持 Import Bytes 资源导入，并将多项实验特性稳定化。'
 date: 2025-12-31 16:00:00
 sidebar: false
 ---
@@ -42,7 +43,7 @@ _2025 年 12 月 31 日_
 
 目前，该方案已在大部分流行的 SWC Wasm 插件中完成接入。如果你是 SWC Wasm 插件作者，可参考 [官方指南](https://swc.rs/docs/plugin/ecmascript/compatibility#make-your-plugin-compatible)，接入该方案，以降低后续版本演进中的维护成本。
 
-### 支持 Import Bytes
+### 支持 Import bytes
 
 Rspack 现已原生支持 [Import Bytes](https://github.com/tc39/proposal-import-bytes) 提案，可以将静态资源作为 `Uint8Array` 导入，并通过 `TextDecoder` 解码。
 
@@ -164,7 +165,7 @@ Rsdoctor 1.4 对原有的 [Treemap](https://rsdoctor.rs/zh/guide/usage/bundle-si
 
 #### ESM 产物稳定化
 
-在此前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](https://rslib.rs/zh/config/lib/experiments#experimentsadvancedesm) 来启用 Rspack 的 [新版 ESM 库产物](/plugins/rspack/esm-library-plugin#esmlibraryplugin)，用于提升 ESM 产物的整体质量。经过多个版本的验证与打磨，该能力现已完成稳定化。
+在此前的版本中，Rslib 通过实验性配置 [experiments.advancedEsm](https://rslib.rs/zh/config/lib/experiments#experimentsadvancedesm) 来启用 Rspack 的 [新版 ESM 库产物](https://v1.rspack.rs/plugins/rspack/esm-library-plugin)，用于提升 ESM 产物的整体质量。经过多个版本的验证与打磨，该能力现已完成稳定化。
 
 自 Rslib 0.19 起，Rslib 的 bundle 模式将默认启用该特性。开发者无需进行任何额外配置，即可直接获得对静态分析更友好、并完整支持代码分割的 ESM 产物。
 

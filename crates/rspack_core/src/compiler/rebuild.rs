@@ -1,16 +1,16 @@
 use std::path::Path;
 
-use rspack_collections::{DatabaseItem, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rspack_paths::ArcPathSet;
 use rspack_tasks::within_compiler_context;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::{
   ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
-  chunk_graph_chunk::ChunkId,
-  chunk_graph_module::ModuleId,
+  chunk_graph_chunk::ChunkIdMap,
+  chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
   incremental::{Incremental, IncrementalPasses},
 };
@@ -18,8 +18,8 @@ use crate::{
 impl Compiler {
   pub async fn rebuild(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
   ) -> Result<()> {
     match within_compiler_context(
       self.compiler_context.clone(),
@@ -54,10 +54,10 @@ impl Compiler {
   ))]
   async fn rebuild_inner(
     &mut self,
-    changed_files: std::collections::HashSet<String>,
-    deleted_files: std::collections::HashSet<String>,
+    changed_files: FxHashSet<String>,
+    deleted_files: FxHashSet<String>,
   ) -> Result<()> {
-    let records = CompilationRecords::record(&self.compilation);
+    let records = self.last_records.clone();
 
     // build without stats
     {
@@ -70,6 +70,8 @@ impl Compiler {
       all_files.extend(removed_files.clone());
 
       self.plugin_driver.clear_cache(self.compilation.id());
+      let compilation_logging = self.compilation.get_logging().clone();
+      compilation_logging.clear();
 
       let mut next_compilation = Compilation::new(
         self.id,
@@ -79,9 +81,10 @@ impl Compiler {
         self.buildtime_plugin_driver.clone(),
         self.resolver_factory.clone(),
         self.loader_resolver_factory.clone(),
-        Some(records),
+        records,
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
+        compilation_logging,
         modified_files,
         removed_files,
         self.input_filesystem.clone(),
@@ -126,8 +129,8 @@ impl Compiler {
 pub struct CompilationRecords {
   pub runtimes: RuntimeSpec,
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
-  pub chunks: FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)>,
-  pub modules: FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>>,
+  pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
+  pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -146,19 +149,25 @@ impl CompilationRecords {
     compilation.hash.clone()
   }
 
-  fn record_modules(
-    compilation: &Compilation,
-  ) -> FxHashMap<ModuleId, FxHashMap<ChunkId, RspackHashDigest>> {
+  fn record_modules(compilation: &Compilation) -> ModuleIdMap<ChunkIdMap<RspackHashDigest>> {
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .chunk_graph_module_by_module_identifier
       .keys()
       .filter_map(|identifier| {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *identifier)?.clone();
-        let mut hashes = FxHashMap::default();
-        for chunk in compilation.chunk_graph.get_module_chunks(*identifier) {
-          let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+        let mut hashes = ChunkIdMap::default();
+        for chunk in compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(*identifier)
+        {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk);
           let chunk_id = chunk.id().expect("should have chunk_id").clone();
           let hash = compilation
             .code_generation_results
@@ -191,22 +200,27 @@ impl CompilationRecords {
   fn record_runtimes(compilation: &Compilation) -> RuntimeSpec {
     compilation
       .get_chunk_graph_entries()
-      .filter_map(|entry_ukey| compilation.chunk_by_ukey.get(&entry_ukey))
+      .filter_map(|entry_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&entry_ukey)
+      })
       .flat_map(|entry_chunk| entry_chunk.runtime().clone())
       .collect()
   }
 
-  fn record_chunks(
-    compilation: &Compilation,
-  ) -> FxHashMap<ChunkId, (RuntimeSpec, FxHashSet<ModuleId>)> {
+  fn record_chunks(compilation: &Compilation) -> ChunkIdMap<(RuntimeSpec, ModuleIdSet)> {
     compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
       .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
       .map(|chunk| {
         let chunk_id = chunk.expect_id().clone();
         let chunk_runtime = chunk.runtime().clone();
-        let chunk_modules: FxHashSet<ModuleId> = compilation
+        let chunk_modules: ModuleIdSet = compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_modules_identifier(&chunk.ukey())
           .iter()

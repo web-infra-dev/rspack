@@ -1,3 +1,7 @@
+---
+description: 'Rspack is built using Rust and NAPI-RS, then released as Node.js packages'
+---
+
 # Prerequisites
 
 Rspack is built using [Rust](https://rust-lang.org/) and [NAPI-RS](https://napi.rs/), then released as [Node.js](https://nodejs.org/) packages.

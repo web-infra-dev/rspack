@@ -1,21 +1,21 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "development",
-	devtool: false,
-	optimization: {
-		realContentHash: true
-	},
-	module: {
-		generator: {
-			asset: {
-				filename: "assets/[name].[contenthash][ext]"
-			}
-		},
-		rules: [
-			{
-				test: /file\.text$/,
-				type: "asset/resource"
-			}
-		]
-	}
+  mode: 'development',
+  devtool: false,
+  optimization: {
+    realContentHash: true,
+  },
+  module: {
+    generator: {
+      asset: {
+        filename: 'assets/[name].[contenthash][ext]',
+      },
+    },
+    rules: [
+      {
+        test: /file\.text$/,
+        type: 'asset/resource',
+      },
+    ],
+  },
 };

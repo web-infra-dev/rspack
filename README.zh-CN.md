@@ -16,7 +16,7 @@
 
 [English](./README.md) | 简体中文
 
-Rspack 是一个基于 Rust 编写的高性能 JavaScript 打包工具，它提供对 webpack 生态良好的兼容性，能够无缝替换 webpack，并提供闪电般的构建速度。
+Rspack 是一个基于 Rust 编写的高性能 Web 打包工具，它提供现代化的 webpack API，能够无缝替换 webpack，并提供闪电般的构建速度。
 
 ## ✨ 特性
 
@@ -74,9 +74,11 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 | 名称                                                                           | 描述                                                                         |
 | ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
 | [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                   | 与 Rspack 相关的精彩内容列表                                                 |
-| [Rspack 1.x 文档](https://rspack.rs/zh/)                                       | Rspack 1.x 版本的文档（最新）                                                |
+| [agent-skills](https://github.com/rstackjs/agent-skills)                       | Rstack 的 Agent Skills 合集                                                  |
+| [Rspack 2.x 文档](https://rspack.rs/zh/)                                       | Rspack 2.x 版本的文档                                                        |
+| [Rspack 1.x 文档](https://v1.rspack.rs/zh/)                                    | Rspack 1.x 版本的文档                                                        |
 | [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                    | Rspack 0.x 版本的文档                                                        |
-| [rspack-dev-server](https://github.com/web-infra-dev/rspack-dev-server)        | Rspack 的开发服务器                                                          |
+| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)             | Rspack 的开发服务器                                                          |
 | [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Rstack 的示例项目                                                            |
 | [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
 | [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Rstack 的设计资源                                                            |
@@ -87,7 +89,8 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 
 ## 基准测试
 
-参考 [基准测试](https://ecosystem-benchmark.rspack.rs/)。
+- 参考 [build-tools-performance](https://github.com/rstackjs/build-tools-performance) 了解 Rspack 与其他工具的对比
+- 参考 [Rspack 基准测试](https://ecosystem-benchmark.rspack.rs/) 了解 Rspack 性能的变化趋势
 
 ## 致谢
 
@@ -104,7 +107,6 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 - `rolldown-legacy` 项目，它是 [rolldown](https://github.com/rolldown) 项目的前身，它探索了使用 Rust 构建高性能 Bundler + 兼容 Rollup API 的可能性，启发了 Rspack 的设计方向。
 - [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 项目（由 [@jantimon](https://github.com/jantimon) 创建），Rspack 的 `@rspack/html-plugin` 是 [html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin) 的一个 fork 来避免使用在 Rspack 中尚未支持的 webpack API。
 - [Turbopack](https://github.com/vercel/turbo) 项目，它启发了 Rspack 里基于 AST 的路径重写逻辑。
-- [react-refresh-webpack-plugin](https://github.com/pmmmwh/react-refresh-webpack-plugin) 项目（由 [@pmmmwh](https://github.com/pmmmwh) 创建），它启发了 Rspack 内的 ReactRefreshPlugin 实现。
 - [prefresh](https://github.com/preactjs/prefresh) 项目（由 [@Jovi De Croock](https://github.com/JoviDeCroock) 创建），它启发了 Rspack 内的 PreactRefreshPlugin 实现。
 - [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) 项目（由 [@sokra](https://github.com/sokra) 创建），它启发了 Rspack 内的 CssExtractPlugin 实现。
 - [copy-webpack-plugin](https://github.com/webpack/copy-webpack-plugin) 项目（由 [@kevlened](https://github.com/kevlened) 创建），它启发了 Rspack 内的 CopyPlugin 实现。

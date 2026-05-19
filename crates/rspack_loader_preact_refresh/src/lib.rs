@@ -44,7 +44,8 @@ impl Loader<RunnerContext> for PreactRefreshLoader {
     source += "\n";
     source += include_str!("runtime.js");
     let sm = loader_context.take_source_map();
-    loader_context.finish_with((source, sm));
+    let additional_data = loader_context.take_additional_data();
+    loader_context.finish_with((source, sm, additional_data));
     Ok(())
   }
 }

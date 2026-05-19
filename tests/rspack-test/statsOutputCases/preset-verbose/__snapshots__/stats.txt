@@ -40,16 +40,21 @@ LOG from LogOtherTestPlugin
     debug message only
 
 LOG from rspack.Compilation
+<t> build module graph: xx ms
 <t> finish modules: xx ms
+<t> seal: xx ms
 <t> optimize dependencies: xx ms
 <t> rebuild chunk graph: xx ms
+<t> build chunk graph: xx ms
 <t> optimize modules: xx ms
 <t> optimize chunks: xx ms
 <t> optimize tree: xx ms
 <t> optimize chunk modules: xx ms
 <t> module ids: xx ms
 <t> chunk ids: xx ms
+<t> assign runtime ids: xx ms
 <t> optimize code generation: xx ms
+<t> create module hashes: xx ms
 <t> code generation: xx ms
 <t> runtime requirements.modules: xx ms
 <t> runtime requirements.chunks: xx ms
@@ -67,7 +72,6 @@ LOG from rspack.Compilation
 
 LOG from rspack.Compiler
 <t> make hook: xx ms
-<t> build module graph: xx ms
 <t> finish make hook: xx ms
 <t> finish compilation: xx ms
 <t> seal compilation: xx ms
@@ -130,4 +134,4 @@ WARNING in ./index.js 3:1-17
    ·         ───────
    ╰────
 
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (d65f0ed7b7d561ad)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (f917d9aef4f31935)

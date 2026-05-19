@@ -1,0 +1,5 @@
+@import './SharedNested.css';
+
+.shared-server-css {
+	color: seagreen;
+}

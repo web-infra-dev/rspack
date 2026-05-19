@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCodeGeneration, DependencyId, DependencyRange,
-  DependencyTemplate, DependencyTemplateType, DependencyType, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -46,6 +46,7 @@ impl Dependency for IsIncludeDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -108,19 +109,14 @@ impl DependencyTemplate for IsIncludedDependencyTemplate {
     let included = compilation
       .get_module_graph()
       .connection_by_dependency_id(&dep.id)
-      .map(|connection| {
+      .is_some_and(|connection| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_module_chunks(*connection.module_identifier())
           > 0
-      })
-      .unwrap_or(false);
+      });
 
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      included.to_string().as_str(),
-      None,
-    );
+    source.replace(dep.range.start, dep.range.end, included.to_string(), None);
   }
 }

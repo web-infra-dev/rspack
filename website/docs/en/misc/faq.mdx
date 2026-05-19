@@ -1,4 +1,5 @@
 ---
+description: 'Common Rspack questions covering webpack compatibility, performance tradeoffs, plugins, loaders, and framework support.'
 sidebar: false
 ---
 
@@ -18,7 +19,7 @@ Compatibility with the webpack ecosystem will result in some performance loss, b
 
 ## How to achieve compatibility fallback compilation without using babel-loader?
 
-Rspack internally uses SWC to perform code downgrade compilation which you can configure by [builtin:swc-loader](/guide/features/builtin-swc-loader.html), so there is no need to use babel-loader to perform code downgrade compilation.
+Rspack internally uses SWC to perform code downgrade compilation which you can configure by [builtin:swc-loader](/guide/features/builtin-swc-loader), so there is no need to use babel-loader to perform code downgrade compilation.
 
 ## Is Rspack 100% compatible with webpack API?
 
@@ -31,7 +32,3 @@ Even if webpack + SWC-loader solves the performance problem of babel-loader, web
 ## Do custom plugins and custom loaders need to be developed using Rust?
 
 You can develop plugins and loaders using JavaScript, just like developing webpack plugins and loaders. Meanwhile, Rspack also supports developing plugins and loaders using Rust. Please refer to [rspack-binding-template](https://github.com/rstackjs/rspack-binding-template).
-
-## Does Rspack plan to support React Server Components?
-
-Rspack team is working on supporting React Server Components. Relevant PR: [#12012](https://github.com/web-infra-dev/rspack/pull/12012).

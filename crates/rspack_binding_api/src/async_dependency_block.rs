@@ -58,7 +58,7 @@ impl AsyncDependenciesBlock {
   }
 }
 
-type BlockInstanceRefs = HashMap<rspack_core::AsyncDependenciesBlockIdentifier, OneShotRef>;
+type BlockInstanceRefs = rspack_core::AsyncDependenciesBlockIdentifierMap<OneShotRef>;
 
 type BlockInstanceRefsByCompilationId =
   RefCell<HashMap<rspack_core::CompilationId, BlockInstanceRefs>>;
@@ -110,7 +110,7 @@ impl ToNapiValue for AsyncDependenciesBlockWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = HashMap::default();
+            let refs = rspack_core::AsyncDependenciesBlockIdentifierMap::default();
             entry.insert(refs)
           }
         };

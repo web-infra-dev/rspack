@@ -1,0 +1,10 @@
+---
+source: crates/swc_plugin_ts_collector/tests/fixture.rs
+expression: type_exports_results
+---
+{
+    "default",
+    "A",
+    "C",
+    "B",
+}

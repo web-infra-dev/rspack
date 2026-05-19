@@ -1,3 +1,7 @@
+---
+description: 'Lazy compilation is an effective strategy to improve the startup performance of the development phase'
+---
+
 # Lazy compilation
 
 Lazy compilation is an effective strategy to improve the startup performance of the development phase. Instead of compiling all modules at initialization, it compiles modules on demand as they're needed. This means that developers can quickly see the application running when starting the dev server, and build the required modules in batches.
@@ -122,7 +126,7 @@ server.start();
 
 ## Customizing lazy compilation endpoint
 
-By default, the lazy compilation middleware uses the `/lazy-compilation-using-` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
+By default, the lazy compilation middleware uses the `/_rspack/lazy/trigger` prefix for handling requests. If you need to customize this prefix, you can use the `prefix` option:
 
 ```js title="rspack.config.mjs"
 import { defineConfig } from '@rspack/cli';

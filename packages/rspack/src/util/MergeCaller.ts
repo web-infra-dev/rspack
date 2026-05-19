@@ -22,6 +22,9 @@ export default class MergeCaller<D> {
     if (this.callArgs.length === 0) {
       queueMicrotask(this.finalCall);
     }
-    this.callArgs.push(...data);
+    // Avoid push(...data) which can exceed max call stack when data is huge
+    for (let i = 0; i < data.length; i++) {
+      this.callArgs.push(data[i]);
+    }
   }
 }

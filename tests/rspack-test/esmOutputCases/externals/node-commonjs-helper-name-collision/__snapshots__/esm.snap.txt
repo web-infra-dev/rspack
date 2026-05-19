@@ -1,0 +1,88 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"fs"
+/*!*********************!*\
+  !*** external "fs" ***!
+  \*********************/
+(module) {
+module.exports = __rspack_createRequire_require("fs");
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./index.js
+var index_dirname = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+
+
+const index_rspack_createRequire_require = (0,external_node_module_namespaceObject.createRequire)('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-helper-name-collision/index.js');
+// fs
+const external_fs_namespaceObject = index_rspack_createRequire_require("fs");
+
+const sourceCreateRequireRequire = index_rspack_createRequire_require;
+const sourceReadFile = external_fs_namespaceObject.readFile;
+const sourceRequireReadFile = (__webpack_require__(/*! fs */ "fs")/* .readFile */.readFile);
+
+it("should deconflict source bindings that already use the node-commonjs helper names", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const { createRequire } = await import(/* webpackIgnore: true */ "node:module");
+  const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-helper-name-collision/index.js');
+  const fs = require("fs");
+  const path = require("path");
+  const code = fs.readFileSync(path.join(index_dirname, "main.mjs"), "utf-8");
+
+  expect(mod.sourceReadFile).toBe(fs.readFile);
+  expect(mod.sourceRequireReadFile).toBe(fs.readFile);
+  expect(mod.sourceCreateRequireRequire("fs").readFile).toBe(fs.readFile);
+  expect(code).toContain(
+    'const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);'
+  );
+  expect(code).toMatch(
+    /^const (?!__rspack_createRequire_require\b)[A-Za-z0-9_$]*rspack_createRequire_require = .*createRequire.*;$/m
+  );
+});
+
+export { sourceCreateRequireRequire, sourceReadFile, sourceRequireReadFile };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

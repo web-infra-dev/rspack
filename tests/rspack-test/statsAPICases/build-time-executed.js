@@ -41,11 +41,11 @@ module.exports = {
 		const executedModuleIds = executedModules.map(i => i.identifier);
 		executedModuleIds.sort();
 		expect(executedModuleIds).toMatchInlineSnapshot(`
-		Array [
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/fixtures/css/style.css,
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/api.js,
-		  <ROOT>/node_modules/<PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
-		]
-	`);
+			Array [
+			  <PNPM_INNER>/css-loader/dist/cjs.js!<TEST_ROOT>/fixtures/css/style.css,
+			  <PNPM_INNER>/css-loader/dist/runtime/api.js,
+			  <PNPM_INNER>/css-loader/dist/runtime/noSourceMaps.js,
+			]
+		`);
 	}
 };

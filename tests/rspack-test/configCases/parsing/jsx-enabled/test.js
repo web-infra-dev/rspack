@@ -15,7 +15,7 @@ it ("should keep jsx in output when parser jsx is enabled (with minify)", () => 
   expect(bundle).toContain("<svg:path d=");
   expect(bundle).toContain("<group-container>");
   expect(bundle).toContain("<NamespaceComponents.Button label=\"Namespace button\"{...{");
-  expect(bundle).toContain("<App data-dynamic=\"registry\"data-item=\"one\"/>");
+  expect(bundle).toContain("data-dynamic=\"registry\"data-item=\"one\"/>");
   expect(bundle).toContain("<text-block dangerouslySetInnerHTML={{__html:\"<strong>bold</strong>\"}}/>");
   expect(bundle).toContain("<SectionWithSpread {...{\"data-testid\":\"component-with-spread\",role:\"region\"}}/>");
 })

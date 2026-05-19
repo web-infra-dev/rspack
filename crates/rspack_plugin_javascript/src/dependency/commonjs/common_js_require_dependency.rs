@@ -1,8 +1,18 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsOption, AsVec},
+};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  FactorizeInfo, ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
+};
+
+use crate::dependency::{
+  DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition,
 };
 
 #[cacheable]
@@ -14,6 +24,10 @@ pub struct CommonJsRequireDependency {
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
+  #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
+  referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  branch_guards: Option<Box<DependencyBranchGuards>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -23,9 +37,9 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
+    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,
@@ -33,8 +47,18 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       loc,
+      referenced_specifiers,
+      branch_guards: None,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
+    self.branch_guards.get_or_insert_default().extend(guards);
   }
 }
 
@@ -60,6 +84,33 @@ impl Dependency for CommonJsRequireDependency {
     self.range_expr
   }
 
+  fn get_referenced_exports(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    _runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    if let Some(referenced_specifiers) = &self.referenced_specifiers {
+      let module = module_graph
+        .get_module_by_dependency_id(&self.id)
+        .expect("should have module");
+      let exports_type = module.get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        false,
+      );
+      create_referenced_exports_by_referenced_specifiers(
+        referenced_specifiers,
+        exports_type,
+        module.build_info().json_data.is_some(),
+      )
+    } else {
+      create_exports_object_referenced()
+    }
+  }
+
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
@@ -77,6 +128,10 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.branch_guards.as_deref())
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -124,15 +179,12 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      code_generatable_context
-        .runtime_template
-        .module_id(
-          code_generatable_context.compilation,
-          &dep.id,
-          &dep.request,
-          false,
-        )
-        .as_str(),
+      code_generatable_context.runtime_template.module_id(
+        code_generatable_context.compilation,
+        &dep.id,
+        &dep.request,
+        false,
+      ),
       None,
     );
   }

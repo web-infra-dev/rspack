@@ -1,3 +1,7 @@
+---
+description: '比如，你在进行 loader 的开发，但又希望能在 loader 的使用示例中以用户视角展示使用方式，你可以这样写：'
+---
+
 import { Tabs, Tab } from '@theme';
 
 # ResolveLoader
@@ -25,7 +29,7 @@ import { Tabs, Tab } from '@theme';
   <Tab label="ESM">
 
 ```js title="rspack.config.mjs"
-import { createRequire } from 'module';
+import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
@@ -61,5 +65,5 @@ require('!!amazing-loader!./amazing-file.js');
 ```
 
 ::: info 内联 loader
-上述的 loader 使用的是内联 loader 的语法，详情请参考[这里](/api/loader-api/index)
+上述的 loader 使用的是内联 loader 的语法，详情请参考[这里](/api/loader-api/inline)
 :::

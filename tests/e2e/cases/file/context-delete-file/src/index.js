@@ -1,4 +1,7 @@
-const context = require.context('./', false, /mod/);
+const context = import.meta.webpackContext('./', {
+  recursive: false,
+  regExp: /mod/,
+});
 
 console.log(context);
 

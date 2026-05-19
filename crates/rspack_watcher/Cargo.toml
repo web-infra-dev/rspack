@@ -16,9 +16,16 @@ rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util  = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
+tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
 tempfile = "3.23.0"
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false

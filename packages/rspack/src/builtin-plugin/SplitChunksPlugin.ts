@@ -33,7 +33,7 @@ export class SplitChunksPlugin extends RspackBuiltinPlugin {
   }
 }
 
-function toRawSplitChunksOptions(
+export function toRawSplitChunksOptions(
   sc: false | OptimizationSplitChunksOptions,
   compiler: Compiler,
 ): RawSplitChunksOptions | undefined {
@@ -88,6 +88,7 @@ function toRawSplitChunksOptions(
     fallbackCacheGroup,
     minSize,
     minSizeReduction,
+    enforceSizeThreshold,
     maxSize,
     maxAsyncSize,
     maxInitialSize,
@@ -101,19 +102,18 @@ function toRawSplitChunksOptions(
     cacheGroups: Object.entries(cacheGroups)
       .filter(([_key, group]) => group !== false)
       .map(([key, group]) => {
-        group = group as Exclude<typeof group, false>;
-
         const {
           test,
           name,
           chunks,
           minSize,
           minSizeReduction,
+          enforceSizeThreshold,
           maxSize,
           maxAsyncSize,
           maxInitialSize,
           ...passThrough
-        } = group;
+        } = group as Exclude<typeof group, false>;
         const rawGroup: RawCacheGroupOptions = {
           key,
           test: getTest(test),
@@ -121,6 +121,8 @@ function toRawSplitChunksOptions(
           chunks: getChunks(chunks),
           minSize: JsSplitChunkSizes.__to_binding(minSize),
           minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
+          enforceSizeThreshold:
+            JsSplitChunkSizes.__to_binding(enforceSizeThreshold),
           maxSize: JsSplitChunkSizes.__to_binding(maxSize),
           maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
           maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),
@@ -134,6 +136,7 @@ function toRawSplitChunksOptions(
     },
     minSize: JsSplitChunkSizes.__to_binding(minSize),
     minSizeReduction: JsSplitChunkSizes.__to_binding(minSizeReduction),
+    enforceSizeThreshold: JsSplitChunkSizes.__to_binding(enforceSizeThreshold),
     maxSize: JsSplitChunkSizes.__to_binding(maxSize),
     maxAsyncSize: JsSplitChunkSizes.__to_binding(maxAsyncSize),
     maxInitialSize: JsSplitChunkSizes.__to_binding(maxInitialSize),

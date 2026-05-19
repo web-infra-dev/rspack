@@ -76,6 +76,11 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       )
       .boxed(),
     );
-    source.replace(dep.range.start, dep.range.end, &dep.identifier, None);
+    source.replace(
+      dep.range.start,
+      dep.range.end,
+      dep.identifier.to_string(),
+      None,
+    );
   }
 }

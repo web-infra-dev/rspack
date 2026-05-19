@@ -1,18 +1,18 @@
 use std::sync::Arc;
 
-use dashmap::DashMap;
 use futures::Future;
 use rspack_core::CompilationAsset;
 use rspack_error::{Error, Result};
+use rspack_util::fx_hash::FxDashMap;
 
 use crate::MappedAsset;
 
 #[derive(Debug, Clone)]
-pub struct MappedAssetsCache(DashMap<Arc<str>, MappedAsset>);
+pub struct MappedAssetsCache(FxDashMap<Arc<str>, MappedAsset>);
 
 impl MappedAssetsCache {
   pub fn new() -> Self {
-    Self(DashMap::new())
+    Self(FxDashMap::default())
   }
 
   pub async fn use_cache<'a, Assets, Handle, Return>(

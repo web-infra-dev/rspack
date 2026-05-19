@@ -1,0 +1,14 @@
+---
+source: crates/swc_plugin_ts_collector/tests/fixture.rs
+expression: enum_results
+---
+{
+    "E2": {
+        "A": Number(
+            0.0,
+        ),
+        "B": Number(
+            1.0,
+        ),
+    },
+}

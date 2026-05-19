@@ -7,6 +7,8 @@ it("should work", () => {
 		"A-Z": 3,
 		await: 4,
 		"😄": 5,
-		9: 6
+		9: 6,
+		"!top": 7,
+		"with space": 8
 	});
 });

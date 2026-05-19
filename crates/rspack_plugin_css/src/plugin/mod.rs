@@ -4,7 +4,7 @@ mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
 pub use drive::*;
-use rspack_collections::{DatabaseItem, IdentifierSet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier, compare_modules_by_identifier,
 };
@@ -67,7 +67,12 @@ impl CssPlugin {
     let mut modules_by_chunk_group = chunk
       .groups()
       .iter()
-      .map(|group| compilation.chunk_group_by_ukey.expect_get(group))
+      .map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group)
+      })
       .map(|chunk_group| {
         let mut indexed_modules = modules_list
           .clone()
@@ -121,14 +126,14 @@ impl CssPlugin {
         // done, everything empty
         break;
       }
-      let mut selected_module = *list.last().expect("TODO:");
+      let mut selected_module = *list.last().expect("list should not be empty");
       let mut has_failed = None;
       'outer: loop {
         for SortedModules { set, list } in &modules_by_chunk_group {
           if list.is_empty() {
             continue;
           }
-          let last_module = *list.last().expect("TODO:");
+          let last_module = *list.last().expect("list should not be empty");
           if last_module.identifier() == selected_module.identifier() {
             continue;
           }

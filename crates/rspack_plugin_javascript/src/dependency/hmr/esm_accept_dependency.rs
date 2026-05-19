@@ -20,9 +20,8 @@ impl ESMAcceptDependency {
     range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       range,
       has_callback,
@@ -92,7 +91,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
 
       let condition = {
         runtime_template.runtime_condition_expression(
-          &compilation.chunk_graph,
+          &compilation.build_chunk_graph_artifact.chunk_graph,
           Some(&runtime_condition),
           *runtime,
         )
@@ -132,10 +131,10 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     if dep.has_callback {
       source.insert(
         dep.range.start,
-        format!("function(__rspack_hmr_outdated) {{\n{content}(").as_str(),
+        format!("function(__rspack_hmr_outdated) {{\n{content}("),
         None,
       );
-      source.insert(
+      source.insert_static(
         dep.range.end,
         ")(__rspack_hmr_outdated); }.bind(this)",
         None,
@@ -143,7 +142,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
     } else {
       source.insert(
         dep.range.start,
-        format!(", function(){{\n{content}\n}}").as_str(),
+        format!(", function(){{\n{content}\n}}"),
         None,
       );
     }

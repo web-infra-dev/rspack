@@ -1,5 +1,5 @@
 module.exports = {
   node: {
-    global: true
+    global: true,
   },
 };

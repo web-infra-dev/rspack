@@ -3,7 +3,6 @@ use std::{
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
-  rc::Rc,
   sync::Arc,
 };
 
@@ -11,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsCacheable, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -22,7 +21,7 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
-  fx_hash::FxIndexMap,
+  fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -34,10 +33,10 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExternalModule, GetTargetResult, ModuleCodegenRuntimeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, PrefetchExportsInfoMode,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, RuntimeTemplate, SelfModule,
-  SharedPluginDriver, SourceType, concatenated_module::ConcatenatedModule,
+  ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
+  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
+  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -47,7 +46,7 @@ pub struct BuildContext {
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
   pub resolver_factory: Arc<ResolverFactory>,
-  pub runtime_template: Arc<RuntimeTemplate>,
+  pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
 }
@@ -78,10 +77,63 @@ pub struct RscMeta {
 
   #[cacheable(with=AsVec<AsPreset>)]
   pub client_refs: Vec<Wtf8Atom>,
+
+  /// Whether this server component uses `import.meta.rspackRsc`.
+  ///
+  /// RSC client manifest collection uses this to find the module's transitive
+  /// CSS dependencies, so they can be exposed through `entryCssFiles` and
+  /// rendered by `loadCss()`.
+  pub import_meta_rsc: bool,
+
   pub is_cjs: bool,
 
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   pub action_ids: FxIndexMap<Atom, Atom>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum CanonicalizedDataUrlOption {
+  Source,
+  Bytes,
+  Asset(bool),
+}
+
+impl CanonicalizedDataUrlOption {
+  pub fn is_source(&self) -> bool {
+    matches!(self, Self::Source)
+  }
+
+  pub fn is_bytes(&self) -> bool {
+    matches!(self, Self::Bytes)
+  }
+
+  pub fn is_inline(&self) -> bool {
+    matches!(self, Self::Asset(true))
+  }
+
+  pub fn is_resource(&self) -> bool {
+    matches!(self, Self::Asset(false))
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExport {
+  pub ident: String,
+  pub from: Option<String>,
+  pub id: Option<DependencyId>,
+  pub orig_name: String,
+}
+
+pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct IsolatedDts {
+  pub resource_path: String,
+  pub code: String,
+  pub references: Vec<String>,
 }
 
 #[cacheable]
@@ -104,6 +156,12 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  pub asset_data_url: Option<CanonicalizedDataUrlOption>,
+  #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
+  pub css_exports: Option<CssExports>,
+  pub css_local_names: Option<HashMap<String, String>>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
@@ -112,10 +170,13 @@ pub struct BuildInfo {
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
+  pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
   pub extras: serde_json::Map<String, serde_json::Value>,
+  #[cacheable(with=AsVec)]
+  pub deferred_pure_checks: HashSet<DeferredPureCheck>,
 }
 
 impl Default for BuildInfo {
@@ -135,6 +196,10 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      asset_data_url: None,
+      css_exports: None,
+      css_local_names: None,
+      side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
       assets: Default::default(),
@@ -142,7 +207,9 @@ impl Default for BuildInfo {
       inline_exports: false,
       collected_typescript_info: None,
       rsc: None,
+      isolated_dts: None,
       extras: Default::default(),
+      deferred_pure_checks: HashSet::default(),
     }
   }
 }
@@ -188,13 +255,17 @@ pub enum BuildMetaDefaultObject {
   #[default]
   False,
   Redirect,
-  RedirectWarn {
-    // Whether to ignore the warning, should use false for most cases
-    // Only ignore the cases that do not follow the standards but are
-    // widely used by the community, making it difficult to migrate.
-    // For example, JSON named exports.
-    ignore: bool,
-  },
+  RedirectWarn,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct DeferredPureCheck {
+  #[cacheable(with=AsPreset)]
+  pub atom: Atom,
+  pub dep_id: DependencyId,
+  pub start: u32,
+  pub end: u32,
 }
 
 #[cacheable]
@@ -227,17 +298,16 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
 // webpack build info
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BuildResult {
+  pub module: BoxModule,
   /// Whether the result is cacheable, i.e shared between builds.
   pub dependencies: Vec<BoxDependency>,
   pub blocks: Vec<Box<AsyncDependenciesBlock>>,
-  pub optimization_bailouts: Vec<String>,
+  pub optimization_bailouts: Vec<OptimizationBailoutItem>,
 }
 
 #[cacheable]
@@ -254,7 +324,7 @@ pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<ConcatenationScope>,
-  pub runtime_template: &'a mut ModuleCodegenRuntimeTemplate,
+  pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
 #[cacheable_dyn]
@@ -290,12 +360,10 @@ pub trait Module:
   /// The actual build of the module, which will be called by the `Compilation`.
   /// Build can also returns the dependencies of the module, which will be used by the `Compilation` to build the dependency graph.
   async fn build(
-    &mut self,
+    self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(Default::default())
-  }
+  ) -> Result<BuildResult>;
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
@@ -321,10 +389,17 @@ pub trait Module:
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     strict: bool,
   ) -> ExportsType {
     module_graph_cache.cached_get_exports_type((self.identifier(), strict), || {
-      get_exports_type_impl(self.identifier(), self.build_meta(), module_graph, strict)
+      get_exports_type_impl(
+        self.identifier(),
+        self.build_meta(),
+        module_graph,
+        exports_info_artifact,
+        strict,
+      )
     })
   }
 
@@ -413,6 +488,7 @@ pub trait Module:
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<ConnectionState>,
   ) -> ConnectionState {
@@ -435,6 +511,7 @@ fn get_exports_type_impl(
   identifier: ModuleIdentifier,
   build_meta: &BuildMeta,
   mg: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
   strict: bool,
 ) -> ExportsType {
   let export_type = &build_meta.exports_type;
@@ -450,7 +527,7 @@ fn get_exports_type_impl(
     BuildMetaExportsType::Namespace => ExportsType::Namespace,
     BuildMetaExportsType::Default => match default_object {
       BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-      BuildMetaDefaultObject::RedirectWarn { .. } => {
+      BuildMetaDefaultObject::RedirectWarn => {
         if strict {
           ExportsType::DefaultOnly
         } else {
@@ -466,24 +543,28 @@ fn get_exports_type_impl(
         fn handle_default(default_object: &BuildMetaDefaultObject) -> ExportsType {
           match default_object {
             BuildMetaDefaultObject::Redirect => ExportsType::DefaultWithNamed,
-            BuildMetaDefaultObject::RedirectWarn { .. } => ExportsType::DefaultWithNamed,
+            BuildMetaDefaultObject::RedirectWarn => ExportsType::DefaultWithNamed,
             _ => ExportsType::DefaultOnly,
           }
         }
 
         let name = Atom::from("__esModule");
-        let exports_info =
-          mg.get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
-        if let Some(export_info) = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(&name))
-        {
+        let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
+        if let Some(export_info) = exports_info.as_ref().map(|info| {
+          info
+            .as_data(exports_info_artifact)
+            .get_read_only_export_info(&name)
+        }) {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {
-            let Some(GetTargetResult::Target(target)) =
-              get_target(export_info, mg, Rc::new(|_| true), &mut Default::default())
-            else {
+            let Some(GetTargetResult::Target(target)) = get_target(
+              export_info,
+              mg,
+              exports_info_artifact,
+              &|_| true,
+              &mut Default::default(),
+            ) else {
               return ExportsType::Dynamic;
             };
             if target
@@ -536,7 +617,7 @@ pub fn module_update_hash(
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   chunk_graph
     .get_module_graph_hash(module, compilation, runtime)
     .dyn_hash(hasher);
@@ -573,6 +654,14 @@ impl BoxModule {
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
     BoxModule(module)
+  }
+
+  pub async fn build(
+    self,
+    build_context: BuildContext,
+    compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    self.0.build(build_context, compilation).await
   }
 }
 
@@ -804,7 +893,7 @@ mod test {
         }
 
         async fn build(
-          &mut self,
+          self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
         ) -> Result<BuildResult> {

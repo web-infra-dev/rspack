@@ -15,7 +15,7 @@ use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ExportsArgument, GenerateContext, ModuleCodegenRuntimeTemplate, RuntimeCondition, RuntimeGlobals,
+  ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
   merge_runtime, property_name,
 };
 
@@ -159,7 +159,7 @@ fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>
 
 pub trait InitFragmentRenderContext {
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate;
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
 }
 
 pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
@@ -171,6 +171,10 @@ pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
   fn position(&self) -> i32;
 
   fn key(&self) -> &InitFragmentKey;
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &[]
+  }
 }
 
 clone_trait_object!(InitFragment<GenerateContext<'_>>);
@@ -262,13 +266,13 @@ pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 impl InitFragmentRenderContext for GenerateContext<'_> {
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String {
     self.runtime_template.runtime_condition_expression(
-      &self.compilation.chunk_graph,
+      &self.compilation.build_chunk_graph_artifact.chunk_graph,
       Some(runtime_condition),
       self.runtime,
     )
   }
 
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate {
     self.runtime_template
   }
 }
@@ -280,7 +284,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
     unreachable!("should not call runtime condition expression in chunk render context")
   }
 
-  fn runtime_template(&mut self) -> &mut ModuleCodegenRuntimeTemplate {
+  fn runtime_template(&mut self) -> &mut ModuleCodeTemplate {
     unreachable!("should not call runtime template in chunk render context")
   }
 }
@@ -292,6 +296,7 @@ pub struct NormalInitFragment {
   position: i32,
   key: InitFragmentKey,
   end_content: Option<String>,
+  top_level_decl_symbols: Vec<Atom>,
 }
 
 impl NormalInitFragment {
@@ -308,7 +313,13 @@ impl NormalInitFragment {
       position,
       key,
       end_content,
+      top_level_decl_symbols: Vec::new(),
     }
+  }
+
+  pub fn with_top_level_decl_symbols(mut self, top_level_decl_symbols: Vec<Atom>) -> Self {
+    self.top_level_decl_symbols = top_level_decl_symbols;
+    self
   }
 }
 
@@ -330,6 +341,10 @@ impl<C> InitFragment<C> for NormalInitFragment {
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
+  }
+
+  fn top_level_decl_symbols(&self) -> &[Atom] {
+    &self.top_level_decl_symbols
   }
 }
 
@@ -675,7 +690,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
     let start = format!(
       "import {} from {};\n",
       imports_string,
-      serde_json::to_string(&self.imported_module).expect("invalid json tostring")
+      rspack_util::json_stringify_str(&self.imported_module)
     );
 
     Ok(InitFragmentContents { start, end: None })

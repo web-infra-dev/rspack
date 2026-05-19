@@ -1,13 +1,20 @@
-# Rspack - GitHub Copilot Instructions
+# Rspack
 
-## Project Overview
+## Project overview
 
 Rspack is a high-performance JavaScript bundler written in Rust that offers strong compatibility with the webpack ecosystem.
 
-## Project Architecture
+## Project architecture
 
 - **Monorepo** with Rust crates (`crates/`) and JavaScript packages (`packages/`)
 - See [Project Architecture](website/docs/en/contribute/development/project.md) for details
+
+## Concurrency architecture
+
+- **Synchronous concurrency**: Prefer `rayon` for CPU-bound parallel work and data-parallel iteration
+- **Asynchronous concurrency**: Prefer the abstractions provided by `rspack_parallel` instead of using raw `tokio` task orchestration directly
+- **Thread pool boundaries**: Avoid mixing `rayon` and `tokio` thread pools for the same workflow unless there is a clear boundary that cannot be avoided
+- **Rule of thumb**: Do not use `tokio` to parallelize synchronous CPU-heavy work, and do not introduce `rayon` inside async orchestration that should stay within `rspack_parallel`
 
 ## Setup
 
@@ -33,10 +40,13 @@ Rspack is a high-performance JavaScript bundler written in Rust that offers stro
 - `pnpm run test:e2e` - E2E tests
 - `pnpm run test:base` - Integration tests (in `tests/rspack-test`)
 - `pnpm run test:hot` - HMR tests
-- Update snapshots: `npm run test -- -u`
-- Filter tests: `npm run test -- -t configCases/asset`
+- `cd tests/rspack-test && pnpm run test -t "configCases/asset"` - Run filtered tests
 
-Depends on what you have modified, you need to rebuild by `pnpm run build:js` or `pnpm run build:binding:dev` or `pnpm run build:cli:dev` first, then run testing commands to verify the modification.
+Before running tests after code changes:
+
+- If you modified JavaScript/TypeScript code, run `pnpm run build:js` first
+- If you modified Rust code, run `pnpm run build:binding:dev` first
+- If your change spans both JS and Rust, run `pnpm run build:cli:dev` first
 
 ## Debugging
 
@@ -45,35 +55,35 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **JavaScript**: Use `--inspect` flag, attach with `Attach JavaScript`
 - **rust-lldb**: `rust-lldb -- node /path/to/rspack build` for panic debugging
 
-## Code Quality
+## Code quality
 
-- **Linting**: `pnpm run lint:js` (Biome), `pnpm run lint:rs` (cargo check), `pnpm run lint:type` (Rslint)
-- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo)
+- **Linting**: `pnpm run lint:js` (Rslint), `pnpm run lint:rs` (cargo check), `cargo lint` (Rust)
+- **Formatting**: `pnpm run format:rs` (cargo fmt), `pnpm run format:js` (prettier), `pnpm run format:toml` (taplo), `cargo fmt --all --check` (Rust)
 - **Style**: snake_case for Rust, camelCase for JS/TS
 
-## Common Tasks
+## Common tasks
 
-### Adding a New Feature
+### Adding a new feature
 
 1. Create feature branch from `main`
 2. Implement in appropriate crate/package
 3. Add tests (Rust unit tests, JS integration tests)
 4. Update docs if APIs change
-5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && pnpm run test:unit && pnpm run test:rs`
+5. Run linters and tests: `pnpm run lint:js && pnpm run lint:rs && cargo lint && pnpm run test:unit && pnpm run test:rs`
 6. Format: `pnpm run format:rs && pnpm run format:js`
 7. Create PR
 
-### Modifying Code
+### Modifying code
 
-- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`
+- **Rust**: Core in `crates/rspack_core/`, plugins in `crates/rspack_plugin_*/`, rebuild with `pnpm run build:binding:dev`, test with `pnpm run test:rs`, avoid linting and formatting for fast local development
 - **JS/TS**: API in `packages/rspack/src/`, CLI in `packages/rspack-cli/src/`, rebuild with `pnpm run build:js`, test with `pnpm run test:unit`
 
-### Adding Tests
+### Adding tests
 
 - **Rust**: Add `#[test]` functions in same file or `tests/` directory
 - **JavaScript**: Add cases in `tests/rspack-test/{type}Cases/` (Normal, Config, Hot, Watch, StatsOutput, StatsAPI, Diagnostic, Hash, Compiler, Defaults, Error, Hook, TreeShaking, Builtin)
 
-## Dependency Management
+## Dependency management
 
 - **Package manager**: pnpm (workspaces for monorepo)
 - **Rust**: `Cargo.toml` in each crate
@@ -91,12 +101,15 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **Site**: `website/` directory
 - **Docs**: `website/docs/en/` (English), `website/docs/zh/` (Chinese)
 - **API**: `website/docs/en/api/`
-- **Extract API**: `pnpm run api-extractor:local`
 
-## Pull Request Guidelines
+## Pull request guidelines
 
 - **Template**: Use `.github/PULL_REQUEST_TEMPLATE.md`
 - **Title prefix**: `test:`, `fix:`, `feat:`, `refactor:`, `chore:`
+- **Semver alignment**:
+  - `fix:` -> PATCH bump
+  - `feat:` -> MINOR bump
+  - Any breaking change -> MAJOR bump (`type(scope)!:` and/or `BREAKING CHANGE:` in commit body)
 - **CI**: All checks must pass
 
 ## Contributing
@@ -105,10 +118,11 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - Add tests for new features
 - Update docs when APIs change
 - Run linters before submitting
-- Use conventional commits
+- Use Conventional Commits in semver style: `type(scope): subject`
+- Prefer these types for release impact: `fix`, `feat`; use `!` or `BREAKING CHANGE:` only for incompatible changes
 - Keep PRs focused (one feature/fix per PR)
 
-## Finding Code
+## Finding code
 
 - **Rust core**: `crates/rspack_core/`
 - **Plugins**: `crates/rspack_plugin_*/`
@@ -116,7 +130,7 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 - **CLI**: `packages/rspack-cli/src/`
 - **Tests**: `tests/rspack-test/`
 
-## Error Handling
+## Error handling
 
 - Use `rspack_error` crate for Rust errors
 - Provide clear, actionable error messages
@@ -124,14 +138,14 @@ Depends on what you have modified, you need to rebuild by `pnpm run build:js` or
 
 ## AI-Friendly Documentation
 
-This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `agents/` directory:
+This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
 
-- **[Architecture Guide](agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
-- **[API Design](agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
-- **[Code Style](agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
-- **[Common Patterns](agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
-- **[Glossary](agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
-- **[Skills](agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
+- **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
+- **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
+- **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
+- **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
+- **[Glossary](.agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
+- **[Skills](.agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
 
 These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
 

@@ -1,5 +1,6 @@
 ---
 source: crates/rspack/tests/defaults.rs
+assertion_line: 22
 expression: options
 ---
 CompilerOptions {
@@ -160,9 +161,7 @@ CompilerOptions {
             [],
         ),
         roots: Some(
-            [
-                "<cwd>",
-            ],
+            [],
         ),
         restrictions: None,
         imports_fields: Some(
@@ -180,7 +179,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -229,7 +227,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -278,7 +275,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -354,7 +350,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -405,7 +400,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -454,7 +448,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -503,7 +496,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -552,7 +544,6 @@ CompilerOptions {
                             [
                                 ".js",
                                 ".json",
-                                ".wasm",
                             ],
                         ),
                         alias: None,
@@ -716,7 +707,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.json$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -789,7 +783,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.mjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -881,7 +878,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -982,7 +982,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.cjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1016,7 +1019,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1165,7 +1171,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.wasm$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1618,6 +1627,9 @@ CompilerOptions {
                             wrapped_context_critical: Some(
                                 false,
                             ),
+                            strict_this_context_on_imports: Some(
+                                false,
+                            ),
                             wrapped_context_reg_exp: Some(
                                 RspackRegex {
                                     flags: "",
@@ -1627,9 +1639,6 @@ CompilerOptions {
                             exports_presence: None,
                             import_exports_presence: None,
                             reexport_exports_presence: None,
-                            strict_export_presence: Some(
-                                false,
-                            ),
                             type_reexports_presence: None,
                             worker: Some(
                                 [
@@ -1638,13 +1647,13 @@ CompilerOptions {
                             ),
                             override_strict: None,
                             import_meta: Some(
-                                true,
+                                Enabled,
                             ),
                             require_alias: Some(
-                                true,
+                                false,
                             ),
                             require_as_expression: Some(
-                                false,
+                                true,
                             ),
                             require_dynamic: Some(
                                 true,
@@ -1667,6 +1676,8 @@ CompilerOptions {
                                 false,
                             ),
                             defer_import: None,
+                            import_meta_resolve: None,
+                            side_effects_free: None,
                         },
                     ),
                 },
@@ -1686,20 +1697,20 @@ CompilerOptions {
             ),
         ),
         no_parse: None,
-        ..
     },
     stats: StatsOptions {
-        colors: true,
+        colors: <env-dependent>,
     },
     cache: Disabled,
     experiments: Experiments {
         css: false,
         defer_import: false,
+        pure_functions: false,
     },
     incremental: IncrementalOptions {
         silent: true,
         passes: IncrementalPasses(
-            BUILD_MODULE_GRAPH | FINISH_MODULES | OPTIMIZE_DEPENDENCIES | MODULE_IDS | CHUNK_IDS | MODULES_HASHES | MODULES_CODEGEN | MODULES_RUNTIME_REQUIREMENTS | CHUNKS_RUNTIME_REQUIREMENTS | CHUNKS_HASHES | CHUNK_ASSET | EMIT_ASSETS,
+            BUILD_MODULE_GRAPH | FINISH_MODULES | OPTIMIZE_DEPENDENCIES | OPTIMIZE_CHUNK_MODULES | MODULE_IDS | CHUNK_IDS | MODULES_HASHES | MODULES_CODEGEN | MODULES_RUNTIME_REQUIREMENTS | CHUNKS_RUNTIME_REQUIREMENTS | CHUNKS_HASHES | CHUNK_ASSET | EMIT_ASSETS,
         ),
     },
     node: Some(
@@ -1710,7 +1721,6 @@ CompilerOptions {
         },
     ),
     optimization: Optimization {
-        remove_available_modules: false,
         side_effects: Flag,
         provided_exports: true,
         used_exports: False,

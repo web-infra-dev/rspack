@@ -1,0 +1,13 @@
+---
+description: 'Rspack WebWorkerTemplatePlugin 用于打包 Web Worker 产物，经常配合 childCompiler 一起使用。'
+---
+
+# WebWorkerTemplatePlugin
+
+此插件用于打包 Web Worker 产物，经常配合 childCompiler 一起使用。
+
+它会将 [output.chunkLoading](/config/output#outputchunkloading) 设为 `'import-scripts'`，并应用 web worker 目标使用的 [`'array-push'` chunk format](/config/output#outputchunkformat)。
+
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```

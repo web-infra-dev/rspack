@@ -1,4 +1,8 @@
-import { ApiMeta, Stability } from '../../../components/ApiMeta';
+---
+description: 'In minor releases, Rspack may change the APIs of experimental features'
+---
+
+import { ApiMeta } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 
@@ -28,89 +32,6 @@ export default {
   },
 };
 ```
-
-## experiments.outputModule
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-When enabled, Rspack outputs ECMAScript module syntax whenever possible. For example, `import()` to load chunks, ESM exports to expose chunk data, and more.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    outputModule: true,
-  },
-};
-```
-
-## experiments.css
-
-<ApiMeta stability={Stability.Deprecated} />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-:::warning Deprecated
-This option is deprecated since Rspack 2.0. Users now need to manually add CSS rules to enable CSS support. In a future version, Rspack will automatically add CSS-related default rules.
-:::
-
-When enabled, Rspack enables native CSS support and CSS-related parser and generator options.
-
-- [`module.parser["css/auto"]`](/config/module#moduleparsercssauto)
-- [`module.parser.css`](/config/module#moduleparsercss)
-- [`module.parser["css/module"]`](/config/module#moduleparsercssmodule)
-- [`module.generator["css/auto"]`](/config/module#modulegeneratorcssauto)
-- [`module.generator.css`](/config/module#modulegeneratorcss)
-- [`module.generator["css/module"]`](/config/module#modulegeneratorcssmodule)
-
-### Migration
-
-To use CSS in Rspack 2.0, you need to manually add CSS rules to your configuration:
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    rules: [
-      {
-        test: /\.css$/,
-        type: 'css/auto',
-      },
-    ],
-  },
-};
-```
-
-### Legacy usage (deprecated)
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    css: true,
-  },
-};
-```
-
-## experiments.futureDefaults
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Uses defaults from the next major Rspack version and shows warnings for any problematic configuration.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    futureDefaults: true,
-  },
-};
-```
-
-## experiments.incremental
-
-<ApiMeta stability={Stability.Deprecated} />
-
-This option has been moved to top-level [`incremental`](/config/incremental).
 
 ## experiments.buildHttp
 
@@ -183,6 +104,122 @@ import { something } from 'https://example.com/module.js';
 // Or import assets
 import imageUrl from 'https://example.com/image.png';
 ```
+
+## experiments.deferImport
+
+<ApiMeta addedVersion="1.6.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Rspack supports both `import defer * as ns from "./module"` and `import.defer()` syntax.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+  },
+};
+```
+
+:::info Known Limitation
+Currently, when using `output.module: true`, `defer import` syntax for external modules will be compiled to standard `import` syntax.
+
+For example, if `jquery` is configured as external:
+
+```js
+import defer * as $ from 'jquery';
+```
+
+It will generate:
+
+```js
+import * as __rspack_external_jquery from 'jquery';
+```
+
+This is because `defer import` syntax is not yet supported by any runtime. In the future, Rspack will support preserving `defer import` syntax based on the target configuration, generating the following code:
+
+```js
+import defer * as __rspack_external_jquery from 'jquery';
+```
+
+:::
+
+## experiments.futureDefaults
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Uses defaults from the next major Rspack version and shows warnings for any problematic configuration.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    futureDefaults: true,
+  },
+};
+```
+
+## experiments.nativeWatcher
+
+<ApiMeta addedVersion="1.4.7" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+By default, Rspack uses Watchpack to monitor file changes, which generally works well in most scenarios.
+However, in certain specific environments, issues may arise. For example, Watchpack may experience performance problems when there are a large number of file changes.
+More detail see: [Watchpack issue #223](https://github.com/webpack/watchpack/issues/223).
+
+If you encounter performance issues with the default watcher, you can try enabling nativeWatcher.
+
+After enabling `nativeWatcher`, Rspack will use the Rust Native file system to monitor file changes, enabling incremental file change detection, which provides better performance and stability.
+
+```js title="rspack.config.mjs"
+export default {
+  watchOptions: {
+    // Other watch options...
+  },
+  experiments: {
+    nativeWatcher: true,
+  },
+};
+```
+
+## experiments.pureFunctions
+
+<ApiMeta addedVersion="2.0.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enables cross-module side-effect-free function call optimization, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
+
+For more background, see [pureFunctions](/guide/optimization/tree-shaking#purefunctions) and [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation).
+
+Use this option to turn on the capability itself. To manually mark identifiers in matched modules — exported functions in a third-party module, or imports/locals in your own files — configure [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
+      },
+    ],
+  },
+};
+```
+
+:::warning
+This option depends on `optimization.sideEffects`. If you disable [`optimization.sideEffects`](/config/optimization#optimizationsideeffects), pure-function hints will not be analyzed.
+:::
 
 ## experiments.useInputFileSystem
 
@@ -257,46 +294,3 @@ export default {
 
 When access to `virtual_entry.js` and `src/another_virtual.js` which match the regular expressions of `experiments.useInputFileSystem`,
 Rspack will use the input file system wrapped by `VirtualModulesPlugin`; other than that, `src/disk_file.js` will be accessed by the native file system.
-
-## experiments.nativeWatcher
-
-<ApiMeta addedVersion="1.4.7" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-By default, Rspack uses Watchpack to monitor file changes, which generally works well in most scenarios.
-However, in certain specific environments, issues may arise. For example, Watchpack may experience performance problems when there are a large number of file changes.
-More detail see: [Watchpack issue #233](https://github.com/webpack/watchpack/issues/223).
-
-If you encounter performance issues with the default watcher, you can try enabling nativeWatcher.
-
-After enabling `nativeWatcher`, Rspack will use the Rust Native file system to monitor file changes, enabling incremental file change detection, which provides better performance and stability.
-
-```js title="rspack.config.mjs"
-export default {
-  watchOptions: {
-    // Other watch options...
-  }
-  experiments: {
-    nativeWatcher: true,
-  },
-};
-```
-
-## experiments.deferImport
-
-<ApiMeta addedVersion="1.6.0" />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-When enabled, Rspack will support bundling the [Deferred Imports Evaluation](https://github.com/tc39/proposal-defer-import-eval) proposal, which allows deferring the evaluation of a module until its first use. Currently, only `import defer * as ns from "./module"` is supported, while `import.defer()` will be supported in future versions.
-
-```js title="rspack.config.mjs"
-export default {
-  experiments: {
-    deferImport: true,
-  },
-};
-```

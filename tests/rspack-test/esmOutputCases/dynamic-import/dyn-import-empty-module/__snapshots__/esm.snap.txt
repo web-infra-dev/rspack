@@ -1,0 +1,19 @@
+```mjs title=empty.mjs
+// ./empty.js
+// This module intentionally has no exports
+
+export {};
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should handle dynamic import of empty module', async () => {
+	const mod = await import("./empty.mjs");
+	expect(typeof mod).toBe('object');
+	expect(Object.keys(mod).filter(k => k !== '__esModule')).toHaveLength(0);
+});
+
+export {};
+
+```

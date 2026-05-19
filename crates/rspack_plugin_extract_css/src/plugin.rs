@@ -7,7 +7,7 @@ use std::{
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_collections::{DatabaseItem, IdentifierMap, IdentifierSet, UkeySet};
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationParams, CompilationRenderManifest,
@@ -27,7 +27,7 @@ use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
 use crate::{
@@ -38,6 +38,9 @@ use crate::{
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
 pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
+
+static MEDIA_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
 pub static MODULE_TYPE: LazyLock<ModuleType> =
   LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
@@ -129,7 +132,7 @@ impl PluginCssExtract {
     compilation: &'comp Compilation,
     module_graph: &'comp ModuleGraph,
   ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: IdentifierMap<IdentifierMap<UkeySet<ChunkGroupUkey>>> = modules
+    let mut module_deps_reasons: IdentifierMap<IdentifierMap<FxHashSet<ChunkGroupUkey>>> = modules
       .iter()
       .map(|m| (m.identifier(), Default::default()))
       .collect();
@@ -139,10 +142,16 @@ impl PluginCssExtract {
       .map(|module| (module.identifier(), IdentifierSet::default()))
       .collect();
 
-    let mut groups = chunk.groups().iter().cloned().collect::<Vec<_>>();
+    let mut groups = chunk.groups().iter().copied().collect::<Vec<_>>();
     groups.sort_by(|a, b| {
-      let a = compilation.chunk_group_by_ukey.expect_get(a);
-      let b = compilation.chunk_group_by_ukey.expect_get(b);
+      let a = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(a);
+      let b = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(b);
       match a.index.cmp(&b.index) {
         std::cmp::Ordering::Equal => a.ukey.cmp(&b.ukey),
         order_res => order_res,
@@ -152,7 +161,10 @@ impl PluginCssExtract {
     let mut modules_by_chunk_group = groups
       .iter()
       .map(|chunk_group| {
-        let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group);
+        let chunk_group = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(chunk_group);
         let mut sorted_module = modules
           .iter()
           .map(|module| {
@@ -187,7 +199,7 @@ impl PluginCssExtract {
 
         sorted_module
       })
-      .collect::<Vec<Vec<(ModuleIdentifier, usize)>>>();
+      .collect::<Vec<Vec<(ModuleIdentifier, u32)>>>();
 
     let mut used_modules: IdentifierSet = Default::default();
     let mut result: Vec<&dyn Module> = Default::default();
@@ -213,7 +225,7 @@ impl PluginCssExtract {
           let failed_deps = deps
             .iter()
             .filter(|dep| !used_modules.contains(dep))
-            .cloned()
+            .copied()
             .collect::<Vec<_>>();
 
           let failed_count = failed_deps.len();
@@ -270,7 +282,10 @@ impl PluginCssExtract {
                   reasons
                     .iter()
                     .filter_map(|cg| {
-                      let chunk_group = compilation.chunk_group_by_ukey.expect_get(cg);
+                      let chunk_group = compilation
+                        .build_chunk_graph_artifact
+                        .chunk_group_by_ukey
+                        .expect_get(cg);
 
                       chunk_group.name()
                     })
@@ -281,7 +296,13 @@ impl PluginCssExtract {
                 let good_chunk_groups = good_reasons.map(|reasons| {
                   reasons
                     .iter()
-                    .filter_map(|cg| compilation.chunk_group_by_ukey.expect_get(cg).name())
+                    .filter_map(|cg| {
+                      compilation
+                        .build_chunk_graph_artifact
+                        .chunk_group_by_ukey
+                        .expect_get(cg)
+                        .name()
+                    })
                     .collect::<Vec<_>>()
                     .join(", ")
                 });
@@ -326,13 +347,16 @@ impl PluginCssExtract {
     let mut diagnostics = Vec::new();
     if let Some(conflicts) = conflicts {
       diagnostics.extend(conflicts.into_iter().map(|conflict| {
-        let chunk = compilation.chunk_by_ukey.expect_get(&conflict.chunk);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(&conflict.chunk);
         let fallback_module = module_graph
           .module_by_identifier(&conflict.fallback_module)
           .expect("should have module");
 
         let mut diagnostic = Diagnostic::warn(
-          "".into(),
+          String::new(),
           format!(
             r#"chunk {} [{PLUGIN_NAME}]
 Conflicting order. Following module has been added:
@@ -406,8 +430,6 @@ despite it was not able to fulfill desired ordering with these modules:
           external_source.add(header);
         }
         if let Some(media) = &module.media {
-          static MEDIA_RE: LazyLock<Regex> =
-            LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
           let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
           external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
         } else {
@@ -454,7 +476,7 @@ despite it was not able to fulfill desired ordering with these modules:
         let content = content.cow_replace(
           BASE_URI,
           chunk
-            .get_entry_options(&compilation.chunk_group_by_ukey)
+            .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
             .and_then(|entry_options| entry_options.base_uri.as_ref())
             .unwrap_or(&undo_path),
         );
@@ -505,7 +527,7 @@ async fn runtime_requirement_in_tree(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _all_runtime_requirements: &RuntimeGlobals,
+  all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
@@ -525,12 +547,7 @@ async fn runtime_requirement_in_tree(
   let has_hot_update = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-    if self.options.chunk_filename.has_hash_placeholder() {
-      runtime_requirements_mut.insert(RuntimeGlobals::GET_FULL_HASH);
-    }
-
-    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
 
@@ -543,9 +560,7 @@ async fn runtime_requirement_in_tree(
         SOURCE_TYPE[0],
         format!(
           "{}.miniCssF",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
         ),
         move |runtime_requirements| {
           runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
@@ -555,7 +570,7 @@ async fn runtime_requirement_in_tree(
             .content_hash(&compilation.chunk_hashes_artifact)?
             .contains_key(&SOURCE_TYPE[0])
             .then(|| {
-              if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+              if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
                 filename.clone()
               } else {
                 chunk_filename.clone()
@@ -569,11 +584,14 @@ async fn runtime_requirement_in_tree(
       *chunk_ukey,
       Box::new(CssLoadingRuntimeModule::new(
         &compilation.runtime_template,
-        *chunk_ukey,
         self.options.attributes.clone(),
         self.options.link_type.clone(),
         self.options.insert.clone(),
       )),
+    ));
+
+    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements(
+      all_runtime_requirements,
     ));
   }
 
@@ -589,16 +607,18 @@ async fn content_hash(
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
-  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SOURCE_TYPE[0],
-    module_graph,
-  );
+  let rendered_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph);
 
   if rendered_modules.is_empty() {
     return Ok(());
   }
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
   let (used_modules, diagnostics) =
     self.sort_modules(chunk, &rendered_modules, compilation, module_graph);
@@ -631,27 +651,30 @@ async fn render_manifest(
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
   if matches!(chunk.kind(), ChunkKind::HotUpdate) {
     return Ok(());
   }
 
-  let rendered_modules = compilation.chunk_graph.get_chunk_modules_by_source_type(
-    chunk_ukey,
-    SOURCE_TYPE[0],
-    module_graph,
-  );
+  let rendered_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_modules_by_source_type(chunk_ukey, SOURCE_TYPE[0], module_graph);
 
   if rendered_modules.is_empty() {
     return Ok(());
   }
 
-  let filename_template = if chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
-    &self.options.filename
-  } else {
-    &self.options.chunk_filename
-  };
+  let filename_template =
+    if chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      &self.options.filename
+    } else {
+      &self.options.chunk_filename
+    };
 
   let mut asset_info =
     AssetInfo::default().with_asset_type(ManifestAssetType::Custom("extract-css".into()));

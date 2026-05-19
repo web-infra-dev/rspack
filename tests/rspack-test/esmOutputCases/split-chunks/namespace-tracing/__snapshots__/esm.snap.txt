@@ -1,0 +1,42 @@
+```mjs title=broken-chunk.mjs
+// ./broken.js
+function broken() {
+  return "broken";
+}
+
+export { broken };
+
+```
+
+```mjs title=main.mjs
+import { broken } from "./broken-chunk.mjs";
+
+// ./foo.js
+
+
+function foo() {
+  return "foo";
+}
+
+// ./bar.js
+
+
+function bar() {
+  return "bar";
+}
+
+// ./index.js
+
+
+
+/* export default */ const index = ([foo(), broken(), bar(), broken()]);
+
+it("should trace namespace reexports across split chunks", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toEqual(["foo", "broken", "bar", "broken"]);
+});
+
+export default index;
+
+```

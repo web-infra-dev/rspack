@@ -78,7 +78,7 @@ impl JavaScriptCompiler {
               _ => SourceMapsConfig::Bool(false),
             })
           })
-          .expect("TODO:");
+          .expect("should have source map config");
 
         let mut min_opts = MinifyOptions {
           compress: opts

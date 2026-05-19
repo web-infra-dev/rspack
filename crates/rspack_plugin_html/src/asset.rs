@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::HashMap,
   env,
   hash::Hasher,
   path::{Path, PathBuf},
@@ -17,6 +16,7 @@ use rspack_core::{
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
 use rspack_hash::RspackHash;
 use rspack_paths::Utf8PathBuf;
+use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use sugar_path::SugarPath;
 
@@ -44,9 +44,9 @@ impl HtmlPluginAssets {
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
-  ) -> Result<(HtmlPluginAssets, HashMap<String, &'a CompilationAsset>)> {
+  ) -> Result<(HtmlPluginAssets, FxHashMap<String, &'a CompilationAsset>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
-    let mut asset_map = HashMap::new();
+    let mut asset_map = FxHashMap::default();
     assets.public_path = public_path.to_string();
 
     let sorted_entry_names: Vec<&String> =
@@ -55,10 +55,16 @@ impl HtmlPluginAssets {
       {
         chunks
           .iter()
-          .filter(|&name| compilation.entrypoints.contains_key(name))
+          .filter(|&name| {
+            compilation
+              .build_chunk_graph_artifact
+              .entrypoints
+              .contains_key(name)
+          })
           .collect()
       } else {
         compilation
+          .build_chunk_graph_artifact
           .entrypoints
           .keys()
           .filter(|&entry_name| {
@@ -77,9 +83,12 @@ impl HtmlPluginAssets {
     let included_assets = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
-      .flat_map(|entry| entry.get_files(&compilation.chunk_by_ukey))
+      .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
-        let asset = compilation.assets().get(&asset_name).expect("TODO:");
+        let asset = compilation
+          .assets()
+          .get(&asset_name)
+          .expect("should have asset for entrypoint file");
         if asset.info.hot_module_replacement.unwrap_or(false)
           || asset.info.development.unwrap_or(false)
         {

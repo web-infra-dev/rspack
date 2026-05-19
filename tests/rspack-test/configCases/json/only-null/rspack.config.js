@@ -1,6 +1,6 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "production"
+  mode: 'production',
 };

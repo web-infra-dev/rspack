@@ -1,11 +1,7 @@
-use std::{
-  collections::HashSet,
-  sync::atomic::{AtomicBool, Ordering},
-};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use rspack_collections::{
-  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeyMap,
-  UkeySet,
+  Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
   ChunkUkey, Compilation, CompilationOptimizeChunks, CompilationParams, CompilerCompilation,
@@ -15,6 +11,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::CssPlugin;
 use rspack_regex::RspackRegex;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 const MIN_CSS_CHUNK_SIZE: f64 = 30_f64 * 1024_f64;
 const MAX_CSS_CHUNK_SIZE: f64 = 100_f64 * 1024_f64;
@@ -84,13 +81,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   let logger = compilation.get_logger("rspack.CssChunkingPlugin");
 
   let start = logger.time("collect all css modules and the execpted order of them");
-  let mut chunk_states: UkeyMap<ChunkUkey, ChunkState> = Default::default();
-  let mut chunk_states_by_module: IdentifierIndexMap<UkeyMap<ChunkUkey, usize>> =
+  let mut chunk_states: FxHashMap<ChunkUkey, ChunkState> = Default::default();
+  let mut chunk_states_by_module: IdentifierIndexMap<FxHashMap<ChunkUkey, usize>> =
     Default::default();
 
   // Collect all css modules in chunks and the execpted order of them
-  let chunk_graph = &compilation.chunk_graph;
-  let chunks = &compilation.chunk_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunks = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
   let module_graph = compilation.get_module_graph();
 
   for (chunk_ukey, chunk) in chunks.iter() {
@@ -117,7 +114,10 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     if modules.is_empty() {
       continue;
     }
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let (ordered_modules, _) = CssPlugin::get_modules_in_order(chunk, modules, compilation);
     let mut module_identifiers: Vec<ModuleIdentifier> = Vec::with_capacity(ordered_modules.len());
     for (i, module) in ordered_modules.iter().enumerate() {
@@ -130,7 +130,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           module_chunk_states.insert(*chunk_ukey, i);
         }
         indexmap::map::Entry::Vacant(vacant_entry) => {
-          let mut module_chunk_states = UkeyMap::default();
+          let mut module_chunk_states = FxHashMap::default();
           module_chunk_states.insert(*chunk_ukey, i);
           vacant_entry.insert(module_chunk_states);
         }
@@ -179,11 +179,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   // In loose mode we guess the dependents of modules from the order
   // assuming that when a module is a dependency of another module
   // it will always appear before it in every chunk.
-  let mut all_dependents: IdentifierMap<HashSet<ModuleIdentifier>> = IdentifierMap::default();
+  let mut all_dependents: IdentifierMap<IdentifierSet> = IdentifierMap::default();
   if !self.strict {
     let start = logger.time("guess the dependents of modules from the order");
     for b in &remaining_modules {
-      let mut dependents = HashSet::new();
+      let mut dependents = IdentifierSet::default();
       'outer: for a in &remaining_modules {
         if a == b {
           continue;
@@ -214,14 +214,11 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   // Process through all modules
   let start = logger.time("process through all modules");
-  loop {
-    let Some(start_module_identifier) = remaining_modules.iter().next().cloned() else {
-      break;
-    };
+  while let Some(start_module_identifier) = remaining_modules.iter().next().copied() {
     remaining_modules.shift_remove(&start_module_identifier);
 
     #[allow(clippy::unwrap_used)]
-    let mut global_css_mode = is_global_css(&module_infos.get(&start_module_identifier).unwrap().1);
+    let mut global_css_mode = is_global_css(&module_infos[&start_module_identifier].1);
 
     // The current position of processing in all selected chunks
     #[allow(clippy::unwrap_used)]
@@ -235,7 +232,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
     // The current size of the new chunk
     #[allow(clippy::unwrap_used)]
-    let mut current_size = module_infos.get(&start_module_identifier).unwrap().0;
+    let mut current_size = module_infos[&start_module_identifier].0;
 
     // A pool of potential modules where the next module is selected from.
     // It's filled from the next module of the selected modules in every chunk.
@@ -243,12 +240,12 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     let mut potential_next_modules: IdentifierIndexMap<f64> = Default::default();
     for (chunk_ukey, i) in all_chunk_states {
       #[allow(clippy::unwrap_used)]
-      let chunk_state = chunk_states.get(chunk_ukey).unwrap();
+      let chunk_state = &chunk_states[chunk_ukey];
       if let Some(next_module_identifier) = chunk_state.modules.get(i + 1)
         && remaining_modules.contains(next_module_identifier)
       {
         #[allow(clippy::unwrap_used)]
-        let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
+        let next_module_size = module_infos[next_module_identifier].0;
         potential_next_modules.insert(*next_module_identifier, next_module_size);
       }
     }
@@ -275,7 +272,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               // There is always some overlap
               if all_chunk_states.contains_key(next_chunk_ukey) {
                 #[allow(clippy::unwrap_used)]
-                let chunk_state = chunk_states.get(next_chunk_ukey).unwrap();
+                let chunk_state = &chunk_states[next_chunk_ukey];
                 max_requests = max_requests.max(chunk_state.requests);
               }
             }
@@ -310,9 +307,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
               None => {
                 // New chunk group, can add it, but should we?
                 // We only add that if below min size
-                if current_size < self.min_size {
-                  continue;
-                } else {
+                if current_size >= self.min_size {
                   continue 'outer;
                 }
               }
@@ -324,7 +319,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
         // Global CSS must not leak into unrelated chunks
         #[allow(clippy::unwrap_used)]
-        let is_global = is_global_css(&module_infos.get(&next_module_identifier).unwrap().1);
+        let is_global = is_global_css(&module_infos[&next_module_identifier].1);
         if is_global && global_css_mode && all_chunk_states.len() != next_chunk_states.len() {
           // Fast check: chunk groups need to be identical
           continue;
@@ -365,7 +360,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
             && !new_chunk_modules.contains(next_module_identifier)
           {
             #[allow(clippy::unwrap_used)]
-            let next_module_size = module_infos.get(next_module_identifier).unwrap().0;
+            let next_module_size = module_infos[next_module_identifier].0;
             potential_next_modules.insert(*next_module_identifier, next_module_size);
           }
         }
@@ -374,12 +369,17 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
         break;
       }
     }
-    let new_chunk_ukey = Compilation::add_chunk(&mut compilation.chunk_by_ukey);
+    let new_chunk_ukey =
+      Compilation::add_chunk(&mut compilation.build_chunk_graph_artifact.chunk_by_ukey);
     #[allow(clippy::unwrap_used)]
-    let new_chunk = compilation.chunk_by_ukey.get_mut(&new_chunk_ukey).unwrap();
+    let new_chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get_mut(&new_chunk_ukey)
+      .unwrap();
     new_chunk.prevent_integration();
     new_chunk.add_id_name_hints("css".to_string());
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     for module_identifier in &new_chunk_modules {
       remaining_modules.shift_remove(module_identifier);
       chunk_graph.connect_chunk_and_module(new_chunk_ukey, *module_identifier);
@@ -389,9 +389,9 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   logger.time_end(start);
 
   let start = logger.time("apply split chunks");
-  let chunk_graph = &mut compilation.chunk_graph;
+  let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
   for chunk_state in chunk_states.values() {
-    let mut chunks: UkeySet<ChunkUkey> = UkeySet::default();
+    let mut chunks: FxHashSet<ChunkUkey> = FxHashSet::default();
     for module_identifier in &chunk_state.modules {
       if let Some(new_chunk_ukey) = new_chunks_by_module.get(module_identifier) {
         chunk_graph.disconnect_chunk_and_module(&chunk_state.chunk, *module_identifier);
@@ -399,12 +399,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
           continue;
         }
         chunks.insert(*new_chunk_ukey);
-        let chunk_by_ukey = &mut compilation.chunk_by_ukey;
+        let chunk_by_ukey = &mut compilation.build_chunk_graph_artifact.chunk_by_ukey;
         let [chunk, new_chunk] = chunk_by_ukey.get_many_mut([&chunk_state.chunk, new_chunk_ukey]);
         #[allow(clippy::unwrap_used)]
-        chunk
-          .unwrap()
-          .split(new_chunk.unwrap(), &mut compilation.chunk_group_by_ukey);
+        chunk.unwrap().split(
+          new_chunk.unwrap(),
+          &mut compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        );
       }
     }
   }

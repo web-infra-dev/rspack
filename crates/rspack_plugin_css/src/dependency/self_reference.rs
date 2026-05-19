@@ -1,13 +1,13 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
 use rspack_util::atom::Atom;
 
-use crate::utils::escape_css;
+use crate::utils::{escape_css, replace_css_module_id_placeholder};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -62,6 +62,7 @@ impl Dependency for CssSelfReferenceLocalIdentDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     self
@@ -111,7 +112,7 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
@@ -119,10 +120,15 @@ impl DependencyTemplate for CssSelfReferenceLocalIdentDependencyTemplate {
       .expect("CssSelfReferenceLocalIdentDependencyTemplate should be used for CssSelfReferenceLocalIdentDependency");
 
     for replace in &dep.replaces {
+      let local_ident = replace_css_module_id_placeholder(
+        &replace.local_ident,
+        code_generatable_context.compilation,
+        code_generatable_context.module,
+      );
       source.replace(
         replace.range.start,
         replace.range.end,
-        &escape_css(&replace.local_ident),
+        escape_css(&local_ident).into_owned(),
         None,
       );
     }

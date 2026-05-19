@@ -1,14 +1,11 @@
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeTemplate,
-  SourceType, impl_runtime_module,
+  Compilation, Filename, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, has_hash_placeholder, impl_runtime_module,
 };
 
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct GetMainFilenameRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   global: RuntimeGlobals,
   filename: Filename,
 }
@@ -20,12 +17,9 @@ impl GetMainFilenameRuntimeModule {
     global: RuntimeGlobals,
     filename: Filename,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}get_main_filename/{content_type}",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
+    Self::with_name(
+      runtime_template,
+      &format!("get_main_filename/{content_type}"),
       global,
       filename,
     )
@@ -34,13 +28,17 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     if let Some(chunk_ukey) = self.chunk {
-      let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&chunk_ukey);
       let filename = compilation
         .get_path(
           &self.filename,
@@ -59,9 +57,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             .hash(
               format!(
                 "\" + {}() + \"",
-                compilation
-                  .runtime_template
-                  .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
+                runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
               )
               .as_str(),
             )
@@ -74,9 +70,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&self.global),
+        runtime_template.render_runtime_globals(&self.global),
         filename,
       ))
     } else {
@@ -84,7 +78,11 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
     }
   }
 
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
+      RuntimeGlobals::GET_FULL_HASH
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

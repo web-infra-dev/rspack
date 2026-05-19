@@ -2,6 +2,37 @@ mod container;
 mod manifest;
 mod sharing;
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
+#[serde(untagged)]
+pub enum ShareScope {
+  Single(String),
+  Multiple(Vec<String>),
+}
+
+impl ShareScope {
+  pub fn key(&self) -> String {
+    match self {
+      ShareScope::Single(s) => s.clone(),
+      ShareScope::Multiple(v) => v.join("|"),
+    }
+  }
+
+  pub fn scopes(&self) -> &[String] {
+    match self {
+      ShareScope::Single(s) => std::slice::from_ref(s),
+      ShareScope::Multiple(v) => v.as_slice(),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    match self {
+      ShareScope::Single(_) => false,
+      ShareScope::Multiple(v) => v.is_empty(),
+    }
+  }
+}
+
 pub use container::{
   container_plugin::{ContainerPlugin, ContainerPluginOptions, ExposeOptions},
   container_reference_plugin::{
@@ -18,6 +49,7 @@ pub use manifest::{
   ModuleFederationManifestPluginOptions, RemoteAliasTarget, StatsBuildInfo,
 };
 pub use sharing::{
+  collect_shared_entry_plugin::{CollectSharedEntryPlugin, CollectSharedEntryPluginOptions},
   consume_shared_module::ConsumeSharedModule,
   consume_shared_plugin::{
     ConsumeOptions, ConsumeSharedPlugin, ConsumeSharedPluginOptions, ConsumeVersion,
@@ -28,6 +60,10 @@ pub use sharing::{
     CodeGenerationDataShareInit, DataInitStage, ShareInitData, ShareRuntimeModule,
   },
   share_runtime_plugin::ShareRuntimePlugin,
+  shared_container_plugin::{SharedContainerPlugin, SharedContainerPluginOptions},
+  shared_used_exports_optimizer_plugin::{
+    OptimizeSharedConfig, SharedUsedExportsOptimizerPlugin, SharedUsedExportsOptimizerPluginOptions,
+  },
 };
 
 mod utils {

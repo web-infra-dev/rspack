@@ -1,7 +1,7 @@
 import assert from 'node:assert';
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { readConfigFile } from '../helper';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { BasicCaseCreator } from '../test/creator';
@@ -12,7 +12,7 @@ const creator = new BasicCaseCreator({
   describe: false,
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         const compiler = context.getCompiler();
         let options = defaultOptions(context);
         const custom = readConfigFile(
@@ -32,7 +32,7 @@ const creator = new BasicCaseCreator({
         }
         compiler.setOptions(options);
       },
-      compiler: async (context: ITestContext) => {
+      compiler: (context: ITestContext) => {
         const compiler = context.getCompiler();
         compiler.createCompiler();
       },
@@ -102,7 +102,7 @@ function defaultOptions(context: ITestContext): RspackOptions {
   } as RspackOptions;
 }
 
-async function check(
+function check(
   env: ITestEnv,
   context: ITestContext,
   name: string,

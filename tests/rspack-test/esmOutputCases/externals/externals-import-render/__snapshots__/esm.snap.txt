@@ -15,5 +15,6 @@ it('should compile', () => {
 	console.log.bind([fs, join, resolve])
 })
 
+export {};
 
 ```

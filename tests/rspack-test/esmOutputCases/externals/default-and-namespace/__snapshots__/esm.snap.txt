@@ -1,0 +1,24 @@
+```mjs title=main.mjs
+import * as __rspack_external_fs from "fs";
+
+// fs
+
+// ./index.js
+
+
+
+/* export default */ const index = (__rspack_external_fs["default"]);
+
+
+it("should distinguish external default and namespace imports", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toBe(__rspack_external_fs["default"]);
+  expect(mod.default).toBe(__rspack_external_fs["default"]);
+  expect(typeof mod.fsNs.readFile).toBe("function");
+});
+
+export { __rspack_external_fs as fsNs };
+export default index;
+
+```

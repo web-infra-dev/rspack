@@ -10,6 +10,7 @@ pub struct RawIncremental {
   pub finish_modules: bool,
   pub optimize_dependencies: bool,
   pub build_chunk_graph: bool,
+  pub optimize_chunk_modules: bool,
   pub module_ids: bool,
   pub chunk_ids: bool,
   pub modules_hashes: bool,
@@ -35,6 +36,9 @@ impl From<RawIncremental> for IncrementalOptions {
     }
     if value.build_chunk_graph {
       passes.insert(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    }
+    if value.optimize_chunk_modules {
+      passes.insert(IncrementalPasses::OPTIMIZE_CHUNK_MODULES);
     }
     if value.module_ids {
       passes.insert(IncrementalPasses::MODULE_IDS);

@@ -1,3 +1,4 @@
+mod after_process_assets;
 mod after_seal;
 mod assign_runtime_ids;
 pub mod build_chunk_graph;
@@ -19,10 +20,12 @@ mod optimize_code_generation;
 mod optimize_dependencies;
 mod optimize_modules;
 mod optimize_tree;
+pub mod pass;
 mod process_assets;
 mod run_passes;
 mod runtime_requirements;
 mod seal;
+
 use std::{
   collections::{VecDeque, hash_map},
   fmt::{self, Debug},
@@ -34,19 +37,15 @@ use std::{
   },
 };
 
-use atomic_refcell::AtomicRefCell;
 use dashmap::DashSet;
 use futures::future::BoxFuture;
-use indexmap::IndexMap;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
-use rspack_collections::{
-  DatabaseItem, IdentifierDashMap, IdentifierMap, IdentifierSet, UkeyMap, UkeySet,
-};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -56,11 +55,19 @@ use rspack_sources::BoxSource;
 use rspack_tasks::CompilerContext;
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::{itoa, tracing_preset::TRACING_BENCH_TARGET};
+use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
 use tracing::instrument;
 use ustr::Ustr;
 
+#[cfg(feature = "codspeed")]
+pub use self::{
+  assign_runtime_ids::AssignRuntimeIdsPass, code_generation::CodeGenerationPass,
+  create_chunk_assets::CreateChunkAssetsPass, create_hash::CreateHashPass,
+  create_module_assets::CreateModuleAssetsPass, create_module_hashes::CreateModuleHashesPass,
+  optimize_code_generation::OptimizeCodeGenerationPass, process_assets::ProcessAssetsPass,
+  runtime_requirements::RuntimeRequirementsPass,
+};
 use crate::{
   AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
   CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
@@ -69,14 +76,16 @@ use crate::{
   ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
   CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
   CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
-  DependenciesDiagnosticsArtifact, DependencyCodeGeneration, DependencyTemplate,
-  DependencyTemplateType, DependencyType, DerefOption, Entry, EntryData, EntryOptions,
-  EntryRuntime, Entrypoint, ExecuteModuleId, Filename, ImportPhase, ImportVarMap,
+  DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
+  DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
+  ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCacheArtifact,
-  PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
-  SharedPluginDriver, SideEffectsOptimizeArtifact, SourceType, Stats, ValueCacheVersions,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
+  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
+  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
+  cache::persistent::occasion::minimize::MinimizePersistentCacheArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
   },
@@ -86,37 +95,45 @@ use crate::{
   is_source_equal, to_identifier,
 };
 
-define_hook!(CompilationAddEntry: Series(compilation: &mut Compilation, entry_name: Option<&str>));
+define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
 define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
-define_hook!(CompilationFinishModules: Series(compilation: &mut Compilation, async_modules_artifact: &mut AsyncModulesArtifact));
-define_hook!(CompilationSeal: Series(compilation: &mut Compilation));
+define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, side_effects_state_artifact: &mut SideEffectsStateArtifact));
+define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationDependencyReferencedExports: Sync(
+  compilation: &Compilation,
+  dependency: &DependencyId,
+  referenced_exports: &Option<Vec<ExtendedReferencedExport>>,
+  runtime: Option<&RuntimeSpec>,
+  module_graph: Option<&ModuleGraph>
+));
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
-define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, circular_modules: &mut IdentifierSet, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunkModules: SeriesBail(compilation: &mut Compilation) -> bool);
+define_hook!(CompilationBeforeModuleIds: Series(compilation: &Compilation, modules: &IdentifierSet, module_ids: &mut ModuleIdsArtifact));
 define_hook!(CompilationModuleIds: Series(compilation: &Compilation, module_ids: &mut ModuleIdsArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkIds: Series(compilation: &Compilation, chunk_by_ukey: &mut ChunkByUkey, named_chunk_ids_artifact: &mut ChunkNamedIdArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationRuntimeModule: Series(compilation: &Compilation, module: &ModuleIdentifier, chunk: &ChunkUkey, runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalModuleRuntimeRequirements: Series(compilation: &Compilation, module_identifier: &ModuleIdentifier, runtime_requirements: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationRuntimeRequirementInModule: SeriesBail(compilation: &Compilation, module_identifier: &ModuleIdentifier, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals),tracing=false);
 define_hook!(CompilationAdditionalChunkRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
-define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &mut Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals));
+define_hook!(CompilationRuntimeRequirementInChunk: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationAdditionalTreeRuntimeRequirements: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, runtime_requirements: &mut RuntimeGlobals, runtime_modules: &mut Vec<Box<dyn RuntimeModule>>));
 define_hook!(CompilationRuntimeRequirementInTree: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey, all_runtime_requirements: &RuntimeGlobals, runtime_requirements: &RuntimeGlobals, runtime_requirements_mut: &mut RuntimeGlobals, runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>));
-define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, diagnostics: &mut Vec<Diagnostic>));
+define_hook!(CompilationOptimizeCodeGeneration: Series(compilation: &Compilation, build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationAfterCodeGeneration: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash),tracing=false);
 define_hook!(CompilationContentHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hashes: &mut HashMap<SourceType, RspackHash>));
-define_hook!(CompilationDependentFullHash: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
+define_hook!(CompilationDependentFullHash: Sync(compilation: &Compilation, chunk_ukey: &ChunkUkey, dependent_full_hash: &mut bool));
 define_hook!(CompilationRenderManifest: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, manifest: &mut Vec<RenderManifestEntry>, diagnostics: &mut Vec<Diagnostic>),tracing=false);
 define_hook!(CompilationChunkAsset: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, filename: &str));
 define_hook!(CompilationProcessAssets: Series(compilation: &mut Compilation));
@@ -133,6 +150,7 @@ pub struct CompilationHooks {
   pub succeed_module: CompilationSucceedModuleHook,
   pub execute_module: CompilationExecuteModuleHook,
   pub finish_modules: CompilationFinishModulesHook,
+  pub dependency_referenced_exports: CompilationDependencyReferencedExportsHook,
   pub seal: CompilationSealHook,
   pub optimize_dependencies: CompilationOptimizeDependenciesHook,
   pub optimize_modules: CompilationOptimizeModulesHook,
@@ -140,6 +158,7 @@ pub struct CompilationHooks {
   pub optimize_chunks: CompilationOptimizeChunksHook,
   pub optimize_tree: CompilationOptimizeTreeHook,
   pub optimize_chunk_modules: CompilationOptimizeChunkModulesHook,
+  pub before_module_ids: CompilationBeforeModuleIdsHook,
   pub module_ids: CompilationModuleIdsHook,
   pub chunk_ids: CompilationChunkIdsHook,
   pub runtime_module: CompilationRuntimeModuleHook,
@@ -193,7 +212,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
-  pub records: Option<CompilationRecords>,
+  pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
@@ -203,11 +222,6 @@ pub struct Compilation {
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
   pub runtime_modules_code_generation_source: IdentifierMap<BoxSource>,
-  pub chunk_graph: ChunkGraph,
-  pub chunk_by_ukey: ChunkByUkey,
-  pub chunk_group_by_ukey: ChunkGroupByUkey,
-  pub entrypoints: IndexMap<String, ChunkGroupUkey>,
-  pub async_entrypoints: Vec<ChunkGroupUkey>,
   assets: CompilationAssets,
   assets_related_in: HashMap<String, HashSet<String>>,
   pub emitted_assets: DashSet<String, BuildHasherDefault<FxHasher>>,
@@ -217,44 +231,48 @@ pub struct Compilation {
   pub buildtime_plugin_driver: SharedPluginDriver,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub named_chunks: HashMap<String, ChunkUkey>,
-  pub named_chunk_groups: HashMap<String, ChunkGroupUkey>,
   pub runtime_template: RuntimeTemplate,
 
   // artifact for infer_async_modules_plugin
-  pub async_modules_artifact: Arc<AtomicRefCell<AsyncModulesArtifact>>,
+  pub async_modules_artifact: StealCell<AsyncModulesArtifact>,
   // artifact for collect_dependencies_diagnostics
-  pub dependencies_diagnostics_artifact: Arc<AtomicRefCell<DependenciesDiagnosticsArtifact>>,
+  pub dependencies_diagnostics_artifact: StealCell<DependenciesDiagnosticsArtifact>,
+  // artifact for exports info
+  pub exports_info_artifact: StealCell<ExportsInfoArtifact>,
   // artifact for side_effects_flag_plugin
-  pub side_effects_optimize_artifact: DerefOption<SideEffectsOptimizeArtifact>,
+  pub side_effects_optimize_artifact: StealCell<SideEffectsOptimizeArtifact>,
   // artifact for module_ids
-  pub module_ids_artifact: ModuleIdsArtifact,
+  pub module_ids_artifact: StealCell<ModuleIdsArtifact>,
   // artifact for named_chunk_ids
-  pub named_chunk_ids_artifact: ChunkNamedIdArtifact,
+  pub named_chunk_ids_artifact: StealCell<ChunkNamedIdArtifact>,
   // artifact for code_generation
   pub code_generation_results: BindingCell<CodeGenerationResults>,
   // artifact for create_module_hashes
-  pub cgm_hash_artifact: CgmHashArtifact,
+  pub cgm_hash_artifact: StealCell<CgmHashArtifact>,
   // artifact for process_modules_runtime_requirements
-  pub cgm_runtime_requirements_artifact: CgmRuntimeRequirementsArtifact,
+  pub cgm_runtime_requirements_artifact: StealCell<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
-  pub cgc_runtime_requirements_artifact: CgcRuntimeRequirementsArtifact,
+  pub cgc_runtime_requirements_artifact: StealCell<CgcRuntimeRequirementsArtifact>,
   // artifact for create_hash
-  pub chunk_hashes_artifact: ChunkHashesArtifact,
+  pub chunk_hashes_artifact: StealCell<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
-  pub chunk_render_artifact: ChunkRenderArtifact,
+  pub chunk_render_artifact: StealCell<ChunkRenderArtifact>,
   // artifact for caching get_mode
-  pub module_graph_cache_artifact: ModuleGraphCacheArtifact,
-  // artifact for caching module static info
-  pub module_static_cache_artifact: ModuleStaticCacheArtifact,
+  pub module_graph_cache_artifact: StealCell<ModuleGraphCacheArtifact>,
+  // transient cache for module static info
+  pub module_static_cache: ModuleStaticCache,
   // artifact for chunk render cache
-  pub chunk_render_cache_artifact: ChunkRenderCacheArtifact,
+  pub chunk_render_cache_artifact: StealCell<ChunkRenderCacheArtifact>,
   // artifact for code generate cache
-  pub code_generate_cache_artifact: CodeGenerateCacheArtifact,
+  pub code_generate_cache_artifact: StealCell<CodeGenerateCacheArtifact>,
   // artifact for process runtime requirements cache
-  pub process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact,
-  pub imported_by_defer_modules_artifact: ImportedByDeferModulesArtifact,
+  pub process_runtime_requirements_cache_artifact:
+    StealCell<ProcessRuntimeRequirementsCacheArtifact>,
+  pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
+  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+
+  pub circular_modules: StealCell<IdentifierSet>,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
@@ -277,7 +295,7 @@ pub struct Compilation {
 
   pub modified_files: ArcPathSet,
   pub removed_files: ArcPathSet,
-  pub build_module_graph_artifact: DerefOption<BuildModuleGraphArtifact>,
+  pub build_module_graph_artifact: StealCell<BuildModuleGraphArtifact>,
   pub input_filesystem: Arc<dyn ReadableFileSystem>,
 
   pub intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
@@ -321,9 +339,10 @@ impl Compilation {
     buildtime_plugin_driver: SharedPluginDriver,
     resolver_factory: Arc<ResolverFactory>,
     loader_resolver_factory: Arc<ResolverFactory>,
-    records: Option<CompilationRecords>,
+    records: Option<Arc<CompilationRecords>>,
     incremental: Incremental,
     module_executor: Option<ModuleExecutor>,
+    logging: CompilationLogging,
     modified_files: ArcPathSet,
     removed_files: ArcPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -345,53 +364,47 @@ impl Compilation {
       runtime_modules: Default::default(),
       runtime_modules_hash: Default::default(),
       runtime_modules_code_generation_source: Default::default(),
-      chunk_by_ukey: Default::default(),
-      chunk_group_by_ukey: Default::default(),
       entries: Default::default(),
       global_entry: Default::default(),
-      chunk_graph: Default::default(),
-      entrypoints: Default::default(),
-      async_entrypoints: Default::default(),
       assets: Default::default(),
       assets_related_in: Default::default(),
       emitted_assets: Default::default(),
       diagnostics: Default::default(),
-      logging: Default::default(),
+      logging,
       plugin_driver,
       buildtime_plugin_driver,
       resolver_factory,
       loader_resolver_factory,
-      named_chunks: Default::default(),
-      named_chunk_groups: Default::default(),
 
-      async_modules_artifact: Arc::new(AtomicRefCell::new(AsyncModulesArtifact::default())),
-      imported_by_defer_modules_artifact: Default::default(),
-      dependencies_diagnostics_artifact: Arc::new(AtomicRefCell::new(
-        DependenciesDiagnosticsArtifact::default(),
-      )),
-      side_effects_optimize_artifact: DerefOption::new(Default::default()),
-      module_ids_artifact: Default::default(),
-      named_chunk_ids_artifact: Default::default(),
+      async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
+      imported_by_defer_modules_artifact: StealCell::new(Default::default()),
+      circular_modules: StealCell::new(Default::default()),
+      dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
+      exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
+      side_effects_optimize_artifact: StealCell::new(Default::default()),
+      module_ids_artifact: StealCell::new(Default::default()),
+      named_chunk_ids_artifact: StealCell::new(Default::default()),
       code_generation_results: Default::default(),
-      cgm_hash_artifact: Default::default(),
-      cgm_runtime_requirements_artifact: Default::default(),
-      cgc_runtime_requirements_artifact: Default::default(),
-      chunk_hashes_artifact: Default::default(),
-      chunk_render_artifact: Default::default(),
-      module_graph_cache_artifact: Default::default(),
-      module_static_cache_artifact: Default::default(),
+      cgm_hash_artifact: StealCell::new(Default::default()),
+      cgm_runtime_requirements_artifact: StealCell::new(Default::default()),
+      cgc_runtime_requirements_artifact: StealCell::new(Default::default()),
+      chunk_hashes_artifact: StealCell::new(Default::default()),
+      chunk_render_artifact: StealCell::new(Default::default()),
+      module_graph_cache_artifact: StealCell::new(Default::default()),
+      module_static_cache: Default::default(),
       code_generated_modules: Default::default(),
-      chunk_render_cache_artifact: ChunkRenderCacheArtifact::new(MemoryGCStorage::new(
-        match &options.cache {
+      chunk_render_cache_artifact: StealCell::new(ChunkRenderCacheArtifact::new(
+        MemoryGCStorage::new(match &options.cache {
           CacheOptions::Disabled => 0, // FIXME: this should be removed in future
           CacheOptions::Memory { max_generations } => *max_generations,
           CacheOptions::Persistent(_) => 1,
-        },
+        }),
       )),
-      code_generate_cache_artifact: CodeGenerateCacheArtifact::new(&options),
-      process_runtime_requirements_cache_artifact: ProcessRuntimeRequirementsCacheArtifact::new(
-        &options,
+      code_generate_cache_artifact: StealCell::new(CodeGenerateCacheArtifact::new(&options)),
+      process_runtime_requirements_cache_artifact: StealCell::new(
+        ProcessRuntimeRequirementsCacheArtifact::new(&options),
       ),
+      minimize_persistent_cache_artifact: None,
       build_time_executed_modules: Default::default(),
       incremental,
       build_chunk_graph_artifact: Default::default(),
@@ -410,7 +423,7 @@ impl Compilation {
       module_executor,
       in_finish_make: AtomicBool::new(false),
 
-      build_module_graph_artifact: DerefOption::new(BuildModuleGraphArtifact::default()),
+      build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
       removed_files,
       input_filesystem,
@@ -430,26 +443,13 @@ impl Compilation {
     self.compiler_id
   }
 
-  pub fn recover_module_graph_to_new_compilation(&mut self, new_compilation: &mut Compilation) {
-    self
-      .build_module_graph_artifact
-      .get_module_graph_mut()
-      .reset();
-    std::mem::swap(
-      &mut self.build_module_graph_artifact,
-      &mut new_compilation.build_module_graph_artifact,
-    );
-  }
-  pub fn swap_build_module_graph_artifact(&mut self, make_artifact: &mut BuildModuleGraphArtifact) {
-    self.build_module_graph_artifact.swap(make_artifact);
-  }
   pub fn get_module_graph(&self) -> &ModuleGraph {
     self.build_module_graph_artifact.get_module_graph()
   }
 
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    if self.build_module_graph_artifact.is_none() {
+    if self.build_module_graph_artifact.is_stolen() {
       return None;
     }
     if let Some(module) = self.get_module_graph().module_by_identifier(identifier) {
@@ -627,14 +627,16 @@ impl Compilation {
   pub async fn add_entry(&mut self, entry: BoxDependency, options: EntryOptions) -> Result<()> {
     let entry_id = *entry.id();
     let entry_name: Option<String> = options.name.clone();
+    let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
       .get_module_graph_mut()
       .add_dependency(entry);
-    if let Some(name) = &entry_name {
+    let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
         data.options.merge(options)?;
+        &mut data.options
       } else {
         let data = EntryData {
           dependencies: vec![entry_id],
@@ -642,17 +644,21 @@ impl Compilation {
           options,
         };
         self.entries.insert(name.to_owned(), data);
+        &mut self
+          .entries
+          .get_mut(name)
+          .expect("entry should exist")
+          .options
       }
     } else {
       self.global_entry.dependencies.push(entry_id);
-    }
+      &mut self.global_entry.options
+    };
 
-    self
-      .plugin_driver
-      .clone()
+    plugin_driver
       .compilation_hooks
       .add_entry
-      .call(self, entry_name.as_deref())
+      .call(entry_name.as_deref(), entry_options)
       .await?;
 
     Ok(())
@@ -663,23 +669,26 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        make_artifact,
-        vec![UpdateParam::BuildEntry(
-          self
-            .entries
-            .values()
-            .flat_map(|item| item.all_dependencies())
-            .chain(self.global_entry.all_dependencies())
-            .copied()
-            .collect(),
-        )],
-      )
-      .await?,
-    );
+    let make_artifact = self.build_module_graph_artifact.steal();
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
+      self,
+      make_artifact,
+      exports_info_artifact,
+      vec![UpdateParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+    self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
+
     Ok(())
   }
 
@@ -714,23 +723,26 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = self.build_module_graph_artifact.take();
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        make_artifact,
-        vec![UpdateParam::BuildEntry(
-          self
-            .entries
-            .values()
-            .flat_map(|item| item.all_dependencies())
-            .chain(self.global_entry.all_dependencies())
-            .copied()
-            .collect(),
-        )],
-      )
-      .await?,
-    );
+    let make_artifact = self.build_module_graph_artifact.steal();
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let (make_artifact, exports_info_artifact) = update_module_graph(
+      self,
+      make_artifact,
+      exports_info_artifact,
+      vec![UpdateParam::BuildEntry(
+        self
+          .entries
+          .values()
+          .flat_map(|item| item.all_dependencies())
+          .chain(self.global_entry.all_dependencies())
+          .copied()
+          .collect(),
+      )],
+    )
+    .await?;
+    self.build_module_graph_artifact = make_artifact.into();
+    self.exports_info_artifact = exports_info_artifact.into();
+
     Ok(())
   }
 
@@ -831,10 +843,14 @@ impl Compilation {
       if let Some(source_map) = &asset.info.related.source_map {
         self.delete_asset(source_map);
       }
-      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        chunk.remove_file(filename);
-        chunk.remove_auxiliary_file(filename);
-      });
+      self
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .iter_mut()
+        .for_each(|(_, chunk)| {
+          chunk.remove_file(filename);
+          chunk.remove_auxiliary_file(filename);
+        });
     }
   }
 
@@ -853,15 +869,19 @@ impl Compilation {
 
       self.assets.insert(new_name.clone(), asset);
 
-      self.chunk_by_ukey.iter_mut().for_each(|(_, chunk)| {
-        if chunk.remove_file(filename) {
-          chunk.add_file(new_name.clone());
-        }
+      self
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .iter_mut()
+        .for_each(|(_, chunk)| {
+          if chunk.remove_file(filename) {
+            chunk.add_file(new_name.clone());
+          }
 
-        if chunk.remove_auxiliary_file(filename) {
-          chunk.add_auxiliary_file(new_name.clone());
-        }
-      });
+          if chunk.remove_auxiliary_file(filename) {
+            chunk.add_auxiliary_file(new_name.clone());
+          }
+        });
     }
   }
 
@@ -871,6 +891,7 @@ impl Compilation {
   // over chunk_by_ukey to reduce traversal frequency and improve performance.
   pub fn par_rename_assets(&mut self, renames: Vec<(String, String)>) {
     self
+      .build_chunk_graph_artifact
       .chunk_by_ukey
       .values_mut()
       .par_bridge()
@@ -912,8 +933,8 @@ impl Compilation {
     &mut self.assets
   }
 
-  pub fn entrypoints(&self) -> &IndexMap<String, ChunkGroupUkey> {
-    &self.entrypoints
+  pub fn entrypoints(&self) -> &FxIndexMap<String, ChunkGroupUkey> {
+    &self.build_chunk_graph_artifact.entrypoints
   }
 
   pub fn push_diagnostic(&mut self, diagnostic: Diagnostic) {
@@ -988,8 +1009,8 @@ impl Compilation {
     &self.logging
   }
 
-  pub fn get_stats(&self) -> Stats<'_> {
-    Stats::new(self)
+  pub fn get_stats<'a>(&'a self) -> Stats<'a> {
+    Stats::new(StatsContext::new(self))
   }
 
   pub fn add_named_chunk(
@@ -1020,21 +1041,23 @@ impl Compilation {
   pub async fn rebuild_module<T>(
     &mut self,
     module_identifiers: IdentifierSet,
+    exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = self.build_module_graph_artifact.take();
+    let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
 
-    self.build_module_graph_artifact.replace(
-      update_module_graph(
-        self,
-        artifact,
-        vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-      )
-      .await?,
-    );
+    let (artifact, updated_exports_info_artifact) = update_module_graph(
+      self,
+      artifact,
+      std::mem::take(exports_info_artifact),
+      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
+    )
+    .await?;
+    *exports_info_artifact = updated_exports_info_artifact;
+    self.build_module_graph_artifact = artifact.into();
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers
@@ -1061,24 +1084,52 @@ impl Compilation {
   }
 
   pub fn entrypoint_by_name(&self, name: &str) -> &Entrypoint {
-    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
-    self.chunk_group_by_ukey.expect_get(ukey)
+    let ukey = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .get(name)
+      .expect("entrypoint not found");
+    self
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(ukey)
   }
 
   pub fn entrypoint_by_name_mut(&mut self, name: &str) -> &mut Entrypoint {
-    let ukey = self.entrypoints.get(name).expect("entrypoint not found");
-    self.chunk_group_by_ukey.expect_get_mut(ukey)
+    let ukey = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .get(name)
+      .expect("entrypoint not found");
+    self
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(ukey)
   }
 
   pub fn get_chunk_graph_entries(&self) -> impl Iterator<Item = ChunkUkey> + use<'_> {
-    let entries = self.entrypoints.values().map(|entrypoint_ukey| {
-      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
-    });
-    let async_entries = self.async_entrypoints.iter().map(|entrypoint_ukey| {
-      let entrypoint = self.chunk_group_by_ukey.expect_get(entrypoint_ukey);
-      entrypoint.get_runtime_chunk(&self.chunk_group_by_ukey)
-    });
+    let entries = self
+      .build_chunk_graph_artifact
+      .entrypoints
+      .values()
+      .map(|entrypoint_ukey| {
+        let entrypoint = self
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(entrypoint_ukey);
+        entrypoint.get_runtime_chunk(&self.build_chunk_graph_artifact.chunk_group_by_ukey)
+      });
+    let async_entries = self
+      .build_chunk_graph_artifact
+      .async_entrypoints
+      .iter()
+      .map(|entrypoint_ukey| {
+        let entrypoint = self
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(entrypoint_ukey);
+        entrypoint.get_runtime_chunk(&self.build_chunk_graph_artifact.chunk_group_by_ukey)
+      });
     entries.chain(async_entries)
   }
   pub fn add_runtime_module(
@@ -1087,7 +1138,10 @@ impl Compilation {
     mut module: Box<dyn RuntimeModule>,
   ) -> Result<()> {
     // add chunk runtime to prefix module identifier to avoid multiple entry runtime modules conflict
-    let chunk = self.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = self
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let runtime_module_identifier = ModuleIdentifier::from(format!(
       "{}/{}",
       get_runtime_key(chunk.runtime()),
@@ -1095,12 +1149,17 @@ impl Compilation {
     ));
     module.attach(*chunk_ukey);
 
-    self.chunk_graph.add_module(runtime_module_identifier);
+    self
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .add_module(runtime_module_identifier);
     self.runtime_template.add_templates(module.template());
     self
+      .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_module(*chunk_ukey, runtime_module_identifier);
     self
+      .build_chunk_graph_artifact
       .chunk_graph
       .connect_chunk_and_runtime_module(*chunk_ukey, runtime_module_identifier);
 
@@ -1195,11 +1254,9 @@ impl Compilation {
 
   pub fn get_dependency_template(
     &self,
-    dep: &dyn DependencyCodeGeneration,
+    template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
-    dep
-      .dependency_template()
-      .and_then(|template_type| self.dependency_templates.get(&template_type).cloned())
+    self.dependency_templates.get(&template_type).cloned()
   }
 }
 
@@ -1360,7 +1417,9 @@ impl AssetInfo {
     // "another" first fields
     self.minimized = another.minimized;
 
-    self.source_filename = another.source_filename.or(self.source_filename.take());
+    self.source_filename = another
+      .source_filename
+      .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
 
@@ -1372,7 +1431,9 @@ impl AssetInfo {
     // self.module_hash.extend(another.module_hash.iter().cloned());
 
     // old first fields or truthy first fields
-    self.javascript_module = another.javascript_module.or(self.javascript_module.take());
+    self.javascript_module = another
+      .javascript_module
+      .or_else(|| self.javascript_module.take());
     self.immutable = another.immutable.or(self.immutable);
     self.development = another.development.or(self.development);
     self.hot_module_replacement = another
@@ -1402,9 +1463,12 @@ pub fn assign_depths<'a>(
   assign_map: &mut IdentifierMap<usize>,
   modules: impl Iterator<Item = &'a ModuleIdentifier>,
   outgoings: &IdentifierMap<Vec<ModuleIdentifier>>,
+  initial_queue_capacity: usize,
 ) {
   // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/Compilation.js#L3720
-  let mut q = VecDeque::new();
+  let (module_count_lower_bound, module_count_upper_bound) = modules.size_hint();
+  let module_count = module_count_upper_bound.unwrap_or(module_count_lower_bound);
+  let mut q = VecDeque::with_capacity(initial_queue_capacity.max(module_count));
   for item in modules {
     q.push_back((*item, 0));
   }
@@ -1417,8 +1481,10 @@ pub fn assign_depths<'a>(
         vac.insert(depth);
       }
     };
-    for con in outgoings.get(&id).expect("should have outgoings").iter() {
-      q.push_back((*con, depth + 1));
+    if let Some(outgoing_modules) = outgoings.get(&id) {
+      for con in outgoing_modules {
+        q.push_back((*con, depth + 1));
+      }
     }
   }
 }

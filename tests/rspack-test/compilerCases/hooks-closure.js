@@ -92,6 +92,11 @@ module.exports = {
         return {
             context: context.getSource(),
             entry: "./d",
+            output: {
+                bundlerInfo: {
+                    force: true
+                }
+            },
             plugins: [new MyPlugin()]
         };
     },

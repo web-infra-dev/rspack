@@ -44,9 +44,12 @@ function parseTriple(rawTriple) {
   let sys;
   let abi = null;
   if (triples.length === 4) {
-    [cpu, , sys, abi = null] = triples;
+    cpu = triples[0];
+    sys = triples[2];
+    abi = triples[3] ?? null;
   } else if (triples.length === 3) {
-    [cpu, , sys] = triples;
+    cpu = triples[0];
+    sys = triples[2];
   } else {
     [cpu, sys] = triples;
   }

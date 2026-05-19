@@ -3,10 +3,10 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
@@ -164,7 +164,7 @@ impl Module for LazyCompilationProxyModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -173,6 +173,7 @@ impl Module for LazyCompilationProxyModule {
       DependencyRange::new(0, 0),
       None,
       false,
+      None,
       None,
     );
     let mut dependencies = vec![];
@@ -193,6 +194,7 @@ impl Module for LazyCompilationProxyModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
@@ -262,7 +264,8 @@ impl Module for LazyCompilationProxyModule {
           Some(block_id),
           &self.resource,
           "import()",
-          false
+          false,
+          ImportPhase::Evaluation,
         ),
         json_stringify(
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module)

@@ -2,13 +2,15 @@ use std::{hash::Hash, sync::Arc};
 
 use rspack_error::BatchErrors;
 use swc_core::{
-  common::{GLOBALS, Globals, Mark, SourceMap, errors::Handler, sync::Lrc, util::take::Take},
+  common::{
+    GLOBALS, Globals, Mark, SourceMap, comments::SingleThreadedComments, errors::Handler,
+    sync::Lrc, util::take::Take,
+  },
   ecma::{
     ast::{Module, Program as SwcProgram},
     visit::{Fold, FoldWith, Visit, VisitMut, VisitMutWith, VisitWith},
   },
 };
-use swc_node_comments::SwcComments;
 
 use crate::error::with_rspack_error_handler;
 
@@ -19,7 +21,7 @@ use crate::error::with_rspack_error_handler;
 #[derive(Clone)]
 pub struct Program {
   pub(crate) program: SwcProgram,
-  pub comments: Option<SwcComments>,
+  pub comments: Option<SingleThreadedComments>,
 }
 
 impl std::hash::Hash for Program {
@@ -38,7 +40,7 @@ impl std::fmt::Debug for Program {
 }
 
 impl Program {
-  pub fn new(program: SwcProgram, comments: Option<SwcComments>) -> Self {
+  pub fn new(program: SwcProgram, comments: Option<SingleThreadedComments>) -> Self {
     Self { program, comments }
   }
 
@@ -135,7 +137,7 @@ impl Ast {
   pub fn new(
     program: SwcProgram,
     source_map: Arc<SourceMap>,
-    comments: Option<SwcComments>,
+    comments: Option<SingleThreadedComments>,
   ) -> Self {
     Self {
       program: Program::new(program, comments),

@@ -1,7 +1,11 @@
 use std::{
   backtrace::Backtrace,
+  fmt,
   hash::BuildHasherDefault,
-  sync::Arc,
+  sync::{
+    Arc,
+    atomic::{AtomicU32, Ordering},
+  },
   time::{Duration, Instant},
 };
 
@@ -218,17 +222,18 @@ pub trait Logger {
   fn cache(&self, label: &'static str) -> CacheCount {
     CacheCount {
       label,
-      total: 0,
-      hit: 0,
+      total: AtomicU32::new(0),
+      hit: AtomicU32::new(0),
     }
   }
 
   fn cache_end(&self, count: CacheCount) {
-    if count.total != 0 {
+    let total = count.total.load(Ordering::Relaxed);
+    if total != 0 {
       self.raw(LogType::Cache {
         label: count.label,
-        hit: count.hit,
-        total: count.total,
+        hit: count.hit.load(Ordering::Relaxed),
+        total,
       })
     }
   }
@@ -273,26 +278,35 @@ impl StartTimeAggregate {
 #[derive(Debug)]
 pub struct CacheCount {
   label: &'static str,
-  hit: u32,
-  total: u32,
+  hit: AtomicU32,
+  total: AtomicU32,
 }
 
 impl CacheCount {
-  pub fn hit(&mut self) {
-    self.total += 1;
-    self.hit += 1;
+  pub fn hit(&self) {
+    self.total.fetch_add(1, Ordering::Relaxed);
+    self.hit.fetch_add(1, Ordering::Relaxed);
   }
 
-  pub fn miss(&mut self) {
-    self.total += 1;
+  pub fn miss(&self) {
+    self.total.fetch_add(1, Ordering::Relaxed);
   }
 }
 
 pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;
 
+#[derive(Clone)]
 pub struct CompilationLogger {
   logging: CompilationLogging,
   name: String,
+}
+
+impl fmt::Debug for CompilationLogger {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("CompilationLogger")
+      .field("name", &self.name)
+      .finish_non_exhaustive()
+  }
 }
 
 impl CompilationLogger {

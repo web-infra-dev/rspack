@@ -1,0 +1,32 @@
+```mjs title=a-chunk.mjs
+// ./shared.js
+function sharedDefault() {
+	return "shared-default";
+}
+
+const answer = 42;
+
+export { sharedDefault };
+
+```
+
+```mjs title=main.mjs
+
+// ./index.js
+
+
+
+it("should forward default and named exports from an auto-extracted shared chunk", async () => {
+	const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+	expect(mod.sharedDefault()).toBe("shared-default");
+	expect(mod.answer).toBe(42);
+});
+
+
+
+var index_answer = (/* inlined export .answer */42);
+export { index_answer as answer };
+export { sharedDefault } from "./a-chunk.mjs";
+
+```

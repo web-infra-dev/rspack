@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
@@ -42,6 +42,10 @@ impl MockModuleIdDependency {
       suffix,
     }
   }
+
+  pub fn set_request(&mut self, request: String) {
+    self.request = request;
+  }
 }
 
 #[cacheable_dyn]
@@ -66,6 +70,7 @@ impl Dependency for MockModuleIdDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -145,7 +150,7 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &format!("{}{}", module_id, dep.suffix.as_deref().unwrap_or("")),
+      format!("{}{}", module_id, dep.suffix.as_deref().unwrap_or("")),
       None,
     );
   }

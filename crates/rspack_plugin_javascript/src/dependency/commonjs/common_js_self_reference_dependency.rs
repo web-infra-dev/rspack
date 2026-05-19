@@ -4,10 +4,9 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoGetter,
-  ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
 };
 use swc_core::atoms::Atom;
 
@@ -21,17 +20,25 @@ pub struct CommonJsSelfReferenceDependency {
   base: ExportsBase,
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
+  names_optionals: Vec<bool>,
   is_call: bool,
   factorize_info: FactorizeInfo,
 }
 
 impl CommonJsSelfReferenceDependency {
-  pub fn new(range: DependencyRange, base: ExportsBase, names: Vec<Atom>, is_call: bool) -> Self {
+  pub fn new(
+    range: DependencyRange,
+    base: ExportsBase,
+    names: Vec<Atom>,
+    names_optionals: Vec<bool>,
+    is_call: bool,
+  ) -> Self {
     Self {
       id: DependencyId::new(),
       range,
       base,
       names,
+      names_optionals,
       is_call,
       factorize_info: Default::default(),
     }
@@ -64,6 +71,7 @@ impl Dependency for CommonJsSelfReferenceDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     if self.is_call {
@@ -142,28 +150,13 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if dep.names.is_empty() {
-      let used_name = if dep.names.is_empty() {
-        let exports_info_used =
-          module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
-        ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithoutNames(&exports_info_used),
-          *runtime,
-          &dep.names,
-        )
-      } else {
-        let exports_info = module_graph.get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.names),
-        );
-        ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          *runtime,
-          &dep.names,
-        )
-      };
-
-      used_name.unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
+    let used = if !dep.names.is_empty() {
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module.identifier());
+      exports_info
+        .get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+        .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
     } else {
       UsedName::Normal(dep.names.clone())
     };
@@ -187,8 +180,12 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &match used {
-        UsedName::Normal(used) => format!("{}{}", base, property_access(used, 0)),
+      match used {
+        UsedName::Normal(used) => format!(
+          "{}{}",
+          base,
+          property_access_with_optional(used, &dep.names_optionals, 0)
+        ),
         // Export a inlinable const from cjs is not possible for now, so self reference a inlinable
         // const is also not possible for now, but we compat it here
         UsedName::Inlined(inlined) => inlined.render(""),

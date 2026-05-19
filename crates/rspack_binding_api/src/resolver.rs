@@ -5,7 +5,7 @@ use napi::{
   bindgen_prelude::{Function, block_on},
 };
 use napi_derive::napi;
-use rspack_core::{ResolveContext, Resolver};
+use rspack_core::Resolver;
 use serde::Serialize;
 
 use crate::{error::ErrorCode, utils::callbackify};
@@ -76,19 +76,18 @@ impl JsResolver {
     callbackify(
       f,
       async move {
-        let mut resolve_context = ResolveContext::default();
-        match resolver
-          .resolve_with_context(Path::new(&path), &request, &mut resolve_context)
-          .await
-        {
+        let (resolve_result, mut resolve_dependencies) = resolver
+          .resolve_with_context(Path::new(&path), &request)
+          .await;
+        match resolve_result {
           Ok(rspack_core::ResolveResult::Resource(resource)) => {
             let mut resolve_request = ResolveRequest::from(resource);
-            resolve_request.file_dependencies = resolve_context
+            resolve_request.file_dependencies = resolve_dependencies
               .file_dependencies
               .drain()
               .map(|path| path.to_string_lossy().into_owned())
               .collect();
-            resolve_request.missing_dependencies = resolve_context
+            resolve_request.missing_dependencies = resolve_dependencies
               .missing_dependencies
               .drain()
               .map(|path| path.to_string_lossy().into_owned())

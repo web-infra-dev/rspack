@@ -1,12 +1,12 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: "browserslist:maintained node versions",
-	plugins: [
-		compiler => {
-			compiler.hooks.compilation.tap("Test", compilation => {
-				expect(compilation.outputOptions.environment).toMatchInlineSnapshot(`
+  target: 'browserslist:maintained node versions',
+  plugins: [
+    (compiler) => {
+      compiler.hooks.compilation.tap('Test', (compilation) => {
+        expect(compilation.outputOptions.environment).toMatchInlineSnapshot(`
 					Object {
 					  arrowFunction: true,
 					  asyncFunction: true,
@@ -26,7 +26,7 @@ module.exports = {
 					  templateLiteral: true,
 					}
 				`);
-				expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
+        expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
 			Object {
 			  electron: false,
 			  electronMain: false,
@@ -37,7 +37,7 @@ module.exports = {
 			  web: false,
 			}
 		`);
-			});
-		}
-	]
+      });
+    },
+  ],
 };

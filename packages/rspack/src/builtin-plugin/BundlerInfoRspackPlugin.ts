@@ -17,7 +17,7 @@ export const BundlerInfoRspackPlugin = create(
     return {
       version: options.version || 'unknown',
       bundler: options.bundler || 'rspack',
-      force: options.force ?? true,
+      force: options.force ?? false,
     };
   },
 );

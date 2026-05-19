@@ -1,12 +1,12 @@
 use std::{borrow::Cow, sync::Arc};
 
-use regex::Regex;
-use rspack_collections::{IdentifierIndexSet, UkeyIndexMap, UkeySet};
+use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkRenderContext, ChunkUkey, CodeGenerationDataFilename,
-  Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment, ModuleIdentifier, PathData,
-  PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  AssetInfo, Chunk, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataFilename, Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment,
+  ModuleIdentifier, PathData, PathInfo, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  SourceType, export_name, get_js_chunk_filename_template, get_undo_path, render_imports,
+  render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -15,41 +15,91 @@ use rspack_plugin_javascript::{
   dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
 };
-use rspack_plugin_runtime::EXPORT_REQUIRE_RUNTIME_MODULE_ID;
 use rspack_util::{
   SpanExt,
   atom::Atom,
-  fx_hash::{FxHashMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::sync::Lazy;
 
 use crate::{
-  chunk_link::{ChunkLinkContext, ReExportFrom, Ref},
+  chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
-  runtime::RegisterModuleRuntime,
+  runtime::EsmRegisterModuleRuntimeModule,
 };
+
+/// Returns `true` when the module produces only CSS output (native CSS via
+/// `experiments.css` or the synthetic `CssModule` from `CssExtractRspackPlugin`).
+/// These modules have no JS factory and must be skipped in the ESM render paths
+/// that emit `__webpack_require__` / cross-chunk `import` placeholders.
+///
+/// This deliberately checks for CSS source types rather than `!JavaScript` so
+/// that other non-JS module kinds (e.g. `RemoteModule` from Module Federation
+/// whose source types are `Remote/ShareInit`) are **not** skipped.
+fn is_css_only_module(
+  module: &dyn rspack_core::Module,
+  module_graph: &rspack_core::ModuleGraph,
+) -> bool {
+  let source_types = module.source_types(module_graph);
+  !source_types.is_empty()
+    && source_types
+      .iter()
+      .all(|t| matches!(t, SourceType::Css | SourceType::CssImport))
+    || module.identifier().starts_with("css|")
+}
 
 #[inline]
 fn get_chunk(compilation: &Compilation, chunk_ukey: ChunkUkey) -> &Chunk {
-  compilation.chunk_by_ukey.expect_get(&chunk_ukey)
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(&chunk_ukey)
 }
 
-use crate::{EsmLibraryPlugin, dependency::dyn_import::NAMESPACE_SYMBOL};
+use crate::EsmLibraryPlugin;
 
-static AUTO_PUBLIC_PATH_PLACEHOLDER_RE: Lazy<Regex> =
-  Lazy::new(|| Regex::new(AUTO_PUBLIC_PATH_PLACEHOLDER).expect("failed to create regex"));
+fn normalize_raw_import_source(source: &str) -> Cow<'_, str> {
+  let mut value = source.to_string();
+  let mut changed = false;
+
+  for _ in 0..2 {
+    let decode_target = if value.starts_with("\\\"") && value.ends_with("\\\"") {
+      format!("\"{value}\"")
+    } else {
+      value.clone()
+    };
+    if let Ok(next) = serde_json::from_str::<String>(&decode_target) {
+      changed = true;
+      value = next;
+      continue;
+    }
+    break;
+  }
+
+  if value.starts_with('\"') && value.ends_with('\"') && value.len() >= 2 {
+    changed = true;
+    value = value[1..value.len() - 1].to_string();
+  }
+
+  if !changed {
+    Cow::Borrowed(source)
+  } else {
+    Cow::Owned(value)
+  }
+}
 
 impl EsmLibraryPlugin {
-  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
-    let chunk = compilation.chunk_by_ukey.expect_get(&chunk_ukey);
-    let group = chunk
-      .groups()
-      .iter()
-      .next()
-      .expect("should have at least one group");
-    let group = compilation.chunk_group_by_ukey.expect_get(group);
+  fn get_entrypoint(chunk_ukey: ChunkUkey, compilation: &Compilation) -> Option<&ChunkGroup> {
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
+    let group = chunk.groups().iter().next()?;
+    let group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(group);
     let mut stack = vec![group];
-    let mut visited = UkeySet::default();
+    let mut visited = FxHashSet::default();
 
     while let Some(group) = stack.pop() {
       if !visited.insert(group.ukey) {
@@ -57,17 +107,29 @@ impl EsmLibraryPlugin {
       }
 
       if group.kind.is_entrypoint() {
-        return group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+        return Some(group);
       }
 
-      stack.extend(
-        group
-          .parents_iterable()
-          .map(|group| compilation.chunk_group_by_ukey.expect_get(group)),
-      );
+      stack.extend(group.parents_iterable().map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(group)
+      }));
     }
 
-    unreachable!("chunk should have at least one ancestor that is entrypoint")
+    None
+  }
+
+  pub(crate) fn get_runtime_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation).map_or(chunk_ukey, |group| {
+      group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
+  }
+
+  pub(crate) fn get_entry_chunk(chunk_ukey: ChunkUkey, compilation: &Compilation) -> ChunkUkey {
+    Self::get_entrypoint(chunk_ukey, compilation)
+      .map_or(chunk_ukey, ChunkGroup::get_entrypoint_chunk)
   }
 
   pub(crate) async fn render_chunk(
@@ -75,6 +137,7 @@ impl EsmLibraryPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     asset_info: &mut AssetInfo,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<Option<RenderSource>> {
     let module_graph = compilation.get_module_graph();
 
@@ -96,7 +159,7 @@ impl EsmLibraryPlugin {
     let filename_template = get_js_chunk_filename_template(
       chunk,
       &compilation.options.output,
-      &compilation.chunk_group_by_ukey,
+      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
 
     asset_info.set_javascript_module(true);
@@ -142,6 +205,7 @@ impl EsmLibraryPlugin {
           true,
           &output_path,
           &hooks,
+          runtime_template,
         )
         .await?
         else {
@@ -158,7 +222,9 @@ impl EsmLibraryPlugin {
         // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
         decl_source.add(RawStringSource::from(format!(
           "{}({{\n",
-          RegisterModuleRuntime::runtime_id(&compilation.runtime_template)
+          EsmRegisterModuleRuntimeModule::runtime_id(
+            &compilation.runtime_template.create_runtime_code_template()
+          )
         )));
         decl_source.add(decl_inner);
         decl_source.add(RawStringSource::from_static("});\n"));
@@ -177,15 +243,21 @@ impl EsmLibraryPlugin {
     let mut render_source = ConcatSource::default();
     let mut export_specifiers: FxIndexSet<Cow<str>> = Default::default();
     let mut export_default = None;
-    let mut imported_chunks = UkeyIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
+    let mut imported_chunks = FxIndexMap::<ChunkUkey, FxHashMap<Atom, Atom>>::default();
     let mut runtime_requirements =
       *ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey);
 
     // render webpack runtime
-    if chunk.has_runtime(&compilation.chunk_group_by_ukey) {
-      asset_info
-        .extras
-        .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+    if chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+      let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
+      let entry_chunk = Self::get_entry_chunk(*chunk_ukey, compilation);
+      let is_separate_runtime_chunk = runtime_chunk == *chunk_ukey && runtime_chunk != entry_chunk;
+
+      if is_separate_runtime_chunk {
+        asset_info
+          .extras
+          .insert(RSPACK_ESM_RUNTIME_CHUNK.into(), "true".into());
+      }
       // render chunk needs to render *all* runtimes in the whole tree
       let tree_runtime_requirements =
         ChunkGraph::get_tree_runtime_requirements(compilation, chunk_ukey);
@@ -194,30 +266,59 @@ impl EsmLibraryPlugin {
           r#"
 var {} = {{}};
 "#,
-          compilation
-            .runtime_template
-            .render_runtime_variable(&RuntimeVariable::Modules)
+          runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
         )));
       }
-      let runtimes =
-        Self::render_runtime(chunk_ukey, compilation, *tree_runtime_requirements).await?;
+      // A pure runtime chunk has no entry modules of its own; it was split off
+      // by optimize_runtime_chunks and only exists to export __webpack_require__.
+      // An entry-with-runtime chunk (runtimeChunk: false, not split) uses
+      // __webpack_require__ internally but must not export it.
+      let is_pure_runtime_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_entry_modules(chunk_ukey)
+        .is_empty();
+
+      // When the entry chunk IS the runtime chunk (runtimeChunk: false without split)
+      // and no runtime modules actually use the __webpack_require__ scope, strip
+      // REQUIRE_SCOPE so we don't emit a useless `var __webpack_require__ = {};`.
+      let has_runtime_modules = compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+        .next()
+        .is_some();
+      let effective_tree_requirements = if !is_pure_runtime_chunk
+        && !has_runtime_modules
+        && !tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+      {
+        tree_runtime_requirements.difference(RuntimeGlobals::REQUIRE_SCOPE)
+      } else {
+        *tree_runtime_requirements
+      };
+
+      let runtimes = Self::render_runtime(
+        chunk_ukey,
+        compilation,
+        effective_tree_requirements,
+        runtime_template,
+      )
+      .await?;
 
       runtime_source.add(runtimes);
       runtime_source.add(RawStringSource::from_static("\n"));
-      runtime_source.add(render_runtime_modules(compilation, chunk_ukey).await?);
+      runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // EXPORT_WEBPACK_REQUIRE_RUNTIME_MODULE runtime will export __webpack_require__ already
-      if !compilation
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(chunk_ukey)
-        .any(|m| m.contains(EXPORT_REQUIRE_RUNTIME_MODULE_ID))
-        && tree_runtime_requirements.contains(RuntimeGlobals::REQUIRE)
+      // Link already decides whether `__webpack_require__` is exported via a runtime module.
+      // Only pure runtime chunks without that runtime-module export should emit a direct export.
+      if is_pure_runtime_chunk
+        && !chunk_link.exports_require_via_runtime_module
+        && effective_tree_requirements
+          .intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
       {
         export_specifiers.insert(Cow::Owned(
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
         ));
       }
     }
@@ -227,7 +328,7 @@ var {} = {{}};
       .namespace_object_sources
       .iter()
       .collect::<Vec<_>>();
-    namespace_object_sources.sort_by(|(a, _), (b, _)| a.cmp(b));
+    namespace_object_sources.sort_by_key(|(a, _)| *a);
     for (_, namespace) in namespace_object_sources {
       render_source.add(RawStringSource::from(format!("{namespace}\n")));
     }
@@ -269,6 +370,7 @@ var {} = {{}};
         compilation,
         chunk_link,
         &mut already_required,
+        runtime_template,
       ));
       render_source.add(source);
       render_source.add(RawStringSource::from_static("\n"));
@@ -282,9 +384,7 @@ var {} = {{}};
             .interop_namespace_object_name
             .clone()
             .expect("should have interop_namespace_object_name"),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           info
             .namespace_object_name
             .as_ref()
@@ -299,9 +399,7 @@ var {} = {{}};
             .interop_namespace_object2_name
             .clone()
             .expect("should have interop_namespace_object2_name"),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           info
             .namespace_object_name
             .as_ref()
@@ -316,9 +414,7 @@ var {} = {{}};
             .interop_default_access_name
             .clone()
             .expect("should have interop_default_access_name"),
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
+          runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           info
             .namespace_object_name
             .as_ref()
@@ -328,9 +424,16 @@ var {} = {{}};
     }
 
     for (m, required_info) in &chunk_link.required {
+      // Skip CSS-only modules (native CSS or extract-css CssModule). They
+      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      if let Some(module) = module_graph.module_by_identifier(m)
+        && is_css_only_module(module.as_ref(), module_graph)
+      {
+        continue;
+      }
       if already_required.insert(*m) {
         runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-        render_source.add(required_info.render(compilation));
+        render_source.add(required_info.render(compilation, runtime_template));
         render_source.add(RawStringSource::from_static("\n"));
       }
     }
@@ -338,39 +441,113 @@ var {} = {{}};
     // render imports and exports to other chunks
     for required_module in already_required {
       runtime_requirements.insert(RuntimeGlobals::REQUIRE);
-      let target_chunk = Self::get_module_chunk(required_module, compilation);
+      let target_chunk = Self::get_module_chunk(required_module, compilation)?;
       if &target_chunk != chunk_ukey {
+        // Skip chunks that have no JavaScript modules. CSS-only chunks
+        // produced by `preserveModules` are loaded by the CSS plugin
+        // runtime, not by importing the chunk's JS file (it has none).
+        if !compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .has_chunk_module_by_source_type(&target_chunk, SourceType::JavaScript, module_graph)
+        {
+          continue;
+        }
         imported_chunks.entry(target_chunk).or_default();
       }
     }
 
+    let require_ident = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let import_spec_imports_require = |import_spec: &rspack_core::ImportSpec| {
+      import_spec
+        .atoms
+        .values()
+        .any(|local| local.as_str() == require_ident)
+        || import_spec
+          .default_import
+          .as_ref()
+          .is_some_and(|local| local.as_str() == require_ident)
+        || import_spec
+          .ns_import
+          .as_ref()
+          .is_some_and(|local| local.as_str() == require_ident)
+    };
+
     if !runtime_requirements.is_empty() {
       let runtime_chunk = Self::get_runtime_chunk(*chunk_ukey, compilation);
-      if &runtime_chunk != chunk_ukey && runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
-        let runtime_chunk = compilation.chunk_by_ukey.expect_get(&runtime_chunk);
+      if &runtime_chunk != chunk_ukey
+        && runtime_requirements.intersects(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+      {
+        let already_imported_require =
+          chunk_link
+            .raw_import_stmts
+            .iter()
+            .any(|(raw_import_source, import_spec)| {
+              matches!(raw_import_source, RawImportSource::Chunk(_))
+                && import_spec_imports_require(import_spec)
+            });
+        if !already_imported_require {
+          let runtime_chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(&runtime_chunk);
 
-        import_source.add(RawStringSource::from(format!(
-          "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-          compilation
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          runtime_chunk.expect_id().as_str()
-        )));
+          import_source.add(RawStringSource::from(format!(
+            "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
+            require_ident,
+            runtime_chunk.expect_id().as_str()
+          )));
+        }
       }
     }
 
-    for ((source, attr), import_spec) in &chunk_link.raw_import_stmts {
+    for (raw_import_source, import_spec) in &chunk_link.raw_import_stmts {
+      if let RawImportSource::Source((source, _)) = raw_import_source
+        && source.contains("__RSPACK_ESM_CHUNK_")
+        && import_spec_imports_require(import_spec)
+      {
+        continue;
+      }
+      let (source, attr) = match raw_import_source {
+        RawImportSource::Chunk(import_chunk) => {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(import_chunk);
+          (
+            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str())),
+            None,
+          )
+        }
+        RawImportSource::Source((source, attr)) => (
+          normalize_raw_import_source(source.as_str()),
+          attr.as_deref(),
+        ),
+      };
+
       import_source.add(RawStringSource::from(render_imports(
-        source,
-        attr.as_deref(),
+        &source,
+        attr,
         import_spec,
       )));
     }
 
     for (id, imports) in &chunk_link.imports {
-      let chunk = Self::get_module_chunk(*id, compilation);
+      let chunk = Self::get_module_chunk(*id, compilation)?;
       if &chunk == chunk_ukey {
         // ignore self import
+        continue;
+      }
+
+      // Skip chunks that have no JavaScript modules (e.g. CSS-only chunks
+      // produced by `preserveModules` for native CSS or extract-css). The
+      // CSS chunk is handled by the CSS plugin's own runtime, not via a
+      // JS-side bare import.
+      if !compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .has_chunk_module_by_source_type(&chunk, SourceType::JavaScript, module_graph)
+      {
         continue;
       }
 
@@ -392,32 +569,38 @@ var {} = {{}};
       {
         continue;
       }
-      let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(chunk);
 
-      import_source.add(RawStringSource::from(format!(
-        "import {}\"__RSPACK_ESM_CHUNK_{}\";\n",
-        if imported.is_empty() {
-          String::new()
-        } else {
-          format!(
-            "{{ {} }} from ",
-            imported
-              .iter()
-              .map(|(imported, local)| {
-                let imported_name = export_name(imported).expect("should have export_name");
-                if imported == local {
-                  imported_name.into_owned()
-                } else {
-                  let local_name = export_name(local).expect("should have export_name");
-                  format!("{imported_name} as {local_name}")
-                }
-              })
-              .collect::<Vec<_>>()
-              .join(", ")
-          )
-        },
-        chunk.expect_id().as_str()
-      )));
+      if imported.is_empty() {
+        import_source.add(RawStringSource::from(format!(
+          "import \"__RSPACK_ESM_CHUNK_{}\";\n",
+          chunk.expect_id().as_str()
+        )));
+      } else {
+        let mut stmt = String::with_capacity(imported.len() * 30 + 40);
+        stmt.push_str("import { ");
+        for (i, (imported_sym, local)) in imported.iter().enumerate() {
+          if i > 0 {
+            stmt.push_str(", ");
+          }
+          let imported_name = export_name(imported_sym).expect("should have export_name");
+          if imported_sym == local {
+            stmt.push_str(&imported_name);
+          } else {
+            let local_name = export_name(local).expect("should have export_name");
+            stmt.push_str(&imported_name);
+            stmt.push_str(" as ");
+            stmt.push_str(&local_name);
+          }
+        }
+        stmt.push_str(" } from \"__RSPACK_ESM_CHUNK_");
+        stmt.push_str(chunk.expect_id().as_str());
+        stmt.push_str("\";\n");
+        import_source.add(RawStringSource::from(stmt));
+      }
     }
 
     if !imported_chunks.is_empty() || !chunk_link.raw_import_stmts.is_empty() {
@@ -425,19 +608,24 @@ var {} = {{}};
     }
 
     // render init fragments
-    let mut final_source = ConcatSource::new([
-      render_init_fragments(
-        import_source.boxed(),
-        chunk_init_fragments,
-        &mut ChunkRenderContext {},
-      )?,
+    let mut final_source = ConcatSource::default();
+    if let Some(hashbang) = &chunk_link.hashbang {
+      final_source.add(RawStringSource::from(hashbang.clone()));
+    }
+    for directive in &chunk_link.directives {
+      final_source.add(RawStringSource::from(format!("{directive}\n")));
+    }
+    final_source.add(import_source.boxed());
+    final_source.add(render_init_fragments(
       ConcatSource::new([
         runtime_source.boxed(),
         decl_source.boxed(),
         render_source.boxed(),
       ])
       .boxed(),
-    ]);
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?);
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
@@ -478,15 +666,25 @@ var {} = {{}};
       }
     }
 
+    // Keep side-effect-only Node chunks explicitly in ESM form.
+    // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
+    let should_render_empty_export = compilation.platform.is_node()
+      && export_specifiers.is_empty()
+      && chunk_link.raw_star_exports.is_empty()
+      && chunk_link.re_exports().is_empty()
+      && export_default.is_none();
+
     if !export_specifiers.is_empty() {
-      final_source.add(RawStringSource::from(format!(
-        "export {{ {} }};\n",
-        export_specifiers
-          .into_iter()
-          .map(|s| s.to_string())
-          .collect::<Vec<_>>()
-          .join(", ")
-      )));
+      let mut export_str = String::with_capacity(export_specifiers.len() * 20);
+      export_str.push_str("export { ");
+      for (i, s) in export_specifiers.iter().enumerate() {
+        if i > 0 {
+          export_str.push_str(", ");
+        }
+        export_str.push_str(s);
+      }
+      export_str.push_str(" };\n");
+      final_source.add(RawStringSource::from(export_str));
     }
 
     // render star exports
@@ -495,13 +693,13 @@ var {} = {{}};
         if name == "*" {
           final_source.add(RawStringSource::from(format!(
             "export * from {};\n",
-            serde_json::to_string(source).expect("should have correct request")
+            rspack_util::json_stringify_str(source)
           )));
         } else {
           let name_str = export_name(name).expect("should have export_name");
           final_source.add(RawStringSource::from(format!(
             "export * as {name_str} from {};\n",
-            serde_json::to_string(source).expect("should have correct request")
+            rspack_util::json_stringify_str(source)
           )));
         }
       }
@@ -512,38 +710,40 @@ var {} = {{}};
       let mut export_symbols = export_symbols.iter().collect::<Vec<_>>();
       export_symbols.sort_by(|a, b| a.0.cmp(b.0));
 
-      final_source.add(RawStringSource::from(format!(
-        "export {{ {} }} from \"{}\";\n",
-        export_symbols
-          .iter()
-          .flat_map(|(imported, exports)| {
-            let mut vec = exports.iter().collect::<Vec<_>>();
-            vec.sort_unstable();
-            let imported_name = export_name(imported)
-              .expect("should have export_name")
-              .into_owned();
-            vec.into_iter().map(move |exported_name| {
-              if *imported == exported_name {
-                imported_name.clone()
-              } else {
-                let exported_name_str =
-                  export_name(exported_name).expect("should have export_name");
-                format!("{imported_name} as {exported_name_str}")
-              }
-            })
-          })
-          .collect::<Vec<_>>()
-          .join(", "),
-        match re_export_from {
-          crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
-            let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
-            Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
+      let from_str = match re_export_from {
+        crate::chunk_link::ReExportFrom::Chunk(chunk_ukey) => {
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk_ukey);
+          Cow::Owned(format!("__RSPACK_ESM_CHUNK_{}", chunk.expect_id().as_str()))
+        }
+        crate::chunk_link::ReExportFrom::Request(request) => Cow::Borrowed(request.as_str()),
+      };
+      let mut stmt = String::with_capacity(export_symbols.len() * 30 + from_str.len() + 30);
+      stmt.push_str("export { ");
+      let mut first = true;
+      for (imported, exports) in &export_symbols {
+        let mut sorted_exports = exports.iter().collect::<Vec<_>>();
+        sorted_exports.sort_unstable();
+        let imported_name = export_name(imported).expect("should have export_name");
+        for exported_name in sorted_exports {
+          if !first {
+            stmt.push_str(", ");
           }
-          crate::chunk_link::ReExportFrom::Request(request) => {
-            Cow::Borrowed(request)
+          first = false;
+          stmt.push_str(&imported_name);
+          if *imported != exported_name {
+            let exported_name_str = export_name(exported_name).expect("should have export_name");
+            stmt.push_str(" as ");
+            stmt.push_str(&exported_name_str);
           }
         }
-      )));
+      }
+      stmt.push_str(" } from \"");
+      stmt.push_str(&from_str);
+      stmt.push_str("\";\n");
+      final_source.add(RawStringSource::from(stmt));
     }
 
     if let Some(default_export) = export_default {
@@ -552,14 +752,20 @@ var {} = {{}};
       )));
     }
 
+    if should_render_empty_export {
+      final_source.add(RawStringSource::from_static("export {};\n"));
+    }
+
     let final_source = if replace_auto_public_path {
       let mut replace_source = ReplaceSource::new(final_source);
       let mut replacement = vec![];
-      for captures in
-        AUTO_PUBLIC_PATH_PLACEHOLDER_RE.find_iter(&replace_source.source().into_string_lossy())
+      for (start, matched) in replace_source
+        .source()
+        .into_string_lossy()
+        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
       {
-        let start = captures.range().start as u32;
-        let end = captures.range().end as u32;
+        let start = start as u32;
+        let end = (start as usize + matched.len()) as u32;
         let relative = get_undo_path(
           &output_path,
           compilation.options.output.path.to_string(),
@@ -569,7 +775,7 @@ var {} = {{}};
       }
 
       for (start, end, relative) in replacement {
-        replace_source.replace(start, end, &relative, None);
+        replace_source.replace(start, end, relative, None);
       }
 
       // concate module does this by render_module()
@@ -601,7 +807,12 @@ var {} = {{}};
           unreachable!()
         };
 
-        replace_source.replace(start as u32, end as u32, filename.filename(), None);
+        replace_source.replace(
+          start as u32,
+          end as u32,
+          filename.filename().to_string(),
+          None,
+        );
       }
 
       // concate module does this by render_module()
@@ -621,6 +832,7 @@ var {} = {{}};
     chunk_ukey: &ChunkUkey,
     compilation: &Compilation,
     runtime_requirements: RuntimeGlobals,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> Result<ConcatSource> {
     let module_factories: bool = runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES);
     let require_function = runtime_requirements.contains(RuntimeGlobals::REQUIRE);
@@ -637,9 +849,7 @@ var {} = {{}};
         r#"// The module cache
 var {} = {{}};
 "#,
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::ModuleCache)
+        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
       )));
     }
 
@@ -648,12 +858,10 @@ var {} = {{}};
         r#"// The require function
 function {}(moduleId) {{
 "#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
       source.add(RawStringSource::from(
-        JsPlugin::render_require(chunk_ukey, compilation).join("\n"),
+        JsPlugin::render_require(chunk_ukey, compilation, runtime_template).join("\n"),
       ));
       source.add(RawStringSource::from_static(
         r#"
@@ -665,9 +873,7 @@ function {}(moduleId) {{
         r#"// The require scope
 var {} = {{}};
 "#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
       )));
     }
 
@@ -676,12 +882,9 @@ var {} = {{}};
         r#"// expose the modules object ({modules})
 {module_factories} = {modules};
 "#,
-        module_factories = compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-        modules = compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::Modules),
+        module_factories =
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules),
       )));
     }
 
@@ -690,12 +893,8 @@ var {} = {{}};
         r#"// expose the module cache
 {} = {};
 "#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
-        compilation
-          .runtime_template
-          .render_runtime_variable(&RuntimeVariable::ModuleCache),
+        runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
+        runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
       )));
     }
 
@@ -704,9 +903,7 @@ var {} = {{}};
         r#"// expose the module execution interceptor
 {} = [];
 "#,
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
       )));
     }
 
@@ -742,34 +939,7 @@ var {} = {{}};
           source.replace(
             ident.id.span.real_lo(),
             ident.id.span.real_hi() + 2,
-            &name,
-            None,
-          );
-        }
-      } else if ctxt == &info.global_ctxt
-        && let Some((in_same_chunk, binding_ref)) = chunk_link.dyn_refs.get(atom.as_str())
-      {
-        let final_name = match binding_ref {
-          Ref::Symbol(symbol_ref) => Cow::Owned(symbol_ref.render()),
-          Ref::Inline(inline) => Cow::Borrowed(inline),
-        };
-
-        let final_name = if *in_same_chunk {
-          final_name.into_owned()
-        } else {
-          format!("{NAMESPACE_SYMBOL}.{final_name}")
-        };
-
-        for ref_atom in refs {
-          let name = if ref_atom.shorthand {
-            Cow::Owned(format!("{}: {}", &ref_atom.id.sym, final_name.as_str()))
-          } else {
-            Cow::Borrowed(&final_name)
-          };
-          source.replace(
-            ref_atom.id.span.real_lo(),
-            ref_atom.id.span.real_hi(),
-            &name,
+            name.into_owned(),
             None,
           );
         }
@@ -787,12 +957,7 @@ var {} = {{}};
         } else {
           internal_name.to_string()
         };
-        source.replace(
-          ident.id.span.real_lo(),
-          ident.id.span.real_hi(),
-          &name,
-          None,
-        );
+        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
       }
     }
 
@@ -804,18 +969,27 @@ var {} = {{}};
     compilation: &Compilation,
     chunk_link: &ChunkLinkContext,
     already_required: &mut IdentifierIndexSet,
+    runtime_template: &RuntimeCodeTemplate<'_>,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
+    let module_graph = compilation.get_module_graph();
 
     for (id, interop_info) in &chunk_link.required {
       if !interop_info.from_module.contains(&root) {
+        continue;
+      }
+      // Skip CSS-only modules (native CSS or extract-css CssModule). They
+      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      if let Some(module) = module_graph.module_by_identifier(id)
+        && is_css_only_module(module.as_ref(), module_graph)
+      {
         continue;
       }
       if !already_required.insert(*id) {
         continue;
       }
 
-      source.add(interop_info.render(compilation));
+      source.add(interop_info.render(compilation, runtime_template));
     }
 
     source

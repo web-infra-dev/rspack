@@ -1,13 +1,13 @@
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
-	entry: "./index",
-	stats: "errors-warnings",
-	module: {
-		rules: [
-			{
-				test: /\.css/,
-				type: 'css/auto'
-			}
-		]
-	}
+  entry: './index',
+  stats: 'errors-warnings',
+  module: {
+    rules: [
+      {
+        test: /\.css/,
+        type: 'css/auto',
+      },
+    ],
+  },
 };

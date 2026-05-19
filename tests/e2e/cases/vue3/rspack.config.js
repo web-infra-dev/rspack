@@ -35,11 +35,7 @@ module.exports = {
         test: /\.ts$/,
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
       },
       {

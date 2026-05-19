@@ -1,15 +1,16 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::Arc};
 
+use atomic_refcell::AtomicRefCell;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExtendedReferencedExport,
-  FakeNamespaceObjectMode, ModuleGraph, RuntimeGlobals, TemplateContext, UsageState,
-  get_exports_type,
+  Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode, ModuleGraph,
+  ModuleReferenceOptions, RuntimeGlobals, TemplateContext, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
+use rspack_util::atom::Atom;
 
 use crate::EsmLibraryPlugin;
-
-pub static NAMESPACE_SYMBOL: &str = "mod";
 
 fn then_expr(
   code_generatable_context: &mut TemplateContext,
@@ -33,6 +34,7 @@ fn then_expr(
   let exports_type = get_exports_type(
     compilation.get_module_graph(),
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     dep_id,
     &module.identifier(),
   );
@@ -60,7 +62,7 @@ fn then_expr(
         fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
       }
       if ModuleGraph::is_async(
-        &compilation.async_modules_artifact.borrow(),
+        &compilation.async_modules_artifact,
         compilation
           .get_module_graph()
           .module_identifier_by_dependency_id(dep_id)
@@ -74,7 +76,7 @@ fn then_expr(
         appending.push_str(
           format!(
             r#".then(function(m){{
- return {}(m, {fake_type}) 
+ return {}(m, {fake_type})
 }})"#,
             runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT)
           )
@@ -93,8 +95,14 @@ fn then_expr(
   appending
 }
 
-#[derive(Debug, Default)]
-pub struct DynamicImportDependencyTemplate;
+#[derive(Debug)]
+pub struct DynamicImportDependencyTemplate {
+  /// module_id → namespace export name in the chunk.
+  /// For modules whose exports were renamed in a multi-module chunk,
+  /// the import needs `.then(m => m.<ns_name>)` to get the correct namespace.
+  /// Written during link, read during code generation.
+  pub dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
+}
 
 impl DependencyTemplate for DynamicImportDependencyTemplate {
   fn render(
@@ -122,23 +130,58 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &missing_promise,
+        missing_promise,
         None,
       );
       return;
     };
 
-    let ref_chunk = EsmLibraryPlugin::get_module_chunk(
+    if let Some(external_module) = ref_module.as_external_module() {
+      render_dyn_import_external_module(import_dep, external_module, source);
+      return;
+    }
+
+    let ref_chunk_ukey = match EsmLibraryPlugin::get_module_chunk(
       ref_module.identifier(),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import target");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
+        return;
+      }
+    };
 
-    let orig_chunk = EsmLibraryPlugin::get_module_chunk(
+    let orig_chunk = match EsmLibraryPlugin::get_module_chunk(
       *module_graph
         .get_parent_module(dep_id)
         .expect("should have parent module for import dep"),
       code_generatable_context.compilation,
-    );
+    ) {
+      Ok(c) => c,
+      Err(e) => {
+        tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import source");
+        let missing_promise = code_generatable_context
+          .runtime_template
+          .missing_module_promise(request);
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          missing_promise,
+          None,
+        );
+        return;
+      }
+    };
 
     /*
     For:
@@ -152,18 +195,19 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         const { a, b } = await Promise.resolve().then(() => __webpack_require__(./refModule));
 
     2. if refModule is in other chunks
-      a. if refModule is scope hoisted
-        const { a, b } = await import('./ref-chunk').then((ns) => ({ a: ns.a, b: ns.b }));
-        const unknownImports = await import('./refModule').then((ns) => ns);
-
-      b. if refModule is not scope hoisted
+      a. if refModule is scope hoisted and exports NOT renamed
+        const { a, b } = await import('./ref-chunk');
+      b. if refModule is scope hoisted and exports renamed (or namespace access)
+        const { a, b } = await import('./ref-chunk').then(m => m.__ns_name);
+      c. if refModule is not scope hoisted
         const { a, b } = await import('./ref-chunk').then(() => __webpack_require__(./refModule));
     */
-    let already_in_chunk = ref_chunk == orig_chunk;
+    let already_in_chunk = ref_chunk_ukey == orig_chunk;
     let ref_chunk = code_generatable_context
       .compilation
+      .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&ref_chunk);
+      .expect_get(&ref_chunk_ukey);
     let import_promise = if already_in_chunk {
       Cow::Borrowed("Promise.resolve()")
     } else {
@@ -179,7 +223,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -197,7 +241,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       source.replace(
         import_dep.range.start,
         import_dep.range.end,
-        &format!(
+        format!(
           "{import_promise}{}",
           then_expr(code_generatable_context, dep_id, request)
         ),
@@ -207,102 +251,53 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     }
 
-    // importer and importee are both scope hoisted
-    let ref_exports = dep.get_referenced_exports(
-      module_graph,
-      &code_generatable_context
-        .compilation
-        .module_graph_cache_artifact,
-      None,
-    );
-
-    let render_exports = if !ref_exports.is_empty()
-      && !ref_exports.iter().any(|ref_exports| match ref_exports {
-        ExtendedReferencedExport::Array(atoms) => atoms.is_empty(),
-        ExtendedReferencedExport::Export(referenced_export) => referenced_export.name.is_empty(),
-      }) {
-      // we only extract the named exports
-      // const { a, b } = await import('./refModule');
-      // const { a, b } = await import('./refChunk').then(mod => ({ a: __rspack_module_dynamic_ref0_a, b: __rspack_module_dynamic_ref0_b }));
-      let ref_exports = ref_exports
-        .iter()
-        .flat_map(|ref_exports| match ref_exports {
-          ExtendedReferencedExport::Array(atoms) => atoms
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-          ExtendedReferencedExport::Export(referenced_export) => referenced_export
-            .name
-            .iter()
-            .map(|atom| {
-              format!(
-                "{atom}: {}",
-                concatenation_scope.create_dynamic_module_reference(
-                  &ref_module.identifier(),
-                  already_in_chunk,
-                  atom
-                )
-              )
-            })
-            .collect::<Vec<_>>(),
-        })
-        .collect::<Vec<_>>();
-      ref_exports.join(",")
-    } else {
-      let ref_exports_info = module_graph.get_prefetched_exports_info(
+    if already_in_chunk {
+      // Same chunk + scope hoisted: the module's variables are already in scope.
+      // Use a namespace module reference so the link phase resolves it to the
+      // module's namespace object (e.g., `Promise.resolve(dynamic_namespaceObject)`).
+      let ns_ref = concatenation_scope.create_module_reference(
         &ref_module.identifier(),
-        rspack_core::PrefetchExportsInfoMode::Default,
+        ModuleReferenceOptions {
+          ids: vec![],
+          call: false,
+          direct_import: true,
+          deferred_import: false,
+          asi_safe: Some(true),
+          ..Default::default()
+        },
       );
-      let all_exports = ref_exports_info.get_relevant_exports(None);
-      all_exports
-        .iter()
-        .filter(|export| !matches!(export.get_used(None), UsageState::Unused))
-        .filter_map(|export| export.name())
-        .map(|ref_export| {
-          format!(
-            "{}: {}",
-            ref_export,
-            concatenation_scope.create_dynamic_module_reference(
-              &ref_module.identifier(),
-              already_in_chunk,
-              ref_export
-            )
-          )
-        })
-        .collect::<Vec<_>>()
-        .join(",")
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        format!("Promise.resolve({ns_ref})"),
+        None,
+      );
+      return;
+    }
+
+    // Cross-chunk: check if the module needs namespace remapping (exports were renamed or namespace access)
+    let ns_name = {
+      let ns_map = self.dyn_import_ns_map.borrow();
+      ns_map.get(&ref_module.identifier()).cloned()
     };
 
-    source.replace(
-      import_dep.range.start,
-      import_dep.range.end,
-      &format!(
-        "{}{}",
-        import_promise,
-        if render_exports.is_empty() {
-          Cow::Borrowed("")
-        } else {
-          Cow::Owned(format!(
-            ".then(({}) => ({{ {} }}))",
-            if already_in_chunk {
-              ""
-            } else {
-              NAMESPACE_SYMBOL
-            },
-            render_exports
-          ))
-        }
-      ),
-      None,
-    );
+    if let Some(ns_name) = ns_name {
+      // Module's exports were renamed in the chunk or accessed as namespace.
+      // Use .then(m => m.<ns_name>) to get the correct module namespace.
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        format!("{import_promise}.then(m => m.{ns_name})"),
+        None,
+      );
+    } else {
+      // Module's exports are not renamed in the chunk — direct import works.
+      source.replace(
+        import_dep.range.start,
+        import_dep.range.end,
+        import_promise.into_owned(),
+        None,
+      );
+    }
   }
 }

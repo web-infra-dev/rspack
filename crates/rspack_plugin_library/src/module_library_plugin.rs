@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode, RuntimeVariable,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeVariable,
   UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
@@ -14,12 +14,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,
 };
 
-use crate::{
-  modern_module_library_plugin::{
-    render_as_default_only_export, render_as_default_with_named_exports, render_as_named_exports,
-  },
-  utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk},
-};
+use crate::utils::{COMMON_LIBRARY_NAME_MESSAGE, get_options_for_chunk};
 
 const PLUGIN_NAME: &str = "rspack.ModuleLibraryPlugin";
 
@@ -67,15 +62,14 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(_) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
-  let exports_name = compilation
-    .runtime_template
-    .render_runtime_variable(&RuntimeVariable::Exports);
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   let mut source = ConcatSource::default();
-  let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact.borrow(), module);
+  let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module);
   let module_graph = compilation.get_module_graph();
   source.add(render_source.source.clone());
   // export { local as exported }
@@ -85,26 +79,28 @@ async fn render_startup(
       "{exports_name} = await {exports_name};\n"
     )));
   }
-  let exports_info =
-    module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+  let exports_info = compilation
+    .exports_info_artifact
+    .get_exports_info_data(module);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
   let exports_type = boxed_module.get_exports_type(
     module_graph,
     &compilation.module_graph_cache_artifact,
+    &compilation.exports_info_artifact,
     boxed_module.build_info().strict,
   );
-  for (_, export_info) in exports_info.exports() {
+  for export_info in exports_info.exports().values() {
     if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
       continue;
     };
 
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let info_name = export_info.name().expect("should have name");
-    let used_name = export_info
-      .get_used_name(Some(info_name), Some(chunk.runtime()))
-      .expect("name can't be empty");
     let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
     if info_name == "default"
@@ -117,6 +113,11 @@ async fn render_startup(
         "var {var_name} = {exports_name};\n",
       )));
     } else {
+      // Skip exports unused in this runtime (matches webpack's `if (!exportInfo.provided) continue;`).
+      let Some(used_name) = export_info.get_used_name(Some(info_name), Some(chunk.runtime()))
+      else {
+        continue;
+      };
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
         match used_name {
@@ -166,4 +167,71 @@ impl Plugin for ModuleLibraryPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     Ok(())
   }
+}
+
+pub fn render_as_default_only_export(exports: &[(String, Option<String>)]) -> String {
+  render_as_default_export_impl(exports)
+}
+
+pub fn render_as_named_exports(exports: &[(String, Option<String>)]) -> String {
+  render_as_named_exports_impl(exports, false)
+}
+
+pub fn render_as_default_with_named_exports(exports: &[(String, Option<String>)]) -> String {
+  format!(
+    "{}\n{}",
+    render_as_named_exports_impl(exports, true),
+    render_as_default_only_export(exports),
+  )
+}
+
+fn render_as_named_exports_impl(
+  exports: &[(String, Option<String>)],
+  ignore_default: bool,
+) -> String {
+  format!(
+    "export {{ {} }};\n",
+    exports
+      .iter()
+      .filter(|(_, exported)| {
+        if ignore_default {
+          !matches!(exported.as_deref(), Some("default"))
+        } else {
+          true
+        }
+      })
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{local} as {exported}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
+}
+
+fn render_as_default_export_impl(exports: &[(String, Option<String>)]) -> String {
+  if let Some((local, _)) = exports
+    .iter()
+    .find(|(_, exported)| matches!(exported.as_deref(), Some("default")))
+  {
+    return format!("export {{ {local} as default }};\n",);
+  }
+
+  format!(
+    "var __rspack_exports_default = {{ {} }};\nexport default __rspack_exports_default;\n",
+    exports
+      .iter()
+      .map(|(local, exported)| {
+        if let Some(exported) = exported {
+          format!("{exported}: {local}")
+        } else {
+          local.clone()
+        }
+      })
+      .collect::<Vec<_>>()
+      .join(", ")
+  )
 }

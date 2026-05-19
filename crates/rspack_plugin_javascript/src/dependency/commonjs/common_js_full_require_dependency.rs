@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoGetter, ExportsType, ExtendedReferencedExport, FactorizeInfo, GetUsedNameParam,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, PrefetchExportsInfoMode, RuntimeGlobals,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ExportsInfoArtifact, ExportsType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
+  ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedName, create_exports_object_referenced, property_access,
   to_normal_comment,
 };
 use swc_core::atoms::Atom;
@@ -21,6 +21,7 @@ pub struct CommonJsFullRequireDependency {
   names: Vec<Atom>,
   range: DependencyRange,
   is_call: bool,
+  namespace_object_as_context: bool,
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
@@ -28,22 +29,25 @@ pub struct CommonJsFullRequireDependency {
 }
 
 impl CommonJsFullRequireDependency {
+  #[allow(clippy::too_many_arguments)]
+  #[allow(clippy::fn_params_excessive_bools)]
   pub fn new(
     request: String,
     names: Vec<Atom>,
     range: DependencyRange,
+    loc: Option<DependencyLocation>,
     is_call: bool,
+    namespace_object_as_context: bool,
     optional: bool,
     asi_safe: bool,
-    source: Option<&str>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       id: DependencyId::new(),
       request,
       names,
       range,
       is_call,
+      namespace_object_as_context,
       optional,
       asi_safe,
       loc,
@@ -78,22 +82,38 @@ impl Dependency for CommonJsFullRequireDependency {
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
-    if self.is_call
-      && module_graph
-        .module_graph_module_by_dependency_id(&self.id)
-        .and_then(|mgm| module_graph.module_by_identifier(&mgm.module_identifier))
-        .map(|m| m.get_exports_type(module_graph, module_graph_cache, false))
-        .is_some_and(|t| !matches!(t, ExportsType::Namespace))
+    let mut namespace_object_as_context = self.namespace_object_as_context;
+
+    let module = module_graph
+      .get_module_by_dependency_id(&self.id)
+      .expect("should have module");
+    let exports_type = module.get_exports_type(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      false,
+    );
+
+    // Force enable namespace object as context for json module, it's a common case:
+    // import json from "./array.json"; json.map(d => d * 2);
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) && module.build_info().json_data.is_some()
     {
+      namespace_object_as_context = true;
+    }
+
+    if namespace_object_as_context && self.is_call {
       if self.names.is_empty() {
-        return vec![ExtendedReferencedExport::Array(vec![])];
-      } else {
-        return vec![ExtendedReferencedExport::Array(
-          self.names[0..self.names.len() - 1].to_vec(),
-        )];
+        return create_exports_object_referenced();
       }
+      return vec![ExtendedReferencedExport::Array(
+        self.names[0..self.names.len().saturating_sub(1)].to_vec(),
+      )];
     }
     vec![ExtendedReferencedExport::Array(self.names.clone())]
   }
@@ -167,29 +187,12 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
 
     let require_expr = if let Some(imported_module) =
       module_graph.module_graph_module_by_dependency_id(&dep.id)
-      && let used = {
-        if dep.names.is_empty() {
-          let exports_info_used = module_graph
-            .get_prefetched_exports_info_used(&imported_module.module_identifier, *runtime);
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithoutNames(&exports_info_used),
-            *runtime,
-            &dep.names,
-          )
-        } else {
-          let exports_info = module_graph.get_prefetched_exports_info(
-            &imported_module.module_identifier,
-            PrefetchExportsInfoMode::Nested(&dep.names),
-          );
-          ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            *runtime,
-            &dep.names,
-          )
-        }
-      }
-      && let Some(used) = used
-    {
+      && let Some(used) = {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(&imported_module.module_identifier);
+        exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+      } {
       let mut require_expr = match used {
         UsedName::Normal(used) => {
           format!(
@@ -217,6 +220,6 @@ impl DependencyTemplate for CommonJsFullRequireDependencyTemplate {
       )
     };
 
-    source.replace(dep.range.start, dep.range.end, &require_expr, None);
+    source.replace(dep.range.start, dep.range.end, require_expr, None);
   }
 }

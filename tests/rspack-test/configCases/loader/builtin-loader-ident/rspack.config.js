@@ -1,22 +1,18 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		rules: [
-			{
-				use: [
-					{
-						loader: "builtin:swc-loader",
-						options: {
-							jsc: {
-								parser: {
-									syntax: "typescript"
-								}
-							}
-						},
-						ident: "builtin-swc-loader"
-					}
-				]
-			}
-		]
-	}
+  module: {
+    rules: [
+      {
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: {
+              detectSyntax: 'auto',
+            },
+            ident: 'builtin-swc-loader',
+          },
+        ],
+      },
+    ],
+  },
 };

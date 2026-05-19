@@ -44,17 +44,21 @@ pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&
 }
 
 pub fn get_attributes(obj: &ObjectLit) -> ImportAttributes {
-  ImportAttributes::from_iter(obj.props.iter().filter_map(|p| {
-    p.as_prop().and_then(|p| p.as_key_value()).and_then(|kv| {
-      kv.key
-        .as_ident()
-        .map(|k| k.sym.as_str())
-        .or_else(|| kv.key.as_str().and_then(|k| k.value.as_str()))
-        .map(|s| s.to_string())
-        .zip(kv.value.as_lit().and_then(|lit| match lit {
-          Lit::Str(s) => Some(s.value.to_string_lossy().to_string()),
-          _ => None,
-        }))
+  obj
+    .props
+    .iter()
+    .filter_map(|p| {
+      p.as_prop().and_then(|p| p.as_key_value()).and_then(|kv| {
+        kv.key
+          .as_ident()
+          .map(|k| k.sym.as_str())
+          .or_else(|| kv.key.as_str().and_then(|k| k.value.as_str()))
+          .map(|s| s.to_string())
+          .zip(kv.value.as_lit().and_then(|lit| match lit {
+            Lit::Str(s) => Some(s.value.to_string_lossy().to_string()),
+            _ => None,
+          }))
+      })
     })
-  }))
+    .collect()
 }

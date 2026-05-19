@@ -5,6 +5,7 @@ use crate::visitors::JavascriptParser;
 
 pub struct ESMTopLevelThisParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
   fn this(
     &self,
@@ -16,7 +17,6 @@ impl JavascriptParserPlugin for ESMTopLevelThisParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span.into(),
         "undefined".into(),
-        None,
       )));
       true
     })

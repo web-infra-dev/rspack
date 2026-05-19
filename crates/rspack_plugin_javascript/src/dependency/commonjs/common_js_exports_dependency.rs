@@ -5,12 +5,14 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access,
 };
 use swc_core::atoms::Atom;
+
+use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -101,10 +103,15 @@ impl Dependency for CommonJsExportsDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
+    let name = self.names[0].clone();
     let vec = vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-      name: self.names[0].clone(),
-      can_mangle: Some(false), // in webpack, object own property may not be mangled
+      // We can't mangle names that are in an empty object because one could access the prototype property
+      // when export isn't set yet. It's different for different targets. so here we only list common properties.
+      // Check out test case `configCases/mangle/mangle-with-object-prop`
+      can_mangle: Some(!OBJECT_PROTOTYPE_METHODS.contains(&name.as_str())),
+      name,
       ..Default::default()
     })];
     Some(ExportsSpec {
@@ -167,25 +174,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if dep.names.is_empty() {
-      let exports_info_used =
-        module_graph.get_prefetched_exports_info_used(&module.identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.names,
-      )
-    } else {
-      let exports_info = module_graph.get_prefetched_exports_info(
-        &module.identifier(),
-        PrefetchExportsInfoMode::Nested(&dep.names),
-      );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.names,
-      )
-    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -208,7 +200,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         source.replace(
           dep.range.start,
           dep.range.end,
-          &format!("{}{}", base, property_access(used, 0)),
+          format!("{}{}", base, property_access(used, 0)),
           None,
         );
       } else {
@@ -218,7 +210,12 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           "__webpack_{}_export__",
           if is_inlined { "inlined" } else { "unused" }
         );
-        source.replace(dep.range.start, dep.range.end, &placeholder_var, None);
+        source.replace(
+          dep.range.start,
+          dep.range.end,
+          placeholder_var.clone(),
+          None,
+        );
         init_fragments.push(
           NormalInitFragment::new(
             format!("var {placeholder_var};\n"),
@@ -237,7 +234,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             source.replace(
               dep.range.start,
               value_range.start,
-              &format!(
+              format!(
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
@@ -246,7 +243,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
               ),
               None,
             );
-            source.replace(value_range.end, dep.range.end, "))", None);
+            source.replace_static(value_range.end, dep.range.end, "))", None);
           } else {
             panic!("Unexpected base type");
           }
@@ -261,13 +258,13 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
             )
             .boxed(),
           );
-          source.replace(
+          source.replace_static(
             dep.range.start,
             value_range.start,
             "__webpack_unused_export__ = (",
             None,
           );
-          source.replace(value_range.end, dep.range.end, ")", None);
+          source.replace_static(value_range.end, dep.range.end, ")", None);
         }
       } else {
         panic!("Define property need value range");

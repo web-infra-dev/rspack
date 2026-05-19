@@ -1,8 +1,8 @@
-"use strict";
+'use strict';
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		minimize: false
-	}
+  optimization: {
+    minimize: false,
+  },
 };

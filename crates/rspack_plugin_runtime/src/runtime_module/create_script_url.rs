@@ -1,27 +1,20 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct CreateScriptUrlRuntimeModule {
-  id: Identifier,
-}
+pub struct CreateScriptUrlRuntimeModule {}
 
 impl CreateScriptUrlRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}create_script_url",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateScriptUrlRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -29,8 +22,12 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_trusted_types": compilation.options.output.trusted_types.is_some(),
@@ -38,5 +35,13 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
     )?;
 
     Ok(source)
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.output.trusted_types.is_some() {
+      RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }

@@ -1,27 +1,27 @@
-const webpack = require("@rspack/core");
+const { rspack } = require('@rspack/core');
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
-	{
-		output: {
-			library: { type: "commonjs2" }
-		},
-		externals: {
-			external: ["@rspack/core", "version"]
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				EXPECTED: JSON.stringify(webpack.version)
-			})
-		]
-	},
-	{
-		externals: {
-			external: ["Array", "isArray"]
-		},
-		plugins: [
-			new webpack.DefinePlugin({
-				EXPECTED: "Array.isArray"
-			})
-		]
-	}
+  {
+    output: {
+      library: { type: 'commonjs2' },
+    },
+    externals: {
+      external: ['@rspack/core', 'version'],
+    },
+    plugins: [
+      new rspack.DefinePlugin({
+        EXPECTED: JSON.stringify(rspack.version),
+      }),
+    ],
+  },
+  {
+    externals: {
+      external: ['Array', 'isArray'],
+    },
+    plugins: [
+      new rspack.DefinePlugin({
+        EXPECTED: 'Array.isArray',
+      }),
+    ],
+  },
 ];

@@ -1,7 +1,7 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -14,8 +14,7 @@ pub struct ModuleArgumentDependency {
 }
 
 impl ModuleArgumentDependency {
-  pub fn new(id: Option<String>, range: DependencyRange, source: Option<&str>) -> Self {
-    let loc = range.to_loc(source);
+  pub fn new(id: Option<String>, range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self { id, range, loc }
   }
 
@@ -79,11 +78,21 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
     );
 
     let content = if let Some(id) = &dep.id {
+      match id.as_str() {
+        "id" => runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE_ID),
+        "loaded" => runtime_template
+          .runtime_requirements_mut()
+          .insert(RuntimeGlobals::MODULE_LOADED),
+        _ => {}
+      };
+
       format!("{module_argument}.{id}")
     } else {
       module_argument
     };
 
-    source.replace(dep.range.start, dep.range.end, content.as_str(), None);
+    source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

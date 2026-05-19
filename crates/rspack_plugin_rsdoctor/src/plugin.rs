@@ -5,11 +5,11 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use futures::future::BoxFuture;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGroupUkey, Compilation, CompilationAfterCodeGeneration, CompilationAfterProcessAssets,
   CompilationId, CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
-  CompilationParams, CompilerCompilation, ModuleIdsArtifact, Plugin,
+  CompilationParams, CompilerCompilation, ModuleIdsArtifact, OptimizationBailoutItem, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -18,7 +18,7 @@ use rspack_plugin_devtool::{
 };
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::fx_hash::{FxDashMap, FxHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -30,8 +30,9 @@ use crate::{
     collect_chunks, collect_entrypoint_assets, collect_entrypoints,
   },
   module_graph::{
-    collect_concatenated_modules, collect_module_dependencies, collect_module_ids,
-    collect_module_original_sources, collect_modules,
+    collect_concatenated_modules, collect_connections_only_imports, collect_json_module_sizes,
+    collect_module_dependencies, collect_module_ids, collect_module_original_sources,
+    collect_module_side_effects_locations, collect_modules,
   },
 };
 
@@ -54,13 +55,17 @@ static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcRsdoctorPlugi
   LazyLock::new(Default::default);
 
 #[cfg_attr(allocative, allocative::root)]
-static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, HashMap<Identifier, ModuleUkey>>> =
+static MODULE_UKEY_MAP: LazyLock<FxDashMap<CompilationId, IdentifierMap<ModuleUkey>>> =
   LazyLock::new(FxDashMap::default);
 
 #[cfg_attr(allocative, allocative::root)]
 static ENTRYPOINT_UKEY_MAP: LazyLock<
   FxDashMap<CompilationId, HashMap<ChunkGroupUkey, EntrypointUkey>>,
 > = LazyLock::new(FxDashMap::default);
+
+#[cfg_attr(allocative, allocative::root)]
+static JSON_MODULE_SIZE_MAP: LazyLock<FxDashMap<CompilationId, crate::RsdoctorJsonModuleSizes>> =
+  LazyLock::new(FxDashMap::default);
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum RsdoctorPluginModuleGraphFeature {
@@ -123,8 +128,8 @@ pub struct RsdoctorPluginSourceMapFeature {
 
 #[derive(Default, Debug)]
 pub struct RsdoctorPluginOptions {
-  pub module_graph_features: std::collections::HashSet<RsdoctorPluginModuleGraphFeature>,
-  pub chunk_graph_features: std::collections::HashSet<RsdoctorPluginChunkGraphFeature>,
+  pub module_graph_features: FxHashSet<RsdoctorPluginModuleGraphFeature>,
+  pub chunk_graph_features: FxHashSet<RsdoctorPluginChunkGraphFeature>,
   pub source_map_features: RsdoctorPluginSourceMapFeature,
 }
 
@@ -188,7 +193,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  MODULE_UKEY_MAP.insert(compilation.id(), HashMap::default());
+  MODULE_UKEY_MAP.insert(compilation.id(), IdentifierMap::default());
   ENTRYPOINT_UKEY_MAP.insert(compilation.id(), HashMap::default());
   Ok(())
 }
@@ -201,10 +206,13 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
-  let chunk_graph = &compilation.chunk_graph;
-  let chunks = chunk_by_ukey.iter().collect::<HashMap<_, _>>();
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunks = chunk_by_ukey
+    .iter()
+    .map(|(k, v)| (*k, v))
+    .collect::<HashMap<_, _>>();
 
   let mut rsd_chunks = HashMap::default();
   let mut rsd_entrypoints = HashMap::default();
@@ -224,7 +232,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   // 3. collect entrypoints
   rsd_entrypoints.extend(collect_entrypoints(
-    &compilation.entrypoints,
+    &compilation.build_chunk_graph_artifact.entrypoints,
     &rsd_chunks,
     chunk_group_by_ukey,
   ));
@@ -256,6 +264,25 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
   Ok(None)
 }
 
+#[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = -1)]
+async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
+  if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleSources) {
+    return Ok(None);
+  }
+
+  let module_graph = compilation.get_module_graph();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
+
+  let json_sizes = collect_json_module_sizes(&modules, &compilation.exports_info_artifact);
+
+  JSON_MODULE_SIZE_MAP.insert(compilation.id(), json_sizes);
+
+  Ok(None)
+}
+
 #[plugin_hook(CompilationOptimizeChunkModules for RsdoctorPlugin, stage = 9999)]
 async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<Option<bool>> {
   if !self.has_module_graph_feature(RsdoctorPluginModuleGraphFeature::ModuleGraph) {
@@ -268,9 +295,12 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
   let mut rsd_dependencies = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
-  let chunk_graph = &compilation.chunk_graph;
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let modules = module_graph.modules();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
 
   // 1. collect modules
   rsd_modules.extend(collect_modules(
@@ -351,11 +381,42 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     if let Some(rsd_module) = rsd_modules.get_mut(module_id) {
       rsd_module.issuer_path = Some(issuer_path);
       let bailout_reason = module_graph.get_optimization_bailout(module_id);
-      rsd_module.bailout_reason = bailout_reason.iter().map(|s| s.to_string()).collect();
+      rsd_module.bailout_reason = bailout_reason
+        .iter()
+        .map(|b| match b {
+          OptimizationBailoutItem::Message(msg) => msg.as_str().to_owned(),
+          b => b.to_string(),
+        })
+        .collect();
     }
   }
 
-  // 6. collect chunk modules
+  // 6. collect side_effects locations
+  let side_effects_locations_map =
+    collect_module_side_effects_locations(&modules, &module_ukey_map, module_graph);
+  for (module_id, locations) in side_effects_locations_map {
+    if let Some(rsd_module) = rsd_modules.get_mut(&module_id) {
+      rsd_module.side_effects_locations = locations;
+    }
+  }
+
+  let module_ukey_to_info: HashMap<ModuleUkey, (String, bool)> = rsd_modules
+    .values()
+    .map(|m| (m.ukey, (m.path.clone(), m.is_entry)))
+    .collect();
+  let connections_only_imports = collect_connections_only_imports(
+    &modules,
+    &module_ukey_map,
+    module_graph,
+    &compilation.module_graph_cache_artifact,
+    &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact,
+    &compilation.exports_info_artifact,
+    &module_ukey_to_info,
+  );
+
+  // 7. collect chunk modules
   let chunk_modules =
     collect_chunk_modules(chunk_by_ukey, &module_ukey_map, chunk_graph, module_graph);
 
@@ -367,6 +428,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
         modules: rsd_modules.into_values().collect::<Vec<_>>(),
         dependencies: rsd_dependencies.into_values().collect::<Vec<_>>(),
         chunk_modules,
+        connections_only_imports,
       })
       .await
     {
@@ -391,7 +453,10 @@ async fn module_ids(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
   let rsd_module_ids = collect_module_ids(
     &modules,
     &MODULE_UKEY_MAP
@@ -429,7 +494,10 @@ async fn after_code_generation(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
   let module_graph = compilation.get_module_graph();
-  let modules = module_graph.modules();
+  let modules = module_graph
+    .modules()
+    .map(|(id, module)| (*id, module))
+    .collect::<IdentifierMap<_>>();
   let rsd_module_original_sources = collect_module_original_sources(
     &modules,
     &MODULE_UKEY_MAP
@@ -439,12 +507,18 @@ async fn after_code_generation(
     compilation,
   );
 
+  let json_module_sizes = JSON_MODULE_SIZE_MAP
+    .get(&compilation.id())
+    .map(|map| map.clone())
+    .unwrap_or_default();
+
   tokio::spawn(async move {
     match hooks
       .borrow()
       .module_sources
       .call(&mut RsdoctorModuleSourcesPatch {
         module_original_sources: rsd_module_original_sources,
+        json_module_sizes,
       })
       .await
     {
@@ -452,6 +526,7 @@ async fn after_code_generation(
       Err(e) => panic!("rsdoctor send module sources failed: {e}"),
     };
   });
+
   Ok(())
 }
 
@@ -467,16 +542,19 @@ async fn after_process_assets(
 
   let hooks = RsdoctorPlugin::get_compilation_hooks(compilation.id());
 
-  let chunk_by_ukey = &compilation.chunk_by_ukey;
-  let chunk_group_by_ukey = &compilation.chunk_group_by_ukey;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
   let rsd_assets = collect_assets(compilation.assets(), chunk_by_ukey);
   let rsd_chunk_assets = collect_chunk_assets(chunk_by_ukey, &rsd_assets);
-  let rsd_entrypoint_assets = collect_entrypoint_assets(
-    &compilation.entrypoints,
+
+  // 3. collect entrypoint assets
+  let entrypoint_ukey_map = ENTRYPOINT_UKEY_MAP
+    .get(&compilation.id())
+    .expect("should have entrypoint ukey map");
+  let entrypoint_assets = collect_entrypoint_assets(
+    &compilation.build_chunk_graph_artifact.entrypoints,
     &rsd_assets,
-    &ENTRYPOINT_UKEY_MAP
-      .get(&compilation.id())
-      .expect("should have entrypoint ukey map"),
+    &entrypoint_ukey_map,
     chunk_group_by_ukey,
     chunk_by_ukey,
   );
@@ -488,7 +566,7 @@ async fn after_process_assets(
       .call(&mut RsdoctorAssetPatch {
         assets: rsd_assets.into_values().collect::<Vec<_>>(),
         chunk_assets: rsd_chunk_assets,
-        entrypoint_assets: rsd_entrypoint_assets,
+        entrypoint_assets,
       })
       .await
     {
@@ -507,6 +585,12 @@ impl Plugin for RsdoctorPlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
+    // Collect JSON module sizes before concatenation (after tree-shaking)
+    ctx
+      .compilation_hooks
+      .optimize_chunk_modules
+      .tap(collect_json_sizes::new(self));
+    // Collect module information after concatenation
     ctx
       .compilation_hooks
       .optimize_chunk_modules

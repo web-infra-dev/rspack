@@ -173,6 +173,27 @@ impl CodeGenerationResult {
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
+
+  /// Concatenated modules already encode the generated module bodies into
+  /// `ConcatenatedModule::get_runtime_hash`, so we can reuse that digest here
+  /// and only mix in codegen-specific metadata instead of hashing the large
+  /// concatenated source again.
+  pub fn set_hash_for_concatenated_module(
+    &mut self,
+    runtime_hash: &RspackHashDigest,
+    hash_function: &HashFunction,
+    hash_digest: &HashDigest,
+    hash_salt: &HashSalt,
+  ) {
+    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    runtime_hash.hash(&mut hasher);
+    for source_type in self.inner.as_ref().keys() {
+      source_type.hash(&mut hasher);
+    }
+    self.chunk_init_fragments.hash(&mut hasher);
+    self.runtime_requirements.hash(&mut hasher);
+    self.hash = Some(hasher.digest(hash_digest));
+  }
 }
 
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]

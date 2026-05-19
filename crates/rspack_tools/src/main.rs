@@ -34,8 +34,8 @@ async fn main() {
   match cli.command {
     Commands::Compare { cache1, cache2 } => {
       println!("Comparing cache directories:");
-      println!("  Path 1: {}", cache1);
-      println!("  Path 2: {}", cache2);
+      println!("  Path 1: {cache1}");
+      println!("  Path 2: {cache2}");
       println!();
 
       let path1 = Utf8PathBuf::from(&cache1);

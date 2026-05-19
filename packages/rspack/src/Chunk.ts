@@ -52,7 +52,7 @@ Object.defineProperty(Chunk.prototype, 'getChunkMaps', {
 
     for (const chunk of this.getAllAsyncChunks()) {
       const id = chunk.id;
-      if (!id) continue;
+      if (id === undefined) continue;
       const chunkHash = realHash ? chunk.hash : chunk.renderedHash;
       if (chunkHash) {
         chunkHashMap[id] = chunkHash;

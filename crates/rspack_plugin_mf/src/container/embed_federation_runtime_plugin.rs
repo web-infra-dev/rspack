@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex};
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
-  RuntimeGlobals, RuntimeModule,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -63,7 +63,10 @@ async fn additional_chunk_runtime_requirements_tree(
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -71,8 +74,9 @@ async fn additional_chunk_runtime_requirements_tree(
   }
 
   // Check if chunk needs federation runtime support
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let has_entry_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
@@ -103,7 +107,10 @@ async fn runtime_requirement_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -111,7 +118,7 @@ async fn runtime_requirement_in_tree(
   }
 
   // Only inject EmbedFederationRuntimeModule into runtime chunks
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   if has_runtime {
     // Collect federation dependencies snapshot
     let collected_ids_snapshot = self
@@ -119,7 +126,7 @@ async fn runtime_requirement_in_tree(
       .lock()
       .expect("Failed to lock collected_dependency_ids")
       .iter()
-      .cloned()
+      .copied()
       .collect::<Vec<DependencyId>>();
 
     let emro = EmbedFederationRuntimeModuleOptions {
@@ -176,8 +183,12 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
 
   // Skip build time chunks
   if chunk.name() == Some("build time chunk") {
@@ -190,7 +201,7 @@ async fn render_startup(
     .lock()
     .expect("Failed to lock collected_dependency_ids")
     .iter()
-    .cloned()
+    .copied()
     .collect::<Vec<DependencyId>>();
   let has_federation_deps = !collected_deps.is_empty();
 
@@ -200,8 +211,9 @@ async fn render_startup(
 
   // Ensure the synchronous startup global exists even in async startup mode so the
   // embedded federation runtime wrapper has a stable hook point.
-  let has_runtime = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let has_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
   let has_entry_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0;
@@ -222,9 +234,7 @@ async fn render_startup(
     startup_with_call.add(RawStringSource::from_static(
       "\n// Federation startup call\n",
     ));
-    let startup_global = compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::STARTUP);
+    let startup_global = runtime_template.render_runtime_globals(&RuntimeGlobals::STARTUP);
     startup_with_call.add(RawStringSource::from(format!("{startup_global}();\n",)));
 
     startup_with_call.add(render_source.source.clone());

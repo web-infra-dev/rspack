@@ -20,36 +20,21 @@ export default defineConfig({
         type: 'asset',
       },
       {
-        test: /\.js$/,
+        test: /\.(?:js|mjs|cjs|ts|mts|cts)$/,
         use: [
           {
             loader: 'builtin:swc-loader',
             options: {
-              jsc: {
-                parser: {
-                  syntax: 'ecmascript',
-                },
-              },
-            } satisfies SwcLoaderOptions,
-          },
-        ],
-      },
-      {
-        test: /\.ts$/,
-        use: [
-          {
-            loader: 'builtin:swc-loader',
-            options: {
-              jsc: {
-                parser: {
-                  syntax: 'typescript',
-                },
-              },
+              detectSyntax: 'auto',
             } satisfies SwcLoaderOptions,
           },
         ],
       },
     ],
   },
-  plugins: [new rspack.HtmlRspackPlugin({ template: './index.html' })],
+  plugins: [
+    new rspack.HtmlRspackPlugin({
+      template: './index.html',
+    }),
+  ],
 });

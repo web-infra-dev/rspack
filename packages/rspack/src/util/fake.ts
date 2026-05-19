@@ -17,7 +17,13 @@ export function createFakeCompilationDependencies(
   };
 
   const getAllDeps = () => {
-    const deps = new Set([...getDeps(), ...addDepsCaller.pendingData()]);
+    const deps = new Set<string>();
+    for (const dep of getDeps()) {
+      deps.add(dep);
+    }
+    for (const dep of addDepsCaller.pendingData()) {
+      deps.add(dep);
+    }
     for (const deleted of deletedDeps) {
       deps.delete(deleted);
     }
@@ -39,8 +45,8 @@ export function createFakeCompilationDependencies(
     addAll: (deps: Iterable<string>) => {
       for (const dep of deps) {
         deletedDeps.delete(dep);
+        addDepsCaller.push(dep);
       }
-      addDepsCaller.push(...deps);
     },
     delete: (dep: string) => {
       const hadDep = hasDep(dep);

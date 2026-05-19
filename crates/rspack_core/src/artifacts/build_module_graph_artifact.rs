@@ -2,30 +2,19 @@ use std::hash::BuildHasherDefault;
 
 use rspack_collections::{IdentifierHasher, IdentifierSet};
 use rspack_error::Diagnostic;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
 use crate::{
   ArtifactExt, BuildDependency, DependencyId, FactorizeInfo, ModuleGraph, ModuleIdentifier,
+  SideEffectsStateArtifact,
   compilation::build_module_graph::ModuleToLazyMake,
   incremental::IncrementalPasses,
   incremental_info::IncrementalInfo,
   utils::{FileCounter, ResourceId},
 };
 
-/// Enum used to mark whether module graph has been built.
-///
-/// The persistent cache will recovery `MakeArtifact` when `MakeArtifact.state` is `Uninitialized`.
-/// Make stage will update `MakeArtifact.state` to `Initialized`, and incremental rebuild will reuse
-/// the previous MakeArtifact, so persistent cache will never recovery again.
-#[derive(Debug, Default)]
-pub enum BuildModuleGraphArtifactState {
-  #[default]
-  Uninitialized,
-  Initialized,
-}
-
 /// Make Artifact, including all side effects of the make stage.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct BuildModuleGraphArtifact {
   // temporary data, used by subsequent steps of BuildModuleGraph, should be reset when rebuild.
   /// BuildModuleGraph stage affected modules.
@@ -42,22 +31,18 @@ pub struct BuildModuleGraphArtifact {
   pub issuer_update_modules: IdentifierSet,
 
   // data
-  /// Field to mark whether artifact has been initialized.
-  ///
-  /// Only Default::default() is Uninitialized, `update_module_graph` will set this field to Initialized
-  /// Persistent cache will update BuildModuleGraphArtifact and set force_build_deps to this field when this is Uninitialized.
-  pub state: BuildModuleGraphArtifactState,
   /// Module graph data
   pub module_graph: ModuleGraph,
+  pub side_effects_state_artifact: SideEffectsStateArtifact,
   pub module_to_lazy_make: ModuleToLazyMake,
 
   // statistical data, which can be regenerated from module_graph_partial and used as index.
   /// Diagnostic non-empty modules in the module graph.
   pub make_failed_module: IdentifierSet,
   /// Factorize failed dependencies in module graph
-  pub make_failed_dependencies: HashSet<DependencyId>,
+  pub make_failed_dependencies: FxHashSet<DependencyId>,
   /// Entry dependencies in the module graph
-  pub entry_dependencies: HashSet<DependencyId>,
+  pub entry_dependencies: FxHashSet<DependencyId>,
   /// The files that current module graph depends on.
   pub file_dependencies: FileCounter,
   /// The directory that current module graph depends on.
@@ -69,11 +54,41 @@ pub struct BuildModuleGraphArtifact {
 }
 
 impl BuildModuleGraphArtifact {
+  #[allow(clippy::new_without_default)]
+  pub fn new() -> Self {
+    Self {
+      affected_modules: Default::default(),
+      affected_dependencies: Default::default(),
+      issuer_update_modules: Default::default(),
+      module_graph: Default::default(),
+      side_effects_state_artifact: Default::default(),
+      module_to_lazy_make: Default::default(),
+      make_failed_module: Default::default(),
+      make_failed_dependencies: Default::default(),
+      entry_dependencies: Default::default(),
+      file_dependencies: Default::default(),
+      context_dependencies: Default::default(),
+      missing_dependencies: Default::default(),
+      build_dependencies: Default::default(),
+    }
+  }
+
   pub fn get_module_graph(&self) -> &ModuleGraph {
     &self.module_graph
   }
   pub fn get_module_graph_mut(&mut self) -> &mut ModuleGraph {
     &mut self.module_graph
+  }
+
+  pub fn steal_side_effects_state_artifact(&mut self) -> SideEffectsStateArtifact {
+    std::mem::take(&mut self.side_effects_state_artifact)
+  }
+
+  pub fn set_side_effects_state_artifact(
+    &mut self,
+    side_effects_state_artifact: SideEffectsStateArtifact,
+  ) {
+    self.side_effects_state_artifact = side_effects_state_artifact;
   }
 
   /// revoke a module and return multiple parent ModuleIdentifier and DependencyId pair that can generate it.
@@ -105,12 +120,13 @@ impl BuildModuleGraphArtifact {
     let mgm = mg
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
-    for dep_id in mgm
-      .all_dependencies
-      .clone()
-      .into_iter()
+    let dep_ids = mgm
+      .all_dependencies()
+      .iter()
+      .copied()
       .chain(mgm.incoming_connections().clone())
-    {
+      .collect::<Vec<_>>();
+    for dep_id in dep_ids {
       self.make_failed_dependencies.remove(&dep_id);
 
       let dep = mg.dependency_by_id_mut(&dep_id);
@@ -206,6 +222,7 @@ impl BuildModuleGraphArtifact {
   pub fn reset_temporary_data(&mut self) {
     self.affected_modules.reset();
     self.affected_dependencies.reset();
+    self.side_effects_state_artifact = Default::default();
 
     self.file_dependencies.reset_incremental_info();
     self.context_dependencies.reset_incremental_info();
@@ -227,6 +244,7 @@ impl ArtifactExt for BuildModuleGraphArtifact {
     if incremental.mutations_readable(Self::PASS) {
       std::mem::swap(new, old);
       new.get_module_graph_mut().reset();
+      new.side_effects_state_artifact = Default::default();
     }
   }
 }

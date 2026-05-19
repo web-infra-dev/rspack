@@ -1,26 +1,30 @@
 mod amd_library_plugin;
 mod assign_library_plugin;
 mod export_property_library_plugin;
-mod modern_module;
-mod modern_module_library_plugin;
 mod module_library_plugin;
 mod system_library_plugin;
 mod umd_library_plugin;
 mod utils;
 
+use std::path::PathBuf;
+
 pub use amd_library_plugin::AmdLibraryPlugin;
 pub use assign_library_plugin::*;
 pub use export_property_library_plugin::ExportPropertyLibraryPlugin;
 use rspack_core::{BoxPlugin, PluginExt};
+use rspack_plugin_esm_library::EsmLibraryPlugin;
+use rspack_plugin_split_chunks::CacheGroup;
 pub use system_library_plugin::SystemLibraryPlugin;
 pub use umd_library_plugin::UmdLibraryPlugin;
 
-use crate::{
-  modern_module_library_plugin::ModernModuleLibraryPlugin,
-  module_library_plugin::ModuleLibraryPlugin,
-};
+use crate::module_library_plugin::ModuleLibraryPlugin;
 
-pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>) {
+pub fn enable_library_plugin(
+  library_type: String,
+  preserve_modules: Option<PathBuf>,
+  split_chunks: Option<Vec<CacheGroup>>,
+  plugins: &mut Vec<BoxPlugin>,
+) {
   let ns_object_used = library_type != "module";
   match library_type.as_str() {
     "var" => plugins.push(
@@ -120,9 +124,9 @@ pub fn enable_library_plugin(library_type: String, plugins: &mut Vec<BoxPlugin>)
     }
     "modern-module" => {
       plugins.push(
-        ExportPropertyLibraryPlugin::new(library_type.clone(), ns_object_used, false).boxed(),
+        rspack_plugin_remove_duplicate_modules::RemoveDuplicateModulesPlugin::default().boxed(),
       );
-      plugins.push(ModernModuleLibraryPlugin::default().boxed());
+      plugins.push(EsmLibraryPlugin::new(preserve_modules, split_chunks).boxed());
     }
     "system" => {
       plugins.push(

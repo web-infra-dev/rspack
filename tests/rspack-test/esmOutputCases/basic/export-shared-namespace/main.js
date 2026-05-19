@@ -1,0 +1,1 @@
+export * as ns1 from './shared'

@@ -2,15 +2,14 @@ use std::{hash::Hash, sync::LazyLock};
 
 use futures::future::join_all;
 use regex::Regex;
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, EntryData, ExportProvided, Filename, LibraryExport, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin, PrefetchExportsInfoMode,
-  RuntimeGlobals, RuntimeModule, RuntimeVariable, SourceType, UsageState, get_entry_runtime,
-  property_access,
+  CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
+  LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -100,16 +99,16 @@ impl AssignLibraryPlugin {
     if matches!(self.options.unnamed, Unnamed::Error) {
       if !matches!(
         library.name,
-        Some(LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_)))
-          | Some(LibraryName::NonUmdObject(LibraryNonUmdObject::String(_)))
+        Some(LibraryName::NonUmdObject(
+          LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_)
+        ))
       ) {
         error_bail!("Library name must be a string or string array. {COMMON_LIBRARY_NAME_MESSAGE}")
       }
     } else if let Some(name) = &library.name
       && !matches!(
         name,
-        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_))
-          | LibraryName::NonUmdObject(LibraryNonUmdObject::String(_))
+        LibraryName::NonUmdObject(LibraryNonUmdObject::Array(_) | LibraryNonUmdObject::String(_))
       )
     {
       error_bail!(
@@ -214,12 +213,16 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
   if self.options.declare {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     let base = &self
       .get_resolved_full_name(&options, compilation, chunk)
       .await?[0];
@@ -245,13 +248,17 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
   let mut source = ConcatSource::default();
   source.add(render_source.source.clone());
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_name_resolved = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
@@ -259,19 +266,15 @@ async fn render_startup(
     .export
     .map(|e| property_access(e, 0))
     .unwrap_or_default();
-  let exports_name = compilation
-    .runtime_template
-    .render_runtime_variable(&RuntimeVariable::Exports);
+  let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
   if matches!(self.options.unnamed, Unnamed::Static) {
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
-    let module_graph = compilation.get_module_graph();
-    let exports_info =
-      module_graph.get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(module);
     let mut provided = vec![];
-    let exports_name = compilation
-      .runtime_template
-      .render_runtime_variable(&RuntimeVariable::Exports);
-    for (_, export_info) in exports_info.exports() {
+    let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
+    for export_info in exports_info.exports().values() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
@@ -359,7 +362,10 @@ async fn js_chunk_hash(
     return Ok(());
   };
   PLUGIN_NAME.hash(hasher);
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let full_resolved_name = self
     .get_resolved_full_name(&options, compilation, chunk)
     .await?;
@@ -436,9 +442,12 @@ async fn strict_runtime_bailout(
 #[plugin_hook(CompilationFinishModules for AssignLibraryPlugin)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   _async_modules_artifact: &mut AsyncModulesArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
+  let module_graph = compilation.get_module_graph();
   let mut runtime_info = Vec::with_capacity(compilation.entries.len());
   for (entry_name, entry) in compilation.entries.iter() {
     let EntryData {
@@ -451,7 +460,6 @@ async fn finish_modules(
       .library
       .as_ref()
       .or_else(|| compilation.options.output.library.as_ref());
-    let module_graph = compilation.get_module_graph();
     let module_of_last_dep = dependencies
       .last()
       .and_then(|dep| module_graph.get_module_by_dependency_id(dep));
@@ -477,19 +485,16 @@ async fn finish_modules(
   }
 
   for (runtime, export, module_identifier) in runtime_info {
-    let module_graph = compilation
-      .build_module_graph_artifact
-      .get_module_graph_mut();
     if let Some(export) = export {
-      let export_info = module_graph
+      let export_info = exports_info_artifact
         .get_exports_info_data_mut(&module_identifier)
         .ensure_export_info(&(export.as_str()).into());
-      let info = export_info.as_data_mut(module_graph);
+      let info = export_info.as_data_mut(exports_info_artifact);
       info.set_used(UsageState::Used, Some(&runtime));
       info.set_can_mangle_use(Some(false));
       info.set_can_inline_use(Some(CanInlineUse::No));
     } else {
-      module_graph
+      exports_info_artifact
         .get_exports_info_data_mut(&module_identifier)
         .set_used_in_unknown_way(Some(&runtime));
     }

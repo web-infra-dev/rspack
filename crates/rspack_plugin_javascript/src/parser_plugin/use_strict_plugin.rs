@@ -6,6 +6,7 @@ use crate::visitors::JavascriptParser;
 
 pub struct UseStrictPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for UseStrictPlugin {
   fn program(
     &self,
@@ -25,7 +26,7 @@ impl JavascriptParserPlugin for UseStrictPlugin {
     {
       // Remove "use strict" expression. It will be added later by the renderer again.
       // This is necessary in order to not break the strict mode when webpack prepends code.
-      let dep = ConstDependency::new(first.span.into(), "".into(), None);
+      let dep = ConstDependency::new(first.span.into(), "".into());
       parser.add_presentational_dependency(Box::new(dep));
       parser.build_info.strict = true;
     }

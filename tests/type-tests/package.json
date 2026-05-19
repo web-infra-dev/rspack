@@ -1,0 +1,12 @@
+{
+  "name": "@rspack-test/type-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "tsc --noEmit -p resolution-bundler/tsconfig.json && tsc --noEmit -p resolution-nodenext/tsconfig.json"
+  },
+  "devDependencies": {
+    "@rspack/cli": "workspace:*",
+    "@rspack/core": "workspace:*"
+  }
+}

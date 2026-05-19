@@ -1,3 +1,7 @@
+---
+description: 'rspack.HtmlRspackPlugin 是使用 Rust 实现的高性能 HTML 插件，你可以使用它来为 Rspack 项目生成 HTML 文件。'
+---
+
 import { Table } from '@builtIns';
 import { ApiMeta } from '@components/ApiMeta.tsx';
 
@@ -792,7 +796,7 @@ export default {
 
 在生成 HTML 产物前调用，修改 HTML 产物内容的最终机会。
 
-- **类型：** `SyncHook<[BeforeEmitData]>`
+- **类型：** `AsyncSeriesWaterfallHook<[BeforeEmitData]>`
 - **参数：**
   ```ts
   type BeforeEmitData = {
@@ -836,7 +840,7 @@ export default {
 
 在生成 HTML 产物后调用，仅用于事件通知。
 
-- **类型：** `SyncHook<[AfterEmitData]>`
+- **类型：** `AsyncSeriesWaterfallHook<[AfterEmitData]>`
 - **参数：**
   ```ts
   type AfterEmitData = {

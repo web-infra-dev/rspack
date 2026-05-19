@@ -51,6 +51,7 @@ impl DefineParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for DefineParserPlugin {
   fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
@@ -136,13 +137,16 @@ impl JavascriptParserPlugin for DefineParserPlugin {
     } else if self.walk_data.object_define_record.contains_key(for_name) {
       self.add_value_dependency(parser, for_name);
       debug_assert!(!parser.in_short_hand);
-      parser.add_presentational_dependency(Box::new(gen_const_dep(
+      for dep in gen_const_dep(
         parser,
         Cow::Borrowed(r#""object""#),
         for_name,
         expr.span.real_lo(),
         expr.span.real_hi(),
-      )));
+      ) {
+        parser.add_presentational_dependency(dep);
+      }
+
       return Some(true);
     }
     None

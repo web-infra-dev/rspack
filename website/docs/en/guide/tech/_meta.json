@@ -4,9 +4,11 @@
   "html",
   "json",
   "react",
+  "rsc",
   "preact",
   "vue",
   "next",
+  "node",
   "nestjs",
   "solid",
   "svelte"

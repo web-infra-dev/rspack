@@ -14,8 +14,7 @@ pub struct RequireHeaderDependency {
 }
 
 impl RequireHeaderDependency {
-  pub fn new(range: DependencyRange, source: Option<&str>) -> Self {
-    let loc = range.to_loc(source);
+  pub fn new(range: DependencyRange, loc: Option<DependencyLocation>) -> Self {
     Self {
       id: DependencyId::new(),
       range,
@@ -77,7 +76,7 @@ impl DependencyTemplate for RequireHeaderDependencyTemplate {
     source.replace(
       dep.range.start,
       dep.range.end,
-      &runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       None,
     );
   }

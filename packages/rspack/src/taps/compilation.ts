@@ -357,6 +357,65 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
+    registerCompilationBeforeModuleIdsTaps: createTap(
+      binding.RegisterJsTapKind.CompilationBeforeModuleIds,
+
+      function () {
+        return getCompiler().__internal__get_compilation()!.hooks
+          .beforeModuleIds;
+      },
+
+      function (queried) {
+        return function (
+          arg: binding.JsBeforeModuleIdsArg,
+        ): binding.JsBeforeModuleIdsResult {
+          const compilation = getCompiler().__internal__get_compilation()!;
+          const assignments = new Map<string, string | number>();
+
+          // Build a lookup map of real modules by identifier
+          const modulesByIdentifier = new Map<string, Module>();
+          for (const module of compilation.modules) {
+            modulesByIdentifier.set(module.identifier(), module);
+          }
+
+          // Create proxied modules that expose real module properties
+          // but intercept `id` setter to track assignments
+          const proxiedModules = arg.modules.map((m): Module => {
+            const realModule = modulesByIdentifier.get(m.identifier)!;
+
+            return new Proxy(realModule, {
+              get(target, prop) {
+                if (prop === 'id') {
+                  return assignments.get(m.identifier) ?? null;
+                }
+                if (prop === 'identifier') {
+                  return m.identifier;
+                }
+                const value = Reflect.get(target, prop);
+                // Bind methods to target
+                return typeof value === 'function' ? value.bind(target) : value;
+              },
+              set(_target, prop, value) {
+                if (
+                  prop === 'id' &&
+                  (typeof value === 'string' || typeof value === 'number')
+                ) {
+                  assignments.set(m.identifier, value);
+                  return true;
+                }
+                return false;
+              },
+            });
+          });
+
+          queried.call(proxiedModules);
+
+          return {
+            assignments: Object.fromEntries(assignments.entries()),
+          };
+        };
+      },
+    ),
     registerCompilationChunkHashTaps: createTap(
       binding.RegisterJsTapKind.CompilationChunkHash,
 

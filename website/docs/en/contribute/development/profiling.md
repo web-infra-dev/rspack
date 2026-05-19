@@ -1,3 +1,7 @@
+---
+description: "In this section, we'll explore how to profile Rspack for identifying bottlenecks"
+---
+
 # Profiling
 
 In this section, we'll explore how to profile Rspack for identifying bottlenecks.
@@ -70,7 +74,7 @@ If we want to analyze the time cost of loaders and plugins or the compilation be
 
 ![image](https://assets.rspack.rs/others/assets/rsdoctor/rsdoctor-loader-timeline.png)
 
-Refer to [Rsdoctor Compilation Analysis](/guide/optimization/profile#use-rsdoctor)
+Refer to [Rsdoctor Compilation Analysis](/guide/optimization/use-rsdoctor)
 
 ## Mac Xcode instruments
 

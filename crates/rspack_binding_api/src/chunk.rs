@@ -2,14 +2,24 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Object, ToNapiValue},
+  bindgen_prelude::{Either3, Object, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_collections::UkeyMap;
-use rspack_core::{Compilation, CompilationId};
+use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
 use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
+
+type JsChunkId<'a> = Either<&'a str, u32>;
+
+fn to_js_chunk_id(id: &ChunkId) -> JsChunkId<'_> {
+  if let Some(id) = id.as_number() {
+    Either::B(id)
+  } else {
+    Either::A(id.as_str())
+  }
+}
 
 #[napi]
 pub struct Chunk {
@@ -20,7 +30,11 @@ pub struct Chunk {
 impl Chunk {
   fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::Chunk)> {
     let compilation = unsafe { self.compilation.as_ref() };
-    if let Some(chunk) = compilation.chunk_by_ukey.get(&self.chunk_ukey) {
+    if let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+    {
       Ok((compilation, chunk))
     } else {
       Err(napi::Error::from_reason(format!(
@@ -42,19 +56,27 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
-  pub fn id(&self) -> napi::Result<Either<&str, ()>> {
-    let (compilation, chunk) = self.as_ref()?;
+  #[napi(getter, ts_return_type = "string | number | undefined")]
+  pub fn id(&self) -> napi::Result<Either3<&str, u32, ()>> {
+    let (_, chunk) = self.as_ref()?;
     Ok(match chunk.id() {
-      Some(id) => Either::A(id.as_str()),
-      None => Either::B(()),
+      Some(id) => match to_js_chunk_id(id) {
+        Either::A(id) => Either3::A(id),
+        Either::B(id) => Either3::B(id),
+      },
+      None => Either3::C(()),
     })
   }
 
-  #[napi(getter)]
-  pub fn ids(&self) -> napi::Result<Vec<&str>> {
-    let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
+  #[napi(getter, ts_return_type = "Array<string | number>")]
+  pub fn ids(&self) -> napi::Result<Vec<JsChunkId<'_>>> {
+    let (_, chunk) = self.as_ref()?;
+    Ok(
+      chunk
+        .id()
+        .map(|id| vec![to_js_chunk_id(id)])
+        .unwrap_or_default(),
+    )
   }
 
   #[napi(getter)]
@@ -163,19 +185,19 @@ impl Chunk {
   #[napi]
   pub fn is_only_initial(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.is_only_initial(&compilation.chunk_group_by_ukey))
+    Ok(chunk.is_only_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi]
   pub fn can_be_initial(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.can_be_initial(&compilation.chunk_group_by_ukey))
+    Ok(chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi]
   pub fn has_runtime(&self) -> napi::Result<bool> {
     let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.has_runtime(&compilation.chunk_group_by_ukey))
+    Ok(chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey))
   }
 
   #[napi(ts_return_type = "Chunk[]")]
@@ -183,7 +205,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_async_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -195,7 +217,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -207,7 +229,7 @@ impl Chunk {
     let (compilation, chunk) = self.as_ref()?;
     Ok(
       chunk
-        .get_all_referenced_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| ChunkWrapper::new(chunk_ukey, compilation))
         .collect::<Vec<_>>(),
@@ -220,9 +242,14 @@ impl Chunk {
     let mut groups = chunk
       .groups()
       .iter()
-      .filter_map(|group| compilation.chunk_group_by_ukey.get(group))
+      .filter_map(|group| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .get(group)
+      })
       .collect::<Vec<_>>();
-    groups.sort_unstable_by(|a, b| a.index.cmp(&b.index));
+    groups.sort_unstable_by_key(|a| a.index);
     Ok(
       groups
         .iter()
@@ -235,14 +262,15 @@ impl Chunk {
   pub fn get_entry_options(&self) -> napi::Result<Option<EntryOptionsDTO>> {
     let (compilation, chunk) = self.as_ref()?;
 
-    let entry_options = chunk.get_entry_options(&compilation.chunk_group_by_ukey);
+    let entry_options =
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
     Ok(entry_options.map(|options| EntryOptionsDTO::new(options.clone())))
   }
 }
 
 thread_local! {
-  static CHUNK_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
+  static CHUNK_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, FxHashMap<rspack_core::ChunkUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkWrapper {
@@ -284,7 +312,7 @@ impl ToNapiValue for ChunkWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = FxHashMap::default();
             entry.insert(refs)
           }
         };

@@ -1,8 +1,9 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ConstDependency, ContextDependency, ContextMode,
-  ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals,
+  BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
+  ContextMode, ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory,
+  RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
@@ -70,7 +71,7 @@ fn is_callable(expr: &Expr) -> bool {
   is_unbound_function_expression(expr) || is_bound_function_expression(expr)
 }
 
-/// define('ui/foo/bar', ['./baz', '../qux'], ...);
+/// `define('ui/foo/bar', ['./baz', '../qux'], ...);`
 /// - 'ui/foo/baz'
 /// - 'ui/qux'
 fn lookup<'a>(parent: &str, module: &'a str) -> Cow<'a, str> {
@@ -105,10 +106,7 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
 }
 
 fn get_ident_name(pat: &Pat) -> Atom {
-  pat
-    .as_ident()
-    .map(|ident| ident.sym.clone())
-    .unwrap_or("".into())
+  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -141,11 +139,7 @@ impl AMDDefineDependencyParserPlugin {
       for (i, request) in array.iter().enumerate() {
         if request == "require" {
           identifiers.insert(i, REQUIRE.into());
-          deps.push(AMDRequireArrayItem::String(
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          ));
+          deps.push(AMDRequireArrayItem::Require);
         } else if request == "exports" {
           identifiers.insert(i, EXPORTS.into());
           deps.push(AMDRequireArrayItem::String(request.into()));
@@ -193,26 +187,20 @@ impl AMDDefineDependencyParserPlugin {
       let param_str = param.string();
       let range = param.range();
 
-      let dep = if param_str == "require" {
-        Box::new(ConstDependency::new(
+      let dep: BoxDependencyTemplate = if param_str == "require" {
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         ))
       } else if param_str == "exports" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          EXPORTS.into(),
-          Some(RuntimeGlobals::EXPORTS),
+          RuntimeGlobals::EXPORTS,
         ))
       } else if param_str == "module" {
-        Box::new(ConstDependency::new(
+        Box::new(RuntimeRequirementsDependency::new(
           range.into(),
-          MODULE.into(),
-          Some(RuntimeGlobals::MODULE),
+          RuntimeGlobals::MODULE,
         ))
       } else if let Some(local_module) = parser.get_local_module_mut(
         &named_module
@@ -270,8 +258,9 @@ impl AMDDefineDependencyParserPlugin {
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
+      phase: None,
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;
@@ -598,6 +587,7 @@ impl AMDDefineDependencyParserPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
   fn call(
     &self,

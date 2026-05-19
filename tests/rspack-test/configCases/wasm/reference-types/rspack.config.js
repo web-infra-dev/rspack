@@ -2,10 +2,10 @@
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		webassemblyModuleFilename: "[id].[hash].wasm"
-	},
-	experiments: {
-		asyncWebAssembly: true
-	}
+  output: {
+    webassemblyModuleFilename: '[id].[hash].wasm',
+  },
+  experiments: {
+    asyncWebAssembly: true,
+  },
 };

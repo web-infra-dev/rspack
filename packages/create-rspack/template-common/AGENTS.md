@@ -10,4 +10,4 @@ You are an expert in JavaScript, Rspack, and web application development. You wr
 
 ## Docs
 
-- Rspack: <https://rspack.rs/llms.txt>
+- Rspack: https://rspack.rs/llms.txt

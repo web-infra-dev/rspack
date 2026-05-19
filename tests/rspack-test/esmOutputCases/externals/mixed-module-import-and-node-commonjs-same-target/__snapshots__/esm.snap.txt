@@ -1,0 +1,38 @@
+```mjs title=main.mjs
+import * as __rspack_external_webpack_sources_lib_index_js_06790234 from "webpack-sources/lib/index.js";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// ws-ns
+
+// ./namespace.js
+
+
+
+
+// ws-cjs
+const index_js_namespaceObject = __rspack_createRequire_require("webpack-sources/lib/index.js");
+// ./named.js
+
+
+// ./index.js
+
+
+
+
+
+
+it("should not emit duplicate identifiers when the same external target is rendered via module-import and node-commonjs", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.sourcesNs.RawSource).toBe(index_js_namespaceObject.RawSource);
+  expect(mod.sourcesNs.SourceMapSource).toBe(index_js_namespaceObject.SourceMapSource);
+  expect(mod.sourcesNs.RawSource).toBe(__rspack_external_webpack_sources_lib_index_js_06790234.RawSource);
+  expect(mod.sourcesNs.SourceMapSource).toBe(__rspack_external_webpack_sources_lib_index_js_06790234.SourceMapSource);
+});
+
+var RawSource = index_js_namespaceObject.RawSource;
+var SourceMapSource = index_js_namespaceObject.SourceMapSource;
+export { RawSource, SourceMapSource, __rspack_external_webpack_sources_lib_index_js_06790234 as sourcesNs };
+
+```

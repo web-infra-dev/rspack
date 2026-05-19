@@ -70,7 +70,7 @@ impl Plugin for DllReferenceAgencyPlugin {
     ExternalsPlugin::new(source_type.unwrap_or("var".into()), vec![external], false).apply(ctx)?;
 
     DelegatedPlugin::new(DelegatedPluginOptions {
-      source: source.clone(),
+      source,
       r#type: self.options.r#type.clone(),
       scope: self.options.scope.clone(),
       content: resolved_content,

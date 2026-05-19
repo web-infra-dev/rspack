@@ -1,4 +1,4 @@
-const { SharePlugin } = require("@rspack/core").sharing;
+const { SharePlugin } = require('@rspack/core').sharing;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {

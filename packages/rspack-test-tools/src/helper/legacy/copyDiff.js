@@ -3,14 +3,27 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { rimrafSync } = require('rimraf');
 
-module.exports = function copyDiff(src, dest, initial) {
+export function copyDiff(src, dest, initial) {
   fs.mkdirSync(dest, { recursive: true });
   const files = fs.readdirSync(src);
   for (const filename of files) {
     const srcFile = path.join(src, filename);
     const destFile = path.join(dest, filename);
-    const directory = fs.statSync(srcFile).isDirectory();
-    if (directory) {
+    const stats = fs.lstatSync(srcFile);
+    if (stats.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(srcFile);
+      if (fs.existsSync(destFile)) {
+        const destStats = fs.lstatSync(destFile);
+        if (destStats.isSymbolicLink()) {
+          fs.unlinkSync(destFile);
+        } else if (destStats.isDirectory()) {
+          rimrafSync(destFile);
+        } else {
+          fs.unlinkSync(destFile);
+        }
+      }
+      fs.symlinkSync(linkTarget, destFile);
+    } else if (stats.isDirectory()) {
       copyDiff(srcFile, destFile, initial);
     } else {
       const content = fs.readFileSync(srcFile);
@@ -31,4 +44,4 @@ module.exports = function copyDiff(src, dest, initial) {
       }
     }
   }
-};
+}

@@ -53,8 +53,8 @@ pub struct JsCreateData {
 impl From<&NormalModuleCreateData> for JsCreateData {
   fn from(value: &NormalModuleCreateData) -> Self {
     Self {
-      request: value.request.to_owned(),
-      user_request: value.user_request.to_owned(),
+      request: value.request.clone(),
+      user_request: value.user_request.clone(),
       resource: value.resource_resolve_data.resource().to_owned(),
     }
   }
@@ -91,7 +91,7 @@ impl JsResolveData {
     create_data: Option<&NormalModuleCreateData>,
   ) -> Self {
     JsResolveData {
-      request: data.request.to_string(),
+      request: data.request.clone(),
       context: data.context.to_string(),
       context_info: ContextInfo {
         issuer: data
@@ -117,8 +117,8 @@ impl JsResolveData {
         .map(|item| item.to_string_lossy().into_owned())
         .collect::<Vec<_>>(),
       create_data: create_data.map(|create_data| JsCreateData {
-        request: create_data.request.to_owned(),
-        user_request: create_data.user_request.to_owned(),
+        request: create_data.request.clone(),
+        user_request: create_data.user_request.clone(),
         resource: create_data.resource_resolve_data.resource().to_owned(),
       }),
     }

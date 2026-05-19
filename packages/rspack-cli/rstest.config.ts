@@ -5,14 +5,11 @@ const wasmConfig: RstestConfig | undefined = process.env.WASM
       exclude: [
         '**/*/profile.test.ts', // Skip due to lack of system api support
       ],
-      pool: {
-        maxWorkers: 1,
-      },
-      maxConcurrency: 1,
     }
   : undefined;
 
 export default defineConfig({
+  name: 'rspack-cli',
   testEnvironment: 'node',
   globals: true,
   testTimeout: process.env.CI ? 200000 : 30000,

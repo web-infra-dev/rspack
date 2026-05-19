@@ -13,11 +13,8 @@ const swcLoaderRule = {
     {
       loader: 'builtin:swc-loader',
       options: {
+        detectSyntax: 'auto',
         jsc: {
-          parser: {
-            syntax: 'ecmascript',
-            jsx: true,
-          },
           transform: {
             react: {
               runtime: 'automatic',
@@ -75,8 +72,6 @@ module.exports = [
       moduleIds: 'named',
       concatenateModules: true,
     },
-    // TODO: enable lazy compilation when it works with RSC
-    lazyCompilation: false,
   },
   {
     target: 'web',
@@ -96,7 +91,5 @@ module.exports = [
       moduleIds: 'named',
       concatenateModules: true,
     },
-    // TODO: enable lazy compilation when it works with RSC
-    lazyCompilation: false,
   },
 ];

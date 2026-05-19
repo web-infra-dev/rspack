@@ -1,8 +1,8 @@
 use std::ptr::NonNull;
 
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeTemplate, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::{
@@ -12,7 +12,6 @@ use crate::{
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct LoadScriptRuntimeModule {
-  id: Identifier,
   unique_name: String,
   with_create_script_url: bool,
   chunk_ukey: ChunkUkey,
@@ -26,10 +25,7 @@ impl LoadScriptRuntimeModule {
     chunk_ukey: ChunkUkey,
   ) -> Self {
     Self::with_default(
-      Identifier::from(format!(
-        "{}load_script",
-        runtime_template.runtime_module_prefix()
-      )),
+      runtime_template,
       unique_name,
       with_create_script_url,
       chunk_ukey,
@@ -44,10 +40,6 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -61,7 +53,12 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
+    let runtime_template = context.runtime_template;
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
 
@@ -70,12 +67,11 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     } else {
       Some(format!(
         r#"var uniqueName = {};"#,
-        serde_json::to_string(&format!("{}:", self.unique_name))
-          .expect("failed to serialize unique prefix")
+        rspack_util::json_stringify_str(&format!("{}:", self.unique_name))
       ))
     };
 
-    let create_script_code = compilation.runtime_template.render(
+    let create_script_code = runtime_template.render(
       &self.template_id(TemplateId::CreateScript),
       Some(serde_json::json!({
         "_script_type": &compilation.options.output.script_type,
@@ -102,7 +98,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
       })
       .await?;
 
-    let render_source = compilation.runtime_template.render(
+    let render_source = runtime_template.render(
       &self.template_id(TemplateId::Raw),
       Some(serde_json::json!({
         "_unique_prefix": unique_prefix.unwrap_or_default(),
@@ -113,6 +109,14 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     )?;
 
     Ok(render_source)
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.output.trusted_types.is_some() {
+      RuntimeGlobals::CREATE_SCRIPT_URL
+    } else {
+      RuntimeGlobals::default()
+    }
   }
 }
 

@@ -1,3 +1,7 @@
+---
+description: 'The EnvironmentPlugin is shorthand for using the DefinePlugin on process.env keys'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/environment-plugin/" />
@@ -102,7 +106,8 @@ if ('false') {
 The following `EnvironmentPlugin` configuration provides `process.env.GIT_VERSION` (such as "v5.4.0-2-g25139f57f") and `process.env.GIT_AUTHOR_DATE` (such as "2020-11-04T12:25:16+01:00") corresponding to the last Git commit of the repository:
 
 ```js
-const child_process = require('child_process');
+import child_process from 'node:child_process';
+
 function git(command) {
   return child_process.execSync(`git ${command}`, { encoding: 'utf8' }).trim();
 }

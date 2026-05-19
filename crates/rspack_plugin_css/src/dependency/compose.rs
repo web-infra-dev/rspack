@@ -4,8 +4,8 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsContextDependency, AsDependencyCodeGeneration, Dependency, DependencyCategory, DependencyId,
-  DependencyRange, DependencyType, ExtendedReferencedExport, FactorizeInfo, ModuleDependency,
-  RuntimeSpec,
+  DependencyRange, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo,
+  ModuleDependency, RuntimeSpec,
 };
 use rspack_util::atom::Atom;
 
@@ -58,6 +58,7 @@ impl Dependency for CssComposeDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     self

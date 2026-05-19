@@ -11,6 +11,8 @@ version.workspace = true
 allocative               = { workspace = true, optional = true }
 async-trait              = { workspace = true }
 atomic_refcell           = { workspace = true }
+cow-utils                = { workspace = true }
+dashmap                  = { workspace = true }
 derive_more              = { workspace = true }
 form_urlencoded          = { workspace = true }
 futures                  = { workspace = true }
@@ -35,9 +37,9 @@ tokio                    = { workspace = true }
 tracing                  = { workspace = true }
 urlencoding              = { workspace = true }
 
-[package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash"]
+[lints]
+workspace = true
 
-[lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)']
-level     = "warn"
+[lib]
+doctest = false
+test    = false

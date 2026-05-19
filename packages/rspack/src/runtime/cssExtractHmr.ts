@@ -89,7 +89,6 @@ function getCurrentScriptUrl(moduleId: string) {
     }
 
     const splitResult = src.match(/([^\\/]+)\.js$/);
-    // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
     const filename = splitResult && splitResult[1];
 
     if (!filename || !fileMap) {
@@ -268,7 +267,6 @@ function cssReload(moduleId: string, options: Record<string, any>) {
     }
 
     if (reloaded) {
-      // biome-ignore lint/complexity/useOptionalChain: not use optionalChain to support legacy browser
       console.log('[HMR] CSS reload %s', src && src.join(' '));
     } else {
       console.log('[HMR] Reload all CSS');

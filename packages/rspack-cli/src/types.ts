@@ -4,9 +4,13 @@ export type { Configuration } from '@rspack/core';
 
 export type LogHandler = (value: any) => void;
 
-export type RspackCLIColors = {
+export interface RspackCLIColors {
   isColorSupported: boolean;
-} & Omit<typeof import('picocolors'), 'createColors'>;
+  red(text: string): string;
+  yellow(text: string): string;
+  cyan(text: string): string;
+  green(text: string): string;
+}
 
 export interface RspackCLILogger {
   error: LogHandler;
@@ -18,5 +22,5 @@ export interface RspackCLILogger {
 }
 
 export interface RspackCommand {
-  apply(cli: RspackCLI): Promise<void>;
+  apply(cli: RspackCLI): void | Promise<void>;
 }

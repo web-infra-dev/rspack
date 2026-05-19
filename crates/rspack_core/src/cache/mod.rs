@@ -10,16 +10,13 @@ use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
 use self::{
   disable::DisableCache, memory::MemoryCache, mixed::MixedCache, persistent::PersistentCache,
 };
-use crate::{
-  CacheOptions, Compilation, CompilerOptions,
-  compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-};
+use crate::{CacheOptions, Compilation, CompilationLogging, CompilerOptions};
 
 /// Cache trait
 ///
 /// The cache trait provides a pair of methods that are called before and after the core build steps.
-/// * before_<step_name>(): set or clean artifact to enable or disable incremental build
-/// * after_<step_name>(): save artifact or nothing
+/// * `before_<step_name>()`: set or clean artifact to enable or disable incremental build
+/// * `after_<step_name>()`: save artifact or nothing
 ///
 /// ### Why not define it as a hook directly
 /// * The design of cache is different from webpack.
@@ -36,13 +33,8 @@ pub trait Cache: Debug + Send + Sync {
   async fn after_compile(&mut self, _compilation: &Compilation) {}
 
   // BUILD_MODULE_GRAPH hooks
-  async fn before_build_module_graph(
-    &mut self,
-    _make_artifact: &mut BuildModuleGraphArtifact,
-    _incremental: &Incremental,
-  ) {
-  }
-  async fn after_build_module_graph(&self, _make_artifact: &BuildModuleGraphArtifact) {}
+  async fn before_build_module_graph(&mut self, _compilation: &mut Compilation) {}
+  async fn after_build_module_graph(&mut self, _compilation: &Compilation) {}
 
   // FINISH_MODULES hooks
   async fn before_finish_modules(&mut self, _compilation: &mut Compilation) {}
@@ -54,7 +46,11 @@ pub trait Cache: Debug + Send + Sync {
 
   // BUILD_CHUNK_GRAPH hooks
   async fn before_build_chunk_graph(&mut self, _compilation: &mut Compilation) {}
-  async fn after_build_chunk_graph(&self, _compilation: &Compilation) {}
+  async fn after_build_chunk_graph(&mut self, _compilation: &mut Compilation) {}
+
+  // OPTIMIZE_CHUNK_MODULES hooks
+  async fn before_optimize_chunk_modules(&mut self, _compilation: &mut Compilation) {}
+  async fn after_optimize_chunk_modules(&self, _compilation: &Compilation) {}
 
   // MODULE_IDS hooks
   async fn before_module_ids(&mut self, _compilation: &mut Compilation) {}
@@ -88,12 +84,19 @@ pub trait Cache: Debug + Send + Sync {
   async fn before_chunk_asset(&mut self, _compilation: &mut Compilation) {}
   async fn after_chunk_asset(&self, _compilation: &Compilation) {}
 
+  // PROCESS_ASSETS hooks
+  async fn before_process_assets(&mut self, _compilation: &mut Compilation) {}
+  async fn after_process_assets(&mut self, _compilation: &Compilation) {}
+
   // EMIT_ASSETS hooks
   async fn before_emit_assets(&mut self, _compilation: &mut Compilation) {}
   async fn after_emit_assets(&self, _compilation: &Compilation) {}
 
   /// Store old compilation for artifact recovery (used by MemoryCache)
   fn store_old_compilation(&mut self, _compilation: Box<Compilation>) {}
+
+  /// Shuts down the cache, flushing all pending background storage writes to completion.
+  async fn close(&self) {}
 }
 
 pub fn new_cache(
@@ -101,6 +104,7 @@ pub fn new_cache(
   compiler_option: Arc<CompilerOptions>,
   input_filesystem: Arc<dyn ReadableFileSystem>,
   intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+  compilation_logging: CompilationLogging,
 ) -> Box<dyn Cache> {
   match &compiler_option.cache {
     CacheOptions::Disabled => Box::new(DisableCache),
@@ -112,6 +116,7 @@ pub fn new_cache(
         compiler_option.clone(),
         input_filesystem,
         intermediate_filesystem,
+        compilation_logging,
       );
       Box::new(MixedCache::new(persistent))
     }

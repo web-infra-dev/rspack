@@ -1,3 +1,7 @@
+---
+description: '懒编译（Lazy Compilation）是一种优化技术，可以延迟模块的编译，直到它们被实际请求时才进行构建。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta } from '@components/ApiMeta';
 
@@ -44,7 +48,7 @@ type LazyCompilationOptions =
       serverUrl?: string;
       /**
        * 自定义懒编译端点的前缀
-       * @default "/lazy-compilation-using-"
+       * @default "/_rspack/lazy/trigger"
        */
       prefix?: string;
     };
@@ -81,7 +85,7 @@ export default {
 - [node 环境运行时](https://github.com/web-infra-dev/rspack/blob/699229b9e7c33b7db7968c2f803f750e0367fe8a/packages/rspack/hot/lazy-compilation-node.js)
 
 ```js title="rspack.config.mjs"
-import path from 'path';
+import path from 'node:path';
 
 export default {
   lazyCompilation: {
@@ -107,9 +111,9 @@ export default {
 ### lazyCompilation.prefix
 
 - **类型：** `string`
-- **默认值：** `'/lazy-compilation-using-'`
+- **默认值：** `'/_rspack/lazy/trigger'`
 
-自定义懒编译请求前缀。默认情况下，懒编译中间件使用 `/lazy-compilation-using-` 前缀来处理请求。
+自定义懒编译请求前缀。默认情况下，懒编译中间件使用 `/_rspack/lazy/trigger` 前缀来处理请求。
 
 ```js title="rspack.config.mjs"
 export default {

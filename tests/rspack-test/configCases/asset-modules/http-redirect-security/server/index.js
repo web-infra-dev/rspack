@@ -57,7 +57,6 @@ function createServer() {
     res.writeHead(404);
     res.end("Not found");
   });
-  server.unref();
   return server;
 }
 

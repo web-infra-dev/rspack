@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
@@ -7,6 +9,9 @@ use swc_core::{
 };
 
 use super::JavascriptParser;
+
+static DEFAULT_CONTEXT_REGEXP: LazyLock<RspackRegex> =
+  LazyLock::new(|| RspackRegex::new(r"^\.\/.*$").expect("reg failed"));
 
 pub mod expr_name {
   pub const MODULE: &str = "module";
@@ -23,6 +28,8 @@ pub mod expr_name {
   pub const IMPORT_META_URL: &str = "import.meta.url";
   pub const IMPORT_META_RESOLVE: &str = "import.meta.resolve";
   pub const IMPORT_META_VERSION: &str = "import.meta.webpack";
+  pub const IMPORT_META_MAIN: &str = "import.meta.main";
+  pub const IMPORT_META_RSPACK_RSC: &str = "import.meta.rspackRsc";
   pub const IMPORT_META_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
@@ -50,6 +57,11 @@ pub fn create_traceable_error(
     title,
     message,
   )
+}
+
+#[inline]
+pub fn default_context_reg_exp() -> RspackRegex {
+  DEFAULT_CONTEXT_REGEXP.clone()
 }
 
 pub fn context_reg_exp(

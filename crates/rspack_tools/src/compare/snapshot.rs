@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use rspack_cacheable::from_bytes;
 use rspack_core::cache::persistent::{
   snapshot::{SnapshotScope, Strategy},
@@ -14,8 +12,8 @@ use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 #[allow(dead_code)]
 pub async fn compare(
   scope: SnapshotScope,
-  storage1: Arc<dyn Storage>,
-  storage2: Arc<dyn Storage>,
+  storage1: &dyn Storage,
+  storage2: &dyn Storage,
   debug_info: DebugInfo,
 ) -> Result<()> {
   // Load snapshot data from both storages
@@ -51,9 +49,9 @@ pub async fn compare(
 
     if strategy1 != strategy2 {
       let path_str = String::from_utf8_lossy(key);
-      let mut error_msg = format!("Snapshot strategy mismatch for path: {}\n", path_str);
-      error_msg.push_str(&format!("  storage1: {:?}\n", strategy1));
-      error_msg.push_str(&format!("  storage2: {:?}\n", strategy2));
+      let mut error_msg = format!("Snapshot strategy mismatch for path: {path_str}\n");
+      error_msg.push_str(&format!("  storage1: {strategy1:?}\n"));
+      error_msg.push_str(&format!("  storage2: {strategy2:?}\n"));
       error_msg.push_str(&debug_info.to_string());
       return Err(rspack_error::error!(error_msg));
     }

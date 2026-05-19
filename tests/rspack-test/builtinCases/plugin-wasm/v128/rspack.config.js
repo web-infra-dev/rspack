@@ -1,6 +1,13 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	experiments: {
-		asyncWebAssembly: true
-	}
+  module: {
+    parser: {
+      javascript: {
+        exportsPresence: 'auto',
+      },
+    },
+  },
+  experiments: {
+    asyncWebAssembly: true,
+  },
 };

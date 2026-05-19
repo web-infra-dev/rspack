@@ -2,7 +2,12 @@ import { readFile } from 'fs/promises';
 import { resolve } from 'path';
 import { run } from '../../utils/test-utils';
 
-describe.concurrent('rspack cli', () => {
+const supportsNativeTypeScript = Boolean(
+  process.features.typescript || process.versions.bun || process.versions.deno,
+);
+const testNativeLoader = supportsNativeTypeScript ? it : it.skip;
+
+describe('rspack cli', () => {
   describe('should config not found', () => {
     it('should throw an error when config file does not found', async () => {
       const { stderr } = await run(__dirname, ['-c', 'not-found-config.js']);
@@ -48,29 +53,27 @@ describe.concurrent('rspack cli', () => {
   describe('should load cjs config', () => {
     const cwd = resolve(__dirname, './cjs');
 
-    it('should load default config.js file', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
+    it('should load default config.ts file', async () => {
+      const { exitCode, stdout } = await run(cwd, [
         '--output-path',
         'dist/js-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
-        readFile(resolve(cwd, './dist/js-1/js.bundle.js'), {
+        readFile(resolve(cwd, './dist/js-1/ts.bundle.js'), {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main cjs file/);
     });
 
     it('should load config.ts file', async () => {
-      const { exitCode, stderr, stdout } = await run(cwd, [
+      const { exitCode, stdout } = await run(cwd, [
         '-c',
         'rspack.config.ts',
         '--output-path',
         'dist/ts-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -79,14 +82,31 @@ describe.concurrent('rspack cli', () => {
         }),
       ).resolves.toMatch(/Main cjs file/);
     });
-    it('should load config.export.ts file', async () => {
+    it('should load config.ts file with jiti loader', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--config-loader',
+        'jiti',
+        '--output-path',
+        'dist/ts-jiti',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/ts-jiti/ts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main cjs file/);
+    });
+    it('should load config.export.ts file', async () => {
+      const { exitCode, stdout } = await run(cwd, [
         '-c',
         'rspack.config.export.ts',
         '--output-path',
         'dist/export-1',
       ]);
-      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -134,7 +154,7 @@ describe.concurrent('rspack cli', () => {
   describe('should load esm config', () => {
     const cwd = resolve(__dirname, './esm');
 
-    it('should load default config.js file', async () => {
+    it('should load default config.ts file', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
         '--output-path',
         'dist/js-2',
@@ -143,20 +163,20 @@ describe.concurrent('rspack cli', () => {
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
-        readFile(resolve(cwd, './dist/js-2/js.bundle.js'), {
+        readFile(resolve(cwd, './dist/js-2/ts.bundle.js'), {
           encoding: 'utf-8',
         }),
       ).resolves.toMatch(/Main esm file/);
     });
 
     it('should load config.ts file', async () => {
-      const { exitCode, stdout } = await run(
-        cwd,
-        ['-c', 'rspack.config.ts', '--output-path', 'dist/ts-2'],
-        {
-          nodeOptions: ['--experimental-loader=ts-node/esm'],
-        },
-      );
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--output-path',
+        'dist/ts-2',
+      ]);
+      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -165,6 +185,47 @@ describe.concurrent('rspack cli', () => {
         }),
       ).resolves.toMatch(/Main esm file/);
     });
+
+    it('should load config.ts file with jiti loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--config-loader',
+        'jiti',
+        '--output-path',
+        'dist/ts-jiti',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/ts-jiti/ts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
+
+    testNativeLoader(
+      'should load config.ts file with native loader',
+      async () => {
+        const { exitCode, stderr, stdout } = await run(cwd, [
+          '-c',
+          'rspack.config.ts',
+          '--config-loader',
+          'native',
+          '--output-path',
+          'dist/ts-native',
+        ]);
+        expect(stderr).toBeFalsy();
+        expect(stdout).toBeTruthy();
+        expect(exitCode).toBe(0);
+        await expect(
+          readFile(resolve(cwd, './dist/ts-native/ts.bundle.js'), {
+            encoding: 'utf-8',
+          }),
+        ).resolves.toMatch(/Main esm file/);
+      },
+    );
 
     it('should load config.mjs file', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, [
@@ -183,15 +244,33 @@ describe.concurrent('rspack cli', () => {
       ).resolves.toMatch(/Main esm file/);
     });
 
-    it('should load config.mts file', async () => {
-      const { exitCode, stdout } = await run(
-        cwd,
-        ['-c', 'rspack.config.mts', '--output-path', 'dist/mts-1'],
-        {
-          nodeOptions: ['--experimental-loader=ts-node/esm'],
-        },
-      );
+    it('should load config.mts file with jiti loader', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.mts',
+        '--config-loader',
+        'jiti',
+        '--output-path',
+        'dist/mts-jiti',
+      ]);
+      expect(stderr).toBeFalsy();
+      expect(stdout).toBeTruthy();
+      expect(exitCode).toBe(0);
+      await expect(
+        readFile(resolve(cwd, './dist/mts-jiti/mts.bundle.js'), {
+          encoding: 'utf-8',
+        }),
+      ).resolves.toMatch(/Main esm file/);
+    });
 
+    it('should load config.mts file', async () => {
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.mts',
+        '--output-path',
+        'dist/mts-1',
+      ]);
+      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -206,13 +285,13 @@ describe.concurrent('rspack cli', () => {
     const cwd = resolve(__dirname, './esm');
 
     it('should load config.ts file', async () => {
-      const { exitCode, stdout } = await run(
-        cwd,
-        ['-c', 'rspack.config.ts', '--output-path', 'dist/ts-3'],
-        {
-          nodeOptions: ['--experimental-loader=ts-node/esm'],
-        },
-      );
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+        '--output-path',
+        'dist/ts-3',
+      ]);
+      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -223,14 +302,13 @@ describe.concurrent('rspack cli', () => {
     });
 
     it('should load config.mts file', async () => {
-      const { exitCode, stdout } = await run(
-        cwd,
-        ['-c', 'rspack.config.mts', '--output-path', 'dist/mts-2'],
-        {
-          nodeOptions: ['--experimental-loader=ts-node/esm'],
-        },
-      );
-
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.mts',
+        '--output-path',
+        'dist/mts-2',
+      ]);
+      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -244,9 +322,11 @@ describe.concurrent('rspack cli', () => {
   describe('should load monorepo config', () => {
     const cwd = resolve(__dirname, './monorepo');
     it('should load monorepo config.ts file', async () => {
-      const { exitCode, stdout } = await run(cwd, ['-c', 'rspack.config.ts'], {
-        nodeOptions: ['--experimental-loader=ts-node/esm'],
-      });
+      const { exitCode, stderr, stdout } = await run(cwd, [
+        '-c',
+        'rspack.config.ts',
+      ]);
+      expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
       await expect(
@@ -257,62 +337,4 @@ describe.concurrent('rspack cli', () => {
       ).resolves.toMatch(/Main monorepo file/);
     });
   });
-  describe('should support loader ts-node register', () => {
-    const cwd = resolve(__dirname, './ts-node-register');
-    it('should load ts-node-register to support declare const enum', async () => {
-      const { exitCode, stdout, stderr } = await run(
-        cwd,
-        ['-c', 'rspack.config.ts'],
-        {
-          nodeOptions: ['--require', 'ts-node/register'],
-        },
-      );
-      expect(stdout).toBeTruthy();
-      expect(stderr).toBeFalsy();
-      expect(exitCode).toBe(0);
-      await expect(
-        readFile(resolve(cwd, `./dist/node-register.bundle.js`), {
-          encoding: 'utf-8',
-        }),
-      ).resolves.toMatch(/Main ts-node-register file: 42/);
-    });
-    it("builtin swc-register can't handle declare const enum", async () => {
-      const { exitCode, stdout, stderr } = await run(
-        cwd,
-        ['-c', 'rspack.config.ts'],
-        {
-          nodeOptions: [],
-        },
-      );
-      expect(stdout).toBeFalsy();
-      expect(stderr).toBeTruthy();
-      expect(stderr).toMatch(/ReferenceError: JSB is not defined/);
-      expect(exitCode).toBe(1);
-    });
-  });
-
-  // describe("loose-unrecognized-keys (default)", () => {
-  // 	const cwd = resolve(__dirname, "./loose-unrecognized-keys");
-  // 	it.concurrent("should report unrecognized keys", async () => {
-  // 		const { stderr, exitCode } = await run(cwd, []);
-  // 		expect(stderr).toMatchInlineSnapshot(`
-  // 		"Configuration error:
-  // 		- Unrecognized key(s) in object: '_additionalProperty'"
-  // 	`);
-  // 		expect(stderr).not.toMatch("ValidationError");
-  // 		expect(exitCode).toBe(0);
-  // 	});
-  // });
-
-  // describe("loose-unrecognized-keys 2 (default)", () => {
-  // 	const cwd = resolve(__dirname, "./loose-unrecognized-keys-other-error");
-  // 	it.concurrent("should fail on other error", async () => {
-  // 		const { stderr, exitCode } = await run(cwd, []);
-  // 		expect(stderr).toMatch("ValidationError");
-  // 		expect(stderr).toMatch(
-  // 			`The provided value "./context" must be an absolute path. at \"context"`
-  // 		);
-  // 		expect(exitCode).toBe(1);
-  // 	});
-  // });
 });

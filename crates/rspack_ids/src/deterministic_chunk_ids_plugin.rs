@@ -1,5 +1,6 @@
+use std::borrow::Cow;
+
 use rayon::prelude::*;
-use rspack_collections::{DatabaseItem, UkeyMap};
 use rspack_core::{
   ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
 };
@@ -8,7 +9,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::id_helpers::{
-  assign_deterministic_ids, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
+  NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural, get_full_chunk_name,
+  get_used_chunk_ids,
 };
 
 #[plugin]
@@ -44,7 +46,7 @@ async fn chunk_ids(
   let mut used_ids = get_used_chunk_ids(chunk_by_ukey);
   let used_ids_len = used_ids.len();
 
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
   let module_graph = compilation.get_module_graph();
   let module_graph_cache = &compilation.module_graph_cache_artifact;
   let context = self
@@ -73,30 +75,36 @@ async fn chunk_ids(
           chunk_graph,
           module_graph,
           module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           &context,
+          &compilation.exports_info_artifact,
         ),
       )
     })
-    .collect::<UkeyMap<_, _>>();
+    .collect::<FxHashMap<_, _>>();
 
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 
   assign_deterministic_ids(
     chunks,
     |chunk| {
-      chunk_names
-        .get(&chunk.ukey())
-        .expect("should have generated full chunk name")
-        .to_string()
+      Cow::Borrowed(
+        chunk_names
+          .get(&chunk.ukey())
+          .expect("should have generated full chunk name")
+          .as_str(),
+      )
     },
     |a, b| {
       compare_chunks_natural(
         chunk_graph,
-        &compilation.chunk_group_by_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         &compilation.module_ids_artifact,
         a,
         b,
-        &mut ordered_chunk_modules_cache,
+        &mut chunk_compare_cache,
       )
     },
     |chunk, id| {
@@ -115,10 +123,10 @@ async fn chunk_ids(
     salt,
   );
 
-  chunk_key_to_id.into_iter().for_each(|(chunk_ukey, id)| {
+  for (chunk_ukey, id) in chunk_key_to_id {
     let chunk = chunk_by_ukey.expect_get_mut(&chunk_ukey);
     chunk.set_id(id.to_string());
-  });
+  }
 
   Ok(())
 }

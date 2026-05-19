@@ -6,8 +6,9 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilerFinishMake,
-  EntryOptions, Plugin, RuntimeGlobals, RuntimeModule,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
+  CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
+  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -48,16 +49,31 @@ impl ModuleFederationRuntimePlugin {
   }
 }
 
+#[plugin_hook(CompilerCompilation for ModuleFederationRuntimePlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(
+    DependencyType::FederationRuntime,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
+}
+
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for ModuleFederationRuntimePlugin)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   // Add base FederationRuntimeModule which is responsible for providing bundler data to the runtime.
-  runtime_modules.push(Box::<FederationDataRuntimeModule>::default());
+  runtime_modules.push(Box::new(FederationDataRuntimeModule::new(
+    &compilation.runtime_template,
+  )));
 
   Ok(())
 }
@@ -93,8 +109,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 #[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
 async fn finish_modules(
   &self,
-  compilation: &mut Compilation,
+  compilation: &Compilation,
   async_modules_artifact: &mut AsyncModulesArtifact,
+  _exports_info_artifact: &mut ExportsInfoArtifact,
+  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
 ) -> Result<()> {
   if !self.options.experiments.async_startup {
     return Ok(());
@@ -108,7 +126,7 @@ async fn finish_modules(
       .downcast_ref::<ContainerEntryModule>()
       .is_some()
     {
-      async_modules_artifact.insert(module_identifier);
+      async_modules_artifact.insert(*module_identifier);
     }
   }
 
@@ -121,6 +139,8 @@ impl Plugin for ModuleFederationRuntimePlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
     ctx
       .compilation_hooks
       .additional_tree_runtime_requirements

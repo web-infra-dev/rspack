@@ -11,7 +11,7 @@ import {
   type PrettyFormatOptions,
   format as prettyFormat,
 } from 'pretty-format';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { TestContext, type TTestContextOptions } from '../test/context';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITesterConfig } from '../type';

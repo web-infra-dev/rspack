@@ -5,9 +5,8 @@
 //! checks that intercepts and modifies the startup execution order.
 
 use rspack_cacheable::cacheable;
-use rspack_collections::Identifier;
 use rspack_core::{
-  ChunkUkey, Compilation, DependencyId, RuntimeModule, RuntimeModuleStage, RuntimeTemplate,
+  DependencyId, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   impl_runtime_module,
 };
 use rspack_error::Result;
@@ -24,8 +23,6 @@ pub struct EmbedFederationRuntimeModuleOptions {
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct EmbedFederationRuntimeModule {
-  id: Identifier,
-  chunk: Option<ChunkUkey>,
   options: EmbedFederationRuntimeModuleOptions,
 }
 
@@ -34,14 +31,7 @@ impl EmbedFederationRuntimeModule {
     runtime_template: &RuntimeTemplate,
     options: EmbedFederationRuntimeModuleOptions,
   ) -> Self {
-    Self::with_default(
-      Identifier::from(format!(
-        "{}embed_federation_runtime",
-        runtime_template.runtime_module_prefix()
-      )),
-      None,
-      options,
-    )
+    Self::with_name(runtime_template, "embed_federation_runtime", options)
   }
 }
 
@@ -61,10 +51,6 @@ impl EmbedFederationRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -78,7 +64,8 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
     ]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> Result<String> {
+  async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
+    let compilation = context.compilation;
     let chunk_ukey = self
       .chunk
       .expect("Chunk should be attached to RuntimeModule");
@@ -93,6 +80,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
       for dep_id in collected_deps.iter() {
         if let Some(module_dyn) = module_graph.get_module_by_dependency_id(dep_id) {
           let is_in_chunk = compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .is_module_in_chunk(&module_dyn.identifier(), chunk_ukey);
           if is_in_chunk {
@@ -104,9 +92,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     // Generate module execution code for each federation runtime dependency
     let mut module_executions = String::with_capacity(federation_runtime_modules.len() * 64);
-    let mut runtime_template = compilation
-      .runtime_template
-      .create_module_codegen_runtime_template();
+    let mut runtime_template = compilation.runtime_template.create_module_code_template();
 
     for dep_id in federation_runtime_modules {
       let module_str = runtime_template.module_raw(compilation, &dep_id, "", false);
@@ -117,21 +103,23 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
 
     if self.options.experiments.async_startup {
       let entry_chunk_ids = compilation
+        .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(&chunk_ukey)
-        .get_all_initial_chunks(&compilation.chunk_group_by_ukey)
+        .get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         .into_iter()
         .map(|chunk_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()
-            .to_string()
+            .clone()
         })
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
         serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
-      Ok(compilation.runtime_template.render(
+      Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({
           "_module_executions": module_executions,
@@ -143,17 +131,13 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         return Ok("// Federation runtime entry modules not found in this chunk.".into());
       }
       // Sync startup: keep the legacy prevStartup wrapper for minimal surface area.
-      Ok(compilation.runtime_template.render(
+      Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Sync),
         Some(serde_json::json!({
           "_module_executions": module_executions,
         })),
       )?)
     }
-  }
-
-  fn attach(&mut self, chunk: ChunkUkey) {
-    self.chunk = Some(chunk);
   }
 
   fn stage(&self) -> RuntimeModuleStage {

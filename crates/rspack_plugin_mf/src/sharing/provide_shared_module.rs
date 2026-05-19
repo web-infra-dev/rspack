@@ -4,8 +4,8 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo,
-  BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
+  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
   DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
   ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, impl_module_meta_info,
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
@@ -21,7 +21,7 @@ use super::{
     CodeGenerationDataShareInit, DataInitInfo, ProvideSharedInfo, ShareInitData,
   },
 };
-use crate::ConsumeVersion;
+use crate::{ConsumeVersion, ShareScope};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -33,13 +33,14 @@ pub struct ProvideSharedModule {
   lib_ident: String,
   readable_identifier: String,
   name: String,
-  share_scope: String,
+  share_scope: ShareScope,
   version: ProvideVersion,
   request: String,
   eager: bool,
   singleton: Option<bool>,
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
+  tree_shaking_mode: Option<String>,
   factory_meta: Option<FactoryMeta>,
   build_info: BuildInfo,
   build_meta: BuildMeta,
@@ -48,7 +49,7 @@ pub struct ProvideSharedModule {
 impl ProvideSharedModule {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
-    share_scope: String,
+    share_scope: ShareScope,
     name: String,
     version: ProvideVersion,
     request: String,
@@ -56,16 +57,18 @@ impl ProvideSharedModule {
     singleton: Option<bool>,
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
+    tree_shaking_mode: Option<String>,
   ) -> Self {
+    let scopes_key = share_scope.key();
     let identifier = format!(
       "provide shared module ({}) {}@{} = {}",
-      &share_scope, &name, &version, &request
+      &scopes_key, &name, &version, &request
     );
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!("webpack/sharing/provide/{}/{}", &share_scope, &name),
+      lib_ident: format!("webpack/sharing/provide/{}/{}", &scopes_key, &name),
       readable_identifier: identifier,
       name,
       share_scope,
@@ -75,6 +78,7 @@ impl ProvideSharedModule {
       singleton,
       required_version,
       strict_version,
+      tree_shaking_mode,
       factory_meta: None,
       build_info: BuildInfo {
         strict: true,
@@ -83,6 +87,10 @@ impl ProvideSharedModule {
       build_meta: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
+  }
+
+  pub fn share_key(&self) -> &str {
+    &self.name
   }
 }
 
@@ -144,7 +152,7 @@ impl Module for ProvideSharedModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -159,9 +167,10 @@ impl Module for ProvideSharedModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
       blocks,
-      ..Default::default()
+      optimization_bailouts: vec![],
     })
   }
 
@@ -199,6 +208,7 @@ impl Module for ProvideSharedModule {
             singleton: self.singleton,
             strict_version: self.strict_version,
             required_version: self.required_version.clone(),
+            tree_shaking_mode: self.tree_shaking_mode.clone(),
           }),
         }],
       });

@@ -1,5 +1,5 @@
 module.exports = {
-	externals: {
-		'external': 'module path'
-	}
-}
+  externals: {
+    external: 'module path',
+  },
+};

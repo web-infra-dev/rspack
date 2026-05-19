@@ -1,0 +1,23 @@
+```mjs title=main.mjs
+// ./a.js
+const fromA = 'a';
+const shared = 'a-version';
+
+// ./index.js
+
+
+
+
+it('should handle export star combined with explicit named re-exports', async () => {
+	const mod = await import(/* webpackIgnore: true */ './main.mjs');
+	expect(mod.fromA).toBe('a');
+	expect(mod.fromB).toBe('b');
+	expect(mod.shared).toBe('a-version');
+	expect(mod.sharedExplicit).toBe('a-version');
+});
+
+var index_fromA = (/* inlined export .fromA */"a");
+var index_fromB = (/* inlined export .fromB */"b");
+export { index_fromA as fromA, index_fromB as fromB, shared, shared as sharedExplicit };
+
+```

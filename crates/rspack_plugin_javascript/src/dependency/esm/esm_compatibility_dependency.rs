@@ -1,8 +1,8 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, InitFragmentKey,
-  InitFragmentStage, ModuleGraph, NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, UsageState,
+  InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, UsageState,
 };
 use swc_core::atoms::Atom;
 
@@ -53,8 +53,9 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
     let name = Atom::from("__esModule");
-    let exports_info = module_graph
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
     let used = exports_info
       .get_read_only_export_info(&name)
       .get_used(*runtime);
@@ -72,10 +73,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
       )));
     }
 
-    if ModuleGraph::is_async(
-      &compilation.async_modules_artifact.borrow(),
-      &module.identifier(),
-    ) {
+    if ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier()) {
       init_fragments.push(Box::new(NormalInitFragment::new(
         format!(
           "{}({}, async function (__rspack_load_async_deps, __rspack_async_done) {{ try {{\n",

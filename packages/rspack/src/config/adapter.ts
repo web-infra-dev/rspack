@@ -5,8 +5,6 @@ import {
   type RawAssetParserDataUrl,
   type RawAssetParserOptions,
   type RawAssetResourceGeneratorOptions,
-  type RawCssAutoGeneratorOptions,
-  type RawCssAutoParserOptions,
   type RawCssGeneratorOptions,
   type RawCssModuleGeneratorOptions,
   type RawCssModuleParserOptions,
@@ -31,6 +29,7 @@ import type { Compiler } from '../Compiler';
 import { normalizeStatsPreset } from '../Stats';
 import { isNil } from '../util';
 import { parseResource } from '../util/identifier';
+import { isStatsColorSupported } from '../util/supportsColor';
 import {
   type ComposeJsUseOptions,
   createRawModuleRuleUses,
@@ -52,8 +51,8 @@ import type {
   AssetParserDataUrl,
   AssetParserOptions,
   AssetResourceGeneratorOptions,
-  CssAutoGeneratorOptions,
   CssGeneratorOptions,
+  CssModuleGeneratorOptions,
   CssParserOptions,
   GeneratorOptionsByModuleType,
   JavascriptParserOptions,
@@ -229,7 +228,6 @@ function getRawModule(
     parser: getRawParserOptionsMap(module.parser),
     generator: getRawGeneratorOptionsMap(module.generator),
     noParse: module.noParse,
-    unsafeCache: module.unsafeCache,
   };
 }
 
@@ -275,17 +273,17 @@ const getRawModuleRule = (
 ): RawModuleRule => {
   // Rule.loader is a shortcut to Rule.use: [ { loader } ].
   // See: https://webpack.js.org/configuration/module/#ruleloader
-  if (rule.loader) {
-    rule.use = [
-      {
-        loader: rule.loader,
-        options: rule.options,
-      },
-    ];
-  }
+  const normalizedUse = rule.loader
+    ? [
+        {
+          loader: rule.loader,
+          options: rule.options,
+        },
+      ]
+    : rule.use;
   let funcUse: undefined | ((rawContext: RawFuncUseCtx) => RawModuleRuleUse[]);
-  if (typeof rule.use === 'function') {
-    const use = rule.use;
+  if (typeof normalizedUse === 'function') {
+    const use = normalizedUse;
     funcUse = (rawContext: RawFuncUseCtx) => {
       const context = {
         ...rawContext,
@@ -335,9 +333,9 @@ const getRawModuleRule = (
     mimetype: rule.mimetype ? getRawRuleSetCondition(rule.mimetype) : undefined,
     sideEffects: rule.sideEffects,
     use:
-      typeof rule.use === 'function'
+      typeof normalizedUse === 'function'
         ? funcUse
-        : createRawModuleRuleUses(rule.use ?? [], `${path}.use`, options),
+        : createRawModuleRuleUses(normalizedUse ?? [], `${path}.use`, options),
     type: rule.type,
     layer: rule.layer,
     parser: rule.parser
@@ -536,6 +534,12 @@ function getRawParserOptions(
       cssAuto: getRawCssParserOptions(parser),
     };
   }
+  if (type === 'css/global') {
+    return {
+      type: 'css/global',
+      cssGlobal: getRawCssParserOptions(parser),
+    };
+  }
   if (type === 'css/module') {
     return {
       type: 'css/module',
@@ -562,11 +566,15 @@ function getRawJavascriptParserOptions(
     dynamicImportPreload: parser.dynamicImportPreload?.toString(),
     dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta: parser.importMeta,
+    importMeta:
+      typeof parser.importMeta === 'boolean'
+        ? String(parser.importMeta)
+        : parser.importMeta,
     url: parser.url?.toString(),
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
     wrappedContextCritical: parser.wrappedContextCritical,
+    strictThisContextOnImports: parser.strictThisContextOnImports,
     wrappedContextRegExp: parser.wrappedContextRegExp,
     exportsPresence:
       parser.exportsPresence === false ? 'false' : parser.exportsPresence,
@@ -578,7 +586,6 @@ function getRawJavascriptParserOptions(
       parser.reexportExportsPresence === false
         ? 'false'
         : parser.reexportExportsPresence,
-    strictExportPresence: parser.strictExportPresence,
     worker:
       typeof parser.worker === 'boolean'
         ? parser.worker
@@ -596,6 +603,8 @@ function getRawJavascriptParserOptions(
     typeReexportsPresence: parser.typeReexportsPresence,
     jsx: parser.jsx,
     deferImport: parser.deferImport,
+    importMetaResolve: parser.importMetaResolve,
+    pureFunctions: parser.pureFunctions,
   };
 }
 
@@ -627,10 +636,11 @@ function getRawAssetParserDataUrl(
 
 function getRawCssParserOptions(
   parser: CssParserOptions,
-): RawCssParserOptions | RawCssAutoParserOptions | RawCssModuleParserOptions {
+): RawCssParserOptions | RawCssModuleParserOptions {
   return {
     namedExports: parser.namedExports,
     url: parser.url,
+    resolveImport: parser.resolveImport as any,
   };
 }
 
@@ -682,6 +692,12 @@ function getRawGeneratorOptions(
     return {
       type: 'css/auto',
       cssAuto: getRawCssAutoOrModuleGeneratorOptions(generator),
+    };
+  }
+  if (type === 'css/global') {
+    return {
+      type: 'css/global',
+      cssGlobal: getRawCssAutoOrModuleGeneratorOptions(generator),
     };
   }
   if (type === 'css/module') {
@@ -774,10 +790,14 @@ function getRawCssGeneratorOptions(
 }
 
 function getRawCssAutoOrModuleGeneratorOptions(
-  options: CssAutoGeneratorOptions,
-): RawCssAutoGeneratorOptions | RawCssModuleGeneratorOptions {
+  options: CssModuleGeneratorOptions,
+): RawCssModuleGeneratorOptions {
   return {
     localIdentName: options.localIdentName,
+    localIdentHashDigest: options.localIdentHashDigest,
+    localIdentHashDigestLength: options.localIdentHashDigestLength,
+    localIdentHashFunction: options.localIdentHashFunction,
+    localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
     esModule: options.esModule,
@@ -812,7 +832,11 @@ function getRawNode(node: Node): RawOptions['node'] {
 
 function getRawStats(stats: StatsValue): RawOptions['stats'] {
   const statsOptions = normalizeStatsPreset(stats);
+  const colors =
+    statsOptions.colors === undefined
+      ? isStatsColorSupported()
+      : Boolean(statsOptions.colors);
   return {
-    colors: Boolean(statsOptions.colors),
+    colors,
   };
 }

@@ -13,16 +13,21 @@ module.exports = {
 				?.toString({ all: false, logging: "verbose" })
 		).toBeEquivalentStatsStringWith(`
 			LOG from rspack.Compilation
+			<t> build module graph: X ms
 			<t> finish modules: X ms
+			<t> seal: X ms
 			<t> optimize dependencies: X ms
 			<t> rebuild chunk graph: X ms
+			<t> build chunk graph: X ms
 			<t> optimize modules: X ms
 			<t> optimize chunks: X ms
 			<t> optimize tree: X ms
 			<t> optimize chunk modules: X ms
 			<t> module ids: X ms
 			<t> chunk ids: X ms
+			<t> assign runtime ids: X ms
 			<t> optimize code generation: X ms
+			<t> create module hashes: X ms
 			<t> code generation: X ms
 			<t> runtime requirements.modules: X ms
 			<t> runtime requirements.chunks: X ms
@@ -40,7 +45,6 @@ module.exports = {
 
 			LOG from rspack.Compiler
 			<t> make hook: X ms
-			<t> build module graph: X ms
 			<t> finish make hook: X ms
 			<t> finish compilation: X ms
 			<t> seal compilation: X ms

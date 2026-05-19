@@ -1,7 +1,6 @@
-use rspack_collections::DatabaseItem;
 use rspack_core::{
   ChunkGraph, Compilation, CompilerEmit, Context, EntryDependency, Filename, LibIdentOptions,
-  PathData, Plugin, PrefetchExportsInfoMode, ProvidedExports, SourceType,
+  PathData, Plugin, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -52,14 +51,14 @@ impl Plugin for LibManifestPlugin {
 
 #[plugin_hook(CompilerEmit for LibManifestPlugin)]
 async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
-  let chunk_graph = &compilation.chunk_graph;
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
   let mut manifests: HashMap<String, String> = HashMap::default();
 
   let module_graph = compilation.get_module_graph();
 
-  for (_, chunk) in compilation.chunk_by_ukey.iter() {
-    if !chunk.can_be_initial(&compilation.chunk_group_by_ukey) {
+  for (_, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
+    if !chunk.can_be_initial(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
       continue;
     }
 
@@ -127,8 +126,9 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       let ident = module.lib_ident(LibIdentOptions { context });
 
       if let Some(ident) = ident {
-        let exports_info = module_graph
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports() {
           ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),

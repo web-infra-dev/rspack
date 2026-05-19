@@ -1,3 +1,7 @@
+---
+description: '控制 Rspack 在为非 Node 环境打包时，是否需要为 Node.js 的 global 对象提供 polyfill。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/node/" />
@@ -5,6 +9,10 @@ import WebpackLicense from '@components/WebpackLicense';
 # Node
 
 全局变量：该选项可以配置是否 polyfill 或 mock 某些 [Node.js 全局变量](https://nodejs.org/docs/latest/api/globals.html)。
+
+- **类型：** `false | object`
+
+将 `node` 设置为 `false` 可以禁用所有 Node.js 全局变量的 polyfill 和 mock。否则，可以使用下面的选项分别配置。
 
 ## node.global
 
@@ -35,7 +43,7 @@ export default {
 
 ## node.\_\_filename
 
-- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **默认值：**
   - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
   - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`
@@ -44,7 +52,7 @@ export default {
 
 ### 可选值
 
-- `true`：替换为源文件的文件路径，相对于 [`context`](/config/context) 选项
+- `true`：替换为源文件相对于 [`context`](/config/context) 的相对文件路径
 - `false`：不做任何处理，保持原生行为
 - `'mock'`：替换为 `'/index.js'`
 - `'eval-only'`：等同于 `false`
@@ -53,7 +61,7 @@ export default {
 
 ### 示例
 
-例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理：
+例如，不对 `__filename` 和 `import.meta.filename` 进行任何处理，在产物中保留原内容：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -63,7 +71,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__filename` 替换为 `fileURLToPath(import.meta.url)`：
+将 ESM 产物中的 `__filename` 和 `import.meta.filename` 替换为 `fileURLToPath(import.meta.url)`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -79,7 +87,7 @@ export default {
 
 ## node.\_\_dirname
 
-- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **默认值：**
   - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
   - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`
@@ -97,7 +105,7 @@ export default {
 
 ### 示例
 
-例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理：
+例如，不对 `__dirname` 和 `import.meta.dirname` 进行任何处理，在产物中保留原内容：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -107,7 +115,7 @@ export default {
 };
 ```
 
-将 ESM 产物中的 `__dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
+将 ESM 产物中的 `__dirname` 和 `import.meta.dirname` 替换为 `fileURLToPath(import.meta.url + "/..")`：
 
 ```js title="rspack.config.mjs"
 export default {

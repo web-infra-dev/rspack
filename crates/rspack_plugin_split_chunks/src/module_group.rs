@@ -1,10 +1,9 @@
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt};
 
 use derive_more::Debug;
-use itertools::Itertools;
-use rspack_collections::{IdentifierSet, UkeySet};
+use rspack_collections::IdentifierSet;
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   CacheGroup,
@@ -12,7 +11,7 @@ use crate::{
 };
 
 pub(crate) struct IndexedCacheGroup<'a> {
-  pub cache_group_index: usize,
+  pub cache_group_index: u32,
   pub cache_group: &'a CacheGroup,
 }
 
@@ -30,6 +29,75 @@ impl<'a> IndexedCacheGroup<'a> {
   }
 }
 
+#[derive(Debug)]
+enum ModulesForCompare {
+  Unsorted(Vec<ModuleIdentifier>),
+  Sorted(Vec<ModuleIdentifier>),
+}
+
+impl Default for ModulesForCompare {
+  fn default() -> Self {
+    Self::Unsorted(Default::default())
+  }
+}
+
+impl ModulesForCompare {
+  fn prepare(&mut self, modules: Vec<ModuleIdentifier>) {
+    if modules.is_empty() {
+      return;
+    }
+
+    if matches!(self, Self::Unsorted(modules_for_compare) if modules_for_compare.is_empty()) {
+      *self = Self::Unsorted(modules);
+    }
+  }
+
+  fn sorted(&mut self) -> &[ModuleIdentifier] {
+    if let Self::Unsorted(modules) = self {
+      modules.sort_unstable_by_key(|module| module.precomputed_hash());
+      *self = Self::Sorted(std::mem::take(modules));
+    }
+
+    let Self::Sorted(modules) = self else {
+      unreachable!("modules for compare should be sorted");
+    };
+    modules
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub(crate) enum ModuleGroupKey {
+  Named {
+    cache_group_index: u32,
+    chunk_name: String,
+  },
+  Anonymous {
+    cache_group_index: u32,
+    chunks_key: u64,
+  },
+}
+
+impl fmt::Display for ModuleGroupKey {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Named {
+        cache_group_index,
+        chunk_name,
+      } => write!(
+        f,
+        "named(cache_group_index={cache_group_index}, chunk_name={chunk_name})"
+      ),
+      Self::Anonymous {
+        cache_group_index,
+        chunks_key,
+      } => write!(
+        f,
+        "anonymous(cache_group_index={cache_group_index}, chunks_key={chunks_key:x})"
+      ),
+    }
+  }
+}
+
 /// `ModuleGroup` is a abstraction of middle step for splitting chunks.
 ///
 /// `ModuleGroup` captures/contains a bunch of modules due to the `optimization.splitChunks` configuration.
@@ -43,7 +111,7 @@ impl<'a> IndexedCacheGroup<'a> {
 pub(crate) struct ModuleGroup {
   pub modules: IdentifierSet,
   /// the real index used for mapping the ModuleGroup to corresponding CacheGroup
-  pub cache_group_index: usize,
+  pub cache_group_index: u32,
   pub cache_group_reuse_existing_chunk: bool,
   /// If the `ModuleGroup` is going to create a chunk, which will be named using `chunk_name`
   /// A module
@@ -52,7 +120,8 @@ pub(crate) struct ModuleGroup {
   pub source_types_modules: FxHashMap<SourceType, IdentifierSet>,
   /// `Chunk`s which `Module`s in this ModuleGroup belong to
   #[debug(skip)]
-  pub chunks: UkeySet<ChunkUkey>,
+  pub chunks: FxHashSet<ChunkUkey>,
+  modules_for_compare: ModulesForCompare,
   added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
@@ -60,11 +129,7 @@ pub(crate) struct ModuleGroup {
 }
 
 impl ModuleGroup {
-  pub fn new(
-    chunk_name: Option<String>,
-    cache_group_index: usize,
-    cache_group: &CacheGroup,
-  ) -> Self {
+  pub fn new(chunk_name: Option<String>, cache_group_index: u32, cache_group: &CacheGroup) -> Self {
     Self {
       modules: Default::default(),
       cache_group_index,
@@ -72,6 +137,7 @@ impl ModuleGroup {
       sizes: Default::default(),
       source_types_modules: Default::default(),
       chunks: Default::default(),
+      modules_for_compare: Default::default(),
       chunk_name,
       added: Default::default(),
       removed: Default::default(),
@@ -109,9 +175,7 @@ impl ModuleGroup {
   }
 
   pub fn add_module(&mut self, module: ModuleIdentifier) {
-    if self.modules.insert(module) {
-      self.added.push(module);
-    }
+    self.modules.insert(module);
   }
 
   pub fn remove_module(&mut self, module: ModuleIdentifier) {
@@ -120,8 +184,19 @@ impl ModuleGroup {
     }
   }
 
+  pub fn prepare_modules_for_sizes_and_compare(&mut self) {
+    let modules = self.modules.iter().copied().collect::<Vec<_>>();
+    self.added = modules.clone();
+    self.modules_for_compare.prepare(modules);
+    self.removed.reserve(self.modules.len());
+  }
+
+  pub fn sorted_modules_for_compare(&mut self) -> &[ModuleIdentifier] {
+    self.modules_for_compare.sorted()
+  }
+
   pub fn get_cache_group<'a>(&self, cache_groups: &'a [CacheGroup]) -> &'a CacheGroup {
-    &cache_groups[self.cache_group_index]
+    &cache_groups[self.cache_group_index as usize]
   }
 
   pub fn get_total_size(&self) -> f64 {
@@ -131,7 +206,7 @@ impl ModuleGroup {
     self.total_size
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> SplitChunkSizes {
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -166,13 +241,13 @@ impl ModuleGroup {
       }
     }
 
-    self.sizes.clone()
+    &self.sizes
   }
 }
 
 pub(crate) fn compare_entries(
-  (a_key, a): (&String, &ModuleGroup),
-  (b_key, b): (&String, &ModuleGroup),
+  (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
+  (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -210,14 +285,8 @@ pub(crate) fn compare_entries(
     return diff;
   }
 
-  let mut modules_a = a
-    .modules
-    .iter()
-    .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()));
-  let mut modules_b = b
-    .modules
-    .iter()
-    .sorted_unstable_by(|a, b| a.precomputed_hash().cmp(&b.precomputed_hash()));
+  let mut modules_a = a.sorted_modules_for_compare().iter();
+  let mut modules_b = b.sorted_modules_for_compare().iter();
 
   loop {
     match (modules_a.next(), modules_b.next()) {
@@ -228,9 +297,14 @@ pub(crate) fn compare_entries(
           return res as i32 as f64;
         }
       }
-      _ => unreachable!(),
+      (None, Some(_)) => return -1.0,
+      (Some(_), None) => return 1.0,
     }
   }
 
-  a_key.cmp(b_key) as i32 as f64
+  match a_key.cmp(b_key) {
+    Ordering::Less => -1.0,
+    Ordering::Equal => 0.0,
+    Ordering::Greater => 1.0,
+  }
 }

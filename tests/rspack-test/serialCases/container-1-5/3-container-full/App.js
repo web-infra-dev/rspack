@@ -1,4 +1,4 @@
-import React from "mocked-react";
+import React from "@rspack/mocked-react";
 import ComponentC from "containerB/ComponentC";
 
 export default () => {

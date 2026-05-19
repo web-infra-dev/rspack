@@ -12,6 +12,7 @@ const IS_INCLUDED: &str = "__webpack_is_included__";
 
 pub struct IsIncludedPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for IsIncludedPlugin {
   fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {
     if name != IS_INCLUDED || expr.args.len() != 1 || expr.args[0].spread.is_some() {
@@ -25,7 +26,7 @@ impl JavascriptParserPlugin for IsIncludedPlugin {
 
     parser.add_dependency(Box::new(IsIncludeDependency::new(
       (expr.span().real_lo(), expr.span().real_hi()).into(),
-      request.string().to_string(),
+      request.string().clone(),
     )));
 
     Some(true)
@@ -41,7 +42,6 @@ impl JavascriptParserPlugin for IsIncludedPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         (expr.span().real_lo(), expr.span().real_hi()).into(),
         "'function'".into(),
-        None,
       )));
       true
     })

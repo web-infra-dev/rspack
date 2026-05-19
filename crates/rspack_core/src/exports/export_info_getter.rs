@@ -67,15 +67,28 @@ impl ExportInfoData {
     if let Some(used_in_runtime) = self.used_in_runtime() {
       let mut max = UsageState::Unused;
       if let Some(runtime) = runtime {
-        for item in runtime.iter() {
-          let Some(usage) = used_in_runtime.get(item) else {
-            continue;
-          };
-          match usage {
-            UsageState::Used => return UsageState::Used,
-            _ => {
-              max = std::cmp::max(max, *usage);
+        let used_len = used_in_runtime.len();
+        let runtime_len = runtime.len();
+
+        if runtime_len <= used_len {
+          for item in runtime.iter() {
+            let Some(usage) = used_in_runtime.get(item) else {
+              continue;
+            };
+            if *usage == UsageState::Used {
+              return UsageState::Used;
             }
+            max = std::cmp::max(max, *usage);
+          }
+        } else {
+          for (rt, usage) in used_in_runtime.iter() {
+            if !runtime.contains(rt) {
+              continue;
+            }
+            if *usage == UsageState::Used {
+              return UsageState::Used;
+            }
+            max = std::cmp::max(max, *usage);
           }
         }
       } else {
@@ -187,6 +200,7 @@ impl ExportInfoData {
     self.used_name().is_some()
       || self.provided().is_some()
       || self.terminal_binding()
+      || self.ns_access() != base_info.ns_access()
       || (self.get_used(runtime) != base_info.get_used(runtime))
   }
 

@@ -3,7 +3,7 @@ use std::hash::Hash;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
   CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, PathData, Plugin, RuntimeGlobals, RuntimeModule,
+  LibraryOptions, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
@@ -84,13 +84,17 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
   };
   // system-named-assets-path is not supported
   let name = if let Some(name) = options.name {
-    let chunk = compilation.chunk_by_ukey.get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(chunk_ukey);
     let filename = Filename::from(name);
     let path_data = PathData::default()
       .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
@@ -102,14 +106,15 @@ async fn render(
         )
       }));
     let name = compilation.get_path(&filename, path_data).await?;
-    let name_str = serde_json::to_string(&name).to_rspack_result()?;
+    let name_str = rspack_util::json_stringify_str(&name);
     format!("{name_str}, ")
   } else {
-    "".to_string()
+    String::new()
   };
 
   let module_graph = compilation.get_module_graph();
   let modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier(chunk_ukey)
     .iter()
@@ -135,13 +140,11 @@ async fn render(
   let external_var_declarations = external_arguments
     .iter()
     .map(|name| format!("var {name} = {{}};\n"))
-    .collect::<Vec<_>>()
-    .join("");
+    .collect::<String>();
   let external_var_initialization = external_arguments
     .iter()
     .map(|name| format!("Object.defineProperty( {name} , \"__esModule\", {{ value: true }});\n"))
-    .collect::<Vec<_>>()
-    .join("");
+    .collect::<String>();
   let setters = external_arguments
     .iter()
     .map(|name| {

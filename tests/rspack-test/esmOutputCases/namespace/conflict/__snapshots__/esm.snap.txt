@@ -1,0 +1,15 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+/* export default */ const index = ((/* inlined export .foo */1));
+
+it("should keep the first conflicting namespace export under a warning", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toBe(1);
+});
+
+export default index;
+
+```

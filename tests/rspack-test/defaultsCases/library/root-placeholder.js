@@ -17,20 +17,16 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-       "force": true,
-			+       "force": false,
-			@@ ... @@
 			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
 			+     "chunkLoadingGlobal": "rspackChunkmyLib",
 			@@ ... @@
 			-     "devtoolNamespace": "@rspack/tests",
 			+     "devtoolNamespace": "myLib",
 			@@ ... @@
-			+     ],
+			-     "enabledLibraryTypes": Array [],
 			+     "enabledLibraryTypes": Array [
 			+       "var",
-			@@ ... @@
-			-     "enabledLibraryTypes": Array [],
+			+     ],
 			@@ ... @@
 			-     "hotUpdateGlobal": "rspackHotUpdate_rspack_tests",
 			+     "hotUpdateGlobal": "rspackHotUpdatemyLib",

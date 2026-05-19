@@ -1,21 +1,19 @@
-const { CopyRspackPlugin } = require("@rspack/core");
+const { CopyRspackPlugin } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	entry: {
-		main: "./index.js"
-	},
-	output: {
-		library: {
-			type: "module"
-		}
-	},
-	experiments: {
-		outputModule: true
-	},
-	plugins: [
-		new CopyRspackPlugin({
-			patterns: [{ from: "test.mjs" }]
-		})
-	]
+  entry: {
+    main: './index.js',
+  },
+  output: {
+    module: true,
+    library: {
+      type: 'module',
+    },
+  },
+  plugins: [
+    new CopyRspackPlugin({
+      patterns: [{ from: 'test.mjs' }],
+    }),
+  ],
 };

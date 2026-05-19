@@ -50,8 +50,7 @@ fn normalize_string(
                 - res
                   .iter()
                   .rposition(|b| *b == separator)
-                  .map(|i| i + 1)
-                  .unwrap_or(0);
+                  .map_or(0, |i| i + 1);
             } else {
               res.clear();
               last_segment_length = 0;
@@ -227,15 +226,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf
-      .last()
-      .map(|c| !is_posix_path_separator(c))
-      .unwrap_or(false)
+    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
       && path
         .as_bytes()
         .first()
-        .map(|c| !is_posix_path_separator(c))
-        .unwrap_or(false);
+        .is_some_and(|c| !is_posix_path_separator(c));
 
     let mut string = self.as_str().to_string();
     if need_sep {
@@ -258,12 +253,11 @@ impl NodePath for Utf8PathBuf {
 
     // in general, a separator is needed if the rightmost byte is not a separator
     let buf = self.as_os_str().as_encoded_bytes();
-    let need_sep = buf.last().map(|c| !is_path_separator(c)).unwrap_or(false)
+    let need_sep = buf.last().is_some_and(|c| !is_path_separator(c))
       && path
         .as_bytes()
         .first()
-        .map(|c| !is_path_separator(c))
-        .unwrap_or(false);
+        .is_some_and(|c| !is_path_separator(c));
 
     let mut joined = self.to_string();
     if need_sep {

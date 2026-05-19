@@ -2,6 +2,7 @@ use std::{fmt, sync::Arc};
 mod artifacts;
 mod binding;
 mod compilation;
+mod transient_cache;
 
 mod exports;
 mod value_cache_versions;
@@ -12,18 +13,20 @@ pub use compilation::{
   *,
 };
 pub use exports::*;
+pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
 mod dependencies_block;
 pub mod diagnostics;
 pub mod incremental;
 pub use dependencies_block::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, DependenciesBlock,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
+  AsyncDependenciesBlockIdentifierSet, DependenciesBlock,
 };
 mod fake_namespace_object;
 pub use fake_namespace_object::*;
 mod runtime_template;
-use rspack_collections::Database;
 pub use runtime_template::*;
+use rustc_hash::FxHashMap;
 pub mod external_module;
 pub use external_module::*;
 mod logger;
@@ -39,13 +42,16 @@ pub use module::*;
 pub use parser_and_generator::*;
 mod runtime_globals;
 pub use normal_module::*;
-pub use runtime_globals::{RuntimeGlobals, RuntimeVariable};
+pub use runtime_globals::{MODULE_GLOBALS, REQUIRE_SCOPE_GLOBALS, RuntimeGlobals, RuntimeVariable};
 mod plugin;
 pub use plugin::*;
 mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
+mod glob_utils;
+pub(crate) use glob_utils::walk_dir;
+pub use glob_utils::*;
 mod init_fragment;
 pub use init_fragment::*;
 mod module_factory;
@@ -96,7 +102,6 @@ pub use rspack_location::{
 };
 pub mod concatenated_module;
 pub mod reserved_names;
-
 use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_loader_runner::{
   AdditionalData, BUILTIN_LOADER_PREFIX, ParseMeta, ResourceData, ResourceParsedData, Scheme,
@@ -109,7 +114,7 @@ pub use rspack_sources;
 pub mod debug_info;
 
 #[cacheable]
-#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SourceType {
   JavaScript,
   Css,
@@ -120,6 +125,7 @@ pub enum SourceType {
   Remote,
   ShareInit,
   ConsumeShared,
+  ShareContainerShared,
   Custom(#[cacheable(with=AsPreset)] Ustr),
   #[default]
   Unknown,
@@ -139,6 +145,7 @@ impl std::fmt::Display for SourceType {
       SourceType::Remote => write!(f, "remote"),
       SourceType::ShareInit => write!(f, "share-init"),
       SourceType::ConsumeShared => write!(f, "consume-shared"),
+      SourceType::ShareContainerShared => write!(f, "share-container-shared"),
       SourceType::Unknown => write!(f, "unknown"),
       SourceType::CssImport => write!(f, "css-import"),
       SourceType::Custom(source_type) => f.write_str(source_type),
@@ -158,6 +165,7 @@ impl From<&str> for SourceType {
       "remote" => Self::Remote,
       "share-init" => Self::ShareInit,
       "consume-shared" => Self::ConsumeShared,
+      "share-container-shared" => Self::ShareContainerShared,
       "unknown" => Self::Unknown,
       "css-import" => Self::CssImport,
       other => SourceType::Custom(other.into()),
@@ -169,10 +177,13 @@ impl From<&ModuleType> for SourceType {
   fn from(value: &ModuleType) -> Self {
     match value {
       ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic => Self::JavaScript,
-      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => Self::Css,
+      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal => {
+        Self::Css
+      }
       ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
       ModuleType::ConsumeShared => Self::ConsumeShared,
+      ModuleType::ShareContainerShared => Self::ShareContainerShared,
       _ => Self::Unknown,
     }
   }
@@ -185,6 +196,7 @@ pub enum ModuleType {
   Css,
   CssModule,
   CssAuto,
+  CssGlobal,
   JsAuto,
   JsDynamic,
   JsEsm,
@@ -200,6 +212,7 @@ pub enum ModuleType {
   Fallback,
   ProvideShared,
   ConsumeShared,
+  ShareContainerShared,
   SelfReference,
   Custom(#[cacheable(with=AsPreset)] Ustr),
 }
@@ -249,6 +262,7 @@ impl ModuleType {
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
       ModuleType::CssAuto => "css/auto",
+      ModuleType::CssGlobal => "css/global",
 
       ModuleType::Json => "json",
 
@@ -265,6 +279,7 @@ impl ModuleType {
       ModuleType::Fallback => "fallback-module",
       ModuleType::ProvideShared => "provide-module",
       ModuleType::ConsumeShared => "consume-shared-module",
+      ModuleType::ShareContainerShared => "share-container-shared-module",
       ModuleType::SelfReference => "self-reference-module",
 
       ModuleType::Custom(custom) => custom.as_str(),
@@ -290,6 +305,7 @@ impl From<&str> for ModuleType {
       "css" => Self::Css,
       "css/module" => Self::CssModule,
       "css/auto" => Self::CssAuto,
+      "css/global" => Self::CssGlobal,
 
       "json" => Self::Json,
 
@@ -313,7 +329,7 @@ pub(crate) type SharedPluginDriver = Arc<PluginDriver>;
 
 #[derive(Debug, Default, Clone)]
 pub struct ChunkByUkey {
-  inner: Database<Chunk>,
+  inner: FxHashMap<ChunkUkey, Chunk>,
 }
 
 impl ChunkByUkey {
@@ -329,7 +345,7 @@ impl ChunkByUkey {
     &mut self,
     ukeys: [&ChunkUkey; N],
   ) -> [Option<&mut Chunk>; N] {
-    self.inner.get_many_mut(ukeys)
+    self.inner.get_disjoint_mut(ukeys)
   }
 
   pub fn expect_get(&self, ukey: &ChunkUkey) -> &Chunk {
@@ -345,7 +361,9 @@ impl ChunkByUkey {
   }
 
   pub fn add(&mut self, chunk: Chunk) -> &mut Chunk {
-    self.inner.add(chunk)
+    let ukey = chunk.ukey();
+    debug_assert!(!self.inner.contains_key(&ukey));
+    self.inner.entry(ukey).or_insert(chunk)
   }
 
   pub fn remove(&mut self, ukey: &ChunkUkey) -> Option<Chunk> {
@@ -360,7 +378,7 @@ impl ChunkByUkey {
   }
 
   pub fn contains(&self, ukey: &ChunkUkey) -> bool {
-    self.inner.contains(ukey)
+    self.inner.contains_key(ukey)
   }
 
   pub fn keys(&self) -> impl Iterator<Item = &ChunkUkey> {
@@ -394,7 +412,7 @@ impl ChunkByUkey {
 
 #[derive(Debug, Default, Clone)]
 pub struct ChunkGroupByUkey {
-  inner: Database<ChunkGroup>,
+  inner: FxHashMap<ChunkGroupUkey, ChunkGroup>,
 }
 
 impl ChunkGroupByUkey {
@@ -410,7 +428,7 @@ impl ChunkGroupByUkey {
     &mut self,
     ukeys: [&ChunkGroupUkey; N],
   ) -> [Option<&mut ChunkGroup>; N] {
-    self.inner.get_many_mut(ukeys)
+    self.inner.get_disjoint_mut(ukeys)
   }
 
   pub fn expect_get(&self, ukey: &ChunkGroupUkey) -> &ChunkGroup {
@@ -426,7 +444,9 @@ impl ChunkGroupByUkey {
   }
 
   pub fn add(&mut self, chunk: ChunkGroup) -> &mut ChunkGroup {
-    self.inner.add(chunk)
+    let ukey = chunk.ukey();
+    debug_assert!(!self.inner.contains_key(&ukey));
+    self.inner.entry(ukey).or_insert(chunk)
   }
 
   pub fn remove(&mut self, ukey: &ChunkGroupUkey) -> Option<ChunkGroup> {
@@ -441,7 +461,7 @@ impl ChunkGroupByUkey {
   }
 
   pub fn contains(&self, ukey: &ChunkGroupUkey) -> bool {
-    self.inner.contains(ukey)
+    self.inner.contains_key(ukey)
   }
 
   pub fn keys(&self) -> impl Iterator<Item = &ChunkGroupUkey> {

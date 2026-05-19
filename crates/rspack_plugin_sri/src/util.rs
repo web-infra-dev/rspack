@@ -1,11 +1,11 @@
 use std::{borrow::Cow, sync::LazyLock};
 
 use cow_utils::CowUtils;
-use indexmap::IndexSet;
 use rspack_core::{
-  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, RuntimeGlobals,
-  RuntimeTemplate, SourceType,
+  AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
+  RuntimeGlobals, SourceType,
 };
+use rspack_util::fx_hash::FxIndexSet;
 
 use crate::{SubresourceIntegrityHashFunction, integrity::compute_integrity};
 
@@ -19,8 +19,9 @@ pub static PLACEHOLDER_REGEX: LazyLock<regex::Regex> = LazyLock::new(|| {
   .expect("should initialize `Regex`")
 });
 
-pub fn get_hash_variable(runtime_template: &RuntimeTemplate, source_type: SourceType) -> String {
-  let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+pub fn get_hash_variable(runtime_template: &ModuleCodeTemplate, source_type: SourceType) -> String {
+  let require_name =
+    runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::REQUIRE);
   match source_type {
     SourceType::JavaScript => format!("{require_name}.sriHashes"),
     SourceType::Css => format!("{require_name}.sriCssHashes"),
@@ -31,17 +32,17 @@ pub fn get_hash_variable(runtime_template: &RuntimeTemplate, source_type: Source
   }
 }
 
-pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> IndexSet<ChunkUkey> {
-  let mut all_chunks = IndexSet::default();
-  let mut visited_groups = IndexSet::default();
+pub fn find_chunks(chunk: &ChunkUkey, compilation: &Compilation) -> FxIndexSet<ChunkUkey> {
+  let mut all_chunks = FxIndexSet::default();
+  let mut visited_groups = FxIndexSet::default();
   recurse_chunk(chunk, &mut all_chunks, &mut visited_groups, compilation);
   all_chunks
 }
 
 fn recurse_chunk_group(
   group: &ChunkGroupUkey,
-  all_chunks: &mut IndexSet<ChunkUkey>,
-  visited_groups: &mut IndexSet<ChunkGroupUkey>,
+  all_chunks: &mut FxIndexSet<ChunkUkey>,
+  visited_groups: &mut FxIndexSet<ChunkGroupUkey>,
   compilation: &Compilation,
 ) {
   if visited_groups.contains(group) {
@@ -49,7 +50,11 @@ fn recurse_chunk_group(
   }
   visited_groups.insert(*group);
 
-  if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(group) {
+  if let Some(chunk_group) = compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .get(group)
+  {
     for chunk in chunk_group.chunks.iter() {
       recurse_chunk(chunk, all_chunks, visited_groups, compilation);
     }
@@ -61,8 +66,8 @@ fn recurse_chunk_group(
 
 fn recurse_chunk(
   chunk: &ChunkUkey,
-  all_chunks: &mut IndexSet<ChunkUkey>,
-  visited_groups: &mut IndexSet<ChunkGroupUkey>,
+  all_chunks: &mut FxIndexSet<ChunkUkey>,
+  visited_groups: &mut FxIndexSet<ChunkGroupUkey>,
   compilation: &Compilation,
 ) {
   if all_chunks.contains(chunk) {
@@ -70,7 +75,11 @@ fn recurse_chunk(
   }
   all_chunks.insert(*chunk);
 
-  if let Some(chunk) = compilation.chunk_by_ukey.get(chunk) {
+  if let Some(chunk) = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk)
+  {
     for group in chunk.groups() {
       recurse_chunk_group(group, all_chunks, visited_groups, compilation);
     }

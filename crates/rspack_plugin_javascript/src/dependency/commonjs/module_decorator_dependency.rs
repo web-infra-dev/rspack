@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration, DependencyId,
-  DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo, InitFragmentKey,
-  InitFragmentStage, ModuleDependency, ModuleGraphCacheArtifact, NormalInitFragment,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraphCacheArtifact,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_no_exports_referenced,
 };
 use rspack_util::ext::DynHash;
@@ -80,6 +80,7 @@ impl Dependency for ModuleDecoratorDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ExtendedReferencedExport> {
     if self.allow_exports_access {

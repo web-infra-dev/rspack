@@ -1,12 +1,13 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./foo.js"
 /*!****************!*\
   !*** ./foo.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-exports.foo = 123
+exports.p = 123
 
 
 },
@@ -16,10 +17,11 @@ const foo = __webpack_require__("./foo.js");
 
 
 it('should import namespace', () => {
-	expect(foo.foo).toBe(123);
-	expect(foo.foo).toBe(123);
+	expect(foo.p).toBe(123);
+	expect(foo.p).toBe(123);
 })
 
+export {};
 
 ```
 
@@ -48,7 +50,7 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
+// webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 

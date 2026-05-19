@@ -1,10 +1,10 @@
 use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
-use rspack_collections::{DatabaseItem, Identifier, IdentifierSet, UkeySet};
+use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Error;
 use rspack_paths::ArcPathSet;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
 
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
@@ -12,6 +12,13 @@ use crate::{
   Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
   CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
   FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
+  compilation::{
+    code_generation::code_generation_modules,
+    create_module_hashes::create_module_hashes,
+    runtime_requirements::{
+      process_chunks_runtime_requirements, process_modules_runtime_requirements,
+    },
+  },
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -40,12 +47,15 @@ pub struct ExecuteModuleResult {
   pub id: ExecuteModuleId,
 }
 
-pub type ExecuteResultSender = Sender<(
-  ExecuteModuleResult,
-  CompilationAssets,
-  IdentifierSet,
-  Vec<ExecutedRuntimeModule>,
-)>;
+#[derive(Debug)]
+pub struct ExecuteResult {
+  pub execute_result: ExecuteModuleResult,
+  pub assets: CompilationAssets,
+  pub code_generated_modules: IdentifierSet,
+  pub executed_runtime_modules: Vec<ExecutedRuntimeModule>,
+}
+
+pub type ExecuteResultSender = Sender<ExecuteResult>;
 
 #[derive(Debug)]
 pub struct ExecuteTask {
@@ -60,16 +70,16 @@ impl ExecuteTask {
     let id = EXECUTE_MODULE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
     self
       .result_sender
-      .send((
-        ExecuteModuleResult {
+      .send(ExecuteResult {
+        execute_result: ExecuteModuleResult {
           id,
           error: Some(error.to_string()),
           ..Default::default()
         },
-        Default::default(),
-        Default::default(),
-        Default::default(),
-      ))
+        assets: Default::default(),
+        code_generated_modules: Default::default(),
+        executed_runtime_modules: Default::default(),
+      })
       .expect("should send result success");
   }
 }
@@ -112,12 +122,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     else {
       // no entry module, entry dependency factorize failed.
       result_sender
-        .send((
+        .send(ExecuteResult {
           execute_result,
-          CompilationAssets::default(),
-          IdentifierSet::default(),
-          vec![],
-        ))
+          assets: Default::default(),
+          code_generated_modules: Default::default(),
+          executed_runtime_modules: Default::default(),
+        })
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -202,12 +212,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
 
     if has_error {
       result_sender
-        .send((
+        .send(ExecuteResult {
           execute_result,
-          CompilationAssets::default(),
-          IdentifierSet::default(),
-          vec![],
-        ))
+          assets: Default::default(),
+          code_generated_modules: Default::default(),
+          executed_runtime_modules: Default::default(),
+        })
         .expect("should send result success");
 
       return Ok(vec![]);
@@ -249,7 +259,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     });
 
     // add chunk to this compilation
-    let chunk = compilation.chunk_by_ukey.add(chunk);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .add(chunk);
     let chunk_ukey = chunk.ukey();
 
     chunk_graph.connect_chunk_and_entry_module(
@@ -261,7 +274,10 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     entrypoint.set_runtime_chunk(chunk.ukey());
     entrypoint.set_entrypoint_chunk(chunk.ukey());
 
-    compilation.chunk_group_by_ukey.add(entrypoint);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .add(entrypoint);
 
     // Assign ids to modules and modules to the chunk
     for &m in &modules {
@@ -276,24 +292,23 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     // to the chunk_graph in API that receives both compilation and chunk_graph
     //
     // replace code_generation_results is the same reason
-    compilation.chunk_graph = chunk_graph;
+    compilation.build_chunk_graph_artifact.chunk_graph = chunk_graph;
 
-    compilation.create_module_hashes(modules.clone()).await?;
+    create_module_hashes(&mut compilation, modules.clone()).await?;
 
-    compilation
-      .code_generation_modules(&mut None, modules.clone())
+    code_generation_modules(&mut compilation, None, modules.clone()).await?;
+    let plugin_driver = compilation.plugin_driver.clone();
+    process_modules_runtime_requirements(&mut compilation, modules.clone(), plugin_driver.clone())
       .await?;
-    compilation
-      .process_modules_runtime_requirements(modules.clone(), compilation.plugin_driver.clone())
-      .await?;
-    compilation
-      .process_chunks_runtime_requirements(
-        UkeySet::from_iter([chunk_ukey]),
-        UkeySet::from_iter([chunk_ukey]),
-        compilation.plugin_driver.clone(),
-      )
-      .await?;
+    process_chunks_runtime_requirements(
+      &mut compilation,
+      FxHashSet::from_iter([chunk_ukey]),
+      FxHashSet::from_iter([chunk_ukey]),
+      plugin_driver,
+    )
+    .await?;
     let runtime_modules = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_iterable(&chunk_ukey)
       .copied()
@@ -311,9 +326,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         .get(runtime_id)
         .expect("runtime module exist");
 
-      let mut runtime_template = compilation
-        .runtime_template
-        .create_module_codegen_runtime_template();
+      let mut runtime_template = compilation.runtime_template.create_module_code_template();
       let mut code_generation_context = ModuleCodeGenerationContext {
         compilation: &compilation,
         runtime: None,
@@ -382,6 +395,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     };
 
     assets.extend(std::mem::take(compilation.assets_mut()));
+
     let code_generated_modules = std::mem::take(&mut compilation.code_generated_modules);
     let executed_runtime_modules = runtime_modules
       .iter()
@@ -407,12 +421,12 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       .collect_vec();
     origin_context.recovery_from_temp_compilation(compilation);
     result_sender
-      .send((
+      .send(ExecuteResult {
         execute_result,
         assets,
         code_generated_modules,
         executed_runtime_modules,
-      ))
+      })
       .expect("should send result success");
     Ok(vec![])
   }

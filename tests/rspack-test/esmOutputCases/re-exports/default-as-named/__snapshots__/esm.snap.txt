@@ -1,0 +1,18 @@
+```mjs title=main.mjs
+// ./source.js
+/* export default */ const source = (42);
+const named = 'hello';
+
+// ./index.js
+
+
+it('should re-export default as named through a chain', async () => {
+	const mod = await import(/* webpackIgnore: true */ './main.mjs');
+	expect(mod.renamedDefault).toBe(42);
+	expect(mod.named).toBe('hello');
+});
+
+var index_named = (/* inlined export .named */"hello");
+export { index_named as named, source as renamedDefault };
+
+```

@@ -1,3 +1,6 @@
+use std::sync::LazyLock;
+
+use regex::Regex;
 use rspack_browserslist::load_browserslist;
 use rspack_core::{CompilerPlatform, Context};
 
@@ -143,6 +146,25 @@ impl From<&TargetProperties> for CompilerPlatform {
   }
 }
 
+static NODE_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^(async-)?node((\d+)(?:\.(\d+))?)?$").expect("should initialize `Regex`")
+});
+
+static BROWSERSLIST_TARGET_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^browserslist(?::(.+))?$").expect("should initialize `Regex`"));
+
+static ELECTRON_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^electron((\d+)(?:\.(\d+))?)?-(main|preload|renderer)$")
+    .expect("should initialize `Regex`")
+});
+
+static NWJS_TARGET_RE: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^(?:nwjs|node-webkit)((\d+)(?:\.(\d+))?)?$").expect("should initialize `Regex`")
+});
+
+static ES_TARGET_RE: LazyLock<Regex> =
+  LazyLock::new(|| Regex::new(r"^es(\d+)$").expect("should initialize `Regex`"));
+
 fn version_dependent(
   major: u32,
   minor: Option<u32>,
@@ -217,10 +239,7 @@ fn merge_target_properties(target_properties: &[TargetProperties]) -> TargetProp
 
 fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   // Parse target string
-  if let Some(captures) = regex::Regex::new(r"^(async-)?node((\d+)(?:\.(\d+))?)?$")
-    .expect("should initialize `Regex`")
-    .captures(target)
-  {
+  if let Some(captures) = NODE_TARGET_RE.captures(target) {
     let async_flag = captures.get(1).is_some();
     let major = captures.get(3).map(|m| {
       m.as_str()
@@ -269,10 +288,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
     };
   }
 
-  if let Some(captures) = regex::Regex::new(r"^browserslist(?::(.+))?$")
-    .expect("should initialize `Regex`")
-    .captures(target)
-  {
+  if let Some(captures) = BROWSERSLIST_TARGET_RE.captures(target) {
     let rest = captures.get(1).map(|m| m.as_str());
 
     let browsers = load_browserslist(rest.map(|r| r.trim()), context).unwrap_or_default();
@@ -325,11 +341,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   }
 
   // Electron target
-  if let Some(captures) =
-    regex::Regex::new(r"^electron((\d+)(?:\.(\d+))?)?-(main|preload|renderer)$")
-      .expect("should initialize `Regex`")
-      .captures(target)
-  {
+  if let Some(captures) = ELECTRON_TARGET_RE.captures(target) {
     let major = captures.get(2).map(|m| {
       m.as_str()
         .parse::<u32>()
@@ -381,10 +393,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   }
 
   // NW.js target
-  if let Some(captures) = regex::Regex::new(r"^(?:nwjs|node-webkit)((\d+)(?:\.(\d+))?)?$")
-    .expect("should initialize `Regex`")
-    .captures(target)
-  {
+  if let Some(captures) = NWJS_TARGET_RE.captures(target) {
     let major = captures.get(2).map(|m| {
       m.as_str()
         .parse::<u32>()
@@ -428,10 +437,7 @@ fn get_target_properties(target: &str, context: &Context) -> TargetProperties {
   }
 
   // ES version target
-  if let Some(captures) = regex::Regex::new(r"^es(\d+)$")
-    .expect("should initialize `Regex`")
-    .captures(target)
-  {
+  if let Some(captures) = ES_TARGET_RE.captures(target) {
     let mut version = captures
       .get(1)
       .expect("should initialize `Regex`")

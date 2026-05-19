@@ -11,5 +11,6 @@ it('should have deconflicted symbol', () => {
 	expect(index_local).toBe('')
 })
 
+export {};
 
 ```

@@ -1,7 +1,7 @@
 use std::{fs, path::Path};
 
+use cargo_toml::{Inheritable, Manifest};
 use clap::Args;
-use toml::Value;
 
 #[derive(Debug, Args)]
 pub struct ReleaseCheckCmd;
@@ -32,15 +32,15 @@ fn run_inner() -> anyhow::Result<()> {
       let cargo_toml_path = path.join("Cargo.toml");
       if cargo_toml_path.exists() {
         let content = fs::read_to_string(&cargo_toml_path)?;
-        let cargo_toml: Value = toml::from_str(&content)?;
-        if let Some(package) = cargo_toml.get("package") {
+        let cargo_toml = Manifest::from_str(&content)?;
+        if let Some(package) = cargo_toml.package {
           let mut has_optional = false;
           for field in &required_fields {
             if optional_fields.contains(field) {
-              if package.get(field).is_some() {
+              if has_package_field(&package, field) {
                 has_optional = true
               }
-            } else if package.get(field).is_none() {
+            } else if !has_package_field(&package, field) {
               diagnostics.push(anyhow::anyhow!(
                 "Missing required field: {} in {}",
                 field,
@@ -72,5 +72,23 @@ fn run_inner() -> anyhow::Result<()> {
       .collect::<Vec<_>>()
       .join("\n");
     Err(anyhow::anyhow!("Multiple errors occurred:\n{combined}"))
+  }
+}
+
+fn has_package_field(package: &cargo_toml::Package, field: &str) -> bool {
+  match field {
+    "description" => package.description.is_some(),
+    "version" => {
+      matches!(package.version, Inheritable::Inherited)
+        || package
+          .version
+          .get()
+          .is_ok_and(|version| version != "0.0.0")
+    }
+    "license" => package.license.is_some(),
+    "repository" => package.repository.is_some(),
+    "homepage" => package.homepage.is_some(),
+    "documentation" => package.documentation.is_some(),
+    _ => false,
   }
 }

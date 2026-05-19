@@ -1,8 +1,8 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf};
+use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{ArcPath, ArcPathDashSet};
+use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
 use super::FsWatcherIgnored;
 
@@ -186,6 +186,10 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   pub ignored: FsWatcherIgnored,
+  /// Baseline mtime for registered files, captured at scan time.
+  /// Used to filter stale FSEvents that arrive for files not actually modified.
+  /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
+  file_mtimes: ArcPathDashMap<SystemTime>,
 }
 
 impl PathManager {
@@ -196,6 +200,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored,
+      file_mtimes: ArcPathDashMap::default(),
     }
   }
 
@@ -204,6 +209,44 @@ impl PathManager {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
+    self.file_mtimes.clear();
+  }
+
+  pub fn set_file_mtime(&self, path: ArcPath, mtime: SystemTime) {
+    self.file_mtimes.insert(path, mtime);
+  }
+
+  /// Check if a file's mtime has changed from the stored baseline.
+  /// Returns `true` if the event should pass through (mtime changed or no baseline).
+  /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
+  pub fn has_mtime_changed(&self, path: &ArcPath) -> bool {
+    if !self.files.all.contains(path) {
+      return true;
+    }
+
+    let current_mtime = match path
+      .metadata()
+      .and_then(|m| m.modified().or_else(|_| m.created()))
+    {
+      Ok(mtime) => mtime,
+      Err(_) => return true,
+    };
+
+    match self.file_mtimes.get(path) {
+      Some(baseline) => {
+        if current_mtime != *baseline {
+          drop(baseline);
+          self.file_mtimes.insert(path.clone(), current_mtime);
+          true
+        } else {
+          false
+        }
+      }
+      None => {
+        self.file_mtimes.insert(path.clone(), current_mtime);
+        true
+      }
+    }
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.

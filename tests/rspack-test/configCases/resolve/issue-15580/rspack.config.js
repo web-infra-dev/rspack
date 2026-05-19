@@ -1,8 +1,8 @@
-const path = require("path");
+const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	resolve: {
-		modules: ["node_modules", path.resolve(__dirname, "./node_modules")]
-	}
+  resolve: {
+    modules: ['node_modules', path.resolve(__dirname, './node_modules')],
+  },
 };

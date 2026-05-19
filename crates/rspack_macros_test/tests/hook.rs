@@ -46,3 +46,45 @@ mod simple {
     Ok(())
   }
 }
+
+mod sync_series {
+  use super::*;
+
+  define_hook!(Render: Sync(compilation: &Compilation, source: &mut Source));
+
+  struct Compilation {
+    id: u32,
+    render_hook: RenderHook,
+  }
+
+  struct Source {
+    content: String,
+  }
+
+  #[plugin]
+  #[derive(Default)]
+  struct MyRenderPlugin;
+
+  #[plugin_hook(Render for MyRenderPlugin)]
+  fn render(&self, compilation: &Compilation, source: &mut Source) -> Result<()> {
+    source.content += "plugin.render";
+    source.content += &compilation.id.to_string();
+    Ok(())
+  }
+
+  #[test]
+  fn test() -> Result<()> {
+    let mut compilation = Compilation {
+      id: 1,
+      render_hook: RenderHook::default(),
+    };
+    let mut source = Source {
+      content: String::new(),
+    };
+    let plugin = MyRenderPlugin::default();
+    compilation.render_hook.tap(render::new(&plugin));
+    compilation.render_hook.call(&compilation, &mut source)?;
+    assert_eq!(source.content, "plugin.render1");
+    Ok(())
+  }
+}

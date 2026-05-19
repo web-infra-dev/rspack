@@ -87,6 +87,14 @@ impl RuntimeSpec {
     this
   }
 
+  pub fn from_runtimes<'a>(runtimes: impl IntoIterator<Item = &'a RuntimeSpec>) -> Self {
+    let mut inner = UstrSet::default();
+    for runtime in runtimes {
+      inner.extend(runtime.inner.iter().copied());
+    }
+    Self::new(inner)
+  }
+
   pub fn from_entry(entry: &str, runtime: Option<&EntryRuntime>) -> Self {
     let r = match runtime {
       Some(EntryRuntime::String(s)) => s,
@@ -126,16 +134,39 @@ impl RuntimeSpec {
   }
 
   fn update_key(&mut self) {
-    if self.inner.is_empty() {
-      if self.key.is_empty() {
-        return;
+    match self.inner.len() {
+      0 => {
+        self.key.clear();
       }
-      self.key = String::new();
-      return;
+      1 => {
+        self.key.clear();
+        self.key.push_str(
+          self
+            .inner
+            .iter()
+            .next()
+            .expect("should have one runtime")
+            .as_str(),
+        );
+      }
+      _ => {
+        let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
+        ordered.sort_unstable();
+
+        let capacity = ordered.iter().map(|s| s.len()).sum::<usize>() + ordered.len() - 1;
+        self.key.clear();
+        self.key.reserve(capacity);
+
+        let mut iter = ordered.into_iter();
+        if let Some(first) = iter.next() {
+          self.key.push_str(first);
+        }
+        for runtime in iter {
+          self.key.push('_');
+          self.key.push_str(runtime);
+        }
+      }
     }
-    let mut ordered = self.inner.iter().map(|s| s.as_str()).collect::<Vec<_>>();
-    ordered.sort_unstable();
-    self.key = ordered.join("_");
   }
 
   pub fn as_str(&self) -> &str {

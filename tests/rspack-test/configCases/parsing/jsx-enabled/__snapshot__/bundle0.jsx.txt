@@ -1,15 +1,15 @@
-import { App, App1A, App1B, App1C, app1cProps } from "./App1";
 import { App2, app2Props } from "./App2";
 
+import * as __rspack_external__App1_cd1629a5 from "./App1";
 
 
 
 
 
 const DynamicComponent = ()=>{
-    const Component = Math.random() > 0.5 ? App1A : App1C;
+    const Component = Math.random() > 0.5 ? __rspack_external__App1_cd1629a5.App1A : __rspack_external__App1_cd1629a5.App1C;
     return import("./App1").then((mod)=>{
-        const Dynamic = mod[Component === App1A ? "App1A" : "App1C"];
+        const Dynamic = mod[Component === __rspack_external__App1_cd1629a5.App1A ? "App1A" : "App1C"];
         return <Dynamic/>;
     });
 };
@@ -27,35 +27,35 @@ function Root() {
     return <>
       <React.Fragment>
         <>
-          <App1A/>
+          <__rspack_external__App1_cd1629a5.App1A/>
           <React.Suspense fallback={<div>Loading...</div>}>
             <DynamicComponent/>
           </React.Suspense>
         </>
       </React.Fragment>
-      <App1C>
-        {x ? <App1A>
-            <App1B>
+      <__rspack_external__App1_cd1629a5.App1C>
+        {x ? <__rspack_external__App1_cd1629a5.App1A>
+            <__rspack_external__App1_cd1629a5.App1B>
               <App2 props={app2Props}>
-                <App1C props={app1cProps}/>
+                <__rspack_external__App1_cd1629a5.App1C props={__rspack_external__App1_cd1629a5.app1cProps}/>
               </App2>
-            </App1B>
-          </App1A> : <App1B/>}
-      </App1C>
-      <App1C className="c"/>
-      <App1C className="app1c"></App1C>
-      <App1B/>
+            </__rspack_external__App1_cd1629a5.App1B>
+          </__rspack_external__App1_cd1629a5.App1A> : <__rspack_external__App1_cd1629a5.App1B/>}
+      </__rspack_external__App1_cd1629a5.App1C>
+      <__rspack_external__App1_cd1629a5.App1C className="c"/>
+      <__rspack_external__App1_cd1629a5.App1C className="app1c"></__rspack_external__App1_cd1629a5.App1C>
+      <__rspack_external__App1_cd1629a5.App1B/>
       <NamespaceComponents.Button label="Namespace button" {...{
         title: "extra",
         ["data-role"]: "primary"
-    }} data-count={3} icon={<App1A/>} fragmentContent={<>
+    }} data-count={3} icon={<__rspack_external__App1_cd1629a5.App1A/>} fragmentContent={<>
             <span>Nested</span>
             <span>Fragment</span>
           </>}/>
       <div className="wrapper">
         {[
         <section key="namespace-import" data-index="0">
-            <App data-dynamic="registry" data-item="one"/>
+            <__rspack_external__App1_cd1629a5.App data-dynamic="registry" data-item="one"/>
             <foo:bar value="namespaced"/>
             <svg:path d="M0,0 L10,10" xlink:href="#one"/>
             <span>{"item-one".toUpperCase()}</span>
@@ -67,11 +67,11 @@ function Root() {
             <App2/>
             <foo:bar value="namespaced-two"/>
             <svg:path d="M10,10 L20,20" xlink:href="#two"/>
-            <App1A/>
+            <__rspack_external__App1_cd1629a5.App1A/>
             { /* JSXEmptyExpr in action */ }
           </section>,
         <section key="external-app" data-index="2">
-            <App1A data-dynamic="registry" data-item="fallback"/>
+            <__rspack_external__App1_cd1629a5.App1A data-dynamic="registry" data-item="fallback"/>
             <foo:bar value="namespaced-three"/>
             <svg:path d="M20,20 L30,30" xlink:href="#three"/>
             {(()=><NamespaceComponents.Button label="Inline child"/>)()}

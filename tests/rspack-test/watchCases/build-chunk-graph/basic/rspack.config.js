@@ -1,9 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		splitChunks: false
-	},
-	incremental: {
-		buildChunkGraph: true
-	}
+  optimization: {
+    splitChunks: false,
+  },
+  incremental: {
+    buildChunkGraph: true,
+  },
 };

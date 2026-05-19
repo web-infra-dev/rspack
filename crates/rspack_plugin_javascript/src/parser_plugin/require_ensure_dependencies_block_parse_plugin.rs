@@ -20,6 +20,7 @@ use crate::{
 
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
   fn evaluate_typeof<'a>(
     &self,
@@ -46,7 +47,6 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr.span().into(),
         "'function'".into(),
-        None,
       )));
       true
     })
@@ -119,8 +119,9 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     if failed {
       return None;
     }
-    deps.extend(parser.collect_dependencies_for_block(|parser| {
+    deps = parser.collect_dependencies_for_block(parser.next_block_idx(), deps, |parser| {
       if let Some(success_expr) = &success_expr {
+        let old_terminated = parser.terminated;
         match success_expr.func {
           Either::Left(func) => {
             if let Some(body) = &func.function.body {
@@ -132,16 +133,13 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
           },
         }
+        parser.terminated = old_terminated;
       }
-    }));
+    });
 
-    let mut block = AsyncDependenciesBlock::new(
-      *parser.module_identifier,
-      Into::<DependencyRange>::into(expr.span).to_loc(Some(parser.source())),
-      None,
-      deps,
-      None,
-    );
+    let range = DependencyRange::from(expr.span);
+    let loc = parser.to_dependency_location(range);
+    let mut block = AsyncDependenciesBlock::new(*parser.module_identifier, loc, None, deps, None);
     block.set_group_options(GroupOptions::ChunkGroup(
       ChunkGroupOptions::default().name_optional(chunk_name),
     ));

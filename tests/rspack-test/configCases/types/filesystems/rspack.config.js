@@ -1,17 +1,17 @@
-const memfs = require("memfs");
-const fs = require("fs");
+const memfs = require('memfs');
+const fs = require('fs');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [
-		compiler => {
-			compiler.outputFileSystem = memfs.fs;
-			compiler.inputFileSystem = memfs.fs;
-			compiler.intermediateFileSystem = memfs.fs;
+  plugins: [
+    (compiler) => {
+      compiler.outputFileSystem = memfs.fs;
+      compiler.inputFileSystem = memfs.fs;
+      compiler.intermediateFileSystem = memfs.fs;
 
-			compiler.outputFileSystem = fs;
-			compiler.inputFileSystem = fs;
-			compiler.intermediateFileSystem = fs;
-		}
-	]
+      compiler.outputFileSystem = fs;
+      compiler.inputFileSystem = fs;
+      compiler.intermediateFileSystem = fs;
+    },
+  ],
 };

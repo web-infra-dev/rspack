@@ -12,9 +12,6 @@ if (enableCompileCache) {
   }
 }
 
-// make it easier to identify the process via activity monitor or other tools
-process.title = 'rspack-node';
-
 import { RspackCLI } from '../dist/index.js';
 
 async function runCLI() {
@@ -22,4 +19,8 @@ async function runCLI() {
   await cli.run(process.argv);
 }
 
-runCLI();
+runCLI().catch((err) => {
+  console.error('[rspack] CLI failed:');
+  console.error(err);
+  process.exit(1);
+});

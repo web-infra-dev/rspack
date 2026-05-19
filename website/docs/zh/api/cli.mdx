@@ -1,3 +1,7 @@
+---
+description: '@rspack/cli 是 Rspack 的命令行工具，它提供了多种命令来简化 Rspack 的使用。'
+---
+
 import { PackageManagerTabs } from '@theme';
 
 # 命令行工具
@@ -23,14 +27,15 @@ npx rspack -h
 
 Rspack CLI 提供了一些公共选项，可以用于所有命令：
 
-| 选项                 | 描述                                                                                                                        |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| -c, --config [value] | 指定配置文件路径，详见 [指定配置文件](/config/index#指定配置文件)                                                           |
-| --configLoader       | 指定配置文件加载器，可以是 `native` 或 `register`，默认是 `register`                                                        |
-| --configName         | 指定配置文件名称                                                                                                            |
-| --nodeEnv            | 设置 `process.env.NODE_ENV` 的值，`rspack dev` 默认是 `development`，`rspack build` 和 `rspack preview` 默认是 `production` |
-| -h, --help           | 显示帮助信息                                                                                                                |
-| -v, --version        | 显示版本号                                                                                                                  |
+| 选项                   | 描述                                                                                                                        |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `-c, --config [value]` | 指定配置文件路径，详见 [指定配置文件](/config/index#指定配置文件)                                                           |
+| `--configLoader`       | 指定配置文件加载器，可以是 `auto`、`jiti` 或 `native`，默认是 `auto`                                                        |
+| `--configName`         | 指定配置文件名称                                                                                                            |
+| `--env <env>`          | 传递给配置函数的环境变量，例如 `--env production --env foo=bar`                                                             |
+| `--nodeEnv`            | 设置 `process.env.NODE_ENV` 的值，`rspack dev` 默认是 `development`，`rspack build` 和 `rspack preview` 默认是 `production` |
+| `-h, --help`           | 显示帮助信息                                                                                                                |
+| `-v, --version`        | 显示版本号                                                                                                                  |
 
 :::tip
 Rspack CLI 的所有选项都支持使用 `camelCase`（驼峰命名）和 `kebab-case`（短横线命名），例如 `--configLoader` 和 `--config-loader` 都是有效的。
@@ -67,8 +72,8 @@ Options:
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-  -d, --devtool      devtool                          [boolean] [default: false]
-      --json         emit stats json
+  -d, --devtool      set source map style for debugging                  [string]
+      --json [path]  emit stats json, optionally to the specified path
 ```
 
 ## rspack dev
@@ -99,6 +104,14 @@ npx rspack s
 npx rspack serve
 ```
 
+你可以通过 `--open`、`--open <value>` 或 `--no-open` 在命令行中覆盖 [`devServer.open`](/config/dev-server#devserveropen)。
+
+```bash
+npx rspack dev --open
+npx rspack dev --open /my-page
+npx rspack dev --no-open
+```
+
 完整的选项如下：
 
 ```
@@ -110,10 +123,11 @@ Options:
   -m, --mode         mode                                               [string]
   -w, --watch        watch                            [boolean] [default: false]
       --env          env passed to config function                       [array]
-  -d, --devtool      devtool                          [boolean] [default: false]
+  -d, --devtool      set source map style for debugging                  [string]
       --hot          enables hot module replacement
       --port         allows to specify a port to use                    [number]
       --host         allows to specify a hostname to use                [string]
+      --open [value] open browser on server start; pass --no-open to disable, or --open <url> to open a specific URL
 ```
 
 ## rspack preview

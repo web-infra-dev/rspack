@@ -29,7 +29,7 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
       Either::A(string) => {
         if let Some(json) = value.map {
           let source_map =
-            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{}", e)))?;
+            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
           Ok(
             SourceMapSource::new(WithoutOriginalOptions {
               value: string,
@@ -68,7 +68,7 @@ impl TryFrom<&dyn Source> for JsSourceToJs {
   fn try_from(value: &dyn Source) -> Result<Self> {
     match value.source() {
       SourceValue::String(string) => {
-        let map: Option<String> = to_map(value)?;
+        let map = to_map(value);
         Ok(JsSourceToJs {
           source: Either::A(string.into_owned()),
           map,
@@ -100,8 +100,7 @@ impl From<JsSourceToJs> for BoxSource {
   }
 }
 
-fn to_map(source: &dyn Source) -> Result<Option<String>> {
+fn to_map(source: &dyn Source) -> Option<String> {
   let map = source.map(&ObjectPool::default(), &MapOptions::default());
-
-  map.map(|m| m.to_json()).transpose().to_napi_result()
+  map.map(|m| m.to_json())
 }

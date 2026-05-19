@@ -1,6 +1,6 @@
 use rspack_core::{
-  CachedConstDependency, ConstDependency, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption,
-  RuntimeGlobals, get_context, parse_resource,
+  CachedConstDependency, ConstDependency, ImportMeta, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
@@ -295,7 +295,7 @@ impl NodeStuffPlugin {
     }
 
     if property.is_mock(node_option) {
-      return Some(format!("'{}'", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_warn_mock(node_option) {
@@ -303,12 +303,12 @@ impl NodeStuffPlugin {
         property.warning_code().to_string(),
         property.warning_message(),
       ));
-      return Some(format!("'{}'", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_true(node_option) {
       let path = Self::get_relative_path(parser, property)?;
-      return Some(format!("'{path}'"));
+      return Some(rspack_util::json_stringify_str(&path));
     }
 
     if property.is_eval_only(node_option) {
@@ -353,7 +353,7 @@ impl NodeStuffPlugin {
     }
 
     if property.is_mock(node_option) {
-      return Some(format!("\"{}\"", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_warn_mock(node_option) {
@@ -361,12 +361,12 @@ impl NodeStuffPlugin {
         property.warning_code().to_string(),
         property.warning_message(),
       ));
-      return Some(format!("\"{}\"", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_true(node_option) {
       let path = Self::get_relative_path(parser, property)?;
-      return Some(format!("\"{path}\""));
+      return Some(rspack_util::json_stringify_str(&path));
     }
 
     if property.is_eval_only(node_option) {
@@ -396,6 +396,7 @@ impl NodeStuffPlugin {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for NodeStuffPlugin {
   fn identifier(
     &self,
@@ -461,10 +462,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(dirname) = dirname {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&dirname)
-            .expect("should render dirname")
-            .into(),
-          None,
+          rspack_util::json_stringify_str(&dirname).into(),
         )));
         return Some(true);
       }
@@ -516,10 +514,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       if let Some(filename) = filename {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&filename)
-            .expect("should render filename")
-            .into(),
-          None,
+          rspack_util::json_stringify_str(&filename).into(),
         )));
         return Some(true);
       }
@@ -529,13 +524,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         ident.span.into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(true);
     }
@@ -555,13 +546,9 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         NodeGlobalOption::True | NodeGlobalOption::Warn
       )
     {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         expr.span().into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::GLOBAL)
-          .into(),
-        Some(RuntimeGlobals::GLOBAL),
+        RuntimeGlobals::GLOBAL,
       )));
       return Some(false);
     }
@@ -599,7 +586,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           return None;
         }
         // Skip if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip if node: false or node.filename is disabled
@@ -635,7 +625,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
           return None;
         }
         // Skip if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip if node: false or node.dirname is disabled
@@ -655,7 +648,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       unary_expr.span().into(),
       "'string'".into(),
-      None,
     )));
     Some(true)
   }
@@ -671,7 +663,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     match for_name {
       expr_name::IMPORT_META_FILENAME => {
         // Skip processing if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip processing if node: false or node.filename is disabled
@@ -692,7 +687,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
       }
       expr_name::IMPORT_META_DIRNAME => {
         // Skip processing if importMeta is disabled
-        if parser.javascript_options.import_meta == Some(false) {
+        if matches!(
+          parser.javascript_options.import_meta,
+          Some(ImportMeta::Disabled)
+        ) {
           return None;
         }
         // Skip processing if node: false or node.dirname is disabled
@@ -773,7 +771,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
         return None;
       }
       // Skip processing if importMeta is disabled
-      if parser.javascript_options.import_meta == Some(false) {
+      if matches!(
+        parser.javascript_options.import_meta,
+        Some(ImportMeta::Disabled)
+      ) {
         return None;
       }
       let property = if for_name == expr_name::IMPORT_META_FILENAME {
@@ -808,7 +809,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     };
 
     // Skip processing if importMeta is disabled
-    if parser.javascript_options.import_meta == Some(false) {
+    if matches!(
+      parser.javascript_options.import_meta,
+      Some(ImportMeta::Disabled)
+    ) {
       return None;
     }
 
@@ -816,7 +820,6 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       member_expr.span().into(),
       replacement.into(),
-      None,
     )));
     Some(true)
   }
@@ -832,7 +835,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     }
 
     // Skip processing if importMeta is disabled
-    if parser.javascript_options.import_meta == Some(false) {
+    if matches!(
+      parser.javascript_options.import_meta,
+      Some(ImportMeta::Disabled)
+    ) {
       return None;
     }
 

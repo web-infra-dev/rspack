@@ -1,16 +1,16 @@
 use std::borrow::Cow;
 
-use indexmap::IndexMap;
 use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_collections::IdentifierIndexMap;
 use rspack_core::{
   BoxDependency, BuildMetaExportsType, Dependency, DependencyId, DependencyType, ExportsArgument,
   GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator,
-  RuntimeGlobals, SourceType, StaticExportsDependency, StaticExportsSpec,
+  ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
+  StaticExportsDependency, StaticExportsSpec,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
-use rspack_util::{itoa, json_stringify};
+use rspack_util::{itoa, json_stringify_str};
 use swc_core::atoms::Atom;
 use wasmparser::{Import, Parser, Payload};
 
@@ -144,7 +144,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
 
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let mut dep_modules = IndexMap::<ModuleIdentifier, DepModule>::new();
+        let mut dep_modules = IdentifierIndexMap::<DepModule>::default();
         let mut promises: Vec<String> = vec![];
 
         let module_graph = &compilation.get_module_graph();
@@ -171,9 +171,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
               let dep_module = dep_modules.entry(mgm.module_identifier).or_insert_with(|| {
                 let mut len_buffer = itoa::Buffer::new();
                 let len_str = len_buffer.format(len);
-                let import_var = format!("rspack_import_{}", len_str);
+                let import_var = format!("rspack_import_{len_str}");
                 if ModuleGraph::is_async(
-                  &compilation.async_modules_artifact.borrow(),
+                  &compilation.async_modules_artifact,
                   &mgm.module_identifier,
                 ) {
                   promises.push(import_var.clone());
@@ -227,13 +227,13 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   Some(true),
                   ImportPhase::Evaluation,
                 );
-                let name = json_stringify(&export_name);
+                let name = json_stringify_str(&export_name);
                 format!("{name}: {export}")
               })
               .collect::<Vec<_>>()
               .join(",\n");
 
-            format!("{}: {{\n{deps}\n}}", json_stringify(dep_module.request))
+            format!("{}: {{\n{deps}\n}}", json_stringify_str(dep_module.request))
           })
           .collect::<Vec<_>>();
 

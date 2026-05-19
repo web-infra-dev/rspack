@@ -1,4 +1,4 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: ["node", "es5"]
+  target: ['node', 'es5'],
 };

@@ -21,9 +21,8 @@ impl ESMExportHeaderDependency {
   pub fn new(
     range: DependencyRange,
     range_decl: Option<DependencyRange>,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       range,
       range_decl,
@@ -85,7 +84,7 @@ impl DependencyTemplate for ESMExportHeaderDependencyTemplate {
       .expect(
         "ESMExportHeaderDependencyTemplate should only be used for ESMExportHeaderDependency",
       );
-    source.replace(
+    source.replace_static(
       dep.range.start,
       if let Some(range) = &dep.range_decl {
         range.start

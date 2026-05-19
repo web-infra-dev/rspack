@@ -48,7 +48,7 @@ impl<'a> DependencyFinder<'a> {
     }
 
     // Recursively add all parent directories that are registered as directories or missing.
-    self.recursiron_directories(path, &mut paths);
+    self.recurse_parent_directories(path, &mut paths);
 
     paths
   }
@@ -68,14 +68,14 @@ impl<'a> DependencyFinder<'a> {
   }
 
   /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recursiron_directories(&self, path: &ArcPath, paths: &mut Vec<(ArcPath, FsEventKind)>) {
+  fn recurse_parent_directories(&self, path: &ArcPath, paths: &mut Vec<(ArcPath, FsEventKind)>) {
     match path.parent() {
       Some(parent) => {
         if self.contains_directory(&ArcPath::from(parent)) {
           // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
           paths.push((ArcPath::from(parent), FsEventKind::Change));
         }
-        self.recursiron_directories(&ArcPath::from(parent), paths);
+        self.recurse_parent_directories(&ArcPath::from(parent), paths);
       }
       None => {
         // Reached the root directory, stop recursion
@@ -113,11 +113,23 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    let is_registered_file = self.path_manager.access().files().0.contains(path);
+
+    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
+    // written before the watcher was created. Stat the file and compare mtime
+    // against the recorded baseline to suppress events where nothing changed.
+    // Apply the same suppression to Create for already-registered files, since
+    // macOS may emit stale Create events for files that predate the watcher.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_registered_file))
+      && !self.path_manager.has_mtime_changed(path)
+    {
+      return;
+    }
+
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
     self.trigger_events(associated_event);
   }
-
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
     let accessor = self.path_manager.access();

@@ -12,7 +12,7 @@ import {
   rspack,
 } from '@rslib/core';
 import packageJson from './package.json' with { type: 'json' };
-import prebundleConfig from './prebundle.config.mjs';
+import prebundleConfig from './prebundle.config.js';
 
 const require = createRequire(import.meta.url);
 
@@ -22,6 +22,10 @@ const externalAlias: Rspack.Externals = ({ request }, callback) => {
   const { dependencies } = prebundleConfig;
 
   for (const item of dependencies) {
+    if (typeof item === 'object' && item.dtsOnly) {
+      continue;
+    }
+
     const depName = typeof item === 'string' ? item : item.name;
     if (new RegExp(`^${depName}$`).test(request!)) {
       return callback(
@@ -117,7 +121,7 @@ const codmodPlugin: RsbuildPlugin = {
     /**
      * Replaces `@rspack/binding` to code that reads env `RSPACK_BINDING` as the custom binding.
      */
-    function replaceBinding(root: SgNode<TypesMap, Kinds<TypesMap>>): Edit[] {
+    function replaceBinding(root: SgNode<TypesMap, Kinds>): Edit[] {
       const edits: Edit[] = [];
 
       // Pattern 1: let binding_namespaceObject = __rspack_createRequire_require("@rspack/binding");
@@ -151,7 +155,7 @@ const codmodPlugin: RsbuildPlugin = {
       return edits;
     }
 
-    api.onAfterBuild(async () => {
+    api.onAfterBuild(() => {
       const dist = fs.readFileSync(
         require.resolve(path.resolve(import.meta.dirname, 'dist/index.js')),
         'utf-8',
@@ -167,12 +171,44 @@ const codmodPlugin: RsbuildPlugin = {
   },
 };
 
+/*
+ * Remove `export { rspack as 'module.exports' }` to:
+ * 1. avoid parse errors in TypeScript < 5.6.2.
+ * 2. prevent namespace imports from degrading under `moduleResolution: 'NodeNext'`, which can break `Rspack.*` type access.
+ */
+const removeDtsExportPlugin: RsbuildPlugin = {
+  name: 'remove-dts-export',
+  setup(api) {
+    api.onAfterBuild(async () => {
+      const dtsPath = path.resolve(import.meta.dirname, 'dist/index.d.ts');
+      if (fs.existsSync(dtsPath)) {
+        const content = await fs.promises.readFile(dtsPath, 'utf-8');
+        const newContent = content.replace(
+          "export { rspack, rspack as 'module.exports' };",
+          'export { rspack };',
+        );
+        await fs.promises.writeFile(dtsPath, newContent);
+      }
+    });
+  },
+};
+
 export default defineConfig({
-  plugins: [mfRuntimePlugin, codmodPlugin],
+  plugins: [mfRuntimePlugin, codmodPlugin, removeDtsExportPlugin],
   lib: [
     merge(commonLibConfig, {
       dts: {
         build: true,
+        tsgo: true,
+        alias: {
+          // alias to pre-bundled types as they are public API
+          open: './compiled/open',
+          'connect-next': './compiled/connect-next',
+          '@rspack/lite-tapable': './compiled/@rspack/lite-tapable/dist',
+          'http-proxy-middleware': './compiled/http-proxy-middleware',
+          // Note: the JS bundle resolves to ./compiled/webpack-sources/index.js, while DTS should point to the generated types directory.
+          'webpack-sources': './compiled/webpack-sources/types',
+        },
       },
       redirect: {
         dts: {

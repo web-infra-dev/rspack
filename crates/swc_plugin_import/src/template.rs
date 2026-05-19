@@ -60,7 +60,7 @@ impl<'a> Template<'a> {
       }
 
       let tag_start = start + 2;
-      let end = find_subsequence(s, tag_start, "}}").ok_or(TemplateError::UnclosedTag {
+      let end = find_subsequence(s, tag_start, "}}").ok_or_else(|| TemplateError::UnclosedTag {
         value: input.to_string(),
       })?;
 

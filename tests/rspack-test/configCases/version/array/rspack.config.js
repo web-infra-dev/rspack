@@ -1,8 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		bundlerInfo: {
-			force: ["version"]
-		}
-	},
+  output: {
+    bundlerInfo: {
+      force: ['version'],
+    },
+  },
 };

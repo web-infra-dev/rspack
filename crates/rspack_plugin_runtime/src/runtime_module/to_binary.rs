@@ -1,27 +1,19 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ToBinaryRuntimeModule {
-  id: Identifier,
-}
+pub struct ToBinaryRuntimeModule {}
 
 impl ToBinaryRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}to_binary",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for ToBinaryRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -29,12 +21,16 @@ impl RuntimeModule for ToBinaryRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let compilation = context.compilation;
     let is_node_platform = compilation.platform.is_node();
     let is_web_platform = compilation.platform.is_web();
     let is_neutral_platform = compilation.platform.is_neutral();
 
-    let source = compilation.runtime_template.render(
+    let source = context.runtime_template.render(
       &self.id,
       Some(serde_json::json!({
         "_is_node_platform": is_node_platform,

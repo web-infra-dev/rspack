@@ -2,23 +2,23 @@ use std::{borrow::Cow, hash::Hash, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
-use rspack_error::{Result, ToStringResultToRspackResultExt, impl_empty_diagnosable_trait};
+use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_util::{ext::DynHash, json_stringify, source_map::SourceMapKind};
+use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
-  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
-  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
-  ExternalType, FactoryMeta, ImportAttributes, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleCodegenRuntimeTemplate, ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  NormalInitFragment, PrefetchExportsInfoMode, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsedExports, extract_url_and_global,
-  impl_module_meta_info, module_update_hash, property_access,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
+  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
+  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -85,7 +85,7 @@ impl ExternalRequestValue {
 fn get_namespace_object_export(
   concatenation_scope: Option<&mut ConcatenationScope>,
   supports_const: bool,
-  runtime_template: &mut ModuleCodegenRuntimeTemplate,
+  runtime_template: &mut ModuleCodeTemplate,
 ) -> String {
   if let Some(concatenation_scope) = concatenation_scope {
     concatenation_scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
@@ -128,7 +128,7 @@ fn get_source_for_commonjs(module_and_specifiers: Option<&ExternalRequestValue>)
   } else {
     ("undefined", String::new())
   };
-  format!("require({}){}", json_stringify(module_name), properties)
+  format!("require({}){}", json_stringify_str(module_name), properties)
 }
 
 fn get_source_for_import(
@@ -152,7 +152,7 @@ fn get_source_for_import(
       format!(
         "{}{}",
         if let Some(module_and_specifiers) = module_and_specifiers {
-          serde_json::to_string(module_and_specifiers.primary()).expect("invalid json to_string")
+          rspack_util::json_stringify_str(module_and_specifiers.primary())
         } else {
           "undefined".to_string()
         },
@@ -179,6 +179,174 @@ fn module_external_fragment_key(base: &str, attributes: &Option<ImportAttributes
   }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ModuleExternalRemapping {
+  exposed_name: String,
+  raw_export_name: String,
+  nested: Option<Vec<ModuleExternalRemapping>>,
+}
+
+fn collect_module_external_remapping(
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+) -> Option<Vec<ModuleExternalRemapping>> {
+  if exports_info.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return None;
+  }
+
+  let remapping: Vec<_> = exports_info
+    .exports()
+    .iter()
+    .filter(|(_, export_info)| !matches!(export_info.provided(), Some(ExportProvided::NotProvided)))
+    .filter_map(|(export_name, export_info)| {
+      let UsedNameItem::Str(used_name) = export_info.get_used_name(Some(export_name), runtime)?
+      else {
+        return None;
+      };
+
+      let nested = if export_info.get_used(runtime) == UsageState::OnlyPropertiesUsed {
+        export_info.exports_info().and_then(|nested_exports_info| {
+          collect_module_external_remapping(
+            exports_info_artifact,
+            nested_exports_info.as_data(exports_info_artifact),
+            runtime,
+          )
+        })
+      } else {
+        None
+      };
+
+      Some(ModuleExternalRemapping {
+        exposed_name: used_name.to_string(),
+        raw_export_name: export_name.to_string(),
+        nested,
+      })
+    })
+    .collect();
+
+  (!remapping
+    .iter()
+    .all(|item| item.exposed_name == item.raw_export_name && item.nested.is_none()))
+  .then_some(remapping)
+}
+
+fn render_module_external_remapping(
+  input: &str,
+  remapping: &[ModuleExternalRemapping],
+  runtime_template: &mut ModuleCodeTemplate,
+  create_namespace_object_name: &str,
+  wrap_namespace_getter_name: &str,
+) -> String {
+  let properties = remapping
+    .iter()
+    .map(|remapping| {
+      let access = format!(
+        "{input}{}",
+        property_access([remapping.raw_export_name.as_str()], 0)
+      );
+      let getter = if let Some(nested) = &remapping.nested {
+        format!(
+          "{wrap_namespace_getter_name}({})",
+          render_module_external_remapping(
+            &access,
+            nested,
+            runtime_template,
+            create_namespace_object_name,
+            wrap_namespace_getter_name,
+          )
+        )
+      } else {
+        runtime_template.returning_function(&access, "")
+      };
+
+      format!(
+        "{}: {getter}",
+        module_external_remapping_property_key(&remapping.exposed_name)
+      )
+    })
+    .collect::<Vec<_>>()
+    .join(", ");
+
+  format!("{create_namespace_object_name}({{{properties}}})")
+}
+
+fn module_external_remapping_property_key(exposed_name: &str) -> String {
+  format!("[{}]", json_stringify_str(exposed_name))
+}
+
+fn get_source_for_module_external(
+  module_and_specifiers: &ExternalRequestValue,
+  ident: &str,
+  attributes: &Option<ImportAttributes>,
+  exports_info_artifact: &crate::ExportsInfoArtifact,
+  exports_info: &crate::ExportsInfoData,
+  runtime: Option<&RuntimeSpec>,
+  runtime_template: &mut ModuleCodeTemplate,
+) -> (Option<String>, String, ChunkInitFragments) {
+  let mut chunk_init_fragments: ChunkInitFragments = Default::default();
+  let attributes_str = if let Some(attributes) = attributes {
+    format!(
+      " with {}",
+      serde_json::to_string(attributes).expect("json stringify failed"),
+    )
+  } else {
+    String::new()
+  };
+
+  chunk_init_fragments.push(
+    NormalInitFragment::new(
+      format!(
+        "import * as __rspack_external_{ident} from {}{};\n",
+        json_stringify_str(module_and_specifiers.primary()),
+        attributes_str
+      ),
+      InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal(module_external_fragment_key(
+        module_and_specifiers.primary(),
+        attributes,
+      )),
+      None,
+    )
+    .boxed(),
+  );
+
+  let base_access = format!(
+    "__rspack_external_{ident}{}",
+    property_access(module_and_specifiers.iter(), 1)
+  );
+  let remapping = collect_module_external_remapping(exports_info_artifact, exports_info, runtime);
+  let create_namespace_object_name = format!("__rspack_create_module_external_namespace_{ident}");
+  let wrap_namespace_getter_name = format!("__rspack_wrap_module_external_namespace_{ident}");
+  let expression = if let Some(remapping) = remapping.as_ref() {
+    render_module_external_remapping(
+      &base_access,
+      remapping,
+      runtime_template,
+      &create_namespace_object_name,
+      &wrap_namespace_getter_name,
+    )
+  } else {
+    base_access
+  };
+  let init = remapping.map(|_| {
+    let define_property_getters =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let create_namespace_object = runtime_template.basic_function(
+      "y",
+      &format!("var x = {{}};\n{define_property_getters}(x, y);\nreturn x;"),
+    );
+    let return_x = runtime_template.returning_function("x", "");
+    format!(
+      "var {create_namespace_object_name} = {create_namespace_object};\nvar {wrap_namespace_getter_name} = {};",
+      runtime_template.returning_function(&return_x, "x")
+    )
+  });
+
+  (init, expression, chunk_init_fragments)
+}
+
 /**
  * Resolve the detailed external type from the raw external type.
  * e.g. resolve "module" or "import" from "module-import" type
@@ -196,10 +364,26 @@ fn resolve_external_type<'a>(
       }
     }
     "module-import" => {
+      if matches!(
+        dependency_meta.external_type.as_ref(),
+        Some(ExternalTypeEnum::Import)
+      ) {
+        "import"
+      } else {
+        "module"
+      }
+    }
+    "modern-module" => {
       if let Some(external_type) = dependency_meta.external_type.as_ref() {
         match external_type {
           ExternalTypeEnum::Import => "import",
           ExternalTypeEnum::Module => "module",
+          // `modern-module` currently collapses require-style CommonJS
+          // externals to node-commonjs in ESM output. This preserves a
+          // distinct identity from plain commonjs externals, but it also means
+          // we don't yet support selecting other CJS render variants such as
+          // preserving a bare require(...).
+          ExternalTypeEnum::CommonJs => "node-commonjs",
         }
       } else {
         "module"
@@ -233,6 +417,7 @@ pub struct ExternalModule {
 pub enum ExternalTypeEnum {
   Import,
   Module,
+  CommonJs,
 }
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;
@@ -302,6 +487,14 @@ impl ExternalModule {
     &self.external_type
   }
 
+  pub fn resolve_external_type(&self) -> &str {
+    resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
+  }
+
+  pub fn set_external_type(&mut self, new_type: ExternalType) {
+    self.external_type = new_type;
+  }
+
   pub fn get_request(&self) -> &ExternalRequestValue {
     match &self.request {
       ExternalRequest::Single(request) => request,
@@ -316,10 +509,6 @@ impl ExternalModule {
     }
   }
 
-  fn resolve_external_type(&self) -> &str {
-    resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
-  }
-
   fn get_source(
     &self,
     compilation: &Compilation,
@@ -327,7 +516,7 @@ impl ExternalModule {
     external_type: &ExternalType,
     runtime: Option<&RuntimeSpec>,
     concatenation_scope: Option<&mut ConcatenationScope>,
-    runtime_template: &mut ModuleCodegenRuntimeTemplate,
+    runtime_template: &mut ModuleCodeTemplate,
   ) -> Result<(BoxSource, ChunkInitFragments)> {
     let mut chunk_init_fragments: ChunkInitFragments = Default::default();
     let supports_const = compilation.options.output.environment.supports_const();
@@ -383,11 +572,15 @@ impl ExternalModule {
               InitFragmentKey::ModuleExternal("node-commonjs".to_string()),
               None,
             )
+            .with_top_level_decl_symbols(vec![
+              "__rspack_createRequire".into(),
+              "__rspack_createRequire_require".into(),
+            ])
             .boxed(),
           );
           let (request, specifiers) = if let Some(request) = request {
             (
-              json_stringify(request.primary()),
+              json_stringify_str(request.primary()),
               property_access(request.iter(), 1),
             )
           } else {
@@ -412,7 +605,15 @@ impl ExternalModule {
           .map(|s| s.as_str())
           .expect("should have module id");
         let external_variable = format!("__rspack_external_{}", to_identifier(id));
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             external_variable,
@@ -439,8 +640,15 @@ impl ExternalModule {
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache)
-          && let Some(request) = request
+        let side_effects_state_artifact = &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact;
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        ) && let Some(request) = request
         {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
@@ -480,13 +688,23 @@ impl ExternalModule {
           } else {
             to_identifier(&request.primary)
           };
-
           if let Some(concatenation_scope) = concatenation_scope {
-            let exports_info = module_graph
-              .get_prefetched_exports_info(&self.identifier(), PrefetchExportsInfoMode::Default);
+            let exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&self.identifier());
             let used_exports = exports_info.get_used_exports(runtime);
-            let meta = &self.dependency_meta.attributes;
-            let attributes = meta.as_ref().map(|meta| {
+            let namespace_used_by_named_exports = matches!(
+              &used_exports,
+              UsedExports::UsedNames(atoms)
+                if atoms
+                  .iter()
+                  .any(|atom| {
+                    exports_info
+                      .get_read_only_export_info(atom)
+                      .ns_access()
+                  })
+            );
+            let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
               format!(
                 " with {}",
                 serde_json::to_string(meta).expect("json stringify failed"),
@@ -501,6 +719,7 @@ impl ExternalModule {
                 optimize.0
               } else {
                 let chunk = compilation
+                  .build_chunk_graph_artifact
                   .chunk_graph
                   .get_module_chunks(concatenation_scope.concat_module_id);
 
@@ -511,24 +730,14 @@ impl ExternalModule {
                     .iter()
                     .next()
                     .expect("concate module have only 1 chunk");
-
-                  // chunk: [extern_1, extern_2],
-                  // they are placed in 2 different concate modules
-                  // They may have conflict symbols, but we can't know during codegen,
-                  // and even if we know we can't determine which one to rename, as they
-                  // render in parallel.
-                  // This will be improved in incoming esm format.
-                  //
-                  // We must ensure that there is no other external modules in different
-                  // concate modules of the same chunk
                   let module_graph = compilation.get_module_graph();
                   let mut safe_to_optimize = true;
                   'outer: for m in compilation
+                    .build_chunk_graph_artifact
                     .chunk_graph
                     .get_chunk_modules(chunk, module_graph)
                   {
                     if m.identifier() == concatenation_scope.concat_module_id {
-                      // skip self
                       continue;
                     }
 
@@ -555,6 +764,8 @@ impl ExternalModule {
                 safe_to_optimize
               };
 
+            let force_namespace = request.has_rest();
+
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
                 let external_module_id = format!("__rspack_external_{id}");
@@ -567,48 +778,79 @@ impl ExternalModule {
 
                 concatenation_scope.register_namespace_import(
                   request.primary().to_string(),
-                  attributes.clone(),
+                  attributes,
                   format!("__rspack_external_{id}").into(),
                 );
                 concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                String::new()
               }
               UsedExports::UsedNamespace(false) => {
                 concatenation_scope.register_import(
                   request.primary().to_string(),
-                  attributes.clone(),
+                  attributes,
                   None,
                 );
+                String::new()
               }
               UsedExports::UsedNames(atoms) => {
-                if !safe_to_optimize {
-                  chunk_init_fragments.push(
-                    NormalInitFragment::new(
-                      format!(
-                        "import * as __rspack_external_{} from {}{};\n",
-                        id.clone(),
-                        json_stringify(request.primary()),
-                        attributes.clone().unwrap_or_default()
-                      ),
-                      InitFragmentStage::StageESMImports,
-                      module_graph
-                        .get_pre_order_index(&self.identifier())
-                        .map_or(0, |num| num as i32),
-                      InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                        request.primary(),
+                if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
+                  if collect_module_external_remapping(
+                    &compilation.exports_info_artifact,
+                    exports_info,
+                    runtime,
+                  )
+                  .is_some()
+                  {
+                    let (init, expression, module_external_fragments) =
+                      get_source_for_module_external(
+                        request,
+                        id.as_ref(),
                         &self.dependency_meta.attributes,
-                      )),
-                      None,
+                        &compilation.exports_info_artifact,
+                        exports_info,
+                        runtime,
+                        runtime_template,
+                      );
+                    chunk_init_fragments.extend(module_external_fragments);
+                    let external_module_id = format!("__rspack_module_external_namespace_{id}");
+                    let namespace_export_with_name =
+                      format!("{NAMESPACE_OBJECT_EXPORT}{external_module_id}");
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    format!(
+                      "{}\nvar {external_module_id} = {expression};",
+                      init.expect("remapped module external should render init fragments")
                     )
-                    .boxed(),
-                  );
-                  let external_module_id = format!("__rspack_external_{id}");
-                  let namespace_export_with_name = format!(
-                    "{}{}{}",
-                    NAMESPACE_OBJECT_EXPORT,
-                    &external_module_id,
-                    &property_access(request.iter(), 1)
-                  );
-                  concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                  } else {
+                    chunk_init_fragments.push(
+                      NormalInitFragment::new(
+                        format!(
+                          "import * as __rspack_external_{} from {}{};\n",
+                          id.as_ref(),
+                          json_stringify_str(request.primary()),
+                          attributes.unwrap_or_default()
+                        ),
+                        InitFragmentStage::StageESMImports,
+                        module_graph
+                          .get_pre_order_index(&self.identifier())
+                          .map_or(0, |num| num as i32),
+                        InitFragmentKey::ModuleExternal(module_external_fragment_key(
+                          request.primary(),
+                          &self.dependency_meta.attributes,
+                        )),
+                        None,
+                      )
+                      .boxed(),
+                    );
+                    let external_module_id = format!("__rspack_external_{id}");
+                    let namespace_export_with_name = format!(
+                      "{}{}{}",
+                      NAMESPACE_OBJECT_EXPORT,
+                      &external_module_id,
+                      &property_access(request.iter(), 1)
+                    );
+                    concatenation_scope.register_namespace_export(&namespace_export_with_name);
+                    String::new()
+                  }
                 } else {
                   concatenation_scope.register_import(
                     request.primary().to_string(),
@@ -623,47 +865,35 @@ impl ExternalModule {
                     );
                     concatenation_scope.register_raw_export(atom.clone(), atom.to_string());
                   }
+                  String::new()
                 }
               }
             }
-
-            String::new()
           } else {
-            chunk_init_fragments.push(
-              NormalInitFragment::new(
-                format!(
-                  "import * as __rspack_external_{} from {}{};\n",
-                  id.clone(),
-                  json_stringify(request.primary()),
-                  {
-                    let meta = &self.dependency_meta.attributes;
-                    if let Some(meta) = meta {
-                      format!(
-                        " with {}",
-                        serde_json::to_string(meta).expect("json stringify failed"),
-                      )
-                    } else {
-                      String::new()
-                    }
-                  },
-                ),
-                InitFragmentStage::StageESMImports,
-                0,
-                InitFragmentKey::ModuleExternal(module_external_fragment_key(
-                  request.primary(),
-                  &self.dependency_meta.attributes,
-                )),
-                None,
-              )
-              .boxed(),
+            let exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&self.identifier());
+            let (init, expression, module_external_fragments) = get_source_for_module_external(
+              request,
+              id.as_ref(),
+              &self.dependency_meta.attributes,
+              &compilation.exports_info_artifact,
+              exports_info,
+              runtime,
+              runtime_template,
             );
-            format!(
-              r#"
-{} = __rspack_external_{};
-"#,
-              get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-              id.clone()
-            )
+            chunk_init_fragments.extend(module_external_fragments);
+            let export =
+              get_namespace_object_export(concatenation_scope, supports_const, runtime_template);
+            if let Some(init) = init {
+              format!("{init}\n{export} = {expression};")
+            } else {
+              format!(
+                r#"
+{export} = {expression};
+"#
+              )
+            }
           }
         } else {
           format!(
@@ -696,8 +926,8 @@ if(typeof {global} !== "undefined") return resolve();
           export =
             get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
           global = url_and_global.global,
-          global_str = serde_json::to_string(url_and_global.global).to_rspack_result()?,
-          url_str = serde_json::to_string(url_and_global.url).to_rspack_result()?,
+          global_str = rspack_util::json_stringify_str(url_and_global.global),
+          url_str = rspack_util::json_stringify_str(url_and_global.url),
           load_script = runtime_template.render_runtime_globals(&RuntimeGlobals::LOAD_SCRIPT)
         )
       }
@@ -707,7 +937,14 @@ if(typeof {global} !== "undefined") return resolve();
         } else {
           "undefined".to_string()
         };
-        let check_external_variable = if module_graph.is_optional(&self.id, module_graph_cache) {
+        let check_external_variable = if module_graph.is_optional(
+          &self.id,
+          module_graph_cache,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
             &external_variable,
@@ -795,10 +1032,17 @@ impl Module for ExternalModule {
   }
 
   fn chunk_condition(&self, chunk_key: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    match self.external_type.as_str() {
+    let external_type = if self.external_type == "modern-module" {
+      self.resolve_external_type()
+    } else {
+      self.external_type.as_str()
+    };
+
+    match external_type {
       "css-import" | "module" | "import" | "module-import" if !self.place_in_initial => Some(true),
       _ => Some(
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_number_of_entry_modules(chunk_key)
           > 0,
@@ -824,7 +1068,7 @@ impl Module for ExternalModule {
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -836,6 +1080,8 @@ impl Module for ExternalModule {
     };
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
+
+    #[allow(clippy::collapsible_match)]
     match resolved_external_type {
       "this" => self.build_info.strict = false,
       "system" => {
@@ -870,6 +1116,7 @@ impl Module for ExternalModule {
     }
     self.build_meta.exports_type = exports_type;
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
@@ -901,7 +1148,7 @@ impl Module for ExternalModule {
           RawStringSource::from(format!(
             "{}.exports = {};",
             runtime_template.render_module_argument(ModuleArgument::Module),
-            serde_json::to_string(request.primary()).to_rspack_result()?
+            rspack_util::json_stringify_str(request.primary())
           ))
           .boxed(),
         );
@@ -915,7 +1162,7 @@ impl Module for ExternalModule {
           SourceType::Css,
           RawStringSource::from(format!(
             "@import url({});",
-            serde_json::to_string(request.primary()).to_rspack_result()?
+            rspack_util::json_stringify_str(request.primary())
           ))
           .boxed(),
         );
@@ -948,9 +1195,15 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.id.dyn_hash(&mut hasher);
-    let is_optional = compilation
-      .get_module_graph()
-      .is_optional(&self.id, &compilation.module_graph_cache_artifact);
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let is_optional = compilation.get_module_graph().is_optional(
+      &self.id,
+      &compilation.module_graph_cache_artifact,
+      side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    );
     is_optional.dyn_hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

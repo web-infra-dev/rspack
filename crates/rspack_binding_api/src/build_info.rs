@@ -13,12 +13,12 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{define_symbols, module::Module};
 
 define_symbols! {
-  BUILD_INFO_ASSETS_SYMBOL => "BUILD_INFO_ASSETS_SYMBOL",
-  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL => "BUILD_INFO_FILE_DEPENDENCIES_SYMBOL",
-  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL",
-  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL",
-  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL",
-  COMMIT_CUSTOM_FIELDS_SYMBOL => "COMMIT_CUSTOM_FIELDS_SYMBOL",
+  BUILD_INFO_ASSETS_SYMBOL => "rspack.buildInfo.assets",
+  BUILD_INFO_FILE_DEPENDENCIES_SYMBOL => "rspack.buildInfo.fileDependencies",
+  BUILD_INFO_CONTEXT_DEPENDENCIES_SYMBOL => "rspack.buildInfo.contextDependencies",
+  BUILD_INFO_MISSING_DEPENDENCIES_SYMBOL => "rspack.buildInfo.missingDependencies",
+  BUILD_INFO_BUILD_DEPENDENCIES_SYMBOL => "rspack.buildInfo.buildDependencies",
+  COMMIT_CUSTOM_FIELDS_SYMBOL => "rspack.buildInfo.commitCustomFields",
 }
 
 // Record<string, Source>
@@ -277,7 +277,7 @@ impl ToNapiValue for BuildInfo {
     unsafe {
       let env_wrapper = Env::from_raw(env);
       let module_reference = val.module_reference.clone();
-      let known = KnownBuildInfo::new(module_reference.clone());
+      let known = KnownBuildInfo::new(module_reference);
       let napi_val = ToNapiValue::to_napi_value(env, known)?;
       let mut object = Object::from_raw(env, napi_val);
 

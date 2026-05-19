@@ -24,7 +24,7 @@ pub(crate) async fn loader_should_yield(
   loader_context: &LoaderContext<RunnerContext>,
 ) -> Result<Option<bool>> {
   match loader_context.state() {
-    s @ LoaderState::Init | s @ LoaderState::ProcessResource | s @ LoaderState::Finished => {
+    s @ (LoaderState::Init | LoaderState::ProcessResource | LoaderState::Finished) => {
       panic!("Unexpected loader runner state: {s:?}")
     }
     LoaderState::Pitching => {

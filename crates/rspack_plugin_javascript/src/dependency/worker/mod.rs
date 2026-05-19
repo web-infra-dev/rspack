@@ -6,8 +6,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
@@ -65,6 +65,7 @@ impl Dependency for WorkerDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ExtendedReferencedExport> {
     vec![]
@@ -143,13 +144,22 @@ impl DependencyTemplate for WorkerDependencyTemplate {
       .get_parent_block(&dep.id)
       .and_then(|block| {
         compilation
+          .build_chunk_graph_artifact
           .chunk_graph
-          .get_block_chunk_group(block, &compilation.chunk_group_by_ukey)
+          .get_block_chunk_group(
+            block,
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          )
       })
       .map(|entrypoint| entrypoint.get_entrypoint_chunk())
-      .and_then(|ukey| compilation.chunk_by_ukey.get(&ukey))
+      .and_then(|ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .get(&ukey)
+      })
       .and_then(|chunk| chunk.id())
-      .and_then(|chunk_id| serde_json::to_string(chunk_id).ok())
+      .map(rspack_util::json_stringify)
       .expect("failed to get json stringified chunk id");
     let worker_import_base_url = if !dep.public_path.is_empty() {
       format!("\"{}\"", dep.public_path)
@@ -172,7 +182,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     source.replace(
       dep.range_path.start,
       dep.range_path.end,
-      worker_import_str.as_str(),
+      worker_import_str,
       None,
     );
   }

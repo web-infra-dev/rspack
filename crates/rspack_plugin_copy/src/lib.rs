@@ -7,20 +7,22 @@ use std::{
   sync::{Arc, LazyLock, Mutex},
 };
 
-use dashmap::DashSet;
+use cow_utils::CowUtils;
 use derive_more::Debug;
+use fast_glob::glob_match;
 use futures::future::{BoxFuture, join_all};
-use glob::{MatchOptions, Pattern as GlobPattern};
 use regex::Regex;
 use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, Logger, PathData, Plugin,
+  CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
+  escape_glob_pattern, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
 #[derive(Debug)]
@@ -106,7 +108,7 @@ pub struct CopyPattern {
 pub struct CopyGlobOptions {
   pub case_sensitive_match: Option<bool>,
   pub dot: Option<bool>,
-  pub ignore: Option<Vec<GlobPattern>>,
+  pub ignore: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone)]
@@ -129,6 +131,14 @@ pub struct CopyRspackPlugin {
 
 static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
+
+fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
+  if cfg!(windows) {
+    path.cow_replace('\\', "/")
+  } else {
+    Cow::Borrowed(path)
+  }
+}
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
@@ -153,7 +163,7 @@ impl CopyRspackPlugin {
     context: &Utf8Path,
     output_path: &Utf8Path,
     from_type: FromType,
-    file_dependencies: &DashSet<PathBuf>,
+    file_dependencies: &FxDashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     compilation: &Compilation,
     logger: &CompilationLogger,
@@ -164,7 +174,9 @@ impl CopyRspackPlugin {
       return Ok(None);
     }
     if let Some(ignore) = &pattern.glob_options.ignore
-      && ignore.iter().any(|ignore| ignore.matches(entry.as_str()))
+      && ignore
+        .iter()
+        .any(|ignore| glob_match(ignore.as_bytes(), entry.as_str().as_bytes()))
     {
       return Ok(None);
     }
@@ -199,19 +211,15 @@ impl CopyRspackPlugin {
                   "Run copy to fn error".into(),
                   e.to_string(),
                 ));
-              "".to_string()
+              String::new()
             }
           }
         }
       };
 
-      to.clone()
-        .as_path()
-        .normalize()
-        .to_string_lossy()
-        .to_string()
+      to.as_path().normalize().to_string_lossy().to_string()
     } else {
-      "".into()
+      String::new()
     };
 
     let to_type = if let Some(to_type) = pattern.to_type.as_ref() {
@@ -259,7 +267,13 @@ impl CopyRspackPlugin {
     if matches!(from_type, FromType::Dir | FromType::Glob) {
       logger.debug(format!("added '{absolute_filename}' as a file dependency",));
 
-      file_dependencies.insert(absolute_filename.clone().into_std_path_buf());
+      file_dependencies.insert(
+        absolute_filename
+          .to_path_buf()
+          .into_std_path_buf()
+          .normalize()
+          .into_owned(),
+      );
     }
 
     // TODO cache
@@ -347,8 +361,8 @@ impl CopyRspackPlugin {
     compilation: &Compilation,
     pattern: &CopyPattern,
     index: usize,
-    file_dependencies: &DashSet<PathBuf>,
-    context_dependencies: &DashSet<PathBuf>,
+    file_dependencies: &FxDashSet<PathBuf>,
+    context_dependencies: &FxDashSet<PathBuf>,
     diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
     logger: &CompilationLogger,
   ) -> Result<Option<Vec<Option<RunPatternResult>>>> {
@@ -413,29 +427,38 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let mut escaped = Utf8PathBuf::from(GlobPattern::escape(abs_from.as_str()));
-        escaped.push("**/*");
-
-        escaped.as_str().to_string()
+        let from = normalize_glob_path_separators(abs_from.as_str());
+        let escaped = escape_glob_pattern(&from);
+        format!("{}/**/*", escaped.trim_end_matches('/'))
       }
       FromType::File => {
         logger.debug(format!("added '{abs_from}' as a file dependency"));
-        file_dependencies.insert(abs_from.clone().into_std_path_buf());
+        file_dependencies.insert(
+          abs_from
+            .clone()
+            .into_std_path_buf()
+            .normalize()
+            .into_owned(),
+        );
         context = abs_from.parent().unwrap_or(Utf8Path::new("")).into();
 
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
 
-        GlobPattern::escape(abs_from.as_str())
+        let from = normalize_glob_path_separators(abs_from.as_str());
+        escape_glob_pattern(&from)
       }
       FromType::Glob => {
         need_add_context_to_dependency = true;
-        let glob_query = if Path::new(orig_from).is_absolute() {
+        let mut glob_query = if Path::new(orig_from).is_absolute() {
           orig_from.into()
         } else {
           context.join(orig_from).as_str().to_string()
         };
+        if cfg!(windows) {
+          glob_query = glob_query.cow_replace('\\', "/").into_owned();
+        }
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
         if glob_query.ends_with("/**") {
@@ -448,29 +471,30 @@ impl CopyRspackPlugin {
 
     logger.log(format!("begin globbing '{glob_query}'..."));
 
-    let glob_entries = glob::glob_with(
+    let glob_match_options = GlobMatchOptions {
+      case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
+      require_literal_leading_dot: !dot_enable.unwrap_or(false),
+    };
+
+    let glob_entries = find_files_by_glob(
       &glob_query,
-      MatchOptions {
-        case_sensitive: pattern.glob_options.case_sensitive_match.unwrap_or(true),
-        require_literal_separator: Default::default(),
-        require_literal_leading_dot: !dot_enable.unwrap_or(false),
-      },
-    );
+      &glob_match_options,
+      compilation.input_filesystem.clone(),
+    )
+    .await;
 
     match glob_entries {
       Ok(entries) => {
         let entries: Vec<_> = entries
-          .filter_map(|entry| {
-            let entry = entry.ok()?.assert_utf8();
-
-            let filters = pattern.glob_options.ignore.as_ref();
-
-            if let Some(filters) = filters {
+          .into_iter()
+          .filter(|entry| {
+            if let Some(filters) = &pattern.glob_options.ignore {
               // If filters length is 0, exist is true by default
-              let exist = filters.iter().all(|filter| !filter.matches(entry.as_str()));
-              exist.then_some(entry)
+              filters
+                .iter()
+                .all(|filter| !glob_match(filter.as_bytes(), entry.as_str().as_bytes()))
             } else {
-              Some(entry)
+              true
             }
           })
           .collect();
@@ -563,7 +587,7 @@ impl CopyRspackPlugin {
         diagnostics
           .lock()
           .expect("failed to obtain lock of `diagnostics`")
-          .push(Diagnostic::error("Glob Error".into(), e.msg.to_string()));
+          .push(Diagnostic::error("Glob Error".into(), e.to_string()));
 
         Ok(None)
       }
@@ -575,8 +599,8 @@ impl CopyRspackPlugin {
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let logger = compilation.get_logger("rspack.CopyRspackPlugin");
   let start = logger.time("run pattern");
-  let file_dependencies = DashSet::default();
-  let context_dependencies = DashSet::default();
+  let file_dependencies = FxDashSet::default();
+  let context_dependencies = FxDashSet::default();
   let diagnostics = Arc::new(Mutex::new(Vec::new()));
 
   let mut copied_result: Vec<(i32, RunPatternResult)> =
@@ -620,7 +644,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .deref_mut(),
   ));
 
-  copied_result.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+  copied_result.sort_unstable_by_key(|a| a.0);
 
   // Keep track of source to destination file mappings for permission copying
   let mut permission_copies = Vec::new();

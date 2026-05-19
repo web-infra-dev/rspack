@@ -40,9 +40,7 @@ function __rspack_context_resolve(req) {
   }
   return map[req];
 }
-__rspack_context.keys = function webpackContextKeys() {
-  return Object.keys(map);
-};
+__rspack_context.keys = () => (Object.keys(map));
 __rspack_context.resolve = __rspack_context_resolve;
 module.exports = __rspack_context;
 __rspack_context.id = "./resources sync recursive ^\\.\\/pre_.*\\.js$";

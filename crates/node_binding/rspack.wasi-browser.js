@@ -21,9 +21,10 @@ const __wasmUrl = new URL('./rspack.wasm32-wasi.wasm', import.meta.url).href
 const __emnapiContext = __emnapiGetDefaultContext()
 __emnapiContext.feature.Buffer = Buffer
 
+// Allocate 2GB fixed shared memory (initial == maximum to disable memory.grow).
 const __sharedMemory = new WebAssembly.Memory({
-  initial: 16384,
-  maximum: 65536,
+  initial: 32768,
+  maximum: 32768,
   shared: true,
 })
 
@@ -42,6 +43,12 @@ const {
       type: 'module',
     })
     worker.addEventListener('message', __wasmCreateOnMessageForFsProxy(__fs))
+
+    worker.addEventListener('error', (event) => {
+      if (event.data && typeof event.data === 'object' && event.data.type === 'error') {
+        window.dispatchEvent(new CustomEvent('napi-rs-worker-error', { detail: event.data }))
+      }
+    })
 
     return worker
   },

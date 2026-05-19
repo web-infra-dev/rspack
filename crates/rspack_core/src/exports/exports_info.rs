@@ -1,31 +1,32 @@
 use std::{collections::BTreeMap, hash::Hash, sync::atomic::Ordering::Relaxed};
 
 use rspack_cacheable::cacheable;
-use rspack_collections::{Ukey, impl_item_ukey};
-use rspack_util::atom::Atom;
+use rspack_util::{atom::Atom, ext::DynHash};
+use rustc_hash::FxHashSet;
 use serde::Serialize;
 
 use super::{ExportInfoData, NEXT_EXPORTS_INFO_UKEY};
-use crate::ModuleGraph;
+use crate::{ExportsInfoArtifact, RuntimeSpec};
 
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
-pub struct ExportsInfo(Ukey);
-
-impl_item_ukey!(ExportsInfo);
+pub struct ExportsInfo(u32);
 
 impl ExportsInfo {
   #[allow(clippy::new_without_default)]
   pub fn new() -> Self {
-    Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed).into())
+    Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed))
   }
 
-  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportsInfoData {
-    mg.get_exports_info_by_id(self)
+  pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportsInfoData {
+    exports_info_artifact.get_exports_info_by_id(self)
   }
 
-  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportsInfoData {
-    mg.get_exports_info_mut_by_id(self)
+  pub fn as_data_mut<'a>(
+    &self,
+    exports_info_artifact: &'a mut ExportsInfoArtifact,
+  ) -> &'a mut ExportsInfoData {
+    exports_info_artifact.get_exports_info_mut_by_id(self)
   }
 }
 
@@ -64,6 +65,7 @@ impl ExportsInfoData {
     *self = ExportsInfoData::default();
     self.id = id;
   }
+
   pub fn id(&self) -> ExportsInfo {
     self.id
   }
@@ -98,5 +100,77 @@ impl ExportsInfoData {
 
   pub fn exports_mut(&mut self) -> &mut BTreeMap<Atom, ExportInfoData> {
     &mut self.exports
+  }
+
+  pub fn update_hash(
+    &self,
+    exports_info_artifact: &ExportsInfoArtifact,
+    hasher: &mut dyn std::hash::Hasher,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    fn export_info_update_hash(
+      export_info: &ExportInfoData,
+      exports_info_artifact: &ExportsInfoArtifact,
+      hasher: &mut dyn std::hash::Hasher,
+      runtime: Option<&RuntimeSpec>,
+      visited: &mut FxHashSet<ExportsInfo>,
+    ) {
+      if let Some(used_name) = export_info.used_name() {
+        used_name.dyn_hash(hasher);
+      } else {
+        export_info.name().dyn_hash(hasher);
+      }
+      export_info.get_used(runtime).dyn_hash(hasher);
+      export_info.provided().dyn_hash(hasher);
+      export_info.terminal_binding().dyn_hash(hasher);
+      export_info.ns_access().dyn_hash(hasher);
+      if let Some(exports_info) = export_info.exports_info()
+        && !visited.contains(&exports_info)
+      {
+        exports_info_update_hash(
+          exports_info.as_data(exports_info_artifact),
+          exports_info_artifact,
+          hasher,
+          runtime,
+          visited,
+        );
+      }
+    }
+
+    fn exports_info_update_hash(
+      exports_info: &ExportsInfoData,
+      exports_info_artifact: &ExportsInfoArtifact,
+      hasher: &mut dyn std::hash::Hasher,
+      runtime: Option<&RuntimeSpec>,
+      visited: &mut FxHashSet<ExportsInfo>,
+    ) {
+      visited.insert(exports_info.id());
+      let other_export_info = exports_info.other_exports_info();
+      let side_effects_only_info = exports_info.side_effects_only_info();
+
+      for export_info in exports_info.exports().values() {
+        if export_info.has_info(other_export_info, runtime) {
+          export_info_update_hash(export_info, exports_info_artifact, hasher, runtime, visited);
+        }
+      }
+
+      export_info_update_hash(
+        side_effects_only_info,
+        exports_info_artifact,
+        hasher,
+        runtime,
+        visited,
+      );
+      export_info_update_hash(
+        other_export_info,
+        exports_info_artifact,
+        hasher,
+        runtime,
+        visited,
+      );
+    }
+
+    let mut visited = FxHashSet::default();
+    exports_info_update_hash(self, exports_info_artifact, hasher, runtime, &mut visited);
   }
 }

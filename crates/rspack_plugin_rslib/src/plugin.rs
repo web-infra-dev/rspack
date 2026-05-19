@@ -3,31 +3,153 @@ use std::{
   time::{Duration, Instant},
 };
 
+use cow_utils::CowUtils;
+use pathdiff::diff_paths;
 use rspack_core::{
-  AssetEmittedInfo, ChunkUkey, Compilation, CompilationParams, CompilerAssetEmitted,
-  CompilerCompilation, CompilerFinishMake, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, Plugin, get_module_directives, get_module_hashbang,
+  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
+  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
+  SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
-use rspack_error::Result;
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_plugin_asset::AssetParserAndGenerator;
+use rspack_plugin_externals::EsmNodeTargetPlugin;
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, JavascriptModulesRender, JsPlugin, RenderSource,
   parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_util::node_path::NodePath;
 
 use crate::{
-  asset::RslibAssetParserAndGenerator, hashbang_parser_plugin::HashbangParserPlugin,
-  import_dependency::RslibDependencyTemplate,
-  import_external::replace_import_dependencies_for_external_modules,
-  parser_plugin::RslibParserPlugin, react_directives_parser_plugin::ReactDirectivesParserPlugin,
+  asset::RslibAssetParserAndGenerator,
+  dyn_import_external::{
+    ExportImportedDependencyTemplate, ImportDependencyTemplate, cutout_dyn_import_externals,
+    cutout_star_re_export_externals,
+  },
+  hashbang_parser_plugin::HashbangParserPlugin,
+  isolated_dts::{IsolatedDtsAsset, complete_isolated_dts_outputs},
+  parser_plugin::RslibParserPlugin,
+  react_directives_parser_plugin::ReactDirectivesParserPlugin,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RslibPluginOptions {
   pub intercept_api_plugin: bool,
   pub force_node_shims: bool,
+  pub auto_cjs_node_builtin: bool,
+  pub emit_dts: Option<SwcEmitDtsOptions>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SwcEmitDtsOptions {
+  pub root_dir: String,
+  pub declaration_dir: String,
+}
+
+struct EmitIsolatedDtsAssetContext {
+  compiler_root: Utf8PathBuf,
+  resolved_root_dir: Utf8PathBuf,
+  resolved_declaration_dir: Utf8PathBuf,
+  output_path: Utf8PathBuf,
+}
+
+impl EmitIsolatedDtsAssetContext {
+  fn new(compilation: &Compilation, emit_dts_options: &SwcEmitDtsOptions) -> Self {
+    let compiler_root = compilation.options.context.as_path().to_path_buf();
+    Self {
+      resolved_root_dir: resolve_emit_dts_path(&compiler_root, &emit_dts_options.root_dir),
+      resolved_declaration_dir: resolve_emit_dts_path(
+        &compiler_root,
+        &emit_dts_options.declaration_dir,
+      ),
+      output_path: compilation.options.output.path.clone(),
+      compiler_root,
+    }
+  }
+}
+
+fn emit_isolated_dts_asset(
+  compilation: &mut Compilation,
+  context: &EmitIsolatedDtsAssetContext,
+  dts: IsolatedDtsAsset,
+) -> Result<()> {
+  let IsolatedDtsAsset {
+    resource_path,
+    code,
+  } = dts;
+  let raw_resource_path = Utf8Path::new(&resource_path);
+  // Cached isolated dts metadata stores resource paths relative to the compiler context.
+  let resource_path = resolve_emit_dts_path(&context.compiler_root, &resource_path);
+  // AssetInfo.source_filename is expected to be relative to the compilation context.
+  let source_filename = if raw_resource_path.is_relative() {
+    Some(
+      raw_resource_path
+        .as_str()
+        .cow_replace('\\', "/")
+        .into_owned(),
+    )
+  } else {
+    diff_paths(
+      resource_path.as_std_path(),
+      context.compiler_root.as_std_path(),
+    )
+    .map(|path| path.to_string_lossy().cow_replace('\\', "/").into_owned())
+  };
+  let output_relative_path = resource_path
+    .strip_prefix(&context.resolved_root_dir)
+    .map_err(|_| {
+      error!(
+        "Failed to emit declaration files for {} because it is outside rootDir {}",
+        resource_path, context.resolved_root_dir
+      )
+    })?;
+  let declaration_file_path = context
+    .resolved_declaration_dir
+    .join(output_relative_path)
+    .with_extension(match resource_path.extension() {
+      Some("mts") => "d.mts",
+      Some("cts") => "d.cts",
+      _ => "d.ts",
+    });
+  let filename = diff_paths(
+    declaration_file_path.as_std_path(),
+    context.output_path.as_std_path(),
+  )
+    .ok_or_else(|| {
+      error!(
+        "Failed to emit declaration files for {} because declarationDir {} can not be relativized against output.path {}",
+        resource_path, context.resolved_declaration_dir, context.output_path
+      )
+    })?
+    .to_string_lossy()
+    .cow_replace('\\', "/")
+    .into_owned();
+
+  compilation.emit_asset(
+    filename,
+    CompilationAsset::new(
+      Some(RawStringSource::from(code).boxed()),
+      AssetInfo {
+        source_filename,
+        ..Default::default()
+      },
+    ),
+  );
+
+  Ok(())
+}
+
+fn resolve_emit_dts_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
+  let path = Utf8Path::new(value);
+  if path.is_absolute() {
+    path.to_path_buf().node_normalize()
+  } else {
+    base.node_join(path).node_normalize()
+  }
 }
 
 #[derive(Debug)]
@@ -86,15 +208,30 @@ async fn nmf_parser(
   Ok(())
 }
 
-#[plugin_hook(CompilerCompilation for RslibPlugin)]
+#[plugin_hook(CompilerCompilation for RslibPlugin, stage=10)]
 async fn compilation(
   &self,
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  let import_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::DynamicImport),
+  );
   compilation.set_dependency_template(
-    RslibDependencyTemplate::template_type(),
-    Arc::new(RslibDependencyTemplate::default()),
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::DynamicImport),
+    Arc::new(ImportDependencyTemplate {
+      template: import_template,
+    }),
+  );
+
+  let export_template = compilation.get_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier),
+  );
+  compilation.set_dependency_template(
+    rspack_core::DependencyTemplateType::Dependency(DependencyType::EsmExportImportedSpecifier),
+    Arc::new(ExportImportedDependencyTemplate {
+      template: export_template,
+    }),
   );
 
   // Register render hook for hashbang and directives handling during chunk generation
@@ -112,11 +249,15 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   // NOTE: This function handles hashbang and directives for non new ESM library formats.
   // Similar logic exists in rspack_plugin_esm_library/src/render.rs for ESM format,
   // as that plugin's render path is used instead when ESM library plugin is enabled.
-  let entry_modules = compilation.chunk_graph.get_chunk_entry_modules(chunk_ukey);
+  let entry_modules = compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_entry_modules(chunk_ukey);
   if entry_modules.is_empty() {
     return Ok(());
   }
@@ -136,7 +277,7 @@ async fn render(
     let mut new_source = ConcatSource::default();
 
     if let Some(hashbang) = hashbang {
-      new_source.add(RawStringSource::from(format!("{}\n", hashbang)));
+      new_source.add(RawStringSource::from(format!("{hashbang}\n")));
     }
 
     if let Some(directives) = directives {
@@ -144,12 +285,12 @@ async fn render(
       if let Some(rest) = original_source_str.strip_prefix(use_strict_prefix) {
         new_source.add(RawStringSource::from(use_strict_prefix));
         for directive in directives {
-          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+          new_source.add(RawStringSource::from(format!("{directive}\n")));
         }
         new_source.add(RawStringSource::from(rest));
       } else {
         for directive in directives {
-          new_source.add(RawStringSource::from(format!("{}\n", directive)));
+          new_source.add(RawStringSource::from(format!("{directive}\n")));
         }
         new_source.add(render_source.source.clone());
       }
@@ -164,11 +305,23 @@ async fn render(
   Ok(())
 }
 
-#[plugin_hook(CompilerFinishMake for RslibPlugin)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  // Replace ImportDependency instances with RslibImportDependency for external modules
-  replace_import_dependencies_for_external_modules(compilation)?;
-  Ok(())
+#[plugin_hook(CompilationOptimizeDependencies for RslibPlugin)]
+async fn optimize_dependencies(
+  &self,
+  compilation: &Compilation,
+  _side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+  exports_info_artifact: &mut ExportsInfoArtifact,
+  _diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Option<bool>> {
+  cutout_dyn_import_externals(build_module_graph_artifact);
+  cutout_star_re_export_externals(
+    compilation,
+    build_module_graph_artifact,
+    exports_info_artifact,
+  );
+
+  Ok(None)
 }
 
 #[plugin_hook(CompilerAssetEmitted for RslibPlugin)]
@@ -191,6 +344,30 @@ async fn asset_emitted(
   Ok(())
 }
 
+#[plugin_hook(CompilationProcessAssets for RslibPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_ADDITIONAL)]
+async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+  let Some(options) = &self.options.emit_dts else {
+    return Ok(());
+  };
+  let dts_outputs = compilation
+    .get_module_graph()
+    .modules()
+    .filter_map(|(_, module)| module.build_info().isolated_dts.as_deref().cloned())
+    .collect::<Vec<_>>();
+  if dts_outputs.is_empty() {
+    return Ok(());
+  }
+
+  let dts_outputs = complete_isolated_dts_outputs(compilation, options, dts_outputs).await?;
+  let emit_context = EmitIsolatedDtsAssetContext::new(compilation, options);
+
+  for dts in dts_outputs {
+    emit_isolated_dts_asset(compilation, &emit_context, dts)?;
+  }
+
+  Ok(())
+}
+
 impl Plugin for RslibPlugin {
   fn name(&self) -> &'static str {
     "rslib"
@@ -203,11 +380,23 @@ impl Plugin for RslibPlugin {
       .parser
       .tap(nmf_parser::new(self));
 
-    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+    ctx
+      .compilation_hooks
+      .optimize_dependencies
+      .tap(optimize_dependencies::new(self));
+
     ctx
       .compiler_hooks
       .asset_emitted
       .tap(asset_emitted::new(self));
+    ctx
+      .compilation_hooks
+      .process_assets
+      .tap(process_assets::new(self));
+
+    if self.options.auto_cjs_node_builtin {
+      EsmNodeTargetPlugin::new().apply(ctx)?;
+    }
 
     Ok(())
   }

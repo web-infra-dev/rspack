@@ -1,0 +1,70 @@
+```mjs title=dep1_js.mjs
+import "./dep2_js.mjs";
+
+// ./dep1.js
+
+
+export {};
+
+```
+
+```mjs title=dep2_js.mjs
+// ./dep2.js
+globalThis.__reexport_shortpaths_count__ =
+  (globalThis.__reexport_shortpaths_count__ || 0) + 1;
+
+function dep2() {
+  return "dep2";
+}
+
+export { dep2 };
+
+```
+
+```mjs title=main.mjs
+import "./dep1_js.mjs";
+import { dep2 } from "./dep2_js.mjs";
+
+// ./main.js
+
+
+/* export default */ const main = (dep2());
+
+it("should avoid duplicating short reexport paths across entries", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const other = await import(/* webpackIgnore: true */ "./other.mjs");
+  const third = await import(/* webpackIgnore: true */ "./third.mjs");
+
+  expect(mod.default).toBe("dep2");
+  expect(other.default).toBe("other");
+  expect(third.default).toBe("third");
+  expect(globalThis.__reexport_shortpaths_count__).toBe(1);
+});
+
+export default main;
+
+```
+
+```mjs title=other.mjs
+import "./dep1_js.mjs";
+
+// ./other.js
+
+
+/* export default */ const other = ("other");
+
+export default other;
+
+```
+
+```mjs title=third.mjs
+import "./dep2_js.mjs";
+
+// ./third.js
+
+
+/* export default */ const third = ("third");
+
+export default third;
+
+```

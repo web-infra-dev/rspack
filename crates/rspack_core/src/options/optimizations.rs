@@ -117,7 +117,6 @@ impl From<&str> for MangleExportsOption {
 // `impl From<Optimization> for OptimizationBuilder` should be updated.
 #[derive(Debug, Default)]
 pub struct Optimization {
-  pub remove_available_modules: bool,
   pub side_effects: SideEffectOption,
   pub provided_exports: bool,
   pub used_exports: UsedExportsOption,

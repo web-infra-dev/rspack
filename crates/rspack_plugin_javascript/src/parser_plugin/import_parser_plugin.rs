@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
-  DynamicImportMode, GroupOptions, ImportAttributes,
+  DynamicImportMode, GroupOptions, ImportAttributes, ImportPhase, ReferencedSpecifier,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
@@ -18,14 +18,15 @@ use swc_core::{
 
 use super::JavascriptParserPlugin;
 use crate::{
-  dependency::{ImportContextDependency, ImportDependency, ImportEagerDependency},
+  dependency::{
+    ImportContextDependency, ImportDependency, ImportEagerDependency, ImportWeakDependency,
+  },
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    AllowedMemberTypes, ContextModuleScanResult, ExportedVariableInfo, JavascriptParser,
-    MemberExpressionInfo, Statement, TagInfoData, TopLevelScope, VariableDeclaration,
-    context_reg_exp, create_context_dependency, create_traceable_error, get_non_optional_part,
-    parse_order_string,
+    ContextModuleScanResult, JavascriptParser, Statement, TagInfoData, TopLevelScope,
+    VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
+    create_traceable_error, get_non_optional_part, parse_order_string,
   },
 };
 
@@ -38,6 +39,10 @@ fn tag_dynamic_import_referenced(
 ) {
   let import_span = import_call.span();
   parser.dynamic_import_references.add_import(import_span);
+  parser
+    .dynamic_import_references
+    .get_import_mut_expect(&import_span)
+    .variable_name = Some(variable_name.clone());
   parser.tag_variable(
     variable_name,
     DYNAMIC_IMPORT_TAG,
@@ -69,23 +74,39 @@ impl ImportsReferencesState {
 
   fn take_all_import_references(
     &mut self,
-  ) -> impl Iterator<Item = (ImportDependencyLocator, Vec<Vec<Atom>>)> + use<> {
+  ) -> impl Iterator<
+    Item = (
+      ImportDependencyLocator,
+      Option<Atom>,
+      Vec<ReferencedSpecifier>,
+    ),
+  > + use<> {
     let inner = std::mem::take(&mut self.inner);
-    inner
-      .into_values()
-      .filter_map(|value| value.dep_locator.map(|locator| (locator, value.references)))
+    inner.into_values().filter_map(|value| {
+      value
+        .dep_locator
+        .map(|locator| (locator, value.variable_name, value.references))
+    })
   }
 }
 
 #[derive(Debug, Default)]
 struct ImportReferences {
   dep_locator: Option<ImportDependencyLocator>,
-  references: Vec<Vec<Atom>>,
+  variable_name: Option<Atom>,
+  references: Vec<ReferencedSpecifier>,
 }
 
 impl ImportReferences {
   pub fn add_reference(&mut self, reference: Vec<Atom>) {
-    self.references.push(reference);
+    self.references.push(ReferencedSpecifier::new(reference));
+  }
+
+  pub fn add_call_reference(&mut self, reference: Vec<Atom>, namespace_object_as_context: bool) {
+    self.references.push(ReferencedSpecifier::new_call(
+      reference,
+      namespace_object_as_context,
+    ));
   }
 }
 
@@ -103,6 +124,7 @@ struct ImportTagData {
 
 pub struct ImportParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
@@ -114,12 +136,12 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       return Some(true);
     }
-    if let MemberExpressionInfo::Expression(info) =
-      parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
-      && let Some(name) = &parser.definitions_db.expect_get_variable(*id).name
+    if let Some(ident) = expr.as_ident()
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(info) = name_info.info
+      && let Some(name) = info.name.clone()
       && parser
-        .get_tag_data(&name.clone(), DYNAMIC_IMPORT_TAG)
+        .get_tag_data::<ImportTagData>(&name, DYNAMIC_IMPORT_TAG)
         .is_some()
     {
       return Some(true);
@@ -131,9 +153,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
-    _declaration: VariableDeclaration<'_>,
+    declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
+    if declaration.kind() != VariableDeclarationKind::Var
+      && let Some(init) = &declarator.init
       && let Some(expr) = init.as_await_expr()
       && let Some(call) = expr.arg.as_call()
       && call.callee.is_import()
@@ -164,7 +187,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
-        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+        refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
       });
       for ids in refs {
         parser
@@ -221,16 +244,19 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       .definitions_db
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
-    let mut ids = get_non_optional_part(members, members_optionals);
+    let ids = get_non_optional_part(members, members_optionals);
     let direct_import = members.is_empty();
-    if !direct_import && ids.len() > 1 {
-      // remove last one
-      ids = &ids[..ids.len() - 1];
-    }
     parser
       .dynamic_import_references
       .get_import_mut_expect(&data.import_span)
-      .add_reference(ids.to_vec());
+      .add_call_reference(
+        ids.to_vec(),
+        parser
+          .javascript_options
+          .strict_this_context_on_imports
+          .unwrap_or(false)
+          && !direct_import,
+      );
     parser.walk_expr_or_spread(&expr.args);
     Some(true)
   }
@@ -240,7 +266,15 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     parser: &mut JavascriptParser,
     node: &CallExpr,
     import_then: Option<&CallExpr>,
+    referenced_in_members: Option<(&[Atom], bool)>,
   ) -> Option<bool> {
+    // Skip unreachable dynamic imports that are placed after a terminating
+    // statement like `return` / `throw` (non top-level). This relies on
+    // `parser.terminated` which mirrors webpack's `scope.terminated` logic.
+    if parser.terminated.is_some() && !parser.is_top_level_scope() {
+      return Some(true);
+    }
+
     let dyn_imported = node.args.first()?;
     if dyn_imported.spread.is_some() {
       return None;
@@ -264,10 +298,10 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
 
-    let mode = magic_comment_options
-      .get_mode()
-      .map(|x| DynamicImportMode::from(x.as_str()))
-      .unwrap_or(dynamic_import_mode.expect("should have dynamic_import_mode"));
+    let mode = magic_comment_options.get_mode().map_or(
+      dynamic_import_mode.expect("should have dynamic_import_mode"),
+      |x| DynamicImportMode::from(x.as_str()),
+    );
     let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
       .get_prefetch()
@@ -285,7 +319,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let exclude = magic_comment_options.get_exclude();
     let mut exports = magic_comment_options.get_exports().map(|x| {
       x.iter()
-        .map(|name| vec![Atom::from(name.as_str())])
+        .map(|name| ReferencedSpecifier::new(vec![Atom::from(name.as_str())]))
         .collect::<Vec<_>>()
     });
     let has_exports_magic_comment = exports.is_some();
@@ -293,7 +327,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let referenced_in_destructuring = parser
       .destructuring_assignment_properties
       .get(&import_call_span);
-    let referenced_in_member = parser
+    let referenced_in_variable = parser
       .dynamic_import_references
       .get_import(&import_call_span);
     let referenced_fulfilled_ns_obj =
@@ -301,14 +335,31 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     if let Some(keys) = referenced_in_destructuring {
       let mut refs = Vec::new();
       keys.traverse_on_leaf(&mut |stack| {
-        refs.push(stack.iter().map(|p| p.id.clone()).collect());
+        let names = stack.iter().map(|p| p.id.clone()).collect();
+        refs.push(ReferencedSpecifier::new(names));
       });
       exports = Some(refs);
     }
+    if let Some((referenced_in_members, is_call)) = referenced_in_members {
+      let referenced = if is_call {
+        ReferencedSpecifier::new_call(
+          referenced_in_members.to_vec(),
+          parser
+            .javascript_options
+            .strict_this_context_on_imports
+            .unwrap_or(false)
+            && !referenced_in_members.is_empty(),
+        )
+      } else {
+        ReferencedSpecifier::new(referenced_in_members.to_vec())
+      };
+      exports = Some(vec![referenced]);
+    }
 
     let is_statical = referenced_in_destructuring.is_some()
-      || referenced_in_member.is_some()
-      || referenced_fulfilled_ns_obj.is_some();
+      || referenced_in_variable.is_some()
+      || referenced_fulfilled_ns_obj.is_some()
+      || referenced_in_members.is_some();
     if is_statical && has_exports_magic_comment {
       let mut error: Error = create_traceable_error(
         "Useless magic comments".into(),
@@ -321,6 +372,16 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       parser.add_warning(error.into());
     }
 
+    let phase: ImportPhase = node
+      .callee
+      .as_import()
+      .expect("should be import")
+      .phase
+      .into();
+    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+    }
+
     let attributes = get_attributes_from_call_expr(node);
     let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
@@ -331,6 +392,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           import_call_span.into(),
           exports,
           attributes,
+          phase,
         );
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
@@ -339,12 +401,29 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           dep_idx,
           dep_type: DependencyType::DynamicImportEager,
         }
+      } else if matches!(mode, DynamicImportMode::Weak) {
+        let dep = ImportWeakDependency::new(
+          param.string().as_str().into(),
+          import_call_span.into(),
+          exports,
+          attributes,
+          phase,
+          parser.in_try,
+        );
+        let dep_idx = parser.next_dependency_idx();
+        parser.add_dependency(Box::new(dep));
+        ImportDependencyLocator {
+          block_idx: None,
+          dep_idx,
+          dep_type: DependencyType::DynamicImportWeak,
+        }
       } else {
         let dep = Box::new(ImportDependency::new(
           param.string().as_str().into(),
           import_call_span.into(),
           exports,
           attributes,
+          phase,
           parser.in_try,
           get_swc_comments(
             parser.comments,
@@ -352,9 +431,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
             dyn_imported.span().hi,
           ),
         ));
+        let range = DependencyRange::from(import_call_span);
+        let loc = parser.to_dependency_location(range);
         let mut block = AsyncDependenciesBlock::new(
           *parser.module_identifier,
-          Into::<DependencyRange>::into(import_call_span).to_loc(Some(parser.source())),
+          loc,
           None,
           vec![dep],
           Some(param.string().clone()),
@@ -396,7 +477,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           include,
           exclude,
           category: DependencyCategory::Esm,
-          request: format!("{}{}{}", context.clone(), query, fragment),
+          request: format!("{context}{query}{fragment}"),
           context,
           namespace_object: if parser.build_meta.strict_esm_module {
             ContextNameSpaceObject::Strict
@@ -412,8 +493,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           replaces,
           start: import_call_span.real_lo(),
           end: import_call_span.real_hi(),
-          referenced_exports: exports,
+          referenced_specifiers: exports,
           attributes,
+          phase: Some(phase),
         },
         import_call_span.into(),
         dyn_imported.span().into(),
@@ -449,10 +531,18 @@ impl JavascriptParserPlugin for ImportParserPlugin {
   }
 
   fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
-    for (locator, references) in parser
+    for (locator, variable_name, mut references) in parser
       .dynamic_import_references
       .take_all_import_references()
     {
+      // If the import result is assigned to a variable that is also an ESM
+      // named export, importers may access arbitrary properties on it. In that
+      // case the entire module must be considered referenced.
+      if let Some(variable_name) = variable_name
+        && parser.build_info.esm_named_exports.contains(&variable_name)
+      {
+        references.push(ReferencedSpecifier::new(vec![]));
+      }
       let dep = if let Some(block_idx) = locator.block_idx
         && let Some(block) = parser.get_block_mut(block_idx)
       {
@@ -468,19 +558,25 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           let dep = dep
             .downcast_mut::<ImportDependency>()
             .expect("Failed to downcast to ImportDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::DynamicImportEager => {
           let dep = dep
             .downcast_mut::<ImportEagerDependency>()
             .expect("Failed to downcast to ImportEagerDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
+        }
+        DependencyType::DynamicImportWeak => {
+          let dep = dep
+            .downcast_mut::<ImportWeakDependency>()
+            .expect("Failed to downcast to ImportWeakDependency");
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::ImportContext => {
           let dep = dep
             .downcast_mut::<ImportContextDependency>()
             .expect("Failed to downcast to ImportContextDependency");
-          dep.set_referenced_exports(references);
+          dep.set_referenced_specifiers(references);
         }
         _ => unreachable!(),
       };
@@ -568,7 +664,7 @@ fn walk_import_then_fulfilled_callback(
             .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
-            refs.push(stack.iter().map(|p| p.id.clone()).collect());
+            refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
           });
           for ids in refs {
             import_references.add_reference(ids);

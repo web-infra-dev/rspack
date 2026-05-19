@@ -32,7 +32,7 @@ export const LogType = Object.freeze({
 });
 
 export function getLogTypeBitFlag(type: LogTypeEnum) {
-  return 1 << Object.values(LogType).findIndex((i) => i === type);
+  return 1 << Object.values(LogType).indexOf(type);
 }
 
 export function getLogTypesBitFlag(types: LogTypeEnum[]) {

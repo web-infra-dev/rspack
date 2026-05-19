@@ -16,13 +16,12 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
     let resource_resolved_data = module.resource_resolved_data();
     let mod_path = resource_resolved_data
       .path()
-      .map(|path| path.as_str())
-      .unwrap_or("");
+      .map_or("", |path| path.as_str());
     let mod_query = resource_resolved_data.query().unwrap_or("");
     // We have to always use the resolved request here to make sure the
     // server and client are using the same module path (required by RSC), as
     // the server compiler and client compiler have different resolve configs.
-    Cow::Owned(format!("{}{}", mod_path, mod_query))
+    Cow::Owned(format!("{mod_path}{mod_query}"))
   } else if let Some(module) = module.as_context_module() {
     Cow::Borrowed(module.identifier().as_str())
   } else {
@@ -30,15 +29,14 @@ pub fn get_module_resource<'a>(module: &'a dyn Module) -> Cow<'a, str> {
   }
 }
 
-pub fn is_css_mod(module: &dyn Module) -> bool {
+pub fn is_css_mod(module: &dyn Module, resource: &str) -> bool {
   if matches!(
     module.module_type(),
-    ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto
+    ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal
   ) {
     return true;
   }
-  let resource = get_module_resource(module);
-  CSS_REGEX.is_match(resource.as_ref())
+  CSS_REGEX.is_match(resource)
 }
 
 pub struct ChunkModules<'a> {
@@ -54,7 +52,12 @@ pub struct ChunkModules<'a> {
 
 impl<'a> ChunkModules<'a> {
   pub fn new(compilation: &'a Compilation, module_graph: &'a ModuleGraph) -> Self {
-    let chunk_groups_iter = Box::new(compilation.chunk_group_by_ukey.iter());
+    let chunk_groups_iter = Box::new(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .iter(),
+    );
     Self {
       compilation,
       module_graph,
@@ -121,6 +124,7 @@ impl<'a> Iterator for ChunkModules<'a> {
 
           let chunk_modules = self
             .compilation
+            .build_chunk_graph_artifact
             .chunk_graph
             .get_chunk_modules_identifier(chunk_ukey);
 

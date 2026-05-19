@@ -4,12 +4,17 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 
-use crate::{ChunkUkey, Compilation, Module};
+use crate::{ChunkUkey, Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals};
+
+pub struct RuntimeModuleGenerateContext<'a> {
+  pub compilation: &'a Compilation,
+  pub runtime_template: &'a RuntimeCodeTemplate<'a>,
+}
 
 #[async_trait]
-pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
-  fn name(&self) -> Identifier;
-  fn attach(&mut self, _chunk: ChunkUkey) {}
+pub trait RuntimeModule:
+  Module + CustomSourceRuntimeModule + AttachableRuntimeModule + NamedRuntimeModule
+{
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }
@@ -26,14 +31,35 @@ pub trait RuntimeModule: Module + CustomSourceRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![]
   }
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String>;
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String>;
   async fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
       Ok(custom_source)
     } else {
-      self.generate(compilation).await
+      let runtime_template = compilation.runtime_template.create_runtime_code_template();
+      let context = RuntimeModuleGenerateContext {
+        compilation,
+        runtime_template: &runtime_template,
+      };
+      self.generate(&context).await
     }
   }
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::default()
+  }
+}
+
+#[async_trait]
+pub trait AttachableRuntimeModule {
+  fn attach(&mut self, chunk: ChunkUkey);
+}
+
+#[async_trait]
+pub trait NamedRuntimeModule {
+  fn name(&self) -> Identifier;
 }
 
 #[async_trait]

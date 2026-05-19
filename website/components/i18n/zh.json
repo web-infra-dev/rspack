@@ -13,7 +13,6 @@
   "pnp-webpack-plugin-desc": "使用 [resolve.pnp](/zh/config/resolve#resolvepnp) 替代",
   "case-sensitive-paths-webpack-plugin-desc": "不支持 `useBeforeEmitHook` 选项",
   "moment-locales-webpack-plugin-desc": "在 v0.7.0 已实现对该插件的支持，请升级 Rspack 版本来使用",
-  "image-minimizer-webpack-plugin-desc": "仅支持 [loader](https://www.npmjs.com/package/image-minimizer-webpack-plugin#standalone-loader) 用法",
   "resolve-plugin-un-support-desc": "不支持 `resolve.plugins`",
   "progress-plugin-desc": "使用 [webpackbar](https://www.npmjs.com/package/webpackbar) 替代",
   "webpack-virtual-modules-desc": "使用 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin) 替代",

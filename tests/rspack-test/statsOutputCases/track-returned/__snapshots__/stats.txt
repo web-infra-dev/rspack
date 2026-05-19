@@ -1,0 +1,1 @@
+Rspack x.x.x compiled successfully in X s

@@ -82,10 +82,36 @@ const createProcess = (cwd, args, options, env) => {
  * @param {string} cwd The path to folder that contains test
  * @param {Array<string>} args Array of arguments
  * @param {Object<string, any>} options Options for tests
+ * @param env
+ * @param diagnoseKilledProcess
  * @returns {Promise}
  */
-const run = async (cwd, args: string[] = [], options = {}, env = {}) => {
-  return createProcess(cwd, args, options, env);
+const run = async (
+  cwd: string,
+  args: string[] = [],
+  options: { [s: string]: any } = {},
+  env: { [s: string]: string } = {},
+  diagnoseKilledProcess: boolean = false,
+): Promise<any> => {
+  const result = await createProcess(cwd, args, options, env);
+
+  if (diagnoseKilledProcess && result.exitCode === undefined && result.signal) {
+    console.error(
+      `🔍 DIAGNOSIS: Process(${args.join(' ')}) was killed by signal(${result.signal})`,
+    );
+
+    if (result.stdout) {
+      console.error('STDOUT:');
+      console.error(result.stdout);
+    }
+
+    if (result.stderr) {
+      console.error('STDERR');
+      console.error(result.stderr);
+    }
+  }
+
+  return result;
 };
 
 /**
@@ -324,29 +350,10 @@ const normalizeStderr = (stderr) => {
 
   normalizedStderr = normalizedStderr.replace(/:[0-9]+\//g, ':<port>/');
 
-  if (!/On Your Network \(IPv6\)/.test(stderr)) {
-    // Github Actions doesn't' support IPv6 on ubuntu in some cases
-    normalizedStderr = normalizedStderr.split('\n');
-
-    const ipv4MessageIndex = normalizedStderr.findIndex((item) =>
-      /On Your Network \(IPv4\)/.test(item),
-    );
-
-    if (ipv4MessageIndex !== -1) {
-      normalizedStderr.splice(
-        ipv4MessageIndex + 1,
-        0,
-        '<i> [rspack-dev-server] On Your Network (IPv6): http://[<network-ip-v6>]:<port>/',
-      );
-    }
-
-    normalizedStderr = normalizedStderr.join('\n');
-  }
-
   // the warning below is causing CI failure on some jobs
   if (/Gracefully shutting down/.test(stderr)) {
     normalizedStderr = normalizedStderr.replace(
-      '\n<i> [rspack-dev-server] Gracefully shutting down. To force exit, press ^C again. Please wait...',
+      '\n<i> [rspack-dev-server] Gracefully shutting down. Press ^C again to force exit...',
       '',
     );
   }

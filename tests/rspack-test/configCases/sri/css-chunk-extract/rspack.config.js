@@ -1,40 +1,46 @@
-const { CssExtractRspackPlugin, SubresourceIntegrityPlugin } = require("@rspack/core");
-const fs = require("fs");
-const path = require("path");
+const {
+  CssExtractRspackPlugin,
+  SubresourceIntegrityPlugin,
+} = require('@rspack/core');
+const fs = require('fs');
+const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = (_, { testPath }) => ({
-  target: "web",
+  target: 'web',
   output: {
-    crossOriginLoading: "anonymous",
+    crossOriginLoading: 'anonymous',
   },
   experiments: {
-    css: false
+    css: false,
   },
   plugins: [
     new CssExtractRspackPlugin(),
     new SubresourceIntegrityPlugin({
-      hashFuncNames: ["sha256", "sha384"],
+      hashFuncNames: ['sha256', 'sha384'],
     }),
     {
       apply(compiler) {
-        compiler.hooks.afterEmit.tap("AfterEmitPlugin", (compilation) => {
-          const content = fs.readFileSync(path.resolve(testPath, "bundle0.js"), "utf-8");
-          expect(content).toContain("sriHashes");
-          expect(content).toContain("sriExtractCssHashes");
+        compiler.hooks.afterEmit.tap('AfterEmitPlugin', (compilation) => {
+          const content = fs.readFileSync(
+            path.resolve(testPath, 'bundle0.js'),
+            'utf-8',
+          );
+          expect(content).toContain('sriHashes');
+          expect(content).toContain('sriExtractCssHashes');
         });
       },
-    }
+    },
   ],
   module: {
     rules: [
       {
         test: /\.css$/,
-				type: "javascript/auto",
+        type: 'javascript/auto',
         use: [
           CssExtractRspackPlugin.loader,
           {
-            loader: "css-loader",
+            loader: 'css-loader',
             options: {
               modules: {
                 auto: true,

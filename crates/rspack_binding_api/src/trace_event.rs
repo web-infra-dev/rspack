@@ -2,7 +2,9 @@ use std::cell::RefCell;
 
 use napi::bindgen_prelude::BigInt;
 use napi_derive::napi;
-use rspack_tracing::{PerfettoTracer, StdoutTracer, TraceEvent, Tracer};
+#[cfg(feature = "perfetto")]
+use rspack_tracing::PerfettoTracer;
+use rspack_tracing::{StdoutTracer, TraceEvent, Tracer};
 use rspack_util::tracing_preset::{
   TRACING_ALL_PRESET, TRACING_BENCH_TARGET, TRACING_OVERVIEW_PRESET,
 };
@@ -62,12 +64,21 @@ pub(super) fn register_global_trace(
   GLOBAL_TRACE_STATE.with(|state| {
     let mut state = state.borrow_mut();
     if let TraceState::Uninitialized = *state {
+      let supported_layers = if cfg!(feature = "perfetto") {
+        "'logger', 'perfetto'"
+      } else {
+        "'logger'"
+      };
       let mut tracer: Box<dyn Tracer> = match layer.as_str() {
         "logger" => Box::new(StdoutTracer::default()),
+        #[cfg(feature = "perfetto")]
         "perfetto" => Box::new(PerfettoTracer::default()),
+        #[cfg(not(feature = "perfetto"))]
+        "perfetto" => anyhow::bail!(
+          "Perfetto trace layer is not enabled in this build. Use `RSPACK_TRACE_LAYER=logger` or build with the `perfetto` feature."
+        ),
         _ => anyhow::bail!(
-          "Unexpected layer: {}, supported layers:'logger', 'perfetto' ",
-          layer
+          "Unexpected layer: {layer}, supported layers: {supported_layers}"
         ),
       };
       if let Some(layer) = tracer.setup(&output) {
@@ -125,9 +136,7 @@ pub(super) fn sync_trace_event(events: Vec<RawTraceEvent>) {
             name: event.name,
             track_name: event.track_name,
             process_name: event.process_name,
-            args: event
-              .args
-              .map(|args| args.into_iter().map(|(k, v)| (k, v.to_string())).collect()),
+            args: event.args.map(|args| args.into_iter().collect()),
             uuid: event.uuid,
             ts: event.ts.get_u64().1,
             ph: event.ph,

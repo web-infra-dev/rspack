@@ -1,10 +1,14 @@
+---
+description: '它是一个规则数组。每条规则都会在模块被解析和创建时，与模块的信息进行匹配，例如文件路径、文件类型或查询参数。'
+---
+
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
 
-# Module Rules
+# Module rules
 
 - **类型：** `(Rule | Falsy)[]`
 - **默认值：** `[]`
@@ -24,8 +28,8 @@ export default {
   module: {
     rules: [
       {
-        test: /\.ts$/,
-        use: 'builtin:swc-loader',
+        test: /\.(?:js|mjs|ts)$/,
+        loader: 'builtin:swc-loader',
         options: {
           // loader options...
         },
@@ -437,16 +441,14 @@ export default {
         type: 'asset/resource',
       },
       {
-        test: /\.ts$/,
+        test: /\.(?:js|mjs|ts)$/,
         exclude: [/node_modules/],
         loader: 'builtin:swc-loader',
         options: {
+          detectSyntax: 'auto',
           jsc: {
             experimental: {
 +             keepImportAttributes: true,
-            },
-            parser: {
-              syntax: 'typescript',
             },
           },
         },
@@ -461,9 +463,42 @@ export default {
 
 `rules[].loader` 是 `rules[].use: [ { loader } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
 
+例如，使用 `builtin:swc-loader` 来编译 TypeScript 文件：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|ts)$/,
+        loader: 'builtin:swc-loader',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].options
 
 `rules[].options` 是 `rules[].use: [ { options } ]` 的简略写法。 详情见 [rules[].use](/config/module-rules#rulesuse).
+
+例如，向 `builtin:swc-loader` 传递选项：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+      },
+    ],
+  },
+};
+```
 
 ## rules[].parser
 
@@ -586,6 +621,7 @@ type RuleType =
   | 'asset'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -624,7 +660,7 @@ export default {
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
@@ -675,11 +711,9 @@ interface RawFuncUseCtx {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {
-        //...
         use: [
           'svgr-loader',
           {
@@ -699,7 +733,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {

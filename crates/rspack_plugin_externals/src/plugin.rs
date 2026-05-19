@@ -105,20 +105,29 @@ impl ExternalsPlugin {
       None
     }
 
+    let dependency_type = *dependency.dependency_type();
+    let is_import_dependency = dependency
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .is_some();
+    let is_esm_import_side_effect_dependency = dependency
+      .as_any()
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .is_some();
+
     let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
       external_type: {
-        if dependency
-          .as_any()
-          .downcast_ref::<ImportDependency>()
-          .is_some()
+        if is_import_dependency
+          || matches!(
+            dependency_type,
+            DependencyType::DynamicImport
+              | DependencyType::DynamicImportEager
+              | DependencyType::LazyImport
+          )
         {
           Some(ExternalTypeEnum::Import)
-        } else if dependency
-          .as_any()
-          .downcast_ref::<ESMImportSideEffectDependency>()
-          .is_some()
-        {
+        } else if is_esm_import_side_effect_dependency {
           Some(ExternalTypeEnum::Module)
         } else {
           None
@@ -133,9 +142,25 @@ impl ExternalsPlugin {
       dependency_meta.source_type = Some(SourceType::CssUrl);
     }
 
+    let external_module_type = r#type.unwrap_or(external_module_type);
+    if external_module_type == "modern-module"
+      && matches!(
+        dependency_type,
+        DependencyType::CjsRequire
+          | DependencyType::CjsFullRequire
+          | DependencyType::CjsExportRequire
+          | DependencyType::CommonJSRequireContext
+          | DependencyType::RequireContext
+          | DependencyType::RequireResolve
+          | DependencyType::RequireResolveContext
+      )
+    {
+      dependency_meta.external_type = Some(ExternalTypeEnum::CommonJs);
+    }
+
     Some(ExternalModule::new(
       external_module_config,
-      r#type.unwrap_or(external_module_type),
+      external_module_type,
       dependency.request().to_owned(),
       dependency_meta,
       self.place_in_initial,

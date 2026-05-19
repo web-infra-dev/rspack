@@ -12,12 +12,15 @@ import type {
 } from '@rspack/core';
 import { rspack } from '@rspack/core';
 import cac, { type CAC } from 'cac';
-import { createColors, isColorSupported } from 'picocolors';
 import { BuildCommand } from './commands/build';
 import { PreviewCommand } from './commands/preview';
 import { ServeCommand } from './commands/serve';
 import type { RspackCLIColors, RspackCLILogger } from './types';
-import { loadExtendedConfig, loadRspackConfig } from './utils/loadConfig';
+import {
+  loadExtendedConfig,
+  loadRspackConfig,
+  resolveRspackConfigExport,
+} from './utils/loadConfig';
 import type {
   CommonOptions,
   CommonOptionsForBuildAndServe,
@@ -29,9 +32,49 @@ declare global {
   const RSPACK_CLI_VERSION: string;
 }
 
+function isEnvColorSupported(): boolean {
+  if (typeof process === 'undefined') return false;
+  const p = process;
+  const argv = p.argv ?? [];
+  const env = p.env ?? {};
+  return (
+    !('NO_COLOR' in env || argv.includes('--no-color')) &&
+    ('FORCE_COLOR' in env ||
+      argv.includes('--color') ||
+      p.platform === 'win32' ||
+      ((p.stdout as typeof process.stdout | undefined)?.isTTY &&
+        env.TERM !== 'dumb') ||
+      'CI' in env)
+  );
+}
+
+function createAnsiFormatter(
+  open: string,
+  close: string,
+  replace: string = open,
+) {
+  const closeLength = close.length;
+  return (input: string): string => {
+    const string = String(input);
+    let index = string.indexOf(close, open.length);
+    if (index === -1) {
+      return open + string + close;
+    }
+    let result = '';
+    let cursor = 0;
+    do {
+      result += string.substring(cursor, index) + replace;
+      cursor = index + closeLength;
+      index = string.indexOf(close, cursor);
+    } while (index !== -1);
+    return open + result + string.substring(cursor) + close;
+  };
+}
+
 export class RspackCLI {
   colors: RspackCLIColors;
   program: CAC;
+  _actionPromise: Promise<void> | undefined;
 
   constructor() {
     const program = cac('rspack');
@@ -41,16 +84,33 @@ export class RspackCLI {
     program.version(RSPACK_CLI_VERSION);
   }
 
+  /**
+   * Wraps an async action handler so its promise is captured and can be
+   * awaited in `run()`. CAC's `parse()` does not await async actions,
+   * so without this wrapper, rejections become unhandled.
+   */
+  wrapAction<T extends (...args: any[]) => Promise<void>>(fn: T): T {
+    return ((...args: any[]) => {
+      this._actionPromise = fn(...args);
+      return this._actionPromise;
+    }) as unknown as T;
+  }
+
   async buildCompilerConfig(
     options: CommonOptionsForBuildAndServe,
     rspackCommand: Command,
   ) {
-    let { config, pathMap } = await this.loadConfig(options);
-    config = await this.buildConfig(config, pathMap, options, rspackCommand);
+    const { config: rawConfig, pathMap } = await this.loadConfig(options);
+    const config = await this.buildConfig(
+      rawConfig,
+      pathMap,
+      options,
+      rspackCommand,
+    );
     return config;
   }
 
-  async createCompiler(
+  createCompiler(
     config: RspackOptions | MultiRspackOptions,
     callback?: (e: Error | null, res?: Stats | MultiStats) => void,
   ) {
@@ -84,11 +144,27 @@ export class RspackCLI {
     return compiler;
   }
 
-  createColors(useColor?: boolean): RspackCLIColors {
-    const shouldUseColor = useColor || isColorSupported;
+  private createColors(useColor?: boolean): RspackCLIColors {
+    const envSupported = isEnvColorSupported();
+    const enabled = useColor ?? envSupported;
+
+    if (!enabled) {
+      const passthrough = (text: string) => String(text);
+      return {
+        isColorSupported: false,
+        red: passthrough,
+        yellow: passthrough,
+        cyan: passthrough,
+        green: passthrough,
+      };
+    }
+
     return {
-      ...createColors(shouldUseColor),
-      isColorSupported: shouldUseColor,
+      isColorSupported: true,
+      red: createAnsiFormatter('\x1b[31m', '\x1b[39m'),
+      green: createAnsiFormatter('\x1b[32m', '\x1b[39m'),
+      yellow: createAnsiFormatter('\x1b[33m', '\x1b[39m'),
+      cyan: createAnsiFormatter('\x1b[36m', '\x1b[39m'),
     };
   }
 
@@ -107,9 +183,16 @@ export class RspackCLI {
   async run(argv: string[]) {
     await this.registerCommands();
     this.program.parse(argv);
+
+    // CAC's parse() fires async action handlers but does not await them,
+    // so errors would become unhandled rejections. Await the captured
+    // promise to propagate errors through the CLI's own async chain.
+    if (this._actionPromise) {
+      await this._actionPromise;
+    }
   }
 
-  async registerCommands() {
+  private async registerCommands() {
     const builtinCommands = [
       new BuildCommand(),
       new ServeCommand(),
@@ -119,7 +202,7 @@ export class RspackCLI {
       await command.apply(this);
     }
   }
-  async buildConfig(
+  private async buildConfig(
     item: RspackOptions | MultiRspackOptions,
     pathMap: WeakMap<RspackOptions, string[]>,
     options: CommonOptionsForBuildAndServe,
@@ -162,7 +245,7 @@ export class RspackCLI {
 
       // false is also a valid value for sourcemap, so don't override it
       if (typeof item.devtool === 'undefined') {
-        item.devtool = isBuild ? 'source-map' : 'cheap-module-source-map';
+        item.devtool = isBuild ? false : 'cheap-module-source-map';
       }
       // The CLI flag has a higher priority than the default devtool and devtool from the config.
       if (typeof options.devtool !== 'undefined') {
@@ -208,12 +291,6 @@ export class RspackCLI {
             | 'errors-warnings',
         };
       }
-      if (
-        this.colors.isColorSupported &&
-        typeof item.stats.colors === 'undefined'
-      ) {
-        item.stats.colors = true;
-      }
       return item;
     };
 
@@ -236,27 +313,15 @@ export class RspackCLI {
       };
     }
 
-    let { loadedConfig, configPath } = config;
-
-    if (typeof loadedConfig === 'function') {
-      let functionResult = loadedConfig(
-        options.env as Record<string, unknown>,
-        options,
-      );
-      // if return promise we should await its result
-      if (
-        typeof (functionResult as unknown as Promise<unknown>).then ===
-        'function'
-      ) {
-        functionResult = await functionResult;
-      }
-
-      loadedConfig = functionResult;
-    }
+    const { loadedConfig, configPath } = config;
+    const resolvedConfig = await resolveRspackConfigExport(
+      loadedConfig,
+      options,
+    );
 
     // Handle extends property if the loaded config is not a function
     const { config: extendedConfig, pathMap } = await loadExtendedConfig(
-      loadedConfig as RspackOptions | MultiRspackOptions,
+      resolvedConfig,
       configPath,
       process.cwd(),
       options,

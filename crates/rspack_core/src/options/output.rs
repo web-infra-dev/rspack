@@ -417,7 +417,7 @@ impl PublicPath {
 
 impl Default for PublicPath {
   fn default() -> Self {
-    Self::from_str("/").expect("TODO:")
+    Self::from_str("/").expect("'/' should be a valid public path")
   }
 }
 

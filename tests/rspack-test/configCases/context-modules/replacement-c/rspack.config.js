@@ -1,21 +1,21 @@
-"use strict";
+'use strict';
 
-const path = require("path");
-const webpack = require("@rspack/core");
+const path = require('path');
+const { rspack } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	plugins: [
-		new webpack.ContextReplacementPlugin(
-			/replacement.c$/,
-			path.resolve(__dirname, "modules"),
-			{
-				a: "./a",
-				b: "./module-b",
-				"./c": "./module-b",
-				d: "d",
-				"./d": "d"
-			}
-		)
-	]
+  plugins: [
+    new rspack.ContextReplacementPlugin(
+      /replacement.c$/,
+      path.resolve(__dirname, 'modules'),
+      {
+        a: './a',
+        b: './module-b',
+        './c': './module-b',
+        d: 'd',
+        './d': 'd',
+      },
+    ),
+  ],
 };

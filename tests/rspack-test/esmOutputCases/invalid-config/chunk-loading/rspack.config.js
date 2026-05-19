@@ -1,8 +1,8 @@
 module.exports = {
-	output: {
-		chunkLoading: 'jsonp',
-	},
-	optimization: {
-		concatenateModules: true,
-	},
-}
+  output: {
+    chunkLoading: 'jsonp',
+  },
+  optimization: {
+    concatenateModules: true,
+  },
+};

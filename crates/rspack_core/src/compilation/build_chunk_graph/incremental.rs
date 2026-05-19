@@ -1,16 +1,15 @@
-use std::{collections::HashSet, hash::BuildHasherDefault, sync::Arc};
+use std::sync::Arc;
 
 use num_bigint::BigUint;
-use rspack_collections::{
-  IdentifierHasher, IdentifierIndexSet, IdentifierMap, IdentifierSet, UkeySet,
-};
+use rspack_collections::{IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_error::Result;
+use rustc_hash::FxHashSet;
 use tracing::instrument;
 
 use super::code_splitter::{CgiUkey, CodeSplitter, DependenciesBlockIdentifier};
 use crate::{
-  AsyncDependenciesBlockIdentifier, ChunkGroupKind, ChunkGroupUkey, ChunkUkey, Compilation,
-  GroupOptions, ModuleIdentifier, RuntimeSpec,
+  AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierSet, ChunkGroupKind,
+  ChunkGroupUkey, ChunkUkey, Compilation, GroupOptions, ModuleIdentifier, RuntimeSpec,
   incremental::{IncrementalPasses, Mutation},
   is_runtime_equal,
 };
@@ -64,7 +63,7 @@ impl CodeSplitter {
     module: ModuleIdentifier,
     compilation: &mut Compilation,
   ) -> Result<Vec<ChunkReCreation>> {
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
 
     // Step 1. find all invalidate chunk groups and remove module from ChunkGraph
     let Some(cgm) = chunk_graph.get_chunk_graph_module_mut(module) else {
@@ -75,10 +74,13 @@ impl CodeSplitter {
       .chunks
       .iter()
       .flat_map(|chunk| {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk);
         chunk.groups().clone()
       })
-      .collect::<UkeySet<ChunkGroupUkey>>();
+      .collect::<FxHashSet<ChunkGroupUkey>>();
 
     chunk_graph.remove_module(module);
 
@@ -114,14 +116,21 @@ impl CodeSplitter {
     }
 
     let chunk_group = compilation
+      .build_chunk_graph_artifact
       .chunk_group_by_ukey
       .remove(&chunk_group_ukey)
       .expect("when we have cgi, we have chunk group");
 
     let chunk_group_name = chunk_group.name().map(|s| s.to_string());
     if let Some(name) = &chunk_group_name {
-      compilation.named_chunk_groups.remove(name);
-      compilation.entrypoints.swap_remove(name);
+      compilation
+        .build_chunk_graph_artifact
+        .named_chunk_groups
+        .remove(name);
+      compilation
+        .build_chunk_graph_artifact
+        .entrypoints
+        .swap_remove(name);
       self.named_chunk_groups.remove(name);
       self.named_async_entrypoints.remove(name);
     }
@@ -135,6 +144,7 @@ impl CodeSplitter {
       child_cgi.available_sources.swap_remove(&cgi_ukey);
 
       if let Some(child_cg) = compilation
+        .build_chunk_graph_artifact
         .chunk_group_by_ukey
         .get_mut(&child_cgi.chunk_group)
       {
@@ -143,7 +153,11 @@ impl CodeSplitter {
     }
 
     for parent in chunk_group.parents.iter() {
-      let Some(parent_cg) = compilation.chunk_group_by_ukey.get_mut(parent) else {
+      let Some(parent_cg) = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .get_mut(parent)
+      else {
         // maybe already removed
         continue;
       };
@@ -158,20 +172,30 @@ impl CodeSplitter {
       }
     }
 
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
 
     // remove cgc and cgm
     for chunk_ukey in chunk_group.chunks.iter() {
-      let Some(chunk) = compilation.chunk_by_ukey.get_mut(chunk_ukey) else {
+      let Some(chunk) = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .get_mut(chunk_ukey)
+      else {
         continue;
       };
 
       if chunk.remove_group(&chunk_group_ukey) && chunk.groups().is_empty() {
         // remove orphan chunk
         if let Some(name) = chunk.name() {
-          compilation.named_chunks.remove(name);
+          compilation
+            .build_chunk_graph_artifact
+            .named_chunks
+            .remove(name);
         }
-        compilation.chunk_by_ukey.remove(chunk_ukey);
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .remove(chunk_ukey);
 
         // remove cgc and cgm
         if let Some(chunk_graph_chunk) = chunk_graph.remove_chunk(chunk_ukey) {
@@ -199,7 +223,10 @@ impl CodeSplitter {
     }
 
     // remove chunk group
-    compilation.chunk_group_by_ukey.remove(&chunk_group_ukey);
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .remove(&chunk_group_ukey);
 
     let mut edges = vec![];
 
@@ -226,6 +253,7 @@ impl CodeSplitter {
           };
 
           let parent_group = compilation
+            .build_chunk_graph_artifact
             .chunk_group_by_ukey
             .expect_get(&parent_cg.chunk_group);
 
@@ -265,10 +293,12 @@ impl CodeSplitter {
     // other entrypoints that depend on it via the `dependOn` option.
     if matches!(chunk_group.kind, ChunkGroupKind::Entrypoint { .. }) {
       let dependent_entrypoints_to_invalidate: Vec<_> = compilation
+        .build_chunk_graph_artifact
         .entrypoints
         .values()
         .filter_map(|entrypoint_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_group_by_ukey
             .get(entrypoint_ukey)
             .filter(|entrypoint| entrypoint.parents.contains(&chunk_group_ukey))
@@ -296,20 +326,20 @@ impl CodeSplitter {
     &self,
     compilation: &Compilation,
     modules: impl Iterator<Item = ModuleIdentifier>,
-  ) -> HashSet<AsyncDependenciesBlockIdentifier, BuildHasherDefault<IdentifierHasher>> {
-    let chunk_graph: &crate::ChunkGraph = &compilation.chunk_graph;
-    let mut chunk_groups = UkeySet::default();
-    let mut removed: HashSet<
-      AsyncDependenciesBlockIdentifier,
-      BuildHasherDefault<IdentifierHasher>,
-    > = Default::default();
+  ) -> AsyncDependenciesBlockIdentifierSet {
+    let chunk_graph: &crate::ChunkGraph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let mut chunk_groups = FxHashSet::default();
+    let mut removed = AsyncDependenciesBlockIdentifierSet::default();
     for m in modules {
       let Some(cgm) = chunk_graph.chunk_graph_module_by_module_identifier.get(&m) else {
         continue;
       };
 
       for chunk_ukey in &cgm.chunks {
-        let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+        let chunk = compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey);
         chunk_groups.extend(chunk.groups().clone());
       }
     }
@@ -335,7 +365,11 @@ impl CodeSplitter {
   #[instrument(skip_all)]
   pub(crate) fn remove_orphan(&mut self, compilation: &mut Compilation) -> Result<()> {
     let mut removed = vec![];
-    for chunk_group in compilation.chunk_group_by_ukey.values() {
+    for chunk_group in compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .values()
+    {
       let ukey = chunk_group.ukey;
       if !chunk_group.kind.is_entrypoint() && chunk_group.parents.is_empty() {
         removed.push(ukey);
@@ -368,7 +402,10 @@ impl CodeSplitter {
       return false;
     };
 
-    let cg = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
+    let cg = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(&cgi.chunk_group);
     let chunk = cg.chunks[0];
 
     let Some(cache) = &blocks
@@ -417,11 +454,11 @@ impl CodeSplitter {
     // update cache available modules
     self.outdated_chunk_group_info.insert(cgi_ukey);
 
-    let cgi = self.chunk_group_infos.expect_get_mut(&cgi_ukey);
+    let cgi = self.chunk_group_info_mut(&cgi_ukey);
     let group_ukey = cgi.chunk_group;
-    cgi.skipped_items = cache_result.skipped_modules.clone();
+    cgi.skipped_items.clone_from(&cache_result.skipped_modules);
 
-    let chunk_graph = &mut compilation.chunk_graph;
+    let chunk_graph = &mut compilation.build_chunk_graph_artifact.chunk_graph;
     for module in &cache_result.modules {
       let ordinal = self.get_module_ordinal(*module);
       chunk_graph.connect_chunk_and_module(chunk, *module);
@@ -430,9 +467,16 @@ impl CodeSplitter {
       mask.set_bit(ordinal, true);
     }
 
-    let group = compilation.chunk_group_by_ukey.expect_get_mut(&group_ukey);
-    group.module_pre_order_indices = cache_result.pre_order_indices.clone();
-    group.module_post_order_indices = cache_result.post_order_indices.clone();
+    let group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get_mut(&group_ukey);
+    group
+      .module_pre_order_indices
+      .clone_from(&cache_result.pre_order_indices);
+    group
+      .module_post_order_indices
+      .clone_from(&cache_result.post_order_indices);
 
     for block in &cache_result.outgoings {
       self.make_chunk_group(
@@ -449,22 +493,29 @@ impl CodeSplitter {
 
   #[instrument(skip_all)]
   pub fn update_with_compilation(&mut self, compilation: &mut Compilation) -> Result<()> {
-    let enable_incremental = compilation
-      .incremental
-      .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    // TODO: heuristic incremental update is temporarily disabled
+    // Original code:
+    // let enable_incremental = compilation
+    //   .incremental
+    //   .mutations_readable(IncrementalPasses::BUILD_CHUNK_GRAPH);
+    let enable_incremental = false;
 
     // This optimization is from  https://github.com/webpack/webpack/pull/18090 by https://github.com/dmichon-msft
     // Thanks!
     let module_graph = compilation.get_module_graph();
     let ordinal_by_module = &mut self.ordinal_by_module;
-    for m in module_graph.modules().keys() {
+    for m in module_graph.modules_keys() {
       if !ordinal_by_module.contains_key(m) {
         ordinal_by_module.insert(*m, ordinal_by_module.len() as u64 + 1);
       }
     }
-    for chunk in compilation.chunk_by_ukey.keys() {
+    for chunk in compilation.build_chunk_graph_artifact.chunk_by_ukey.keys() {
       let mut mask = BigUint::from(0u32);
-      for module_id in compilation.chunk_graph.get_chunk_modules_identifier(chunk) {
+      for module_id in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(chunk)
+      {
         let module_ordinal = self.get_module_ordinal(*module_id);
         mask.set_bit(module_ordinal, true);
       }
@@ -499,8 +550,7 @@ impl CodeSplitter {
       (
         compilation
           .get_module_graph()
-          .modules()
-          .keys()
+          .modules_keys()
           .copied()
           .collect(),
         Default::default(),
@@ -518,7 +568,7 @@ impl CodeSplitter {
         .copied(),
     );
 
-    let mut removed_entries = UkeySet::default();
+    let mut removed_entries = FxHashSet::default();
     for (name, chunk_group) in compilation.entrypoints() {
       if !compilation.entries.contains_key(name) {
         removed_entries.insert(*chunk_group);
@@ -552,8 +602,14 @@ impl CodeSplitter {
 
     // remove async entrypoints
     compilation
+      .build_chunk_graph_artifact
       .async_entrypoints
-      .retain(|cg_ukey| compilation.chunk_group_by_ukey.contains(cg_ukey));
+      .retain(|cg_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .contains(cg_ukey)
+      });
 
     // If after edges rebuild there are still some entries not included in entrypoints
     // then they are new added entries and we build them.
@@ -562,6 +618,7 @@ impl CodeSplitter {
     if !removed_entries.is_empty() {
       // If there is removed entry, we need to rebuild all entries
       let entrypoints = compilation
+        .build_chunk_graph_artifact
         .entrypoints
         .values()
         .copied()
@@ -580,7 +637,11 @@ impl CodeSplitter {
         .collect();
     } else {
       'outer: for (entry, data) in &compilation.entries {
-        if !compilation.entrypoints.contains_key(entry) {
+        if !compilation
+          .build_chunk_graph_artifact
+          .entrypoints
+          .contains_key(entry)
+        {
           // new entry
           edges.push(ChunkReCreation::Entry {
             name: entry.to_owned(),
@@ -597,6 +658,7 @@ impl CodeSplitter {
 
         let curr_entry_chunk_ukey = compilation.entrypoint_by_name(entry).chunks[0];
         let prev_entry_modules = compilation
+          .build_chunk_graph_artifact
           .chunk_graph
           .get_chunk_entry_modules(&curr_entry_chunk_ukey)
           .into_iter()
@@ -664,28 +726,34 @@ impl CodeSplitter {
     }
 
     // Ensure entrypoints always have the same order with entries
-    compilation.entrypoints.sort_unstable_by(|a, _, b, _| {
-      let a = compilation
-        .entries
-        .get_index_of(a)
-        .expect("entrypoints must exist in entries");
-      let b = compilation
-        .entries
-        .get_index_of(b)
-        .expect("entrypoints must exist in entries");
-      a.cmp(&b)
-    });
+    compilation
+      .build_chunk_graph_artifact
+      .entrypoints
+      .sort_unstable_by(|a, _, b, _| {
+        let a = compilation
+          .entries
+          .get_index_of(a)
+          .expect("entrypoints must exist in entries");
+        let b = compilation
+          .entries
+          .get_index_of(b)
+          .expect("entrypoints must exist in entries");
+        a.cmp(&b)
+      });
 
     Ok(())
   }
 
   pub fn update_cache(&mut self, compilation: &Compilation) {
-    let chunk_graph = &compilation.chunk_graph;
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
 
     self.chunk_caches.clear();
 
     for cgi in self.chunk_group_infos.values() {
-      let cg = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
+      let cg = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .expect_get(&cgi.chunk_group);
       let chunk = cg.chunks[0];
       let module_graph = compilation.get_module_graph();
 
@@ -705,7 +773,10 @@ impl CodeSplitter {
 
         let can_rebuild = cg.parents.len() == 1;
 
-        let group = compilation.chunk_group_by_ukey.expect_get(&cgi.chunk_group);
+        let group = compilation
+          .build_chunk_graph_artifact
+          .chunk_group_by_ukey
+          .expect_get(&cgi.chunk_group);
         self.chunk_caches.insert(
           *block_id,
           ChunkCreateData {
@@ -782,13 +853,10 @@ impl CodeSplitter {
 #[derive(Debug, Clone)]
 struct CacheResult {
   pub modules: Vec<ModuleIdentifier>,
-  pub pre_order_indices: IdentifierMap<usize>,
-  pub post_order_indices: IdentifierMap<usize>,
+  pub pre_order_indices: IdentifierMap<u32>,
+  pub post_order_indices: IdentifierMap<u32>,
   pub skipped_modules: IdentifierIndexSet,
-  pub outgoings: std::collections::HashSet<
-    AsyncDependenciesBlockIdentifier,
-    BuildHasherDefault<IdentifierHasher>,
-  >,
+  pub outgoings: AsyncDependenciesBlockIdentifierSet,
 }
 
 #[derive(Debug, Clone)]

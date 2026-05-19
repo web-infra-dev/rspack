@@ -13,7 +13,9 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
   },
-  visitors::{JavascriptParser, clean_regexp_in_context_module, context_reg_exp, expr_name},
+  visitors::{
+    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
+  },
 };
 
 fn create_import_meta_context_dependency(
@@ -45,23 +47,20 @@ fn create_import_meta_context_dependency(
       }
       None
     })?;
-  let reg = r"^\.\/.*$";
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
-    let regexp = regexp
-      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"))
-      .unwrap_or(RspackRegex::new(reg).expect("reg failed"));
+    let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
+      RspackRegex::try_from(regexp).expect("reg failed")
+    });
     let include = get_regex_by_obj_prop(obj, "include")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let exclude = get_regex_by_obj_prop(obj, "exclude")
       .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
-    let mode = get_literal_str_by_obj_prop(obj, "mode")
-      .map(|s| s.value.to_string_lossy().as_ref().into())
-      .unwrap_or(ContextMode::Sync);
-    let recursive = get_bool_by_obj_prop(obj, "recursive")
-      .map(|bool| bool.value)
-      .unwrap_or(true);
+    let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
+      s.value.to_string_lossy().as_ref().into()
+    });
+    let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
     ContextOptions {
       reg_exp: clean_regexp_in_context_module(regexp, regexp_span, parser),
       include,
@@ -76,8 +75,9 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
+      phase: None,
     }
   } else {
     ContextOptions {
@@ -85,7 +85,7 @@ fn create_import_meta_context_dependency(
       mode: ContextMode::Sync,
       include: None,
       exclude: None,
-      reg_exp: context_reg_exp(reg, "", None, parser),
+      reg_exp: clean_regexp_in_context_module(default_context_reg_exp(), None, parser),
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
@@ -94,8 +94,9 @@ fn create_import_meta_context_dependency(
       replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_exports: None,
+      referenced_specifiers: None,
       attributes: None,
+      phase: None,
     }
   };
   Some(ImportMetaContextDependency::new(
@@ -107,6 +108,7 @@ fn create_import_meta_context_dependency(
 
 pub struct ImportMetaContextDependencyParserPlugin;
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   fn evaluate_identifier(
     &self,

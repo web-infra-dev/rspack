@@ -20,6 +20,4 @@ EventEmitter.prototype.emit = function (eventName) {
 
 var emitter = new EventEmitter();
 
-// TODO: remove default export when rspack-dev-server refactored
-export default emitter;
 export { emitter };

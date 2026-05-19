@@ -1,3 +1,7 @@
+---
+description: "Rspack's filename-related options support placeholders"
+---
+
 # Filename placeholders
 
 Rspack's filename-related options support placeholders. This lets you generate output filenames dynamically based on the current build context. It helps distinguish different assets and improves caching efficiency.
@@ -115,7 +119,7 @@ URL placeholders expose information about the current request URL.
 | -------- | ----------- |
 | `[url]`  | URL value   |
 
-## Hash Length
+## Hash length
 
 Hash placeholders (`[hash]`, `[contenthash]`, `[chunkhash]`) support length modifiers using `[hash:n]`, where the default length is 16.
 
@@ -153,7 +157,7 @@ Entry chunks and chunks produced by [optimization.splitChunks](/plugins/webpack/
 
 :::
 
-## Escaping Placeholders
+## Escaping placeholders
 
 If you want to preserve the literal placeholder text instead of having Rspack interpolate it, escape the brackets with backslashes.
 
@@ -192,13 +196,13 @@ type PathData = {
   contentHash?: string;
   runtime?: string;
   url?: string;
-  id?: string;
+  id?: string | number;
   chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
 };
 
 type ChunkPathData = {
-  id?: string;
+  id?: string | number;
   name?: string;
   hash?: string;
   contentHash?: Record<string, string>;

@@ -1,3 +1,7 @@
+---
+description: '在 Rspack 中使用Preact的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理。'
+---
+
 import { PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta.tsx';
 
@@ -21,31 +25,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
-            },
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-                tsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -97,10 +81,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
               experimental: {
                 plugins: [
@@ -111,10 +96,6 @@ export default {
                     },
                   ],
                 ],
-              },
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
               },
               transform: {
                 react: {

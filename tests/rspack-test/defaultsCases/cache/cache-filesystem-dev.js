@@ -12,6 +12,7 @@ module.exports = {
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "portable": undefined,
+			+     "readonly": undefined,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
@@ -28,22 +29,22 @@ module.exports = {
 			+   },
 			@@ ... @@
 			-   "devtool": false,
-			+   "devtool": "eval",
+			+   "devtool": "cheap-module-source-map",
 			@@ ... @@
 			-   "mode": "none",
 			+   "mode": "development",
 			@@ ... @@
 			-         "localIdentName": "[fullhash]",
-			+         "localIdentName": "[id]-[local]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
 			@@ ... @@
 			-         "localIdentName": "[fullhash]",
-			+         "localIdentName": "[id]-[local]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
+			@@ ... @@
+			-         "localIdentName": "[fullhash]",
+			+         "localIdentName": "[uniqueName]-[id]-[local]",
 			@@ ... @@
 			-         "exportsDepth": 9007199254740991,
 			+         "exportsDepth": 1,
-			@@ ... @@
-			-     "unsafeCache": false,
-			+     "unsafeCache": /[\\\\/]node_modules[\\\\/]/,
 			@@ ... @@
 			-     "chunkIds": "natural",
 			+     "chunkIds": "named",

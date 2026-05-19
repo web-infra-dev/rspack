@@ -1,0 +1,28 @@
+[package]
+name = "rspack_collection_hasher"
+version = "0.1.0"
+authors = ["Rspack Teams"]
+description = "Rspack Dylint rules for high-performance map/set hashers"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+clippy_utils = { git = "https://github.com/rust-lang/rust-clippy", rev = "c936595d17413c1f08e162e117e504fb4ed126e4" }
+dylint_linting = "4.1.2"
+
+[dev-dependencies]
+dylint_testing = "4.1.2"
+dashmap = "6.1.0"
+hashlink = "0.10.0"
+indexmap = "2.13.0"
+rspack_collections = { path = "../../crates/rspack_collections" }
+rustc-hash = "2.1.1"
+ustr = { package = "ustr-fxhash", version = "1.0.1", default-features = false }
+
+[workspace]
+
+[package.metadata.rust-analyzer]
+rustc_private = true

@@ -1,3 +1,7 @@
+---
+description: '在 Rspack 中使用React的指南，涵盖环境配置、集成方式、调试要点、开发模式与常见问题处理。'
+---
+
 import { PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta.tsx';
 
@@ -21,31 +25,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
-            },
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-                tsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -70,7 +54,7 @@ export default {
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -79,15 +63,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
               transform: {
                 react: {
                   development: isDev,
@@ -101,7 +82,7 @@ export default {
     ],
   },
   plugins: [
-    isDev && new ReactRefreshPlugin(),
+    isDev && new ReactRefreshRspackPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
   ],
 };
@@ -221,3 +202,7 @@ export default {
 ```
 
 对于 SVGR 的详细用法，请参考 [SVGR 文档 - webpack](https://react-svgr.com/docs/webpack/)。
+
+## React 服务器组件
+
+如果你需要使用 React 服务器组件，请参考 [Rspack - React 服务器组件](/guide/tech/rsc)。

@@ -2,7 +2,7 @@
  * @type {import("@rspack/core").Configuration}
  */
 module.exports = {
-	optimization: {
-		minimize: true
-	}
+  optimization: {
+    minimize: true,
+  },
 };

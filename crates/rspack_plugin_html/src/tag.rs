@@ -57,7 +57,7 @@ where
 {
   let mut map = s.serialize_map(Some(x.len()))?;
   for attr in x {
-    let attr_value = attr.attr_value.to_owned().unwrap_or("true".to_string());
+    let attr_value = attr.attr_value.clone().unwrap_or("true".to_string());
     map.serialize_entry(&attr.attr_name, &attr_value)?;
   }
   map.end()
@@ -159,14 +159,14 @@ impl HtmlPluginTag {
     if let Some(href) = &base.href {
       attributes.push(HtmlPluginAttribute {
         attr_name: "href".to_string(),
-        attr_value: Some(href.to_string()),
+        attr_value: Some(href.clone()),
       });
     }
 
     if let Some(target) = &base.target {
       attributes.push(HtmlPluginAttribute {
         attr_name: "target".to_string(),
-        attr_value: Some(target.to_string()),
+        attr_value: Some(target.clone()),
       });
     }
 
@@ -200,8 +200,8 @@ impl HtmlPluginTag {
           .iter()
           .sorted()
           .map(|(key, value)| HtmlPluginAttribute {
-            attr_name: key.to_string(),
-            attr_value: Some(value.to_string()),
+            attr_name: key.clone(),
+            attr_value: Some(value.clone()),
           })
           .collect_vec(),
         void_tag: true,
@@ -238,7 +238,7 @@ impl fmt::Display for HtmlPluginTag {
         if let Some(attr_value) = &attr.attr_value {
           format!(r#"{}="{}""#, attr.attr_name, attr_value)
         } else {
-          attr.attr_name.to_string()
+          attr.attr_name.clone()
         }
       })
       .collect::<Vec<String>>();

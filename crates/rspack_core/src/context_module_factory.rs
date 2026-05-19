@@ -1,6 +1,5 @@
 use std::{borrow::Cow, sync::Arc};
 
-use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -17,7 +16,7 @@ use crate::{
   DependencyCategory, DependencyId, DependencyType, ModuleExt, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs, ResolveContextModuleDependencies,
   ResolveInnerOptions, ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory,
-  SharedPluginDriver, resolve,
+  SharedPluginDriver, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -218,8 +217,6 @@ impl ContextModuleFactory {
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
-    let mut file_dependencies = Default::default();
-    let mut missing_dependencies = Default::default();
 
     let request = before_resolve_data.request;
     let (loader_request, specifier) = match request.rfind('!') {
@@ -290,17 +287,19 @@ impl ContextModuleFactory {
       resolve_options: data.resolve_options.clone(),
       resolve_to_context: true,
       optional: dependency.get_optional(),
-      file_dependencies: &mut file_dependencies,
-      missing_dependencies: &mut missing_dependencies,
     };
 
-    let resource_data = resolve(resolve_args, plugin_driver).await;
+    let (resource_data, resolve_dependencies) = resolve(resolve_args, plugin_driver).await;
+    let file_dependencies = resolve_dependencies.file_dependencies;
+    let missing_dependencies = resolve_dependencies.missing_dependencies;
 
     let (module, context_module_options) = match resource_data {
       Ok(ResolveResult::Resource(resource)) => {
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -319,7 +318,9 @@ impl ContextModuleFactory {
         // should create an empty context module when ignored
         let mut dependency_options = dependency.options().clone();
         dependency_options.recursive = before_resolve_data.recursive;
-        dependency_options.reg_exp = before_resolve_data.reg_exp.clone();
+        dependency_options
+          .reg_exp
+          .clone_from(&before_resolve_data.reg_exp);
 
         let options = ContextModuleOptions {
           addon: loader_request.clone(),
@@ -383,10 +384,12 @@ impl ContextModuleFactory {
         let parsed_resource = parse_resource(after_resolve_data.resource.as_str());
         if let Some(parsed_resource) = parsed_resource {
           if let Some(query) = &parsed_resource.query {
-            context_module_options.resource_query = query.clone();
+            context_module_options.resource_query.clone_from(query);
           }
           if let Some(fragment) = &parsed_resource.fragment {
-            context_module_options.resource_fragment = fragment.clone();
+            context_module_options
+              .resource_fragment
+              .clone_from(fragment);
           }
         }
 
@@ -407,7 +410,6 @@ impl ContextModuleFactory {
   }
 }
 
-#[async_recursion]
 async fn visit_dirs(
   ctx: &str,
   dir: &Utf8Path,
@@ -416,52 +418,32 @@ async fn visit_dirs(
   resolve_options: &ResolveInnerOptions<'_>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
-  if !fs
-    .metadata(dir)
-    .await
-    .map(|m| m.is_directory)
-    .unwrap_or(false)
-  {
-    return Ok(());
-  }
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
-  for filename in fs.read_dir(dir).await? {
-    let path = dir.join(&filename);
-    let path_str = path.as_str();
 
-    if let Some(exclude) = exclude
-      && exclude.test(path_str)
-    {
-      // ignore excluded files
-      continue;
-    }
+  walk_dir(
+    dir,
+    fs,
+    options.context_options.recursive,
+    true, // always skip dotfiles
+    &mut |path| {
+      exclude
+        .as_ref()
+        .is_none_or(|exclude| !exclude.test(path.as_str()))
+    },
+    &mut |path, _filename| {
+      let path_str = path.as_str();
 
-    if fs
-      .metadata(&path)
-      .await
-      .map(|m| m.is_directory)
-      .unwrap_or(false)
-    {
-      if options.context_options.recursive {
-        visit_dirs(
-          ctx,
-          &path,
-          dependencies,
-          options,
-          resolve_options,
-          fs.clone(),
-        )
-        .await?;
+      if let Some(exclude) = exclude
+        && exclude.test(path_str)
+      {
+        return;
       }
-    } else if filename.starts_with('.') {
-      // ignore hidden files
-    } else {
+
       if let Some(include) = include
         && !include.test(path_str)
       {
-        // ignore not included files
-        continue;
+        return;
       }
 
       // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
@@ -481,7 +463,7 @@ async fn visit_dirs(
       );
 
       let Some(reg_exp) = &options.context_options.reg_exp else {
-        return Ok(());
+        return;
       };
 
       requests.iter().for_each(|r| {
@@ -511,14 +493,14 @@ async fn visit_dirs(
           options: options.context_options.clone(),
           resource_identifier,
           attributes: options.context_options.attributes.clone(),
-          referenced_exports: options.context_options.referenced_exports.clone(),
+          referenced_specifiers: options.context_options.referenced_specifiers.clone(),
           dependency_type: DependencyType::ContextElement(options.type_prefix),
           factorize_info: Default::default(),
         });
-      })
-    }
-  }
-  Ok(())
+      });
+    },
+  )
+  .await
 }
 
 #[derive(Debug, Clone)]

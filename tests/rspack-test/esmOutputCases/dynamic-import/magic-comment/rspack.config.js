@@ -1,6 +1,6 @@
 module.exports = {
-	externalsType: "module-import",
-	output: {
-		pathinfo: true
-	}
+  externalsType: 'module-import',
+  output: {
+    pathinfo: true,
+  },
 };

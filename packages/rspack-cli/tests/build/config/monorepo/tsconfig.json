@@ -1,10 +1,10 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "rootDir": ".",
     "target": "ESNext",
     "module": "NodeNext",
     "noEmit": true,
+    "types": ["node"],
     "resolveJsonModule": true,
     "moduleResolution": "nodenext",
     "allowImportingTsExtensions": true,

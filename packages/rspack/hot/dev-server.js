@@ -28,7 +28,7 @@ if (import.meta.webpackHot) {
           );
           log(
             'warning',
-            '[HMR] (Probably because of restarting the webpack-dev-server)',
+            '[HMR] (Probably because of restarting the rspack-dev-server)',
           );
           if (typeof window !== 'undefined') {
             window.location.reload();

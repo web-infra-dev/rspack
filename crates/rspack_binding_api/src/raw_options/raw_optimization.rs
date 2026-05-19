@@ -6,7 +6,6 @@ use super::WithBool;
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawOptimizationOptions {
-  pub remove_available_modules: bool,
   #[napi(ts_type = "boolean | string")]
   pub side_effects: WithBool<String>,
   #[napi(ts_type = "boolean | string")]
@@ -44,7 +43,6 @@ impl TryFrom<RawOptimizationOptions> for Optimization {
 
   fn try_from(value: RawOptimizationOptions) -> rspack_error::Result<Self> {
     Ok(Optimization {
-      remove_available_modules: value.remove_available_modules,
       side_effects: value.side_effects.into(),
       provided_exports: value.provided_exports,
       used_exports: value.used_exports.into(),

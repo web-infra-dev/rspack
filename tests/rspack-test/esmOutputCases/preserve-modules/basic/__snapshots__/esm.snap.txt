@@ -1,18 +1,18 @@
 ```mjs title=demo/index.mjs
-import "../main.mjs";
+import "../other1_index_js-other2_index_js.mjs";
 
 // ./src/demo/index.js
 const demo = () => 'demo'
 ;
 /* export default */ const src_demo = (demo);
 
-export { src_demo };
+export default src_demo;
 
 ```
 
 ```mjs title=index.mjs
-import { src_demo } from "./demo/index.mjs";
-import "./main.mjs";
+import { default as src_demo } from "./demo/index.mjs";
+import "./other1_index_js-other2_index_js.mjs";
 
 // ./src/index.js
 
@@ -22,10 +22,11 @@ it('should preserve modules', () => {
   expect(src_demo()).toBe('demo')
 })
 
+export {};
 
 ```
 
-```mjs title=main.mjs
+```mjs title=other1_index_js-other2_index_js.mjs
 // ./other2/index.js
 // other2
 console.log.bind(console)
@@ -34,5 +35,6 @@ console.log.bind(console)
 // other1
 console.log.bind(console)
 
+export {};
 
 ```

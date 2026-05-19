@@ -1,4 +1,5 @@
 use either::Either;
+use rspack_swc_plugin_import::ImportOptions;
 use swc_core::ecma::ast::{Pass, noop_pass};
 
 use crate::options::RspackExperiments;
@@ -12,18 +13,18 @@ macro_rules! either {
       Either::Right(noop_pass())
     }
   };
-  ($config:expr, $f:expr, $enabled:expr) => {
-    if $enabled {
-      either!($config, $f)
-    } else {
-      Either::Right(noop())
-    }
-  };
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn transform(rspack_experiments: &RspackExperiments) -> impl Pass + '_ {
-  either!(rspack_experiments.import, |options| {
+pub(crate) fn transform<'a>(
+  transform_import: &'a Option<Vec<ImportOptions>>,
+  rspack_experiments: &'a RspackExperiments,
+) -> impl Pass + 'a {
+  // Prefer top-level `transformImport` over deprecated `rspackExperiments.import`
+  let import_options = transform_import
+    .as_ref()
+    .or(rspack_experiments.import.as_ref());
+  either!(import_options, |options| {
     rspack_swc_plugin_import::plugin_import(options)
   })
 }

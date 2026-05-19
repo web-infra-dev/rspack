@@ -1,4 +1,4 @@
 asset main.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 11 modules
+runtime modules xx KiB 9 modules
 ./index.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s

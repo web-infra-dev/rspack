@@ -1,0 +1,30 @@
+```mjs title=b-b_js-shared_js.mjs
+// ./b.js
+const v = () => 1
+
+// shared should be split into splitted chunk as well
+
+// ./shared.js
+const shared = () => 42
+export { shared, v };
+
+```
+
+```mjs title=main.mjs
+
+// ./index.js
+
+
+
+
+it('should merge dependencies', async () => {
+  const { v, shared } = await import(/* webpackIgnore: true */ './main.mjs')
+  expect(v()).toBe(1)
+  expect(shared()).toBe(42)
+})
+
+
+
+export { shared, v } from "./b-b_js-shared_js.mjs";
+
+```

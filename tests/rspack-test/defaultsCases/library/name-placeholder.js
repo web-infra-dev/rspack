@@ -15,9 +15,6 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-       "force": true,
-			+       "force": false,
-			@@ ... @@
 			-     "chunkLoadingGlobal": "rspackChunk_rspack_tests",
 			+     "chunkLoadingGlobal": "rspackChunkmyLib_lib",
 			@@ ... @@

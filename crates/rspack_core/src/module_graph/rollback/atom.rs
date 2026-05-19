@@ -3,11 +3,10 @@ use std::{
   ops::{Deref, DerefMut},
 };
 
-use rspack_collections::UkeyMap;
 use rustc_hash::FxHashMap;
 
 pub type RollbackAtomMap<K, V> = RollbackAtom<FxHashMap<K, V>>;
-pub type RollbackAtomUKeyMap<K, V> = RollbackAtom<UkeyMap<K, V>>;
+pub type RollbackAtomUKeyMap<K, V> = RollbackAtom<FxHashMap<K, V>>;
 // A simple rollback atom that can checkpoint and recover its state.
 #[derive(Debug)]
 pub struct RollbackAtom<T: Debug> {

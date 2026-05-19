@@ -318,6 +318,6 @@ class ThreadsafeIntermediateNodeFS extends ThreadsafeOutputNodeFS {
 
 export {
   ThreadsafeInputNodeFS,
-  ThreadsafeOutputNodeFS,
   ThreadsafeIntermediateNodeFS,
+  ThreadsafeOutputNodeFS,
 };

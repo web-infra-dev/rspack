@@ -1,27 +1,19 @@
-use rspack_collections::Identifier;
-use rspack_core::{Compilation, RuntimeModule, RuntimeTemplate, impl_runtime_module};
+use rspack_core::{
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+};
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct NodeModuleDecoratorRuntimeModule {
-  id: Identifier,
-}
+pub struct NodeModuleDecoratorRuntimeModule {}
 
 impl NodeModuleDecoratorRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(Identifier::from(format!(
-      "{}node_module_decorator",
-      runtime_template.runtime_module_prefix()
-    )))
+    Self::with_default(runtime_template)
   }
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
-  fn name(&self) -> Identifier {
-    self.id
-  }
-
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -29,8 +21,11 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     )]
   }
 
-  async fn generate(&self, compilation: &Compilation) -> rspack_error::Result<String> {
-    let source = compilation.runtime_template.render(&self.id, None)?;
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    let source = context.runtime_template.render(&self.id, None)?;
 
     Ok(source)
   }

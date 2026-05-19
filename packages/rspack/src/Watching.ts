@@ -333,7 +333,7 @@ export class Watching {
   private _done(error: Error | null, compilation?: Compilation) {
     this.running = false;
 
-    let stats: undefined | Stats;
+    let stats: undefined | Stats = undefined;
 
     const handleError = (err: Error, cbs?: Callback<Error, void>[]) => {
       this.compiler.hooks.failed.call(err);

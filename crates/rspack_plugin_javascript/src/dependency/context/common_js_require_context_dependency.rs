@@ -2,8 +2,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -46,6 +47,12 @@ impl CommonJsRequireContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.options.referenced_specifiers = Some(referenced_specifiers);
+    self.resource_identifier =
+      create_resource_identifier_for_context_dependency(None, &self.options);
+  }
 }
 
 #[cacheable_dyn]
@@ -74,6 +81,7 @@ impl Dependency for CommonJsRequireContextDependency {
     &self,
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical.clone()]);

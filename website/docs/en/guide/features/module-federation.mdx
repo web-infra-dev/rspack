@@ -1,3 +1,7 @@
+---
+description: 'Module Federation is an architectural pattern for JavaScript application decomposition (similar to microservices on the server-side), allowing you to share...'
+---
+
 # Module Federation
 
 Module Federation is an architectural pattern for JavaScript application decomposition (similar to microservices on the server-side), allowing you to share code and resources between multiple JavaScript applications (or micro-frontends).
@@ -54,6 +58,8 @@ Please refer to the [Module Federation v2.0 official documentation](https://modu
 ### Module Federation v1.5
 
 This is the version built into Rspack. In addition to supporting Module Federation v1.0's capabilities such as module export, module loading, and dependency sharing, it also adds runtime plugin functionality, allowing users to extend the behavior and functionality of module federation.
+
+In Rspack 2.0, `ModuleFederationPlugin` also further improves shared dependency Tree Shaking. You can use `shared.treeShaking` to optimize shared dependencies based on actual usage. For related options, see [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin#shared).
 
 You can use it through Rspack's [ModuleFederationPlugin](/plugins/webpack/module-federation-plugin) without installing any additional plugins.
 

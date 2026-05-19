@@ -15,3 +15,9 @@ rspack_cacheable = { workspace = true }
 rspack_core      = { workspace = true }
 rspack_error     = { workspace = true }
 rspack_util      = { workspace = true }
+
+[lints]
+workspace = true
+
+[lib]
+doctest = false

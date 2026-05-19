@@ -1,4 +1,4 @@
 module.exports = {
-	mode: "development",
-	target: "web"
+  mode: 'development',
+  target: 'web',
 };

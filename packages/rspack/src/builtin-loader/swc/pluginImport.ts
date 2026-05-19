@@ -69,5 +69,5 @@ function resolvePluginImport(
   });
 }
 
-export { resolvePluginImport };
 export type { PluginImportOptions };
+export { resolvePluginImport };

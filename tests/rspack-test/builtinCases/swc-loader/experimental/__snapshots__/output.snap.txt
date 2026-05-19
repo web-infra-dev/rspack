@@ -1,20 +1,14 @@
 ```js title=main.js
-"use strict";
+import * as __rspack_external__static_package_json_fde7981b from "./static-package.json" with {"type":"json"};
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
-"./index.js"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.a(module, async function (__rspack_load_async_deps, __rspack_async_done) { try {
-__webpack_require__.r(__webpack_exports__);
-/* import */ var _static_package_json__rspack_import_0 = __webpack_require__("./static-package.json");
-var __rspack_async_deps = __rspack_load_async_deps([_static_package_json__rspack_import_0]);
-_static_package_json__rspack_import_0 = (__rspack_async_deps.then ? (await __rspack_async_deps)() : __rspack_async_deps)[0];
-console.log(_static_package_json__rspack_import_0);
+"./index.js"() {
 
-__rspack_async_done();
-} catch(e) { __rspack_async_done(e); } });
+;// CONCATENATED MODULE: external "./static-package.json"
 
-},
-"./static-package.json"(module) {
-module.exports = import("./static-package.json", { with: {"type":"json"} }).then(function(module) { return module; });
+;// CONCATENATED MODULE: ./index.js
+
+console.log(__rspack_external__static_package_json_fde7981b);
+
 
 },
 
@@ -23,5 +17,5 @@ var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack
 var __webpack_exports__ = (__webpack_exec__("./index.js"));
 
 }
-]);
+])
 ```

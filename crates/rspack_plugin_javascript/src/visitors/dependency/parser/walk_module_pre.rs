@@ -51,14 +51,13 @@ impl JavascriptParser<'_> {
           let export_name = named
             .imported
             .as_ref()
-            .map(|imported| match imported {
+            .map_or(&named.local.sym, |imported| match imported {
               ModuleExportName::Ident(ident) => &ident.sym,
               ModuleExportName::Str(s) => s
                 .value
                 .as_atom()
                 .expect("ModuleExportName should be a valid utf8"),
-            })
-            .unwrap_or(&named.local.sym);
+            });
           if drive
             .import_specifier(self, decl, source, Some(export_name), identifier_name)
             .unwrap_or_default()
@@ -89,15 +88,13 @@ impl JavascriptParser<'_> {
   }
 
   pub fn module_pre_walk_export_all_declaration(&mut self, decl: ExportAllDeclaration) {
+    let drive = self.plugin_drive.clone();
     let exported_name = decl.exported_name();
     let exported_name_span = decl.exported_name_span();
     let statement = ExportImport::All(decl);
     let source = statement.source();
-    self
-      .plugin_drive
-      .clone()
-      .export_import(self, statement, source);
-    self.plugin_drive.clone().export_import_specifier(
+    drive.export_import(self, statement, source);
+    drive.export_import_specifier(
       self,
       statement,
       source,
@@ -111,17 +108,15 @@ impl JavascriptParser<'_> {
     let Some(source) = export.source() else {
       return;
     };
-    self
-      .plugin_drive
-      .clone()
-      .export_import(self, ExportImport::Named(export), source);
+    let drive = self.plugin_drive.clone();
+    drive.export_import(self, ExportImport::Named(export), source);
     match export {
       ExportNamedDeclaration::Decl(_) => {}
       ExportNamedDeclaration::Specifiers(named) => {
         for (local_id, exported_name, exported_name_span) in
           ExportNamedDeclaration::named_export_specifiers(named)
         {
-          self.plugin_drive.clone().export_import_specifier(
+          drive.export_import_specifier(
             self,
             ExportImport::Named(export),
             source,

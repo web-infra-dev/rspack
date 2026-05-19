@@ -1,7 +1,7 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		sideEffects: true,
-		innerGraph: true
-	}
+  optimization: {
+    sideEffects: true,
+    innerGraph: true,
+  },
 };

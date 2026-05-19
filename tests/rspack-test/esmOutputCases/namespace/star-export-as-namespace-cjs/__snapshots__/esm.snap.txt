@@ -1,5 +1,6 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./foo.js"
 /*!****************!*\
@@ -28,6 +29,7 @@ it('should compile', () => {
 })
 
 
+export {};
 
 ```
 
@@ -56,11 +58,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
-(() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
-
-})();
 // webpack/runtime/create_fake_namespace_object
 (() => {
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
@@ -99,6 +96,11 @@ __webpack_require__.d = (exports, definition) => {
         }
     }
 };
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
 })();
 // webpack/runtime/has_own_property
 (() => {

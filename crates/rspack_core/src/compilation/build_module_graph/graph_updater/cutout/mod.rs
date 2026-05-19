@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet as HashSet;
 
 use self::{fix_build_meta::FixBuildMeta, fix_issuers::FixIssuers};
 use super::{BuildModuleGraphArtifact, UpdateParam};
-use crate::{BuildDependency, Compilation, ResourceId, internal};
+use crate::{BuildDependency, Compilation, internal};
 
 /// Cutout module graph.
 ///
@@ -50,7 +50,7 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().values().filter_map(|module| {
+          force_build_modules.extend(module_graph.modules().filter_map(|(_, module)| {
             if module.need_build(&compilation.value_cache_versions) {
               Some(module.identifier())
             } else {
@@ -68,16 +68,8 @@ impl Cutout {
             .into_iter()
             .flatten()
             {
-              for resource_id in resource_ids {
-                match resource_id {
-                  ResourceId::Module(mid) => {
-                    force_build_modules.insert(*mid);
-                  }
-                  ResourceId::Dependency(dep_id) => {
-                    force_build_deps.insert(*dep_id);
-                  }
-                }
-              }
+              force_build_modules.extend(resource_ids.modules().iter().copied());
+              force_build_deps.extend(resource_ids.dependencies().iter().copied());
             }
           }
         }
@@ -132,13 +124,11 @@ impl Cutout {
       }
     }
     // add entry dependencies
-    for dep in next_entry_dependencies
-      .difference(&entry_dependencies)
-      .copied()
-      .collect::<Vec<_>>()
-    {
-      build_deps.insert((dep, None));
-      entry_dependencies.insert(dep);
+    for dep in next_entry_dependencies.iter() {
+      if !entry_dependencies.contains(dep) {
+        build_deps.insert((*dep, None));
+        entry_dependencies.insert(*dep);
+      }
     }
     artifact.entry_dependencies = entry_dependencies;
 

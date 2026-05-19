@@ -11,15 +11,16 @@ use asset::{
   collect_assets_for_module, collect_assets_from_chunk, collect_usage_files_for_module,
   empty_assets_group, module_source_path, normalize_assets_group,
 };
-pub use data::StatsBuildInfo;
 use data::{
   BasicStatsMetaData, ManifestExpose, ManifestRemote, ManifestRoot, ManifestShared,
-  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsRoot, StatsShared,
+  RemoteEntryMeta, StatsAssetsGroup, StatsExpose, StatsRemote, StatsShared,
 };
+pub use data::{StatsBuildInfo, StatsRoot};
 pub use options::{
   ManifestExposeOption, ManifestSharedOption, ModuleFederationManifestPluginOptions,
   RemoteAliasTarget,
 };
+use rspack_collections::IdentifierSet;
 use rspack_core::{
   Compilation, CompilationAsset, CompilationProcessAssets, ModuleIdentifier, ModuleType, Plugin,
   PublicPath,
@@ -47,11 +48,20 @@ impl ModuleFederationManifestPlugin {
   }
 }
 fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Option<String> {
-  let chunk_group_ukey = compilation.entrypoints.get(container_name)?;
-  let chunk_group = compilation.chunk_group_by_ukey.expect_get(chunk_group_ukey);
+  let chunk_group_ukey = compilation
+    .build_chunk_graph_artifact
+    .entrypoints
+    .get(container_name)?;
+  let chunk_group = compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(chunk_group_ukey);
 
   let pick_chunk_file = |chunk_ukey: &rspack_core::ChunkUkey| -> Option<String> {
-    let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
     chunk
       .files()
       .iter()
@@ -70,7 +80,8 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
 
   // Fallback to the runtime chunk (some configurations emit the entry file there).
   let runtime_chunk_file = {
-    let runtime_chunk_key = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+    let runtime_chunk_key =
+      chunk_group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     pick_chunk_file(&runtime_chunk_key)
   };
   if runtime_chunk_file.is_some() {
@@ -85,13 +96,14 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   }
   None
 }
-#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
+#[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin, stage = 0)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
   let entry_point_names: HashSet<String> = compilation
+    .build_chunk_graph_artifact
     .entrypoints
     .keys()
-    .map(|k| k.to_string())
+    .cloned()
     .collect();
 
   // Build metaData
@@ -140,8 +152,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         .output
         .library
         .as_ref()
-        .map(|l| l.library_type.clone())
-        .unwrap_or_else(|| "global".to_string()),
+        .map_or_else(|| "global".to_string(), |l| l.library_type.clone()),
     },
     r#type: None,
   };
@@ -175,6 +186,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         singleton: shared.singleton.or(Some(true)),
         assets: StatsAssetsGroup::default(),
         usedIn: Vec::new(),
+        usedExports: Vec::new(),
       })
       .collect::<Vec<_>>();
     let remote_list = self
@@ -203,24 +215,23 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     let should_collect_module = |module_id: &ModuleIdentifier| -> bool {
       module_graph
         .module_by_identifier(module_id)
-        .map(|module| {
+        .is_some_and(|module| {
           !matches!(
             module.module_type(),
             ModuleType::ProvideShared | ModuleType::ConsumeShared | ModuleType::Runtime
           )
         })
-        .unwrap_or(false)
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
     let mut expose_chunk_names: HashMap<String, String> = HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
-    let mut shared_module_targets: HashMap<String, HashSet<ModuleIdentifier>> = HashMap::default();
+    let mut shared_module_targets: HashMap<String, IdentifierSet> = HashMap::default();
     let mut module_ids_by_name: HashMap<String, ModuleIdentifier> = HashMap::default();
     let mut remote_module_ids: Vec<ModuleIdentifier> = Vec::new();
     let mut container_entry_module: Option<ModuleIdentifier> = None;
-    for (_, module) in module_graph.modules().into_iter() {
+    for (_, module) in module_graph.modules() {
       let module_identifier = module.identifier();
       if let Some(path) = module_source_path(module, compilation) {
         let stripped = strip_ext(&path);
@@ -230,7 +241,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .or_insert(module_identifier);
           if !stripped.starts_with("./") {
             module_ids_by_name
-              .entry(format!("./{}", stripped))
+              .entry(format!("./{stripped}"))
               .or_insert(module_identifier);
           }
           if let Some(file_name) = Path::new(&stripped).file_name().and_then(|f| f.to_str()) {
@@ -240,7 +251,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             let file_base = strip_ext(file_name);
             if !file_base.is_empty() {
               module_ids_by_name
-                .entry(file_base.to_string())
+                .entry(file_base.clone())
                 .or_insert(module_identifier);
             }
           }
@@ -274,10 +285,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
           if let Some(block_id) = blocks.get(index)
             && let Some(chunk_group) = compilation
+              .build_chunk_graph_artifact
               .chunk_graph
-              .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
+              .get_block_chunk_group(
+                block_id,
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              )
             && let Some(chunk_key) = chunk_group.chunks.first()
-            && let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key)
+            && let Some(chunk) = compilation
+              .build_chunk_graph_artifact
+              .chunk_by_ukey
+              .get(chunk_key)
             && let Some(name) = chunk.name()
           {
             expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
@@ -343,7 +361,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if matches!(module_type, ModuleType::ConsumeShared)
         && let Some((pkg, required)) = parse_consume_shared_identifier(&identifier)
       {
-        let mut target_ids: HashSet<ModuleIdentifier> = HashSet::default();
+        let mut target_ids: IdentifierSet = IdentifierSet::default();
         for connection in module_graph.get_outgoing_connections(&module_identifier) {
           let module_id = *connection.module_identifier();
           if should_collect_module(&module_id) {
@@ -357,7 +375,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         shared_module_targets
           .entry(pkg.clone())
           .or_default()
-          .extend(target_ids.into_iter());
+          .extend(target_ids);
         let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
         if entry.requiredVersion.is_none() && required.is_some() {
           entry.requiredVersion = required;
@@ -402,16 +420,22 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       shared_usage_links_for_requirements,
       &expose_module_paths,
     );
-    let chunk_graph = &compilation.chunk_graph;
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
     let mut shared_chunk_map: HashMap<String, HashSet<rspack_core::ChunkUkey>> = HashMap::default();
     for (pkg, module_ids) in &shared_module_targets {
       let entry = shared_chunk_map.entry(pkg.clone()).or_default();
       for module_id in module_ids {
         for chunk_ukey in chunk_graph.get_module_chunks(*module_id).iter() {
           entry.insert(*chunk_ukey);
-          let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+          let chunk = compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .expect_get(chunk_ukey);
           for group_ukey in chunk.groups() {
-            let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+            let group = compilation
+              .build_chunk_graph_artifact
+              .chunk_group_by_ukey
+              .expect_get(group_ukey);
             if let Some(name) = group.name()
               && !entry_point_names.contains(name)
             {
@@ -451,7 +475,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     for (expose_file_key, expose) in exposes_map.iter_mut() {
       let mut assets = None;
       if let Some(chunk_name) = expose_chunk_names.get(expose_file_key)
-        && let Some(chunk_key) = compilation.named_chunks.get(chunk_name)
+        && let Some(chunk_key) = compilation
+          .build_chunk_graph_artifact
+          .named_chunks
+          .get(chunk_name)
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
@@ -460,7 +487,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         ));
       }
       if assets.is_none()
-        && let Some(chunk_key) = compilation.named_chunks.get(expose_file_key)
+        && let Some(chunk_key) = compilation
+          .build_chunk_graph_artifact
+          .named_chunks
+          .get(expose_file_key)
       {
         assets = Some(collect_assets_from_chunk(
           compilation,
@@ -588,7 +618,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let stats_root = StatsRoot {
     id: container_name.clone(),
     name: container_name.clone(),
-    metaData: meta.clone(),
+    metaData: meta,
     shared,
     remotes: remote_list.clone(),
     exposes: exposes.clone(),
@@ -603,10 +633,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     ),
   );
   // Build manifest from stats
+  let mut manifest_meta = stats_root.metaData.clone();
+  if let Some(build_info) = &mut manifest_meta.build_info {
+    build_info.target = None;
+    build_info.plugins = None;
+  }
   let manifest = ManifestRoot {
     id: stats_root.id.clone(),
     name: stats_root.name.clone(),
-    metaData: stats_root.metaData.clone(),
+    metaData: manifest_meta,
     exposes: exposes
       .into_iter()
       .map(|e| ManifestExpose {

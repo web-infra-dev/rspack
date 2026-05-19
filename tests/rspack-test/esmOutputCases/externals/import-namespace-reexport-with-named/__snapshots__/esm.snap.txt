@@ -1,0 +1,26 @@
+```mjs title=main.mjs
+import { sep } from "path";
+import * as __rspack_external_fs from "fs";
+
+// path
+
+// fs
+
+// ./index.js
+
+
+
+
+
+
+
+it("should combine a named external re-export with an imported external namespace re-export", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.sep).toBe(sep);
+  expect(typeof mod.fsNs.readFile).toBe("function");
+});
+
+export { __rspack_external_fs as fsNs, sep };
+
+```

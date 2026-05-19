@@ -1,0 +1,224 @@
+---
+description: '使用 Rspack 构建 Node.js 应用，涵盖 runtime target、external 依赖、开发脚本和 native addon。'
+---
+
+import { PackageManagerTabs } from '@theme';
+
+# Node.js
+
+Rspack 可以用于构建 Node.js 应用：打包应用代码、通过 SWC 转译 TypeScript、external 运行时依赖，并输出 Node.js 可在运行时加载的资源。
+
+对于现代 Node.js 应用，请参考[使用 ESM 输出](#使用-esm-输出)。
+
+## 安装依赖
+
+安装 Rspack 以及本文示例中使用到的辅助依赖：
+
+<PackageManagerTabs command="add @rspack/core @rspack/cli @rspack/dev-server webpack-node-externals run-script-webpack-plugin -D" />
+
+## 基本概念
+
+- **Node.js target**（[`target: 'node'`](/config/target)）：生成适用于 Node.js 而不是浏览器的产物。
+- **External dependencies**：服务端应用通常不需要把 `node_modules` 中的所有包都打进 bundle。External 依赖可以减小 bundle 体积，并让 Node.js 在运行时正常加载依赖。
+- **Development HMR**：开发环境下，Node.js 进程需要在 Rspack 重新构建服务端 bundle 后重启或接受更新。
+- **Native addons**：依赖或应用代码可能会引用 `.node` 文件。这类文件需要作为独立资源输出，并由 Node.js 在运行时加载。
+
+## 配置 Rspack
+
+以下配置面向 Node.js，external `node_modules`，在开发阶段将产物写入磁盘，并启动生成的 bundle：
+
+```js title="rspack.config.mjs"
+// @ts-check
+import { defineConfig } from '@rspack/cli';
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+import nodeExternals from 'webpack-node-externals';
+
+export default defineConfig({
+  context: import.meta.dirname,
+  target: 'node',
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+  output: {
+    clean: true,
+  },
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|mjs|ts)$/,
+        exclude: [/node_modules/],
+        loader: 'builtin:swc-loader',
+        options: {
+          detectSyntax: 'auto',
+        },
+        type: 'javascript/auto',
+      },
+      {
+        test: /\.node$/,
+        type: 'asset/resource',
+      },
+    ],
+  },
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+  plugins: [
+    process.env.NODE_ENV !== 'production' &&
+      new RunScriptWebpackPlugin({
+        name: 'main.js',
+        autoRestart: false,
+      }),
+  ],
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+});
+```
+
+## 配置脚本
+
+使用 `rspack dev` 进行开发，并使用 `rspack build` 进行生产构建：
+
+```json title="package.json"
+{
+  "scripts": {
+    "build": "rspack build",
+    "dev": "rspack dev",
+    "start": "node dist/main.js"
+  }
+}
+```
+
+- `dev`：运行 Rspack Dev Server，将服务端 bundle 写入磁盘，并启动 `dist/main.js`。
+- `build`：创建不包含 HMR polling 入口的生产 bundle。
+- `start`：使用 Node.js 运行生产产物。
+
+## 配置开发 HMR
+
+只在开发入口中添加 `@rspack/core/hot/poll`；如果生产 bundle 中包含它，Node.js 应用会在运行时崩溃，因为 build mode 下不会启用 HMR：
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main:
+      process.env.NODE_ENV === 'production'
+        ? './src/main.ts'
+        : ['@rspack/core/hot/poll?100', './src/main.ts'],
+  },
+};
+```
+
+由于服务端进程会从生成的 bundle 启动，因此需要启用 `devServer.devMiddleware.writeToDisk`：
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    devMiddleware: {
+      writeToDisk: true,
+    },
+  },
+};
+```
+
+`RunScriptWebpackPlugin` 会在开发阶段启动生成的 `main.js` 文件：
+
+```js title="rspack.config.mjs"
+import { RunScriptWebpackPlugin } from 'run-script-webpack-plugin';
+
+export default {
+  plugins: [
+    new RunScriptWebpackPlugin({
+      name: 'main.js',
+      autoRestart: false,
+    }),
+  ],
+};
+```
+
+使用 `webpack-node-externals` 时，HMR polling runtime 必须加入 allowlist，这样它会被打进服务端产物，而不是被当作外部依赖处理。
+
+## External 依赖
+
+使用 [webpack-node-externals](https://www.npmjs.com/package/webpack-node-externals) external `node_modules` 中的包：
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  externals: [
+    nodeExternals({
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## 使用 ESM 输出
+
+对于现代 Node.js 应用，建议参考 [ESM 指南](/guide/features/esm)输出 ESM bundle。当 `webpack-node-externals` 与 ESM 输出一起使用时，需要添加 `importType: 'module'`，让 external 依赖通过 ESM import 加载：
+
+```js title="rspack.config.mjs"
+import nodeExternals from 'webpack-node-externals';
+
+export default {
+  output: {
+    module: true,
+  },
+  externals: [
+    nodeExternals({
+      importType: 'module',
+      allowlist: [/@rspack\/core\/hot\/poll/],
+    }),
+  ],
+};
+```
+
+## Native node modules
+
+当使用 Rspack 构建 Node.js 应用时，可能会碰到一些依赖包含 Node.js native addon 依赖（`.node` 模块）。因为 `.node` 模块无法打包进 JavaScript 产物里，所以应该把它们作为资源输出，并交给 Node.js 加载。
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    // 使用默认 publicPath 或 `publicPath: 'auto'`，让输出的 addon URL
+    // 保持相对于生成 bundle 的路径。
+  },
+  module: {
+    rules: [
+      {
+        test: /\.node$/,
+        type: 'asset/resource',
+      },
+    ],
+  },
+};
+```
+
+然后在应用代码中通过 `dlopen` 加载输出后的 addon：
+
+```js title="src/addon.mjs"
+import { dlopen } from 'node:process';
+import { fileURLToPath } from 'node:url';
+
+const file = new URL('./file.node', import.meta.url);
+const addon = { exports: {} };
+
+try {
+  dlopen(addon, fileURLToPath(file));
+} catch (error) {
+  // 在这里处理 addon 加载错误。
+}
+
+export default addon.exports;
+```

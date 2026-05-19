@@ -21,14 +21,14 @@ where
     // Find items only in set2
     let only_in_2: Vec<_> = set2.difference(&set1).collect();
 
-    let mut error_msg = format!("{} do not match:\n", compare_name);
+    let mut error_msg = format!("{compare_name} do not match:\n");
 
     if !only_in_1.is_empty() {
-      error_msg.push_str(&format!("  Only in path1: {:?}\n", only_in_1));
+      error_msg.push_str(&format!("  Only in path1: {only_in_1:?}\n"));
     }
 
     if !only_in_2.is_empty() {
-      error_msg.push_str(&format!("  Only in path2: {:?}\n", only_in_2));
+      error_msg.push_str(&format!("  Only in path2: {only_in_2:?}\n"));
     }
 
     error_msg.push_str(&debug_info.to_string());

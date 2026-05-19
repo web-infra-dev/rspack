@@ -1,16 +1,16 @@
-use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
+use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
 use swc_core::{
   common::{Span, Spanned},
-  ecma::ast::{CallExpr, Ident, UnaryExpr},
+  ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
 };
 
 use crate::{
-  dependency::ModuleArgumentDependency,
+  dependency::{ModuleArgumentDependency, RequireMainDependency},
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
-  visitors::{JavascriptParser, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
 };
 
 fn expression_not_supported(
@@ -32,11 +32,7 @@ fn expression_not_supported(
   error.hide_stack = Some(true);
   (
     error,
-    Box::new(ConstDependency::new(
-      expr_span.into(),
-      "(void 0)".into(),
-      None,
-    )),
+    Box::new(ConstDependency::new(expr_span.into(), "(void 0)".into())),
   )
 }
 
@@ -99,6 +95,7 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
   }
 }
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for APIPlugin {
   fn evaluate_typeof<'a>(
     &self,
@@ -132,27 +129,16 @@ impl JavascriptParserPlugin for APIPlugin {
   ) -> Option<bool> {
     match for_name {
       API_REQUIRE => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into(),
-          Some(RuntimeGlobals::REQUIRE),
+          RuntimeGlobals::REQUIRE,
         )));
         Some(true)
       }
       API_HASH => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
-          format!(
-            "{}()",
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH)
-          )
-          .into(),
-          Some(RuntimeGlobals::GET_FULL_HASH),
+          RuntimeGlobals::GET_FULL_HASH,
         )));
         Some(true)
       }
@@ -162,59 +148,41 @@ impl JavascriptParserPlugin for APIPlugin {
           serde_json::to_string(&parser.module_layer)
             .expect("should stringify JSON")
             .into(),
-          None,
         )));
         Some(true)
       }
       API_PUBLIC_PATH => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
-            .into(),
-          Some(RuntimeGlobals::PUBLIC_PATH),
+          RuntimeGlobals::PUBLIC_PATH,
         )));
         Some(true)
       }
       API_MODULES => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-            .into(),
-          Some(RuntimeGlobals::MODULE_FACTORIES),
+          RuntimeGlobals::MODULE_FACTORIES,
         )));
         Some(true)
       }
       API_CHUNK_LOAD => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
-            .into(),
-          Some(RuntimeGlobals::ENSURE_CHUNK),
+          RuntimeGlobals::ENSURE_CHUNK,
         )));
         Some(true)
       }
       API_MODULE => {
-        parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
-          None,
-          ident.span.into(),
-          Some(parser.source),
-        )));
+        let range = ident.span.into();
+        let loc = parser.to_dependency_location(range);
+        parser
+          .add_presentational_dependency(Box::new(ModuleArgumentDependency::new(None, range, loc)));
         Some(true)
       }
       API_BASE_URI => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::BASE_URI)
-            .into(),
-          Some(RuntimeGlobals::BASE_URI),
+          RuntimeGlobals::BASE_URI,
         )));
         Some(true)
       }
@@ -228,121 +196,77 @@ impl JavascriptParserPlugin for APIPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
           content,
-          None,
         )));
         Some(true)
       }
       API_SYSTEM_CONTEXT => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::SYSTEM_CONTEXT)
-            .into(),
-          Some(RuntimeGlobals::SYSTEM_CONTEXT),
+          RuntimeGlobals::SYSTEM_CONTEXT,
         )));
         Some(true)
       }
       API_SHARE_SCOPES => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP)
-            .into(),
-          Some(RuntimeGlobals::SHARE_SCOPE_MAP),
+          RuntimeGlobals::SHARE_SCOPE_MAP,
         )));
         Some(true)
       }
       API_INIT_SHARING => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
-            .into(),
-          Some(RuntimeGlobals::INITIALIZE_SHARING),
+          RuntimeGlobals::INITIALIZE_SHARING,
         )));
         Some(true)
       }
       API_NONCE => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
-            .into(),
-          Some(RuntimeGlobals::SCRIPT_NONCE),
+          RuntimeGlobals::SCRIPT_NONCE,
         )));
         Some(true)
       }
       API_CHUNK_NAME => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME)
-            .into(),
-          Some(RuntimeGlobals::CHUNK_NAME),
+          RuntimeGlobals::CHUNK_NAME,
         )));
         Some(true)
       }
       API_RUNTIME_ID => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID)
-            .into(),
-          Some(RuntimeGlobals::RUNTIME_ID),
+          RuntimeGlobals::RUNTIME_ID,
         )));
         Some(true)
       }
       API_GET_SCRIPT_FILENAME => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME)
-            .into(),
-          Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+          RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
         )));
         Some(true)
       }
       // rspack specific
       API_VERSION => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
           ident.span.into(),
-          format!(
-            "{}()",
-            parser
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::RSPACK_VERSION)
-          )
-          .into(),
-          Some(RuntimeGlobals::RSPACK_VERSION),
+          RuntimeGlobals::RSPACK_VERSION,
         )));
         Some(true)
       }
       API_UNIQUE_ID => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::RSPACK_UNIQUE_ID)
-            .into(),
-          Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
+          RuntimeGlobals::RSPACK_UNIQUE_ID,
         )));
         Some(true)
       }
       API_RSC_MANIFEST => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
           ident.span.into(),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST)
-            .into(),
-          Some(RuntimeGlobals::RSC_MANIFEST),
+          RuntimeGlobals::RSC_MANIFEST,
         )));
         Some(true)
       }
@@ -390,51 +314,73 @@ impl JavascriptParserPlugin for APIPlugin {
     }
 
     if for_name == "require.cache" {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         member_expr.span().into(),
-        parser
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE)
-          .into(),
-        Some(RuntimeGlobals::MODULE_CACHE),
+        RuntimeGlobals::MODULE_CACHE,
       )));
       return Some(true);
     }
 
     if for_name == "require.main" {
-      let mut runtime_requirements = RuntimeGlobals::default();
-      runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
-      runtime_requirements.insert(RuntimeGlobals::ENTRY_MODULE_ID);
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      parser.add_presentational_dependency(Box::new(RequireMainDependency::new(
         member_expr.span().into(),
-        format!(
-          "{}[{}]",
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::MODULE_CACHE),
-          parser
-            .runtime_template
-            .render_runtime_globals(&RuntimeGlobals::ENTRY_MODULE_ID)
-        )
-        .into(),
-        Some(runtime_requirements),
       )));
       return Some(true);
     }
 
     if for_name == "__webpack_module__.id" {
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        RuntimeGlobals::MODULE_ID,
-      )));
-
+      let range = member_expr.span.into();
+      let loc = parser.to_dependency_location(range);
       parser.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
         Some("id".into()),
-        member_expr.span().into(),
-        Some(parser.source),
+        range,
+        loc,
       )));
       return Some(true);
     }
 
+    None
+  }
+
+  fn pre_declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &swc_core::ecma::ast::VarDeclarator,
+    _declaration: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    // Check if we're at top level scope and the declarator is a simple identifier named "module"
+    if parser.is_top_level_scope()
+      && let Pat::Ident(ident) = &declarator.name
+      && ident.id.sym.as_ref() == "module"
+    {
+      parser.build_info.module_argument = ModuleArgument::RspackModule;
+    }
+    None
+  }
+
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    // Check if we're at top level scope
+    if parser.is_top_level_scope() {
+      match stmt {
+        Statement::Fn(fn_decl) => {
+          // Check for function declaration named "module"
+          if let Some(ident) = fn_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        Statement::Class(class_decl) => {
+          // Check for class declaration named "module"
+          if let Some(ident) = class_decl.ident()
+            && ident.sym.as_ref() == "module"
+          {
+            parser.build_info.module_argument = ModuleArgument::RspackModule;
+          }
+        }
+        _ => {}
+      }
+    }
     None
   }
 

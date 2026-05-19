@@ -54,12 +54,12 @@ impl RspackRegex {
 
   #[inline]
   pub fn global(&self) -> bool {
-    self.algo.global()
+    self.flags.contains('g')
   }
 
   #[inline]
   pub fn sticky(&self) -> bool {
-    self.algo.sticky()
+    self.flags.contains('y')
   }
 
   #[inline]
@@ -84,6 +84,16 @@ impl RspackRegex {
       flags: chars.into_iter().collect::<String>(),
       source: expr.to_string(),
       algo: Box::new(Algo::new(expr, flags)?),
+    })
+  }
+
+  pub fn new_rust_regex(expr: &str, flags: &str) -> Result<Self, Error> {
+    let mut chars = flags.chars().collect::<Vec<char>>();
+    chars.sort_unstable();
+    Ok(Self {
+      flags: chars.into_iter().collect::<String>(),
+      source: expr.to_string(),
+      algo: Box::new(Algo::new_rust_regex(expr, flags)?),
     })
   }
 

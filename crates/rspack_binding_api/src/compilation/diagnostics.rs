@@ -183,7 +183,7 @@ impl Diagnostics {
       i += 1;
     }
 
-    for diagnostic in to_insert.drain(..) {
+    for diagnostic in to_insert {
       new_diagnostics.push(diagnostic);
     }
 

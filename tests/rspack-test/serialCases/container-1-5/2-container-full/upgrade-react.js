@@ -1,4 +1,4 @@
-import { setVersion } from "mocked-react";
+import { setVersion } from "@rspack/mocked-react";
 
 export default function upgrade() {
 	setVersion("9");

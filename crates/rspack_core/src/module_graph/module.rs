@@ -1,16 +1,47 @@
-use rspack_cacheable::{cacheable, with::Skip};
-use rustc_hash::FxHashSet as HashSet;
+use std::fmt;
 
-use crate::{DependencyId, ExportsInfo, ModuleIdentifier, ModuleIssuer};
+use rspack_cacheable::{cacheable, with::Skip};
+use rustc_hash::FxHashSet;
+
+use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum OptimizationBailoutItem {
+  Message(String),
+  SideEffects {
+    node_type: String,
+    loc: String,
+    short_id: String,
+  },
+}
+
+impl fmt::Display for OptimizationBailoutItem {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Message(msg) => write!(f, "{msg}"),
+      Self::SideEffects {
+        node_type,
+        loc,
+        short_id,
+      } => {
+        write!(
+          f,
+          "{node_type} with side_effects in source code at {short_id}:{loc}"
+        )
+      }
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: HashSet<DependencyId>,
+  outgoing_connections: FxHashSet<DependencyId>,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: HashSet<DependencyId>,
+  incoming_connections: FxHashSet<DependencyId>,
 
   issuer: ModuleIssuer,
 
@@ -18,16 +49,15 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // an quick way to get a module's all dependencies (including its blocks' dependencies)
   // and it is ordered by dependency creation order
-  pub(crate) all_dependencies: Vec<DependencyId>,
+  all_dependencies: Vec<DependencyId>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
-  pub exports: ExportsInfo,
   pub depth: Option<usize>,
-  pub optimization_bailout: Vec<String>,
+  pub optimization_bailout: Vec<OptimizationBailoutItem>,
 }
 
 impl ModuleGraphModule {
-  pub fn new(module_identifier: ModuleIdentifier, exports_info: ExportsInfo) -> Self {
+  pub fn new(module_identifier: ModuleIdentifier) -> Self {
     Self {
       outgoing_connections: Default::default(),
       incoming_connections: Default::default(),
@@ -37,7 +67,6 @@ impl ModuleGraphModule {
       all_dependencies: Default::default(),
       pre_order_index: None,
       post_order_index: None,
-      exports: exports_info,
       depth: None,
       optimization_bailout: vec![],
     }
@@ -59,12 +88,20 @@ impl ModuleGraphModule {
     self.outgoing_connections.remove(dependency_id);
   }
 
-  pub fn incoming_connections(&self) -> &HashSet<DependencyId> {
+  pub fn incoming_connections(&self) -> &FxHashSet<DependencyId> {
     &self.incoming_connections
   }
 
-  pub fn outgoing_connections(&self) -> &HashSet<DependencyId> {
+  pub fn outgoing_connections(&self) -> &FxHashSet<DependencyId> {
     &self.outgoing_connections
+  }
+
+  pub fn all_dependencies(&self) -> &[DependencyId] {
+    &self.all_dependencies
+  }
+
+  pub(crate) fn all_dependencies_mut(&mut self) -> &mut Vec<DependencyId> {
+    &mut self.all_dependencies
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
@@ -81,7 +118,7 @@ impl ModuleGraphModule {
     &self.issuer
   }
 
-  pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<String> {
+  pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<OptimizationBailoutItem> {
     &mut self.optimization_bailout
   }
 }

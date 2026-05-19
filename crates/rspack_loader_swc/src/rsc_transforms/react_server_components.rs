@@ -21,7 +21,12 @@ use swc_core::{
   },
 };
 
-use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap};
+use super::{cjs_finder::contains_cjs, import_analyzer::ImportMap, to_client_ref::to_client_ref};
+
+static NODE_MODULES_PATH_REGEX: Lazy<Regex> = Lazy::new(|| {
+  #[allow(clippy::unwrap_used)]
+  Regex::new(r"node_modules[\\/]").unwrap()
+});
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
@@ -35,6 +40,11 @@ pub enum Config {
 pub struct Options {
   pub is_react_server_layer: bool,
   pub enable_server_entry: bool,
+  /// Whether to disable the compile-time check that reports errors when React
+  /// client-only API imports are used in server components.
+  /// Defaults to `false`.
+  #[serde(default)]
+  pub disable_client_api_checks: bool,
 }
 
 struct DirectiveImportCollection {
@@ -51,7 +61,9 @@ struct DirectiveImportCollection {
 struct ReactServerComponents<'a> {
   is_react_server_layer: bool,
   enable_server_entry: bool,
+  disable_client_api_checks: bool,
   filepath: String,
+  resource_path: String,
   rsc_meta: &'a RefCell<Option<RscMeta>>,
   directive_import_collection: Option<DirectiveImportCollection>,
 }
@@ -75,8 +87,11 @@ impl VisitMut for ReactServerComponents<'_> {
 
   fn visit_mut_module(&mut self, module: &mut Module) {
     // Run the validator first to assert, collect directives and imports.
-    let mut validator =
-      ReactServerComponentValidator::new(self.is_react_server_layer, self.filepath.clone());
+    let mut validator = ReactServerComponentValidator::new(
+      self.is_react_server_layer,
+      self.filepath.clone(),
+      self.disable_client_api_checks,
+    );
 
     module.visit_with(&mut validator);
     self.directive_import_collection = validator.directive_import_collection;
@@ -86,6 +101,7 @@ impl VisitMut for ReactServerComponents<'_> {
 
     let is_server_entry = self.enable_server_entry && directive_import_collection.is_server_entry;
     let is_client_entry = directive_import_collection.is_client_entry;
+    let client_refs = directive_import_collection.export_names.clone();
 
     self.remove_top_level_directive(module);
 
@@ -96,6 +112,9 @@ impl VisitMut for ReactServerComponents<'_> {
         self.set_server_entry_metadata(is_cjs);
       } else if is_client_entry {
         self.set_client_metadata(is_cjs);
+        if to_client_ref(module, &self.resource_path, &client_refs, is_cjs) {
+          return;
+        }
       }
     }
     module.visit_mut_children_with(self)
@@ -138,6 +157,7 @@ impl ReactServerComponents<'_> {
           module_type: RscModuleType::ServerEntry,
           server_refs: export_names.clone(),
           client_refs: Default::default(),
+          import_meta_rsc: false,
           is_cjs,
           action_ids: Default::default(),
         });
@@ -165,6 +185,7 @@ impl ReactServerComponents<'_> {
           module_type: RscModuleType::Client,
           server_refs: Default::default(),
           client_refs: export_names.clone(),
+          import_meta_rsc: false,
           is_cjs,
           action_ids: Default::default(),
         });
@@ -379,6 +400,7 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
 /// A visitor to assert given module file is a valid React server component.
 struct ReactServerComponentValidator {
   is_react_server_layer: bool,
+  disable_client_api_checks: bool,
   filepath: String,
   invalid_server_lib_apis_mapping: FxHashMap<&'static str, Vec<&'static str>>,
   pub directive_import_collection: Option<DirectiveImportCollection>,
@@ -386,9 +408,14 @@ struct ReactServerComponentValidator {
 }
 
 impl ReactServerComponentValidator {
-  pub fn new(is_react_server_layer: bool, filename: String) -> Self {
+  pub fn new(
+    is_react_server_layer: bool,
+    filename: String,
+    disable_client_api_checks: bool,
+  ) -> Self {
     Self {
       is_react_server_layer,
+      disable_client_api_checks,
       filepath: filename,
       directive_import_collection: None,
       // react -> [apis]
@@ -431,11 +458,7 @@ impl ReactServerComponentValidator {
   }
 
   fn is_from_node_modules(&self, filepath: &str) -> bool {
-    static RE: Lazy<Regex> = Lazy::new(|| {
-      #[allow(clippy::unwrap_used)]
-      Regex::new(r"node_modules[\\/]").unwrap()
-    });
-    RE.is_match(filepath)
+    NODE_MODULES_PATH_REGEX.is_match(filepath)
   }
 
   // Asserts the server lib apis
@@ -459,6 +482,9 @@ impl ReactServerComponentValidator {
   }
 
   fn assert_server_graph(&self, imports: &[ModuleImports]) {
+    if self.disable_client_api_checks {
+      return;
+    }
     if self.is_from_node_modules(&self.filepath) {
       return;
     }
@@ -505,6 +531,7 @@ impl Visit for ReactServerComponentValidator {
 /// running assertion.
 pub fn server_components(
   filename: Arc<FileName>,
+  resource_path: String,
   config: Config,
   rsc_meta: &RefCell<Option<RscMeta>>,
 ) -> impl Pass + VisitMut {
@@ -516,14 +543,20 @@ pub fn server_components(
     Config::WithOptions(x) => x.enable_server_entry,
     _ => false,
   };
+  let disable_client_api_checks = match &config {
+    Config::WithOptions(x) => x.disable_client_api_checks,
+    _ => false,
+  };
   visit_mut_pass(ReactServerComponents {
     is_react_server_layer,
     enable_server_entry,
+    disable_client_api_checks,
     rsc_meta,
     filepath: match &*filename {
       FileName::Custom(path) => format!("<{path}>"),
       _ => filename.to_string(),
     },
+    resource_path,
     directive_import_collection: None,
   })
 }

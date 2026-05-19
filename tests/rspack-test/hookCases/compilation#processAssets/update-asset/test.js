@@ -20,14 +20,14 @@ module.exports = {
 							{
 								name: "test",
 								stage:
-									compiler.webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
+									compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONS
 							},
 							context.snapped(assets => {
 								Object.entries(assets).forEach(([filename, asset]) => {
 									const newContent = `// UPDATED\n${asset.source()}`;
 									compilation.updateAsset(
 										filename,
-										new compiler.webpack.sources.RawSource(newContent)
+										new compiler.rspack.sources.RawSource(newContent)
 									);
 								});
 							})
@@ -36,7 +36,7 @@ module.exports = {
 							{
 								name: "test",
 								stage:
-									compiler.webpack.Compilation
+									compiler.rspack.Compilation
 										.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
 							},
 							context.snapped(assets => {
@@ -50,7 +50,7 @@ module.exports = {
 							{
 								name: "test",
 								stage:
-									compiler.webpack.Compilation
+									compiler.rspack.Compilation
 										.PROCESS_ASSETS_STAGE_OPTIMIZE_HASH
 							},
 							assets => {

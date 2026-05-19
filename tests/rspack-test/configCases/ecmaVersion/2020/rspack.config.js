@@ -1,4 +1,4 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	target: ["node", "es2020"]
+  target: ['node', 'es2020'],
 };

@@ -1,5 +1,6 @@
 ```mjs title=cjs-chunk.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+
 __webpack_require__.add({
 "./cjs.js"
 /*!****************!*\
@@ -11,6 +12,7 @@ exports.value = 42
 
 },
 });
+export {};
 
 ```
 
@@ -59,7 +61,7 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// esm library register module runtime
+// webpack/runtime/esm_register_module
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 

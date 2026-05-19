@@ -3,13 +3,16 @@ use std::sync::Arc;
 use rspack_error::BatchErrors;
 use swc_core::{
   base::config::IsModule,
-  common::{FileName, SourceFile, comments::Comments, input::SourceFileInput},
+  common::{
+    FileName, SourceFile,
+    comments::{Comments, SingleThreadedComments},
+    input::SourceFileInput,
+  },
   ecma::{
     ast::{EsVersion, Program as SwcProgram},
     parser::{self, Parser, Syntax, lexer::Lexer, unstable::TokenAndSpan},
   },
 };
-use swc_node_comments::SwcComments;
 
 use super::JavaScriptCompiler;
 use crate::{
@@ -42,7 +45,7 @@ impl JavaScriptCompiler {
     target: EsVersion,
     syntax: Syntax,
     is_module: IsModule,
-    comments: Option<SwcComments>,
+    comments: Option<SingleThreadedComments>,
   ) -> Result<Ast, BatchErrors> {
     let fm = self.cm.new_source_file(Arc::new(filename), source.into());
     let lexer = Lexer::new(
@@ -73,7 +76,7 @@ impl JavaScriptCompiler {
     source: &str,
     lexer: Lexer,
     is_module: IsModule,
-    comments: Option<SwcComments>,
+    comments: Option<SingleThreadedComments>,
     with_tokens: bool,
   ) -> Result<(Ast, Option<Vec<TokenAndSpan>>), BatchErrors> {
     parse_with_lexer(lexer, is_module, with_tokens)
@@ -127,6 +130,8 @@ fn parse_with_lexer(
   let inner = || {
     // don't call capturing when with_tokens is false to avoid performance cost
     let (tokens, program_result, mut errors) = if with_tokens {
+      // `source.len + 1` is an overestimation of the number of tokens.
+      // It's wasteful and might be optimized in the future.
       let lexer = Capturing::new(lexer);
       let mut parser = Parser::new_from(lexer);
       let program_result = match is_module {

@@ -1,13 +1,12 @@
 use rayon::prelude::*;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation,
-  Module, ModuleCodeGenerationContext, RuntimeGlobals, SourceType,
-  chunk_graph_chunk::ChunkId,
+  Module, ModuleCodeGenerationContext, RuntimeCodeTemplate, RuntimeGlobals, SourceType,
+  chunk_graph_chunk::ChunkIdSet,
   get_undo_path,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rustc_hash::FxHashSet as HashSet;
 
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
@@ -20,8 +19,9 @@ pub async fn render_chunk_modules(
   all_strict: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
-  let module_sources = rspack_futures::scope::<_, _>(|token| {
+  let module_sources = rspack_parallel::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
       let s = unsafe {
         token.used((
@@ -31,10 +31,11 @@ pub async fn render_chunk_modules(
           all_strict,
           output_path,
           hooks,
+          runtime_template
         ))
       };
       s.spawn(
-        |(compilation, chunk_ukey, module, all_strict, output_path, hooks)| async move {
+        |(compilation, chunk_ukey, module, all_strict, output_path, hooks, runtime_template)| async move {
           render_module(
             compilation,
             chunk_ukey,
@@ -43,6 +44,7 @@ pub async fn render_chunk_modules(
             true,
             output_path,
             hooks,
+            runtime_template
           )
           .await
           .map(|result| result.map(|(s, f, a)| (module.identifier(), s, f, a)))
@@ -97,6 +99,7 @@ pub async fn render_chunk_modules(
   Ok(Some((sources.boxed(), chunk_init_fragments)))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn render_module(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -105,11 +108,12 @@ pub async fn render_module(
   factory: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
-  let mut runtime_template = compilation
-    .runtime_template
-    .create_module_codegen_runtime_template();
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let code_gen_result = compilation
     .code_generation_results
     .get(&module.identifier(), Some(chunk.runtime()));
@@ -141,7 +145,7 @@ pub async fn render_module(
           compilation.options.output.path.to_string(),
           true,
         );
-        replace.replace(start as u32, end as u32, &relative, None);
+        replace.replace(start as u32, end as u32, relative, None);
       }
       RenderSource {
         source: replace.boxed(),
@@ -177,6 +181,7 @@ pub async fn render_module(
       module,
       &mut render_source,
       &mut module_chunk_init_fragments,
+      runtime_template,
     )
     .await?;
 
@@ -185,9 +190,9 @@ pub async fn render_module(
     let module_id =
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
         .expect("should have module_id in render_module");
-    sources.add(RawStringSource::from(
-      serde_json::to_string(&module_id).to_rspack_result()?,
-    ));
+    sources.add(RawStringSource::from(rspack_util::json_stringify(
+      module_id,
+    )));
 
     let mut post_module_container = {
       let runtime_requirements = ChunkGraph::get_module_runtime_requirements(
@@ -259,6 +264,7 @@ pub async fn render_module(
         module,
         &mut post_module_container,
         &mut module_chunk_init_fragments,
+        runtime_template,
       )
       .await?;
 
@@ -272,6 +278,7 @@ pub async fn render_module(
         module,
         &mut post_module_package,
         &mut module_chunk_init_fragments,
+        runtime_template,
       )
       .await?;
 
@@ -286,6 +293,7 @@ pub async fn render_module(
         module,
         &mut render_source,
         &mut module_chunk_init_fragments,
+        runtime_template,
       )
       .await?;
 
@@ -302,8 +310,10 @@ pub async fn render_module(
 pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<BoxSource> {
-  let runtime_modules_sources = render_runtime_modules(compilation, chunk_ukey).await?;
+  let runtime_modules_sources =
+    render_runtime_modules(compilation, chunk_ukey, runtime_template).await?;
   if runtime_modules_sources.source().is_empty() {
     return Ok(runtime_modules_sources);
   }
@@ -311,9 +321,7 @@ pub async fn render_chunk_runtime_modules(
   let mut sources = ConcatSource::default();
   sources.add(RawStringSource::from(format!(
     "function({}) {{\n",
-    compilation
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
   )));
   sources.add(runtime_modules_sources);
   sources.add(RawStringSource::from_static("\n}\n"));
@@ -323,10 +331,12 @@ pub async fn render_chunk_runtime_modules(
 pub async fn render_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
+  _runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<BoxSource> {
   let mut sources = ConcatSource::default();
-  let runtime_module_sources = rspack_futures::scope::<_, Result<_>>(|token| {
+  let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
       .map(|(identifier, runtime_module)| {
@@ -364,9 +374,7 @@ pub async fn render_runtime_modules(
           if !(module.full_hash() || module.dependent_hash()) {
             sources.add(source.clone());
           } else {
-            let mut runtime_template = compilation
-              .runtime_template
-              .create_module_codegen_runtime_template();
+            let mut runtime_template = compilation.runtime_template.create_module_code_template();
             let mut code_generation_context = ModuleCodeGenerationContext {
               compilation,
               runtime: None,
@@ -402,16 +410,10 @@ pub async fn render_runtime_modules(
   Ok(sources.boxed())
 }
 
-pub fn stringify_chunks_to_array(chunks: &HashSet<ChunkId>) -> String {
-  let mut v = Vec::from_iter(chunks.iter());
+pub fn stringify_chunks_to_array(chunks: &ChunkIdSet) -> String {
+  let mut v = chunks.iter().collect::<Vec<_>>();
   v.sort_unstable();
-
-  format!(
-    r#"[{}]"#,
-    v.iter().fold(String::new(), |prev, cur| {
-      prev + format!(r#""{cur}","#).as_str()
-    })
-  )
+  rspack_util::json_stringify(&v)
 }
 
 pub fn stringify_array(vec: &[String]) -> String {
@@ -423,4 +425,21 @@ pub fn stringify_array(vec: &[String]) -> String {
       .collect::<Vec<_>>()
       .join(", ")
   )
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::chunk_graph_chunk::ChunkIdSet;
+
+  use super::stringify_chunks_to_array;
+
+  #[test]
+  fn stringify_chunks_to_array_uses_chunk_id_serialize() {
+    let chunks = ChunkIdSet::from_iter([
+      rspack_core::chunk_graph_chunk::ChunkId::from("681"),
+      rspack_core::chunk_graph_chunk::ChunkId::from("main"),
+    ]);
+
+    assert_eq!(stringify_chunks_to_array(&chunks), "[681,\"main\"]");
+  }
 }

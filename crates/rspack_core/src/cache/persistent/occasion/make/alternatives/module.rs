@@ -8,8 +8,8 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildInfo, BuildMeta, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
   ValueCacheVersions,
 };
@@ -115,6 +115,19 @@ impl Module for TempModule {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     unreachable!()
+  }
+
+  async fn build(
+    self: Box<Self>,
+    _build_context: BuildContext,
+    _compilation: Option<&Compilation>,
+  ) -> Result<BuildResult> {
+    Ok(BuildResult {
+      module: BoxModule::new(self),
+      dependencies: vec![],
+      blocks: vec![],
+      optimization_bailouts: vec![],
+    })
   }
 }
 

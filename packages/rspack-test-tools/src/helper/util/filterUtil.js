@@ -1,5 +1,5 @@
 // @ts-nocheck
-const FilteredStatus = {
+export const FilteredStatus = {
   TODO: 'TODO',
   PARTIAL_PASS: 'PARTIAL_PASS',
   FAILED: 'FAILED',
@@ -48,8 +48,4 @@ function normalizeFilteredTestName(flag, testName) {
   return encodeFilteredTest(status, reason);
 }
 
-module.exports = {
-  FilteredStatus,
-  decodeFilteredTest,
-  normalizeFilteredTestName,
-};
+export { decodeFilteredTest, normalizeFilteredTestName };

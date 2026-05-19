@@ -1,51 +1,40 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
-use crate::{CanInlineUse, DependencyId, EvaluatedInlinableValue, ModuleGraph, UsedNameItem};
+use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};
+use crate::{
+  CanInlineUse, DependencyId, EvaluatedInlinableValue, ExportsInfoArtifact, UsedNameItem,
+};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub enum ExportName {
+enum ExportName {
   Other,
   SideEffects,
   Named(Atom),
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct ExportInfoHashKey {
-  name: Option<Atom>,
-  belongs_to: ExportsInfo,
-}
-
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ExportInfo {
-  pub exports_info: ExportsInfo,
-  pub export_name: ExportName,
+  exports_info: ExportsInfo,
+  export_name: ExportName,
 }
 
 impl ExportInfo {
-  pub fn as_data<'a>(&self, mg: &'a ModuleGraph) -> &'a ExportInfoData {
-    let exports_info = self.exports_info.as_data(mg);
-
-    (match &self.export_name {
-      ExportName::Other => exports_info.other_exports_info(),
-      ExportName::SideEffects => exports_info.side_effects_only_info(),
-      ExportName::Named(name) => exports_info
-        .named_exports(name)
-        .expect("should have named export"),
-    }) as _
+  pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportInfoData {
+    self
+      .exports_info
+      .as_data(exports_info_artifact)
+      .get_export_info_data(self)
   }
 
-  pub fn as_data_mut<'a>(&self, mg: &'a mut ModuleGraph) -> &'a mut ExportInfoData {
-    let exports_info = self.exports_info.as_data_mut(mg);
-
-    (match &self.export_name {
-      ExportName::Other => exports_info.other_exports_info_mut(),
-      ExportName::SideEffects => exports_info.side_effects_only_info_mut(),
-      ExportName::Named(name) => exports_info
-        .named_exports_mut(name)
-        .expect("should have named export"),
-    }) as _
+  pub fn as_data_mut<'a>(
+    &self,
+    exports_info_artifact: &'a mut ExportsInfoArtifact,
+  ) -> &'a mut ExportInfoData {
+    self
+      .exports_info
+      .as_data_mut(exports_info_artifact)
+      .get_export_info_data_mut(self)
   }
 }
 
@@ -70,6 +59,7 @@ pub struct ExportInfoData {
   has_use_in_runtime_info: bool,
   global_used: Option<UsageState>,
   used_in_runtime: Option<ustr::UstrMap<UsageState>>,
+  ns_access: bool,
 }
 
 impl ExportInfoData {
@@ -83,6 +73,7 @@ impl ExportInfoData {
     let used_in_runtime = init_from.and_then(|init_from| init_from.used_in_runtime.clone());
     let has_use_in_runtime_info =
       init_from.is_some_and(|init_from| init_from.has_use_in_runtime_info);
+    let ns_access = init_from.is_some_and(|init_from| init_from.ns_access);
 
     let provided = init_from.and_then(|init_from| init_from.provided);
     let terminal_binding = init_from.is_some_and(|init_from| init_from.terminal_binding);
@@ -140,6 +131,7 @@ impl ExportInfoData {
       can_inline_provide: None,
       // only specific export info can be inlined, so other_export_info.can_inline_use is always None
       can_inline_use: None,
+      ns_access,
     }
   }
 
@@ -230,6 +222,10 @@ impl ExportInfoData {
     self.used_in_runtime.get_or_insert_default()
   }
 
+  pub fn ns_access(&self) -> bool {
+    self.ns_access
+  }
+
   pub fn set_provided(&mut self, value: Option<ExportProvided>) {
     self.provided = value;
   }
@@ -282,10 +278,31 @@ impl ExportInfoData {
     self.has_use_in_runtime_info = value;
   }
 
-  pub fn as_hash_key(&self) -> ExportInfoHashKey {
-    ExportInfoHashKey {
-      name: self.name().cloned(),
-      belongs_to: *self.belongs_to(),
+  pub fn set_ns_access(&mut self, value: bool) {
+    self.ns_access = value;
+  }
+}
+
+impl ExportsInfoData {
+  pub fn get_export_info_data(&self, export_info: &ExportInfo) -> &ExportInfoData {
+    debug_assert_eq!(export_info.exports_info, self.id());
+
+    match &export_info.export_name {
+      ExportName::Other => self.other_exports_info(),
+      ExportName::SideEffects => self.side_effects_only_info(),
+      ExportName::Named(name) => self.named_exports(name).expect("should have named export"),
+    }
+  }
+
+  pub fn get_export_info_data_mut(&mut self, export_info: &ExportInfo) -> &mut ExportInfoData {
+    debug_assert_eq!(export_info.exports_info, self.id());
+
+    match &export_info.export_name {
+      ExportName::Other => self.other_exports_info_mut(),
+      ExportName::SideEffects => self.side_effects_only_info_mut(),
+      ExportName::Named(name) => self
+        .named_exports_mut(name)
+        .expect("should have named export"),
     }
   }
 }

@@ -1,3 +1,7 @@
+---
+description: 'Rspack logger 可以在 loaders 和 plugins 中使用。生成的日志将作为 Stats 的一部分并且可以在 rspack configuration 中配置。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 import LoggerType from '../../types/logger.mdx';
@@ -61,13 +65,13 @@ export class MyRspackPlugin {
 
 可以在 Loader Context 上获取 Logger：
 
-```js title=MyLoader.js
-module.exports = function (source) {
+```js title="my-loader.mjs"
+export default function (source) {
   // access Logger from loader
   const logger = this.getLogger('my-loader');
   logger.info('hello Logger');
   return source;
-};
+}
 ```
 
 ## Logger API

@@ -1,10 +1,10 @@
-use indexmap::IndexMap;
+use rspack_util::fx_hash::FxIndexMap;
 
 use crate::{
   ChunkLoading, DependencyId, EntryOptions, Filename, LibraryOptions, PublicPath, WasmLoading,
 };
 
-pub type Entry = IndexMap<String, EntryData>;
+pub type Entry = FxIndexMap<String, EntryData>;
 
 pub type EntryItem = Vec<String>;
 

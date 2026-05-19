@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use derive_more::Debug;
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierSet;
 use rspack_core::{
-  ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation, CompilationAfterProcessAssets,
-  CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, Dependency, DependencyId,
-  EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  AsyncDependenciesBlockIdentifier, ChunkGraph, ChunkGroup, ChunkGroupUkey, ChunkUkey, Compilation,
+  CompilationAfterProcessAssets, CompilationParams, CompilerCompilation, CompilerFailed,
+  CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, Dependency, DependencyId,
+  DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -15,11 +16,11 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Coordinator,
-  loaders::client_entry_loader::{
-    CLIENT_ENTRY_LOADER_IDENTIFIER, ParsedClientEntries, parse_client_entries,
-  },
-  plugin_state::{ActionIdNamePair, PLUGIN_STATES, PluginState},
+  plugin_state::{ActionIdNamePair, EntryState, PLUGIN_STATES, PluginState},
   reference_manifest::{CrossOriginMode, ManifestExport, ModuleLoading},
+  rsc_entry_dependency::RscEntryDependency,
+  rsc_entry_module::RscEntryModule,
+  rsc_entry_module_factory::RscEntryModuleFactory,
   utils::{encode_uri_path, get_module_resource, is_css_mod},
 };
 
@@ -33,7 +34,7 @@ pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
   server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_per_entry: AtomicRefCell<FxHashMap<String, FxHashSet<DependencyId>>>,
+  client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
 }
 
 fn extend_required_chunks(
@@ -42,7 +43,11 @@ fn extend_required_chunks(
   required_chunks: &mut Vec<String>,
 ) {
   for chunk_ukey in &chunk_group.chunks {
-    let Some(chunk) = compilation.chunk_by_ukey.get(chunk_ukey) else {
+    let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(chunk_ukey)
+    else {
       continue;
     };
     let Some(chunk_id) = chunk.id() else {
@@ -68,15 +73,19 @@ fn extend_required_chunks(
   }
 }
 
+fn prefixed_asset_path(prefix: &str, file: &str) -> String {
+  format!("{prefix}{}", encode_uri_path(file))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn record_module(
-  entry_name: &str,
+  module_loading: &ModuleLoading,
   module_id: &ModuleId,
   module_identifier: &ModuleIdentifier,
   chunk_ukey: &ChunkUkey,
   compilation: &Compilation,
   required_chunks: &[String],
-  plugin_state: &mut PluginState,
+  entry_state: &mut EntryState,
 ) {
   let Some(module) = compilation.module_by_identifier(module_identifier) else {
     return;
@@ -87,70 +96,165 @@ fn record_module(
     return;
   }
 
-  if is_css_mod(module.as_ref()) {
-    let (Some(chunk), Some(entry_css_imports)) = (
-      compilation.chunk_by_ukey.get(chunk_ukey),
-      plugin_state.entry_css_imports.get(entry_name),
-    ) else {
-      return;
-    };
-
-    let prefix = &plugin_state
-      .module_loading
-      .as_ref()
-      .expect("module_loading should be initialized in traverse_modules before recording modules")
-      .prefix;
-    let css_files: Vec<String> = chunk
-      .files()
-      .iter()
-      .filter(|file| file.ends_with(".css"))
-      .map(|file| format!("{}{}", prefix, file))
-      .collect();
-    if css_files.is_empty() {
-      return;
-    }
-
-    let entry_css_files = plugin_state
-      .entry_css_files
-      .entry(entry_name.to_string())
-      .or_default();
-
-    for (server_entry, imports) in entry_css_imports {
-      if imports.get(resource.as_ref()).is_some() {
-        entry_css_files
-          .entry(server_entry.clone())
-          .or_default()
-          .extend(css_files.iter().cloned());
-      }
-    }
+  if is_css_mod(module.as_ref(), resource.as_ref()) {
     return;
   }
 
-  let is_async = ModuleGraph::is_async(
-    &compilation.async_modules_artifact.borrow(),
-    module_identifier,
-  );
-  plugin_state.client_modules.insert(
+  let is_async = ModuleGraph::is_async(&compilation.async_modules_artifact, module_identifier);
+  let css_files: Vec<String> = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+    .map(|chunk| {
+      let prefix = &module_loading.prefix;
+      chunk
+        .files()
+        .iter()
+        .filter(|file| file.ends_with(".css"))
+        .map(|file| prefixed_asset_path(prefix, file))
+        .collect()
+    })
+    .unwrap_or_default();
+  entry_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {
       id: module_id.to_string(),
       name: "*".to_string(),
       chunks: required_chunks.to_vec(),
+      css_files,
       r#async: Some(is_async),
     },
   );
 }
 
+fn collect_css_files_from_chunk_group(
+  module_loading: &ModuleLoading,
+  chunk_group: &ChunkGroup,
+  compilation: &Compilation,
+) -> Vec<String> {
+  collect_css_files_from_chunks(module_loading, &chunk_group.chunks, compilation)
+}
+
+fn collect_css_files_from_chunks<'a>(
+  module_loading: &ModuleLoading,
+  chunk_ukeys: impl IntoIterator<Item = &'a ChunkUkey>,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let prefix = &module_loading.prefix;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  chunk_ukeys
+    .into_iter()
+    .filter_map(|chunk_ukey| chunk_by_ukey.get(chunk_ukey))
+    .flat_map(|chunk| chunk.files().iter())
+    .filter(|file| file.ends_with(".css"))
+    .map(|file| prefixed_asset_path(prefix, file))
+    .collect()
+}
+
+fn collect_css_files_from_block_modules(
+  module_loading: &ModuleLoading,
+  block_id: &AsyncDependenciesBlockIdentifier,
+  compilation: &Compilation,
+) -> Vec<String> {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let Some(block) = module_graph.block_by_id(block_id) else {
+    return Vec::new();
+  };
+
+  block
+    .get_dependencies()
+    .iter()
+    .filter_map(|dependency_id| module_graph.connection_by_dependency_id(dependency_id))
+    .filter_map(|connection| chunk_graph.try_get_module_chunks(connection.module_identifier()))
+    .flat_map(|chunk_ukeys| collect_css_files_from_chunks(module_loading, chunk_ukeys, compilation))
+    .collect()
+}
+
+fn collect_server_entry_css_files(
+  module_loading: &ModuleLoading,
+  rsc_entry_module: &RscEntryModule,
+  compilation: &Compilation,
+  entry_state: &mut EntryState,
+) {
+  let module_graph = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_group_by_ukey = &compilation.build_chunk_graph_artifact.chunk_group_by_ukey;
+  for block_id in rsc_entry_module.get_blocks() {
+    let Some(block) = module_graph.block_by_id(block_id) else {
+      continue;
+    };
+    let Some(server_entry) = block.request().as_deref() else {
+      continue;
+    };
+
+    // Only server CSS blocks should populate `entryCssFiles` for loadCss().
+    // Client component blocks use the client module request here; their CSS is
+    // recorded on `clientManifest[*].cssFiles` when recording the client module.
+    //
+    // It is expected for a grouped client owner to have no `server_entries`
+    // record when that server entry only owns client components and imports no
+    // server CSS directly. Seeding `server_entries` for that case would make
+    // client component CSS look like server-entry CSS, which would duplicate
+    // the client manifest data and change the meaning of `entryCssFiles`.
+    if entry_state
+      .server_entries
+      .get(server_entry)
+      .is_none_or(|state| state.css_imports.is_empty())
+    {
+      continue;
+    }
+
+    let css_files =
+      if let Some(chunk_group) = chunk_graph.get_block_chunk_group(block_id, chunk_group_by_ukey) {
+        collect_css_files_from_chunk_group(module_loading, chunk_group, compilation)
+      } else {
+        // Async CSS blocks can be inlined when async chunks or chunk loading are
+        // disabled. In that case no block chunk group is created, but the CSS
+        // modules still belong to regular entry chunks.
+        collect_css_files_from_block_modules(module_loading, block_id, compilation)
+      };
+    if css_files.is_empty() {
+      continue;
+    }
+
+    if let Some(server_entry_state) = entry_state.server_entries.get_mut(server_entry) {
+      let import_meta_rsc_importers = server_entry_state
+        .import_meta_rsc_importers
+        .iter()
+        .cloned()
+        .collect::<Vec<_>>();
+      server_entry_state
+        .css_files
+        .extend(css_files.iter().cloned());
+
+      // `import.meta.rspackRsc.loadCss()` is keyed only by importer resource in
+      // the runtime manifest, so a shared importer cannot distinguish which
+      // `use server-entry` parent called it. Merge every reachable parent entry's
+      // CSS into the importer bucket; this may over-include styles when the
+      // importer is shared across entry scopes, but it keeps `loadCss()` complete.
+      for importer in import_meta_rsc_importers {
+        entry_state
+          .server_entries
+          .entry(importer)
+          .or_default()
+          .css_files
+          .extend(css_files.iter().cloned());
+      }
+    }
+  }
+}
+
 #[allow(clippy::too_many_arguments)]
 fn record_chunk_group(
-  entry_name: &str,
-  client_entry_modules: &FxHashSet<ModuleIdentifier>,
+  module_loading: &ModuleLoading,
+  client_entry_modules: &IdentifierSet,
   chunk_group: &ChunkGroup,
   compilation: &Compilation,
   required_chunks: &mut Vec<String>,
   checked_chunk_groups: &mut FxHashSet<ChunkGroupUkey>,
   checked_chunks: &mut FxHashSet<ChunkUkey>,
-  plugin_state: &mut PluginState,
+  entry_state: &mut EntryState,
 ) {
   // Ensure recursion is stopped if we've already checked this chunk group.
   if checked_chunk_groups.contains(&chunk_group.ukey) {
@@ -173,6 +277,7 @@ fn record_chunk_group(
     checked_chunks.insert(*chunk_ukey);
 
     let chunk_modules = compilation
+      .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_modules_identifier(chunk_ukey);
     for module_identifier in chunk_modules {
@@ -190,23 +295,23 @@ fn record_chunk_group(
 
       if let Some(concatenated_module) = module.as_concatenated_module() {
         record_module(
-          entry_name,
+          module_loading,
           module_id,
           &concatenated_module.get_root(),
           chunk_ukey,
           compilation,
           required_chunks,
-          plugin_state,
+          entry_state,
         );
       } else {
         record_module(
-          entry_name,
+          module_loading,
           module_id,
           module_identifier,
           chunk_ukey,
           compilation,
           required_chunks,
-          plugin_state,
+          entry_state,
         );
       }
     }
@@ -214,45 +319,54 @@ fn record_chunk_group(
 
   // Walk through all children chunk groups too.
   for child_ukey in chunk_group.children_iterable() {
-    let Some(child) = compilation.chunk_group_by_ukey.get(child_ukey) else {
+    let Some(child) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(child_ukey)
+    else {
       continue;
     };
     let start_len = required_chunks.len();
     extend_required_chunks(child, compilation, required_chunks);
     record_chunk_group(
-      entry_name,
+      module_loading,
       client_entry_modules,
       child,
       compilation,
       required_chunks,
       checked_chunk_groups,
       checked_chunks,
-      plugin_state,
+      entry_state,
     );
     required_chunks.truncate(start_len);
   }
 }
 
-async fn collect_entry_js_files(
+fn collect_bootstrap_scripts(
   compilation: &Compilation,
   plugin_state: &mut PluginState,
 ) -> Result<()> {
-  for (entry_name, chunk_group_ukey) in &compilation.entrypoints {
-    let Some(chunk_group) = compilation.chunk_group_by_ukey.get(chunk_group_ukey) else {
+  for (entry_name, chunk_group_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+    let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
       continue;
     };
-    let entry_js_files = plugin_state
-      .entry_js_files
-      .entry(entry_name.to_string())
-      .or_default();
+
+    let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(chunk_group_ukey)
+    else {
+      continue;
+    };
+
     let prefix = &plugin_state
       .module_loading
       .as_ref()
       .expect("module_loading should be initialized in traverse_modules before recording modules")
       .prefix;
 
-    *entry_js_files = chunk_group
-      .get_files(&compilation.chunk_by_ukey)
+    let bootstrap_scripts = chunk_group
+      .get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey)
       .into_iter()
       .filter(|chunk_file| chunk_file.ends_with(".js"))
       .filter(|chunk_file| {
@@ -264,8 +378,10 @@ async fn collect_entry_js_files(
         !(asset_info.hot_module_replacement.unwrap_or(false)
           || asset_info.development.unwrap_or(false))
       })
-      .map(|file| format!("{}{}", prefix, file))
+      .map(|file| prefixed_asset_path(prefix, &file))
       .collect::<FxIndexSet<String>>();
+
+    entry_state.bootstrap_scripts = bootstrap_scripts;
   }
   Ok(())
 }
@@ -274,7 +390,7 @@ fn collect_actions(
   module_graph: &ModuleGraph,
   module_identifier: &ModuleIdentifier,
   collected_actions: &mut FxHashMap<String, Vec<ActionIdNamePair>>,
-  visited_modules: &mut FxHashSet<ModuleIdentifier>,
+  visited_modules: &mut IdentifierSet,
 ) {
   let module = match module_graph.module_by_identifier(module_identifier) {
     Some(m) => m,
@@ -322,7 +438,7 @@ fn collect_client_actions_from_dependencies(
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
 
   // Keep track of checked modules to avoid infinite loops with recursive imports.
-  let mut visited_modules: FxHashSet<Identifier> = Default::default();
+  let mut visited_modules: IdentifierSet = Default::default();
 
   let module_graph = compilation.get_module_graph();
   for entry_dependency_id in entry_dependencies {
@@ -351,7 +467,7 @@ impl RscClientPlugin {
     Self::new_inner(options.coordinator, Default::default(), Default::default())
   }
 
-  async fn traverse_modules(
+  fn traverse_modules(
     &self,
     compilation: &Compilation,
     plugin_state: &mut PluginState,
@@ -387,9 +503,14 @@ impl RscClientPlugin {
       cross_origin,
     });
 
-    let mut client_entry_modules: FxHashSet<ModuleIdentifier> = Default::default();
+    let mut client_entry_modules: IdentifierSet = Default::default();
     let module_graph = compilation.get_module_graph();
-    for entry_data in compilation.entries.values() {
+    let module_loading = plugin_state
+      .module_loading
+      .as_ref()
+      .expect("module_loading should be initialized before recording modules")
+      .clone();
+    for (entry_name, entry_data) in &compilation.entries {
       for dependency_id in &entry_data.include_dependencies {
         let Some(module_identifier) =
           module_graph.module_identifier_by_dependency_id(dependency_id)
@@ -400,16 +521,29 @@ impl RscClientPlugin {
           continue;
         };
 
-        let is_client_loader = module
-          .as_normal_module()
-          .map(|m| m.user_request().starts_with(CLIENT_ENTRY_LOADER_IDENTIFIER))
-          .unwrap_or(false);
-        if !is_client_loader {
+        // Check if the module is a RscEntryModule (our custom virtual module)
+        let Some(rsc_entry_module) = module.downcast_ref::<RscEntryModule>() else {
           continue;
+        };
+
+        if let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) {
+          collect_server_entry_css_files(
+            &module_loading,
+            rsc_entry_module,
+            compilation,
+            entry_state,
+          );
         }
-        for dependency_id in module_graph.get_outgoing_deps_in_order(module_identifier) {
-          if let Some(conn) = module_graph.connection_by_dependency_id(dependency_id) {
-            client_entry_modules.insert(*conn.module_identifier());
+
+        // Traverse the blocks of the RscEntryModule to find the actual client modules
+        for block_id in module.get_blocks() {
+          let Some(block) = module_graph.block_by_id(block_id) else {
+            continue;
+          };
+          for dep_id in block.get_dependencies() {
+            if let Some(conn) = module_graph.connection_by_dependency_id(dep_id) {
+              client_entry_modules.insert(*conn.module_identifier());
+            }
           }
         }
       }
@@ -419,8 +553,20 @@ impl RscClientPlugin {
     let mut checked_chunk_groups: FxHashSet<ChunkGroupUkey> = Default::default();
     let mut checked_chunks: FxHashSet<ChunkUkey> = Default::default();
 
-    for (entry_name, entrypoint_ukey) in &compilation.entrypoints {
-      let Some(entrypoint) = compilation.chunk_group_by_ukey.get(entrypoint_ukey) else {
+    for (entry_name, entrypoint_ukey) in &compilation.build_chunk_graph_artifact.entrypoints {
+      let module_loading = plugin_state
+        .module_loading
+        .as_ref()
+        .expect("module_loading should be initialized before recording modules");
+      let Some(entry_state) = plugin_state.entries.get_mut(entry_name.as_str()) else {
+        continue;
+      };
+
+      let Some(entrypoint) = compilation
+        .build_chunk_graph_artifact
+        .chunk_group_by_ukey
+        .get(entrypoint_ukey)
+      else {
         continue;
       };
 
@@ -429,14 +575,14 @@ impl RscClientPlugin {
       checked_chunks.clear();
 
       record_chunk_group(
-        entry_name,
+        module_loading,
         &client_entry_modules,
         entrypoint,
         compilation,
         &mut required_chunks,
         &mut checked_chunk_groups,
         &mut checked_chunks,
-        plugin_state,
+        entry_state,
       );
     }
 
@@ -450,6 +596,8 @@ impl Plugin for RscClientPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx.compiler_hooks.compilation.tap(compilation::new(self));
+
     ctx.compiler_hooks.make.tap(make::new(self));
 
     ctx.compiler_hooks.failed.tap(failed::new(self));
@@ -463,6 +611,21 @@ impl Plugin for RscClientPlugin {
   }
 }
 
+#[plugin_hook(CompilerCompilation for RscClientPlugin)]
+async fn compilation(
+  &self,
+  compilation: &mut Compilation,
+  params: &mut CompilationParams,
+) -> Result<()> {
+  compilation.set_dependency_factory(DependencyType::RscEntry, Arc::new(RscEntryModuleFactory));
+  compilation.set_dependency_factory(DependencyType::Entry, params.normal_module_factory.clone());
+  compilation.set_dependency_factory(
+    DependencyType::RscClientReference,
+    params.normal_module_factory.clone(),
+  );
+  Ok(())
+}
+
 // Execution must occur after EntryPlugin to ensure base entries are established
 // before injecting client component entries. Stage 100 ensures proper ordering.
 #[plugin_hook(CompilerMake for RscClientPlugin, stage = 100)]
@@ -472,50 +635,50 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
 
-  let plugin_states = PLUGIN_STATES.borrow_mut();
-  let plugin_state = plugin_states.get(&server_compiler_id).ok_or_else(|| {
+  let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
     rspack_error::error!(
       "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
       compilation.compiler_id()
     )
   })?;
 
-  let context = compilation.options.context.clone();
-  let mut include_dependencies = vec![];
-  for (entry_name, import) in &plugin_state.injected_client_entries {
+  for (entry_name, entry_state) in &plugin_state.entries {
+    let client_modules = &entry_state.injected_client_entries;
+    if entry_state.injected_client_entries.is_empty()
+      && !entry_state.has_css_imports_by_server_entry()
+      && entry_state.root_css_imports.is_empty()
     {
-      if compilation.entries.get(entry_name).is_none() {
-        let loader_query = import
-          .split_once('?')
-          .map(|x| x.1)
-          .unwrap_or_default()
-          .rsplit_once('!')
-          .map(|x| x.0)
-          .unwrap_or_default();
-        let ParsedClientEntries { modules, .. } = parse_client_entries(loader_query)?;
-        compilation.push_diagnostic(Diagnostic::error(
-          "RSC Client Entry Mismatch".to_string(),
-          format!(
-            "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
-            entry_name,
-            modules
-              .into_iter()
-              .map(|m| m.request)
-              .collect::<Vec<_>>()
-              .join(", ")
-          ),
-        ));
-        continue;
-      }
+      continue;
+    }
 
-      let dependency = Box::new(EntryDependency::new(
-        import.to_string(),
-        context.clone(),
-        None,
+    if compilation.entries.get(entry_name.as_ref()).is_none() {
+      compilation.push_diagnostic(Diagnostic::error(
+        "RSC Client Entry Mismatch".to_string(),
+        format!(
+          "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+          entry_name,
+          client_modules
+            .iter()
+            .map(|m| m.request.as_str())
+            .collect::<Vec<_>>()
+            .join(", ")
+        ),
+      ));
+      continue;
+    }
+
+    let mut include_dependencies = Vec::new();
+    if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
+      let dependency = Box::new(RscEntryDependency::new(
+        entry_name.clone(),
+        entry_state.ungrouped_client_entries.clone(),
+        entry_state.root_client_entries.clone(),
+        entry_state.client_entries_by_server_entry.clone(),
+        entry_state.css_imports_by_server_entry(),
         false,
       ));
       self
-        .client_entries_per_entry
+        .client_entries_by_entry
         .borrow_mut()
         .entry(entry_name.clone())
         .or_default()
@@ -526,11 +689,26 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         .add_dependency(dependency);
     }
 
-    #[allow(clippy::unwrap_used)]
-    let entry_data = compilation.entries.get_mut(entry_name).unwrap();
-    entry_data
-      .include_dependencies
-      .append(&mut include_dependencies);
+    let mut entry_dependencies = Vec::new();
+    for request in &entry_state.root_css_imports {
+      let dependency = Box::new(EntryDependency::new(
+        request.clone(),
+        compilation.options.context.clone(),
+        None,
+        false,
+      ));
+      entry_dependencies.push(*dependency.id());
+      compilation
+        .get_module_graph_mut()
+        .add_dependency(dependency);
+    }
+
+    if let Some(entry_data) = compilation.entries.get_mut(entry_name.as_ref()) {
+      entry_data.dependencies.append(&mut entry_dependencies);
+      entry_data
+        .include_dependencies
+        .append(&mut include_dependencies);
+    }
   }
 
   Ok(())
@@ -546,29 +724,32 @@ async fn after_process_assets(
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
 
-  let mut plugin_states = PLUGIN_STATES.borrow_mut();
-  let Some(plugin_state) = plugin_states.get_mut(&server_compiler_id) else {
-    return Err(rspack_error::error!(
-      "Failed to find plugin state for server compiler (ID: {}). \
-     The server compiler may not have properly collected client entry information, \
-     or the compiler has not been initialized yet.",
-      server_compiler_id.as_u32()
-    ));
-  };
+  {
+    let Some(mut plugin_state) = PLUGIN_STATES.get_mut(&server_compiler_id) else {
+      return Err(rspack_error::error!(
+        "Failed to find plugin state for server compiler (ID: {}). \
+       The server compiler may not have properly collected client entry information, \
+       or the compiler has not been initialized yet.",
+        server_compiler_id.as_u32()
+      ));
+    };
 
-  let start = logger.time("create client reference manifest");
-  self.traverse_modules(compilation, plugin_state).await?;
-  logger.time_end(start);
+    let start = logger.time("create client reference manifest");
+    self.traverse_modules(compilation, &mut plugin_state)?;
+    logger.time_end(start);
 
-  let start = logger.time("record entry js files");
-  collect_entry_js_files(compilation, plugin_state).await?;
-  logger.time_end(start);
+    let start = logger.time("record bootstrap scripts");
+    collect_bootstrap_scripts(compilation, &mut plugin_state)?;
+    logger.time_end(start);
 
-  for (entry_name, client_entries) in self.client_entries_per_entry.borrow().iter() {
-    let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
-    plugin_state
-      .client_actions_per_entry
-      .insert(entry_name.clone(), client_actions);
+    for (entry_name, client_entries) in self.client_entries_by_entry.borrow().iter() {
+      let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
+      plugin_state
+        .entries
+        .entry(entry_name.clone())
+        .or_default()
+        .client_actions = client_actions;
+    }
   }
 
   self

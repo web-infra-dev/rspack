@@ -1,7 +1,7 @@
 module.exports = {
   entry: {
-    main: "./index.js",
-    foo: "./foo.js",
-    bar: "./bar.js",
-  }
-}
+    main: './index.js',
+    foo: './foo.js',
+    bar: './bar.js',
+  },
+};

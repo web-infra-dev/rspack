@@ -31,6 +31,10 @@ pub use entry::*;
 pub use factorize_info::FactorizeInfo;
 pub use loader_import::*;
 pub use module_dependency::*;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 pub use runtime_requirements_dependency::{
   RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
 };
@@ -40,15 +44,23 @@ pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, ModuleIdentifier, RuntimeSpec,
+  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType,
+  ExtendedReferencedExport, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
+  create_exports_object_referenced,
 };
+
+#[derive(Debug, Clone)]
+pub enum ProcessModuleReferencedExports {
+  Map(FxHashMap<String, ExtendedReferencedExport>),
+  ExtendRef(Vec<ExtendedReferencedExport>),
+}
 
 #[derive(Debug, Default)]
 pub struct ExportSpec {
   pub name: Atom,
   pub export: Option<Nullable<Vec<Atom>>>,
-  pub exports: Option<ExportSpecExports>,
+  pub exports: Option<Vec<ExportNameOrSpec>>,
   pub can_mangle: Option<bool>,
   pub terminal_binding: Option<bool>,
   pub priority: Option<u8>,
@@ -56,47 +68,6 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
-}
-
-#[derive(Debug, Default)]
-pub struct ExportSpecExports {
-  pub exports: Vec<ExportNameOrSpec>,
-  /// This is used to tell FlagDependencyExportsPlugin that the nested exports that is not
-  /// fully statical, there are maybe some export that dynamically defined by prototype or
-  /// other way, e.g. json exports or enum exports, it's possible to write:
-  ///
-  /// ```js
-  /// import { obj } from "./data.json";
-  /// obj.toString(); // existed but will have an ESModulesLinkingError for toString not exist
-  /// ```
-  ///
-  /// or
-  ///
-  /// ```ts
-  /// export enum Kind { A, B };
-  /// export namespace Kind {
-  ///   export const isA = (value: Kind) => value === Kind.A
-  /// }
-  /// Kind.isB = (value: Kind) => value === Kind.B
-  /// ```
-  ///
-  /// But for now we only use it for enum exports, if there are issues about json exports then
-  /// we can also apply this to json exports
-  pub unknown_provided: bool,
-}
-
-impl ExportSpecExports {
-  pub fn new(exports: Vec<ExportNameOrSpec>) -> Self {
-    Self {
-      exports,
-      unknown_provided: false,
-    }
-  }
-
-  pub fn with_unknown_provided(mut self, unknown_provided: bool) -> Self {
-    self.unknown_provided = unknown_provided;
-    self
-  }
 }
 
 #[derive(Debug)]
@@ -167,7 +138,30 @@ pub trait DependencyConditionFn: Sync + Send {
     runtime: Option<&RuntimeSpec>,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState;
+
+  fn is_connection_active(
+    &self,
+    conn: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self
+      .get_connection_state(
+        conn,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      )
+      .is_true()
+  }
 }
 
 #[derive(Clone)]
@@ -184,10 +178,36 @@ impl DependencyCondition {
     runtime: Option<&RuntimeSpec>,
     mg: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    self
-      .0
-      .get_connection_state(connection, runtime, mg, module_graph_cache)
+    self.0.get_connection_state(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    )
+  }
+
+  pub fn is_connection_active(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    mg: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    self.0.is_connection_active(
+      connection,
+      runtime,
+      mg,
+      module_graph_cache,
+      side_effects_state_artifact,
+      exports_info_artifact,
+    )
   }
 }
 
@@ -198,7 +218,7 @@ impl std::fmt::Debug for DependencyCondition {
 }
 
 #[rspack_cacheable::cacheable]
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize, Default, PartialEq, Eq)]
 pub struct ImportAttributes(FxHashMap<String, String>);
 
 impl FromIterator<(String, String)> for ImportAttributes {
@@ -210,6 +230,10 @@ impl FromIterator<(String, String)> for ImportAttributes {
 impl ImportAttributes {
   pub fn get(&self, k: &str) -> Option<&str> {
     self.0.get(k).map(|v| v.as_str())
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+    self.0.iter().map(|(k, v)| (k.as_str(), v.as_str()))
   }
 
   pub fn insert(&mut self, k: String, v: String) -> Option<String> {
@@ -230,6 +254,14 @@ impl ImportPhase {
   pub fn is_defer(&self) -> bool {
     matches!(self, ImportPhase::Defer)
   }
+
+  pub fn as_str(&self) -> &'static str {
+    match self {
+      ImportPhase::Evaluation => "evaluation",
+      ImportPhase::Source => "source",
+      ImportPhase::Defer => "defer",
+    }
+  }
 }
 
 impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
@@ -240,4 +272,89 @@ impl From<swc_core::ecma::ast::ImportPhase> for ImportPhase {
       swc_core::ecma::ast::ImportPhase::Defer => Self::Defer,
     }
   }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ReferencedSpecifier {
+  #[cacheable(with=AsVec<AsPreset>)]
+  pub names: Vec<Atom>,
+  pub is_call: bool,
+  pub namespace_object_as_context: bool,
+}
+
+impl ReferencedSpecifier {
+  pub fn new(names: Vec<Atom>) -> Self {
+    Self {
+      names,
+      is_call: false,
+      namespace_object_as_context: false,
+    }
+  }
+
+  pub fn new_call(names: Vec<Atom>, namespace_object_as_context: bool) -> Self {
+    Self {
+      names,
+      is_call: true,
+      namespace_object_as_context,
+    }
+  }
+}
+
+pub fn create_referenced_exports_by_referenced_specifiers(
+  referenced_specifiers: &[ReferencedSpecifier],
+  exports_type: ExportsType,
+  is_json: bool,
+) -> Vec<ExtendedReferencedExport> {
+  let mut refs = vec![];
+  for ReferencedSpecifier {
+    names,
+    is_call,
+    namespace_object_as_context,
+  } in referenced_specifiers
+  {
+    let mut names = names.as_slice();
+    let mut namespace_object_as_context = *namespace_object_as_context;
+
+    // Force enable namespace object as context for json module, it's a common case:
+    // import json from "./array.json"; json.map(d => d * 2);
+    if matches!(
+      exports_type,
+      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
+    ) && is_json
+    {
+      namespace_object_as_context = true;
+    }
+
+    if let Some(id) = names.first()
+      && id == "default"
+    {
+      match exports_type {
+        ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
+          if names.len() == 1 {
+            return create_exports_object_referenced();
+          }
+          names = &names[1..];
+        }
+        ExportsType::Dynamic => {
+          return create_exports_object_referenced();
+        }
+        _ => {}
+      }
+    }
+
+    if namespace_object_as_context && *is_call {
+      if names.len() == 1 {
+        return create_exports_object_referenced();
+      }
+      // remove last one
+      names = &names[..names.len().saturating_sub(1)];
+    }
+    refs.push(ExtendedReferencedExport::Export(ReferencedExport::new(
+      names.to_vec(),
+      false,
+      false,
+    )));
+  }
+  refs
 }

@@ -29,7 +29,7 @@ const creator = new BasicCaseCreator({
   },
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         configMultiCompiler(
           context,
           name,
@@ -61,7 +61,14 @@ const creator = new BasicCaseCreator({
       },
       check: async (env: ITestEnv, context: ITestContext) => {
         await check(env, context, name);
-        await checkSnapshot(env, context, name, 'esm.snap.txt');
+        const testConfig = context.getTestConfig();
+        await checkSnapshot(
+          env,
+          context,
+          name,
+          'esm.snap.txt',
+          testConfig.snapshotFileFilter,
+        );
       },
       after: async (context: ITestContext) => {
         await afterExecute(context, name);
@@ -114,11 +121,8 @@ const defaultOptions = (
     runtimeChunk: 'single',
   },
   externals: {
-    fs: 'module-import fs',
-    path: 'module-import path',
-  },
-  experiments: {
-    outputModule: true,
+    fs: 'fs',
+    path: 'path',
   },
 });
 

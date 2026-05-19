@@ -10,6 +10,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::Result;
+use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
@@ -52,7 +53,6 @@ impl ParserOptionsMap {
 pub enum ParserOptions {
   Asset(AssetParserOptions),
   Css(CssParserOptions),
-  CssAuto(CssAutoParserOptions),
   CssModule(CssModuleParserOptions),
   Javascript(JavascriptParserOptions),
   JavascriptAuto(JavascriptParserOptions),
@@ -76,7 +76,8 @@ macro_rules! get_variant {
 impl ParserOptions {
   get_variant!(get_asset, Asset, AssetParserOptions);
   get_variant!(get_css, Css, CssParserOptions);
-  get_variant!(get_css_auto, CssAuto, CssAutoParserOptions);
+  get_variant!(get_css_auto, CssModule, CssModuleParserOptions);
+  get_variant!(get_css_global, CssModule, CssModuleParserOptions);
   get_variant!(get_css_module, CssModule, CssModuleParserOptions);
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
   get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
@@ -282,6 +283,24 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom)]
+pub enum ImportMeta {
+  PreserveUnknown,
+  Enabled,
+  Disabled,
+}
+
+impl From<&str> for ImportMeta {
+  fn from(value: &str) -> Self {
+    match value {
+      "preserve-unknown" => Self::PreserveUnknown,
+      "false" => Self::Disabled,
+      _ => Self::Enabled,
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: Option<DynamicImportMode>,
@@ -292,15 +311,15 @@ pub struct JavascriptParserOptions {
   pub unknown_context_critical: Option<bool>,
   pub expr_context_critical: Option<bool>,
   pub wrapped_context_critical: Option<bool>,
+  pub strict_this_context_on_imports: Option<bool>,
   pub wrapped_context_reg_exp: Option<RspackRegex>,
   pub exports_presence: Option<ExportPresenceMode>,
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
-  pub strict_export_presence: Option<bool>,
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
   pub worker: Option<Vec<String>>,
   pub override_strict: Option<OverrideStrict>,
-  pub import_meta: Option<bool>,
+  pub import_meta: Option<ImportMeta>,
   pub require_alias: Option<bool>,
   pub require_as_expression: Option<bool>,
   pub require_dynamic: Option<bool>,
@@ -310,6 +329,8 @@ pub struct JavascriptParserOptions {
   pub commonjs_magic_comments: Option<bool>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
+  pub import_meta_resolve: Option<bool>,
+  pub side_effects_free: Option<Vec<String>>,
 }
 
 #[cacheable]
@@ -331,27 +352,60 @@ pub struct AssetParserDataUrlOptions {
   pub max_size: Option<f64>,
 }
 
+/// Context passed to the CSS parser import filter function
+pub struct CssParserImportContext {
+  pub url: String,
+  pub media: Option<String>,
+  pub resource_path: String,
+  pub supports: Option<String>,
+  pub layer: Option<String>,
+}
+
+pub type CssParserImportFn =
+  Arc<dyn Fn(CssParserImportContext) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
+
+#[cacheable]
+pub enum CssParserImport {
+  Bool(bool),
+  Func(#[cacheable(with=Unsupported)] CssParserImportFn),
+}
+
+impl Default for CssParserImport {
+  fn default() -> Self {
+    Self::Bool(true)
+  }
+}
+
+impl fmt::Debug for CssParserImport {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Self::Bool(b) => write!(f, "CssParserImport::Bool({b})"),
+      Self::Func(_) => write!(f, "CssParserImport::Func(...)"),
+    }
+  }
+}
+
+impl Clone for CssParserImport {
+  fn clone(&self) -> Self {
+    match self {
+      Self::Bool(b) => Self::Bool(*b),
+      Self::Func(f) => Self::Func(f.clone()),
+    }
+  }
+}
+
+impl MergeFrom for CssParserImport {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
-}
-
-#[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
-pub struct CssAutoParserOptions {
-  pub named_exports: Option<bool>,
-  pub url: Option<bool>,
-}
-
-impl From<CssParserOptions> for CssAutoParserOptions {
-  fn from(value: CssParserOptions) -> Self {
-    Self {
-      named_exports: value.named_exports,
-      url: value.url,
-    }
-  }
+  pub resolve_import: Option<CssParserImport>,
 }
 
 #[cacheable]
@@ -359,13 +413,15 @@ impl From<CssParserOptions> for CssAutoParserOptions {
 pub struct CssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
 }
 
-impl From<CssParserOptions> for CssModuleParserOptions {
-  fn from(value: CssParserOptions) -> Self {
+impl From<&CssParserOptions> for CssModuleParserOptions {
+  fn from(value: &CssParserOptions) -> Self {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      resolve_import: value.resolve_import.clone(),
     }
   }
 }
@@ -445,7 +501,6 @@ pub enum GeneratorOptions {
   AssetInline(AssetInlineGeneratorOptions),
   AssetResource(AssetResourceGeneratorOptions),
   Css(CssGeneratorOptions),
-  CssAuto(CssAutoGeneratorOptions),
   CssModule(CssModuleGeneratorOptions),
   Json(JsonGeneratorOptions),
   Unknown,
@@ -460,7 +515,8 @@ impl GeneratorOptions {
     AssetResourceGeneratorOptions
   );
   get_variant!(get_css, Css, CssGeneratorOptions);
-  get_variant!(get_css_auto, CssAuto, CssAutoGeneratorOptions);
+  get_variant!(get_css_auto, CssModule, CssModuleGeneratorOptions);
+  get_variant!(get_css_global, CssModule, CssModuleGeneratorOptions);
   get_variant!(get_css_module, CssModule, CssModuleGeneratorOptions);
   get_variant!(get_json, Json, JsonGeneratorOptions);
 
@@ -469,6 +525,22 @@ impl GeneratorOptions {
       .get_asset()
       .and_then(|x| x.filename.as_ref())
       .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
+  }
+
+  /// Sets the asset filename on `Asset` / `AssetResource` variants. Returns
+  /// `true` if the variant supports a per-module filename and it was set.
+  pub fn set_asset_filename(&mut self, filename: Filename) -> bool {
+    match self {
+      Self::Asset(opts) => {
+        opts.filename = Some(filename);
+        true
+      }
+      Self::AssetResource(opts) => {
+        opts.filename = Some(filename);
+        true
+      }
+      _ => false,
+    }
   }
 
   pub fn asset_output_path(&self) -> Option<&Filename> {
@@ -557,7 +629,7 @@ impl Default for AssetGeneratorImportMode {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct AssetResourceGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
@@ -581,7 +653,7 @@ impl From<AssetGeneratorOptions> for AssetResourceGeneratorOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom)]
+#[derive(Debug, Clone, Default, MergeFrom)]
 pub struct AssetGeneratorOptions {
   pub emit: Option<bool>,
   pub filename: Option<Filename>,
@@ -674,34 +746,33 @@ pub struct CssGeneratorOptions {
 
 #[cacheable]
 #[derive(Default, Debug, Clone, MergeFrom)]
-pub struct CssAutoGeneratorOptions {
+pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<HashDigest>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<HashFunction>,
+  pub local_ident_hash_salt: HashSalt,
   pub local_ident_name: Option<LocalIdentName>,
   pub es_module: Option<bool>,
 }
 
-impl From<CssGeneratorOptions> for CssAutoGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
+impl CssModuleGeneratorOptions {
+  pub fn css_modules_default() -> Self {
     Self {
-      exports_only: value.exports_only,
-      es_module: value.es_module,
+      exports_convention: Some(CssExportsConvention::default()),
+      local_ident_hash_digest: Some(HashDigest::Base64Url),
+      local_ident_hash_digest_length: Some(6),
+      local_ident_hash_function: Some(HashFunction::Xxhash64),
+      local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      es_module: Some(true),
       ..Default::default()
     }
   }
 }
 
-#[cacheable]
-#[derive(Default, Debug, Clone, MergeFrom)]
-pub struct CssModuleGeneratorOptions {
-  pub exports_convention: Option<CssExportsConvention>,
-  pub exports_only: Option<bool>,
-  pub local_ident_name: Option<LocalIdentName>,
-  pub es_module: Option<bool>,
-}
-
-impl From<CssGeneratorOptions> for CssModuleGeneratorOptions {
-  fn from(value: CssGeneratorOptions) -> Self {
+impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
+  fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
       es_module: value.es_module,
@@ -802,7 +873,10 @@ pub enum RuleSetCondition {
   String(String),
   Regexp(RspackRegex),
   Logical(Box<RuleSetLogicalConditions>),
-  Array(Vec<RuleSetCondition>),
+  Array {
+    items: Vec<RuleSetCondition>,
+    can_sync: bool,
+  },
   Func(RuleSetConditionFnMatcher),
 }
 
@@ -812,7 +886,7 @@ impl fmt::Debug for RuleSetCondition {
       Self::String(i) => i.fmt(f),
       Self::Regexp(i) => i.fmt(f),
       Self::Logical(i) => i.fmt(f),
-      Self::Array(i) => i.fmt(f),
+      Self::Array { items, .. } => items.fmt(f),
       Self::Func(_) => "Func(...)".fmt(f),
     }
   }
@@ -853,34 +927,118 @@ impl DataRef<'_> {
 }
 
 impl RuleSetCondition {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
+  pub fn array(items: Vec<RuleSetCondition>) -> Self {
+    let can_sync = items.iter().all(Self::can_sync);
+    Self::Array { items, can_sync }
+  }
+
+  fn can_sync(&self) -> bool {
     match self {
-      Self::String(s) => Ok(
+      Self::String(_) | Self::Regexp(_) => true,
+      Self::Logical(logical) => logical.can_sync,
+      Self::Array { can_sync, .. } => *can_sync,
+      Self::Func(_) => false,
+    }
+  }
+
+  pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    match self {
+      Self::String(s) => Some(Ok(
         data
           .as_str()
           .map(|data| data.starts_with(s))
           .unwrap_or_default(),
-      ),
-      Self::Regexp(r) => Ok(data.as_str().map(|data| r.test(data)).unwrap_or_default()),
-      Self::Logical(g) => g.try_match(data).await,
-      Self::Array(l) => try_any(l, |i| async { i.try_match(data).await }).await,
-      Self::Func(f) => f(data).await,
+      )),
+      Self::Regexp(r) => Some(Ok(
+        data.as_str().map(|data| r.test(data)).unwrap_or_default(),
+      )),
+      Self::Logical(g) => {
+        if !g.can_sync {
+          return None;
+        }
+        g.try_match_sync(data)
+      }
+      Self::Array { items, can_sync } => {
+        if !can_sync {
+          return None;
+        }
+        for item in items {
+          match item.try_match_sync(data) {
+            Some(Ok(true)) => return Some(Ok(true)),
+            Some(Ok(false)) => {}
+            Some(Err(err)) => return Some(Err(err)),
+            None => return None,
+          }
+        }
+        Some(Ok(false))
+      }
+      Self::Func(_) => None,
     }
   }
 
-  #[async_recursion]
-  async fn match_when_empty(&self) -> Result<bool> {
-    let res = match self {
-      RuleSetCondition::String(s) => s.is_empty(),
-      RuleSetCondition::Regexp(rspack_regex) => rspack_regex.test(""),
-      RuleSetCondition::Logical(logical) => logical.match_when_empty().await?,
-      RuleSetCondition::Array(arr) => {
-        arr.is_empty() && try_any(arr, |c| async move { c.match_when_empty().await }).await?
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(result) = self.try_match_sync(data) {
+      return result;
+    }
+    self.try_match_async(data).await
+  }
+
+  fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
+    Box::pin(async move {
+      match self {
+        Self::String(_) | Self::Regexp(_) => self
+          .try_match_sync(data)
+          .expect("non-function condition should match synchronously"),
+        Self::Logical(g) => g.try_match_async(data).await,
+        Self::Array { items, .. } => try_any(items, |i| i.try_match(data)).await,
+        Self::Func(f) => f(data).await,
       }
-      RuleSetCondition::Func(func) => func("".into()).await?,
-    };
-    Ok(res)
+    })
+  }
+
+  fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    match self {
+      RuleSetCondition::String(s) => Some(Ok(s.is_empty())),
+      RuleSetCondition::Regexp(rspack_regex) => Some(Ok(rspack_regex.test(""))),
+      RuleSetCondition::Logical(logical) => logical.match_when_empty_sync(),
+      RuleSetCondition::Array { items, .. } => {
+        if !items.is_empty() {
+          return Some(Ok(false));
+        }
+        for item in items {
+          match item.match_when_empty_sync() {
+            Some(Ok(true)) => return Some(Ok(true)),
+            Some(Ok(false)) => {}
+            Some(Err(err)) => return Some(Err(err)),
+            None => return None,
+          }
+        }
+        Some(Ok(false))
+      }
+      RuleSetCondition::Func(_) => None,
+    }
+  }
+
+  async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
+    self.match_when_empty_async().await
+  }
+
+  fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
+    Box::pin(async move {
+      let res = match self {
+        RuleSetCondition::String(_)
+        | RuleSetCondition::Regexp(_)
+        | RuleSetCondition::Array { .. } => self
+          .match_when_empty_sync()
+          .expect("non-function condition should match synchronously")?,
+        RuleSetCondition::Logical(logical) => logical.match_when_empty_async().await?,
+        RuleSetCondition::Func(func) => func("".into()).await?,
+      };
+      Ok(res)
+    })
   }
 }
 
@@ -898,11 +1056,22 @@ impl RuleSetConditionWithEmpty {
     }
   }
 
+  pub fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    self.condition.try_match_sync(data)
+  }
+
   pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
     self.condition.try_match(data).await
   }
 
+  pub fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    self.condition.match_when_empty_sync()
+  }
+
   pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
     self
       .match_when_empty
       .get_or_try_init(|| async { self.condition.match_when_empty().await })
@@ -917,51 +1086,209 @@ impl From<RuleSetCondition> for RuleSetConditionWithEmpty {
   }
 }
 
-#[derive(Debug, Default)]
 pub struct RuleSetLogicalConditions {
   pub and: Option<Vec<RuleSetCondition>>,
   pub or: Option<Vec<RuleSetCondition>>,
   pub not: Option<RuleSetCondition>,
+  can_sync: bool,
+}
+
+impl Default for RuleSetLogicalConditions {
+  fn default() -> Self {
+    Self::new(None, None, None)
+  }
+}
+
+impl fmt::Debug for RuleSetLogicalConditions {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.debug_struct("RuleSetLogicalConditions")
+      .field("and", &self.and)
+      .field("or", &self.or)
+      .field("not", &self.not)
+      .finish()
+  }
 }
 
 impl RuleSetLogicalConditions {
-  #[async_recursion]
-  pub async fn try_match(&self, data: DataRef<'async_recursion>) -> Result<bool> {
-    if let Some(and) = &self.and
-      && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
+  pub fn new(
+    and: Option<Vec<RuleSetCondition>>,
+    or: Option<Vec<RuleSetCondition>>,
+    not: Option<RuleSetCondition>,
+  ) -> Self {
+    let can_sync = and
+      .iter()
+      .flatten()
+      .chain(or.iter().flatten())
+      .all(RuleSetCondition::can_sync)
+      && not.as_ref().is_none_or(RuleSetCondition::can_sync);
+    Self {
+      and,
+      or,
+      not,
+      can_sync,
     }
-    if let Some(or) = &self.or
-      && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
-    {
-      return Ok(false);
-    }
-    if let Some(not) = &self.not
-      && not.try_match(data).await?
-    {
-      return Ok(false);
-    }
-    Ok(true)
   }
 
-  pub async fn match_when_empty(&self) -> Result<bool> {
+  fn try_match_sync(&self, data: DataRef<'_>) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
+    if let Some(and) = &self.and {
+      for item in and {
+        match item.try_match_sync(data) {
+          Some(Ok(true)) => {}
+          Some(Ok(false)) => return Some(Ok(false)),
+          Some(Err(err)) => return Some(Err(err)),
+          None => return None,
+        }
+      }
+    }
+    if let Some(or) = &self.or {
+      let mut matched = false;
+      for item in or {
+        match item.try_match_sync(data) {
+          Some(Ok(true)) => {
+            matched = true;
+            break;
+          }
+          Some(Ok(false)) => {}
+          Some(Err(err)) => return Some(Err(err)),
+          None => return None,
+        }
+      }
+      if !matched {
+        return Some(Ok(false));
+      }
+    }
+    if let Some(not) = &self.not
+      && match not.try_match_sync(data) {
+        Some(Ok(value)) => value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
+    {
+      return Some(Ok(false));
+    }
+    Some(Ok(true))
+  }
+
+  pub async fn try_match(&self, data: DataRef<'_>) -> Result<bool> {
+    if let Some(result) = self.try_match_sync(data) {
+      return result;
+    }
+    self.try_match_async(data).await
+  }
+
+  fn try_match_async<'a>(&'a self, data: DataRef<'a>) -> BoxFuture<'a, Result<bool>> {
+    Box::pin(async move {
+      if let Some(and) = &self.and
+        && try_any(and, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+      {
+        return Ok(false);
+      }
+      if let Some(or) = &self.or
+        && try_all(or, |i| async { i.try_match(data).await.map(|i| !i) }).await?
+      {
+        return Ok(false);
+      }
+      if let Some(not) = &self.not
+        && not.try_match(data).await?
+      {
+        return Ok(false);
+      }
+      Ok(true)
+    })
+  }
+
+  fn match_when_empty_sync(&self) -> Option<Result<bool>> {
+    if !self.can_sync {
+      return None;
+    }
     let mut has_condition = false;
     let mut match_when_empty = true;
     if let Some(and) = &self.and {
       has_condition = true;
-      match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+      match try_all_sync(and, |i| i.match_when_empty_sync()) {
+        Some(Ok(value)) => match_when_empty &= value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
     if let Some(or) = &self.or {
       has_condition = true;
-      match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+      match try_any_sync(or, |i| i.match_when_empty_sync()) {
+        Some(Ok(value)) => match_when_empty &= value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
     if let Some(not) = &self.not {
       has_condition = true;
-      match_when_empty &= !not.match_when_empty().await?;
+      match not.match_when_empty_sync() {
+        Some(Ok(value)) => match_when_empty &= !value,
+        Some(Err(err)) => return Some(Err(err)),
+        None => return None,
+      }
     }
-    Ok(has_condition && match_when_empty)
+    Some(Ok(has_condition && match_when_empty))
   }
+
+  pub async fn match_when_empty(&self) -> Result<bool> {
+    if let Some(result) = self.match_when_empty_sync() {
+      return result;
+    }
+    self.match_when_empty_async().await
+  }
+
+  fn match_when_empty_async(&self) -> BoxFuture<'_, Result<bool>> {
+    Box::pin(async move {
+      let mut has_condition = false;
+      let mut match_when_empty = true;
+      if let Some(and) = &self.and {
+        has_condition = true;
+        match_when_empty &= try_all(and, |i| async { i.match_when_empty().await }).await?;
+      }
+      if let Some(or) = &self.or {
+        has_condition = true;
+        match_when_empty &= try_any(or, |i| async { i.match_when_empty().await }).await?;
+      }
+      if let Some(not) = &self.not {
+        has_condition = true;
+        match_when_empty &= !not.match_when_empty().await?;
+      }
+      Ok(has_condition && match_when_empty)
+    })
+  }
+}
+
+fn try_any_sync<T, F, E>(items: &[T], f: F) -> Option<Result<bool, E>>
+where
+  F: Fn(&T) -> Option<Result<bool, E>>,
+{
+  for item in items {
+    match f(item) {
+      Some(Ok(true)) => return Some(Ok(true)),
+      Some(Ok(false)) => {}
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  }
+  Some(Ok(false))
+}
+
+fn try_all_sync<T, F, E>(items: &[T], f: F) -> Option<Result<bool, E>>
+where
+  F: Fn(&T) -> Option<Result<bool, E>>,
+{
+  for item in items {
+    match f(item) {
+      Some(Ok(true)) => {}
+      Some(Ok(false)) => return Some(Ok(false)),
+      Some(Err(err)) => return Some(Err(err)),
+      None => return None,
+    }
+  }
+  Some(Ok(true))
 }
 
 pub struct FuncUseCtx {
@@ -1109,9 +1436,6 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
-pub type UnsafeCachePredicate =
-  Box<dyn Fn(&dyn Module) -> BoxFuture<'static, Result<bool>> + Sync + Send>;
-
 // BE CAREFUL:
 // Add more fields to this struct should result in adding new fields to options builder.
 // `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
@@ -1121,6 +1445,4 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
-  #[debug(skip)]
-  pub unsafe_cache: Option<UnsafeCachePredicate>,
 }

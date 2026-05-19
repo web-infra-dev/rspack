@@ -1,3 +1,7 @@
+---
+description: 'NormalModuleFactory is used by the Compiler to generate modules (NormalModule)'
+---
+
 import ResolveDataType from '../../types/resolve-data.mdx';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
@@ -138,6 +142,24 @@ compiler.hooks.compilation.tap(
     <ResolveDataType />
   </CollapsePanel>
 </Collapse>
+
+## `createModule`
+
+`AsyncSeriesBailHook<[NormalModuleCreateData, {}]>`
+
+Called after a request has been resolved and before Rspack creates the normal module instance. Return `undefined` to continue with the default module creation flow.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.createModule.tap('MyPlugin', (createData) => {
+      // inspect module creation data
+      console.log(createData.resourceResolveData.resource);
+    });
+  },
+);
+```
 
 ## `resolveForScheme`
 

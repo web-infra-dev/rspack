@@ -1,3 +1,7 @@
+---
+description: 'Use React with Rspack, covering setup, configuration, integration details, and framework-specific development patterns.'
+---
+
 import { PackageManagerTabs } from '@theme';
 import { Stability } from '@components/ApiMeta.tsx';
 
@@ -21,31 +25,11 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
-            jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
-            },
-          },
-        },
-        type: 'javascript/auto',
-      },
-      {
-        test: /\.tsx$/,
-        use: {
-          loader: 'builtin:swc-loader',
-          options: {
-            jsc: {
-              parser: {
-                syntax: 'typescript',
-                tsx: true,
-              },
-            },
+            detectSyntax: 'auto',
           },
         },
         type: 'javascript/auto',
@@ -72,7 +56,7 @@ Enabling [React Fast Refresh](https://reactnative.dev/docs/fast-refresh) functio
 
 ```js title="rspack.config.mjs"
 import { rspack } from '@rspack/core';
-import ReactRefreshPlugin from '@rspack/plugin-react-refresh';
+import { ReactRefreshRspackPlugin } from '@rspack/plugin-react-refresh';
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -81,15 +65,12 @@ export default {
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.(?:js|mjs|jsx|ts|tsx)$/,
         use: {
           loader: 'builtin:swc-loader',
           options: {
+            detectSyntax: 'auto',
             jsc: {
-              parser: {
-                syntax: 'ecmascript',
-                jsx: true,
-              },
               transform: {
                 react: {
                   development: isDev,
@@ -103,7 +84,7 @@ export default {
     ],
   },
   plugins: [
-    isDev && new ReactRefreshPlugin(),
+    isDev && new ReactRefreshRspackPlugin(),
     isDev && new rspack.HotModuleReplacementPlugin(),
   ],
 };
@@ -223,3 +204,7 @@ export default {
 ```
 
 For detailed usage of SVGR, please refer to [SVGR Documentation - webpack](https://react-svgr.com/docs/webpack/).
+
+## React Server Components
+
+If you need to use React Server Components, please refer to [Rspack - React Server Components](/guide/tech/rsc).

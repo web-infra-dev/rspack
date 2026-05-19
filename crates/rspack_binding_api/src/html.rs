@@ -29,7 +29,7 @@ impl From<HtmlPluginTag> for JsHtmlPluginTag {
         .iter()
         .map(|x| {
           (
-            x.attr_name.to_owned(),
+            x.attr_name.clone(),
             if let Some(attr_value) = &x.attr_value {
               Some(Either::A(attr_value.to_owned()))
             } else {

@@ -1,8 +1,5 @@
 use super::Cache;
-use crate::{
-  Compilation, compilation::build_module_graph::BuildModuleGraphArtifact, incremental::Incremental,
-  recover_artifact,
-};
+use crate::{BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt, recover_artifact};
 
 /// Memory cache implementation
 ///
@@ -10,7 +7,11 @@ use crate::{
 /// during incremental rebuilds.
 #[derive(Debug, Default)]
 pub struct MemoryCache {
+  // this is used to recover from last compilation if the artifact is recoverable
   old_compilation: Option<Box<Compilation>>,
+
+  // if the artifact itself is mutated | polluted in last compilation, we store the clone of the artifact here
+  build_chunk_graph_artifact_snapshot: BuildChunkGraphArtifact,
 }
 
 #[async_trait::async_trait]
@@ -24,16 +25,18 @@ impl Cache for MemoryCache {
   }
 
   // BUILD_MODULE_GRAPH: build_module_graph_artifact (module graph recovery)
-  async fn before_build_module_graph(
-    &mut self,
-    make_artifact: &mut BuildModuleGraphArtifact,
-    incremental: &Incremental,
-  ) {
+  async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
+      let incremental = &compilation.incremental;
       recover_artifact(
         incremental,
-        make_artifact,
+        &mut compilation.build_module_graph_artifact,
         &mut old_compilation.build_module_graph_artifact,
+      );
+      recover_artifact(
+        incremental,
+        &mut compilation.exports_info_artifact,
+        &mut old_compilation.exports_info_artifact,
       );
     }
   }
@@ -67,14 +70,34 @@ impl Cache for MemoryCache {
     }
   }
 
-  // BUILD_CHUNK_GRAPH: build_chunk_graph_artifact
+  // last build_chunk_graph_artifact is mutated and can't be used to recover, so we need to use clone snapshot to recover
   async fn before_build_chunk_graph(&mut self, compilation: &mut Compilation) {
+    if BuildChunkGraphArtifact::should_recover(&compilation.incremental) {
+      BuildChunkGraphArtifact::recover(
+        &compilation.incremental,
+        &mut compilation.build_chunk_graph_artifact,
+        &mut self.build_chunk_graph_artifact_snapshot,
+      );
+    }
+  }
+  async fn after_build_chunk_graph(&mut self, compilation: &mut Compilation) {
+    if BuildChunkGraphArtifact::should_recover(&compilation.incremental) {
+      BuildChunkGraphArtifact::recover(
+        &compilation.incremental,
+        &mut self.build_chunk_graph_artifact_snapshot,
+        &mut compilation.build_chunk_graph_artifact,
+      );
+    }
+  }
+
+  // OPTIMIZE_CHUNK_MODULES: imported_by_defer_modules_artifact
+  async fn before_optimize_chunk_modules(&mut self, compilation: &mut Compilation) {
     if let Some(old_compilation) = self.old_compilation.as_mut() {
       let incremental = &compilation.incremental;
       recover_artifact(
         incremental,
-        &mut compilation.build_chunk_graph_artifact,
-        &mut old_compilation.build_chunk_graph_artifact,
+        &mut compilation.imported_by_defer_modules_artifact,
+        &mut old_compilation.imported_by_defer_modules_artifact,
       );
     }
   }

@@ -3,11 +3,20 @@ var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
 var rspackExports = <%- ASYNC_MODULE_EXPORT_SYMBOL %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";
 var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
 var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var rspackDefer = <%- MAKE_DEFERRED_NAMESPACE_OBJECT_SYMBOL %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+var rspackDefer = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+<%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES %> = <%- basicFunction("asyncDeps") %> {
+	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
+		var cache = <%- _module_cache %>[id];
+		return !cache || cache[rspackDone] === false;
+	});
+	if (hasUnresolvedAsyncSubgraph) {
+		return ({ then(onFulfilled, onRejected) { return Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(onFulfilled, onRejected) } });
+	}
+}
 var resolveQueue = <%- basicFunction("queue") %> {
-  if (queue && queue.d < 1) {
-    queue.d = 1;
-    queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
+	if (queue && queue.d < 1) {
+		queue.d = 1;
+    	queue.forEach(<%- expressionFunction("fn.r--", "fn") %>);
 		queue.forEach(<%- expressionFunction("fn.r-- ? fn.r++ : fn()", "fn") %>);
 	}
 }
@@ -15,16 +24,12 @@ var wrapDeps = <%- basicFunction("deps") %> {
 	return deps.map(<%- basicFunction("dep") %> {
 		if (dep !== null && typeof dep === "object") {
 			if(!dep[rspackQueues] && dep[rspackDefer]) {
-				var asyncDeps = dep[rspackDefer];
-				var hasUnresolvedAsyncSubgraph = asyncDeps.some(<%- basicFunction("id") %> {
-					var cache = <%- _module_cache %>[id];
-					return !cache || cache[rspackDone] === false;
-				});
-				if (hasUnresolvedAsyncSubgraph) {
+				var asyncDeps = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES %>(dep[rspackDefer]);
+				if (asyncDeps) {
 					var d = dep;
 					dep = {
-						then(callback) {
-							Promise.all(asyncDeps.map(<%- REQUIRE %>)).then(<%- returningFunction("callback(d)", "") %>)
+						then(onFulfilled, onRejected) {
+							asyncDeps.then(<%- returningFunction("onFulfilled(d)", "") %>, onRejected);
 						}
 					};
 				} else return dep;

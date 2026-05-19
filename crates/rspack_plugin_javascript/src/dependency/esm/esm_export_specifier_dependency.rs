@@ -4,9 +4,9 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportSpecExports, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, TSEnumValue, TemplateContext, TemplateReplaceSource, UsedName,
+  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, LazyUntil,
+  ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
+  TemplateReplaceSource, UsedName,
 };
 use swc_core::ecma::atoms::Atom;
 
@@ -34,9 +34,8 @@ impl ESMExportSpecifierDependency {
     inline: Option<EvaluatedInlinableValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
-    source: Option<&str>,
+    loc: Option<DependencyLocation>,
   ) -> Self {
-    let loc = range.to_loc(source);
     Self {
       name,
       value,
@@ -71,26 +70,24 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
         inlinable: self.inline.clone(),
         exports: self.enum_value.as_ref().map(|enum_value| {
-          ExportSpecExports::new(
-            enum_value
-              .iter()
-              .map(|(enum_name, enum_member)| {
-                ExportNameOrSpec::ExportSpec(ExportSpec {
-                  name: enum_name.clone(),
-                  inlinable: enum_member.clone(),
-                  can_mangle: Some(false),
-                  ..Default::default()
-                })
+          enum_value
+            .iter()
+            .map(|(enum_name, enum_member)| {
+              ExportNameOrSpec::ExportSpec(ExportSpec {
+                name: enum_name.clone(),
+                inlinable: enum_member.clone(),
+                can_mangle: Some(false),
+                ..Default::default()
               })
-              .collect(),
-          )
-          .with_unknown_provided(true)
+            })
+            .collect()
         }),
         ..Default::default()
       })]),
@@ -108,6 +105,7 @@ impl Dependency for ESMExportSpecifierDependency {
     &self,
     _module_graph: &rspack_core::ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
     _module_chain: &mut IdentifierSet,
     _connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
   ) -> rspack_core::ConnectionState {
@@ -182,17 +180,23 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
           return false;
         }
         let export_name = &[dep.name.clone(), enum_key.clone()];
-        is_export_inlined(module_graph, &module.identifier(), export_name, *runtime)
+        is_export_inlined(
+          &compilation.exports_info_artifact,
+          &module.identifier(),
+          export_name,
+          *runtime,
+        )
       });
       if all_enum_member_inlined {
         return;
       }
     }
 
-    let exports_info = module_graph
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-    let Some(used_name) = ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&exports_info),
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let Some(used_name) = exports_info.get_used_name(
+      &compilation.exports_info_artifact,
       *runtime,
       std::slice::from_ref(&dep.name),
     ) else {

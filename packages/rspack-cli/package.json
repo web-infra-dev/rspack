@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.3",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -24,34 +24,35 @@
   },
   "files": [
     "bin",
+    "compiled",
     "dist"
   ],
   "scripts": {
     "build": "rslib build",
     "dev": "rslib build -w",
+    "prepare": "prebundle",
     "test": "rstest"
   },
-  "dependencies": {
-    "@discoveryjs/json-ext": "^0.5.7",
-    "exit-hook": "^4.0.0"
-  },
   "devDependencies": {
-    "@rslib/core": "0.19.3",
+    "@discoveryjs/json-ext": "^1.1.0",
+    "@microsoft/api-extractor": "^7.58.7",
+    "@rslib/core": "^0.21.5",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "~1.2.1",
+    "@rspack/dev-server": "^2.0.1",
     "@rspack/test-tools": "workspace:*",
-    "cac": "^6.7.14",
+    "cac": "^7.0.0",
     "concat-stream": "^2.0.0",
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
-    "picocolors": "^1.1.1",
-    "pirates": "^4.0.7",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "exit-hook": "^5.1.0",
+    "jiti": "^2.6.1",
+    "prebundle": "^1.6.4",
+    "rspack-merge": "0.1.1",
+    "typescript": "^6.0.3"
   },
   "peerDependencies": {
     "@rspack/core": "^2.0.0-0",
-    "@rspack/dev-server": "~1.2.1"
+    "@rspack/dev-server": "^2.0.0-0"
   },
   "peerDependenciesMeta": {
     "@rspack/dev-server": {

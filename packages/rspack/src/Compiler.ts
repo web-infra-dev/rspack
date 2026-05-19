@@ -64,6 +64,7 @@ import {
   createNormalModuleFactoryHooksRegisters,
 } from './taps';
 import { TraceHookPlugin } from './trace/traceHookPlugin';
+import { JavaScriptTracer } from './trace';
 import { unsupported } from './util';
 import { assertNotNill } from './util/assertNotNil';
 import { checkVersion } from './util/bindingVersionCheck';
@@ -260,6 +261,25 @@ class Compiler {
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
 
+    // Wrap hooks with a Proxy to provide helpful error messages when
+    // webpack plugins try to access hooks that don't exist in rspack
+    const availableCompilerHooks = Object.keys(this.hooks);
+    this.hooks = new Proxy(this.hooks, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (value === undefined && typeof prop === 'string') {
+          const hooksList = availableCompilerHooks.join(', ');
+          throw new Error(
+            `Compiler.hooks.${prop} is not supported in rspack. ` +
+              `This typically happens when using webpack plugins that rely on webpack-specific hooks. ` +
+              `Consider using an rspack-compatible alternative or removing the incompatible plugin.\n\n` +
+              `Available compiler hooks: ${hooksList}`,
+          );
+        }
+        return value;
+      },
+    });
+
     const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
     const compilerFn = function (...params: Parameters<typeof rspackFn>) {
       return rspackFn(...params);
@@ -316,7 +336,8 @@ class Compiler {
     );
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
-    if (!IS_BROWSER) {
+    // Trace hook interception only pays off once global tracing is already on.
+    if (!IS_BROWSER && JavaScriptTracer.state === 'on') {
       new TraceHookPlugin().apply(this);
     }
 
@@ -805,8 +826,12 @@ class Compiler {
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
-        this.#instance?.close();
-        callback();
+        const closePromise = this.#instance?.close();
+        if (closePromise) {
+          closePromise.then(() => callback(), callback);
+        } else {
+          callback();
+        }
       });
     });
   }

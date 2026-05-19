@@ -1,23 +1,23 @@
-const PLUGIN_NAME = "plugin";
+const PLUGIN_NAME = 'plugin';
 
 class Plugin {
-	/**
-	 * @param {import("@rspack/core").Compiler} compiler
-	 */
-	apply(compiler) {
-		compiler.hooks.compilation.tap(PLUGIN_NAME, compilation => {
-			compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
-				const res = [];
-				for (const chunkGroup of compilation.chunkGroups) {
-					for (const origin of chunkGroup.origins) {
-						res.push({
-							request: origin.request,
-							loc: origin.loc
-						});
-					}
-				}
-				res.sort((a, b) => a.request.localeCompare(b.request));
-				expect(res).toMatchInlineSnapshot(`
+  /**
+   * @param {import("@rspack/core").Compiler} compiler
+   */
+  apply(compiler) {
+    compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
+      compilation.hooks.afterProcessAssets.tap(PLUGIN_NAME, () => {
+        const res = [];
+        for (const chunkGroup of compilation.chunkGroups) {
+          for (const origin of chunkGroup.origins) {
+            res.push({
+              request: origin.request,
+              loc: origin.loc,
+            });
+          }
+        }
+        res.sort((a, b) => a.request.localeCompare(b.request));
+        expect(res).toMatchInlineSnapshot(`
 					Array [
 					  Object {
 					    loc: Object {
@@ -51,12 +51,12 @@ class Plugin {
 					  },
 					]
 				`);
-			});
-		});
-	}
+      });
+    });
+  }
 }
 
 /**@type {import("@rspack/core").Configuration}*/
 module.exports = {
-	plugins: [new Plugin()]
+  plugins: [new Plugin()],
 };

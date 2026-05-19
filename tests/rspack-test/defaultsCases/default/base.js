@@ -24,6 +24,7 @@ module.exports = {
 			    buildHttp: undefined,
 			    deferImport: false,
 			    futureDefaults: false,
+			    pureFunctions: false,
 			    useInputFileSystem: false,
 			  },
 			  externals: undefined,
@@ -39,7 +40,7 @@ module.exports = {
 			  externalsType: var,
 			  ignoreWarnings: undefined,
 			  incremental: Object {
-			    buildChunkGraph: false,
+			    buildChunkGraph: true,
 			    buildModuleGraph: true,
 			    chunkAsset: true,
 			    chunkIds: true,
@@ -51,6 +52,7 @@ module.exports = {
 			    modulesCodegen: true,
 			    modulesHashes: true,
 			    modulesRuntimeRequirements: true,
+			    optimizeChunkModules: true,
 			    optimizeDependencies: true,
 			    silent: true,
 			  },
@@ -85,7 +87,7 @@ module.exports = {
 			        type: javascript/auto,
 			      },
 			      Object {
-			        test: /\\\\\\.json\\$/i,
+			        test: /\\\\\\.json\\$/,
 			        type: json,
 			      },
 			      Object {
@@ -100,7 +102,7 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.mjs\\$/i,
+			        test: /\\\\\\.mjs\\$/,
 			        type: javascript/esm,
 			      },
 			      Object {
@@ -114,18 +116,18 @@ module.exports = {
 			            },
 			          },
 			        },
-			        test: /\\\\\\.js\\$/i,
+			        test: /\\\\\\.js\\$/,
 			        type: javascript/esm,
 			      },
 			      Object {
-			        test: /\\\\\\.cjs\\$/i,
+			        test: /\\\\\\.cjs\\$/,
 			        type: javascript/dynamic,
 			      },
 			      Object {
 			        descriptionData: Object {
 			          type: commonjs,
 			        },
-			        test: /\\\\\\.js\\$/i,
+			        test: /\\\\\\.js\\$/,
 			        type: javascript/dynamic,
 			      },
 			      Object {
@@ -155,7 +157,7 @@ module.exports = {
 			            },
 			          },
 			        ],
-			        test: /\\\\\\.wasm\\$/i,
+			        test: /\\\\\\.wasm\\$/,
 			        type: webassembly/async,
 			      },
 			      Object {
@@ -212,12 +214,30 @@ module.exports = {
 			        esModule: true,
 			        exportsConvention: as-is,
 			        exportsOnly: false,
+			        localIdentHashDigest: base64url,
+			        localIdentHashDigestLength: 6,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
+			        localIdentName: [fullhash],
+			      },
+			      css/global: Object {
+			        esModule: true,
+			        exportsConvention: as-is,
+			        exportsOnly: false,
+			        localIdentHashDigest: base64url,
+			        localIdentHashDigestLength: 6,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
 			        localIdentName: [fullhash],
 			      },
 			      css/module: Object {
 			        esModule: true,
 			        exportsConvention: as-is,
 			        exportsOnly: false,
+			        localIdentHashDigest: base64url,
+			        localIdentHashDigestLength: 6,
+			        localIdentHashFunction: xxhash64,
+			        localIdentHashSalt: undefined,
 			        localIdentName: [fullhash],
 			      },
 			      json: Object {
@@ -239,6 +259,10 @@ module.exports = {
 			        namedExports: true,
 			        url: true,
 			      },
+			      css/global: Object {
+			        namedExports: true,
+			        url: true,
+			      },
 			      css/module: Object {
 			        namedExports: true,
 			        url: true,
@@ -249,15 +273,17 @@ module.exports = {
 			        dynamicImportMode: lazy,
 			        dynamicImportPrefetch: false,
 			        dynamicImportPreload: false,
+			        exportsPresence: error,
 			        exprContextCritical: true,
 			        importDynamic: true,
 			        importMeta: true,
+			        importMetaResolve: false,
 			        jsx: false,
 			        requireAlias: false,
-			        requireAsExpression: false,
+			        requireAsExpression: true,
 			        requireDynamic: true,
 			        requireResolve: true,
-			        strictExportPresence: false,
+			        strictThisContextOnImports: false,
 			        typeReexportsPresence: no-tolerant,
 			        unknownContextCritical: true,
 			        url: true,
@@ -272,7 +298,6 @@ module.exports = {
 			      },
 			    },
 			    rules: Array [],
-			    unsafeCache: false,
 			  },
 			  name: undefined,
 			  node: Object {
@@ -306,7 +331,6 @@ module.exports = {
 			    nodeEnv: false,
 			    providedExports: true,
 			    realContentHash: false,
-			    removeAvailableModules: true,
 			    removeEmptyChunks: true,
 			    runtimeChunk: false,
 			    sideEffects: flag,
@@ -323,7 +347,7 @@ module.exports = {
 			          idHint: vendors,
 			          priority: -10,
 			          reuseExistingChunk: true,
-			          test: /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/i,
+			          test: /\\[\\\\\\\\/\\]node_modules\\[\\\\\\\\/\\]/,
 			        },
 			      },
 			      chunks: async,
@@ -332,6 +356,7 @@ module.exports = {
 			        css,
 			        unknown,
 			      ],
+			      enforceSizeThreshold: 30000,
 			      hidePathInfo: false,
 			      maxAsyncRequests: Infinity,
 			      maxInitialRequests: Infinity,
@@ -346,7 +371,7 @@ module.exports = {
 			    asyncChunks: true,
 			    bundlerInfo: Object {
 			      bundler: rspack,
-			      force: true,
+			      force: false,
 			      version: $version$,
 			    },
 			    chunkFilename: [name].js,
@@ -433,7 +458,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -453,7 +477,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -463,7 +486,6 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],
@@ -489,7 +511,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -509,7 +530,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -529,7 +549,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -549,7 +568,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -572,7 +590,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -592,7 +609,6 @@ module.exports = {
 			        extensions: Array [
 			          .js,
 			          .json,
-			          .wasm,
 			        ],
 			        mainFields: Array [
 			          browser,
@@ -624,9 +640,7 @@ module.exports = {
 			      node_modules,
 			    ],
 			    pnp: false,
-			    roots: Array [
-			      <TEST_ROOT>,
-			    ],
+			    roots: Array [],
 			  },
 			  resolveLoader: Object {
 			    conditionNames: Array [

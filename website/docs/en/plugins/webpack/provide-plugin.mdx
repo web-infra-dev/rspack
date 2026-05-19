@@ -1,3 +1,7 @@
+---
+description: 'Automatically load modules instead of having to import or require them everywhere'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 
 <WebpackLicense from="https://webpack.js.org/plugins/provide-plugin/" />
@@ -27,7 +31,10 @@ By default, module resolution path is current folder (`./**`) and `node_modules`
 It is also possible to specify full path:
 
 ```js
-const path = require('node:path');
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 new rspack.ProvidePlugin({
   identifier: path.resolve(path.join(__dirname, 'src/module1')),
@@ -51,7 +58,7 @@ Enable `process` object support within a browser context.
 
 ```js
 new rspack.ProvidePlugin({
-  process: [require.resolve('process/browser')],
+  process: ['process/browser'],
 });
 ```
 

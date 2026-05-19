@@ -14,8 +14,8 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::atoms::Atom;
 
 use crate::{
-  ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsInfo, ExportsType,
-  ModuleIdentifier, RuntimeKey,
+  ConcatenationEntry, ConnectionState, DependencyId, ExportInfo, ExportsType, ModuleIdentifier,
+  RuntimeKey,
 };
 pub type ModuleGraphCacheArtifact = Arc<ModuleGraphCacheArtifactInner>;
 
@@ -146,11 +146,11 @@ impl ModuleGraphCacheArtifactInner {
     }
   }
 
-  pub fn cached_module_graph_hash<F: FnOnce() -> (u64, ExportsInfo, Vec<ExportsInfo>)>(
+  pub fn cached_module_graph_hash<F: FnOnce() -> u64>(
     &self,
-    key: ModuleIdentifier,
+    key: ModuleGraphHashCacheKey,
     f: F,
-  ) -> (u64, ExportsInfo, Vec<ExportsInfo>) {
+  ) -> u64 {
     if !self.freezed.load(Ordering::Acquire) {
       return f();
     }
@@ -159,7 +159,7 @@ impl ModuleGraphCacheArtifactInner {
       Some(value) => value,
       None => {
         let value = f();
-        self.module_graph_hash_cache.set(key, value.clone());
+        self.module_graph_hash_cache.set(key, value);
         value
       }
     }
@@ -167,13 +167,15 @@ impl ModuleGraphCacheArtifactInner {
 }
 
 pub(super) mod module_graph_hash {
-  use rspack_collections::IdentifierDashMap;
+  use rspack_util::fx_hash::FxDashMap;
 
-  use crate::{ExportsInfo, ModuleIdentifier};
+  use crate::{ModuleIdentifier, RuntimeKey};
+
+  pub type ModuleGraphHashCacheKey = (ModuleIdentifier, Option<RuntimeKey>);
 
   #[derive(Debug, Default)]
   pub struct ModuleGraphHashCache {
-    cache: IdentifierDashMap<(u64, ExportsInfo, Vec<ExportsInfo>)>,
+    cache: FxDashMap<ModuleGraphHashCacheKey, u64>,
   }
 
   impl ModuleGraphHashCache {
@@ -181,16 +183,18 @@ pub(super) mod module_graph_hash {
       self.cache.clear();
     }
 
-    pub fn get(&self, key: &ModuleIdentifier) -> Option<(u64, ExportsInfo, Vec<ExportsInfo>)> {
-      self.cache.get(key).map(|v| v.value().clone())
+    pub fn get(&self, key: &ModuleGraphHashCacheKey) -> Option<u64> {
+      self.cache.get(key).map(|v| *v.value())
     }
 
-    pub fn set(&self, key: ModuleIdentifier, value: (u64, ExportsInfo, Vec<ExportsInfo>)) {
+    pub fn set(&self, key: ModuleGraphHashCacheKey, value: u64) {
       self.cache.insert(key, value);
     }
   }
 }
 pub(super) mod concatenated_module_entries {
+  use rspack_util::fx_hash::FxDashMap;
+
   use super::*;
   use crate::ModuleIdentifier;
 
@@ -198,7 +202,7 @@ pub(super) mod concatenated_module_entries {
 
   #[derive(Debug, Default)]
   pub struct ConcatenatedModuleEntriesCache {
-    cache: dashmap::DashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
+    cache: FxDashMap<ConcatenatedModuleEntriesCacheKey, Vec<ConcatenationEntry>>,
   }
 
   impl ConcatenatedModuleEntriesCache {
@@ -242,26 +246,40 @@ pub(super) mod get_side_effects_connection_state {
 }
 
 pub(super) mod get_exports_type {
+  use rspack_collections::IdentifierDashMap;
+
   use crate::{ExportsType, ModuleIdentifier};
 
   pub type GetExportsTypeCacheKey = (ModuleIdentifier, bool);
 
   #[derive(Debug, Default)]
   pub struct GetExportsTypeCache {
-    cache: dashmap::DashMap<GetExportsTypeCacheKey, ExportsType>,
+    strict_cache: IdentifierDashMap<ExportsType>,
+    dynamic_cache: IdentifierDashMap<ExportsType>,
   }
 
   impl GetExportsTypeCache {
     pub fn freeze(&self) {
-      self.cache.clear();
+      self.strict_cache.clear();
+      self.dynamic_cache.clear();
     }
 
     pub fn get(&self, key: &GetExportsTypeCacheKey) -> Option<ExportsType> {
-      self.cache.get(key).map(|x| *x)
+      let (module_identifier, strict) = key;
+      if *strict {
+        self.strict_cache.get(module_identifier).map(|x| *x)
+      } else {
+        self.dynamic_cache.get(module_identifier).map(|x| *x)
+      }
     }
 
     pub fn set(&self, key: GetExportsTypeCacheKey, value: ExportsType) {
-      self.cache.insert(key, value);
+      let (module_identifier, strict) = key;
+      if strict {
+        self.strict_cache.insert(module_identifier, value);
+      } else {
+        self.dynamic_cache.insert(module_identifier, value);
+      }
     }
   }
 }

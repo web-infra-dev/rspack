@@ -1,5 +1,14 @@
 use derive_more::Debug;
-use rspack_plugin_rstest::RstestPluginOptions;
+use napi::Either;
+use rspack_plugin_rstest::{RstestDynamicImportOriginOptions, RstestPluginOptions};
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawRstestDynamicImportOriginOptions {
+  // Override the callee that replaces `import` in the rewrite. When omitted,
+  // rstest falls back to `output.importFunctionName`.
+  pub function_name: Option<String>,
+}
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -17,16 +26,38 @@ pub struct RawRstestPluginOptions {
   // This allows rstest to dynamically load modules (e.g., wasm) at runtime.
   // Example: [".wasm"] to preserve wasm URL expressions.
   pub preserve_new_url: Option<Vec<String>>,
+  // Whether to handle global `rs` and `rstest` variables.
+  // When false, only ESM imported variables are processed. Default is true.
+  pub globals: Option<bool>,
+  // When enabled, rewrite non-string-literal `import()` calls (template
+  // literals, variables) to the configured callee and append the source
+  // module's absolute path as an extra argument. The runtime uses it as the
+  // base for relative specifier resolution so paths inside bundled deps
+  // resolve to the source file's directory rather than the test entry's.
+  //
+  // Pass `true` to enable with the callee taken from `output.importFunctionName`,
+  // or pass an object with `functionName` to override the callee independently.
+  #[napi(ts_type = "boolean | { functionName?: string }")]
+  pub inject_dynamic_import_origin: Option<Either<bool, RawRstestDynamicImportOriginOptions>>,
 }
 
 impl From<RawRstestPluginOptions> for RstestPluginOptions {
   fn from(value: RawRstestPluginOptions) -> Self {
+    let inject_dynamic_import_origin = match value.inject_dynamic_import_origin {
+      None | Some(Either::A(false)) => None,
+      Some(Either::A(true)) => Some(RstestDynamicImportOriginOptions::default()),
+      Some(Either::B(opts)) => Some(RstestDynamicImportOriginOptions {
+        function_name: opts.function_name,
+      }),
+    };
     Self {
       module_path_name: value.inject_module_path_name,
       hoist_mock_module: value.hoist_mock_module,
       import_meta_path_name: value.import_meta_path_name,
       manual_mock_root: value.manual_mock_root,
       preserve_new_url: value.preserve_new_url.unwrap_or_default(),
+      globals: value.globals.unwrap_or(true),
+      inject_dynamic_import_origin,
     }
   }
 }

@@ -49,15 +49,10 @@ impl JavascriptParser<'_> {
   }
 
   pub fn pre_walk_statement(&mut self, statement: Statement) {
+    let drive = self.plugin_drive.clone();
     self.enter_statement(
       &statement,
-      |parser, _| {
-        parser
-          .plugin_drive
-          .clone()
-          .pre_statement(parser, statement)
-          .unwrap_or_default()
-      },
+      |parser, _| drive.pre_statement(parser, statement).unwrap_or_default(),
       |parser, _| {
         match statement {
           Statement::Block(stmt) => parser.pre_walk_block_statement(stmt),
@@ -178,11 +173,10 @@ impl JavascriptParser<'_> {
   }
 
   pub(super) fn _pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
+    let drive = self.plugin_drive.clone();
     for declarator in decl.declarators() {
       self.pre_walk_variable_declarator(declarator);
-      if !self
-        .plugin_drive
-        .clone()
+      if !drive
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
@@ -260,6 +254,7 @@ impl JavascriptParser<'_> {
     arr_pat: &ArrayPat,
   ) -> Option<DestructuringAssignmentProperties> {
     let mut keys = DestructuringAssignmentProperties::default();
+    let mut buf = rspack_util::itoa::Buffer::new();
     for (i, ele) in arr_pat.elems.iter().enumerate() {
       let Some(ele) = ele else {
         continue;
@@ -267,7 +262,6 @@ impl JavascriptParser<'_> {
       if ele.is_rest() {
         return None;
       }
-      let mut buf = rspack_util::itoa::Buffer::new();
       let i = buf.format(i);
       keys.insert(DestructuringAssignmentProperty {
         id: i.into(),

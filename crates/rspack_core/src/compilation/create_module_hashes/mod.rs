@@ -1,7 +1,30 @@
-use super::*;
-use crate::logger::Logger;
+use async_trait::async_trait;
 
-pub async fn create_module_hashes_pass(compilation: &mut Compilation) -> Result<()> {
+use super::*;
+use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+
+pub struct CreateModuleHashesPass;
+
+#[async_trait]
+impl PassExt for CreateModuleHashesPass {
+  fn name(&self) -> &'static str {
+    "create module hashes"
+  }
+
+  async fn before_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.before_modules_hashes(compilation).await;
+  }
+
+  async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    create_module_hashes_pass_impl(compilation).await
+  }
+
+  async fn after_pass(&self, compilation: &mut Compilation, cache: &mut dyn Cache) {
+    cache.after_modules_hashes(compilation).await;
+  }
+}
+
+async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result<()> {
   // Check if MODULES_HASHES pass is disabled, and clear artifact if needed
   if !compilation
     .incremental
@@ -26,10 +49,11 @@ pub async fn create_module_hashes_pass(compilation: &mut Compilation) -> Result<
 
     // check if module runtime changes
     let mg = compilation.get_module_graph();
-    for mi in mg.modules().keys() {
+    for mi in mg.modules_keys() {
       let module_runtimes = compilation
+        .build_chunk_graph_artifact
         .chunk_graph
-        .get_module_runtimes(*mi, &compilation.chunk_by_ukey);
+        .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
       let module_runtime_keys = module_runtimes
         .values()
         .map(get_runtime_key)
@@ -81,61 +105,60 @@ pub async fn create_module_hashes_pass(compilation: &mut Compilation) -> Result<
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      mg.modules().len()
+      mg.modules_len()
     ));
 
     modules
   } else {
     compilation
       .get_module_graph()
-      .modules()
-      .keys()
+      .modules_keys()
       .copied()
       .collect()
   };
-  compilation
-    .create_module_hashes(create_module_hashes_modules)
-    .await
+  create_module_hashes(compilation, create_module_hashes_modules).await
 }
 
-impl Compilation {
-  #[instrument("Compilation:create_module_hashes", skip_all)]
-  pub async fn create_module_hashes(&mut self, modules: IdentifierSet) -> Result<()> {
-    let mg = self.get_module_graph();
-    let chunk_graph = &self.chunk_graph;
-    let chunk_by_ukey = &self.chunk_by_ukey;
+#[instrument("Compilation:create_module_hashes", skip_all)]
+pub async fn create_module_hashes(
+  compilation: &mut Compilation,
+  modules: IdentifierSet,
+) -> Result<()> {
+  let mg = compilation.get_module_graph();
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+  let compilation_ref = &*compilation;
 
-    let results = rspack_futures::scope::<_, Result<_>>(|token| {
-      for module_identifier in modules {
-        let s = unsafe { token.used((&*self, &mg, chunk_graph, chunk_by_ukey)) };
-        s.spawn(
-          move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
-            let mut hashes = RuntimeSpecMap::new();
-            let module = mg
-              .module_by_identifier(&module_identifier)
-              .expect("should have module");
-            for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
-              let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
-              hashes.set(runtime.clone(), hash);
-            }
-            Ok((module_identifier, hashes))
-          },
-        );
-      }
-    })
-    .await
-    .into_iter()
-    .map(|r| r.to_rspack_result())
-    .collect::<Result<Vec<_>>>()?;
-
-    for result in results {
-      let (module, hashes) = result?;
-      if ChunkGraph::set_module_hashes(self, module, hashes)
-        && let Some(mut mutations) = self.incremental.mutations_write()
-      {
-        mutations.add(Mutation::ModuleSetHashes { module });
-      }
+  let results = rspack_parallel::scope::<_, Result<_>>(|token| {
+    for module_identifier in modules {
+      let s = unsafe { token.used((compilation_ref, &mg, chunk_graph, chunk_by_ukey)) };
+      s.spawn(
+        move |(compilation, mg, chunk_graph, chunk_by_ukey)| async move {
+          let mut hashes = RuntimeSpecMap::new();
+          let module = mg
+            .module_by_identifier(&module_identifier)
+            .expect("should have module");
+          for runtime in chunk_graph.get_module_runtimes_iter(module_identifier, chunk_by_ukey) {
+            let hash = module.get_runtime_hash(compilation, Some(runtime)).await?;
+            hashes.set(runtime.clone(), hash);
+          }
+          Ok((module_identifier, hashes))
+        },
+      );
     }
-    Ok(())
+  })
+  .await
+  .into_iter()
+  .map(|r| r.to_rspack_result())
+  .collect::<Result<Vec<_>>>()?;
+
+  for result in results {
+    let (module, hashes) = result?;
+    if ChunkGraph::set_module_hashes(compilation, module, hashes)
+      && let Some(mut mutations) = compilation.incremental.mutations_write()
+    {
+      mutations.add(Mutation::ModuleSetHashes { module });
+    }
   }
+  Ok(())
 }

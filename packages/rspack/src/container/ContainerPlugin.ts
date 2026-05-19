@@ -10,6 +10,7 @@ import {
 import type { Compiler } from '../Compiler';
 import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
+import { type ShareScope, validateShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 
 export type ContainerPluginOptions = {
@@ -18,7 +19,7 @@ export type ContainerPluginOptions = {
   library?: LibraryOptions;
   name: string;
   runtime?: EntryRuntime;
-  shareScope?: string;
+  shareScope?: ShareScope;
   enhanced?: boolean;
 };
 export type Exposes = (ExposesItem | ExposesObject)[] | ExposesObject;
@@ -38,11 +39,14 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
 
   constructor(options: ContainerPluginOptions) {
     super();
+    const shareScope = options.shareScope || 'default';
+    const enhanced = options.enhanced ?? false;
+    validateShareScope(shareScope, enhanced, 'ContainerPlugin');
     this._options = {
       name: options.name,
-      shareScope: options.shareScope || 'default',
+      shareScope,
       library: options.library || {
-        type: 'var',
+        type: 'global',
         name: options.name,
       },
       runtime: options.runtime,
@@ -58,7 +62,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
           name: item.name || undefined,
         }),
       ),
-      enhanced: options.enhanced ?? false,
+      enhanced,
     };
   }
 

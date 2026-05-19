@@ -15,11 +15,12 @@ use super::{
   container_entry_module_factory::ContainerEntryModuleFactory,
   expose_runtime_module::ExposeRuntimeModule, federation_modules_plugin::FederationModulesPlugin,
 };
+use crate::ShareScope;
 
 #[derive(Debug)]
 pub struct ContainerPluginOptions {
   pub name: String,
-  pub share_scope: String,
+  pub share_scope: ShareScope,
   pub library: LibraryOptions,
   pub runtime: Option<EntryRuntime>,
   pub filename: Option<Filename>,
@@ -105,21 +106,31 @@ async fn additional_tree_runtime_requirements(
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
   let Some(entry_options) = compilation
+    .build_chunk_graph_artifact
     .chunk_by_ukey
     .get(chunk_ukey)
-    .and_then(|chunk| chunk.get_entry_options(&compilation.chunk_group_by_ukey))
+    .and_then(|chunk| {
+      chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    })
   else {
     return Ok(());
   };
   if matches!(&entry_options.name, Some(name) if name == &self.options.name)
-    && compilation.chunk_graph.has_chunk_module_by_source_type(
-      chunk_ukey,
-      SourceType::Expose,
-      compilation.get_module_graph(),
-    )
     && compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .has_chunk_module_by_source_type(
+        chunk_ukey,
+        SourceType::Expose,
+        compilation.get_module_graph(),
+      )
+    && compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .has_chunk_entry_dependent_chunks(
+        chunk_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
   {
     runtime_requirements.insert(RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES);
   }

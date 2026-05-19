@@ -84,7 +84,7 @@ impl DependencyTemplate for LocalModuleDependencyTemplate {
       } else {
         dep.local_module.variable_name()
       };
-      source.replace(range.start, range.end, &module_instance, None);
+      source.replace(range.start, range.end, module_instance, None);
     }
   }
 }

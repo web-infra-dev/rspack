@@ -1,9 +1,13 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	module: {
-		strictThisContextOnImports: true
-	},
-	optimization: {
-		concatenateModules: false
-	}
+  module: {
+    parser: {
+      javascript: {
+        strictThisContextOnImports: true,
+      },
+    },
+  },
+  optimization: {
+    concatenateModules: false,
+  },
 };

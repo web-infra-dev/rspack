@@ -1,3 +1,7 @@
+---
+description: 'Rspack Entry 配置项参考，涵盖单入口、多入口、动态入口函数以及入口描述对象的配置方式与行为。'
+---
+
 import WebpackLicense from '@components/WebpackLicense';
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import PropertyType from '@components/PropertyType';
@@ -6,10 +10,18 @@ import PropertyType from '@components/PropertyType';
 
 # Entry
 
-<PropertyType
-  type="string | string[] | Record<string, string | string[] | EntryDescription> | Function"
-  defaultValueList={[{ defaultValue: "'./src/index.js'" }]}
-/>
+- **类型：**
+
+```ts
+type EntryStatic =
+  | string
+  | string[]
+  | Record<string, string | string[] | EntryDescription>;
+
+type Entry = EntryStatic | (() => EntryStatic | Promise<EntryStatic>);
+```
+
+- **默认值：** `'./src/index.js'`
 
 入口：该选项用于设置 Rspack 构建的入口。
 
@@ -39,7 +51,7 @@ export default {
 
 入口模块的路径可以是一个相对路径，也可以是一个绝对路径。
 
-当 `entry` 被设置为相对路径时，Rspack 会使用 [context 配置项](/config/context.html) 设置的值作为基础路径，默认为 Node.js 进程的当前工作目录，即 `process.cwd()`。
+当 `entry` 被设置为相对路径时，Rspack 会使用 [context 配置项](/config/context) 设置的值作为基础路径，默认为 Node.js 进程的当前工作目录，即 `process.cwd()`。
 
 你也可以使用 Node.js 中的 [path 模块](https://nodejs.org/api/path.html) 来生成一个绝对路径，并传递给 `entry` 配置项：
 
@@ -65,7 +77,19 @@ export default {
 };
 ```
 
-多个模块会按照数组定义的顺序依次执行，因此 `pre.js` 的代码会早于 `post.js` 的代码执行。
+当某个入口的值是数组时，Rspack 仍然只会为该入口生成一个 chunk。数组中的模块会按声明顺序加载，并合并到同一个依赖图中，因此 `pre.js` 会早于 `post.js` 执行。
+
+这种模式常用于在主应用入口之前注入额外代码，例如 polyfill 或仅在开发环境使用的工具脚本，而不必在业务源码中手动导入它们。
+
+**示例：注入 polyfill**
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    main: ['./src/polyfill.js', './src/index.js'],
+  },
+};
+```
 
 ## 多个入口
 
@@ -183,10 +207,8 @@ export default {
 
 #### EntryDescription.library
 
-<PropertyType
-  type="string | string[] | object"
-  defaultValueList={[{ defaultValue: 'undefined' }]}
-/>
+- **类型：** `LibraryOptions`
+- **默认值：** `undefined`
 
 修改当前入口所生成 chunk 作为库的导出格式，详细配置可参考 [output.library](/config/output#outputlibrary)。
 
@@ -241,11 +263,10 @@ export default {
 
 如果传入一个函数，那么它将会在每次 [make](/api/plugin-api/compiler-hooks#make) 事件中被调用。
 
-> 要注意的是，`make` 事件在 webpack 启动和每当[监听文件变化](/config/watch)时都会触发。
+> 要注意的是，`make` 事件在 Rspack 启动和每当[监听文件变化](/config/watch)时都会触发。
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   entry: () => './demo',
 };
 ```
@@ -254,7 +275,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   entry: () => new Promise((resolve) => resolve(['./demo', './demo2'])),
 };
 ```

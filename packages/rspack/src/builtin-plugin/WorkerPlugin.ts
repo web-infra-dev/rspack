@@ -13,6 +13,7 @@ import { EnableWasmLoadingPlugin } from './EnableWasmLoadingPlugin';
 
 export class WorkerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.WorkerPlugin;
+  affectedHooks = 'compilation' as const;
 
   constructor(
     private chunkLoading: ChunkLoading,

@@ -1,12 +1,12 @@
 use std::sync::{Arc, atomic::AtomicI32};
 
-use indexmap::IndexMap;
 use rayon::iter::{IntoParallelRefIterator, ParallelBridge, ParallelIterator};
-use rspack_collections::Identifier;
+use rspack_collections::IdentifierMap;
 use rspack_core::{
   Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, CompilationAsset,
   ModuleGraph,
 };
+use rspack_util::fx_hash::{FxHashMap, FxIndexMap};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
 };
 
 pub fn collect_chunks(
-  chunks: &HashMap<&ChunkUkey, &Chunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
   chunk_graph: &ChunkGraph,
   chunk_group_by_ukey: &ChunkGroupByUkey,
 ) -> HashMap<ChunkUkey, RsdoctorChunk> {
@@ -39,7 +39,7 @@ pub fn collect_chunks(
         names.join("")
       };
       (
-        **chunk_id,
+        *chunk_id,
         RsdoctorChunk {
           ukey: chunk_id.as_u32() as RsdoctorChunkUkey,
           name,
@@ -54,7 +54,7 @@ pub fn collect_chunks(
 }
 
 pub fn collect_chunk_dependencies(
-  chunks: &HashMap<&ChunkUkey, &Chunk>,
+  chunks: &HashMap<ChunkUkey, &Chunk>,
   rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,
@@ -90,7 +90,7 @@ pub fn collect_chunk_dependencies(
       }
 
       (
-        **chunk_id,
+        *chunk_id,
         (
           parents
             .into_iter()
@@ -107,10 +107,10 @@ pub fn collect_chunk_dependencies(
 }
 
 pub fn collect_entrypoints(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
-  rsd_chunks: &HashMap<ChunkUkey, RsdoctorChunk>,
+  entrypoints: &FxIndexMap<String, ChunkGroupUkey>,
+  rsd_chunks: &FxHashMap<ChunkUkey, RsdoctorChunk>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
-) -> HashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
+) -> FxHashMap<ChunkGroupUkey, RsdoctorEntrypoint> {
   entrypoints
     .par_iter()
     .map(|(name, ukey)| {
@@ -128,7 +128,7 @@ pub fn collect_entrypoints(
         ukey.to_owned(),
         RsdoctorEntrypoint {
           ukey: ukey.as_u32() as RsdoctorEntrypointUkey,
-          name: name.to_string(),
+          name: name.clone(),
           chunks,
         },
       )
@@ -161,10 +161,10 @@ pub fn collect_assets(
         })
         .unwrap_or_default();
       (
-        path.to_string(),
+        path.clone(),
         RsdoctorAsset {
           ukey: asset_ukey_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-          path: path.to_string(),
+          path: path.clone(),
           chunks,
           size: asset
             .get_source()
@@ -178,7 +178,7 @@ pub fn collect_assets(
 
 pub fn collect_chunk_modules(
   chunk_by_ukey: &ChunkByUkey,
-  module_ukeys: &HashMap<Identifier, RsdoctorChunkUkey>,
+  module_ukeys: &IdentifierMap<RsdoctorChunkUkey>,
   chunk_graph: &ChunkGraph,
   module_graph: &ModuleGraph,
 ) -> Vec<RsdoctorChunkModules> {
@@ -235,8 +235,8 @@ pub fn collect_chunk_assets(
 }
 
 pub fn collect_entrypoint_assets(
-  entrypoints: &IndexMap<String, ChunkGroupUkey>,
-  rsd_assets: &HashMap<String, RsdoctorAsset>,
+  entrypoints: &FxIndexMap<String, ChunkGroupUkey>,
+  rsd_assets: &FxHashMap<String, RsdoctorAsset>,
   entrypoint_ukey_map: &HashMap<ChunkGroupUkey, RsdoctorEntrypointUkey>,
   chunk_group_by_ukey: &ChunkGroupByUkey,
   chunk_by_ukey: &ChunkByUkey,

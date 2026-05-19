@@ -2,9 +2,9 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{Either, Env, JsString, bindgen_prelude::ToNapiValue};
 use napi_derive::napi;
-use rspack_collections::UkeyMap;
 use rspack_core::{Compilation, CompilationId};
 use rspack_napi::OneShotRef;
+use rustc_hash::FxHashMap;
 
 use crate::{
   chunk::ChunkWrapper,
@@ -21,7 +21,11 @@ pub struct ChunkGroup {
 impl ChunkGroup {
   fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::ChunkGroup)> {
     let compilation = unsafe { self.compilation.as_ref() };
-    if let Some(chunk_group) = compilation.chunk_group_by_ukey.get(&self.chunk_group_ukey) {
+    if let Some(chunk_group) = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .get(&self.chunk_group_ukey)
+    {
       Ok((compilation, chunk_group))
     } else {
       Err(napi::Error::from_reason(format!(
@@ -131,7 +135,8 @@ impl ChunkGroup {
   #[napi(ts_return_type = "Chunk")]
   pub fn get_runtime_chunk(&self) -> napi::Result<ChunkWrapper> {
     let (compilation, chunk_group) = self.as_ref()?;
-    let chunk_ukey = chunk_group.get_runtime_chunk(&compilation.chunk_group_by_ukey);
+    let chunk_ukey =
+      chunk_group.get_runtime_chunk(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
     Ok(ChunkWrapper::new(chunk_ukey, compilation))
   }
 
@@ -151,6 +156,7 @@ impl ChunkGroup {
         .iter()
         .filter_map(|chunk_ukey| {
           compilation
+            .build_chunk_graph_artifact
             .chunk_by_ukey
             .get(chunk_ukey)
             .map(|chunk| chunk.files().iter())
@@ -163,27 +169,19 @@ impl ChunkGroup {
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_pre_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
-    Ok(
-      chunk_group
-        .module_pre_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_pre_order_index(&module.identifier))
   }
 
   #[napi(ts_args_type = "module: Module")]
   pub fn get_module_post_order_index(&self, module: ModuleObjectRef) -> napi::Result<Option<u32>> {
     let (_, chunk_group) = self.as_ref()?;
 
-    Ok(
-      chunk_group
-        .module_post_order_index(&module.identifier)
-        .map(|v| v as u32),
-    )
+    Ok(chunk_group.module_post_order_index(&module.identifier))
   }
 }
 
 thread_local! {
-  static CHUNK_GROUP_INSTANCE_REFS: RefCell<UkeyMap<CompilationId, UkeyMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
+  static CHUNK_GROUP_INSTANCE_REFS: RefCell<FxHashMap<CompilationId, FxHashMap<rspack_core::ChunkGroupUkey, OneShotRef>>> = Default::default();
 }
 
 pub struct ChunkGroupWrapper {
@@ -222,7 +220,7 @@ impl ToNapiValue for ChunkGroupWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = UkeyMap::default();
+            let refs = FxHashMap::default();
             entry.insert(refs)
           }
         };

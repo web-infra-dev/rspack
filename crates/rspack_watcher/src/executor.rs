@@ -171,6 +171,15 @@ impl Executor {
     self.abort().await;
 
     self.run_execute_handler(event_aggregate_handler, event_handler);
+
+    // Flush events accumulated during the pause period.
+    // Without this, events that arrived while paused would sit in files_data
+    // indefinitely — the event loop already processed them (added to files_data)
+    // but skipped sending Execute because paused was true. No future OS event
+    // will re-deliver them, so we must kick the aggregate task ourselves.
+    if !self.files_data.lock().await.is_empty() {
+      let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
+    }
   }
 
   fn run_execute_handler(

@@ -1,9 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	optimization: {
-		moduleIds: "named"
-	},
-	optimization: {
-		inlineExports: true
-	}
+  optimization: {
+    moduleIds: 'named',
+  },
+  optimization: {
+    inlineExports: true,
+  },
 };

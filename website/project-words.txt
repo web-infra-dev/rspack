@@ -50,6 +50,7 @@ evanw
 experimentscss
 externalstypecommonjs
 faga295
+fansenze
 fargs
 feishu
 fi3ework
@@ -67,6 +68,7 @@ indicatif
 inituit
 innovatively
 inottn
+intellild
 intlify
 IWANABETHATGUY
 jantimon
@@ -108,6 +110,7 @@ moduleparsercssauto
 moduleparsercssautonamedexports
 moduleparsercssmodule
 monaco
+MPHF
 msvc
 myorg
 myrspackapp
@@ -176,7 +179,6 @@ shulaoda
 sockjs
 sokra
 solidjs
-spdy
 statoscope
 struct
 suxin2017
@@ -184,6 +186,7 @@ svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
 swcpack
+swcrc
 sxzz
 systemjs
 tailwind
@@ -205,6 +208,7 @@ valorkin
 vant
 verkada
 viktoriialurie
+vize
 weapp
 webpack
 xcode
@@ -212,7 +216,9 @@ xcrun
 xctrace
 Xeon
 XKKCNZZNJD
+xmcp
 xstyled
+xtask
 xxhash
 yannik
 Zack

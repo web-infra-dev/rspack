@@ -1,5 +1,5 @@
 module.exports = {
-	externals: {
-		external: "var 'external'"
-	}
+  externals: {
+    external: "var 'external'",
+  },
 };

@@ -92,7 +92,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       hash_to_asset_names
         .entry(hash)
         .and_modify(|names| names.push(name))
-        .or_insert(vec![name]);
+        .or_insert_with(|| vec![name]);
     }
   }
   logger.time_end(start);
@@ -137,10 +137,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let mut computed_hashes = HashSet::default();
   let mut top_task = ordered_hashes_iter.next();
 
-  loop {
-    let Some(top) = top_task else {
-      break;
-    };
+  while let Some(top) = top_task {
     let mut batch = vec![top];
     top_task = None;
 
@@ -182,7 +179,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
       })
       .collect::<HashMap<_, _>>();
 
-    let new_hashes = rspack_futures::scope::<_, Result<_>>(|token| {
+    let new_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
       batch
         .iter()
         .cloned()
@@ -195,7 +192,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
             unsafe { token.used((&hooks, &compilation, &batch_sources, old_hash, asset_names)) };
           s.spawn(
             |(hooks, compilation, batch_sources, old_hash, mut asset_names)| async move {
-              asset_names.sort();
+              asset_names.sort_unstable();
               let mut asset_contents = asset_names
                 .iter()
                 .filter_map(|name| batch_sources.get(&(old_hash.as_str(), name)))
@@ -220,7 +217,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 new_hash.rendered(old_hash.len()).to_string()
               };
 
-              Ok((old_hash.to_string(), new_hash))
+              Ok((old_hash.clone(), new_hash))
             },
           );
         });

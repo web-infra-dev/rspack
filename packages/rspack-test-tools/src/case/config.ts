@@ -1,6 +1,6 @@
+import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
-import path from 'path';
 import { parseResource } from '../helper/legacy/parseResource';
 import { BasicCaseCreator } from '../test/creator';
 import type {
@@ -24,7 +24,7 @@ export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
 
 export function createConfigProcessor(name: string): ITestProcessor {
   return {
-    config: async (context: ITestContext) => {
+    config: (context: ITestContext) => {
       configMultiCompiler(
         context,
         name,
@@ -125,7 +125,7 @@ export function overrideOptions(
       options.optimization?.runtimeChunk === undefined &&
       enableEsmLibraryPlugin(options);
     const outputModule =
-      options.experiments?.outputModule || enableEsmLibraryPlugin(options);
+      options.output?.module || enableEsmLibraryPlugin(options);
     options.output ??= {};
     options.output.filename = `${runtimeChunkForModernModule ? `[name]${outputModule ? '.mjs' : '.js'}` : `bundle${index}${outputModule ? '.mjs' : '.js'}`}`;
   }

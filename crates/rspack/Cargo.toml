@@ -7,7 +7,8 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [features]
-full = ["loaders"]
+codspeed = ["rspack_core/codspeed", "rspack_plugin_schemes/codspeed"]
+full     = ["loaders"]
 
 loader_lightningcss   = ["rspack_loader_lightningcss"]
 loader_preact_refresh = ["rspack_loader_preact_refresh"]
@@ -19,7 +20,6 @@ loaders               = ["loader_lightningcss", "loader_preact_refresh", "loader
 bitflags            = { workspace = true }
 derive_more         = { workspace = true }
 enum-tag            = { workspace = true }
-indexmap            = { workspace = true, features = ["rayon"] }
 regex               = { workspace = true }
 rspack_browserslist = { workspace = true }
 rspack_core         = { workspace = true }
@@ -31,6 +31,7 @@ rspack_paths        = { workspace = true }
 rspack_regex        = { workspace = true }
 rustc-hash          = { workspace = true }
 serde_json          = { workspace = true }
+supports-color      = { workspace = true }
 
 # Plugins
 rspack_plugin_asset                   = { workspace = true }
@@ -53,6 +54,7 @@ rspack_plugin_swc_js_minimizer        = { workspace = true }
 rspack_plugin_wasm                    = { workspace = true }
 rspack_plugin_worker                  = { workspace = true }
 rspack_tasks                          = { workspace = true }
+rspack_util                           = { workspace = true }
 # Loaders
 rspack_loader_lightningcss   = { workspace = true, optional = true }
 rspack_loader_preact_refresh = { workspace = true, optional = true }
@@ -61,8 +63,9 @@ rspack_loader_swc            = { workspace = true, optional = true }
 
 
 [dev-dependencies]
-insta = { workspace = true, features = ["filters"] }
-tokio = { workspace = true }
+insta          = { workspace = true, features = ["filters"] }
+supports-color = { workspace = true }
+tokio          = { workspace = true }
 
 [lints]
 workspace = true

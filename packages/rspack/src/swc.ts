@@ -2,7 +2,7 @@ import type { TransformOutput } from '@rspack/binding';
 import binding from '@rspack/binding';
 import type { JsMinifyOptions, Options as TransformOptions } from '@swc/types';
 
-export type { TransformOutput, TransformOptions, JsMinifyOptions };
+export type { JsMinifyOptions, TransformOptions, TransformOutput };
 
 export async function minify(
   source: string,

@@ -33,6 +33,7 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
     return Ok(None);
   }
 
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
   runtime_modules_to_add.push((
     *chunk_ukey,
@@ -40,12 +41,9 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
       &compilation.runtime_template,
       format!(
         "fetch({} + $PATH)",
-        compilation
-          .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+        runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
       ),
       true,
-      *chunk_ukey,
     )
     .boxed(),
   ));
@@ -108,7 +106,6 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
         include_str!("runtime/read_file_compile_async_wasm.js").to_string()
       },
       false,
-      *chunk_ukey,
     )
     .boxed(),
   ));
@@ -148,9 +145,12 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
     return Ok(None);
   }
 
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let wasm_loading = chunk
-    .get_entry_options(&compilation.chunk_group_by_ukey)
+    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     .and_then(|options| options.wasm_loading.clone())
     .unwrap_or_else(|| compilation.options.output.wasm_loading.clone());
 
@@ -175,9 +175,9 @@ var wasmUrl = $PATH;"#
   // Generate load binary code: use fetch in browser, fs.readFile in Node.js
   let generate_load_binary_code = format!(
     r#"(useFetch
-  ? fetch(new URL(wasmUrl, {0}.url))
+  ? fetch(new URL(wasmUrl, {import_meta_name}.url))
   : Promise.all([import('fs'), import('url')]).then(([{{ readFile }}, {{ URL }}]) => new Promise((resolve, reject) => {{
-      readFile(new URL(wasmUrl, {0}.url), (err, buffer) => {{
+      readFile(new URL(wasmUrl, {import_meta_name}.url), (err, buffer) => {{
         if (err) return reject(err);
 
         // Fake fetch response
@@ -185,8 +185,7 @@ var wasmUrl = $PATH;"#
           arrayBuffer() {{ return buffer; }}
         }});
       }});
-    }})))"#,
-    import_meta_name
+    }})))"#
   );
 
   // Generate before instantiate streaming: return fallback if not useFetch
@@ -203,7 +202,6 @@ var wasmUrl = $PATH;"#
       generate_before_load_binary_code,
       generate_before_instantiate_streaming,
       true, // supports_streaming
-      *chunk_ukey,
     )
     .boxed(),
   ));

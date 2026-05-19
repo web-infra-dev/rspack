@@ -60,8 +60,7 @@ fn test_context() {
   if let Err(e) = result {
     assert!(
       matches!(e, Error::NoContext),
-      "expected NoContext but got: {:?}",
-      e
+      "expected NoContext but got: {e:?}"
     );
   }
   let new_module: Module = from_bytes(&bytes, &context).unwrap();

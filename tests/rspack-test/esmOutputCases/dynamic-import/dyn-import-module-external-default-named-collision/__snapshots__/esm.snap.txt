@@ -1,0 +1,37 @@
+```mjs title=main.mjs
+// ./index.js
+it('should not confuse default and named bindings for module externals in shared chunks', async () => {
+	const a = await import("./shared.mjs")
+	const b = await import("./shared.mjs")
+	const fs = await import(/* webpackIgnore: true */ 'fs')
+
+	expect(a.defaultImport).toBe(fs.default)
+	expect(b.namedReadFile).toBe(fs.readFile)
+	expect(b.namedReadFile).not.toBe(fs.default)
+	expect(b.marker).toBe('ok')
+})
+
+export {};
+
+```
+
+```mjs title=shared.mjs
+import fs, { readFile } from "fs";
+
+// fs?2aa6
+
+// ./a.js
+
+
+const defaultImport = fs
+
+// fs?f4d4
+
+// ./b.js
+
+
+const marker = 'ok'
+
+export { defaultImport, marker, readFile as namedReadFile };
+
+```

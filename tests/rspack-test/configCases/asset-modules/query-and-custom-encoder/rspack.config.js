@@ -1,31 +1,31 @@
-const svgToMiniDataURI = require("mini-svg-data-uri");
-const mimeTypes = require("mime-types");
+const svgToMiniDataURI = require('mini-svg-data-uri');
+const mimeTypes = require('mime-types');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	mode: "development",
-	module: {
-		rules: [
-			{
-				test: /\.(png|svg|jpg)$/,
-				type: "asset/inline",
-				generator: {
-					dataUrl: (source, { filename, module }) => {
-						if (filename.endsWith("?foo=bar")) {
-							if (typeof source !== "string") {
-								source = source.toString();
-							}
+  mode: 'development',
+  module: {
+    rules: [
+      {
+        test: /\.(png|svg|jpg)$/,
+        type: 'asset/inline',
+        generator: {
+          dataUrl: (source, { filename, module }) => {
+            if (filename.endsWith('?foo=bar')) {
+              if (typeof source !== 'string') {
+                source = source.toString();
+              }
 
-							return svgToMiniDataURI(source);
-						}
+              return svgToMiniDataURI(source);
+            }
 
-						const mimeType = mimeTypes.lookup(module.nameForCondition());
-						const encodedContent = source.toString("base64");
+            const mimeType = mimeTypes.lookup(module.nameForCondition());
+            const encodedContent = source.toString('base64');
 
-						return `data:${mimeType};base64,${encodedContent}`;
-					}
-				}
-			}
-		]
-	}
+            return `data:${mimeType};base64,${encodedContent}`;
+          },
+        },
+      },
+    ],
+  },
 };

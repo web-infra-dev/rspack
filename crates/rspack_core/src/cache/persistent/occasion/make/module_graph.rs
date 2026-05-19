@@ -1,20 +1,17 @@
-use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 use rayon::prelude::*;
 use rspack_cacheable::{cacheable, utils::OwnedOrRef};
 use rspack_collections::IdentifierSet;
 use rspack_error::Result;
-use rustc_hash::FxHashSet as HashSet;
+use rustc_hash::FxHashSet;
 
-use super::{
-  Storage,
-  alternatives::{TempDependency, TempModule},
-};
+use super::alternatives::{TempDependency, TempModule};
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ExportsInfoData, ModuleGraph, ModuleGraphConnection,
-  ModuleGraphModule, ModuleIdentifier, RayonConsumer,
-  cache::persistent::codec::CacheCodec,
+  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
+  ModuleIdentifier, RayonConsumer,
+  cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
 
@@ -40,7 +37,7 @@ pub fn save_module_graph(
   module_to_lazy_make: &ModuleToLazyMake,
   removed_modules: &IdentifierSet,
   need_update_modules: &IdentifierSet,
-  storage: &Arc<dyn Storage>,
+  storage: &mut dyn Storage,
   codec: &CacheCodec,
 ) {
   for identifier in removed_modules {
@@ -48,7 +45,8 @@ pub fn save_module_graph(
   }
 
   // save module_graph
-  let nodes = need_update_modules
+  let saved_count = AtomicUsize::new(0);
+  need_update_modules
     .par_iter()
     .map(|identifier| {
       let mgm = mg
@@ -63,7 +61,7 @@ pub fn save_module_graph(
         .map(|block_id| mg.block_by_id(block_id).expect("should have block").into())
         .collect::<Vec<_>>();
       let dependencies = mgm
-        .all_dependencies
+        .all_dependencies()
         .par_iter()
         .map(|dep_id| {
           (
@@ -115,20 +113,19 @@ pub fn save_module_graph(
         }
       }
     })
-    .collect::<Vec<_>>();
+    .consume(|(id, bytes)| {
+      storage.set(SCOPE, id, bytes);
+      saved_count.fetch_add(1, Ordering::Relaxed);
+    });
 
-  tracing::debug!("save {} modules", nodes.len());
-
-  for (id, bytes) in nodes {
-    storage.set(SCOPE, id, bytes)
-  }
+  tracing::debug!("save {} modules", saved_count.load(Ordering::Relaxed));
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::recovery", skip_all)]
 pub async fn recovery_module_graph(
-  storage: &Arc<dyn Storage>,
+  storage: &dyn Storage,
   codec: &CacheCodec,
-) -> Result<(ModuleGraph, ModuleToLazyMake, HashSet<DependencyId>)> {
+) -> Result<(ModuleGraph, ModuleToLazyMake, FxHashSet<DependencyId>)> {
   let mut need_check_dep = vec![];
   let mut mg = ModuleGraph::default();
   let mut module_to_lazy_make = ModuleToLazyMake::default();
@@ -143,7 +140,7 @@ pub async fn recovery_module_graph(
     })
     .with_max_len(1)
     .consume(|node| {
-      let mut mgm = node.mgm.into_owned();
+      let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();
@@ -170,11 +167,6 @@ pub async fn recovery_module_graph(
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
-      // recovery exports/export info
-      let exports_info = ExportsInfoData::default();
-      mgm.exports = exports_info.id();
-      mg.set_exports_info(exports_info.id(), exports_info);
-
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
     });
@@ -191,7 +183,7 @@ pub async fn recovery_module_graph(
       entry_module.push(mgm.module_identifier);
     };
   }
-  let mut entry_dependencies: HashSet<DependencyId> = Default::default();
+  let mut entry_dependencies: FxHashSet<DependencyId> = Default::default();
   for mid in entry_module {
     let dep = TempDependency::default();
     let connection = ModuleGraphConnection::new(*dep.id(), None, mid, false);
@@ -200,6 +192,6 @@ pub async fn recovery_module_graph(
     mg.cache_recovery_connection(connection);
   }
 
-  tracing::debug!("recovery {} module", mg.modules().len());
+  tracing::debug!("recovery {} module", mg.modules_len());
   Ok((mg, module_to_lazy_make, entry_dependencies))
 }

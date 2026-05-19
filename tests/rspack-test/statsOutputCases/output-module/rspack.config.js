@@ -1,11 +1,11 @@
 module.exports = {
-	mode: "production",
-	entry: "./index",
-	experiments: {
-		outputModule: true
-	},
-	stats: {
-		assets: true,
-		modules: true,
-	}
+  output: {
+    module: true,
+  },
+  mode: 'production',
+  entry: './index',
+  stats: {
+    assets: true,
+    modules: true,
+  },
 };

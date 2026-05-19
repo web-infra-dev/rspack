@@ -1,6 +1,5 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-// biome-ignore syntax/correctness/noTypeOnlyImportAttributes: Biome does not support this
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
 
 const require = createRequire(import.meta.url);

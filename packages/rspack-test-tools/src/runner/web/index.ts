@@ -4,8 +4,8 @@ import { fileURLToPath } from 'node:url';
 import { Script } from 'node:vm';
 import { JSDOM, ResourceLoader, VirtualConsole } from 'jsdom';
 import { escapeSep } from '../../helper';
-import EventSource from '../../helper/legacy/EventSourceForNode';
-import urlToRelativePath from '../../helper/legacy/urlToRelativePath';
+import { EventSource } from '../../helper/legacy/EventSourceForNode';
+import { urlToRelativePath } from '../../helper/legacy/urlToRelativePath';
 import type { TRunnerFile, TRunnerRequirer } from '../../type';
 import { type INodeRunnerOptions, NodeRunner } from '../node';
 
@@ -136,8 +136,8 @@ export class WebRunner extends NodeRunner {
         }
 
         try {
-          that.dom.window['__LINK_SHEET__'] ??= {};
-          that.dom.window['__LINK_SHEET__'][url] = finalCode!.toString();
+          that.dom.window.__LINK_SHEET__ ??= {};
+          that.dom.window.__LINK_SHEET__[url] = finalCode!.toString();
           return Promise.resolve(finalCode!) as any;
         } catch (err) {
           console.error(err);
@@ -190,7 +190,8 @@ export class WebRunner extends NodeRunner {
         return {
           status: 200,
           ok: true,
-          json: async () => JSON.parse(buffer.toString('utf-8')),
+          json: () =>
+            Promise.resolve().then(() => JSON.parse(buffer.toString('utf-8'))),
         };
       } catch (err) {
         if ((err as { code: string }).code === 'ENOENT') {
@@ -222,7 +223,7 @@ export class WebRunner extends NodeRunner {
     moduleScope.window = this.dom.window;
     moduleScope.document = this.dom.window.document;
     moduleScope.getLinkSheet = (link: HTMLLinkElement) => {
-      return this.dom.window['__LINK_SHEET__'][link.href];
+      return this.dom.window.__LINK_SHEET__[link.href];
     };
     return moduleScope;
   }
@@ -322,9 +323,9 @@ export class WebRunner extends NodeRunner {
       .map((arg) => `window["${scopeKey}"]["${arg}"]`)
       .join(', ');
     this.dom.window[scopeKey] = currentModuleScope;
-    this.dom.window['__GLOBAL_SHARED__'] = this.globalContext;
-    this.dom.window['__LOCATED_ERROR__'] = locatedError;
-    this.dom.window['__FILE__'] = file;
+    this.dom.window.__GLOBAL_SHARED__ = this.globalContext;
+    this.dom.window.__LOCATED_ERROR__ = locatedError;
+    this.dom.window.__FILE__ = file;
 
     return [
       m,

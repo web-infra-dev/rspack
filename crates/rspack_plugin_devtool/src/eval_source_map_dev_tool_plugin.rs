@@ -1,12 +1,11 @@
 use std::{hash::Hash, sync::Arc};
 
-use dashmap::DashMap;
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -19,6 +18,7 @@ use rspack_plugin_javascript::{
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
+  fx_hash::FxDashMap,
   identifier::make_paths_absolute,
 };
 
@@ -45,7 +45,7 @@ pub struct EvalSourceMapDevToolPlugin {
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
   // TODO: memory leak if not clear across multiple compilations
-  cache: DashMap<RspackHashDigest, BoxSource>,
+  cache: FxDashMap<RspackHashDigest, BoxSource>,
 }
 
 impl EvalSourceMapDevToolPlugin {
@@ -57,7 +57,7 @@ impl EvalSourceMapDevToolPlugin {
           "webpack://[namespace]/[resource-path]?[hash]".to_string(),
         ));
 
-    let namespace = options.namespace.unwrap_or("".to_string());
+    let namespace = options.namespace.unwrap_or_default();
 
     Self::new_inner(
       options.columns,
@@ -101,9 +101,13 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
+  runtime_template: &RuntimeCodeTemplate<'_>,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk);
   let module_hash = compilation
     .code_generation_results
     .get_hash(&module.identifier(), Some(chunk.runtime()))
@@ -154,7 +158,7 @@ async fn render_module_content(
               None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(Arc::from(source.to_string()))
+            SourceReference::Source(Arc::from(source.clone()))
           }
         });
         let path_data = PathData::default()
@@ -237,7 +241,6 @@ async fn render_module_content(
         )));
       }
 
-      let mut map_buffer = Vec::new();
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
       let module_id =
@@ -246,10 +249,8 @@ async fn render_module_content(
         } else {
           "unknown"
         };
-      map
-        .to_writer(&mut map_buffer)
-        .unwrap_or_else(|e| panic!("{}", e.to_string()));
-      let base64 = base64::encode_to_string(&map_buffer);
+      let source_map = map.to_json();
+      let base64 = base64::encode_to_string(&source_map);
       let footer = format!(
         r#"
 //# sourceMappingURL=data:application/json;charset=utf-8;base64,{base64}
@@ -263,9 +264,7 @@ async fn render_module_content(
         if compilation.options.output.trusted_types.is_some() {
           format!(
             "{}({})",
-            compilation
-              .runtime_template
-              .render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
+            runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_SCRIPT),
             module_content
           )
         } else {

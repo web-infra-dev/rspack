@@ -1,3 +1,7 @@
+---
+description: '例如，DefinePlugin 允许你在编译时将代码中的变量替换为其他值或表达式。你可以通过 rspack.DefinePlugin 来访问它，并使用 new 来创建插件实例：'
+---
+
 # Plugins
 
 - **类型：**
@@ -31,7 +35,6 @@ Rspack 附带了许多内置插件，你可以通过 `rspack.PluginName` 访问�
 import { rspack } from '@rspack/core';
 
 export default {
-  //...
   plugins: [
     new rspack.DefinePlugin({
       // 传入插件选项
@@ -49,7 +52,6 @@ import { rspack } from '@rspack/core';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 
 export default {
-  //...
   plugins: [new HtmlWebpackPlugin()],
 };
 ```

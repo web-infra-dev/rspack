@@ -1,0 +1,28 @@
+```mjs title=main.mjs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// fs
+const external_fs_namespaceObject = __rspack_createRequire_require("fs");
+// ./index.js
+
+
+
+it("should combine node-commonjs export-star-as and named exports for the same source", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+  const { createRequire } = await import("node:module");
+  const require = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/externals/node-commonjs-export-namespace-as-with-named/index.js');
+  const fs = require("fs");
+
+  expect(mod.fsNs.readFile).toBe(mod.readFile);
+  expect(mod.fsNs.readFileSync).toBe(mod.readFileSync);
+  expect(mod.fsNs.readFile).toBe(fs.readFile);
+  expect(mod.fsNs.readFileSync).toBe(fs.readFileSync);
+});
+
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+var readFile = external_fs_namespaceObject.readFile;
+var readFileSync = external_fs_namespaceObject.readFileSync;
+export { external_fs_namespaceObject as fsNs, readFile, readFileSync };
+
+```

@@ -1,4 +1,5 @@
 use std::{
+  ffi::c_void,
   hash::Hash,
   ptr::NonNull,
   sync::{Arc, RwLock},
@@ -7,42 +8,42 @@ use std::{
 use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::{
-  Env, JsValue,
+  Either, Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
-  BoxModule, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  BoxModule, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
   CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
   CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
-  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
-  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
-  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
-  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
-  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
-  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
-  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
-  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
-  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
-  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
-  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
-  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
-  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
+  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
+  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
+  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
+  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
+  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
+  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
+  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
+  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
+  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
+  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
+  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
+  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
+  CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
+  CompilerThisCompilation, CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
-  ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
-  NormalModuleFactoryAfterResolveHook, NormalModuleFactoryBeforeResolve,
-  NormalModuleFactoryBeforeResolveHook, NormalModuleFactoryCreateModule,
-  NormalModuleFactoryCreateModuleHook, NormalModuleFactoryFactorize,
-  NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
+  ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryAfterResolveHook,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryBeforeResolveHook,
+  NormalModuleFactoryCreateModule, NormalModuleFactoryCreateModuleHook,
+  NormalModuleFactoryFactorize, NormalModuleFactoryFactorizeHook, NormalModuleFactoryResolve,
   NormalModuleFactoryResolveForScheme, NormalModuleFactoryResolveForSchemeHook,
   NormalModuleFactoryResolveHook, NormalModuleFactoryResolveResult, ResourceData, RuntimeGlobals,
-  RuntimeModule, Scheme, build_module_graph::BuildModuleGraphArtifact, parse_resource,
-  rspack_sources::RawStringSource,
+  RuntimeModule, RuntimeModuleGenerateContext, Scheme,
+  build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::RspackHash;
@@ -71,6 +72,8 @@ use rspack_plugin_runtime::{
   RuntimePluginLinkPrefetch, RuntimePluginLinkPrefetchHook, RuntimePluginLinkPreload,
   RuntimePluginLinkPreloadHook,
 };
+use rspack_tasks::within_compiler_context;
+use rustc_hash::FxHashMap;
 
 use crate::{
   asset::JsAssetEmittedArgs,
@@ -80,6 +83,7 @@ use crate::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
   },
+  dependency::DependencyWrapper,
   html::{
     JsAfterEmitData, JsAfterTemplateExecutionData, JsAlterAssetTagGroupsData, JsAlterAssetTagsData,
     JsBeforeAssetTagGenerationData, JsBeforeEmitData,
@@ -96,10 +100,39 @@ use crate::{
   runtime::{
     JsAdditionalTreeRuntimeRequirementsArg, JsAdditionalTreeRuntimeRequirementsResult,
     JsCreateLinkData, JsCreateScriptData, JsLinkPrefetchData, JsLinkPreloadData, JsRuntimeGlobals,
-    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult,
+    JsRuntimeRequirementInTreeArg, JsRuntimeRequirementInTreeResult, JsRuntimeSpec,
   },
   source::JsSourceToJs,
 };
+
+#[napi(object)]
+pub struct JsModuleForIds {
+  pub identifier: String,
+}
+
+#[napi(object)]
+pub struct JsBeforeModuleIdsArg {
+  pub modules: Vec<JsModuleForIds>,
+}
+
+impl JsBeforeModuleIdsArg {
+  pub fn new(_compilation: &Compilation, modules: &IdentifierSet) -> Self {
+    Self {
+      modules: modules
+        .iter()
+        .map(|id| JsModuleForIds {
+          identifier: id.to_string(),
+        })
+        .collect(),
+    }
+  }
+}
+
+#[napi(object)]
+pub struct JsBeforeModuleIdsResult {
+  #[napi(ts_type = "Record<string, string | number>")]
+  pub assignments: FxHashMap<String, Either<String, u32>>,
+}
 
 #[napi(object)]
 pub struct JsTap<'f> {
@@ -237,7 +270,7 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
     hook: &impl Hook,
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
-    used_stages.sort();
+    used_stages.sort_unstable();
     self.register.call_with_sync(used_stages).await
   }
 
@@ -343,6 +376,7 @@ pub enum RegisterJsTapKind {
   CompilationAfterOptimizeModules,
   CompilationOptimizeTree,
   CompilationOptimizeChunkModules,
+  CompilationBeforeModuleIds,
   CompilationAdditionalTreeRuntimeRequirements,
   CompilationRuntimeRequirementInTree,
   CompilationRuntimeModule,
@@ -479,6 +513,11 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: (() => Promise<boolean | undefined>); stage: number; }>"
   )]
   pub register_compilation_optimize_chunk_modules_taps: RegisterFunction<(), Promise<Option<bool>>>,
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsBeforeModuleIdsArg) => JsBeforeModuleIdsResult); stage: number; }>"
+  )]
+  pub register_compilation_before_module_ids_taps:
+    RegisterFunction<JsBeforeModuleIdsArg, JsBeforeModuleIdsResult>,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: Chunk) => Buffer); stage: number; }>"
   )]
@@ -748,6 +787,13 @@ define_register!(
   tap = CompilationOptimizeChunkModulesTap<(), Promise<Option<bool>>> @ CompilationOptimizeChunkModulesHook,
   cache = false,
   kind = RegisterJsTapKind::CompilationOptimizeChunkModules,
+  skip = true,
+);
+define_register!(
+  RegisterCompilationBeforeModuleIdsTaps,
+  tap = CompilationBeforeModuleIdsTap<JsBeforeModuleIdsArg, JsBeforeModuleIdsResult> @ CompilationBeforeModuleIdsHook,
+  cache = false,
+  kind = RegisterJsTapKind::CompilationBeforeModuleIds,
   skip = true,
 );
 define_register!(
@@ -1215,11 +1261,29 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
 impl CompilationFinishModules for CompilationFinishModulesTap {
   async fn run(
     &self,
-    compilation: &mut Compilation,
-    async_modules_artifact: &mut AsyncModulesArtifact,
+    compilation: &Compilation,
+    _async_modules_artifact: &mut AsyncModulesArtifact,
+    exports_info_artifact: &mut rspack_core::ExportsInfoArtifact,
+    _side_effects_state_artifact: &mut rspack_core::SideEffectsStateArtifact,
   ) -> rspack_error::Result<()> {
-    let compilation = JsCompilationWrapper::new(compilation);
-    self.function.call_with_promise(compilation).await
+    let compiler_context = compilation.compiler_context.clone();
+    let previous_ptr_addr = compiler_context
+      .exports_info_artifact_ptr()
+      .map_or(0usize, |ptr| ptr as usize);
+    compiler_context
+      .set_exports_info_artifact_ptr(Some(exports_info_artifact as *mut _ as *mut c_void));
+    let result = within_compiler_context(compiler_context.clone(), async {
+      let compilation = JsCompilationWrapper::new(compilation);
+      self.function.call_with_promise(compilation).await
+    })
+    .await;
+    let previous_ptr = if previous_ptr_addr == 0 {
+      None
+    } else {
+      Some(previous_ptr_addr as *mut c_void)
+    };
+    compiler_context.set_exports_info_artifact_ptr(previous_ptr);
+    result
   }
 
   fn stage(&self) -> i32 {
@@ -1232,6 +1296,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
   async fn run(
     &self,
     _compilation: &Compilation,
+    _circular_modules: &mut IdentifierSet,
     _diagnostics: &mut Vec<rspack_error::Diagnostic>,
   ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await
@@ -1268,6 +1333,34 @@ impl CompilationOptimizeTree for CompilationOptimizeTreeTap {
 impl CompilationOptimizeChunkModules for CompilationOptimizeChunkModulesTap {
   async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_promise(()).await
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl CompilationBeforeModuleIds for CompilationBeforeModuleIdsTap {
+  async fn run(
+    &self,
+    compilation: &Compilation,
+    modules: &IdentifierSet,
+    module_ids: &mut ModuleIdsArtifact,
+  ) -> rspack_error::Result<()> {
+    let arg = JsBeforeModuleIdsArg::new(compilation, modules);
+    let result: JsBeforeModuleIdsResult = self.function.call_with_sync(arg).await?;
+
+    for (identifier_str, id) in result.assignments {
+      let identifier = ModuleIdentifier::from(identifier_str.as_str());
+      let module_id = match id {
+        Either::A(s) => ModuleId::from(s),
+        Either::B(n) => ModuleId::from(n),
+      };
+      ChunkGraph::set_module_id(module_ids, identifier, module_id);
+    }
+
+    Ok(())
   }
 
   fn stage(&self) -> i32 {
@@ -1350,7 +1443,12 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let source_string = module.generate(compilation).await?;
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let context = RuntimeModuleGenerateContext {
+      compilation,
+      runtime_template: &runtime_template,
+    };
+    let source_string = module.generate(&context).await?;
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(JsSourceToJs::from(source_string)),
@@ -1460,7 +1558,11 @@ impl CompilationAfterProcessAssets for CompilationAfterProcessAssetsTap {
 
 #[async_trait]
 impl CompilationSeal for CompilationSealTap {
-  async fn run(&self, _compilation: &mut Compilation) -> rspack_error::Result<()> {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    _diagnostics: &mut Vec<Diagnostic>,
+  ) -> rspack_error::Result<()> {
     self.function.call_with_sync(()).await
   }
 
@@ -1613,7 +1715,7 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
         dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
-        resource_resolve_data: (&create_data.resource_resolve_data).into(),
+        resource_resolve_data: create_data.resource_resolve_data.as_ref().into(),
         context: data.context.to_string(),
         match_resource: create_data.match_resource.clone(),
       })

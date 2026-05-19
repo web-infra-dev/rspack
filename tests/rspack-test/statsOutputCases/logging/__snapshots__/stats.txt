@@ -19,44 +19,22 @@ LOG from LogOtherTestPlugin
 LOG from <TEST_ROOT>/statsOutputCases/logging/index.js
 <e> An error
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory.create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at Stats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-|     at Array.map (<anonymous>)
-|     at MultiStats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Object.check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Tester.runCheckStepMethods (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
-|     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <w> A warning
 |     at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callAsyncStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.callStageRange (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
-|     at SyncBailHook.call (<ROOT>/node_modules/<PNPM_INNER>/@rspack/lite-tapable/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
+|     at SyncBailHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
 |     at StatsFactory._forEachLevel (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory._create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
 |     at StatsFactory.create (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at Stats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at <RSPACK_ROOT>/dist/index.js<LINE_COL>
-|     at Array.map (<anonymous>)
-|     at MultiStats.toString (<RSPACK_ROOT>/dist/index.js<LINE_COL>)
-|     at check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Object.check (<TEST_TOOLS_ROOT>/dist/case/stats-output.js<LINE_COL>)
-|     at Tester.runCheckStepMethods (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at processTicksAndRejections (node:internal/process/task_queues<LINE_COL>)
-|     at Tester.check (<TEST_TOOLS_ROOT>/dist/test/tester.js<LINE_COL>)
-|     at <TEST_TOOLS_ROOT>/dist/test/creator.js<LINE_COL>
-|     at onMessage (<ROOT>/node_modules/<PNPM_INNER>/tinypool/dist/entry/process.js<LINE_COL>)
 <-> Unimportant
   <i> Info message
       Just log
@@ -73,16 +51,21 @@ LOG from Named Logger|<TEST_ROOT>/statsOutputCases/logging/index.js
     Message with named logger
 
 LOG from rspack.Compilation
+<t> build module graph: xx ms
 <t> finish modules: xx ms
+<t> seal: xx ms
 <t> optimize dependencies: xx ms
 <t> rebuild chunk graph: xx ms
+<t> build chunk graph: xx ms
 <t> optimize modules: xx ms
 <t> optimize chunks: xx ms
 <t> optimize tree: xx ms
 <t> optimize chunk modules: xx ms
 <t> module ids: xx ms
 <t> chunk ids: xx ms
+<t> assign runtime ids: xx ms
 <t> optimize code generation: xx ms
+<t> create module hashes: xx ms
 <t> code generation: xx ms
 <t> runtime requirements.modules: xx ms
 <t> runtime requirements.chunks: xx ms
@@ -100,7 +83,6 @@ LOG from rspack.Compilation
 
 LOG from rspack.Compiler
 <t> make hook: xx ms
-<t> build module graph: xx ms
 <t> finish make hook: xx ms
 <t> finish compilation: xx ms
 <t> seal compilation: xx ms

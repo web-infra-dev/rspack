@@ -79,7 +79,7 @@ export interface Asset {
 }
 
 export type ChunkPathData = {
-  id?: string;
+  id?: string | number;
   name?: string;
   hash?: string;
   contentHash?: Record<string, string>;
@@ -91,10 +91,34 @@ export type PathData = {
   contentHash?: string;
   runtime?: string;
   url?: string;
-  id?: string;
+  id?: string | number;
   chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
 };
+
+function normalizePathData(data: PathData = {}): JsPathData {
+  const pathData: JsPathData = {
+    filename: data.filename,
+    hash: data.hash,
+    contentHash: data.contentHash,
+    runtime: data.runtime,
+    url: data.url,
+  };
+
+  if (data.id !== undefined) {
+    pathData.id = String(data.id);
+  }
+
+  if (data.chunk) {
+    pathData.chunk = {
+      id: data.chunk.id !== undefined ? String(data.chunk.id) : undefined,
+      name: data.chunk.name,
+      hash: data.chunk.hash,
+    };
+  }
+
+  return pathData;
+}
 
 export interface LogEntry {
   type: string;
@@ -225,6 +249,7 @@ export class Compilation {
       [Iterable<Chunk>, Iterable<Module>],
       void
     >;
+    beforeModuleIds: liteTapable.SyncHook<[Iterable<Module>]>;
     finishModules: liteTapable.AsyncSeriesHook<[Iterable<Module>], void>;
     chunkHash: liteTapable.SyncHook<[Chunk, Hash]>;
     chunkAsset: liteTapable.SyncHook<[Chunk, string]>;
@@ -361,6 +386,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
         'chunks',
         'modules',
       ]),
+      beforeModuleIds: new liteTapable.SyncHook(['modules']),
       finishModules: new liteTapable.AsyncSeriesHook(['modules']),
       chunkHash: new liteTapable.SyncHook(['chunk', 'hash']),
       chunkAsset: new liteTapable.SyncHook(['chunk', 'filename']),
@@ -389,6 +415,26 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
+
+    // Wrap hooks with a Proxy to provide helpful error messages when
+    // webpack plugins try to access hooks that don't exist in rspack
+    const availableHooks = Object.keys(this.hooks);
+    this.hooks = new Proxy(this.hooks, {
+      get(target, prop, receiver) {
+        const value = Reflect.get(target, prop, receiver);
+        if (value === undefined && typeof prop === 'string') {
+          const hooksList = availableHooks.join(', ');
+          throw new Error(
+            `Compilation.hooks.${prop} is not supported in rspack. ` +
+              `This typically happens when using webpack plugins that rely on webpack-specific hooks. ` +
+              `Consider using an rspack-compatible alternative or removing the incompatible plugin.\n\n` +
+              `Available compilation hooks: ${hooksList}`,
+          );
+        }
+        return value;
+      },
+    });
+
     this.compiler = compiler;
     this.resolverFactory = compiler.resolverFactory;
     this.inputFileSystem = compiler.inputFileSystem;
@@ -729,7 +775,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -737,7 +783,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -745,7 +791,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getAssetPath(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -753,7 +799,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getAssetPathWithInfo(filename: string, data: PathData = {}) {
-    const pathData: JsPathData = { ...data };
+    const pathData = normalizePathData(data);
     if (data.contentHashType && data.chunk?.contentHash) {
       pathData.contentHash = data.chunk.contentHash[data.contentHashType];
     }
@@ -1243,6 +1289,27 @@ export class Entries implements Map<string, EntryData> {
 
   delete(key: string): boolean {
     return this.#data.delete(key);
+  }
+
+  getOrInsert(key: string, defaultValue: EntryData): EntryData {
+    if (this.has(key)) {
+      return this.get(key)!;
+    }
+
+    this.set(key, defaultValue);
+    return this.get(key)!;
+  }
+
+  getOrInsertComputed(
+    key: string,
+    callback: (key: string) => EntryData,
+  ): EntryData {
+    if (this.has(key)) {
+      return this.get(key)!;
+    }
+
+    this.set(key, callback(key));
+    return this.get(key)!;
   }
 
   get(key: string): EntryData | undefined {

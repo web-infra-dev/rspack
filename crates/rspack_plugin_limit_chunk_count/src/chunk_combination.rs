@@ -1,21 +1,17 @@
 use std::{cmp::Ordering, hash::Hash, sync::atomic::AtomicU32};
 
-use rspack_collections::{Database, DatabaseItem, Ukey, impl_item_ukey};
 use rspack_core::ChunkUkey;
+use rustc_hash::FxHashMap;
 
 static NEXT_CHUNK_COMBINATION_UKEY: AtomicU32 = AtomicU32::new(0);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct ChunkCombinationUkey(Ukey, std::marker::PhantomData<ChunkCombination>);
-
-impl_item_ukey!(ChunkCombinationUkey);
+pub struct ChunkCombinationUkey(u32, std::marker::PhantomData<ChunkCombination>);
 
 impl ChunkCombinationUkey {
   pub fn new() -> Self {
     Self(
-      NEXT_CHUNK_COMBINATION_UKEY
-        .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
-        .into(),
+      NEXT_CHUNK_COMBINATION_UKEY.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
       std::marker::PhantomData,
     )
   }
@@ -34,13 +30,6 @@ pub struct ChunkCombination {
   pub b_size: f64,
 }
 
-impl DatabaseItem for ChunkCombination {
-  type ItemUkey = ChunkCombinationUkey;
-  fn ukey(&self) -> Self::ItemUkey {
-    self.ukey
-  }
-}
-
 impl PartialEq for ChunkCombination {
   fn eq(&self, other: &Self) -> bool {
     self.a == other.a && self.b == other.b
@@ -57,7 +46,7 @@ impl Hash for ChunkCombination {
 }
 
 pub struct ChunkCombinationBucket {
-  combinations_by_ukey: Database<ChunkCombination>,
+  combinations_by_ukey: FxHashMap<ChunkCombinationUkey, ChunkCombination>,
   sorted_combinations: Vec<ChunkCombinationUkey>,
   out_of_date: bool,
 }
@@ -72,19 +61,31 @@ impl ChunkCombinationBucket {
   }
 
   pub fn get_mut(&mut self, ukey: &ChunkCombinationUkey) -> &mut ChunkCombination {
-    self.combinations_by_ukey.expect_get_mut(ukey)
+    self
+      .combinations_by_ukey
+      .get_mut(ukey)
+      .unwrap_or_else(|| panic!("ChunkCombination({ukey:?}) not found"))
   }
 
   pub fn add(&mut self, combination: ChunkCombination) {
     self.sorted_combinations.push(combination.ukey);
-    self.combinations_by_ukey.add(combination);
+    self
+      .combinations_by_ukey
+      .entry(combination.ukey)
+      .or_insert(combination);
     self.out_of_date = true;
   }
 
   fn sort_combinations(&mut self) {
     self.sorted_combinations.sort_by(|a_ukey, b_ukey| {
-      let a = self.combinations_by_ukey.expect_get(a_ukey);
-      let b = self.combinations_by_ukey.expect_get(b_ukey);
+      let a = self
+        .combinations_by_ukey
+        .get(a_ukey)
+        .unwrap_or_else(|| panic!("ChunkCombination({a_ukey:?}) not found"));
+      let b = self
+        .combinations_by_ukey
+        .get(b_ukey)
+        .unwrap_or_else(|| panic!("ChunkCombination({b_ukey:?}) not found"));
       // Layer 1: ordered by largest size benefit
       if a.size_diff < b.size_diff {
         Ordering::Less

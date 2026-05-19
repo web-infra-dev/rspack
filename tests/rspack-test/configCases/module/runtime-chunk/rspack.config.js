@@ -1,14 +1,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-	output: {
-		filename: "[name].mjs"
-	},
-	target: ["web", "es2020"],
-	experiments: {
-		outputModule: true
-	},
-	optimization: {
-		minimize: true,
-		runtimeChunk: "single"
-	}
+  output: {
+    module: true,
+    filename: '[name].mjs',
+  },
+  target: ['web', 'es2020'],
+  optimization: {
+    minimize: true,
+    runtimeChunk: 'single',
+  },
 };

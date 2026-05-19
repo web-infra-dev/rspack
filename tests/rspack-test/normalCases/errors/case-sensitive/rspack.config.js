@@ -1,4 +1,4 @@
-const { CaseSensitivePlugin } = require("@rspack/core");
+const { CaseSensitivePlugin } = require('@rspack/core');
 
 module.exports = {
   plugins: [new CaseSensitivePlugin()],

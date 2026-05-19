@@ -1,3 +1,7 @@
+---
+description: 'Use Vue with Rspack, covering setup, configuration, integration details, and framework-specific development patterns.'
+---
+
 import { PackageManagerTabs } from '@theme';
 
 # Vue
@@ -96,14 +100,10 @@ export default {
         type: 'javascript/auto',
       },
       {
-        test: /\.ts$/, // add this rule when you use TypeScript in Vue SFC
+        test: /\.(?:js|mjs|ts)$/, // add this rule when you use TypeScript in Vue SFC
         loader: 'builtin:swc-loader',
         options: {
-          jsc: {
-            parser: {
-              syntax: 'typescript',
-            },
-          },
+          detectSyntax: 'auto',
         },
         type: 'javascript/auto',
       },

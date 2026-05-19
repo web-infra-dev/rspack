@@ -4,6 +4,7 @@ use swc_core::ecma::ast::Program;
 
 pub struct HashbangParserPlugin;
 
+#[rspack_plugin_javascript::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for HashbangParserPlugin {
   fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let hashbang = ast
@@ -16,7 +17,7 @@ impl JavascriptParserPlugin for HashbangParserPlugin {
     let normalized_hashbang = if hashbang.starts_with("#!") {
       hashbang.to_string()
     } else {
-      format!("#!{}", hashbang)
+      format!("#!{hashbang}")
     };
 
     // Store hashbang in build_info for later use during rendering
@@ -36,7 +37,6 @@ impl JavascriptParserPlugin for HashbangParserPlugin {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       (0, replace_len).into(),
       "".into(),
-      None,
     )));
 
     None

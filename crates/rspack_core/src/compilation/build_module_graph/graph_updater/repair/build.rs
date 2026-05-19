@@ -4,11 +4,11 @@ use rspack_fs::ReadableFileSystem;
 use rustc_hash::FxHashSet;
 
 use super::{
-  TaskContext, lazy::ProcessUnlazyDependenciesTask, process_dependencies::ProcessDependenciesTask,
+  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
 };
 use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildResult, CompilationId,
-  CompilerId, CompilerOptions, DependencyParents, ResolverFactory, RuntimeTemplate,
+  CompilerId, CompilerOptions, DependencyParents, ModuleCodeTemplate, ResolverFactory,
   SharedPluginDriver,
   compilation::build_module_graph::{ForwardedIdSet, HasLazyDependencies, LazyDependencies},
   utils::{
@@ -24,7 +24,7 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub resolver_factory: Arc<ResolverFactory>,
   pub compiler_options: Arc<CompilerOptions>,
-  pub runtime_template: Arc<RuntimeTemplate>,
+  pub runtime_template: ModuleCodeTemplate,
   pub plugin_driver: SharedPluginDriver,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub forwarded_ids: ForwardedIdSet,
@@ -62,7 +62,7 @@ impl Task<TaskContext> for BuildTask {
           compiler_options: compiler_options.clone(),
           resolver_factory: resolver_factory.clone(),
           plugin_driver: plugin_driver.clone(),
-          runtime_template: runtime_template.clone(),
+          runtime_template,
           fs: fs.clone(),
         },
         None,
@@ -71,7 +71,6 @@ impl Task<TaskContext> for BuildTask {
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
-        module,
         build_result: Box::new(build_result),
         plugin_driver,
         forwarded_ids,
@@ -82,7 +81,6 @@ impl Task<TaskContext> for BuildTask {
 
 #[derive(Debug)]
 struct BuildResultTask {
-  pub module: BoxModule,
   pub build_result: Box<BuildResult>,
   pub plugin_driver: SharedPluginDriver,
   pub forwarded_ids: ForwardedIdSet,
@@ -95,11 +93,11 @@ impl Task<TaskContext> for BuildResultTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let BuildResultTask {
-      mut module,
       build_result,
       plugin_driver,
       mut forwarded_ids,
     } = *self;
+    let mut module = build_result.module;
 
     plugin_driver
       .compilation_hooks
@@ -184,7 +182,7 @@ impl Task<TaskContext> for BuildResultTask {
 
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
-      mgm.all_dependencies = all_dependencies.clone();
+      mgm.all_dependencies_mut().clone_from(&all_dependencies);
     }
 
     let module_identifier = module.identifier();
@@ -206,11 +204,13 @@ impl Task<TaskContext> for BuildResultTask {
       {
         forwarded_ids.append(pending_forwarded_ids);
       }
-      if !forwarded_ids.is_empty() {
-        tasks.push(Box::new(ProcessUnlazyDependenciesTask {
-          forwarded_ids,
-          original_module_identifier: module_identifier,
-        }));
+      if let Some(task) = process_unlazy_dependencies(
+        &context.artifact.module_to_lazy_make,
+        module_graph,
+        forwarded_ids,
+        module_identifier,
+      ) {
+        tasks.push(Box::new(task));
       }
 
       all_dependencies

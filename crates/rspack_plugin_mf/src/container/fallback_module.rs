@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
+  BuildResult, ChunkGraph, ChunkUkey, CodeGenerationResult, Compilation, Context,
+  DependenciesBlock, DependencyId, FactoryMeta, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -121,11 +121,17 @@ impl Module for FallbackModule {
   }
 
   fn chunk_condition(&self, chunk: &ChunkUkey, compilation: &Compilation) -> Option<bool> {
-    Some(compilation.chunk_graph.get_number_of_entry_modules(chunk) > 0)
+    Some(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_number_of_entry_modules(chunk)
+        > 0,
+    )
   }
 
   async fn build(
-    &mut self,
+    mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
@@ -135,8 +141,9 @@ impl Module for FallbackModule {
     }
 
     Ok(BuildResult {
+      module: BoxModule::new(self),
       dependencies,
-      blocks: Vec::new(),
+      blocks: vec![],
       optimization_bailouts: vec![],
     })
   }

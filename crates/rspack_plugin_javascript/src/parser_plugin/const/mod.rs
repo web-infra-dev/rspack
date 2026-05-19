@@ -2,17 +2,22 @@ mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
+use rspack_util::SpanExt;
 use swc_core::common::Spanned;
 
 pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
-use crate::{utils::eval::evaluate_to_string, visitors::JavascriptParser};
+use crate::{
+  utils::eval::evaluate_to_string,
+  visitors::{JavascriptParser, Statement},
+};
 
 pub struct ConstPlugin;
 
 const RESOURCE_FRAGMENT: &str = "__resourceFragment";
 const RESOURCE_QUERY: &str = "__resourceQuery";
 
+#[rspack_macros::implemented_javascript_parser_hooks]
 impl JavascriptParserPlugin for ConstPlugin {
   fn expression_logical_operator(
     &self,
@@ -33,7 +38,6 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           param.range().into(),
           format!(" {bool}").into(),
-          None,
         )));
       } else {
         parser.walk_expression(&expression.test);
@@ -42,13 +46,11 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           expression.alt.span().into(),
           "0".into(),
-          None,
         )));
       } else {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           expression.cons.span().into(),
           "0".into(),
-          None,
         )));
       }
       Some(bool)
@@ -77,9 +79,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceFragment".into(),
-          serde_json::to_string(resource_fragment)
-            .expect("should render module id")
-            .into(),
+          rspack_util::json_stringify_str(resource_fragment).into(),
         )));
         Some(true)
       }
@@ -88,9 +88,7 @@ impl JavascriptParserPlugin for ConstPlugin {
         parser.add_presentational_dependency(Box::new(CachedConstDependency::new(
           ident.span.into(),
           "__resourceQuery".into(),
-          serde_json::to_string(resource_query)
-            .expect("should render module id")
-            .into(),
+          rspack_util::json_stringify_str(resource_query).into(),
         )));
         Some(true)
       }
@@ -126,5 +124,36 @@ impl JavascriptParserPlugin for ConstPlugin {
       )),
       _ => None,
     }
+  }
+
+  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+    // Skip top level scope to align with webpack's ConstPlugin behavior.
+    if parser.is_top_level_scope() {
+      return None;
+    }
+
+    // Compute hoisted declarations from the dead statement without cloning the AST.
+    let include_function_declarations = !parser.is_strict();
+    let declarations = self::if_stmt::get_hoisted_declarations(stmt, include_function_declarations);
+
+    let replacement_body = if declarations.is_empty() {
+      "{}".to_string()
+    } else {
+      let mut names: Vec<&str> = declarations.iter().map(|decl| decl.sym.as_str()).collect();
+      names.sort_unstable();
+      format!("{{ var {} }}", names.join(", "))
+    };
+
+    // Prepend the same comment as webpack for easier debugging.
+    let mut replacement = String::from("// removed by dead control flow\n");
+    replacement.push_str(&replacement_body);
+
+    let span = stmt.span();
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      (span.real_lo(), span.real_hi()).into(),
+      replacement.into_boxed_str(),
+    )));
+
+    Some(true)
   }
 }

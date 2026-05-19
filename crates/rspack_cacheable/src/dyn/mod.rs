@@ -1,8 +1,5 @@
 use core::marker::PhantomData;
-use std::{
-  collections::HashMap,
-  hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 use inventory;
 use rkyv::{
@@ -16,6 +13,7 @@ use rkyv::{
 pub mod validation;
 mod vtable_ptr;
 
+use rustc_hash::FxHashMap;
 pub use vtable_ptr::VTablePtr;
 
 use crate::{Deserializer, Result, Serializer};
@@ -166,9 +164,9 @@ impl DynEntry {
 
 inventory::collect!(DynEntry);
 
-static DYN_REGISTRY: std::sync::LazyLock<HashMap<u64, VTablePtr>> =
+static DYN_REGISTRY: std::sync::LazyLock<FxHashMap<u64, VTablePtr>> =
   std::sync::LazyLock::new(|| {
-    let mut result = HashMap::default();
+    let mut result = FxHashMap::default();
     for entry in inventory::iter::<DynEntry> {
       let old_value = result.insert(entry.dyn_id, entry.vtable);
       if old_value.is_some() {

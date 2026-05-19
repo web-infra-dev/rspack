@@ -5,9 +5,10 @@ use rspack_sources::BoxSource;
 
 use super::{TaskContext, add::AddTask};
 use crate::{
-  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, ExportsInfoData,
-  FactorizeInfo, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
+  BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ImportPhase,
+  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  Resolve, ResolverFactory,
+  dependency::DependencyType,
   module_graph::ModuleGraphModule,
   utils::{
     ResourceId,
@@ -109,41 +110,21 @@ impl Task<TaskContext> for FactorizeTask {
       }
     };
 
-    let factorize_info = if let Some(unsafe_cache_predicate) = &self.options.module.unsafe_cache
-      && let Some(result) = &factory_result
-      && let Some(module) = &result.module
-      && unsafe_cache_predicate(module.as_ref()).await?
-    {
-      FactorizeInfo::new(
-        create_data.diagnostics,
-        create_data
-          .dependencies
-          .iter()
-          .map(|dep| *dep.id())
-          .collect(),
-        Default::default(),
-        Default::default(),
-        Default::default(),
-      )
-    } else {
-      FactorizeInfo::new(
-        create_data.diagnostics,
-        create_data
-          .dependencies
-          .iter()
-          .map(|dep| *dep.id())
-          .collect(),
-        create_data.file_dependencies,
-        create_data.context_dependencies,
-        create_data.missing_dependencies,
-      )
-    };
-    let exports_info = ExportsInfoData::default();
+    let factorize_info = FactorizeInfo::new(
+      create_data.diagnostics,
+      create_data
+        .dependencies
+        .iter()
+        .map(|dep| *dep.id())
+        .collect(),
+      create_data.file_dependencies,
+      create_data.context_dependencies,
+      create_data.missing_dependencies,
+    );
     Ok(vec![Box::new(FactorizeResultTask {
       original_module_identifier: self.original_module_identifier,
       factory_result,
       dependencies: create_data.dependencies,
-      exports_info_related: exports_info,
       factorize_info,
       from_unlazy: self.from_unlazy,
     })])
@@ -157,7 +138,6 @@ pub struct FactorizeResultTask {
   /// Result will be available if [crate::ModuleFactory::create] returns `Ok`.
   pub factory_result: Option<ModuleFactoryResult>,
   pub dependencies: Vec<BoxDependency>,
-  pub exports_info_related: ExportsInfoData,
   pub factorize_info: FactorizeInfo,
   pub from_unlazy: bool,
 }
@@ -172,7 +152,6 @@ impl Task<TaskContext> for FactorizeResultTask {
       original_module_identifier,
       factory_result,
       mut dependencies,
-      exports_info_related,
       mut factorize_info,
       from_unlazy,
     } = *self;
@@ -221,6 +200,20 @@ impl Task<TaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
 
+    if let Some(module) = factory_result.module.as_ref()
+      && skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
+    {
+      let dep = &dependencies[0];
+      tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
+      for dep in &mut dependencies {
+        dep.set_lazy();
+      }
+      for dep in dependencies {
+        module_graph.add_dependency(dep)
+      }
+      return Ok(vec![]);
+    }
+
     let Some(module) = factory_result.module else {
       let dep = &dependencies[0];
       tracing::trace!("Module ignored: {dep:?}");
@@ -231,10 +224,9 @@ impl Task<TaskContext> for FactorizeResultTask {
       return Ok(vec![]);
     };
     let module_identifier = module.identifier();
-    let mut mgm = ModuleGraphModule::new(module.identifier(), exports_info_related.id());
+    let mut mgm = ModuleGraphModule::new(module.identifier());
     mgm.set_issuer_if_unset(original_module_identifier);
 
-    module_graph.set_exports_info(exports_info_related.id(), exports_info_related);
     tracing::trace!("Module created: {}", &module_identifier);
 
     Ok(vec![Box::new(AddTask {
@@ -245,4 +237,16 @@ impl Task<TaskContext> for FactorizeResultTask {
       from_unlazy,
     })])
   }
+}
+
+fn skip_side_effect_free_esm_import_side_effect_dependencies(
+  module: &crate::BoxModule,
+  dependencies: &[BoxDependency],
+) -> bool {
+  module.as_normal_module().is_some()
+    && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
+    && dependencies.iter().all(|dep| {
+      dep.dependency_type() == &DependencyType::EsmImport
+        && dep.get_phase() == ImportPhase::Evaluation
+    })
 }

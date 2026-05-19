@@ -4,10 +4,6 @@ use rspack_core::{
   DependencyType, FactorizeInfo, ModuleDependency,
 };
 
-//TODO: consider adding a new variant to DependencyType enum for 'federation runtime dependency'
-// For now, using a related existing type or a placeholder.
-const FEDERATION_RUNTIME_DEPENDENCY_TYPE: DependencyType = DependencyType::EsmImport;
-
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct FederationRuntimeDependency {
@@ -33,11 +29,11 @@ impl Dependency for FederationRuntimeDependency {
   }
 
   fn category(&self) -> &DependencyCategory {
-    &DependencyCategory::Esm // Or another appropriate category
+    &DependencyCategory::Esm
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &FEDERATION_RUNTIME_DEPENDENCY_TYPE
+    &DependencyType::FederationRuntime
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

@@ -8,11 +8,12 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
   ModuleGraph, ModuleIdentifier,
 };
+#[cfg(feature = "codspeed")]
+mod codspeed;
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
 mod concatenation_scope;
-mod deref_option;
 mod extract_source_map;
 mod extract_url_and_global;
 mod fast_actions;
@@ -20,10 +21,10 @@ mod file_counter;
 mod find_graph_roots;
 mod fs_trim;
 pub mod incremental_info;
+mod steal_cell;
 pub use fs_trim::*;
 mod hash;
 mod identifier;
-mod iterator_consumer;
 mod memory_gc;
 mod module_rules;
 mod property_access;
@@ -31,15 +32,19 @@ mod property_name;
 mod remove_bom;
 mod runtime;
 mod source;
+mod source_size_cache;
 pub mod task_loop;
 mod template;
 mod to_path;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
-pub use deref_option::DerefOption;
 pub use memory_gc::MemoryGCStorage;
+pub use rspack_parallel::{FutureConsumer, RayonConsumer};
+pub use steal_cell::StealCell;
 
+#[cfg(feature = "codspeed")]
+pub use self::codspeed::*;
 pub use self::{
   comment::*,
   extract_source_map::*,
@@ -49,13 +54,13 @@ pub use self::{
   find_graph_roots::*,
   hash::*,
   identifier::*,
-  iterator_consumer::{FutureConsumer, RayonConsumer, RayonFutureConsumer},
   module_rules::*,
   property_access::*,
   property_name::*,
   remove_bom::*,
   runtime::*,
   source::*,
+  source_size_cache::*,
   template::*,
   to_path::to_path,
 };
@@ -115,13 +120,21 @@ pub fn compare_chunk_group(
   ukey_b: &ChunkGroupUkey,
   compilation: &Compilation,
 ) -> Ordering {
-  let chunks_a = &compilation.chunk_group_by_ukey.expect_get(ukey_a).chunks;
-  let chunks_b = &compilation.chunk_group_by_ukey.expect_get(ukey_b).chunks;
+  let chunks_a = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_a)
+    .chunks;
+  let chunks_b = &compilation
+    .build_chunk_graph_artifact
+    .chunk_group_by_ukey
+    .expect_get(ukey_b)
+    .chunks;
   match chunks_a.len().cmp(&chunks_b.len()) {
     Ordering::Less => Ordering::Greater,
     Ordering::Greater => Ordering::Less,
     Ordering::Equal => compare_chunks_iterables(
-      &compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_graph,
       compilation.get_module_graph(),
       chunks_a,
       chunks_b,

@@ -29,15 +29,17 @@ use crate::{
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
-    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveDependencyTemplate,
-    ImportMetaResolveHeaderDependencyTemplate, IsIncludedDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
+    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
+    ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
     ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
     ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
     ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
-    RequireResolveContextDependencyTemplate, RequireResolveDependencyTemplate,
-    RequireResolveHeaderDependencyTemplate, URLContextDependencyTemplate, URLDependencyTemplate,
-    WorkerDependencyTemplate, amd_define_dependency::AMDDefineDependencyTemplate,
+    RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
+    RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
+    URLContextDependencyTemplate, URLDependencyTemplate, WorkerDependencyTemplate,
+    amd_define_dependency::AMDDefineDependencyTemplate,
     amd_require_array_dependency::AMDRequireArrayDependencyTemplate,
     amd_require_dependency::AMDRequireDependencyTemplate,
     amd_require_item_dependency::AMDRequireItemDependencyTemplate,
@@ -60,6 +62,10 @@ async fn compilation(
   );
   compilation.set_dependency_factory(
     DependencyType::EsmImportSpecifier,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaRsc,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -136,6 +142,10 @@ async fn compilation(
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
+    DependencyType::ImportMetaResolveContext,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
     DependencyType::ImportMetaResolve,
     params.normal_module_factory.clone(),
   );
@@ -147,6 +157,10 @@ async fn compilation(
 
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::DynamicImportWeak,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -223,8 +237,16 @@ async fn compilation(
     Arc::new(ImportEagerDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportWeakDependencyTemplate::template_type(),
+    Arc::new(ImportWeakDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     ProvideDependencyTemplate::template_type(),
     Arc::new(ProvideDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaRscDependencyTemplate::template_type(),
+    Arc::new(ImportMetaRscDependencyTemplate),
   );
 
   // amd dependency templates
@@ -312,6 +334,10 @@ async fn compilation(
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportMetaResolveContextDependencyTemplate::template_type(),
+    Arc::new(ImportMetaResolveContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     ImportMetaResolveDependencyTemplate::template_type(),
     Arc::new(ImportMetaResolveDependencyTemplate::default()),
   );
@@ -395,6 +421,10 @@ async fn compilation(
     RuntimeRequirementsDependencyTemplate::template_type(),
     Arc::new(RuntimeRequirementsDependencyTemplate::default()),
   );
+  compilation.set_dependency_template(
+    RequireMainDependencyTemplate::template_type(),
+    Arc::new(RequireMainDependencyTemplate::default()),
+  );
   // Rstest
   compilation.set_dependency_factory(
     DependencyType::RstestMockModuleId,
@@ -413,8 +443,12 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   if !runtime_requirements.contains(RuntimeGlobals::STARTUP_NO_DEFAULT)
     && compilation
+      .build_chunk_graph_artifact
       .chunk_graph
-      .has_chunk_entry_dependent_chunks(chunk_ukey, &compilation.chunk_group_by_ukey)
+      .has_chunk_entry_dependent_chunks(
+        chunk_ukey,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      )
   {
     runtime_requirements.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     runtime_requirements.insert(RuntimeGlobals::REQUIRE);
@@ -431,9 +465,10 @@ async fn chunk_hash(
 ) -> Result<()> {
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
+    .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey)
-    .has_runtime(&compilation.chunk_group_by_ukey)
+    .has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
   {
     self
       .update_hash_with_bootstrap(chunk_ukey, compilation, hasher)
@@ -449,17 +484,21 @@ async fn content_hash(
   chunk_ukey: &ChunkUkey,
   hashes: &mut FxHashMap<SourceType, RspackHash>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
   let mut hasher = hashes
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
-  if !chunk.has_runtime(&compilation.chunk_group_by_ukey) {
+  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(&mut hasher);
   }
 
   let module_graph = compilation.get_module_graph();
   let mut ordered_modules = compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph);
   // SAFETY: module identifier is unique
@@ -483,6 +522,7 @@ async fn content_hash(
     });
 
   for (runtime_module_identifier, _) in compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
   {
@@ -505,20 +545,28 @@ async fn render_manifest(
   manifest: &mut Vec<RenderManifestEntry>,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<()> {
-  let chunk = compilation.chunk_by_ukey.expect_get(chunk_ukey);
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
-    let group = compilation.chunk_group_by_ukey.expect_get(group_ukey);
+    let group = compilation
+      .build_chunk_graph_artifact
+      .chunk_group_by_ukey
+      .expect_get(group_ukey);
 
     group.is_initial() && group.kind.is_entrypoint() && &group.get_entrypoint_chunk() == chunk_ukey
   });
-  let is_runtime_chunk = chunk.has_runtime(&compilation.chunk_group_by_ukey);
+  let is_runtime_chunk =
+    chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
   if !is_hot_update
     && is_runtime_chunk
     && !chunk_has_runtime_or_js(
       chunk_ukey,
-      &compilation.chunk_graph,
+      &compilation.build_chunk_graph_artifact.chunk_graph,
       compilation.get_module_graph(),
     )
   {
@@ -531,7 +579,7 @@ async fn render_manifest(
   let filename_template = get_js_chunk_filename_template(
     chunk,
     &compilation.options.output,
-    &compilation.chunk_group_by_ukey,
+    &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
   );
   let mut asset_info = AssetInfo::default().with_asset_type(ManifestAssetType::JavaScript);
   asset_info.set_javascript_module(compilation.options.output.module);
@@ -563,21 +611,21 @@ async fn render_manifest(
     .use_cache(compilation, chunk, &SourceType::JavaScript, || async {
       let source = if let Some(source) = hooks
         .render_chunk_content
-        .call(compilation, chunk_ukey, &mut asset_info)
+        .call(compilation, chunk_ukey, &mut asset_info, &runtime_template)
         .await?
       {
         source.source
       } else if is_hot_update {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else if is_runtime_chunk {
         self
-          .render_main(compilation, chunk_ukey, &output_path)
+          .render_main(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       } else {
         self
-          .render_chunk(compilation, chunk_ukey, &output_path)
+          .render_chunk(compilation, chunk_ukey, &output_path, &runtime_template)
           .await?
       };
       Ok((CachedSource::new(source).boxed(), Vec::new()))
@@ -649,6 +697,7 @@ pub struct ExtractedCommentsInfo {
 
 pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
   if compilation
+    .build_chunk_graph_artifact
     .chunk_graph
     .get_number_of_entry_modules(chunk_ukey)
     > 0
@@ -656,11 +705,14 @@ pub fn chunk_has_js(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
     return true;
   }
 
-  compilation.chunk_graph.has_chunk_module_by_source_type(
-    chunk_ukey,
-    SourceType::JavaScript,
-    compilation.get_module_graph(),
-  )
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .has_chunk_module_by_source_type(
+      chunk_ukey,
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    )
 }
 
 fn chunk_has_runtime_or_js(

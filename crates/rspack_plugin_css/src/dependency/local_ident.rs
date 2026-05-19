@@ -2,12 +2,12 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Compilation, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportNameOrSpec, ExportSpec, ExportsOfExportsSpec, ExportsSpec, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource,
+  DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
+  ExportsSpec, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::ext::DynHash;
 
-use crate::utils::escape_css;
+use crate::utils::{escape_css, replace_css_module_id_placeholder};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -49,6 +49,7 @@ impl Dependency for CssLocalIdentDependency {
     &self,
     _mg: &rspack_core::ModuleGraph,
     _module_graph_cache: &rspack_core::ModuleGraphCacheArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(
@@ -107,13 +108,24 @@ impl DependencyTemplate for CssLocalIdentDependencyTemplate {
     &self,
     dep: &dyn DependencyCodeGeneration,
     source: &mut TemplateReplaceSource,
-    _code_generatable_context: &mut TemplateContext,
+    code_generatable_context: &mut TemplateContext,
   ) {
     let dep = dep
       .as_any()
       .downcast_ref::<CssLocalIdentDependency>()
       .expect("CssLocalIdentDependencyTemplate should be used for CssLocalIdentDependency");
 
-    source.replace(dep.start, dep.end, &escape_css(&dep.local_ident), None);
+    let local_ident = replace_css_module_id_placeholder(
+      &dep.local_ident,
+      code_generatable_context.compilation,
+      code_generatable_context.module,
+    );
+
+    source.replace(
+      dep.start,
+      dep.end,
+      escape_css(&local_ident).into_owned(),
+      None,
+    );
   }
 }

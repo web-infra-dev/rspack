@@ -3,7 +3,7 @@ use std::{path::PathBuf, sync::Arc};
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Resolve, RuleSetCondition,
+  ModuleRuleUseLoader, Optimization, Resolve, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem};
 use rspack_regex::RspackRegex;
@@ -15,13 +15,15 @@ pub type CompilerBuilderGenerator = Arc<dyn Fn() -> CompilerBuilder + Send + Syn
 pub struct BuilderOptions {
   pub project: &'static str,
   pub entry: &'static str,
+  pub swc_loader: bool,
 }
 
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
-  let dir = PathBuf::from(env!("CARGO_WORKSPACE_DIR"))
-    .join(".bench/rspack-benchcases")
+  let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
+    .expect("RSPACK_BENCHCASES_DIR is required and must be an absolute path, e.g. RSPACK_BENCHCASES_DIR=/path/to/.bench/rspack-benchcases");
+  let dir = PathBuf::from(benchcases_dir)
     .canonicalize()
     .unwrap()
     .join(options.project);
@@ -29,40 +31,48 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   builder
     .context(dir.to_string_lossy().to_string())
     .entry("main", options.entry)
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
-      )),
-      effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-        loader: "builtin:swc-loader".to_string(),
-        options: Some(json!({
-            "jsc": {
-                "parser": {
-                    "syntax": "typescript",
-                    "tsx": true,
-                },
-                "transform": {
-                    "react": {
-                        "runtime": "automatic",
-                    },
-                }
-            },
-        }).to_string()),
-      }]),
-        ..Default::default()
-      },
-      ..Default::default()
-    }))
     .cache(rspack_core::CacheOptions::Disabled)
+    .optimization(Optimization::builder().minimize(false))
     .resolve(Resolve {
       extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
       ..Default::default()
     })
     .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
-    .output_filesystem(Arc::new(MemoryFileSystem::default()))
-    .enable_loader_swc();
+    .output_filesystem(Arc::new(MemoryFileSystem::default()));
+
+  if options.swc_loader {
+    builder
+      .module(ModuleOptions::builder().rule(ModuleRule {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
+        )),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+            loader: "builtin:swc-loader".to_string(),
+            options: Some(
+              json!({
+                  "jsc": {
+                      "parser": {
+                          "syntax": "typescript",
+                          "tsx": true,
+                      },
+                      "transform": {
+                          "react": {
+                              "runtime": "automatic",
+                          },
+                      }
+                  },
+              })
+              .to_string(),
+            ),
+          }]),
+          ..Default::default()
+        },
+        ..Default::default()
+      }))
+      .enable_loader_swc();
+  }
 
   builder
 }
@@ -84,18 +94,6 @@ pub fn derive_projects(
             builder.mode(Mode::Development);
             builder
           }) as CompilerBuilderGenerator,
-        ));
-      }
-
-      {
-        let builder = builder.clone();
-        projects.push((
-          format!("{name}-production"),
-          Arc::new(move || {
-            let mut builder = builder();
-            builder.mode(Mode::Production);
-            builder
-          }),
         ));
       }
 

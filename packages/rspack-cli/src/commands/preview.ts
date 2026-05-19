@@ -27,7 +27,7 @@ type PreviewOptions = CommonOptions & {
 };
 
 export class PreviewCommand implements RspackCommand {
-  async apply(cli: RspackCLI): Promise<void> {
+  apply(cli: RspackCLI): void {
     const command = cli.program
       .command('preview [dir]', 'run the Rspack server for build output')
       .alias('p');
@@ -40,63 +40,70 @@ export class PreviewCommand implements RspackCommand {
       // same as devServer.server
       .option('--server <config>', 'Configuration items for the server.');
 
-    command.action(async (dir: string | undefined, options: PreviewOptions) => {
-      setDefaultNodeEnv(options, 'production');
-      normalizeCommonOptions(options, 'preview');
+    command.action(
+      cli.wrapAction(
+        async (dir: string | undefined, options: PreviewOptions) => {
+          setDefaultNodeEnv(options, 'production');
+          normalizeCommonOptions(options, 'preview');
 
-      let RspackDevServer: new (
-        options: DevServer,
-        compiler: MultiCompiler | Compiler,
-      ) => RspackDevServerType;
-      try {
-        const devServerModule = await import('@rspack/dev-server');
-        RspackDevServer = devServerModule.RspackDevServer;
-      } catch (error: unknown) {
-        const logger = cli.getLogger();
-        if (
-          (error as Error & { code?: string })?.code === 'MODULE_NOT_FOUND' ||
-          (error as Error & { code?: string })?.code === 'ERR_MODULE_NOT_FOUND'
-        ) {
-          logger.error(
-            'The "@rspack/dev-server" package is required to use the preview command.\n' +
-              'Please install it by running:\n' +
-              '  pnpm add -D @rspack/dev-server\n' +
-              '  or\n' +
-              '  npm install -D @rspack/dev-server',
-          );
-        } else {
-          logger.error(
-            'Failed to load "@rspack/dev-server":\n' +
-              ((error as Error)?.message || String(error)),
-          );
-        }
-        process.exit(1);
-      }
+          let RspackDevServer: new (
+            options: DevServer,
+            compiler: MultiCompiler | Compiler,
+          ) => RspackDevServerType;
+          try {
+            const devServerModule = await import('@rspack/dev-server');
+            RspackDevServer = devServerModule.RspackDevServer;
+          } catch (error: unknown) {
+            const logger = cli.getLogger();
+            if (
+              (error as Error & { code?: string })?.code ===
+                'MODULE_NOT_FOUND' ||
+              (error as Error & { code?: string })?.code ===
+                'ERR_MODULE_NOT_FOUND'
+            ) {
+              logger.error(
+                'The "@rspack/dev-server" package is required to use the preview command.\n' +
+                  'Please install it by running:\n' +
+                  '  pnpm add -D @rspack/dev-server\n' +
+                  '  or\n' +
+                  '  npm install -D @rspack/dev-server',
+              );
+            } else {
+              logger.error(
+                'Failed to load "@rspack/dev-server":\n' +
+                  ((error as Error)?.message || String(error)),
+              );
+            }
+            process.exit(1);
+          }
 
-      let { config } = await cli.loadConfig(options);
-      config = await getPreviewConfig(config, options, dir);
-      if (!Array.isArray(config)) {
-        config = [config as RspackOptions];
-      }
+          let { config } = await cli.loadConfig(options);
+          config = await getPreviewConfig(config, options, dir);
+          if (!Array.isArray(config)) {
+            config = [config as RspackOptions];
+          }
 
-      // find the possible devServer config
-      const singleConfig = config.find((item) => item.devServer) || config[0];
+          // find the possible devServer config
+          const singleConfig =
+            config.find((item) => item.devServer) || config[0];
 
-      const devServerOptions = singleConfig.devServer as DevServer;
+          const devServerOptions = singleConfig.devServer as DevServer;
 
-      try {
-        const compiler = rspack({ entry: {} });
-        if (!compiler) return;
-        const server = new RspackDevServer(devServerOptions, compiler);
+          try {
+            const compiler = rspack({ entry: {} });
+            if (!compiler) return;
+            const server = new RspackDevServer(devServerOptions, compiler);
 
-        await server.start();
-      } catch (error) {
-        const logger = cli.getLogger();
-        logger.error(error);
+            await server.start();
+          } catch (error) {
+            const logger = cli.getLogger();
+            logger.error(error);
 
-        process.exit(2);
-      }
-    });
+            process.exit(2);
+          }
+        },
+      ),
+    );
   }
 }
 
@@ -108,8 +115,9 @@ async function getPreviewConfig(
 ): Promise<RspackOptions | MultiRspackOptions> {
   const DEFAULT_ROOT = 'dist';
 
-  const internalPreviewConfig = async (item: RspackOptions) => {
+  const internalPreviewConfig = (item: RspackOptions) => {
     // all of the options that a preview static server needs(maybe not all)
+    const devServer = item.devServer === false ? undefined : item.devServer;
     item.devServer = {
       static: {
         directory: dir
@@ -118,12 +126,13 @@ async function getPreviewConfig(
             path.join(item.context ?? process.cwd(), DEFAULT_ROOT)),
         publicPath: options.publicPath ?? '/',
       },
-      port: options.port ?? 8080,
-      proxy: item.devServer?.proxy,
-      host: options.host ?? item.devServer?.host,
-      open: options.open ?? item.devServer?.open,
-      server: options.server ?? item.devServer?.server,
-      historyApiFallback: item.devServer?.historyApiFallback,
+      hot: false,
+      port: options.port ?? devServer?.port ?? 8080,
+      proxy: devServer?.proxy,
+      host: options.host ?? devServer?.host,
+      open: options.open ?? devServer?.open,
+      server: options.server ?? devServer?.server,
+      historyApiFallback: devServer?.historyApiFallback,
     };
     return item;
   };

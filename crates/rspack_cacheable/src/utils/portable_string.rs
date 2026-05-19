@@ -87,15 +87,19 @@ impl PortableString {
       result.push_str(&content[last_end..path_match.start()]);
 
       // Convert to portable format with <project_root> placeholder
+      // sugar_path 2.x relative() fast path may preserve trailing slash (e.g. "src/"),
+      // so trim it before appending "/" to avoid double slashes like "<project_root>/src//"
       let relative_path = path_match
         .as_str()
         .relative(project_root)
         .to_slash_lossy()
+        .trim_end_matches('/')
         .to_string();
+
       let portable_path = if relative_path.is_empty() || relative_path == "." {
-        format!("{}/", PROJECT_ROOT_PLACEHOLDER)
+        format!("{PROJECT_ROOT_PLACEHOLDER}/")
       } else {
-        format!("{}/{}/", PROJECT_ROOT_PLACEHOLDER, relative_path)
+        format!("{PROJECT_ROOT_PLACEHOLDER}/{relative_path}/")
       };
       result.push_str(&portable_path);
 
@@ -135,7 +139,8 @@ impl PortableString {
       result.push_str(&content[last_end..full_match.start()]);
 
       // Convert to absolute path
-      let abs_path = format!("{}/{}", &project_root_str, relative_match.as_str()).normalize();
+      let abs_path_str = format!("{}/{}", &project_root_str, relative_match.as_str());
+      let abs_path = abs_path_str.normalize();
 
       result.push_str(&abs_path.to_string_lossy());
       if !abs_path.ends_with(std::path::MAIN_SEPARATOR_STR) {
