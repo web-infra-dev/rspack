@@ -59,9 +59,16 @@ fn assign_named_chunk_ids(
       (item, ChunkId::from(name))
     })
     .collect();
-  named_chunk_ids_artifact
-    .chunk_short_names
-    .reserve(chunks_len.saturating_sub(named_chunk_ids_artifact.chunk_short_names.len()));
+  named_chunk_ids_artifact.chunk_short_names.reserve(
+    item_name_pair
+      .iter()
+      .filter(|(item, _)| {
+        !named_chunk_ids_artifact
+          .chunk_short_names
+          .contains_key(item)
+      })
+      .count(),
+  );
   let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> =
     ChunkIdMap::with_capacity_and_hasher(chunks_len, Default::default());
   let mut invalid_and_repeat_names = ChunkIdSet::with_capacity_and_hasher(1, Default::default());
@@ -120,8 +127,9 @@ fn assign_named_chunk_ids(
 
   named_chunk_ids_artifact.chunk_long_names.reserve(
     item_name_pair
-      .len()
-      .saturating_sub(named_chunk_ids_artifact.chunk_long_names.len()),
+      .iter()
+      .filter(|(item, _)| !named_chunk_ids_artifact.chunk_long_names.contains_key(item))
+      .count(),
   );
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
@@ -362,8 +370,13 @@ async fn chunk_ids(
   // store chunk id map to the artifact
   named_chunk_ids_artifact.chunk_ids.reserve(
     chunk_by_ukey
-      .len()
-      .saturating_sub(named_chunk_ids_artifact.chunk_ids.len()),
+      .values()
+      .filter(|chunk| {
+        !named_chunk_ids_artifact
+          .chunk_ids
+          .contains_key(&chunk.ukey())
+      })
+      .count(),
   );
   chunk_by_ukey.values().for_each(|chunk| {
     named_chunk_ids_artifact
