@@ -587,53 +587,28 @@ impl ContextModule {
                   .as_context_dependency()
                   .map(|d| d.request().to_string())
               })?;
-            let module = module_graph.get_module_by_dependency_id(dep)?;
-            let module_id =
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())?;
-            let chunks: Vec<_> = compilation
-              .build_chunk_graph_artifact
-              .chunk_graph
-              .get_block_chunk_group(
-                &block.identifier(),
-                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-              )
-              .expect("should have block chunk group")
-              .chunks
-              .iter()
-              .map(|c| {
-                compilation
-                  .build_chunk_graph_artifact
-                  .chunk_by_ukey
-                  .expect_get(c)
-                  .id()
-                  .expect("should have chunk id in code generation")
-              })
-              .collect();
-            Some((user_request, module_id, chunks))
+            Some((user_request, *dep, block.identifier()))
           })
           .collect();
 
-        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-        let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
-
         let mut entries = String::new();
-        for (i, (user_request, module_id, chunks)) in block_info.iter().enumerate() {
-          let module_id_json = json_stringify(module_id);
-          let chunk_promise = if chunks.len() == 1 {
-            let chunk_id = json_stringify(&chunks[0]);
-            format!("{ensure_chunk}({chunk_id}).then({require}.bind({require}, {module_id_json}))")
-          } else {
-            let chunk_ids_json = json_stringify_pretty(chunks);
-            format!(
-              "Promise.all({chunk_ids_json}.map({ensure_chunk})).then({require}.bind({require}, {module_id_json}))"
-            )
-          };
+        for (i, (user_request, dep_id, block_id)) in block_info.iter().enumerate() {
+          let import_promise = runtime_template.module_namespace_promise(
+            compilation,
+            self.identifier,
+            dep_id,
+            Some(block_id),
+            user_request,
+            DependencyCategory::Esm.as_str(),
+            false,
+            self.options.context_options.phase.unwrap_or_default(),
+          );
           Self::append_glob_map_entry(
             &mut entries,
             i,
             base_dir,
             user_request,
-            &format!("function() {{ return {chunk_promise}; }}"),
+            &format!("function() {{ return {import_promise}; }}"),
           );
         }
 

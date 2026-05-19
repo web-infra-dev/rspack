@@ -2,6 +2,7 @@
 const lazyModules = import.meta.glob('./dir/*.js')
 const nestedModules = import.meta.glob('./pages/*/index.js')
 const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
+const lazyCjsModules = import.meta.glob('./cjs/*.js')
 
 it('should return a thunk for each matched file in lazy mode', async () => {
   const keys = Object.keys(lazyModules).sort()
@@ -37,6 +38,11 @@ it('should resolve absolute glob patterns from the project root', async () => {
 
   const bar = await rootModules['/context/import-meta-glob/dir/bar.js']()
   expect(bar.default).toBe('bar')
+})
+
+it('should resolve lazy CommonJS matches as dynamic import namespace objects', async () => {
+  const cjs = await lazyCjsModules['./cjs/value.js']()
+  expect(cjs.default.answer).toBe(42)
 })
 
 // Eager: each value is the module object directly
