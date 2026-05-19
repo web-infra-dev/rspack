@@ -91,6 +91,10 @@ export default {
       'css/auto': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -99,10 +103,25 @@ export default {
         exportsOnly: false,
         esModule: true,
       },
+      // css/global 模块的生成器选项
+      'css/global': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
       // css/module 模块的生成器选项
       'css/module': {
         exportsConvention: 'as-is',
         exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
       },
@@ -627,6 +646,82 @@ export default {
 };
 ```
 
+### module.generator["css/auto"].localIdentHashDigest
+
+- **类型：** `string`
+- **默认值：** `'base64url'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希摘要编码。支持的值与 [`output.hashDigest`](/config/output#outputhashdigest) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashDigestLength
+
+- **类型：** `number`
+- **默认值：** `6`
+
+配置生成 CSS Modules 局部标识符时使用的哈希字符数。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashFunction
+
+- **类型：** `string`
+- **默认值：** `'md4'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希函数。支持的值与 [`output.hashFunction`](/config/output#outputhashfunction) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashSalt
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+配置生成 CSS Modules 局部标识符时添加到哈希中的盐值。未设置时，Rspack 会使用 [`output.hashSalt`](/config/output#outputhashsalt)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/auto"].esModule
 
 - **类型：** `boolean`
@@ -727,6 +822,150 @@ export default {
 };
 ```
 
+### module.generator["css/global"]
+
+`css/global` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsConvention
+
+和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsOnly
+
+和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentName
+
+和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].esModule
+
+和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
 ### module.generator["css/module"]
 
 `css/module` 模块的生成器选项。
@@ -785,6 +1024,70 @@ export default {
     generator: {
       'css/module': {
         localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
       },
     },
   },
@@ -1216,18 +1519,14 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-<PropertyType
-  type="boolean | 'preserve-unknown'"
-  defaultValueList={[{ defaultValue: 'true' }]}
-/>
+- **类型：** `boolean | 'preserve-unknown'`
+- **默认值：** 当输出为 [ESM 格式](/guide/features/esm) 时，默认值为 `'preserve-unknown'`，其他情况默认值为 `true`
 
-是否要解析替换 `import.meta`。
+用于控制是否要解析和替换源代码中的 `import.meta`，可选值有：
 
-当输出为[ESM 格式](/guide/features/esm)时，默认值为`'preserve-unknown'`，其他情况默认值为`true`。
-
-- `"preserve-unknown"`: [已知的`import.meta`字段](/api/runtime-api/module-variables#importmeta-esm)会在编译期被替换，其他字段会被保留并在运行时被计算。
-- `true`: 所有`import.meta`字段在编译期被替换。
-- `false`: 所有`import.meta`字段都在运行时被计算。
+- `"preserve-unknown"`: [已知的 `import.meta` 字段](/api/runtime-api/module-variables#import-meta) 会在编译期被替换，其他字段会被保留并在运行时被计算。
+- `true`: 所有 `import.meta` 字段在编译期被替换。
+- `false`: 所有 `import.meta` 字段都在运行时被计算。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1602,11 +1901,9 @@ export default {
   module: {
     rules: [
       {
-        test: /mod\.js$/, // 仅为 index.js 模块中的导入语句启用 strictThisContextOnImports
+        test: /index\.js$/, // 仅为 index.js 模块中的导入语句启用 strictThisContextOnImports
         parser: {
-          javascript: {
-            strictThisContextOnImports: true,
-          },
+          strictThisContextOnImports: true,
         },
       },
     ],
@@ -1674,9 +1971,11 @@ export default {
 
 <PropertyType type="string[]" />
 
-手动将命中模块中的顶层导出函数标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。
+手动将命中模块中的顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的某个顶层名 —— 包括顶层的 function/class/变量声明、`import` 引入的标识符、`export { foo as bar }` 这类导出别名，以及匹配源模块默认导出（fn 或 arrow）时使用的 `default`。
 
-这个选项主要面向无法直接修改源码的第三方库，例如 `node_modules` 中的包。
+这个选项主要面向无法直接修改源码的第三方库。你既可以将其配置在第三方库源文件上，也可以配置在消费侧文件上以断言对某个 import 的调用是 pure 的。
+
+虽然这个选项定义在 `module.parser.javascript` 下，但在实际使用时通常更推荐通过 `module.rules[i].parser` 应用它，这样可以更细粒度地为特定模块配置 `pureFunctions`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1684,21 +1983,29 @@ export default {
     pureFunctions: true,
   },
   module: {
-    parser: {
-      javascript: {
-        pureFunctions: ['isString', 'default'],
+    rules: [
+      // 将第三方库中的导出标记为 pure
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
       },
-    },
+      // 也可以在消费侧标记 import：该文件中对 `cva` 的调用都被视为 pure，
+      // 不依赖库本身的声明。
+      {
+        test: /src\/styles\.js$/,
+        parser: {
+          pureFunctions: ['cva'],
+        },
+      },
+    ],
   },
 };
 ```
 
-:::note
-目前仅支持顶层导出函数定义；对于默认导出，请使用 `default` 作为导出名。
-:::
-
 :::warning
-该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到配置的导出函数名，Rspack 会发出警告。
+该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
 :::
 
 ### module.parser["javascript/auto"]

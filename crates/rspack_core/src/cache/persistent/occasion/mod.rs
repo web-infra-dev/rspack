@@ -1,8 +1,12 @@
 pub mod make;
 pub mod meta;
+pub mod minimize;
 
 pub use make::MakeOccasion;
 pub use meta::MetaOccasion;
+pub use minimize::{
+  CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCacheArtifact,
+};
 use rspack_error::Result;
 
 use super::storage::Storage;
@@ -20,6 +24,9 @@ use super::storage::Storage;
 pub trait Occasion {
   /// The data produced/consumed by this occasion.
   type Artifact: Send;
+
+  /// Human-readable occasion name used in persistent cache logging.
+  fn name(&self) -> &'static str;
 
   /// Clear this occasion's scope in storage.
   fn reset(&self, storage: &mut dyn Storage);

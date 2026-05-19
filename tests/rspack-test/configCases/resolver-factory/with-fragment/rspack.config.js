@@ -27,7 +27,7 @@ class Plugin {
 
               expect(error).toBeNull();
               expect(res).toBe(path.join(__dirname, '/index.js#fragment'));
-              // Webpack does not have resource field
+              // webpack does not have resource field
               expect(req.resource).toBe(undefined);
               expect(req.path).toBe(path.join(__dirname, '/index.js'));
               expect(req.fragment).toBe('#fragment');

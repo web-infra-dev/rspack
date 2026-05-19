@@ -1,56 +1,40 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, UsageState};
+use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};
 use crate::{
   CanInlineUse, DependencyId, EvaluatedInlinableValue, ExportsInfoArtifact, UsedNameItem,
 };
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub enum ExportName {
+enum ExportName {
   Other,
   SideEffects,
   Named(Atom),
 }
 
-#[derive(Debug, Hash, PartialEq, Eq)]
-pub struct ExportInfoHashKey {
-  name: Option<Atom>,
-  belongs_to: ExportsInfo,
-}
-
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct ExportInfo {
-  pub exports_info: ExportsInfo,
-  pub export_name: ExportName,
+  exports_info: ExportsInfo,
+  export_name: ExportName,
 }
 
 impl ExportInfo {
   pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportInfoData {
-    let exports_info = self.exports_info.as_data(exports_info_artifact);
-
-    (match &self.export_name {
-      ExportName::Other => exports_info.other_exports_info(),
-      ExportName::SideEffects => exports_info.side_effects_only_info(),
-      ExportName::Named(name) => exports_info
-        .named_exports(name)
-        .expect("should have named export"),
-    }) as _
+    self
+      .exports_info
+      .as_data(exports_info_artifact)
+      .get_export_info_data(self)
   }
 
   pub fn as_data_mut<'a>(
     &self,
     exports_info_artifact: &'a mut ExportsInfoArtifact,
   ) -> &'a mut ExportInfoData {
-    let exports_info = self.exports_info.as_data_mut(exports_info_artifact);
-
-    (match &self.export_name {
-      ExportName::Other => exports_info.other_exports_info_mut(),
-      ExportName::SideEffects => exports_info.side_effects_only_info_mut(),
-      ExportName::Named(name) => exports_info
-        .named_exports_mut(name)
-        .expect("should have named export"),
-    }) as _
+    self
+      .exports_info
+      .as_data_mut(exports_info_artifact)
+      .get_export_info_data_mut(self)
   }
 }
 
@@ -297,11 +281,28 @@ impl ExportInfoData {
   pub fn set_ns_access(&mut self, value: bool) {
     self.ns_access = value;
   }
+}
 
-  pub fn as_hash_key(&self) -> ExportInfoHashKey {
-    ExportInfoHashKey {
-      name: self.name().cloned(),
-      belongs_to: *self.belongs_to(),
+impl ExportsInfoData {
+  pub fn get_export_info_data(&self, export_info: &ExportInfo) -> &ExportInfoData {
+    debug_assert_eq!(export_info.exports_info, self.id());
+
+    match &export_info.export_name {
+      ExportName::Other => self.other_exports_info(),
+      ExportName::SideEffects => self.side_effects_only_info(),
+      ExportName::Named(name) => self.named_exports(name).expect("should have named export"),
+    }
+  }
+
+  pub fn get_export_info_data_mut(&mut self, export_info: &ExportInfo) -> &mut ExportInfoData {
+    debug_assert_eq!(export_info.exports_info, self.id());
+
+    match &export_info.export_name {
+      ExportName::Other => self.other_exports_info_mut(),
+      ExportName::SideEffects => self.side_effects_only_info_mut(),
+      ExportName::Named(name) => self
+        .named_exports_mut(name)
+        .expect("should have named export"),
     }
   }
 }

@@ -5,4 +5,4 @@ class CurrentScript {
   }
 }
 
-module.exports = CurrentScript;
+export { CurrentScript };

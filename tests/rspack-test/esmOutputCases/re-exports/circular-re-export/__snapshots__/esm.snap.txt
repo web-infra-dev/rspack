@@ -1,12 +1,4 @@
 ```mjs title=main.mjs
-// ./a.js
-const aValue = 'a';
-
-
-// ./b.js
-const bValue = 'b';
-
-
 // ./index.js
 
 
@@ -16,6 +8,8 @@ it('should handle circular re-exports correctly', async () => {
 	expect(mod.bValue).toBe('b');
 });
 
-export { aValue, bValue };
+var index_aValue = (/* inlined export .aValue */"a");
+var index_bValue = (/* inlined export .bValue */"b");
+export { index_aValue as aValue, index_bValue as bValue };
 
 ```

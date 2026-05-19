@@ -387,6 +387,12 @@ module.exports = function myLoader(source) {
 };
 ```
 
+:::tip
+当 loader 通过查询字符串配置时，例如 `loader: './my-loader?s=foo+bar'`，`this.getOptions()` 会使用 Node.js 的 `querystring.parse()` 解析该字符串。这意味着字面量 `+` 会被解码为空格，因此结果会是 `{ s: 'foo bar' }`。
+
+如果你需要字面量加号，请将 `+` 编码为 `%2B`，或者优先在规则里使用 `options` 对象。若你需要读取原始查询字符串，请使用 [this.query](#thisquery)。
+:::
+
 在 TypeScript 中，你可以通过 `LoaderContext` 的泛型来设置 options 的类型。
 
 ```ts title="my-loader.ts"
@@ -519,6 +525,8 @@ module.exports = function loader(source) {
 
 - 如果当前 loader 配置了一个选项对象，`this.query` 将指向这个对象。
 - 如果当前 loader 没有选项，但是通过查询字符串调用，这将是一个以 `?` 开头的字符串。
+
+与 [this.getOptions()](#thisgetoptions) 不同，查询字符串形式在这里不会被解析。例如，`loader: './my-loader?s=foo+bar'` 时，`this.query === '?s=foo+bar'`。
 
 ## this.request
 

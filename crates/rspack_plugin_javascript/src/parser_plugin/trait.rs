@@ -68,6 +68,11 @@ pub enum JavascriptParserPluginHook {
 
 impl JavascriptParserPluginHook {
   pub const COUNT: usize = Self::ImportMetaPropertyInDestructuring as usize + 1;
+  pub const ALL_MASK: u64 = if Self::COUNT == u64::BITS as usize {
+    u64::MAX
+  } else {
+    (1u64 << Self::COUNT) - 1
+  };
 
   pub const ALL: [Self; Self::COUNT] = [
     Self::PreStatement,
@@ -144,11 +149,15 @@ impl JavascriptParserPluginHooks {
   }
 
   pub const fn all() -> Self {
-    Self(u64::MAX)
+    Self(JavascriptParserPluginHook::ALL_MASK)
   }
 
   pub const fn contains(self, hook: JavascriptParserPluginHook) -> bool {
     self.0 & hook.mask() != 0
+  }
+
+  pub const fn bits(self) -> u64 {
+    self.0
   }
 
   pub const fn with(self, hook: JavascriptParserPluginHook) -> Self {

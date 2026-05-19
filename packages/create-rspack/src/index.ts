@@ -6,6 +6,7 @@ import {
   copyFolder,
   create,
   type ESLintTemplateName,
+  type RslintTemplateName,
   select,
 } from 'create-rstack';
 
@@ -68,6 +69,16 @@ function mapRstestTemplate(templateName: string): string {
   }
 }
 
+function mapRslintTemplate(templateName: string): RslintTemplateName {
+  switch (templateName) {
+    case 'react-js':
+    case 'react-ts':
+      return templateName;
+    default:
+      return `vanilla-${templateName.split('-')[1]}` as RslintTemplateName;
+  }
+}
+
 create({
   root,
   name: 'rspack',
@@ -82,6 +93,7 @@ create({
   skipFiles: ['.npmignore'],
   getTemplateName,
   mapESLintTemplate,
+  mapRslintTemplate,
   extraTools: [
     {
       value: 'rstest',
@@ -99,6 +111,25 @@ create({
         });
         addAgentsMdSearchDirs(toolFolder);
       },
+    },
+  ],
+  extraSkills: [
+    {
+      value: 'rspack-best-practices',
+      label: 'Rspack best practices',
+      source: 'rstackjs/agent-skills',
+    },
+    {
+      value: 'rstest-best-practices',
+      label: 'Rstest best practices',
+      source: 'rstackjs/agent-skills',
+      when: ({ tools }) => tools.includes('rstest'),
+    },
+    {
+      value: 'vercel-react-best-practices',
+      label: 'React best practices',
+      source: 'vercel-labs/agent-skills',
+      when: ({ templateName }) => templateName.startsWith('react-'),
     },
   ],
 });

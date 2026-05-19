@@ -251,7 +251,7 @@ export type Entry = EntryStatic | EntryDynamic;
 //#endregion
 
 //#region Output
-/** The output directory as an absolute path. */
+/** The output directory. Relative paths are resolved against `context`. */
 export type Path = string;
 
 /** Tells Rspack to include comments in bundles with information about the contained modules. */
@@ -304,7 +304,7 @@ export type OutputModule = boolean;
 /** Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required. */
 export type StrictModuleExceptionHandling = boolean;
 
-/** Handle error in module loading as per EcmaScript Modules spec at a performance cost. */
+/** Handle error in module loading as per ECMAScript Modules spec at a performance cost. */
 export type StrictModuleErrorHandling = boolean;
 
 /** Indicates what global object will be used to mount the library. */
@@ -334,7 +334,7 @@ export type WorkerPublicPath = string;
 /** Controls [Trusted Types](https://web.dev/articles/trusted-types) compatibility. */
 export type TrustedTypes = {
   /**
-   * The name of the Trusted Types policy created by webpack to serve bundle chunks.
+   * The name of the Trusted Types policy created by Rspack to serve bundle chunks.
    */
   policyName?: string;
   /**
@@ -415,7 +415,7 @@ export type Environment = {
   /** The environment supports 'document' variable. */
   document?: boolean;
 
-  /** The environment supports an async import() function to import EcmaScript modules. */
+  /** The environment supports an async import() function to import ECMAScript modules. */
   dynamicImport?: boolean;
 
   /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
@@ -438,7 +438,7 @@ export type Environment = {
 
   /**
    * Determines if the node: prefix is generated for core module imports in environments that support it.
-   * This is only applicable to Webpack runtime code.
+   * This is only applicable to Rspack runtime code.
    * */
   nodePrefixForCoreModules?: boolean;
 
@@ -451,7 +451,7 @@ export type Environment = {
 
 export type Output = {
   /**
-   * The output directory as an absolute path.
+   * The output directory. Relative paths are resolved against `context`.
    * @default path.resolve(process.cwd(), 'dist')
    * */
   path?: Path;
@@ -545,7 +545,7 @@ export type Output = {
   strictModuleExceptionHandling?: StrictModuleExceptionHandling;
 
   /**
-   * Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+   * Handle error in module loading as per ECMAScript Modules spec at a performance cost.
    * @default false
    * */
   strictModuleErrorHandling?: StrictModuleErrorHandling;
@@ -1054,28 +1054,7 @@ export type CssParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
-/** Options object for `css/auto` modules. */
-export type CssAutoParserOptions = {
-  /**
-   * Use ES modules named export for CSS exports.
-   * @default true
-   * */
-  namedExports?: CssParserNamedExports;
-
-  /**
-   * Allow to enable/disables handling the CSS functions url.
-   * @default true
-   * */
-  url?: CssParserUrl;
-
-  /**
-   * Allow to enable/disables `@import` at-rules handling.
-   * @default true
-   * */
-  resolveImport?: CssParserResolveImport;
-};
-
-/** Options object for `css/module` modules. */
+/** Options object for `css/auto`, `css/global` and `css/module` modules. */
 export type CssModuleParserOptions = {
   /**
    * Use ES modules named export for CSS exports.
@@ -1273,7 +1252,10 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssAutoParserOptions;
+  'css/auto'?: CssModuleParserOptions;
+
+  /** Parser options for `css/global` modules. */
+  'css/global'?: CssModuleParserOptions;
 
   /** Parser options for `css/module` modules. */
   'css/module'?: CssModuleParserOptions;
@@ -1390,6 +1372,14 @@ export type CssGeneratorLocalIdentName = string;
 
 export type CssGeneratorEsModule = boolean;
 
+export type CssGeneratorLocalIdentHashDigest = string;
+
+export type CssGeneratorLocalIdentHashDigestLength = number;
+
+export type CssGeneratorLocalIdentHashFunction = string;
+
+export type CssGeneratorLocalIdentHashSalt = string;
+
 /** Generator options for css modules. */
 export type CssGeneratorOptions = {
   /**
@@ -1402,8 +1392,8 @@ export type CssGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
-/** Generator options for css/auto modules. */
-export type CssAutoGeneratorOptions = {
+/** Generator options for css/auto, css/global and css/module modules. */
+export type CssModuleGeneratorOptions = {
   /**
    * Customize how CSS export names are exported to javascript modules
    * @default 'as-is'
@@ -1416,15 +1406,32 @@ export type CssAutoGeneratorOptions = {
    */
   exportsOnly?: CssGeneratorExportsOnly;
 
+  /**
+   * Digest types used for the hash.
+   */
+  localIdentHashDigest?: CssGeneratorLocalIdentHashDigest;
+
+  /**
+   * Number of chars which are used for the hash.
+   */
+  localIdentHashDigestLength?: CssGeneratorLocalIdentHashDigestLength;
+
+  /**
+   * Algorithm used for generation the hash.
+   */
+  localIdentHashFunction?: CssGeneratorLocalIdentHashFunction;
+
+  /**
+   * Any string which is added to the hash to salt it.
+   */
+  localIdentHashSalt?: CssGeneratorLocalIdentHashSalt;
+
   /** Customize the format of the local class names generated for CSS modules */
   localIdentName?: CssGeneratorLocalIdentName;
 
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
-
-/** Generator options for css/module modules. */
-export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
@@ -1449,7 +1456,10 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssAutoGeneratorOptions;
+  'css/auto'?: CssModuleGeneratorOptions;
+
+  /** Generator options for css/global modules. */
+  'css/global'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/module modules. */
   'css/module'?: CssModuleGeneratorOptions;
@@ -1570,6 +1580,7 @@ export type ExternalsType =
   | 'promise'
   | 'import'
   | 'module-import'
+  | 'modern-module'
   | 'script'
   | 'node-commonjs'
   | 'commonjs-import';
@@ -2949,14 +2960,14 @@ export type Watch = boolean;
 export type WatchOptions = {
   /**
    * Add a delay before rebuilding once the first file changed.
-   * This allows webpack to aggregate any other changes made during this time period into one rebuild.
+   * This allows Rspack to aggregate any other changes made during this time period into one rebuild.
    * @default 5
    */
   aggregateTimeout?: number;
 
   /**
    * Follow symlinks while looking for files.
-   * This is usually not needed as webpack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
+   * This is usually not needed as Rspack already resolves symlinks ('resolve.symlinks' and 'resolve.alias').
    */
   followSymlinks?: boolean;
 
@@ -3053,13 +3064,13 @@ export type Performance =
        */
       hints?: false | 'warning' | 'error';
       /**
-       * File size limit (in bytes) when exceeded, that webpack will provide performance hints.
-       * @default 250000
+       * File size limit (in bytes) when exceeded, Rspack will provide performance hints.
+       * @default 307200 (300 KiB)
        */
       maxAssetSize?: number;
       /**
        * Total size of an entry point (in bytes).
-       * @default 250000
+       * @default 512000 (500 KiB)
        */
       maxEntrypointSize?: number;
     };

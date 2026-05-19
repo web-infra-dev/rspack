@@ -361,7 +361,7 @@ ${runtime.javascript.disposedModules.map((i) => `- ${i}`).join('\n')}
     await originRun(env, context);
   };
 
-  processor.check = async function (env, context) {
+  processor.check = function (env, context) {
     const compiler = context.getCompiler();
     const stats = compiler.getStats() as Stats;
     if (!stats || !stats.hash) {

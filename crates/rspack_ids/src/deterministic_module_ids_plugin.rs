@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
@@ -60,10 +62,12 @@ async fn module_ids(
   assign_deterministic_ids(
     modules,
     |m| {
-      module_names
-        .get(&m.identifier())
-        .expect("should have generated full module name")
-        .clone()
+      Cow::Borrowed(
+        module_names
+          .get(&m.identifier())
+          .expect("should have generated full module name")
+          .as_str(),
+      )
     },
     |a, b| {
       compare_modules_by_pre_order_index_or_identifier(

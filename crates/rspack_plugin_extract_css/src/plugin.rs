@@ -527,9 +527,9 @@ async fn runtime_requirement_in_tree(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  _all_runtime_requirements: &RuntimeGlobals,
+  all_runtime_requirements: &RuntimeGlobals,
   runtime_requirements: &RuntimeGlobals,
-  _runtime_requirements_mut: &mut RuntimeGlobals,
+  runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   // different from webpack, Rspack can invoke this multiple times,
@@ -588,6 +588,10 @@ async fn runtime_requirement_in_tree(
         self.options.link_type.clone(),
         self.options.insert.clone(),
       )),
+    ));
+
+    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements(
+      all_runtime_requirements,
     ));
   }
 

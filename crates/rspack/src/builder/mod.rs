@@ -32,7 +32,6 @@ macro_rules! expect {
 
 use std::{
   borrow::Cow,
-  future::ready,
   sync::{Arc, LazyLock},
 };
 
@@ -44,11 +43,10 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssAutoGeneratorOptions, CssAutoParserOptions,
-  CssExportsConvention, CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription, EntryOptions,
-  EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename, GeneratorOptions,
-  GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription,
+  EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
   JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
@@ -1071,7 +1069,16 @@ impl CompilerOptionsBuilder {
 
     w!(self.externals_type, {
       if let Some(library) = &output.library {
-        library.library_type.clone()
+        // Keep modern-module libraries on the existing output.module default
+        // for compatibility. `externalsType: "modern-module"` must be enabled
+        // explicitly for now, and will become the default in the next major.
+        if library.library_type != "modern-module" {
+          library.library_type.clone()
+        } else if output.module {
+          "module-import".to_string()
+        } else {
+          "var".to_string()
+        }
       } else if output.module {
         "module-import".to_string()
       } else {
@@ -1082,10 +1089,11 @@ impl CompilerOptionsBuilder {
     // apply externals plugin
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
+      let externals_type = expect!(self.externals_type.clone());
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
-          expect!(self.externals_type.clone()),
+          externals_type,
           externals,
           false,
         )));
@@ -1766,7 +1774,7 @@ impl ModuleOptionsBuilder {
       });
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssAuto(CssAutoParserOptions {
+      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
@@ -1779,6 +1787,13 @@ impl ModuleOptionsBuilder {
         url: Some(true),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
+
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
+        named_exports: Some(true),
+        resolve_import: Some(CssParserImport::Bool(true)),
+        url: Some(true),
+      });
+      parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
       let exports_only = !target_properties.document();
@@ -1793,12 +1808,9 @@ impl ModuleOptionsBuilder {
 
       generator.insert(
         "css/auto".to_string(),
-        GeneratorOptions::CssAuto(CssAutoGeneratorOptions {
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
-          exports_convention: Some(CssExportsConvention::default()),
-          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
-
-          es_module: Some(true),
+          ..CssModuleGeneratorOptions::css_modules_default()
         }),
       );
 
@@ -1806,9 +1818,15 @@ impl ModuleOptionsBuilder {
         "css/module".to_string(),
         GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           exports_only: Some(exports_only),
-          exports_convention: Some(CssExportsConvention::default()),
-          local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
-          es_module: Some(true),
+          ..CssModuleGeneratorOptions::css_modules_default()
+        }),
+      );
+
+      generator.insert(
+        "css/global".to_string(),
+        GeneratorOptions::CssModule(CssModuleGeneratorOptions {
+          exports_only: Some(exports_only),
+          ..CssModuleGeneratorOptions::css_modules_default()
         }),
       );
     }
@@ -1833,6 +1851,13 @@ impl ModuleOptionsBuilder {
   }
 }
 
+fn extension_rule(extension: &str) -> RuleSetCondition {
+  RuleSetCondition::Regexp(
+    RspackRegex::new(&format!("{}$", regex::escape(extension)))
+      .expect("should initialize default extension regex"),
+  )
+}
+
 fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   let mut rules = vec![
     // application/node
@@ -1846,14 +1871,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .json
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".json"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".json")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -1871,14 +1889,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .mjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".mjs"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".mjs")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -1897,14 +1908,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:module
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".js"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".js")),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("module".into()).into(),
@@ -1927,14 +1931,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .cjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".cjs"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".cjs")),
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
         ..Default::default()
@@ -1943,14 +1940,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     },
     // .js with type:commonjs
     ModuleRule {
-      test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-        Box::pin(ready(Ok(
-          ctx
-            .as_str()
-            .map(|data| data.ends_with(".js"))
-            .unwrap_or_default(),
-        )))
-      }))),
+      test: Some(extension_rule(".js")),
       description_data: Some(HashMap::from_iter([(
         "type".into(),
         RuleSetCondition::String("commonjs".into()).into(),
@@ -1964,13 +1954,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     // text/javascript or application/javascript
     ModuleRule {
       mimetype: Some(
-        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions {
-          or: Some(vec![
+        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions::new(
+          None,
+          Some(vec![
             RuleSetCondition::String("text/javascript".into()),
             RuleSetCondition::String("application/javascript".into()),
           ]),
-          ..Default::default()
-        }))
+          None,
+        )))
         .into(),
       ),
       effect: ModuleRuleEffect {
@@ -1995,14 +1986,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   if async_web_assembly {
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Box::pin(ready(Ok(
-            ctx
-              .as_str()
-              .map(|data| data.ends_with(".wasm"))
-              .unwrap_or_default(),
-          )))
-        }))),
+        test: Some(extension_rule(".wasm")),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
           ..Default::default()
@@ -2058,14 +2042,7 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
 
     rules.extend(vec![
       ModuleRule {
-        test: Some(RuleSetCondition::Func(Box::new(|ctx| {
-          Box::pin(ready(Ok(
-            ctx
-              .as_str()
-              .map(|data| data.ends_with(".css"))
-              .unwrap_or_default(),
-          )))
-        }))),
+        test: Some(extension_rule(".css")),
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssAuto),
           resolve: Some(resolve.clone()),

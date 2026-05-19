@@ -267,11 +267,7 @@ impl FixIssuers {
     let module_graph = &mut artifact.module_graph;
     let mut revoke_module = IdentifierSet::default();
     let mut need_check_available_modules = IdentifierMap::default();
-    loop {
-      let Some((mid, mut parents)) = queue.pop_front() else {
-        break;
-      };
-
+    while let Some((mid, mut parents)) = queue.pop_front() {
       // remove revoke_module from parents
       parents.retain(|item| {
         let Some(parent_mid) = item else {
@@ -367,10 +363,7 @@ impl FixIssuers {
           // the parent which cycle_paths contains current module can be set as issuer.
           let mut queue = VecDeque::with_capacity(1);
           queue.push_back(mid);
-          loop {
-            let Some(current_id) = queue.pop_front() else {
-              break;
-            };
+          while let Some(current_id) = queue.pop_front() {
             need_clean_cycle_modules.retain(|id, paths| {
               for (issuer, cycle_paths) in paths {
                 if cycle_paths.contains(&current_id) {
@@ -420,10 +413,7 @@ impl FixIssuers {
       let mut useless_module = IdentifierSet::default();
       let mut queue = VecDeque::new();
       queue.push_back((mid, paths));
-      loop {
-        let Some((current, current_parents)) = queue.pop_front() else {
-          break;
-        };
+      while let Some((current, current_parents)) = queue.pop_front() {
         useless_module.insert(current);
 
         for mid in current_parents {

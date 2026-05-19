@@ -1,16 +1,43 @@
 import { NoSSR, useLang, usePage } from '@rspress/core/runtime';
-import { Layout as BaseLayout } from '@rspress/core/theme-original';
+import {
+  Layout as BaseLayout,
+  DocLayout as BasicDocLayout,
+  Link,
+  type DocLayoutProps,
+} from '@rspress/core/theme-original';
 import {
   Search as PluginAlgoliaSearch,
   ZH_LOCALES,
 } from '@rspress/plugin-algolia/runtime';
 import { Announcement } from '@rstack-dev/doc-ui/announcement';
 import { ConfigProvider } from '@rstack-dev/doc-ui/antd';
+import { BlogBackButton } from '@rstack-dev/doc-ui/blog-back-button';
 import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
-const ANNOUNCEMENT_URL = '';
+const ANNOUNCEMENT_URL = '/blog/announcing-2-0';
+
+const DocLayout = (props: DocLayoutProps) => {
+  const { page } = usePage();
+  const lang = useLang();
+
+  return (
+    <BasicDocLayout
+      {...props}
+      beforeDocContent={
+        <>
+          <BlogBackButton
+            pathname={page.routePath}
+            lang={lang}
+            LinkComp={Link}
+          />
+          {props.beforeDocContent}
+        </>
+      }
+    />
+  );
+};
 
 const Layout = () => {
   const { page } = usePage();
@@ -42,10 +69,10 @@ const Layout = () => {
                 }
                 message={
                   lang === 'en'
-                    ? 'Rspack 1.0 has been released!'
-                    : 'Rspack 1.0 正式发布！'
+                    ? 'Rspack 2.0 has been released!'
+                    : 'Rspack 2.0 正式发布！'
                 }
-                localStorageKey="rspack-announcement-closed"
+                localStorageKey="rspack-v2-announcement-closed"
                 display={page.pageType === 'home'}
               />
             </NoSSR>
@@ -74,4 +101,4 @@ const Search = () => {
 };
 
 export * from '@rspress/core/theme-original';
-export { HomeLayout, Layout, Search };
+export { DocLayout, HomeLayout, Layout, Search };

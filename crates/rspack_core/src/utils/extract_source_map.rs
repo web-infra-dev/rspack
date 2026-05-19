@@ -317,7 +317,7 @@ pub async fn extract_source_map(
   let mut futures = FuturesOrdered::new();
 
   // Use zip to consume both vectors without extra cloning
-  for (source, original_content) in sources.into_iter().zip(source_contents.into_iter()) {
+  for (source, original_content) in sources.into_iter().zip(source_contents) {
     let skip_reading = original_content.is_some();
     let source_root = source_root.clone();
     let context = context.to_path_buf();

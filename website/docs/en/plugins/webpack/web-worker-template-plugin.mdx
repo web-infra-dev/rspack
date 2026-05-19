@@ -1,0 +1,13 @@
+---
+description: 'This plugin is used to bundle Web Worker assets, often used with childCompiler.'
+---
+
+# WebWorkerTemplatePlugin
+
+This plugin is used to bundle Web Worker assets, often used with childCompiler.
+
+It sets [output.chunkLoading](/config/output#outputchunkloading) to `'import-scripts'` and applies the [`'array-push'` chunk format](/config/output#outputchunkformat) used by web worker targets.
+
+```js
+new rspack.webworker.WebWorkerTemplatePlugin();
+```

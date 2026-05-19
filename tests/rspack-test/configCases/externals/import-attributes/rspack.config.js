@@ -54,12 +54,16 @@ module.exports = {
               );
               expect(esmImportSpecifier1[1]).not.toBe(esmImportSpecifier2[1]);
               const importChunkId1 = content.match(
-                /const dynamicPkgPure = await __webpack_require__.e\(\/\* import\(\) \*\/ "(.+)"\)/,
+                /const dynamicPkgPure = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
               );
               const importChunkId2 = content.match(
-                /const dynamicPkgStr = await __webpack_require__.e\(\/\* import\(\) \*\/ "(.+)"\)/,
+                /const dynamicPkgStr = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
               );
-              expect(importChunkId1[1]).not.toBe(importChunkId2[1]);
+              const dynamicPkgPureChunkId =
+                importChunkId1[1] ?? importChunkId1[2];
+              const dynamicPkgStrChunkId =
+                importChunkId2[1] ?? importChunkId2[2];
+              expect(dynamicPkgPureChunkId).not.toBe(dynamicPkgStrChunkId);
             },
           );
         });

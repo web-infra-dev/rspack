@@ -17,13 +17,10 @@ pub use self::{
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::BuildModuleGraphArtifact;
-use crate::{Compilation, ExportsInfoArtifact, logger::Logger};
+use crate::{Compilation, ExportsInfoArtifact};
 
 pub async fn build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
-  let logger = compilation.get_logger("rspack.Compiler");
-  let start = logger.time("build module graph");
   do_build_module_graph(compilation).await?;
-  logger.time_end(start);
   Ok(())
 }
 

@@ -11,5 +11,7 @@ module.exports = {
   },
   performance: {
     hints: 'error',
+    maxAssetSize: 200 * 1024,
+    maxEntrypointSize: 200 * 1024,
   },
 };

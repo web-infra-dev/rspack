@@ -8,8 +8,5 @@
       "@/*": ["./*"]
     },
     "checkJs": false
-  },
-  "ts-node": {
-    "transpileOnly": true
   }
 }

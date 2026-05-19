@@ -48,30 +48,30 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
             .chunk_by_ukey
             .expect_get(&chunk_ukey)
             .expect_id()
-            .to_string()
+            .clone()
         })
         .collect::<Vec<_>>();
 
       let body = if self.async_chunk_loading {
         match chunk_ids.len() {
           1 => format!(
-            r#"return {}("{}").then(next);"#,
+            "return {}({}).then(next);",
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            chunk_ids.first().expect("Should has at least one chunk")
+            rspack_util::json_stringify(chunk_ids.first().expect("Should has at least one chunk"))
           ),
           2 => format!(
-            r#"return Promise.all([{}]).then(next);"#,
+            "return Promise.all([{}]).then(next);",
             chunk_ids
               .iter()
               .map(|cid| format!(
-                r#"{}("{}")"#,
+                "{}({})",
                 runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-                cid
+                rspack_util::json_stringify(cid)
               ))
               .join(",\n")
           ),
           _ => format!(
-            r#"return Promise.all({}.map({}, {})).then(next);"#,
+            "return Promise.all({}.map({}, {})).then(next);",
             serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -82,9 +82,9 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           .iter()
           .map(|cid| {
             format!(
-              r#"{}("{}");"#,
+              "{}({});",
               runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-              cid
+              rspack_util::json_stringify(cid)
             )
           })
           .chain(iter::once("return next();".to_string()))

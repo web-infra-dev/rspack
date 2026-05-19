@@ -18,9 +18,13 @@ it("should include the correct split chunk ids in entry", async () => {
 	try {
 		for (const id of STATE.allIds) {
 			const expected = expectedIds.includes(id);
-			(expected ? expect(entryCode) : expect(entryCode).not).toMatch(
-				new RegExp(`[\\[,]"${id}"[\\],]`)
-			);
+			const idStr = String(id);
+			const isNumeric = /^\d+$/.test(idStr);
+			// Match chunk ID in arrays like [681,834] or in .e(681) calls.
+			const idPattern = isNumeric
+				? new RegExp(`(?:[\\[,]${idStr}[\\],]|\\b\\.e\\(${idStr}\\))`)
+				: new RegExp(`[\\[,]"${idStr}"[\\],]`);
+			(expected ? expect(entryCode) : expect(entryCode).not).toMatch(idPattern);
 		}
 	} catch (e) {
 		throw new Error(

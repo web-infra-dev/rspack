@@ -18,9 +18,9 @@ use rspack_core::{
   ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
   ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, PrefetchExportsInfoMode,
-  REQUIRE_SCOPE_GLOBALS, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, get_target, is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -43,7 +43,7 @@ use crate::{
   esm_lib_parser_plugin::EsmLibParserPlugin,
   optimize_chunks::{
     analyze_dyn_import_targets, assign_dyn_import_chunk_short_names, ensure_entry_exports,
-    optimize_runtime_chunks,
+    extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
   runtime::EsmRegisterModuleRuntimeModule,
@@ -99,7 +99,7 @@ impl EsmLibraryPlugin {
     let mut modules_map = IdentifierIndexMap::default();
     let modules = module_graph.modules();
     let mut modules = modules.collect::<Vec<_>>();
-    modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+    modules.sort_by_key(|(m1, _)| *m1);
     let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
     for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
@@ -139,8 +139,7 @@ impl EsmLibraryPlugin {
 
       // if we reach here, check exports info
       if should_scope_hoisting {
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+        let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
 
         let relevant_exports = exports_info.get_relevant_exports(None);
         let unknown_exports = relevant_exports
@@ -300,7 +299,7 @@ async fn finish_modules(
   let module_graph = compilation.get_module_graph();
   let mut modules_map = IdentifierIndexMap::default();
   let mut modules = module_graph.modules().collect::<Vec<_>>();
-  modules.sort_by(|(m1, _), (m2, _)| m1.cmp(m2));
+  modules.sort_by_key(|(m1, _)| *m1);
   let logger = compilation.get_logger("rspack.EsmLibraryPlugin");
 
   for (idx, (module_identifier, module)) in modules.into_iter().enumerate() {
@@ -340,8 +339,7 @@ async fn finish_modules(
 
     // if we reach here, check exports info
     if should_scope_hoisting {
-      let exports_info = exports_info_artifact
-        .get_prefetched_exports_info(module_identifier, PrefetchExportsInfoMode::Default);
+      let exports_info = exports_info_artifact.get_exports_info_data(module_identifier);
 
       let relevant_exports = exports_info.get_relevant_exports(None);
       let unknown_exports = relevant_exports
@@ -697,6 +695,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     crate::split_chunks::split(cache_groups, compilation).await?;
   }
 
+  let extracted_tla_shared = extract_tla_shared_modules(compilation);
+  if extracted_tla_shared {
+    compilation.push_diagnostic(rspack_error::Diagnostic::warn(
+      "EsmLibraryPlugin".into(),
+      "Top-level await with shared modules caused a circular dependency between async and \
+       parent chunks. The shared modules have been extracted into separate chunks to break \
+       the cycle. After bundling, the execution order of top-level await may differ from the \
+       original source, which could lead to incorrect runtime behavior."
+        .into(),
+    ));
+  }
+
   ensure_entry_exports(compilation);
   let concate_modules_map = self.concatenated_modules_map.read().await;
   let concatenated_modules = concate_modules_map
@@ -746,7 +756,9 @@ async fn after_factorize(
 ) -> Result<()> {
   // Check if this is an external module using the existing downcast helper
   if let Some(external_module) = module.as_external_module_mut()
-    && external_module.get_external_type().starts_with("module")
+    && (external_module.get_external_type().starts_with("module")
+      || (external_module.get_external_type() == "modern-module"
+        && data.dependencies.first().is_some_and(is_esm_dep_like)))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {

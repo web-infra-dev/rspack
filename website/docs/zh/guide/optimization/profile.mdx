@@ -22,7 +22,9 @@ Rspack CLI 支持使用 `RSPACK_PROFILE` 环境变量来进行构建性能分析
 RSPACK_PROFILE=ALL rspack build
 ```
 
-该命令会生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹，该文件夹下会包含 `trace.json` 文件，该文件由 Rspack 基于 [tracing](https://github.com/tokio-rs/tracing) 细粒度地记录了 Rust 侧各个阶段的耗时，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看。
+该命令会生成一个 `.rspack-profile-${timestamp}-${pid}` 文件夹。默认情况下，该文件夹下会包含 `rspack.log` 文件，它由 Rspack 基于 [tracing](https://github.com/tokio-rs/tracing) 生成，并以 JSON Lines 格式记录构建阶段的耗时信息。
+
+`@rspack-debug/core` 是 `@rspack/core` 的诊断版本，包含额外的调试和 tracing 能力。如果使用 `@rspack-debug/core` 并设置 `RSPACK_TRACE_LAYER=perfetto`，profile 目录下会生成 `rspack.pftrace`，可以使用 [ui.perfetto.dev](https://ui.perfetto.dev/) 进行查看。
 
 > 查看 [Tracing](/contribute/development/tracing) 了解更多。
 

@@ -142,15 +142,18 @@ import {
   rsc,
   SubresourceIntegrityPlugin,
 } from './builtin-plugin';
+import JsonpTemplatePlugin from './web/JsonpTemplatePlugin';
 
 export { SubresourceIntegrityPlugin };
 
 interface Web {
   FetchCompileAsyncWasmPlugin: typeof FetchCompileAsyncWasmPlugin;
+  JsonpTemplatePlugin: typeof JsonpTemplatePlugin;
 }
 
 export const web: Web = {
   FetchCompileAsyncWasmPlugin,
+  JsonpTemplatePlugin,
 };
 
 import { NodeTargetPlugin } from './builtin-plugin';
@@ -218,7 +221,7 @@ export const javascript: JavaScript = {
   JavascriptModulesPlugin,
 };
 
-import { WebWorkerTemplatePlugin } from './builtin-plugin';
+import WebWorkerTemplatePlugin from './webworker/WebWorkerTemplatePlugin';
 
 interface Webworker {
   WebWorkerTemplatePlugin: typeof WebWorkerTemplatePlugin;

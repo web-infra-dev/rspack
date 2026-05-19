@@ -2,7 +2,6 @@
 
 use std::sync::Arc;
 
-use criterion::criterion_group;
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_core::{
@@ -11,9 +10,11 @@ use rspack_core::{
 };
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
 use rspack_tasks::within_compiler_context_for_testing_sync;
-use tokio::runtime::Builder;
 
-use crate::groups::build_chunk_graph::{NUM_MODULES, prepare_large_code_splitting_case};
+use crate::groups::{
+  build_chunk_graph::{NUM_MODULES, prepare_large_code_splitting_case},
+  diagnostics::assert_no_compilation_errors,
+};
 
 pub fn module_graph_api_benchmark(c: &mut Criterion) {
   within_compiler_context_for_testing_sync(|| {
@@ -22,9 +23,7 @@ pub fn module_graph_api_benchmark(c: &mut Criterion) {
 }
 
 pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
-  let rt = Builder::new_multi_thread()
-    .build()
-    .expect("should not fail to build tokio runtime");
+  let rt = rspack_benchmark::build_tokio_rt();
   let _guard = rt.enter();
 
   let fs = Arc::new(MemoryFileSystem::default());
@@ -74,10 +73,7 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
       .unwrap();
   });
 
-  assert!(
-    compiler.compilation.get_errors().next().is_none(),
-    "module_graph_api benchmark setup should not produce compilation errors"
-  );
+  assert_no_compilation_errors(&compiler.compilation, "module_graph_api benchmark setup");
 
   let dependency_ids = {
     let module_graph = compiler.compilation.get_module_graph();
@@ -109,5 +105,3 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
     });
   });
 }
-
-criterion_group!(module_graph_api, module_graph_api_benchmark);

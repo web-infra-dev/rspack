@@ -2,7 +2,8 @@ mod cjs_finder;
 mod import_analyzer;
 mod react_server_components;
 mod server_actions;
-mod to_module_ref;
+mod to_client_ref;
+mod to_server_entry;
 
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
@@ -13,7 +14,7 @@ use swc_core::{
   common::{FileName, comments::SingleThreadedComments},
   ecma::ast::Pass,
 };
-pub use to_module_ref::to_module_ref;
+pub use to_server_entry::to_server_entry;
 
 pub fn rsc_pass(
   loader_context: &mut LoaderContext<RunnerContext>,
@@ -33,9 +34,16 @@ pub fn rsc_pass(
     .resource_query()
     .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
 
+  // Match the RSC manifest resource key from get_module_resource: path + query.
+  let module_resource = match loader_context.resource_query() {
+    Some(query) => format!("{resource_path}{query}"),
+    None => resource_path.to_string(),
+  };
+
   (
     server_components(
       filename,
+      module_resource,
       Config::WithOptions(Options {
         is_react_server_layer,
         enable_server_entry: !server_entry_proxy,

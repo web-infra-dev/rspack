@@ -119,7 +119,7 @@ export default {
 
 对以下内容执行跨模块内联优化：
 
-1. 模块图叶子模块中导出的常量值：
+1. 可被静态求值的顶层导出常量值：
    - `null` 或 `undefined`
    - `boolean` 值（`true` 或 `false`）
    - 长度 \<= 6 的 `number`
@@ -159,6 +159,10 @@ const __webpack_modules__ = {
 
 :::tip
 由于此功能依赖模块导出使用信息（[optimization.usedExports](#optimizationusedexports)），建议仅在生产模式下启用，因为生产模式下 `usedExports` 默认启用。
+:::
+
+:::warning TDZ 行为
+内联循环引用模块中的常量导出，可能会让原本会触发暂时性死区（TDZ）错误的代码不再报错。生态中大多数工具通常在进行优化时不会保留 TDZ 错误；Rspack 也遵循这种优化优先的行为。
 :::
 
 更多详情，请参考 [inline const 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const)。

@@ -224,7 +224,7 @@ export default function (env, argv) {
 
 ## 合并配置
 
-使用 Rspack 的 [extends](/config/extends) 选项或者 [webpack-merge](https://npmjs.com/package/webpack-merge) 包来合并多个 Rspack 配置。
+使用 Rspack 的 [extends](/config/extends) 选项或者 [rspack-merge](https://github.com/rstackjs/rspack-merge) 包来合并多个 Rspack 配置。
 
 ### extends 选项
 
@@ -241,18 +241,18 @@ export default {
 
 > 该选项仅在 `@rspack/cli` 中有效，查看 [extends](/config/extends) 了解更多用法。
 
-### webpack-merge
+### rspack-merge
 
-`webpack-merge` 是一个社区库，用于合并多个 webpack 配置，也能用于合并 Rspack 配置。
+`rspack-merge` 是一个库，用于合并多个 Rspack 配置。
 
-首先安装 `webpack-merge`：
+首先安装 `rspack-merge`：
 
-<PackageManagerTabs command="add webpack-merge -D" />
+<PackageManagerTabs command="add rspack-merge -D" />
 
 然后你就可以使用它的 `merge` 函数来合并配置：
 
 ```js title="rspack.config.mjs"
-import { merge } from 'webpack-merge';
+import { merge } from 'rspack-merge';
 
 const isDev = process.env.NODE_ENV === 'development';
 const base = {};
@@ -263,4 +263,4 @@ const dev = {
 export default isDev ? merge(base, dev) : base;
 ```
 
-> 查看 [webpack-merge 文档](https://npmjs.com/package/webpack-merge) 了解更多。
+> 查看 [rspack-merge 文档](https://github.com/rstackjs/rspack-merge) 了解更多。

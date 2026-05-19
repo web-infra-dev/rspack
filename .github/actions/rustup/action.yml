@@ -67,3 +67,18 @@ runs:
       with:
         key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if == 'true' }}
+
+    - name: Refresh rustup proxies on macOS
+      if: runner.os == 'macOS'
+      shell: bash
+      # macos-latest images symlink ~/.cargo/bin/{cargo,rustc,rustup,...} to
+      # Homebrew's rustup-init (installer-only, no cargo/rustc proxy). The
+      # Swatinem cargo cache also captures ~/.cargo/bin, so any earlier
+      # repair gets undone on cache restore. Detect the broken symlink
+      # here and run rustup-init -y to replace the shims with real proxy
+      # binaries. ~/.rustup/toolchains is untouched.
+      run: |
+        if [[ "$(readlink "${CARGO_HOME:-$HOME/.cargo}/bin/rustup" 2>/dev/null)" == */rustup-init ]]; then
+          rustup-init -y --default-toolchain none
+          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+        fi

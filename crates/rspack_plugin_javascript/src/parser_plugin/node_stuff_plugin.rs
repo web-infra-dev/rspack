@@ -295,7 +295,7 @@ impl NodeStuffPlugin {
     }
 
     if property.is_mock(node_option) {
-      return Some(format!("'{}'", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_warn_mock(node_option) {
@@ -303,12 +303,12 @@ impl NodeStuffPlugin {
         property.warning_code().to_string(),
         property.warning_message(),
       ));
-      return Some(format!("'{}'", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_true(node_option) {
       let path = Self::get_relative_path(parser, property)?;
-      return Some(format!("'{path}'"));
+      return Some(rspack_util::json_stringify_str(&path));
     }
 
     if property.is_eval_only(node_option) {
@@ -353,7 +353,7 @@ impl NodeStuffPlugin {
     }
 
     if property.is_mock(node_option) {
-      return Some(format!("\"{}\"", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_warn_mock(node_option) {
@@ -361,12 +361,12 @@ impl NodeStuffPlugin {
         property.warning_code().to_string(),
         property.warning_message(),
       ));
-      return Some(format!("\"{}\"", property.mock_value()));
+      return Some(rspack_util::json_stringify_str(property.mock_value()));
     }
 
     if property.is_true(node_option) {
       let path = Self::get_relative_path(parser, property)?;
-      return Some(format!("\"{path}\""));
+      return Some(rspack_util::json_stringify_str(&path));
     }
 
     if property.is_eval_only(node_option) {

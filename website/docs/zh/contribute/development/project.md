@@ -115,7 +115,6 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 - **`rspack_plugin_mf`**: 模块联邦插件，实现微前端模块联邦
 - **`rspack_plugin_dll`**: DLL 插件，实现动态链接库功能
 - **`rspack_plugin_worker`**: Web Worker 插件，用于处理 Worker 文件
-- **`rspack_plugin_web_worker_template`**: Web Worker 模板插件
 - **`rspack_plugin_schemes`**: 自定义 scheme 插件，支持自定义资源协议
 - **`rspack_plugin_runtime_chunk`**: Runtime chunk 插件，用于分离运行时代码
 
@@ -138,7 +137,6 @@ description: 'Rspack 项目结构指南，介绍 monorepo 中的 Rust crates、J
 
 ### 浏览器与环境支持
 
-- **`rspack_browser`**: 浏览器环境支持，提供浏览器端实现
 - **`rspack_browserslist`**: Browserslist 支持，用于处理浏览器兼容性查询
 
 ### 监控与追踪
@@ -216,9 +214,17 @@ Rspack 的端到端测试，涵盖真实场景和集成测试：
 - **`fixtures/`**: E2E 测试的共享 fixtures 和工具
 - **`utils/`**: E2E 测试执行的工具函数
 
-### 基准测试 (`bench/`)
+### JavaScript 基准测试 (`bench/`)
 
 用于跟踪 Rspack JavaScript API 性能并防止性能退化的性能基准测试：
 
 - **`fixtures/`**: 基准测试 fixtures（例如，用于基准测试的 `ts-react` 项目）
 - 用于测量构建性能和 API 执行时间的基准测试文件
+
+### Rust 基准测试 (`xtask/benchmark/`)
+
+用于跟踪 Rust 编译流水线性能的 CodSpeed 基准测试：
+
+- **`cases/`**: 针对 module graph、chunk graph、bundling、依赖扫描和 persistent cache 的端到端基准测试用例
+- **`stages/`**: 针对单个 compilation stage 的基准测试用例
+- 请参考 **`xtask/benchmark/README.md`** 了解本地 CodSpeed CPU simulation 命令和 Valgrind 临时文件位置

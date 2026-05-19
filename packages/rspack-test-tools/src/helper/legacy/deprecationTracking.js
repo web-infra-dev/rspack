@@ -24,7 +24,7 @@ console.warn = (message, ...args) => {
   return originalWarn.apply(console, [message, ...args]);
 };
 
-exports.start = (handler) => {
+export const start = (handler) => {
   interception = new Map();
 
   return () => {

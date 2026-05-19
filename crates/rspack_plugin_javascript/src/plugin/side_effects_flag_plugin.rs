@@ -7,9 +7,9 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
-  SideEffectsState, SideEffectsStateArtifact,
+  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
+  SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -133,7 +133,7 @@ impl SideEffectsFlagPlugin {
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
   if let Some(has_side_effects) = create_data.side_effects {
@@ -143,7 +143,7 @@ async fn nmf_module(
     return Ok(());
   }
 
-  let resource_data = &create_data.resource_resolve_data;
+  let resource_data = create_data.resource_resolve_data.as_ref();
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };
@@ -208,7 +208,7 @@ async fn finish_modules(
           };
 
           let target_exports_info = exports_info_artifact
-            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
+            .get_exports_info_data(ref_module);
           let target_export_info =
             target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
           let resolve_filter = |_: &ResolvedExportInfoTarget| true;
@@ -512,8 +512,7 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact.get_exports_info_data(&original_module);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {
@@ -558,10 +557,7 @@ fn can_optimize_connection(
     && let ids = dep.get_ids(module_graph)
     && !ids.is_empty()
   {
-    let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      connection.module_identifier(),
-      PrefetchExportsInfoMode::Default,
-    );
+    let exports_info = exports_info_artifact.get_exports_info_data(connection.module_identifier());
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {

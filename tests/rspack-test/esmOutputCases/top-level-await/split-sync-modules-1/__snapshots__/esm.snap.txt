@@ -1,0 +1,32 @@
+```mjs title=async.mjs
+
+// ./async.js
+
+
+
+export { value } from "./lib_js.mjs";
+
+```
+
+```mjs title=lib_js.mjs
+// ./lib.js
+const value = () => 42
+export { value };
+
+```
+
+```mjs title=main.mjs
+import { value } from "./lib_js.mjs";
+
+// ./index.js
+
+
+const {value: valueAsync} = await import("./async.mjs");
+
+it('should have correct value', () => {
+  expect(value).toBe(valueAsync);
+  expect(value()).toBe(42);
+})
+export {};
+
+```

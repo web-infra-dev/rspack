@@ -2,8 +2,8 @@ use std::hash::Hash;
 
 use rspack_core::{
   ChunkUkey, Compilation, CompilationParams, CompilerCompilation, ExportProvided, ExportsType,
-  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, PrefetchExportsInfoMode,
-  RuntimeCodeTemplate, RuntimeVariable, UsedNameItem, property_access,
+  LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeVariable,
+  UsedNameItem, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier, to_module_export_name,
 };
@@ -81,7 +81,7 @@ async fn render_startup(
   }
   let exports_info = compilation
     .exports_info_artifact
-    .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+    .get_exports_info_data(module);
   let boxed_module = module_graph
     .module_by_identifier(module)
     .expect("should have build meta");
@@ -91,7 +91,7 @@ async fn render_startup(
     &compilation.exports_info_artifact,
     boxed_module.build_info().strict,
   );
-  for (_, export_info) in exports_info.exports() {
+  for export_info in exports_info.exports().values() {
     if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
       continue;
     };
@@ -101,9 +101,6 @@ async fn render_startup(
       .chunk_by_ukey
       .expect_get(chunk_ukey);
     let info_name = export_info.name().expect("should have name");
-    let used_name = export_info
-      .get_used_name(Some(info_name), Some(chunk.runtime()))
-      .expect("name can't be empty");
     let var_name = format!("{exports_name}{}", to_identifier(info_name));
 
     if info_name == "default"
@@ -116,6 +113,11 @@ async fn render_startup(
         "var {var_name} = {exports_name};\n",
       )));
     } else {
+      // Skip exports unused in this runtime (matches webpack's `if (!exportInfo.provided) continue;`).
+      let Some(used_name) = export_info.get_used_name(Some(info_name), Some(chunk.runtime()))
+      else {
+        continue;
+      };
       source.add(RawStringSource::from(format!(
         "var {var_name} = {};\n",
         match used_name {

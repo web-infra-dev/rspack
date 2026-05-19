@@ -186,6 +186,41 @@ export default {
 };
 ```
 
+## experiments.pureFunctions
+
+<ApiMeta addedVersion="2.0.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启跨模块的无副作用函数调用优化，包括 `/*#__NO_SIDE_EFFECTS__*/` 注解和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 配置。被注解或用户配置标记的无副作用函数如果没有被真正使用到，则不会被打包进产物。
+
+更多背景可参考 [pureFunctions](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
+
+这个选项用于开启能力本身。若要手动为命中的模块标记标识符 —— 既可以是第三方库中的导出函数，也可以是你自己代码中的 import 或本地声明 —— 推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)，这样规则只会作用于目标模块。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /node_modules\/some-library\/index\.js$/,
+        parser: {
+          pureFunctions: ['isString'],
+        },
+      },
+    ],
+  },
+};
+```
+
+:::warning
+这个选项依赖 `optimization.sideEffects`。如果你关闭了 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects)，pure function 相关提示将不会被分析。
+:::
+
 ## experiments.useInputFileSystem
 
 <ApiMeta addedVersion="1.3.14" />

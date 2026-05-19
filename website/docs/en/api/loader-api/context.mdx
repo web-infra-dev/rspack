@@ -396,6 +396,12 @@ module.exports = function myLoader(source) {
 };
 ```
 
+:::tip
+When a loader is configured with a query string such as `loader: './my-loader?s=foo+bar'`, `this.getOptions()` parses that string with Node.js `querystring.parse()`. That means a literal `+` is decoded as a space, so the result is `{ s: 'foo bar' }`.
+
+If you need a literal plus sign, encode `+` as `%2B` or prefer an `options` object in the loader rule. Use [this.query](#thisquery) when you need the raw query string.
+:::
+
 In TypeScript, you can set the options type through the generic of `LoaderContext`.
 
 ```ts title="my-loader.ts"
@@ -528,6 +534,8 @@ The value depends on the loader configuration:
 
 - If the current loader was configured with an options object, `this.query` will point to that object.
 - If the current loader has no options, but was invoked with a query string, this will be a string starting with `?`.
+
+Unlike [this.getOptions()](#thisgetoptions), the query-string form is not parsed. For example, `loader: './my-loader?s=foo+bar'` gives `this.query === '?s=foo+bar'`.
 
 ## this.request
 

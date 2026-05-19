@@ -34,6 +34,42 @@ export default {
 };
 ```
 
+### 通过 splitChunks 拆分提取出的 CSS
+
+`CssExtractRspackPlugin` 会为提取出的 CSS 模块添加 `css/mini-extract` 模块类型。你可以使用 [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegrouptype) 创建一个只命中 `CssExtractRspackPlugin` 提取出的 CSS 的 cache group，而不会命中 JavaScript 模块或内置 CSS 模块。
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'javascript/auto',
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        extractedCss: {
+          type: 'css/mini-extract',
+          name: 'styles',
+          chunks: 'all',
+          enforce: true,
+        },
+      },
+    },
+  },
+};
+```
+
+在这个例子中，`extractedCss` 只会选择模块类型为 `css/mini-extract` 的模块。`enforce: true` 会让 CSS chunk 即使在普通 `minSize` 或请求数限制启发式规则下会被跳过时也被创建；如果希望该 cache group 遵循普通 splitChunks 启发式规则，可以移除 `enforce`。
+
 ## Plugin 选项
 
 CssExtractRspackPlugin 插件的选项。

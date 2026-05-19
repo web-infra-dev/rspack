@@ -10,10 +10,10 @@ const path = require('node:path');
  * @param {string=} subpath path in output directory
  * @returns {string[]} files
  */
-module.exports = function findOutputFiles(options, regexp, subpath) {
+export function findOutputFiles(options, regexp, subpath) {
   const files = fs.readdirSync(
     subpath ? path.join(options.output.path, subpath) : options.output.path,
   );
 
   return files.filter((file) => regexp.test(file));
-};
+}

@@ -58,8 +58,8 @@ module.exports = {
 			-   "performance": false,
 			+   "performance": Object {
 			+     "hints": "warning",
-			+     "maxAssetSize": 250000,
-			+     "maxEntrypointSize": 250000,
+			+     "maxAssetSize": 307200,
+			+     "maxEntrypointSize": 512000,
 			+   },
 		`)
 };

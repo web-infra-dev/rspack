@@ -34,6 +34,42 @@ export default {
 };
 ```
 
+### Split extracted CSS with splitChunks
+
+`CssExtractRspackPlugin` adds extracted CSS modules with the `css/mini-extract` module type. You can use [`splitChunks.cacheGroups.{cacheGroup}.type`](/plugins/webpack/split-chunks-plugin#splitchunkscachegroupscachegrouptype) to create a cache group that only matches CSS extracted by `CssExtractRspackPlugin`, without matching JavaScript modules or native CSS modules.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CssExtractRspackPlugin({})],
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'javascript/auto',
+        use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
+      },
+    ],
+  },
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+      cacheGroups: {
+        extractedCss: {
+          type: 'css/mini-extract',
+          name: 'styles',
+          chunks: 'all',
+          enforce: true,
+        },
+      },
+    },
+  },
+};
+```
+
+In this example, `extractedCss` only selects modules whose module type is `css/mini-extract`. `enforce: true` makes the CSS chunk be created even when the normal `minSize` or request-limit heuristics would skip it; remove `enforce` if you want the cache group to follow the normal splitChunks heuristics.
+
 ## Plugin options
 
 Options for `CssExtractRspackPlugin`.

@@ -40,8 +40,8 @@ __webpack_require__.r(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
   lib2: () => (lib2),
-  lib3: () => (/* reexport safe */ _lib3__rspack_import_1.B),
-  lib4: () => (/* reexport safe */ _lib3__rspack_import_1.I)
+  lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
+  lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
 });
 /* import */ var path__rspack_import_0 = __webpack_require__(/*! path */ "path");
 
@@ -63,8 +63,6 @@ const lib2 = 42
   \*****************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  B: () => (lib3),
-  I: () => (lib_local),
   fs: () => (/* reexport module object */ fs__rspack_import_0)
 });
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");

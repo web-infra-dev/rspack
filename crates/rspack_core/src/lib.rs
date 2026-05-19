@@ -49,6 +49,9 @@ mod context_module;
 pub use context_module::*;
 mod context_module_factory;
 pub use context_module_factory::*;
+mod glob_utils;
+pub(crate) use glob_utils::walk_dir;
+pub use glob_utils::*;
 mod init_fragment;
 pub use init_fragment::*;
 mod module_factory;
@@ -174,7 +177,9 @@ impl From<&ModuleType> for SourceType {
   fn from(value: &ModuleType) -> Self {
     match value {
       ModuleType::JsAuto | ModuleType::JsEsm | ModuleType::JsDynamic => Self::JavaScript,
-      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto => Self::Css,
+      ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal => {
+        Self::Css
+      }
       ModuleType::WasmSync | ModuleType::WasmAsync => Self::Wasm,
       ModuleType::Asset | ModuleType::AssetInline | ModuleType::AssetResource => Self::Asset,
       ModuleType::ConsumeShared => Self::ConsumeShared,
@@ -191,6 +196,7 @@ pub enum ModuleType {
   Css,
   CssModule,
   CssAuto,
+  CssGlobal,
   JsAuto,
   JsDynamic,
   JsEsm,
@@ -256,6 +262,7 @@ impl ModuleType {
       ModuleType::Css => "css",
       ModuleType::CssModule => "css/module",
       ModuleType::CssAuto => "css/auto",
+      ModuleType::CssGlobal => "css/global",
 
       ModuleType::Json => "json",
 
@@ -298,6 +305,7 @@ impl From<&str> for ModuleType {
       "css" => Self::Css,
       "css/module" => Self::CssModule,
       "css/auto" => Self::CssAuto,
+      "css/global" => Self::CssGlobal,
 
       "json" => Self::Json,
 

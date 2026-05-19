@@ -11,6 +11,34 @@ description: 'Simply set breakpoints in the specified Rust code and start Debug 
 3. build `@rspack/cli` and napi binding by run `pnpm install && pnpm -w build:cli:dev`
 4. In VS Code's `Run and Debug` tab, select `Debug Rspack` to start debugging the initial launch of `@rspack/cli` with a simple rspack project. This task can be configured in `.vscode/launch.json`.
 
+## Using `@rspack-debug/core`
+
+Frameworks and tools that integrate Rspack usually depend on the release build of `@rspack/core`. The release package is suitable for normal builds, but it does not include some debug-only capabilities. When you need these capabilities for local investigation, override `@rspack/core` with `@rspack-debug/core` in the project that runs the build.
+
+For example, with pnpm:
+
+```json title="package.json"
+{
+  "pnpm": {
+    "overrides": {
+      "@rspack/core": "npm:@rspack-debug/core@latest"
+    },
+    "peerDependencyRules": {
+      "allowAny": ["@rspack/*"]
+    }
+  }
+}
+```
+
+Then reinstall dependencies and run the original build command again. For example, if the project builds through Rsbuild:
+
+```bash
+pnpm install
+RSPACK_PROFILE=OVERVIEW RSPACK_TRACE_LAYER=perfetto rsbuild build
+```
+
+`@rspack-debug/core` should only be used for local debugging and diagnostics. Prefer pinning it to the same version as the original `@rspack/core` dependency when investigating a version-specific issue, and remove the override after the investigation.
+
 ### Common debugging scenarios guide
 
 #### Debugging Rust

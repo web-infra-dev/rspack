@@ -1,17 +1,15 @@
 use rayon::prelude::*;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules,
-  DependenciesBlock, DependencyId, EvaluatedInlinableValue, ExportInfo, ExportInfoData,
-  ExportNameOrSpec, ExportProvided, ExportsInfo, ExportsInfoArtifact, ExportsInfoData,
-  ExportsOfExportsSpec, ExportsSpec, GetTargetResult, Logger, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, Nullable, Plugin,
-  PrefetchExportsInfoMode, SideEffectsStateArtifact, get_target,
+  AsyncModulesArtifact, BuildMetaExportsType, Compilation, CompilationFinishModules, DependencyId,
+  EvaluatedInlinableValue, ExportInfo, ExportInfoData, ExportNameOrSpec, ExportProvided,
+  ExportsInfo, ExportsInfoArtifact, ExportsInfoData, ExportsOfExportsSpec, ExportsSpec,
+  GetTargetResult, Logger, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ModuleIdentifier, Nullable, Plugin, SideEffectsStateArtifact, get_target,
   incremental::{self, IncrementalPasses},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use swc_core::ecma::atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
@@ -251,37 +249,25 @@ fn collect_module_exports_specs(
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> Option<(FxIndexMap<DependencyId, ExportsSpec>, bool)> {
-  let mut has_nested_exports = false;
-  fn walk_block<B: DependenciesBlock + ?Sized>(
-    block: &B,
-    dep_ids: &mut FxIndexSet<DependencyId>,
-    mg: &ModuleGraph,
-  ) {
-    dep_ids.extend(block.get_dependencies().iter().copied());
-    for block_id in block.get_blocks() {
-      if let Some(block) = mg.block_by_id(block_id) {
-        walk_block(block, dep_ids, mg);
-      }
-    }
-  }
-
-  let block = mg.module_by_identifier(module_id)?.as_ref();
-  let mut dep_ids = FxIndexSet::default();
-  walk_block(block, &mut dep_ids, mg);
+) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
+  let mgm = mg.module_graph_module_by_identifier(module_id)?;
+  let all_dependencies = mgm.all_dependencies();
 
   // There is no need to use the cache here
   // because the `get_exports` of each dependency will only be called once
   // mg_cache.freeze();
-  let res = dep_ids
-    .into_iter()
-    .filter_map(|id| {
-      let dep = mg.dependency_by_id(&id);
-      let exports_spec = dep.get_exports(mg, mg_cache, exports_info_artifact)?;
-      has_nested_exports |= exports_spec.has_nested_exports();
-      Some((id, exports_spec))
-    })
-    .collect::<FxIndexMap<DependencyId, ExportsSpec>>();
+  let mut has_nested_exports = false;
+  let mut res = Vec::with_capacity(all_dependencies.len());
+  for id in all_dependencies.iter().copied() {
+    let Some(exports_spec) =
+      mg.dependency_by_id(&id)
+        .get_exports(mg, mg_cache, exports_info_artifact)
+    else {
+      continue;
+    };
+    has_nested_exports |= exports_spec.has_nested_exports();
+    res.push((id, exports_spec));
+  }
   // mg_cache.unfreeze();
   Some((res, has_nested_exports))
 }
@@ -744,16 +730,9 @@ fn find_target_exports_info(
   let mut target_exports_info = None;
   let mut target_module = None;
   if let Some(GetTargetResult::Target(target)) = target {
-    let target_module_exports_info = exports_info_artifact.get_prefetched_exports_info(
-      &target.module,
-      if let Some(names) = &target.export {
-        PrefetchExportsInfoMode::Nested(names)
-      } else {
-        PrefetchExportsInfoMode::Default
-      },
-    );
+    let target_module_exports_info = exports_info_artifact.get_exports_info_data(&target.module);
     target_exports_info = target_module_exports_info
-      .get_nested_exports_info(target.export.as_deref())
+      .get_nested_exports_info(exports_info_artifact, target.export.as_deref())
       .map(|data| data.id());
     target_module = Some(target.module);
   }

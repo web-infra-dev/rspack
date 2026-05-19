@@ -1,0 +1,13 @@
+---
+description: 'This plugin is used to bundle browser assets, often used with childCompiler.'
+---
+
+# JsonpTemplatePlugin
+
+This plugin is used to bundle browser assets, often used with childCompiler.
+
+It sets [output.chunkLoading](/config/output#outputchunkloading) to `'jsonp'` and applies the [`'array-push'` chunk format](/config/output#outputchunkformat) used by web targets.
+
+```js
+new rspack.web.JsonpTemplatePlugin();
+```

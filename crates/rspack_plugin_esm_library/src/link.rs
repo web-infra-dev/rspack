@@ -9,15 +9,14 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
+  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -74,6 +73,72 @@ enum ExternalImportBinding {
 }
 
 impl EsmLibraryPlugin {
+  fn module_external_fragment_content(
+    init_fragment: Box<dyn rspack_core::InitFragment<ChunkRenderContext>>,
+  ) -> Option<String> {
+    if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
+      return None;
+    }
+
+    if let Ok(fragment) = init_fragment
+      .clone()
+      .into_any()
+      .downcast::<ConditionalInitFragment>()
+    {
+      Some(fragment.content().to_owned())
+    } else {
+      init_fragment
+        .clone()
+        .contents(&mut ChunkRenderContext {})
+        .ok()
+        .map(|contents| contents.start)
+    }
+  }
+
+  fn collect_module_external_fragments_in_render_order<'a>(
+    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+  ) -> Vec<Box<dyn rspack_core::InitFragment<ChunkRenderContext>>> {
+    let mut ordered_fragments = Vec::new();
+
+    for init_fragments in init_fragment_groups {
+      for init_fragment in init_fragments {
+        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
+          continue;
+        }
+
+        ordered_fragments.push((
+          init_fragment.stage(),
+          init_fragment.position(),
+          ordered_fragments.len(),
+          init_fragment.key().clone(),
+          init_fragment.clone(),
+        ));
+      }
+    }
+
+    ordered_fragments.sort_by(|a, b| {
+      let stage = a.0.cmp(&b.0);
+      if !stage.is_eq() {
+        return stage;
+      }
+      let position = a.1.cmp(&b.1);
+      if !position.is_eq() {
+        return position;
+      }
+      a.2.cmp(&b.2)
+    });
+
+    let mut rendered_keys = FxHashSet::default();
+    let mut rendered_fragments = Vec::with_capacity(ordered_fragments.len());
+    for (_, _, _, key, init_fragment) in ordered_fragments {
+      if rendered_keys.insert(key) {
+        rendered_fragments.push(init_fragment);
+      }
+    }
+
+    rendered_fragments
+  }
+
   fn parse_module_external_namespace_import(content: &str) -> Option<(RawImportSource, Atom)> {
     let content = content.trim_start();
     let content = content.strip_prefix("import * as ")?;
@@ -119,54 +184,10 @@ impl EsmLibraryPlugin {
   fn collect_module_external_namespace_imports_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
   ) -> Vec<(RawImportSource, Atom)> {
-    let mut ordered_imports = Vec::new();
-
-    for init_fragments in init_fragment_groups {
-      for init_fragment in init_fragments {
-        if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
-          continue;
-        }
-
-        let content = if let Ok(fragment) = init_fragment
-          .clone()
-          .into_any()
-          .downcast::<ConditionalInitFragment>()
-        {
-          fragment.content().to_owned()
-        } else {
-          let Ok(contents) = init_fragment.clone().contents(&mut ChunkRenderContext {}) else {
-            continue;
-          };
-          contents.start
-        };
-
-        if let Some((source, local_name)) = Self::parse_module_external_namespace_import(&content) {
-          ordered_imports.push((
-            init_fragment.stage(),
-            init_fragment.position(),
-            ordered_imports.len(),
-            source,
-            local_name,
-          ));
-        }
-      }
-    }
-
-    ordered_imports.sort_by(|a, b| {
-      let stage = a.0.cmp(&b.0);
-      if !stage.is_eq() {
-        return stage;
-      }
-      let position = a.1.cmp(&b.1);
-      if !position.is_eq() {
-        return position;
-      }
-      a.2.cmp(&b.2)
-    });
-
-    ordered_imports
+    Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
       .into_iter()
-      .map(|(_, _, _, source, local_name)| (source, local_name))
+      .filter_map(Self::module_external_fragment_content)
+      .filter_map(|content| Self::parse_module_external_namespace_import(&content))
       .collect()
   }
 
@@ -188,6 +209,25 @@ impl EsmLibraryPlugin {
       } else {
         used_names.insert(local_name);
       }
+    }
+  }
+
+  #[cfg(test)]
+  fn reserve_module_external_top_level_decls(
+    init_fragments: &ChunkInitFragments,
+    used_names: &mut FxHashSet<Atom>,
+  ) {
+    Self::reserve_module_external_top_level_decls_in_render_order([init_fragments], used_names);
+  }
+
+  fn reserve_module_external_top_level_decls_in_render_order<'a>(
+    init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
+    used_names: &mut FxHashSet<Atom>,
+  ) {
+    for init_fragment in
+      Self::collect_module_external_fragments_in_render_order(init_fragment_groups)
+    {
+      used_names.extend(init_fragment.top_level_decl_symbols().iter().cloned());
     }
   }
 
@@ -661,7 +701,8 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
-                    && ext.get_external_type().as_str().starts_with("module")
+                    && (ext.get_external_type().as_str().starts_with("module")
+                      || ext.resolve_external_type() == "module")
                   {
                     let Some((raw_import_source, import_binding)) = concate_modules_map
                       .get(&symbol_binding.module)
@@ -911,18 +952,15 @@ var {} = {{}};
 
     let module_graph = compilation.get_module_graph();
 
-    let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES
-      .iter()
-      .map(|s| Atom::new(*s))
-      .chain(chunk_link.hoisted_modules.iter().flat_map(|m| {
-        let info = &concate_modules_map[m];
-        info
-          .as_concatenated()
-          .global_scope_ident
-          .iter()
-          .map(|ident| ident.id.sym.clone())
-      }))
-      .collect();
+    let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    all_used_names.extend(chunk_link.hoisted_modules.iter().flat_map(|m| {
+      let info = &concate_modules_map[m];
+      info
+        .as_concatenated()
+        .global_scope_ident
+        .iter()
+        .map(|ident| ident.id.sym.clone())
+    }));
 
     // merge all all_used_names from hoisted modules
     for id in &chunk_link.hoisted_modules {
@@ -971,9 +1009,13 @@ var {} = {{}};
       }
     }
     Self::reserve_module_external_namespace_import_locals_in_render_order(
-      module_external_init_fragment_groups,
+      module_external_init_fragment_groups.iter().copied(),
       &mut all_used_names,
       Some(&mut chunk_link.module_external_namespace_imports),
+    );
+    Self::reserve_module_external_top_level_decls_in_render_order(
+      module_external_init_fragment_groups.iter().copied(),
+      &mut all_used_names,
     );
 
     // deconflict top level symbols
@@ -2050,18 +2092,20 @@ var {} = {{}};
                 context,
               )],
             );
-            entry_chunk_link.used_names.insert(new_name.clone());
-            entry_chunk_link
-              .decl_before_exports
-              .insert(format!("var {new_name} = {inlined_value};\n"));
-
-            Self::add_chunk_export(
+            if Self::add_chunk_export(
               entry_chunk,
               new_name.clone(),
               name.clone(),
               exports,
               !allow_rename,
-            );
+            )
+            .is_some()
+            {
+              entry_chunk_link.used_names.insert(new_name.clone());
+              entry_chunk_link
+                .decl_before_exports
+                .insert(format!("var {new_name} = {inlined_value};\n"));
+            }
           }
         }
       }
@@ -2748,8 +2792,8 @@ var {} = {{}};
     for chunk_link in link.values_mut() {
       let all_chunk_used_symbols = chunk_link
         .refs
-        .iter()
-        .filter_map(|(_, symbol_ref)| {
+        .values()
+        .filter_map(|symbol_ref| {
           if let Ref::Symbol(symbol_ref) = symbol_ref {
             Some(&symbol_ref.symbol)
           } else {
@@ -2875,7 +2919,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<ExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
@@ -3030,8 +3074,7 @@ var {} = {{}};
       }
     }
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
+    let exports_info = exports_info_artifact.get_exports_info_data(info_id);
 
     if export_name.is_empty() {
       let info = module_to_info_map.get_mut_unwrap(info_id);
@@ -3069,15 +3112,15 @@ var {} = {{}};
     }
 
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
-    let export_info_hash_key = export_info.as_hash_key();
+    let export_info_id = export_info.id();
 
-    if already_visited.contains(&export_info_hash_key) {
+    if already_visited.contains(&export_info_id) {
       return Some(Ref::Inline(
         "/* circular reexport */ Object(function x() { x() }())".into(),
       ));
     }
 
-    already_visited.insert(export_info_hash_key);
+    already_visited.insert(export_info_id);
 
     let info = &module_to_info_map[info_id];
     match info {
@@ -3100,11 +3143,7 @@ var {} = {{}};
           )));
         }
 
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        );
+        let used_name = exports_info.get_used_name(exports_info_artifact, None, &export_name);
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
@@ -3164,15 +3203,10 @@ var {} = {{}};
           FindTargetResult::NoTarget => {}
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_prefetched_exports_info(
-                &target.module,
-                PrefetchExportsInfoMode::Nested(&export),
-              );
-              if let Some(UsedName::Inlined(inlined)) = ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithNames(&exports_info),
-                None,
-                &export,
-              ) {
+              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
+              if let Some(UsedName::Inlined(inlined)) =
+                exports_info.get_used_name(exports_info_artifact, None, &export)
+              {
                 return Some(Ref::Inline(inlined.inlined_value().render(
                   &to_normal_comment(&format!(
                     "inlined export {}",
@@ -3220,12 +3254,9 @@ var {} = {{}};
 
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
-          let used_name = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            None,
-            &export_name,
-          )
-          .expect("should have export name");
+          let used_name = exports_info
+            .get_used_name(exports_info_artifact, None, &export_name)
+            .expect("should have export name");
           return Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
@@ -3251,11 +3282,9 @@ var {} = {{}};
         None
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        ) {
+        if let Some(used_name) =
+          exports_info.get_used_name(exports_info_artifact, None, &export_name)
+        {
           Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
@@ -3570,6 +3599,95 @@ mod tests {
     );
 
     assert!(chunk_used_names.is_empty());
+  }
+
+  #[test]
+  fn module_external_non_namespace_init_fragment_claims_top_level_decls() {
+    let init_fragments: ChunkInitFragments = vec![Box::new(rspack_core::NormalInitFragment::new(
+      "import { createRequire as __rspack_createRequire } from \"node:module\";\nconst __rspack_createRequire_require = __rspack_createRequire(import.meta.url);\n"
+        .into(),
+      rspack_core::InitFragmentStage::StageESMImports,
+      0,
+      InitFragmentKey::ModuleExternal("node-commonjs".into()),
+      None,
+    )
+    .with_top_level_decl_symbols(vec![
+      "__rspack_createRequire".into(),
+      "__rspack_createRequire_require".into(),
+    ]))];
+    let mut chunk_used_names = FxHashSet::default();
+
+    EsmLibraryPlugin::reserve_module_external_top_level_decls(
+      &init_fragments,
+      &mut chunk_used_names,
+    );
+
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire")));
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_require")));
+  }
+
+  #[test]
+  fn module_external_top_level_decls_keep_first_rendered_fragment() {
+    let init_fragments: ChunkInitFragments = vec![
+      Box::new(rspack_core::NormalInitFragment::new(
+        "import { createRequire as __rspack_createRequire_1 } from \"node:module\";\nconst __rspack_createRequire_require_1 = __rspack_createRequire_1(import.meta.url);\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        1,
+        InitFragmentKey::ModuleExternal("node-commonjs".into()),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![
+        "__rspack_createRequire_1".into(),
+        "__rspack_createRequire_require_1".into(),
+      ])),
+      Box::new(rspack_core::NormalInitFragment::new(
+        "import { createRequire as __rspack_createRequire_0 } from \"node:module\";\nconst __rspack_createRequire_require_0 = __rspack_createRequire_0(import.meta.url);\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageESMImports,
+        0,
+        InitFragmentKey::ModuleExternal("node-commonjs".into()),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![
+        "__rspack_createRequire_0".into(),
+        "__rspack_createRequire_require_0".into(),
+      ])),
+    ];
+    let mut chunk_used_names = FxHashSet::default();
+
+    EsmLibraryPlugin::reserve_module_external_top_level_decls(
+      &init_fragments,
+      &mut chunk_used_names,
+    );
+
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_0")));
+    assert!(chunk_used_names.contains(&Atom::from("__rspack_createRequire_require_0")));
+    assert!(!chunk_used_names.contains(&Atom::from("__rspack_createRequire_1")));
+    assert!(!chunk_used_names.contains(&Atom::from("__rspack_createRequire_require_1")));
+  }
+
+  #[test]
+  fn module_external_var_init_fragment_claims_top_level_decl() {
+    let init_fragments: ChunkInitFragments = vec![Box::new(
+      rspack_core::NormalInitFragment::new(
+        "/* provided dependency */ var provided_identifier = __webpack_require__(\"./dep\");\n"
+          .into(),
+        rspack_core::InitFragmentStage::StageProvides,
+        1,
+        InitFragmentKey::ModuleExternal("provided provided_identifier".into()),
+        None,
+      )
+      .with_top_level_decl_symbols(vec!["provided_identifier".into()]),
+    )];
+    let mut chunk_used_names = FxHashSet::default();
+
+    EsmLibraryPlugin::reserve_module_external_top_level_decls(
+      &init_fragments,
+      &mut chunk_used_names,
+    );
+
+    assert!(chunk_used_names.contains(&Atom::from("provided_identifier")));
   }
 
   #[test]

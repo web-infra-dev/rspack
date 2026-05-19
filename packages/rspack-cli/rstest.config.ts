@@ -9,6 +9,7 @@ const wasmConfig: RstestConfig | undefined = process.env.WASM
   : undefined;
 
 export default defineConfig({
+  name: 'rspack-cli',
   testEnvironment: 'node',
   globals: true,
   testTimeout: process.env.CI ? 200000 : 30000,

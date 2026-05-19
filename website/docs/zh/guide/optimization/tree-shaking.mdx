@@ -194,8 +194,8 @@ export const foo = 42;
 
 该功能目前处于实验阶段，需要通过下面的实验性 feature 开关开启，且依赖于 [optimization.sideEffects](/config/optimization#optimizationsideeffects)（sideEffects 在生产模式下默认开启）：
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },
@@ -204,7 +204,7 @@ module.exports = {
 
 你可以将该注解放在函数声明、函数表达式、箭头函数或导出语句之前，更多请参考社区[规范](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md)：
 
-```javascript
+```js
 /*#__NO_SIDE_EFFECTS__*/
 function foo() {
   console.log('foo');
@@ -226,14 +226,16 @@ export function baz() {}
 
 ## pureFunctions
 
-`pureFunctions` 允许你在命中的模块中，手动将顶层导出函数标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。这在处理无法修改源码的第三方库（例如 `node_modules` 中的包）时非常有用。
+`pureFunctions` 允许你在命中的模块中，手动将顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的顶层绑定 —— 即顶层的 function/class/变量声明、`import` 引入的标识符，或它们的 export 别名。这既适用于无法修改源码的第三方库（例如 `node_modules` 中的包），也适用于在消费侧直接断言某个 import 调用是 pure 的场景。
+
+配置方式请参考 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)。
 
 :::warning
 该选项目前是实验能力，且只有在启用 `experiments.pureFunctions` 时才会生效。
 :::
 
 :::note
-目前仅支持顶层导出函数定义；对于默认导出，请使用 `default` 作为导出名。
+对于配置在源模块上的默认导出，请使用 `default` 作为名字。
 :::
 
 对于可以修改源码的业务代码，优先使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
@@ -242,17 +244,25 @@ export function baz() {}
 
 该选项配置在 `module.rules` 的 `parser` 中：
 
-```javascript title="rspack.config.js"
-module.exports = {
+```js title="rspack.config.mjs"
+export default {
   experiments: {
     pureFunctions: true,
   },
   module: {
     rules: [
+      // 将第三方库中的导出标记为 pure
       {
         test: /node_modules\/some-library\/index.js/,
         parser: {
           pureFunctions: ['isString', 'default'],
+        },
+      },
+      // 也可以在消费侧标记 import
+      {
+        test: /src\/styles\.js$/,
+        parser: {
+          pureFunctions: ['cva'],
         },
       },
     ],
@@ -260,4 +270,4 @@ module.exports = {
 };
 ```
 
-Rspack 会校验 `pureFunctions` 中配置的每个名字是否确实存在于命中的模块中；如果找不到对应的导出函数名，就会发出警告。
+Rspack 会校验 `pureFunctions` 中配置的每个名字是否能在命中模块中解析到顶层绑定；如果找不到，就会发出警告。

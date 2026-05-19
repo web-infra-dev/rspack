@@ -22,12 +22,14 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion},
+  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{StorageOptions, create_storage},
 };
 use super::Cache;
-use crate::{Compilation, CompilerOptions, Logger};
+use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
+
+const LOGGER_NAME: &str = "rspack.persistentCache";
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -53,6 +55,7 @@ pub struct PersistentCache {
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
+  minimize_occasion: MinimizeOccasion,
 }
 
 impl PersistentCache {
@@ -62,6 +65,7 @@ impl PersistentCache {
     compiler_options: Arc<CompilerOptions>,
     input_filesystem: Arc<dyn ReadableFileSystem>,
     intermediate_filesystem: Arc<dyn IntermediateFileSystem>,
+    compilation_logging: CompilationLogging,
   ) -> Self {
     let project_root = if option.portable {
       Some(compiler_options.context.as_path().to_path_buf())
@@ -92,7 +96,11 @@ impl PersistentCache {
 
     Self {
       initialized: false,
-      ctx: CacheContext::new(storage, option.readonly),
+      ctx: CacheContext::new(
+        storage,
+        option.readonly,
+        CompilationLogger::new(LOGGER_NAME.to_string(), compilation_logging),
+      ),
       build_deps: BuildDeps::new(
         &option.build_dependencies,
         input_filesystem,
@@ -100,7 +108,8 @@ impl PersistentCache {
       ),
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
-      meta_occasion: MetaOccasion::new(codec),
+      meta_occasion: MetaOccasion::new(codec.clone()),
+      minimize_occasion: MinimizeOccasion::new(codec),
     }
   }
 
@@ -123,6 +132,7 @@ impl PersistentCache {
 #[async_trait::async_trait]
 impl Cache for PersistentCache {
   async fn before_compile(&mut self, compilation: &mut Compilation) -> bool {
+    self.ctx.logger().info("persistent cache enabled");
     self.initialize().await;
 
     if compilation.is_rebuild {
@@ -133,7 +143,6 @@ impl Cache for PersistentCache {
     if let Some((is_hot_start, modified_paths, removed_paths)) =
       self.ctx.load_snapshot(&self.snapshot).await
     {
-      tracing::debug!("cache::snapshot recovery {modified_paths:?} {removed_paths:?}",);
       compilation.modified_files.extend(modified_paths);
       compilation.removed_files.extend(removed_paths);
       return is_hot_start;
@@ -178,11 +187,7 @@ impl Cache for PersistentCache {
       .await;
 
     self.ctx.save_storage();
-
-    let logger = compilation.get_logger("rspack.persistentCache");
-    for msg in self.ctx.reset() {
-      logger.warn(msg);
-    }
+    self.ctx.reset();
   }
 
   async fn before_build_module_graph(&mut self, compilation: &mut Compilation) {
@@ -207,6 +212,25 @@ impl Cache for PersistentCache {
       &self.make_occasion,
       &compilation.build_module_graph_artifact,
     );
+  }
+
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    if compilation.is_rebuild {
+      return;
+    }
+
+    let artifact = self
+      .ctx
+      .load_occasion(&self.minimize_occasion)
+      .await
+      .unwrap_or_default();
+    compilation.minimize_persistent_cache_artifact = Some(artifact);
+  }
+
+  async fn after_process_assets(&mut self, compilation: &Compilation) {
+    if let Some(artifact) = &compilation.minimize_persistent_cache_artifact {
+      self.ctx.save_occasion(&self.minimize_occasion, artifact);
+    }
   }
 
   async fn close(&self) {

@@ -6,11 +6,14 @@ name              = "rspack_tracing"
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+perfetto = ["dep:rspack_tracing_perfetto"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 chrono                  = { workspace = true, features = ["alloc"] }
-rspack_tracing_perfetto = { workspace = true }
-rustc-hash              = { workspace = true }
+rspack_tracing_perfetto = { workspace = true, optional = true }
+rustc-hash              = { workspace = true, features = ["std"] }
 serde_json              = { workspace = true }
 tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }
 

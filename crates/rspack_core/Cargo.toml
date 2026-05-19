@@ -16,6 +16,7 @@ dashmap                    = { workspace = true, features = ["rayon"] }
 derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
+fast-glob                  = { workspace = true }
 futures                    = { workspace = true }
 hashlink                   = { workspace = true }
 heck                       = { workspace = true }
@@ -76,6 +77,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
+codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []
 napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]

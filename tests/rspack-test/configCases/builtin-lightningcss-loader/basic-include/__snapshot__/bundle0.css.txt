@@ -1,5 +1,5 @@
 body {
-  & .eba2b5c5e898ec6a {
+  & ._66K1xe {
     color: #00f;
   }
 }

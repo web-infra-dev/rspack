@@ -34,14 +34,14 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: nscloud-ubuntu-24.04-amd64-1x2
+    runs-on: rspack-ubuntu-22.04-mini
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
       document_changed: ${{ steps.filter.outputs.document_changed == 'true' }}
     steps:
-      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
           predicate-quantifier: 'every'
@@ -88,7 +88,7 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"nscloud-ubuntu-24.04-amd64-4x16;container.privileged=true;container.host-pid-namespace=true"'
+      runner: '"ubuntu-22.04"'
 
   test-windows:
     name: Test Windows
@@ -122,7 +122,7 @@ jobs:
     with:
       target: wasm32-wasip1-threads
       profile: 'ci'
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   test-wasm:
     name: Test WASM
@@ -131,24 +131,7 @@ jobs:
     uses: ./.github/workflows/reusable-build-test.yml
     with:
       target: wasm32-wasip1-threads
-      runner: ${{ '"nscloud-ubuntu-24.04-amd64-4x16"' }}
-
-  check-codspeed:
-    name: Check Bench Result
-    needs: [bench-binding, bench-rust]
-    runs-on: ubuntu-24.04
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
-
-      - name: Polling Comment
-        if: ${{ github.event_name == 'pull_request' }}
-        run: bash .github/actions/codspeed/check-comment.sh
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   check-cache:
     name: Check Cache Portable
@@ -156,7 +139,7 @@ jobs:
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - name: Checkout
-        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
@@ -187,7 +170,6 @@ jobs:
     name: Test Required Check
     needs:
       [
-        check-codspeed,
         build-linux,
         test-linux,
         test-windows,
@@ -206,21 +188,21 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,success' }}
-        run: echo "Tess Failed" && exit 1
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
+        run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,success' }}
-        run: echo "Tess Failed" && exit 1
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
+        run: echo "Test Failed" && exit 1
 
       - name: No check to Run test
         run: echo "Success"
 
   size-limit:
     name: Binary Size Limit
-    needs: [check-changed]
+    needs: [check-changed, build-linux]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
     uses: ./.github/workflows/size-limit.yml
 
@@ -228,6 +210,7 @@ jobs:
     name: Run ecosystem CI per commit
     needs: [check-changed, build-linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     permissions:
       contents: write
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}

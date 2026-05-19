@@ -34,6 +34,10 @@ impl MakeOccasion {
 impl Occasion for MakeOccasion {
   type Artifact = BuildModuleGraphArtifact;
 
+  fn name(&self) -> &'static str {
+    "make"
+  }
+
   #[tracing::instrument(name = "Cache::Occasion::Make::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {
     storage.reset(module_graph::SCOPE);

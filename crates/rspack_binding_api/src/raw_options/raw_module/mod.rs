@@ -16,15 +16,14 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
-  CssAutoGeneratorOptions, CssAutoParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
-  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport,
+  CssParserImportContext, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
+  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
+  ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
+  JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -84,25 +83,24 @@ impl TryFrom<RawRuleSetLogicalConditions> for rspack_core::RuleSetLogicalConditi
   type Error = rspack_error::Error;
 
   fn try_from(value: RawRuleSetLogicalConditions) -> rspack_error::Result<Self> {
-    Ok(Self {
-      and: value
-        .and
-        .map(|i| {
-          i.into_iter()
-            .map(TryFrom::try_from)
-            .collect::<rspack_error::Result<Vec<_>>>()
-        })
-        .transpose()?,
-      or: value
-        .or
-        .map(|i| {
-          i.into_iter()
-            .map(TryFrom::try_from)
-            .collect::<rspack_error::Result<Vec<_>>>()
-        })
-        .transpose()?,
-      not: value.not.map(TryFrom::try_from).transpose()?,
-    })
+    let and = value
+      .and
+      .map(|i| {
+        i.into_iter()
+          .map(TryFrom::try_from)
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+    let or = value
+      .or
+      .map(|i| {
+        i.into_iter()
+          .map(TryFrom::try_from)
+          .collect::<rspack_error::Result<Vec<_>>>()
+      })
+      .transpose()?;
+    let not = value.not.map(TryFrom::try_from).transpose()?;
+    Ok(Self::new(and, or, not))
   }
 }
 
@@ -122,7 +120,7 @@ impl TryFrom<RawRuleSetCondition> for rspack_core::RuleSetCondition {
           l,
         )?))
       }
-      RawRuleSetCondition::array(a) => Self::Array(
+      RawRuleSetCondition::array(a) => Self::array(
         a.into_iter()
           .map(|i| i.try_into())
           .collect::<rspack_error::Result<Vec<_>>>()?,
@@ -193,12 +191,13 @@ pub struct RawModuleRule {
 #[napi(object, object_to_js = false)]
 pub struct RawParserOptions {
   #[napi(
-    ts_type = r#""asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
+    ts_type = r#""asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
-  pub css_auto: Option<RawCssAutoParserOptions>,
+  pub css_auto: Option<RawCssModuleParserOptions>,
+  pub css_global: Option<RawCssModuleParserOptions>,
   pub css_module: Option<RawCssModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
   pub json: Option<RawJsonParserOptions>,
@@ -245,10 +244,16 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"css\" when RawParserOptions.type is \"css\"")
           .into(),
       ),
-      "css/auto" => Self::CssAuto(
+      "css/auto" => Self::CssModule(
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/global" => Self::CssModule(
+        value
+          .css_global
+          .expect("should have an \"css_global\" when RawParserOptions.type is \"css/global\"")
           .into(),
       ),
       "css/module" => Self::CssModule(
@@ -539,27 +544,6 @@ impl From<RawCssParserOptions> for CssParserOptions {
 
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
-pub struct RawCssAutoParserOptions {
-  pub named_exports: Option<bool>,
-  pub url: Option<bool>,
-  #[napi(
-    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
-  )]
-  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
-}
-
-impl From<RawCssAutoParserOptions> for CssAutoParserOptions {
-  fn from(value: RawCssAutoParserOptions) -> Self {
-    Self {
-      named_exports: value.named_exports,
-      url: value.url,
-      resolve_import: convert_import_option(value.resolve_import),
-    }
-  }
-}
-
-#[derive(Debug, Default)]
-#[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
@@ -608,14 +592,15 @@ impl From<RawJsonParserOptions> for JsonParserOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawGeneratorOptions {
   #[napi(
-    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json""#
+    ts_type = r#""asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json""#
   )]
   pub r#type: String,
   pub asset: Option<RawAssetGeneratorOptions>,
   pub asset_inline: Option<RawAssetInlineGeneratorOptions>,
   pub asset_resource: Option<RawAssetResourceGeneratorOptions>,
   pub css: Option<RawCssGeneratorOptions>,
-  pub css_auto: Option<RawCssAutoGeneratorOptions>,
+  pub css_auto: Option<RawCssModuleGeneratorOptions>,
+  pub css_global: Option<RawCssModuleGeneratorOptions>,
   pub css_module: Option<RawCssModuleGeneratorOptions>,
   pub json: Option<RawJsonGeneratorOptions>,
 }
@@ -651,10 +636,16 @@ impl From<RawGeneratorOptions> for GeneratorOptions {
           .expect("should have an \"css\" when RawGeneratorOptions.type is \"css\"")
           .into(),
       ),
-      "css/auto" => Self::CssAuto(
+      "css/auto" => Self::CssModule(
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawGeneratorOptions.type is \"css/auto\"")
+          .into(),
+      ),
+      "css/global" => Self::CssModule(
+        value
+          .css_global
+          .expect("should have an \"css_global\" when RawGeneratorOptions.type is \"css/global\"")
           .into(),
       ),
       "css/module" => Self::CssModule(
@@ -841,31 +832,14 @@ impl From<RawCssGeneratorOptions> for CssGeneratorOptions {
 
 #[derive(Debug, Default)]
 #[napi(object)]
-pub struct RawCssAutoGeneratorOptions {
-  #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
-  pub exports_convention: Option<String>,
-  pub exports_only: Option<bool>,
-  pub local_ident_name: Option<String>,
-  pub es_module: Option<bool>,
-}
-
-impl From<RawCssAutoGeneratorOptions> for CssAutoGeneratorOptions {
-  fn from(value: RawCssAutoGeneratorOptions) -> Self {
-    Self {
-      exports_convention: value.exports_convention.map(|n| n.into()),
-      exports_only: value.exports_only,
-      local_ident_name: value.local_ident_name.map(|n| n.into()),
-      es_module: value.es_module,
-    }
-  }
-}
-
-#[derive(Debug, Default)]
-#[napi(object)]
 pub struct RawCssModuleGeneratorOptions {
   #[napi(ts_type = r#""as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only""#)]
   pub exports_convention: Option<String>,
   pub exports_only: Option<bool>,
+  pub local_ident_hash_digest: Option<String>,
+  pub local_ident_hash_digest_length: Option<u32>,
+  pub local_ident_hash_function: Option<String>,
+  pub local_ident_hash_salt: Option<String>,
   pub local_ident_name: Option<String>,
   pub es_module: Option<bool>,
 }
@@ -873,9 +847,13 @@ pub struct RawCssModuleGeneratorOptions {
 impl From<RawCssModuleGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: RawCssModuleGeneratorOptions) -> Self {
     Self {
-      exports_convention: value.exports_convention.map(|n| n.into()),
+      exports_convention: value.exports_convention.map(|s| s.into()),
       exports_only: value.exports_only,
-      local_ident_name: value.local_ident_name.map(|n| n.into()),
+      local_ident_hash_digest: value.local_ident_hash_digest.map(|s| s.as_str().into()),
+      local_ident_hash_digest_length: value.local_ident_hash_digest_length,
+      local_ident_hash_function: value.local_ident_hash_function.map(|s| s.as_str().into()),
+      local_ident_hash_salt: value.local_ident_hash_salt.into(),
+      local_ident_name: value.local_ident_name.map(|s| s.into()),
       es_module: value.es_module,
     }
   }

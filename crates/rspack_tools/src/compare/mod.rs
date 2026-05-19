@@ -16,10 +16,7 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
   let mut relative_paths = HashSet::default();
   let mut queue = VecDeque::new();
   queue.push_back(root_path.clone());
-  loop {
-    let Some(path) = queue.pop_front() else {
-      break;
-    };
+  while let Some(path) = queue.pop_front() {
     if matches!(path.file_name(), Some("rspack")) {
       relative_paths.insert(
         path

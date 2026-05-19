@@ -3,12 +3,16 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
+  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
+};
+
+use crate::dependency::{
+  DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition,
 };
 
 #[cacheable]
@@ -22,6 +26,8 @@ pub struct CommonJsRequireDependency {
   loc: Option<DependencyLocation>,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  branch_guards: Option<Box<DependencyBranchGuards>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -42,12 +48,17 @@ impl CommonJsRequireDependency {
       range_expr,
       loc,
       referenced_specifiers,
+      branch_guards: None,
       factorize_info: Default::default(),
     }
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
+    self.branch_guards.get_or_insert_default().extend(guards);
   }
 }
 
@@ -117,6 +128,10 @@ impl ModuleDependency for CommonJsRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.branch_guards.as_deref())
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {

@@ -34,10 +34,12 @@ import {
 import type {
   Context,
   CssGeneratorOptions,
+  CssModuleGeneratorOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
   JsonGeneratorOptions,
+  HashFunction,
   Library,
   LibraryOptions,
   Loader,
@@ -50,6 +52,8 @@ import type {
   RuleSetRules,
   SnapshotOptions,
 } from './types';
+
+const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -102,15 +106,6 @@ export const applyRspackOptionsDefaults = (
 
   applySnapshotDefaults(options.snapshot, { production });
 
-  applyModuleDefaults(options.module, {
-    asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    targetProperties,
-    mode: options.mode,
-    uniqueName: options.output.uniqueName,
-    deferImport: options.experiments.deferImport,
-    outputModule: options.output.module,
-  });
-
   applyOutputDefaults(options, {
     context: options.context!,
     targetProperties,
@@ -122,6 +117,17 @@ export const applyRspackOptionsDefaults = (
     entry: options.entry,
   });
 
+  applyModuleDefaults(options.module, {
+    asyncWebAssembly: options.experiments.asyncWebAssembly!,
+    targetProperties,
+    mode: options.mode,
+    uniqueName: options.output.uniqueName,
+    deferImport: options.experiments.deferImport,
+    outputModule: options.output.module,
+    hashFunction: options.output.hashFunction!,
+    hashSalt: options.output.hashSalt,
+  });
+
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
     buildHttp: Boolean(options.experiments.buildHttp),
@@ -129,12 +135,16 @@ export const applyRspackOptionsDefaults = (
   });
 
   F(options, 'externalsType', () => {
-    return options.output.library
-      ? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
-        (options.output.library.type as any)
-      : options.output.module
-        ? 'module-import'
-        : 'var';
+    if (options.output.library?.type) {
+      // Keep modern-module libraries on the existing output.module default for
+      // compatibility. `externalsType: "modern-module"` must be enabled
+      // explicitly for now, and will become the default in the next major.
+      if (options.output.library.type !== 'modern-module') {
+        // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+        return options.output.library.type as any;
+      }
+    }
+    return options.output.module ? 'module-import' : 'var';
   });
 
   applyNodeDefaults(options.node, {
@@ -296,6 +306,34 @@ const applyCssGeneratorOptionsDefaults = (
   D(generatorOptions, 'esModule', true);
 };
 
+const applyCssModuleGeneratorOptionsDefaults = (
+  generatorOptions: CssModuleGeneratorOptions,
+  {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  }: {
+    hashFunction: HashFunction;
+    hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
+    localIdentName: string;
+    targetProperties: TargetProperties | false;
+  },
+) => {
+  D(
+    generatorOptions,
+    'exportsOnly',
+    !targetProperties || targetProperties.document === false,
+  );
+  D(generatorOptions, 'esModule', true);
+  D(generatorOptions, 'exportsConvention', 'as-is');
+  D(generatorOptions, 'localIdentName', localIdentName);
+  D(generatorOptions, 'localIdentHashSalt', hashSalt);
+  D(generatorOptions, 'localIdentHashFunction', hashFunction);
+  D(generatorOptions, 'localIdentHashDigest', 'base64url');
+  D(generatorOptions, 'localIdentHashDigestLength', 6);
+};
+
 const applyJsonGeneratorOptionsDefaults = (
   generatorOptions: JsonGeneratorOptions,
 ) => {
@@ -311,6 +349,8 @@ const applyModuleDefaults = (
     uniqueName,
     deferImport,
     outputModule,
+    hashFunction,
+    hashSalt,
   }: {
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
@@ -318,6 +358,8 @@ const applyModuleDefaults = (
     uniqueName?: string;
     deferImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
+    hashFunction: HashFunction;
+    hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
   },
 ) => {
   assertNotNill(module.parser);
@@ -358,6 +400,11 @@ const applyModuleDefaults = (
   D(module.parser['css/auto'], 'namedExports', true);
   D(module.parser['css/auto'], 'url', true);
 
+  F(module.parser, 'css/global', () => ({}));
+  assertNotNill(module.parser['css/global']);
+  D(module.parser['css/global'], 'namedExports', true);
+  D(module.parser['css/global'], 'url', true);
+
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
   D(module.parser['css/module'], 'namedExports', true);
@@ -371,25 +418,37 @@ const applyModuleDefaults = (
 
   F(module.generator, 'css/auto', () => ({}));
   assertNotNill(module.generator['css/auto']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
-    targetProperties,
-  });
-  D(module.generator['css/auto'], 'exportsConvention', 'as-is');
   const localIdentName =
     mode === 'development'
       ? uniqueName && uniqueName.length > 0
         ? '[uniqueName]-[id]-[local]'
         : '[id]-[local]'
       : '[fullhash]';
-  D(module.generator['css/auto'], 'localIdentName', localIdentName);
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/auto'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  });
 
   F(module.generator, 'css/module', () => ({}));
   assertNotNill(module.generator['css/module']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/module'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
     targetProperties,
   });
-  D(module.generator['css/module'], 'exportsConvention', 'as-is');
-  D(module.generator['css/module'], 'localIdentName', localIdentName);
+
+  F(module.generator, 'css/global', () => ({}));
+  assertNotNill(module.generator['css/global']);
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/global'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  });
+
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
     const esm = {
@@ -704,6 +763,14 @@ const applyOutputDefaults = (
   D(output, 'assetModuleFilename', '[hash][ext][query]');
   D(output, 'webassemblyModuleFilename', '[hash].module.wasm');
   D(output, 'compareBeforeEmit', true);
+  if (output.path && !path.isAbsolute(output.path)) {
+    if (!context) {
+      throw new Error(
+        `${ERROR_PREFIX} "context" must be a non-empty absolute path when "output.path" is relative, get "${context ?? ''}".`,
+      );
+    }
+    output.path = path.resolve(context, output.path);
+  }
   F(output, 'path', () => path.join(process.cwd(), 'dist'));
   F(output, 'pathinfo', () => false);
   D(
@@ -990,8 +1057,8 @@ const applyPerformanceDefaults = (
   { production }: { production: boolean },
 ) => {
   if (performance === false) return;
-  D(performance, 'maxAssetSize', 250000);
-  D(performance, 'maxEntrypointSize', 250000);
+  D(performance, 'maxAssetSize', 300 * 1024);
+  D(performance, 'maxEntrypointSize', 500 * 1024);
   F(performance, 'hints', () => (production ? 'warning' : false));
 };
 

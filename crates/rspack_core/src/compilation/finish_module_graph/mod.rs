@@ -12,7 +12,6 @@ pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<(
   let logger = compilation.get_logger("rspack.Compiler");
   let start = logger.time("finish compilation");
   finish_build_module_graph_pass(compilation).await?;
-
   logger.time_end(start);
 
   Ok(())

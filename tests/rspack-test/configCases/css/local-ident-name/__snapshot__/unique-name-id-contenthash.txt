@@ -1,0 +1,8 @@
+Object {
+  btn--info_is-disabled_1: -style_module_css_uniqueName-id-contenthash-0cf63517286b4a71,
+  btn-info_is-disabled: -style_module_css_uniqueName-id-contenthash-0cf63517286b4a71,
+  foo: bar,
+  foo_bar: -style_module_css_uniqueName-id-contenthash-0cf63517286b4a71,
+  my-btn-info_is-disabled: value,
+  simple: -style_module_css_uniqueName-id-contenthash-0cf63517286b4a71,
+}

@@ -1,8 +1,4 @@
 ```mjs title=main.mjs
-// ./foo.js
-const foo = 123;
-
-
 // ./index.js
 
 
@@ -13,6 +9,7 @@ it("should not leak an unused self namespace re-export through the entry", async
   expect("ns" in mod).toBe(false);
 });
 
-export { foo };
+var index_foo = (/* inlined export .foo */123);
+export { index_foo as foo };
 
 ```

@@ -81,6 +81,24 @@ pub fn json_stringify_str(s: &str) -> String {
   json_escape_simd::escape(s)
 }
 
+/// Parse a string as a valid non-negative chunk/module ID suitable for rendering
+/// as a JS number literal (no leading zeros except "0" itself, and within
+/// `u32::MAX`).
+pub fn numeric_id_value(s: &str) -> Option<u32> {
+  if s.is_empty() {
+    return None;
+  }
+  let bytes = s.as_bytes();
+  // Reject leading zeros (e.g. "01") but allow "0"
+  if bytes.len() > 1 && bytes[0] == b'0' {
+    return None;
+  }
+  if !bytes.iter().all(|b| b.is_ascii_digit()) {
+    return None;
+  }
+  s.parse::<u32>().ok()
+}
+
 /// Get current time in milliseconds since Unix epoch
 pub fn current_time() -> u64 {
   SystemTime::now()
@@ -96,4 +114,24 @@ static QUOTE_META_REG: LazyLock<Regex> = LazyLock::new(|| {
 /// Escape special regex characters in a string
 pub fn quote_meta(str: &str) -> String {
   QUOTE_META_REG.replace_all(str, "\\$0").to_string()
+}
+
+#[cfg(test)]
+mod tests {
+  use super::numeric_id_value;
+
+  #[test]
+  fn numeric_id_detection_covers_edge_cases() {
+    assert_eq!(numeric_id_value(""), None);
+    assert_eq!(numeric_id_value("0"), Some(0));
+    assert_eq!(numeric_id_value("903"), Some(903));
+    assert_eq!(numeric_id_value("01"), None);
+    assert_eq!(numeric_id_value("1a"), None);
+    assert_eq!(numeric_id_value("main"), None);
+    assert_eq!(numeric_id_value("4294967295"), Some(u32::MAX));
+    // Exceeds u32::MAX
+    assert_eq!(numeric_id_value("4294967296"), None);
+    // Way too large
+    assert_eq!(numeric_id_value("123456789012345678901234567890"), None);
+  }
 }

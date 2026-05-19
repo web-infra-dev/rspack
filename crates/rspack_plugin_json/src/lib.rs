@@ -12,10 +12,9 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoGetter,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
   GenerateContext, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption,
-  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
-  SourceType, UsageState, UsedNameItem,
+  ParserAndGenerator, Plugin, RuntimeSpec, SourceType, UsageState, UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
@@ -190,7 +189,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .expect("should have json data");
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          .get_exports_info_data(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
@@ -201,7 +200,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           {
             create_object_for_exports_info(
               json_data.clone(),
-              &exports_info,
+              exports_info,
               *runtime,
               &compilation.exports_info_artifact,
             )
@@ -286,7 +285,7 @@ impl Plugin for JsonPlugin {
 
 pub fn create_object_for_exports_info(
   data: JsonValue,
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info: &ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> JsonValue {
@@ -313,12 +312,8 @@ pub fn create_object_for_exports_info(
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          let exports_info = ExportsInfoGetter::prefetch(
-            &exports_info,
-            exports_info_artifact,
-            PrefetchExportsInfoMode::Default,
-          );
-          create_object_for_exports_info(temp, &exports_info, runtime, exports_info_artifact)
+          let exports_info = exports_info.as_data(exports_info_artifact);
+          create_object_for_exports_info(temp, exports_info, runtime, exports_info_artifact)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -354,14 +349,10 @@ pub fn create_object_for_exports_info(
           if used == UsageState::OnlyPropertiesUsed
             && let Some(exports_info) = export_info.exports_info()
           {
-            let exports_info = ExportsInfoGetter::prefetch(
-              &exports_info,
-              exports_info_artifact,
-              PrefetchExportsInfoMode::Default,
-            );
+            let exports_info = exports_info.as_data(exports_info_artifact);
             Some(create_object_for_exports_info(
               item,
-              &exports_info,
+              exports_info,
               runtime,
               exports_info_artifact,
             ))

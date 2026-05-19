@@ -1,4 +1,3 @@
-use smallvec::SmallVec;
 use swc_core::{
   atoms::Atom,
   common::Span,
@@ -19,26 +18,52 @@ use crate::{
   },
 };
 
+const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
+
 pub struct JavaScriptParserPluginDrive {
   plugins: Vec<BoxJavascriptParserPlugin>,
-  // `SmallVec<[u32; 4]>` has (approximately) the same stack size/layout as `Vec<u32>`
-  // (3 machine words: ptr/len/cap), but stores up to 4 elements inline.
-  //
-  // This keeps `plugins_by_hook` cheap to store (fixed-size array of small headers) while
-  // avoiding heap allocations for the common case where each hook only has a few plugins.
-  plugins_by_hook: [SmallVec<[u32; 4]>; JavascriptParserPluginHook::COUNT],
+  // Each bit stores whether the plugin at the same index implements the hook.
+  // This keeps hook dispatch allocation-free for the common case while preserving plugin order.
+  plugins_by_hook: [u64; JavascriptParserPluginHook::COUNT],
+}
+
+struct PluginBitmaskIter<'a> {
+  plugins: &'a [BoxJavascriptParserPlugin],
+  plugin_bitmask: u64,
+}
+
+impl<'a> Iterator for PluginBitmaskIter<'a> {
+  type Item = &'a BoxJavascriptParserPlugin;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.plugin_bitmask != 0 {
+      let idx = self.plugin_bitmask.trailing_zeros() as usize;
+      self.plugin_bitmask &= self.plugin_bitmask - 1;
+      return Some(unsafe { self.plugins.get_unchecked(idx) });
+    }
+
+    None
+  }
 }
 
 impl JavaScriptParserPluginDrive {
   pub fn new(plugins: Vec<BoxJavascriptParserPlugin>) -> Self {
-    let mut plugins_by_hook = std::array::from_fn(|_| SmallVec::new());
+    assert!(
+      plugins.len() <= PLUGIN_BITMASK_BITS,
+      "JavaScript parser plugin bitmask supports at most {PLUGIN_BITMASK_BITS} parser plugins"
+    );
+
+    let mut plugins_by_hook = [0; JavascriptParserPluginHook::COUNT];
 
     for (idx, plugin) in plugins.iter().enumerate() {
-      let implemented_hooks = plugin.implemented_hooks();
-      for hook in JavascriptParserPluginHook::ALL {
-        if implemented_hooks.contains(hook) {
-          plugins_by_hook[hook as usize].push(idx as u32);
-        }
+      let plugin_bit = 1u64 << idx;
+      let mut implemented_hooks = plugin.implemented_hooks().bits();
+
+      while implemented_hooks != 0 {
+        let hook_idx = implemented_hooks.trailing_zeros() as usize;
+        implemented_hooks &= implemented_hooks - 1;
+
+        plugins_by_hook[hook_idx] |= plugin_bit;
       }
     }
 
@@ -49,14 +74,12 @@ impl JavaScriptParserPluginDrive {
   }
 
   #[inline]
-  fn plugins_for(
-    &self,
-    hook: JavascriptParserPluginHook,
-  ) -> impl Iterator<Item = &BoxJavascriptParserPlugin> {
-    let hooks = unsafe { self.plugins_by_hook.get_unchecked(hook as usize) };
-    hooks
-      .iter()
-      .map(|idx| unsafe { self.plugins.get_unchecked(*idx as usize) })
+  fn plugins_for(&self, hook: JavascriptParserPluginHook) -> PluginBitmaskIter<'_> {
+    let hook_idx = hook as usize;
+    PluginBitmaskIter {
+      plugins: &self.plugins,
+      plugin_bitmask: unsafe { *self.plugins_by_hook.get_unchecked(hook_idx) },
+    }
   }
 }
 

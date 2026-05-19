@@ -15,15 +15,15 @@ type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 type PartialChromeEvent = MakeOptional<ChromeEvent, 'ts' | 'ph'>;
 
-// this is a tracer for nodejs
-// FIXME: currently we only support chrome layer and do nothing for logger layer
+// this is a tracer for nodejs, using chrome trace-style events before syncing
+// them into the selected Rust tracing layer
 export class JavaScriptTracer {
   static state: 'uninitialized' | 'on' | 'off' = 'uninitialized';
   // baseline time, we use offset time for tracing to align with rust side time
   static startTime: bigint;
   static events: ChromeEvent[];
   static layer: string;
-  // tracing file path, same as rust tracing-chrome's
+  // tracing output path, same as the Rust tracing output
   static output: string;
   // inspector session for CPU Profiler
   static session: import('node:inspector').Session;

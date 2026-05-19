@@ -114,7 +114,7 @@ export class HotUpdatePlugin {
     this.updateIndex++;
     await this.updateFiles();
   }
-  async moveTempDir() {
+  moveTempDir() {
     // generate next temp dir path.
     const nextTempDir =
       this.tempDir.replace(/(___[0-9]+)?[/\\]*$/, '') +

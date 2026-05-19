@@ -1,5 +1,5 @@
 ---
-description: '该选项用于配置 @rspack/dev-server 的行为，基于 webpack-dev-server@5，用于快速开发应用程序。'
+description: '配置 @rspack/dev-server 的本地开发和预览行为。'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -9,15 +9,17 @@ import { Tabs, Tab } from '@theme';
 
 # DevServer
 
-该选项用于配置 [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) 的行为，基于 `webpack-dev-server@5`，用于快速开发应用程序。
+该选项用于配置 [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) 的本地开发服务器行为。
 
 - **类型：** `object`
 
-:::tip
-如果你的应用未依赖 `@rspack/dev-server`，那么 devServer 配置将不起作用。
+## 何时使用
 
-例如，Rspack CLI 默认依赖 `@rspack/dev-server`，因此在使用 Rspack CLI 的项目里可以使用 devServer 配置。而 Rsbuild 自行实现了开发服务器，并提供了单独的 "server" 配置，所以 Rsbuild 项目不能使用 devServer 配置。
-:::
+`devServer` 配置只会在使用 `@rspack/dev-server` 时生效。如果当前应用没有启动 `@rspack/dev-server`，该配置不会生效。
+
+例如，使用 Rspack CLI 时，需要在项目中安装 `@rspack/dev-server`，并通过 `rspack dev` 或 `rspack serve` 启动开发服务器后，`devServer` 配置才会生效。而 Rsbuild 使用自己的开发服务器，并提供了单独的 `server` 配置，因此 Rsbuild 项目应通过 `server` 来配置开发服务器。
+
+当使用 `rspack preview` 时，Rspack CLI 也会加载 `@rspack/dev-server`，并读取部分 `devServer` 选项：[`port`](#devserverport)、[`host`](#devserverhost)、[`open`](#devserveropen)、[`server`](#devserverserver)、[`proxy`](#devserverproxy) 和 [`historyApiFallback`](#devserverhistoryapifallback)。
 
 ## devServer.allowedHosts
 
@@ -323,7 +325,7 @@ export default {
 - **类型：** `object`
 - **默认值：** `{}`
 
-提供选项给 [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware)，它用于处理 Rspack 的静态资源。
+提供给 [`@rspack/dev-middleware`](https://github.com/rstackjs/rspack-dev-middleware) 的选项，用于在开发服务器中提供 Rspack 构建产物。
 
 ```ts title="rspack.config.mjs"
 export default {
@@ -539,6 +541,10 @@ export default {
 };
 ```
 
+:::info 提示
+当你使用 `rspack dev` 或 `rspack serve` 时，可以通过 `--open`、`--open <value>` 或 `--no-open` 在命令行中覆盖此选项。当你使用 `rspack preview` 时，此选项也会生效，且 `--open` 的优先级高于配置中的 `devServer.open`。
+:::
+
 在浏览器中打开指定页面：
 
 ```js title="rspack.config.mjs"
@@ -624,7 +630,7 @@ export default {
 
 为开发服务器配置代理规则，把请求转发到指定服务。
 
-该功能基于 [http-proxy-middleware v3](https://github.com/chimurai/http-proxy-middleware) 实现。你可以使用 `http-proxy-middleware` 提供的 [全部选项](https://github.com/chimurai/http-proxy-middleware#options)。
+该功能基于 [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware) 实现。你可以使用 `http-proxy-middleware` 提供的 [全部选项](https://github.com/chimurai/http-proxy-middleware#options)。
 
 ### 基础用法
 

@@ -213,6 +213,15 @@ impl Cache for MixedCache {
     self.persistent.after_chunk_asset(compilation).await;
   }
 
+  // PROCESS_ASSETS hooks
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    self.persistent.before_process_assets(compilation).await;
+  }
+
+  async fn after_process_assets(&mut self, compilation: &Compilation) {
+    self.persistent.after_process_assets(compilation).await;
+  }
+
   // EMIT_ASSETS hooks
   async fn before_emit_assets(&mut self, compilation: &mut Compilation) {
     self.memory.before_emit_assets(compilation).await;

@@ -1,0 +1,13 @@
+ERROR in ./index.ts
+  × Module build failed (from builtin:swc-loader):
+  ├─▶   × Failed to generate declaration files.
+  │   
+  ╰─▶   ×   x TS9016: Objects that contain shorthand properties can't be inferred with --isolatedDeclarations.
+        │    ,-[<TEST_ROOT>/statsOutputCases/rslib-emit-isolated-dts-error/index.ts<LINE_COL>]
+        │  1 | const shorthand = "baz";
+        │  2 | export const shorthandObject = { shorthand };
+        │    :                                ^^^^^^^^^^^^^
+        │    `----
+        │
+
+Rspack compiled with 1 error

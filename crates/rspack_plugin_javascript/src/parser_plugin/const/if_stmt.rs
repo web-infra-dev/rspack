@@ -55,6 +55,7 @@ pub fn get_hoisted_declarations<'ast>(
     };
 
   while let Some(node) = stmt_stack.pop() {
+    #[allow(clippy::collapsible_match)]
     match node {
       Statement::Block(block) => {
         for s in &block.stmts {

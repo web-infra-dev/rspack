@@ -1,4 +1,4 @@
-._style_module_css-no-space {
+.style_module_css-no-space {
 	.class {
 		color: red;
 	}
@@ -7,15 +7,15 @@
 		color: red;
 	}
 
-	._style_module_css-class {
+	.style_module_css-class {
 		color: red;
 	}
 
-	._style_module_css-class {
+	.style_module_css-class {
 		color: red;
 	}
 
-	#_style_module_css-hash {
+	#style_module_css-hash {
 		color: red;
 	}
 

@@ -4,6 +4,8 @@ module.exports = {
   entry: './index',
   performance: {
     hints: 'warning',
+    maxAssetSize: 200 * 1024,
+    maxEntrypointSize: 200 * 1024,
   },
   stats: {
     assets: true,

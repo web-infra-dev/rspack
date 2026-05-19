@@ -6,10 +6,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, ExportsInfoGetter, ExtendedReferencedExport, FactorizeInfo,
-  GetUsedNameParam, InitFragmentKey, InitFragmentStage, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, NormalInitFragment, PrefetchExportsInfoMode, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey,
+  InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -171,41 +170,27 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       return;
     };
 
-    let used_name = if dep.ids.is_empty() {
-      let exports_info_used = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info_used(con.module_identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.ids,
-      )
-    } else {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(
-          con.module_identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.ids),
-        );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.ids,
-      )
-    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(con.module_identifier());
+    let used_name =
+      exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
 
-    init_fragments.push(Box::new(NormalInitFragment::new(
-      format!(
-        "/* provided dependency */ var {} = {}{};\n",
-        dep.identifier,
-        runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
-        path_to_string(used_name.as_ref())
-      ),
-      InitFragmentStage::StageProvides,
-      1,
-      InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
-      None,
-    )));
+    init_fragments.push(Box::new(
+      NormalInitFragment::new(
+        format!(
+          "/* provided dependency */ var {} = {}{};\n",
+          dep.identifier,
+          runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
+          path_to_string(used_name.as_ref())
+        ),
+        InitFragmentStage::StageProvides,
+        1,
+        InitFragmentKey::ModuleExternal(format!("provided {}", dep.identifier)),
+        None,
+      )
+      .with_top_level_decl_symbols(vec![dep.identifier.clone().into()]),
+    ));
     source.replace(dep.range.start, dep.range.end, dep.identifier.clone(), None);
   }
 }

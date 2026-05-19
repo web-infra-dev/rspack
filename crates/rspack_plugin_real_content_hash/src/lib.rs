@@ -137,10 +137,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   let mut computed_hashes = HashSet::default();
   let mut top_task = ordered_hashes_iter.next();
 
-  loop {
-    let Some(top) = top_task else {
-      break;
-    };
+  while let Some(top) = top_task {
     let mut batch = vec![top];
     top_task = None;
 

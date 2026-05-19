@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::absolute_to_request;
+use rspack_util::identifier::push_absolute_to_request;
 use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
@@ -15,12 +15,20 @@ pub fn to_module_export_name(name: &str) -> String {
 }
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
-  let context = context.as_ref();
-  request
-    .split('!')
-    .map(|r| absolute_to_request(context.as_str(), r))
-    .collect::<Vec<Cow<str>>>()
-    .join("!")
+  let context = context.as_ref().as_str();
+  let mut result = String::with_capacity(request.len());
+  let mut last = 0;
+
+  for (index, byte) in request.bytes().enumerate() {
+    if byte == b'!' {
+      push_absolute_to_request(context, &request[last..index], &mut result);
+      result.push('!');
+      last = index + 1;
+    }
+  }
+
+  push_absolute_to_request(context, &request[last..], &mut result);
+  result
 }
 
 macro_rules! ident_table {
@@ -97,14 +105,19 @@ pub fn to_identifier_with_escaped(v: String) -> String {
     return v;
   }
 
-  if let Some(first_char) = v.chars().next() {
-    if first_char.is_ascii_alphabetic() || first_char == '$' || first_char == '_' {
-      return v;
-    }
-    format!("_{v}")
-  } else {
-    v
+  let bytes = v.as_bytes();
+  // Fast path: the input is already a valid JS identifier — skip the full
+  // escape (see #10760). `_` is a valid continuation char even though
+  // `is_ident_safe` excludes it (it's the replacement sentinel for the escape
+  // impl), so handle it inline here.
+  if is_ident_first_safe(bytes[0]) && bytes.iter().all(|&b| is_ident_safe(b) || b == b'_') {
+    return v;
   }
+
+  // Defensive path: invalid characters anywhere in the input (e.g. JSON keys
+  // like "!top" or "with space") need the full escape so we never emit bare
+  // invalid characters into a JS identifier position.
+  to_identifier(&v).into_owned()
 }
 
 pub fn escape_identifier(v: &str) -> Cow<'_, str> {
@@ -190,5 +203,45 @@ fn test_to_identifier() {
   assert_eq!(
     to_identifier("ident0_stable/src/core/iter//range.rs?"),
     "ident0_stable_src_core_iter_range_rs_"
+  );
+}
+
+#[test]
+fn test_to_identifier_with_escaped() {
+  // Already-valid identifiers pass through unchanged.
+  assert_eq!(to_identifier_with_escaped("ident0".into()), "ident0");
+  assert_eq!(to_identifier_with_escaped("_top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("$foo".into()), "$foo");
+
+  // First-char-only fixups still work.
+  assert_eq!(to_identifier_with_escaped("0ident".into()), "_0ident");
+
+  // Invalid characters anywhere in the input are escaped — regression coverage
+  // for JSON keys like "!top" / "with space" leaking into JS identifier positions.
+  assert_eq!(to_identifier_with_escaped("!top".into()), "_top");
+  assert_eq!(to_identifier_with_escaped("_!top".into()), "_top");
+  assert_eq!(
+    to_identifier_with_escaped("with space".into()),
+    "with_space"
+  );
+  assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
+}
+
+#[test]
+fn test_contextify_preserves_loader_segments_and_queries() {
+  assert_eq!(
+    contextify(
+      "/workspace/app",
+      "/workspace/app/loaders/a.js!/workspace/app/src/index.js?foo=1"
+    ),
+    "./loaders/a.js!./src/index.js?foo=1"
+  );
+}
+
+#[test]
+fn test_contextify_preserves_empty_segments_and_regex_segments() {
+  assert_eq!(
+    contextify("/workspace/app", "!!/regexp/!/workspace/app/src/index.js"),
+    "!!/regexp/!./src/index.js"
   );
 }

@@ -18,12 +18,12 @@ use swc_core::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsType, FakeNamespaceObjectMode, GenerateContext, GetUsedNameParam, ImportPhase,
-  InitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, ModuleArgument,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
-  PrefetchExportsInfoMode, RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName,
-  compile_boolean_matcher_from_lists, contextify, property_access,
+  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  FakeNamespaceObjectMode, GenerateContext, ImportPhase, InitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, Module, ModuleArgument, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleId, ModuleIdentifier, NormalInitFragment, PathInfo,
+  RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
+  contextify, property_access,
   runtime_globals::{RuntimeVariable, runtime_globals_to_string, runtime_variable_to_string},
   to_comment, to_normal_comment,
 };
@@ -846,7 +846,7 @@ impl ModuleCodeTemplate {
         self.module_id_expr(request, module_id)
       )
     } else if weak {
-      self.weak_error(request)
+      self.weak_error_expression(request)
     } else {
       self.missing_module(request)
     }
@@ -866,6 +866,27 @@ impl ModuleCodeTemplate {
   pub fn weak_error(&self, request: &str) -> String {
     format!(
       "var e = new Error('Module is not available (weak dependency), request is {request}'); e.code = 'MODULE_NOT_FOUND'; throw e;"
+    )
+  }
+
+  // Weak errors are embedded as statements, expressions, or promises depending on the
+  // runtime template position, aligned with webpack RuntimeTemplate.weakError:
+  // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/RuntimeTemplate.js#L461-L486
+  pub fn weak_error_expression(&self, request: &str) -> String {
+    format!("Object({}())", self.weak_error_function(request))
+  }
+
+  pub fn weak_error_promise(&self, request: &str) -> String {
+    format!(
+      "Promise.resolve().then({})",
+      self.weak_error_function(request)
+    )
+  }
+
+  pub fn weak_error_function(&self, request: &str) -> String {
+    format!(
+      "function __rspack_weak_module_error__() {{ {} }}",
+      self.weak_error(request)
     )
   }
 
@@ -1010,18 +1031,12 @@ impl ModuleCodeTemplate {
       {
         if is_deferred && !matches!(exports_type, ExportsType::Namespace) {
           let name = &export_name[1..];
-          let Some(used) = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(
-              &compilation
-                .exports_info_artifact
-                .get_prefetched_exports_info(
-                  &target_module_identifier,
-                  PrefetchExportsInfoMode::Nested(name),
-                ),
-            ),
-            runtime,
-            name,
-          ) else {
+          let exports_info = compilation
+            .exports_info_artifact
+            .get_exports_info_data(&target_module_identifier);
+          let Some(used) =
+            exports_info.get_used_name(&compilation.exports_info_artifact, runtime, name)
+          else {
             return to_normal_comment(&format!(
               "unused export {}",
               property_access(export_name, 0)
@@ -1123,15 +1138,11 @@ impl ModuleCodeTemplate {
       .as_deref()
       .unwrap_or(export_name);
     if !export_name.is_empty() {
-      let used_name = match ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info(
-              &target_module_identifier,
-              PrefetchExportsInfoMode::Nested(export_name),
-            ),
-        ),
+      let exports_info = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&target_module_identifier);
+      let used_name = match exports_info.get_used_name(
+        &compilation.exports_info_artifact,
         runtime,
         export_name,
       ) {
@@ -1224,6 +1235,14 @@ impl ModuleCodeTemplate {
     let Some(target_module) = mg.get_module_by_dependency_id(dep_id) else {
       return self.missing_module_promise(request);
     };
+    // Match webpack's weak module without-id path in moduleNamespacePromise:
+    // https://github.com/webpack/webpack/blob/2944286213cf1b3697a1c8dd41ffd3f8ada99448/lib/RuntimeTemplate.js#L682-L692
+    if weak
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+        .is_none()
+    {
+      return self.weak_error_promise(request);
+    }
 
     let promise = self.block_promise(block, compilation, message);
     let exports_type = get_exports_type(

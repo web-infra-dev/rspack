@@ -70,6 +70,8 @@ impl Compiler {
       all_files.extend(removed_files.clone());
 
       self.plugin_driver.clear_cache(self.compilation.id());
+      let compilation_logging = self.compilation.get_logging().clone();
+      compilation_logging.clear();
 
       let mut next_compilation = Compilation::new(
         self.id,
@@ -82,6 +84,7 @@ impl Compiler {
         records,
         Incremental::new_hot(self.options.incremental),
         Some(ModuleExecutor::default()),
+        compilation_logging,
         modified_files,
         removed_files,
         self.input_filesystem.clone(),

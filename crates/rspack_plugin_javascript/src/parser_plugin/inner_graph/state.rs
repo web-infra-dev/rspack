@@ -3,7 +3,6 @@ use std::{
   sync::atomic::{AtomicUsize, Ordering},
 };
 
-use rspack_core::DependencyId;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{atoms::Atom, common::Span};
 
@@ -190,7 +189,7 @@ impl InnerGraphState {
 
 #[derive(Debug, Clone)]
 pub(crate) enum InnerGraphUsageOperation {
-  PureExpression(DependencyId),
-  ESMImportSpecifier(DependencyId),
-  URLDependency(DependencyId),
+  PureExpression(usize),
+  ESMImportSpecifier(usize),
+  URLDependency(usize),
 }

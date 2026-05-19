@@ -10,7 +10,7 @@
 import type { ReadStream } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ServerOptions } from 'node:https';
-import type { Server as ConnectApplication, NextFunction } from 'connect-next';
+import type { NextFunction } from 'connect-next';
 import type {
   Filter as ProxyFilter,
   Options as ProxyOptions,
@@ -248,7 +248,7 @@ export type DevServerClient = {
 };
 
 export type DevServerOptions<
-  A extends BasicApplication = ConnectApplication,
+  A extends BasicApplication = BasicApplication,
   S extends BasicServer = BasicServer,
 > = {
   ipc?: string | boolean;

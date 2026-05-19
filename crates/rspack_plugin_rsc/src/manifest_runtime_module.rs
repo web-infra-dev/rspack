@@ -80,8 +80,9 @@ impl RuntimeModule for RscManifestRuntimeModule {
       client_manifest,
       server_consumer_module_map,
       module_loading,
-      entry_css_files: &entry_state.entry_css_files,
-      entry_js_files: &entry_state.entry_js_files,
+      server_entries: &entry_state.server_entries,
+      bootstrap_scripts: &entry_state.bootstrap_scripts,
+      css_link_props: &plugin_state.css_link_props,
     };
 
     Ok(formatdoc! {

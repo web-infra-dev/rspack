@@ -10,7 +10,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{fx_hash::FxIndexSet, itoa};
 use rustc_hash::FxHashSet;
 
-use crate::id_helpers::{compare_chunks_natural, get_long_chunk_name, get_short_chunk_name};
+use crate::id_helpers::{
+  NaturalChunkCompareCache, compare_chunks_natural, get_long_chunk_name, get_short_chunk_name,
+};
 
 #[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
@@ -118,7 +120,7 @@ fn assign_named_chunk_ids(
   let name_to_items_keys = name_to_items.keys().cloned().collect::<ChunkIdSet>();
   let mut unnamed_items = vec![];
 
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 
   // Sort by name to ensure deterministic processing order
   let mut name_to_items_sorted: Vec<_> = name_to_items.into_iter().collect();
@@ -148,7 +150,7 @@ fn assign_named_chunk_ids(
           module_ids_artifact,
           a,
           b,
-          &mut ordered_chunk_modules_cache,
+          &mut chunk_compare_cache,
         )
       });
       let mut i = 0;
@@ -181,7 +183,7 @@ fn assign_named_chunk_ids(
       module_ids_artifact,
       a,
       b,
-      &mut ordered_chunk_modules_cache,
+      &mut chunk_compare_cache,
     )
   });
   unnamed_items

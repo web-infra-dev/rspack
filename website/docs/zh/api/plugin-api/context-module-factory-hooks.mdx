@@ -10,7 +10,7 @@ import { Collapse, CollapsePanel } from '@components/Collapse';
 
 ## `beforeResolve`
 
-`AsyncSeriesBailHook<[BeforeResolveResult]>`
+`AsyncSeriesWaterfallHook<[BeforeResolveResult]>`
 
 在解析请求的目录之前调用。通过返回 `false` 可以忽略该请求。
 
@@ -37,7 +37,7 @@ export type BeforeResolveResult =
 
 ## `afterResolve`
 
-`AsyncSeriesBailHook<[AfterResolveResult]>`
+`AsyncSeriesWaterfallHook<[AfterResolveResult]>`
 
 在请求的目录解析后调用。
 
@@ -49,7 +49,7 @@ export type BeforeResolveResult =
   >
 ```ts
 type AfterResolveData = {
-  resource: number;
+  resource: string;
   context: string;
   request: string;
   regExp: RegExp | undefined;
