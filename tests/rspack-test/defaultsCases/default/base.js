@@ -252,6 +252,7 @@ module.exports = {
 			        },
 			      },
 			      css: Object {
+			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
