@@ -5,6 +5,7 @@ export default defineConfig({
   plugins: [codspeedPlugin()],
   test: {
     fileParallelism: true,
+    setupFiles: process.env.RSPACK_PGO_PROFILE_DUMP ? ['./pgo.setup.ts'] : [],
     poolOptions: {
       forks: {
         minForks: 1,

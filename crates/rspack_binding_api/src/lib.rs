@@ -83,6 +83,8 @@ mod normal_module_factory;
 mod options;
 mod panic;
 mod path_data;
+#[cfg(rspack_pgo_generate)]
+mod pgo;
 mod platform;
 mod plugins;
 mod raw_options;
@@ -596,6 +598,9 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
+  #[cfg(rspack_pgo_generate)]
+  pgo::register_profile_dump(&env)?;
+
   #[cfg(target_family = "wasm")]
   {
     panic::install_panic_handler();

@@ -1,9 +1,18 @@
 const path = require("node:path");
-const { readFileSync, writeFileSync, renameSync } = require("node:fs");
+const { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync, renameSync, rmSync } = require("node:fs");
 const { values, positionals } = require("node:util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
 		profile: {
+			type: "string"
+		},
+		"profile-generate-dir": {
+			type: "string"
+		},
+		"profile-output": {
+			type: "string"
+		},
+		"profile-use": {
 			type: "string"
 		},
 	},
@@ -44,10 +53,23 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
+		const profileGenerateDir = values["profile-generate-dir"]
+			? path.resolve(values["profile-generate-dir"])
+			: undefined;
+		const profileOutput = path.resolve(values["profile-output"] || path.join(__dirname, "..", "pgo", "rspack.profdata"));
+		const profileUseValue = values["profile-use"] || process.env.RSPACK_PGO_PROFILE;
+		const profileUse = profileUseValue
+			? path.resolve(profileUseValue)
+			: undefined;
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
 			|| values.profile === "profiling";
+
+		if (profileGenerateDir && profileUse) {
+			reject(new Error("--profile-generate-dir and --profile-use cannot be used together"));
+			return;
+		}
 
 		if (values.profile) {
 			args.push("--profile", values.profile);
@@ -85,6 +107,22 @@ async function build() {
 		}
 		if (process.env.TRACY) {
 			features.push("tracy-client");
+		}
+		if (profileGenerateDir) {
+			rmSync(profileGenerateDir, { recursive: true, force: true });
+			mkdirSync(profileGenerateDir, { recursive: true });
+			rustflags.push(`-Cprofile-generate=${profileGenerateDir}`);
+			rustflags.push("--cfg=rspack_pgo_generate");
+			envs.LLVM_PROFILE_FILE = path.join(profileGenerateDir, "rspack-%m-%p.profraw");
+			envs.RSPACK_PGO_PROFILE_DUMP = "1";
+			envs.RSPACK_BINDING = path.resolve(__dirname, "..");
+		}
+		if (profileUse) {
+			if (!existsSync(profileUse)) {
+				reject(new Error(`PGO profile not found: ${profileUse}`));
+				return;
+			}
+			rustflags.push(`-Cprofile-use=${profileUse}`);
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
@@ -159,6 +197,84 @@ async function build() {
 						stdio: "inherit",
 						shell: true,
 					})
+				}
+
+				if (profileGenerateDir) {
+					const buildJsEnvs = { ...envs };
+					delete buildJsEnvs.RSPACK_BINDING;
+					delete buildJsEnvs.RSPACK_PGO_PROFILE_DUMP;
+					delete buildJsEnvs.LLVM_PROFILE_FILE;
+					const buildJsResult = spawnSync("pnpm", ["run", "build:js"], {
+						stdio: "inherit",
+						shell: true,
+						env: buildJsEnvs,
+						cwd: path.resolve(__dirname, "..", "..", "..")
+					});
+					if (buildJsResult.status !== CARGO_SAFELY_EXIT_CODE) {
+						resolve(buildJsResult.status || 1);
+						return;
+					}
+
+					const benchResult = spawnSync("pnpm", ["--filter", "bench", "run", "bench"], {
+						stdio: "inherit",
+						shell: true,
+						env: envs,
+						cwd: path.resolve(__dirname, "..", "..", "..")
+					});
+					if (benchResult.status !== CARGO_SAFELY_EXIT_CODE) {
+						resolve(benchResult.status || 1);
+						return;
+					}
+
+					const profrawFiles = readdirSync(profileGenerateDir)
+						.filter(file => file.endsWith(".profraw"))
+						.map(file => path.join(profileGenerateDir, file));
+					if (profrawFiles.length === 0) {
+						reject(new Error(`No .profraw files were generated in ${profileGenerateDir}`));
+						return;
+					}
+
+					mkdirSync(path.dirname(profileOutput), { recursive: true });
+					const rustupResult = spawnSync("rustup", ["which", "llvm-profdata"], {
+						encoding: "utf8",
+						shell: true
+					});
+					let llvmProfdata = rustupResult.status === CARGO_SAFELY_EXIT_CODE
+						? rustupResult.stdout.trim()
+						: undefined;
+					if (!llvmProfdata) {
+						const sysrootResult = spawnSync("rustc", ["--print", "sysroot"], {
+							encoding: "utf8",
+							shell: true
+						});
+						const hostResult = spawnSync("rustc", ["-vV"], {
+							encoding: "utf8",
+							shell: true
+						});
+						const host = hostResult.stdout.match(/^host: (.+)$/m)?.[1];
+						if (sysrootResult.status === CARGO_SAFELY_EXIT_CODE && host) {
+							const sysrootProfdata = path.join(
+								sysrootResult.stdout.trim(),
+								"lib",
+								"rustlib",
+								host,
+								"bin",
+								"llvm-profdata"
+							);
+							if (existsSync(sysrootProfdata)) {
+								llvmProfdata = sysrootProfdata;
+							}
+						}
+					}
+					llvmProfdata ||= "llvm-profdata";
+					const mergeResult = spawnSync(llvmProfdata, ["merge", "-o", profileOutput, ...profrawFiles], {
+						stdio: "inherit",
+						shell: true
+					});
+					if (mergeResult.status !== CARGO_SAFELY_EXIT_CODE) {
+						resolve(mergeResult.status || 1);
+						return;
+					}
 				}
 			}
 			resolve(code);

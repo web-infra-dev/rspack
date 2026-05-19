@@ -12,6 +12,9 @@ on:
       ref: # Git reference to checkout
         required: false
         type: string
+      binding_postfix: # Binding artifact postfix to benchmark, e.g. "-pgo".
+        required: false
+        type: string
 
 permissions:
   # Allow commenting on issues
@@ -34,7 +37,7 @@ jobs:
       - name: Download bindings
         uses: ./.github/actions/artifact/download
         with:
-          name: bindings-${{ inputs.target }}
+          name: bindings-${{ inputs.target }}${{ inputs.binding_postfix }}
           path: crates/node_binding/
 
       - name: Show restored binding

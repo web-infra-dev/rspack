@@ -26,6 +26,9 @@ on:
       binding_postfix: # Use when building multiple profiles in one workflow run; appends a postfix to the uploaded artifact name to distinguish each build.
         required: false
         type: string
+      pgo_profile_path: # Rust PGO profile to use when building bindings.
+        required: false
+        type: string
 
 permissions:
   # Allow commenting on issues
@@ -40,6 +43,7 @@ jobs:
       profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
       binding_postfix: ${{ inputs.binding_postfix }}
+      pgo_profile_path: ${{ inputs.pgo_profile_path }}
   test:
     if: inputs.test
     needs: build
