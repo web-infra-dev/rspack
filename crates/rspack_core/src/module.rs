@@ -133,6 +133,7 @@ pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
 pub struct IsolatedDts {
   pub resource_path: String,
   pub code: String,
+  pub references: Vec<String>,
 }
 
 #[cacheable]
@@ -169,7 +170,7 @@ pub struct BuildInfo {
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
-  pub isolated_dts: Option<IsolatedDts>,
+  pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]

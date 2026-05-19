@@ -11,6 +11,8 @@ pub mod create_full_hash;
 pub mod create_module_assets;
 pub mod create_module_hashes;
 pub mod create_module_ids;
+pub mod create_named_chunk_ids;
+pub mod create_named_module_ids;
 pub mod flag_dependency_exports;
 pub mod flag_dependency_usage;
 pub mod mangle_exports;

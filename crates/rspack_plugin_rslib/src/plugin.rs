@@ -8,9 +8,9 @@ use pathdiff::diff_paths;
 use rspack_core::{
   AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
   CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, IsolatedDts,
-  ModuleType, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
-  RuntimeCodeTemplate, SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
+  CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
+  SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, error};
@@ -31,6 +31,7 @@ use crate::{
     cutout_star_re_export_externals,
   },
   hashbang_parser_plugin::HashbangParserPlugin,
+  isolated_dts::{IsolatedDtsAsset, complete_isolated_dts_outputs},
   parser_plugin::RslibParserPlugin,
   react_directives_parser_plugin::ReactDirectivesParserPlugin,
 };
@@ -49,19 +50,40 @@ pub struct SwcEmitDtsOptions {
   pub declaration_dir: String,
 }
 
+struct EmitIsolatedDtsAssetContext {
+  compiler_root: Utf8PathBuf,
+  resolved_root_dir: Utf8PathBuf,
+  resolved_declaration_dir: Utf8PathBuf,
+  output_path: Utf8PathBuf,
+}
+
+impl EmitIsolatedDtsAssetContext {
+  fn new(compilation: &Compilation, emit_dts_options: &SwcEmitDtsOptions) -> Self {
+    let compiler_root = compilation.options.context.as_path().to_path_buf();
+    Self {
+      resolved_root_dir: resolve_emit_dts_path(&compiler_root, &emit_dts_options.root_dir),
+      resolved_declaration_dir: resolve_emit_dts_path(
+        &compiler_root,
+        &emit_dts_options.declaration_dir,
+      ),
+      output_path: compilation.options.output.path.clone(),
+      compiler_root,
+    }
+  }
+}
+
 fn emit_isolated_dts_asset(
   compilation: &mut Compilation,
-  emit_dts_options: &SwcEmitDtsOptions,
-  dts: IsolatedDts,
+  context: &EmitIsolatedDtsAssetContext,
+  dts: IsolatedDtsAsset,
 ) -> Result<()> {
-  let IsolatedDts {
+  let IsolatedDtsAsset {
     resource_path,
     code,
   } = dts;
-  let compiler_root = compilation.options.context.as_path();
-  let raw_resource_path = Utf8PathBuf::from(&resource_path);
+  let raw_resource_path = Utf8Path::new(&resource_path);
   // Cached isolated dts metadata stores resource paths relative to the compiler context.
-  let resource_path = resolve_emit_dts_path(compiler_root, &resource_path);
+  let resource_path = resolve_emit_dts_path(&context.compiler_root, &resource_path);
   // AssetInfo.source_filename is expected to be relative to the compilation context.
   let source_filename = if raw_resource_path.is_relative() {
     Some(
@@ -71,32 +93,36 @@ fn emit_isolated_dts_asset(
         .into_owned(),
     )
   } else {
-    diff_paths(resource_path.as_std_path(), compiler_root.as_std_path())
-      .map(|path| path.to_string_lossy().cow_replace('\\', "/").into_owned())
+    diff_paths(
+      resource_path.as_std_path(),
+      context.compiler_root.as_std_path(),
+    )
+    .map(|path| path.to_string_lossy().cow_replace('\\', "/").into_owned())
   };
-  let resolved_root_dir = resolve_emit_dts_path(compiler_root, &emit_dts_options.root_dir);
-  let resolved_declaration_dir =
-    resolve_emit_dts_path(compiler_root, &emit_dts_options.declaration_dir);
-  let output_path = compilation.options.output.path.clone();
   let output_relative_path = resource_path
-    .strip_prefix(&resolved_root_dir)
+    .strip_prefix(&context.resolved_root_dir)
     .map_err(|_| {
       error!(
         "Failed to emit declaration files for {} because it is outside rootDir {}",
-        resource_path, resolved_root_dir
+        resource_path, context.resolved_root_dir
       )
     })?;
-  let declaration_file_path = resolved_declaration_dir
+  let declaration_file_path = context
+    .resolved_declaration_dir
     .join(output_relative_path)
-    .with_extension("d.ts");
+    .with_extension(match resource_path.extension() {
+      Some("mts") => "d.mts",
+      Some("cts") => "d.cts",
+      _ => "d.ts",
+    });
   let filename = diff_paths(
     declaration_file_path.as_std_path(),
-    output_path.as_std_path(),
+    context.output_path.as_std_path(),
   )
     .ok_or_else(|| {
       error!(
         "Failed to emit declaration files for {} because declarationDir {} can not be relativized against output.path {}",
-        resource_path, resolved_declaration_dir, output_path
+        resource_path, context.resolved_declaration_dir, context.output_path
       )
     })?
     .to_string_lossy()
@@ -326,11 +352,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let dts_outputs = compilation
     .get_module_graph()
     .modules()
-    .filter_map(|(_, module)| module.build_info().isolated_dts.clone())
+    .filter_map(|(_, module)| module.build_info().isolated_dts.as_deref().cloned())
     .collect::<Vec<_>>();
+  if dts_outputs.is_empty() {
+    return Ok(());
+  }
+
+  let dts_outputs = complete_isolated_dts_outputs(compilation, options, dts_outputs).await?;
+  let emit_context = EmitIsolatedDtsAssetContext::new(compilation, options);
 
   for dts in dts_outputs {
-    emit_isolated_dts_asset(compilation, options, dts)?;
+    emit_isolated_dts_asset(compilation, &emit_context, dts)?;
   }
 
   Ok(())

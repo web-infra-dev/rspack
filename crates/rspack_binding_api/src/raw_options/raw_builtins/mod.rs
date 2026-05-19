@@ -48,7 +48,9 @@ use rspack_ids::{
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_case_sensitive::CaseSensitivePlugin;
-use rspack_plugin_circular_dependencies::CircularDependencyRspackPlugin;
+use rspack_plugin_circular_dependencies::{
+  CircularDependencyRspackPlugin, CircularModulesInfoPlugin,
+};
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
 use rspack_plugin_css_chunking::CssChunkingPlugin;
@@ -241,6 +243,7 @@ pub enum BuiltinPluginName {
   RsdoctorPlugin,
   RstestPlugin,
   RslibPlugin,
+  CircularModulesInfoPlugin,
   CircularDependencyRspackPlugin,
   URLPlugin,
 
@@ -786,6 +789,9 @@ impl<'a> BuiltinPlugin<'a> {
         )
         .boxed(),
       ),
+      BuiltinPluginName::CircularModulesInfoPlugin => {
+        plugins.push(CircularModulesInfoPlugin::default().boxed())
+      }
       BuiltinPluginName::JsLoaderRspackPlugin => {
         // Set the compiler._runLoader property on the JsObject to ensure that the runLoader
         // is not garbage collected by JS while the stats Object holds a reference to JsLoaderPlugin.

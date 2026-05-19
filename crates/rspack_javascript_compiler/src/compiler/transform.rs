@@ -11,6 +11,7 @@ use anyhow::{Context, bail};
 use indoc::formatdoc;
 use rspack_error::Result;
 use rspack_util::{base64, source_map::SourceMapKind, swc::minify_file_comments};
+use rustc_hash::FxHashSet as HashSet;
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
 use swc_core::{
@@ -27,7 +28,10 @@ use swc_core::{
     errors::Handler,
   },
   ecma::{
-    ast::{EsVersion, Pass, Program},
+    ast::{
+      EsVersion, ExportAll, ImportDecl, NamedExport, Pass, Program, TsExternalModuleRef,
+      TsImportType,
+    },
     codegen::{
       self, Emitter, Node,
       text_writer::{self, WriteJs},
@@ -36,7 +40,11 @@ use swc_core::{
       Syntax, TsSyntax, parse_file_as_commonjs, parse_file_as_module, parse_file_as_program,
       parse_file_as_script,
     },
-    transforms::base::helpers::{self, Helpers},
+    transforms::base::{
+      helpers::{self, Helpers},
+      resolver,
+    },
+    visit::{Visit, VisitMutWith, VisitWith},
   },
 };
 use swc_error_reporters::handler::try_with_handler;
@@ -114,6 +122,13 @@ impl JavaScriptCompiler {
         }
       };
 
+      // Collect declaration references from the FastDts output AST before codegen.
+      // Rslib uses these references to complete type-only declaration outputs without
+      // parsing the generated .d.ts string again.
+      let mut collector = DtsReferenceCollector::default();
+      program.visit_with(&mut collector);
+      let references = collector.references;
+
       let code = {
         let mut buf = Vec::new();
         {
@@ -135,8 +150,109 @@ impl JavaScriptCompiler {
         unsafe { String::from_utf8_unchecked(buf) }
       };
 
-      Ok(IsolatedDtsTransformOutput { code, diagnostics })
+      Ok(IsolatedDtsTransformOutput {
+        code,
+        references,
+        diagnostics,
+      })
     })
+  }
+
+  /// Generate isolated declaration output from a source string for callers that
+  /// are outside the normal loader transform path.
+  pub fn emit_isolated_dts_from_source(
+    &self,
+    source: String,
+    filename: Arc<FileName>,
+    syntax: Syntax,
+    target: EsVersion,
+  ) -> Result<IsolatedDtsTransformOutput> {
+    self.run(|| {
+      let comments = SingleThreadedComments::default();
+      let fm = self.cm.new_source_file(filename.clone(), source);
+      let unresolved_mark = Mark::new();
+      let top_level_mark = Mark::new();
+      let is_typescript = syntax.typescript();
+      let mut program = try_with_handler(self.cm.clone(), Default::default(), |handler| {
+        let mut had_error = false;
+        let mut errors = vec![];
+        let program = parse_file_as_program(&fm, syntax, target, Some(&comments), &mut errors);
+
+        for error in errors {
+          error.into_diagnostic(handler).emit();
+          had_error = true;
+        }
+
+        let program = program.map_err(|error| {
+          error.into_diagnostic(handler).emit();
+          anyhow::Error::msg("Syntax Error")
+        })?;
+
+        if had_error {
+          bail!("Syntax Error");
+        }
+
+        Ok(program)
+      })
+      .map_err(|error| error.to_pretty_error())?;
+      program.visit_mut_with(&mut resolver(
+        unresolved_mark,
+        top_level_mark,
+        is_typescript,
+      ));
+
+      self.emit_isolated_dts(&program, filename, unresolved_mark, target, &comments)
+    })
+  }
+}
+
+#[derive(Default)]
+struct DtsReferenceCollector {
+  references: Vec<String>,
+  seen: HashSet<String>,
+}
+
+impl DtsReferenceCollector {
+  fn push(&mut self, value: String) {
+    if self.seen.insert(value.clone()) {
+      self.references.push(value);
+    }
+  }
+}
+
+impl Visit for DtsReferenceCollector {
+  fn visit_import_decl(&mut self, node: &ImportDecl) {
+    // Matches import declarations, for example:
+    //   import type { Foo } from "./foo";
+    //   import "./foo";
+    self.push(node.src.value.to_string_lossy().into_owned());
+  }
+
+  fn visit_export_all(&mut self, node: &ExportAll) {
+    // Matches export-all declarations, for example:
+    //   export * from "./foo";
+    self.push(node.src.value.to_string_lossy().into_owned());
+  }
+
+  fn visit_named_export(&mut self, node: &NamedExport) {
+    // Matches named re-exports, for example:
+    //   export type { Foo } from "./foo";
+    if let Some(src) = &node.src {
+      self.push(src.value.to_string_lossy().into_owned());
+    }
+  }
+
+  fn visit_ts_import_type(&mut self, node: &TsImportType) {
+    // Matches inline import types, for example:
+    //   export type Foo = import("./foo").Foo;
+    self.push(node.arg.value.to_string_lossy().into_owned());
+    node.visit_children_with(self);
+  }
+
+  fn visit_ts_external_module_ref(&mut self, node: &TsExternalModuleRef) {
+    // Matches TypeScript import-equals declarations, for example:
+    //   import Foo = require("./foo");
+    self.push(node.expr.value.to_string_lossy().into_owned());
   }
 }
 

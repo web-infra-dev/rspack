@@ -52,5 +52,6 @@ impl TransformOutput {
 #[derive(Debug, Clone)]
 pub struct IsolatedDtsTransformOutput {
   pub code: String,
+  pub references: Vec<String>,
   pub diagnostics: Vec<String>,
 }
