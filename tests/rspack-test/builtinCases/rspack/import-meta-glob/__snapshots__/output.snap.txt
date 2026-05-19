@@ -1,0 +1,117 @@
+```js title=main.js
+(() => {
+var __webpack_modules__ = ({
+"./dir/bar.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("bar");
+
+
+},
+"./dir/foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* export default */ const __rspack_default_export = ("foo");
+
+
+},
+"./dir lazy ./dir/*.js"(module, __unused_rspack_exports, __webpack_require__) {
+module.exports = {
+"./dir/bar.js": function() { return Promise.all([].map(__webpack_require__.e)).then(__webpack_require__.bind(__webpack_require__, "./dir/bar.js")); },
+"./dir/foo.js": function() { return Promise.all([].map(__webpack_require__.e)).then(__webpack_require__.bind(__webpack_require__, "./dir/foo.js")); }
+};
+
+
+},
+"./dir sync ./dir/*.js"(module, __unused_rspack_exports, __webpack_require__) {
+module.exports = {
+"./dir/bar.js": __webpack_require__("./dir/bar.js"),
+"./dir/foo.js": __webpack_require__("./dir/foo.js")
+};
+
+
+},
+
+});
+// The module cache
+var __webpack_module_cache__ = {};
+
+// The require function
+function __webpack_require__(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, definition) => {
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
+};
+})();
+// webpack/runtime/ensure_chunk
+(() => {
+// The chunk loading function for additional chunks
+// Since all referenced chunks are already included
+// in this file, this function is empty here.
+__webpack_require__.e = () => (Promise.resolve()) 
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
+(() => {
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  eagerModules: () => (eagerModules),
+  lazyModules: () => (lazyModules)
+});
+const lazyModules = (function(modules) { if(typeof modules.keys !== "function") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = function() { return modules(key); }; }); return map; })(__webpack_require__("./dir lazy ./dir/*.js"));
+const eagerModules = (function(modules) { if(typeof modules.keys !== "function") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = modules(key); }); return map; })(__webpack_require__("./dir sync ./dir/*.js"));
+
+console.log(Object.keys(lazyModules).sort());
+console.log(Object.keys(eagerModules).sort());
+
+
+
+})();
+
+})()
+;
+```
