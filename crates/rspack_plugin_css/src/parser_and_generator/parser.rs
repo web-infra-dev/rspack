@@ -37,7 +37,6 @@ pub(super) struct CssModuleParser<'context> {
   css_exports: CssExports,
   css_local_names: FxHashMap<String, String>,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
-  module_hash_options: OnceCell<LocalIdentModuleHashOptions>,
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -65,7 +64,6 @@ impl<'context> CssModuleParser<'context> {
       css_exports: Default::default(),
       css_local_names: Default::default(),
       local_ident_options: OnceCell::new(),
-      module_hash_options: OnceCell::new(),
     }
   }
 
@@ -75,13 +73,12 @@ impl<'context> CssModuleParser<'context> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
-    self
-      .module_hash_options
-      .set(self.create_module_hash_options(&deps))
-      .expect("module hash options should only be initialized once");
+    let module_hash_options = self.create_module_hash_options(&deps);
 
     for dependency in deps {
-      self.handle_dependency(dependency).await?;
+      self
+        .handle_dependency(dependency, &module_hash_options)
+        .await?;
     }
 
     self.add_warnings(warnings);
@@ -148,7 +145,7 @@ impl<'context> CssModuleParser<'context> {
   fn create_module_hash_options<'source>(
     &self,
     deps: &[css_module_lexer::Dependency<'source>],
-  ) -> LocalIdentModuleHashOptions {
+  ) -> LocalIdentModuleHashOptions<'source> {
     let mut export_dependency_names = Vec::new();
     let mut graph_export_name_set = FxHashSet::default();
     let mut presentational_dependency_hash_updates = Vec::new();
@@ -224,7 +221,7 @@ impl<'context> CssModuleParser<'context> {
           presentational_dependency_hash_updates.push(PresentationalDependencyHashUpdate {
             start: range.start,
             end: range.end + 1,
-            content: content.to_string(),
+            content,
           });
         }
         _ => {}
@@ -271,6 +268,7 @@ impl<'context> CssModuleParser<'context> {
   async fn handle_dependency<'source>(
     &mut self,
     dependency: css_module_lexer::Dependency<'source>,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     match dependency {
       css_module_lexer::Dependency::Url {
@@ -302,17 +300,22 @@ impl<'context> CssModuleParser<'context> {
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         let (_prefix, name) = name.split_at(1);
         self
-          .handle_local_ident_declaration(name, range.start + 1, range.end)
+          .handle_local_ident_declaration(name, range.start + 1, range.end, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.animation(), name, range)
+          .handle_optional_local_ident_usage(self.animation(), name, range, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
         self
-          .handle_optional_local_ident_declaration(self.animation(), name, range)
+          .handle_optional_local_ident_declaration(
+            self.animation(),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::Composes {
@@ -331,24 +334,34 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
       | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.custom_idents(), name, range)
+          .handle_optional_local_ident_usage(self.custom_idents(), name, range, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
       | css_module_lexer::Dependency::LocalFontPaletteDecl { name, range, .. } => {
         self
-          .handle_optional_local_ident_declaration(self.custom_idents(), name, range)
+          .handle_optional_local_ident_declaration(
+            self.custom_idents(),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::LocalVar { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.dashed_idents(), name, range)
+          .handle_optional_local_ident_usage(self.dashed_idents(), name, range, module_hash_options)
           .await
       }
       css_module_lexer::Dependency::LocalVarDecl { name, range, .. }
       | css_module_lexer::Dependency::LocalPropertyDecl { name, range, .. } => {
         self
-          .handle_optional_local_ident_declaration(self.dashed_idents(), name, range)
+          .handle_optional_local_ident_declaration(
+            self.dashed_idents(),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       _ => Ok(()),
@@ -519,10 +532,12 @@ impl<'context> CssModuleParser<'context> {
     &mut self,
     name: &str,
     range: css_module_lexer::Range,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape(name);
-    let (local_ident, convention_names) =
-      self.resolve_local_ident_and_update_exports(&name).await?;
+    let (local_ident, convention_names) = self
+      .resolve_local_ident_and_update_exports(&name, module_hash_options)
+      .await?;
     self
       .dependencies
       .push(Box::new(CssSelfReferenceLocalIdentDependency::new(
@@ -540,11 +555,14 @@ impl<'context> CssModuleParser<'context> {
     enabled: bool,
     name: &str,
     range: css_module_lexer::Range,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     if !enabled {
       return Ok(());
     }
-    self.handle_local_ident_usage(name, range).await
+    self
+      .handle_local_ident_usage(name, range, module_hash_options)
+      .await
   }
 
   async fn handle_local_ident_declaration(
@@ -552,10 +570,12 @@ impl<'context> CssModuleParser<'context> {
     name: &str,
     start: u32,
     end: u32,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     let name = unescape(name);
-    let (local_ident, convention_names) =
-      self.resolve_local_ident_and_update_exports(&name).await?;
+    let (local_ident, convention_names) = self
+      .resolve_local_ident_and_update_exports(&name, module_hash_options)
+      .await?;
 
     self
       .css_local_names
@@ -577,25 +597,23 @@ impl<'context> CssModuleParser<'context> {
     enabled: bool,
     name: &str,
     range: css_module_lexer::Range,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<()> {
     if !enabled {
       return Ok(());
     }
     self
-      .handle_local_ident_declaration(name, range.start, range.end)
+      .handle_local_ident_declaration(name, range.start, range.end, module_hash_options)
       .await
   }
 
   async fn resolve_local_ident_and_update_exports(
     &mut self,
     name: &str,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<(String, Vec<String>)> {
     let local_ident = {
       let local_ident_options = self.get_local_ident_options();
-      let module_hash_options = self
-        .module_hash_options
-        .get()
-        .expect("module hash options should be initialized before resolving local ident");
       local_ident_options
         .get_local_ident(name, module_hash_options)
         .await?

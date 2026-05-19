@@ -19,17 +19,17 @@ pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
 
 #[derive(Debug, Clone)]
-pub struct PresentationalDependencyHashUpdate {
+pub struct PresentationalDependencyHashUpdate<'a> {
   pub start: u32,
   pub end: u32,
-  pub content: String,
+  pub content: &'a str,
 }
 
 #[derive(Debug, Clone)]
-pub struct LocalIdentModuleHashOptions {
+pub struct LocalIdentModuleHashOptions<'a> {
   pub export_dependency_names: Vec<String>,
   pub graph_export_names: FxHashSet<String>,
-  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate>,
+  pub presentational_dependency_hash_updates: Vec<PresentationalDependencyHashUpdate<'a>>,
   pub exports_only: bool,
   pub es_module: bool,
   pub named_exports: bool,
@@ -95,14 +95,14 @@ impl<'a> LocalIdentOptions<'a> {
     }
   }
 
-  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions) -> &str {
+  fn module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> &str {
     self
       .module_hash
       .get_or_init(|| self.get_module_hash(module_hash_options))
       .as_str()
   }
 
-  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions) -> String {
+  fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let build_hash = {
       let mut hasher = RspackHash::new(self.local_ident_hash_function);
@@ -195,7 +195,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub async fn get_local_ident(
     &self,
     local: &str,
-    module_hash_options: &LocalIdentModuleHashOptions,
+    module_hash_options: &LocalIdentModuleHashOptions<'_>,
   ) -> Result<String> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
