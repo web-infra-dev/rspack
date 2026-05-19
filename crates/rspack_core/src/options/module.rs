@@ -405,6 +405,7 @@ impl MergeFrom for CssParserImport {
 pub struct CssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
 }
 
@@ -425,7 +426,7 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
-      r#import: None,
+      r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
       animation: None,
       custom_idents: None,

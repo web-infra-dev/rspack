@@ -404,6 +404,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.css);
   D(module.parser.css, 'namedExports', true);
   D(module.parser.css, 'url', true);
+  D(module.parser.css, 'import', true);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);

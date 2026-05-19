@@ -1051,6 +1051,12 @@ export type CssParserOptions = {
    * Allow to enable/disables `@import` at-rules handling.
    * @default true
    * */
+  import?: boolean;
+
+  /**
+   * Allow to enable/disables `@import` at-rules handling.
+   * @default true
+   * */
   resolveImport?: CssParserResolveImport;
 };
 

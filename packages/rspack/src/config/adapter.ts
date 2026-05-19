@@ -655,6 +655,7 @@ function getRawCssParserOptionsForCss(
   return {
     namedExports: parser.namedExports,
     url: parser.url,
+    import: parser.import,
     resolveImport: parser.resolveImport as any,
   };
 }

@@ -524,6 +524,8 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(js_name = "import")]
+  pub r#import: Option<bool>,
   #[napi(
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
@@ -535,6 +537,7 @@ impl From<RawCssParserOptions> for CssParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
     }
   }

@@ -1770,6 +1770,7 @@ impl ModuleOptionsBuilder {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
+        r#import: Some(true),
         url: Some(true),
       });
       parser.insert("css".to_string(), css_parser_options);
