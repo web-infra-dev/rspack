@@ -603,6 +603,7 @@ export declare enum BuiltinPluginName {
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
   LibManifestPlugin = 'LibManifestPlugin',
   FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
+  CssHttpExternalsRspackPlugin = 'CssHttpExternalsRspackPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -2346,7 +2347,6 @@ export interface RawHtmlRspackPluginOptions {
 }
 
 export interface RawHttpExternalsRspackPluginOptions {
-  css: boolean
   webAsync: boolean
 }
 

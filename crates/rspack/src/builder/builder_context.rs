@@ -14,8 +14,9 @@ pub(super) enum BuiltinPluginOptions {
   // External handling plugins
   ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool)),
   NodeTargetPlugin,
+  CssHttpExternalsRspackPlugin,
   ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
-  HttpExternalsRspackPlugin((bool /* css */, bool /* web_async */)),
+  HttpExternalsRspackPlugin(bool /* web_async */),
 
   // Chunk format and loading plugins
   ChunkPrefetchPreloadPlugin,
@@ -130,9 +131,12 @@ impl BuilderContext {
       BuiltinPluginOptions::ElectronTargetPlugin(context) => {
         rspack_plugin_externals::electron_target_plugin(context, &mut plugins)
       }
-      BuiltinPluginOptions::HttpExternalsRspackPlugin((css, web_async)) => {
+      BuiltinPluginOptions::CssHttpExternalsRspackPlugin => {
+        plugins.push(rspack_plugin_externals::css_http_externals_rspack_plugin())
+      }
+      BuiltinPluginOptions::HttpExternalsRspackPlugin(web_async) => {
         plugins.push(rspack_plugin_externals::http_externals_rspack_plugin(
-          css, web_async,
+          web_async,
         ));
       }
 

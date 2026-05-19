@@ -1104,6 +1104,9 @@ impl CompilerOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::NodeTargetPlugin);
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::CssHttpExternalsRspackPlugin);
     }
 
     use rspack_plugin_externals::ElectronTargetContext;
@@ -1151,14 +1154,12 @@ impl CompilerOptionsBuilder {
         )));
     }
 
-    if externals_presets.web() || externals_presets.web_async() || (externals_presets.node() && css)
-    {
+    if externals_presets.web() || externals_presets.web_async() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::HttpExternalsRspackPlugin((
-          css,
+        .push(BuiltinPluginOptions::HttpExternalsRspackPlugin(
           externals_presets.web_async(),
-        )));
+        ));
     }
 
     // apply node defaults

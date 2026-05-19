@@ -23,6 +23,7 @@ import {
   BundlerInfoRspackPlugin,
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
+  CssHttpExternalsRspackPlugin,
   CssModulesPlugin,
   DataUriPlugin,
   DefinePlugin,
@@ -105,6 +106,7 @@ export class RspackOptionsApply {
 
     if (options.externalsPresets.node) {
       new NodeTargetPlugin().apply(compiler);
+      new CssHttpExternalsRspackPlugin().apply(compiler);
     }
     if (options.externalsPresets.electronMain) {
       new ElectronTargetPlugin('main').apply(compiler);
@@ -126,15 +128,10 @@ export class RspackOptionsApply {
     if (options.externalsPresets.nwjs) {
       new ExternalsPlugin('node-commonjs', 'nw.gui', false).apply(compiler);
     }
-    if (
-      options.externalsPresets.web ||
-      options.externalsPresets.webAsync ||
-      options.externalsPresets.node
-    ) {
-      new HttpExternalsRspackPlugin(
-        true,
-        !!options.externalsPresets.webAsync,
-      ).apply(compiler);
+    if (options.externalsPresets.web || options.externalsPresets.webAsync) {
+      new HttpExternalsRspackPlugin(!!options.externalsPresets.webAsync).apply(
+        compiler,
+      );
     }
 
     new ChunkPrefetchPreloadPlugin().apply(compiler);

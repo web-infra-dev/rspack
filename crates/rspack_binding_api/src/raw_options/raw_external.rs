@@ -25,7 +25,6 @@ use crate::{
 
 #[napi(object)]
 pub struct RawHttpExternalsRspackPluginOptions {
-  pub css: bool,
   pub web_async: bool,
 }
 
