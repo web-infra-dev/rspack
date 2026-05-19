@@ -3,10 +3,11 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["child_a_js"], {
 "./child/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
 const a = "a";
+
+__webpack_require__.d(__webpack_exports__, [
+  "a", 0, a
+]);
 
 
 },
@@ -19,10 +20,11 @@ const a = "a";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["child_b_js"], {
 "./child/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  b: () => (b)
-});
 const b = "b";
+
+__webpack_require__.d(__webpack_exports__, [
+  "b", 0, b
+]);
 
 
 },

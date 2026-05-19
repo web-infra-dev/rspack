@@ -2,9 +2,6 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "../node_modules/pmodule/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
 /* import */ var _tracker__rspack_import_0 = __webpack_require__("../node_modules/pmodule/tracker.js");
 var a = "a";
 var b = "b";
@@ -15,12 +12,13 @@ var c = "c";
 
 (0,_tracker__rspack_import_0.track)("a.js");
 
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
+
 
 },
 "../node_modules/pmodule/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  x: () => (x)
-});
 /* import */ var _tracker__rspack_import_0 = __webpack_require__("../node_modules/pmodule/tracker.js");
 var x = "x";
 var y = "y";
@@ -31,12 +29,13 @@ var y = "y";
 
 (0,_tracker__rspack_import_0.track)("b.js");
 
+__webpack_require__.d(__webpack_exports__, [
+  "x", () => (x)
+]);
+
 
 },
 "../node_modules/pmodule/c.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  z: () => (z)
-});
 /* import */ var _tracker__rspack_import_0 = __webpack_require__("../node_modules/pmodule/tracker.js");
 var z = "z";
 
@@ -45,12 +44,13 @@ var z = "z";
 
 (0,_tracker__rspack_import_0.track)("c.js");
 
+__webpack_require__.d(__webpack_exports__, [
+  "z", () => (z)
+]);
+
 
 },
 "../node_modules/pmodule/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
 /* import */ var _tracker__rspack_import_0 = __webpack_require__("../node_modules/pmodule/tracker.js");
 
 
@@ -60,13 +60,13 @@ __webpack_require__.d(__webpack_exports__, {
 
 /* export default */ const __rspack_default_export = ("def");
 
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
+
 
 },
 "../node_modules/pmodule/tracker.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  log: () => (log),
-  track: () => (track)
-});
 function track(file) {
 	log.push(file);
 	log.sort();
@@ -77,6 +77,11 @@ var log = [];
 function reset() {
 	log.length = 0;
 }
+
+__webpack_require__.d(__webpack_exports__, [
+  "log", () => (log),
+  "track", () => (track)
+]);
 
 
 },

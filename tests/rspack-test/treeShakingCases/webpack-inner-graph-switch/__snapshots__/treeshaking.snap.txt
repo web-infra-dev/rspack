@@ -15,9 +15,6 @@ __webpack_require__.r(__webpack_exports__);
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./import-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, {
-  test: () => (test)
-});
 /* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
 
 
@@ -26,6 +23,10 @@ function test() {
 		type: "inline"
 	});
 }
+
+__webpack_require__.d(__webpack_exports__, [
+  "test", () => (test)
+]);
 
 
 },
@@ -39,9 +40,6 @@ it("should generate correct code when pure expressions are in dead branches", ()
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
 /* import */ var _some_module__rspack_import_0 = __webpack_require__("./some-module.js");
 
 
@@ -85,16 +83,15 @@ function useDocument(obj) {
 
 /* export default */ const __rspack_default_export = (doSomething);
 
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
+
 
 },
 "./some-module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  Block: () => (Block),
-  Document: () => (Document),
-  Inline: () => (Inline)
-});
 class Block {
 	static doSomething() {}
 }
@@ -108,6 +105,12 @@ class Document {
 }
 
 
+
+__webpack_require__.d(__webpack_exports__, [
+  "Block", () => (Block),
+  "Document", () => (Document),
+  "Inline", () => (Inline)
+]);
 
 
 },

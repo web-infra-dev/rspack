@@ -12,7 +12,7 @@ use swc_core::{
 use super::{
   DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
   esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
-  inline_const::{INLINABLE_CONST_TAG, InlinableConstData},
+  inline_const::{ConstValueData, INLINABLE_CONST_TAG},
   inner_graph::state::InnerGraphMapUsage,
 };
 use crate::{
@@ -177,8 +177,8 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       }
       Box::new(dep) as BoxDependency
     } else {
-      let inlinable = parser
-        .get_tag_data::<InlinableConstData>(local_id, INLINABLE_CONST_TAG)
+      let const_value = parser
+        .get_tag_data::<ConstValueData>(local_id, INLINABLE_CONST_TAG)
         .map(|data| data.value.clone());
       let enum_value = parser
         .build_info
@@ -198,7 +198,7 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
         } else {
           local_id.clone()
         },
-        inlinable,
+        const_value,
         enum_value,
         statement.span().into(),
         loc,

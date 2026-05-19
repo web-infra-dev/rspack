@@ -2,9 +2,6 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
 var Foo = function () {
 	console.log("side effect");
 	this.isFoo = true;
@@ -17,6 +14,10 @@ Foo.prototype = {
 		return 42;
 	}
 };
+
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 
 
 },

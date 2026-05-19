@@ -2,15 +2,16 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  foo: () => (foo)
-});
 var foo = "lol";
 var bar = "wut";
 
 var baz = (/* unused pure expression or super */ null && (bar || foo));
 
 
+
+__webpack_require__.d(__webpack_exports__, [
+  "foo", () => (foo)
+]);
 
 
 },

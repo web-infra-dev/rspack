@@ -2,37 +2,35 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./colors/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  red: () => (red)
-});
 const red = "red";
+
+__webpack_require__.d(__webpack_exports__, [
+  "red", 0, red
+]);
 
 
 },
 "./colors/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  blue: () => (blue)
-});
 const blue = "blue";
+
+__webpack_require__.d(__webpack_exports__, [
+  "blue", 0, blue
+]);
 
 
 },
 "./colors/c.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  result: () => (/* reexport safe */ _result__rspack_import_0.result)
-});
 /* import */ var _result__rspack_import_0 = __webpack_require__("./colors/result.js");
 
+
+__webpack_require__.d(__webpack_exports__, [
+  "result", () => (/* reexport safe */ _result__rspack_import_0.result)
+]);
 
 
 },
 "./colors/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  blue: () => (/* reexport safe */ _b__rspack_import_1.blue),
-  red: () => (/* reexport safe */ _a__rspack_import_0.red),
-  result: () => (/* reexport safe */ _c__rspack_import_2.result)
-});
 /* import */ var _a__rspack_import_0 = __webpack_require__("./colors/a.js");
 /* import */ var _b__rspack_import_1 = __webpack_require__("./colors/b.js");
 /* import */ var _c__rspack_import_2 = __webpack_require__("./colors/c.js");
@@ -40,13 +38,20 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 
+__webpack_require__.d(__webpack_exports__, [
+  "blue", () => (/* reexport safe */ _b__rspack_import_1.blue),
+  "red", () => (/* reexport safe */ _a__rspack_import_0.red),
+  "result", () => (/* reexport safe */ _c__rspack_import_2.result)
+]);
+
 
 },
 "./colors/result.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  result: () => (result)
-});
 const result = "ssss";
+
+__webpack_require__.d(__webpack_exports__, [
+  "result", 0, result
+]);
 
 
 },
@@ -61,10 +66,11 @@ _export__rspack_import_1.Something;
 
 },
 "./something/Something.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  Something: () => (Something)
-});
 class Something {}
+
+__webpack_require__.d(__webpack_exports__, [
+  "Something", () => (Something)
+]);
 
 
 },

@@ -9,10 +9,11 @@ _test__rspack_import_0.obj.test = 1;
 
 },
 "./test.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  obj: () => (obj)
-});
 const obj = {};
+
+__webpack_require__.d(__webpack_exports__, [
+  "obj", 0, obj
+]);
 
 
 },

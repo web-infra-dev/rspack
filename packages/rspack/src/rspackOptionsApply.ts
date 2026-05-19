@@ -22,6 +22,7 @@ import {
   AsyncWebAssemblyModulesPlugin,
   BundlerInfoRspackPlugin,
   ChunkPrefetchPreloadPlugin,
+  CircularModulesInfoPlugin,
   CommonJsChunkFormatPlugin,
   CssModulesPlugin,
   DataUriPlugin,
@@ -267,6 +268,7 @@ export class RspackOptionsApply {
     if (options.optimization.providedExports) {
       new FlagDependencyExportsPlugin().apply(compiler);
     }
+    new CircularModulesInfoPlugin().apply(compiler);
     if (options.optimization.usedExports) {
       new FlagDependencyUsagePlugin(
         options.optimization.usedExports === 'global',

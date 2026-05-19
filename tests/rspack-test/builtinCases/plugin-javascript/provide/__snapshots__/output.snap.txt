@@ -21,9 +21,6 @@ function a() {
 "./name.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
 const lib = {
 	get: () => {
 		return "my-name";
@@ -31,6 +28,10 @@ const lib = {
 };
 
 /* export default */ const __rspack_default_export = (lib);
+
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 
 
 },

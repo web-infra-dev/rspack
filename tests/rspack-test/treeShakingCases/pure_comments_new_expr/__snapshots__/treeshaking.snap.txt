@@ -2,9 +2,6 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  marker: () => (marker)
-});
 function createSet() {
 	return new Set();
 }
@@ -15,6 +12,10 @@ let directNew = /*#__PURE__*/ (/* unused pure expression or super */ null && (ne
 let extraTextNew = /* #__PURE__ additional text */ (/* unused pure expression or super */ null && (new Set()));
 let atPureNew = /* @__PURE__ additional text */ (/* unused pure expression or super */ null && (new Set()));
 let notPureComment = /* note: keep webpack-compatible #__PURE__ syntax here */ createSet();
+
+__webpack_require__.d(__webpack_exports__, [
+  "marker", 0, marker
+]);
 
 
 },
