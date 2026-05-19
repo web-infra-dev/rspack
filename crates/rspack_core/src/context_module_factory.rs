@@ -416,6 +416,10 @@ async fn visit_dirs(
 ) -> Result<()> {
   let include = &options.context_options.include;
   let exclude = &options.context_options.exclude;
+  let matcher = ContextModuleMatcher::new(&options.context_options.pattern);
+  if matcher.is_empty() {
+    return Ok(());
+  }
 
   walk_dir(
     dir,
@@ -458,30 +462,9 @@ async fn visit_dirs(
         vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
       );
 
-      let filename_glob = options.context_options.pattern.glob_pattern().map(|g| {
-        let base_dir_len = glob_base_dir_end(g);
-        let remainder = if g.len() > base_dir_len {
-          &g[base_dir_len..]
-        } else {
-          "*"
-        };
-        remainder.strip_prefix('/').unwrap_or(remainder)
-      });
-
-      if filename_glob.is_none() && options.context_options.pattern.is_empty() {
-        return;
-      }
-
-      requests.iter().for_each(|r| {
-        if let Some(filename_glob) = &filename_glob {
-          let stripped = r.request.strip_prefix("./").unwrap_or(&r.request);
-          if !glob_match_with_options(filename_glob, stripped, &GlobMatchOptions::default()) {
-            return;
-          }
-        } else if let Some(reg_exp) = options.context_options.pattern.reg_exp()
-          && !reg_exp.test(&r.request)
-        {
-          return;
+      for r in &requests {
+        if !matcher.matches(&r.request) {
+          continue;
         }
         let request = format!(
           "{}{}{}{}",
@@ -510,10 +493,49 @@ async fn visit_dirs(
           dependency_type: DependencyType::ContextElement(options.type_prefix),
           factorize_info: Default::default(),
         });
-      });
+      }
     },
   )
   .await
+}
+
+struct ContextModuleMatcher<'a> {
+  pattern: &'a ContextModulePattern,
+  glob_remainder: Option<&'a str>,
+}
+
+impl<'a> ContextModuleMatcher<'a> {
+  fn new(pattern: &'a ContextModulePattern) -> Self {
+    let glob_remainder = pattern.glob_pattern().map(|glob_pattern| {
+      let base_dir_len = glob_base_dir_end(glob_pattern);
+      let remainder = if glob_pattern.len() > base_dir_len {
+        &glob_pattern[base_dir_len..]
+      } else {
+        "*"
+      };
+      remainder.strip_prefix('/').unwrap_or(remainder)
+    });
+
+    Self {
+      pattern,
+      glob_remainder,
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    self.glob_remainder.is_none() && self.pattern.is_empty()
+  }
+
+  fn matches(&self, request: &str) -> bool {
+    if let Some(filename_glob) = self.glob_remainder {
+      let stripped = request.strip_prefix("./").unwrap_or(request);
+      glob_match_with_options(filename_glob, stripped, &GlobMatchOptions::default())
+    } else if let Some(reg_exp) = self.pattern.reg_exp() {
+      reg_exp.test(request)
+    } else {
+      false
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
