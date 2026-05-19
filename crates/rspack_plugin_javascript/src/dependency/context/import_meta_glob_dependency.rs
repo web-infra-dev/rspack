@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextMode, ContextOptions, Dependency,
@@ -141,11 +142,15 @@ impl DependencyTemplate for ImportMetaGlobDependencyTemplate {
       dep.base.optional,
     );
     let content = match dep.base.options.mode {
-      ContextMode::Lazy => format!(
-        "(function(modules) {{ if(typeof modules.keys !== \"function\") return modules; var map = {{}}; modules.keys().forEach(function(key) {{ map[key] = function() {{ return modules(key); }}; }}); return map; }})({context_expr})"
+      ContextMode::Lazy => concat_string!(
+        "(function(modules) { if(typeof modules.keys !== \"function\") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = function() { return modules(key); }; }); return map; })(",
+        context_expr,
+        ")"
       ),
-      _ => format!(
-        "(function(modules) {{ if(typeof modules.keys !== \"function\") return modules; var map = {{}}; modules.keys().forEach(function(key) {{ map[key] = modules(key); }}); return map; }})({context_expr})"
+      _ => concat_string!(
+        "(function(modules) { if(typeof modules.keys !== \"function\") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = modules(key); }); return map; })(",
+        context_expr,
+        ")"
       ),
     };
     source.replace(dep.base.range.start, dep.base.range.end, content, None);

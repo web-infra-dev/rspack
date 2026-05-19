@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextOptions, DependencyCategory, extract_glob_base_dir,
   get_context, glob_base_dir_end,
@@ -32,9 +33,9 @@ fn create_import_meta_glob_dependency(
   };
   let context = get_context(parser.resource_data);
   let context_glob_pattern = if let Some(pattern) = glob_pattern.strip_prefix('/') {
-    format!("{}/{}", parser.compiler_options.context.as_str(), pattern)
+    concat_string!(parser.compiler_options.context.as_str(), "/", pattern)
   } else {
-    format!("{}/{}", context.as_str(), glob_pattern)
+    concat_string!(context.as_str(), "/", glob_pattern)
   };
   let base_dir = extract_glob_base_dir(&context_glob_pattern).to_string();
 

@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
 
+use concat_string::concat_string;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
@@ -522,9 +523,9 @@ impl ContextModule {
 
   fn glob_map_key(base_dir: &str, user_request: &str) -> String {
     if let Some(stripped) = user_request.strip_prefix("./") {
-      format!("{base_dir}{stripped}")
+      concat_string!(base_dir, stripped)
     } else {
-      format!("{base_dir}{user_request}")
+      concat_string!(base_dir, user_request)
     }
   }
 
@@ -608,7 +609,7 @@ impl ContextModule {
             i,
             base_dir,
             user_request,
-            &format!("function() {{ return {import_promise}; }}"),
+            &concat_string!("function() { return ", import_promise, "; }"),
           );
         }
 
@@ -625,9 +626,9 @@ impl ContextModule {
         let mut entries = String::new();
         for (i, (user_request, module_id)) in map.iter().enumerate() {
           let module_id_expr = if let Some(id) = module_id {
-            format!("{}({})", require, json_stringify(id))
+            concat_string!(require, "(", json_stringify(id), ")")
           } else {
-            format!("undefined /* {} */", json_stringify(user_request))
+            concat_string!("undefined /* ", json_stringify(user_request), " */")
           };
           Self::append_glob_map_entry(&mut entries, i, base_dir, user_request, &module_id_expr);
         }
