@@ -1772,6 +1772,9 @@ impl ModuleOptionsBuilder {
         resolve_import: Some(CssParserImport::Bool(true)),
         r#import: Some(true),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css".to_string(), css_parser_options);
 

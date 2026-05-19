@@ -407,6 +407,9 @@ pub struct CssParserOptions {
   pub url: Option<bool>,
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 #[cacheable]
@@ -428,9 +431,9 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
-      animation: None,
-      custom_idents: None,
-      dashed_idents: None,
+      animation: value.animation,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
     }
   }
 }

@@ -530,6 +530,9 @@ pub struct RawCssParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -539,6 +542,9 @@ impl From<RawCssParserOptions> for CssParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      animation: value.animation,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
     }
   }
 }

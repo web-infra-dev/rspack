@@ -341,7 +341,6 @@ const applyCssModuleParserOptionsDefaults = (
   D(parserOptions, 'namedExports', true);
   D(parserOptions, 'url', true);
   D(parserOptions, 'import', true);
-  D(parserOptions, 'animation', true);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -405,6 +404,7 @@ const applyModuleDefaults = (
   D(module.parser.css, 'namedExports', true);
   D(module.parser.css, 'url', true);
   D(module.parser.css, 'import', true);
+  D(module.parser.css, 'animation', true);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);

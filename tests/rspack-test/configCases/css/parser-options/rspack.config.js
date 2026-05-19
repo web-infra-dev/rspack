@@ -10,6 +10,11 @@ module.exports = {
     cssFilename: 'bundle0.css',
   },
   module: {
+    parser: {
+      css: {
+        animation: false,
+      },
+    },
     generator: {
       'css/module': {
         localIdentName: '[name]_module_css-[local]',
@@ -19,9 +24,6 @@ module.exports = {
       {
         test: /animation-name\.module\.css$/,
         type: 'css/module',
-        parser: {
-          animation: false,
-        },
       },
       {
         test: /options\.module\.css$/,

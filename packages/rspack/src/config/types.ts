@@ -1058,6 +1058,24 @@ export type CssParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Enable/disable renaming of `@keyframes`.
+   * @default true
+   */
+  animation?: boolean;
+
+  /**
+   * Enable/disable renaming of custom identifiers.
+   * @default false
+   */
+  customIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
+   * @default false
+   */
+  dashedIdents?: boolean;
 };
 
 /** Options object for `css/auto`, `css/global` and `css/module` modules. */

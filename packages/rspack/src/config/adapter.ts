@@ -657,6 +657,9 @@ function getRawCssParserOptionsForCss(
     url: parser.url,
     import: parser.import,
     resolveImport: parser.resolveImport as any,
+    animation: parser.animation,
+    customIdents: parser.customIdents,
+    dashedIdents: parser.dashedIdents,
   };
 }
 
