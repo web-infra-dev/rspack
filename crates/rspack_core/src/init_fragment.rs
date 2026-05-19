@@ -396,7 +396,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
               name,
               runtime_template.returning_function(value, "")
             ),
-            ESMExportBinding::Value(value) => format!("{}, 0, {}", name, value),
+            ESMExportBinding::Value(value) => format!("{name}, 0, {value}"),
           }
         })
         .collect::<Vec<_>>()

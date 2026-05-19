@@ -850,8 +850,7 @@ impl ESMExportImportedSpecifierDependency {
       json_stringify(&module_id),
       mode
     );
-    let mut export_map = vec![];
-    export_map.push((key.into(), ESMExportBinding::Getter(value.into())));
+    let export_map = vec![(key.into(), ESMExportBinding::Getter(value.into()))];
     let cache_var = format!("var {name}_deferred_namespace_cache;\n");
 
     (
