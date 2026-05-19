@@ -1,4 +1,5 @@
 import rspack, { type RspackOptions } from '@rspack/core';
+import '@rspack/core/module';
 import { defineConfig, definePlugin, type Configuration } from '@rspack/cli';
 
 const plugin = definePlugin({
@@ -24,5 +25,17 @@ const config: RspackOptions = {
     ],
   },
 };
+
+type GlobModule = {
+  default: string;
+};
+
+const eagerGlobModules = import.meta.glob<GlobModule>('./dir/*.js', {
+  eager: true,
+});
+eagerGlobModules['./dir/foo.js'].default.toUpperCase();
+
+const lazyGlobModules = import.meta.glob<GlobModule>('./dir/*.js');
+lazyGlobModules['./dir/foo.js']().then((mod) => mod.default.toUpperCase());
 
 export const cliConfig: Configuration = defineConfig(config);

@@ -1,6 +1,6 @@
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextOptions, DependencyCategory, extract_glob_base_dir,
-  get_context,
+  get_context, glob_base_dir_end,
 };
 use rspack_util::SpanExt;
 use swc_core::{common::Spanned, ecma::ast::CallExpr};
@@ -26,10 +26,13 @@ fn create_import_meta_glob_dependency(
   }
   let glob_pattern = static_string_from_expr(&dyn_imported.expr)?;
 
-  let recursive = glob_pattern.contains("**");
+  let recursive = {
+    let base_dir_end = glob_base_dir_end(&glob_pattern);
+    glob_pattern.contains("**") || glob_pattern[base_dir_end..].contains('/')
+  };
   let context = get_context(parser.resource_data);
-  let context_glob_pattern = if glob_pattern.starts_with('/') {
-    glob_pattern.clone()
+  let context_glob_pattern = if let Some(pattern) = glob_pattern.strip_prefix('/') {
+    format!("{}/{}", parser.compiler_options.context.as_str(), pattern)
   } else {
     format!("{}/{}", context.as_str(), glob_pattern)
   };

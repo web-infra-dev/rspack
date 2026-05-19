@@ -241,12 +241,20 @@ interface ImportMeta {
   rspackRsc?: {
     loadCss(): any;
   };
-  glob: <T = unknown>(
-    pattern: string,
-    options?: {
-      eager?: boolean;
-    },
-  ) => Record<string, () => Promise<T>>;
+  glob: {
+    <T = unknown>(
+      pattern: string,
+      options: {
+        eager: true;
+      },
+    ): Record<string, T>;
+    <T = unknown>(
+      pattern: string,
+      options?: {
+        eager?: false;
+      },
+    ): Record<string, () => Promise<T>>;
+  };
 }
 
 declare const __resourceQuery: string;
