@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions,
-  DependencyCategory, DependencyRange, ImportMeta, RscMeta, RscModuleType, RuntimeGlobals,
+  ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  DependencyRange, ImportMeta, RscMeta, RscModuleType, RuntimeGlobals,
   RuntimeRequirementsDependency, property_access,
 };
 use rspack_error::{Error, Severity};
@@ -38,19 +38,13 @@ fn create_import_meta_resolve_context_dependency(
     mode: ContextMode::Sync,
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
-    include: None,
-    exclude: None,
     category: DependencyCategory::Esm,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
     context: result.context,
-    namespace_object: ContextNameSpaceObject::Unset,
-    group_options: None,
     replaces: result.replaces,
     start,
     end,
-    referenced_specifiers: None,
-    attributes: None,
-    phase: None,
+    ..Default::default()
   };
   let mut dep = ImportMetaResolveContextDependency::new(options, range, parser.in_try);
   *dep.critical_mut() = result.critical;

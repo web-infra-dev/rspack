@@ -1,6 +1,6 @@
 use rspack_core::{
-  ContextDependency, ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  JavascriptParserUrl, RuntimeGlobals, RuntimeRequirementsDependency,
+  ContextDependency, ContextMode, ContextOptions, DependencyCategory, JavascriptParserUrl,
+  RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
 use swc_core::{
@@ -193,14 +193,10 @@ impl JavascriptParserPlugin for URLPlugin {
       category: DependencyCategory::Url,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
       context: result.context,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
       replaces: result.replaces,
       start: expr.span().real_lo(),
       end: expr.span().real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
+      ..Default::default()
     };
 
     let mut dep = URLContextDependency::new(

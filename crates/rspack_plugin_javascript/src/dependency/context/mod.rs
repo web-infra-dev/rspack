@@ -1,3 +1,38 @@
+use rspack_cacheable::cacheable;
+use rspack_core::{
+  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyId,
+  DependencyRange, FactorizeInfo, GroupOptions, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
+};
+use rspack_error::Diagnostic;
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub(super) struct BasicContextDependency {
+  pub id: DependencyId,
+  pub options: ContextOptions,
+  pub range: DependencyRange,
+  pub resource_identifier: ResourceIdentifier,
+  pub optional: bool,
+  pub critical: Option<Diagnostic>,
+  pub factorize_info: FactorizeInfo,
+}
+
+impl BasicContextDependency {
+  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+    Self {
+      options,
+      range,
+      resource_identifier,
+      optional,
+      id: DependencyId::new(),
+      critical: None,
+      factorize_info: Default::default(),
+    }
+  }
+}
+
 mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
@@ -26,10 +61,6 @@ use itertools::Itertools;
 pub use require_context_dependency::{RequireContextDependency, RequireContextDependencyTemplate};
 pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
-};
-use rspack_core::{
-  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
 pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 

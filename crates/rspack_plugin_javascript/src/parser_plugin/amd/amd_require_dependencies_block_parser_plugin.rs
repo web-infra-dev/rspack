@@ -3,9 +3,8 @@ use std::{borrow::Cow, iter};
 use either::Either;
 use itertools::Itertools;
 use rspack_core::{
-  AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextNameSpaceObject,
-  ContextOptions, Dependency, DependencyCategory, DependencyRange, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
@@ -179,19 +178,13 @@ impl AMDRequireDependenciesBlockParserPlugin {
       mode: ContextMode::Sync,
       recursive: true,
       pattern: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser).into(),
-      include: None,
-      exclude: None,
       category: DependencyCategory::Amd,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
       context: result.context,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
       replaces: result.replaces,
       start: call_span.real_lo(),
       end: call_span.real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
+      ..Default::default()
     };
     let mut dep = AMDRequireContextDependency::new(options, param_range.into(), parser.in_try);
     *dep.critical_mut() = result.critical;

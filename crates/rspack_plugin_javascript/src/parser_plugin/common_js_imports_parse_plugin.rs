@@ -1,6 +1,6 @@
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextModulePattern, ContextNameSpaceObject,
-  ContextOptions, DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
+  ConstDependency, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
+  DependencyCategory, DependencyRange, DependencyType, ReferencedSpecifier,
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
@@ -131,19 +131,14 @@ fn create_commonjs_require_context_dependency(
     mode: ContextMode::Sync,
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
-    include: None,
-    exclude: None,
     category: DependencyCategory::CommonJS,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
     context: result.context,
-    namespace_object: ContextNameSpaceObject::Unset,
-    group_options: None,
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
     referenced_specifiers,
-    attributes: None,
-    phase: None,
+    ..Default::default()
   };
   let range = call_expr.span().into();
   let loc = parser
@@ -179,19 +174,13 @@ fn create_require_resolve_context_dependency(
     },
     recursive: true,
     pattern: context_reg_exp(&result.reg, "", None, parser).into(),
-    include: None,
-    exclude: None,
     category: DependencyCategory::CommonJS,
     request: format!("{}{}{}", result.context, result.query, result.fragment),
     context: result.context,
-    namespace_object: ContextNameSpaceObject::Unset,
-    group_options: None,
     replaces: result.replaces,
     start,
     end,
-    referenced_specifiers: None,
-    attributes: None,
-    phase: None,
+    ..Default::default()
   };
   RequireResolveContextDependency::new(options, range, parser.in_try)
 }
@@ -571,19 +560,11 @@ impl CommonJsImportsParserPlugin {
         mode: ContextMode::Sync,
         recursive: true,
         pattern: ContextModulePattern::None,
-        include: None,
-        exclude: None,
-        category: DependencyCategory::Unknown,
         request: ".".to_string(),
         context: ".".to_string(),
-        namespace_object: ContextNameSpaceObject::Unset,
-        group_options: None,
-        replaces: Vec::new(),
         start,
         end,
-        referenced_specifiers: None,
-        attributes: None,
-        phase: None,
+        ..Default::default()
       },
       parser
         .to_dependency_location(DependencyRange::from(span))

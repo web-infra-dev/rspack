@@ -5,7 +5,7 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, MemberExpr, OptChainBase},
+  ecma::ast::{Expr, Lit, MemberExpr, OptChainBase},
 };
 
 use super::JavascriptParser;
@@ -43,6 +43,27 @@ pub fn parse_order_string(x: &str) -> Option<i32> {
     "false" => None,
     _ => x.parse::<i32>().ok(),
   }
+}
+
+pub fn static_string_from_expr(expr: &Expr) -> Option<String> {
+  expr
+    .as_lit()
+    .and_then(|lit| {
+      if let Lit::Str(str) = lit {
+        return Some(str.value.to_string_lossy().to_string());
+      }
+      None
+    })
+    .or_else(|| {
+      if let Some(tpl) = expr.as_tpl()
+        && tpl.exprs.is_empty()
+        && tpl.quasis.len() == 1
+        && let Some(el) = tpl.quasis.first()
+      {
+        return Some(el.raw.to_string());
+      }
+      None
+    })
 }
 
 pub fn create_traceable_error(

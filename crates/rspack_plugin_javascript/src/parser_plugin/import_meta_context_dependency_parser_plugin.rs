@@ -1,10 +1,7 @@
-use rspack_core::{ContextMode, ContextNameSpaceObject, ContextOptions, DependencyCategory};
+use rspack_core::{ContextMode, ContextOptions, DependencyCategory};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{CallExpr, Lit},
-};
+use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -15,6 +12,7 @@ use crate::{
   },
   visitors::{
     JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
+    static_string_from_expr,
   },
 };
 
@@ -27,26 +25,8 @@ fn create_import_meta_context_dependency(
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let context = dyn_imported
-    .expr
-    .as_lit()
-    .and_then(|lit| {
-      if let Lit::Str(str) = lit {
-        return Some(str.value.to_string_lossy().to_string());
-      }
-      None
-    })
-    // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
-    .or_else(|| {
-      if let Some(tpl) = dyn_imported.expr.as_tpl()
-        && tpl.exprs.is_empty()
-        && tpl.quasis.len() == 1
-        && let Some(el) = tpl.quasis.first()
-      {
-        return Some(el.raw.to_string());
-      }
-      None
-    })?;
+  // TODO: should've used expression evaluation to handle cases like `abc${"efg"}`, etc.
+  let context = static_string_from_expr(&dyn_imported.expr)?;
   let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
@@ -69,34 +49,22 @@ fn create_import_meta_context_dependency(
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
       mode,
-      replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
+      ..Default::default()
     }
   } else {
     ContextOptions {
       recursive: true,
       mode: ContextMode::Sync,
-      include: None,
-      exclude: None,
       pattern: clean_regexp_in_context_module(default_context_reg_exp(), None, parser).into(),
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
-      replaces: Vec::new(),
       start: node.span().real_lo(),
       end: node.span().real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
+      ..Default::default()
     }
   };
   Some(ImportMetaContextDependency::new(

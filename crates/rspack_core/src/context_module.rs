@@ -187,6 +187,29 @@ pub struct ContextOptions {
   pub phase: Option<ImportPhase>,
 }
 
+impl Default for ContextOptions {
+  fn default() -> Self {
+    Self {
+      mode: ContextMode::Sync,
+      recursive: false,
+      pattern: ContextModulePattern::None,
+      include: None,
+      exclude: None,
+      category: DependencyCategory::Unknown,
+      request: String::new(),
+      context: String::new(),
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: Vec::new(),
+      start: 0,
+      end: 0,
+      referenced_specifiers: None,
+      attributes: None,
+      phase: None,
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ContextModuleOptions {
@@ -489,6 +512,52 @@ impl ContextModule {
     }
   }
 
+  fn get_empty_object_export_source(&self, runtime_template: &mut ModuleCodeTemplate) -> String {
+    formatdoc! {r#"
+      {module}.exports = {{}};
+      "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
+    }
+  }
+
+  fn glob_map_key(base_dir: &str, user_request: &str) -> String {
+    if let Some(stripped) = user_request.strip_prefix("./") {
+      format!("{base_dir}{stripped}")
+    } else {
+      format!("{base_dir}{user_request}")
+    }
+  }
+
+  fn append_glob_map_entry(
+    entries: &mut String,
+    index: usize,
+    base_dir: &str,
+    user_request: &str,
+    value: &str,
+  ) {
+    if index > 0 {
+      entries.push_str(",\n");
+    }
+    entries.push_str(&formatdoc! {r#"
+      {full_key_json}: {value}"#,
+      full_key_json = json_stringify(&Self::glob_map_key(base_dir, user_request)),
+    });
+  }
+
+  fn get_glob_object_export_source(
+    &self,
+    runtime_template: &mut ModuleCodeTemplate,
+    entries: String,
+  ) -> String {
+    formatdoc! {r#"
+      {module}.exports = {{
+      {entries}
+      }};
+      "#,
+      module = runtime_template.render_module_argument(ModuleArgument::Module),
+    }
+  }
+
   fn get_glob_source(
     &self,
     compilation: &Compilation,
@@ -501,11 +570,7 @@ impl ContextModule {
     match &self.options.context_options.mode {
       ContextMode::Lazy => {
         if self.get_blocks().is_empty() {
-          return formatdoc! {r#"
-            {module}.exports = {{}};
-            "#,
-            module = runtime_template.render_module_argument(ModuleArgument::Module),
-          };
+          return self.get_empty_object_export_source(runtime_template);
         }
         let blocks = self.get_blocks();
         let block_info: Vec<_> = blocks
@@ -553,14 +618,6 @@ impl ContextModule {
 
         let mut entries = String::new();
         for (i, (user_request, module_id, chunks)) in block_info.iter().enumerate() {
-          if i > 0 {
-            entries.push_str(",\n");
-          }
-          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
-            format!("{base_dir}{stripped}")
-          } else {
-            format!("{base_dir}{user_request}")
-          };
           let module_id_json = json_stringify(module_id);
           let chunk_promise = if chunks.len() == 1 {
             let chunk_id = json_stringify(&chunks[0]);
@@ -571,27 +628,20 @@ impl ContextModule {
               "Promise.all({chunk_ids_json}.map({ensure_chunk})).then({require}.bind({require}, {module_id_json}))"
             )
           };
-          entries.push_str(&formatdoc! {r#"
-            {full_key_json}: function() {{ return {chunk_promise}; }}"#,
-            full_key_json = json_stringify(&full_key),
-          });
+          Self::append_glob_map_entry(
+            &mut entries,
+            i,
+            base_dir,
+            user_request,
+            &format!("function() {{ return {chunk_promise}; }}"),
+          );
         }
 
-        formatdoc! {r#"
-          {module}.exports = {{
-          {entries}
-          }};
-          "#,
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
-        }
+        self.get_glob_object_export_source(runtime_template, entries)
       }
       _ => {
         if self.get_dependencies().is_empty() {
-          return formatdoc! {r#"
-            {module}.exports = {{}};
-            "#,
-            module = runtime_template.render_module_argument(ModuleArgument::Module),
-          };
+          return self.get_empty_object_export_source(runtime_template);
         }
         let dependencies = self.get_dependencies();
         let map = self.get_user_request_map(dependencies, compilation);
@@ -599,32 +649,15 @@ impl ContextModule {
 
         let mut entries = String::new();
         for (i, (user_request, module_id)) in map.iter().enumerate() {
-          if i > 0 {
-            entries.push_str(",\n");
-          }
-          let full_key = if let Some(stripped) = user_request.strip_prefix("./") {
-            format!("{base_dir}{stripped}")
-          } else {
-            format!("{base_dir}{user_request}")
-          };
           let module_id_expr = if let Some(id) = module_id {
             format!("{}({})", require, json_stringify(id))
           } else {
             format!("undefined /* {} */", json_stringify(user_request))
           };
-          entries.push_str(&formatdoc! {r#"
-            {full_key_json}: {module_id_expr}"#,
-            full_key_json = json_stringify(&full_key),
-          });
+          Self::append_glob_map_entry(&mut entries, i, base_dir, user_request, &module_id_expr);
         }
 
-        formatdoc! {r#"
-          {module}.exports = {{
-          {entries}
-          }};
-          "#,
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
-        }
+        self.get_glob_object_export_source(runtime_template, entries)
       }
     }
   }

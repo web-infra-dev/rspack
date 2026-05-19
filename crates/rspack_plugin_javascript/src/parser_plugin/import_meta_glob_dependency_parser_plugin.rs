@@ -1,12 +1,9 @@
 use rspack_core::{
-  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  extract_glob_base_dir, get_context,
+  ContextMode, ContextModulePattern, ContextOptions, DependencyCategory, extract_glob_base_dir,
+  get_context,
 };
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{CallExpr, Lit},
-};
+use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -15,7 +12,7 @@ use crate::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::get_bool_by_obj_prop,
   },
-  visitors::{JavascriptParser, expr_name},
+  visitors::{JavascriptParser, expr_name, static_string_from_expr},
 };
 
 fn create_import_meta_glob_dependency(
@@ -27,25 +24,7 @@ fn create_import_meta_glob_dependency(
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let glob_pattern = dyn_imported
-    .expr
-    .as_lit()
-    .and_then(|lit| {
-      if let Lit::Str(str) = lit {
-        return Some(str.value.to_string_lossy().to_string());
-      }
-      None
-    })
-    .or_else(|| {
-      if let Some(tpl) = dyn_imported.expr.as_tpl()
-        && tpl.exprs.is_empty()
-        && tpl.quasis.len() == 1
-        && let Some(el) = tpl.quasis.first()
-      {
-        return Some(el.raw.to_string());
-      }
-      None
-    })?;
+  let glob_pattern = static_string_from_expr(&dyn_imported.expr)?;
 
   let recursive = glob_pattern.contains("**");
   let context = get_context(parser.resource_data);
@@ -56,50 +35,28 @@ fn create_import_meta_glob_dependency(
   };
   let base_dir = extract_glob_base_dir(&context_glob_pattern).to_string();
 
-  let context_options = if let Some(obj) = node.args.get(1).and_then(|arg| arg.expr.as_object()) {
-    let eager = get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value);
-    let mode = if eager {
-      ContextMode::Sync
-    } else {
-      ContextMode::Lazy
-    };
-    ContextOptions {
-      pattern: ContextModulePattern::Glob(glob_pattern),
-      include: None,
-      exclude: None,
-      recursive,
-      category: DependencyCategory::Esm,
-      request: base_dir.clone(),
-      context: base_dir,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
-      mode,
-      replaces: Vec::new(),
-      start: node.span().real_lo(),
-      end: node.span().real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
-    }
-  } else {
-    ContextOptions {
-      pattern: ContextModulePattern::Glob(glob_pattern),
-      include: None,
-      exclude: None,
-      recursive,
-      category: DependencyCategory::Esm,
-      request: base_dir.clone(),
-      context: base_dir,
-      namespace_object: ContextNameSpaceObject::Unset,
-      group_options: None,
-      mode: ContextMode::Lazy,
-      replaces: Vec::new(),
-      start: node.span().real_lo(),
-      end: node.span().real_hi(),
-      referenced_specifiers: None,
-      attributes: None,
-      phase: None,
-    }
+  let mode = node
+    .args
+    .get(1)
+    .and_then(|arg| arg.expr.as_object())
+    .map_or(ContextMode::Lazy, |obj| {
+      if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
+        ContextMode::Sync
+      } else {
+        ContextMode::Lazy
+      }
+    });
+
+  let context_options = ContextOptions {
+    pattern: ContextModulePattern::Glob(glob_pattern),
+    recursive,
+    category: DependencyCategory::Esm,
+    request: base_dir.clone(),
+    context: base_dir,
+    mode,
+    start: node.span().real_lo(),
+    end: node.span().real_hi(),
+    ..Default::default()
   };
   Some(ImportMetaGlobDependency::new(
     context_options,

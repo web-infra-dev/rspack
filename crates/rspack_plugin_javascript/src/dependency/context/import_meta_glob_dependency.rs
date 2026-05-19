@@ -1,45 +1,32 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   AsModuleDependency, ContextDependency, ContextMode, ContextOptions, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyCategory, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  ModuleGraphCacheArtifact, TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
-use super::create_resource_identifier_for_context_dependency;
+use super::BasicContextDependency;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ImportMetaGlobDependency {
-  id: DependencyId,
-  options: ContextOptions,
-  range: DependencyRange,
-  resource_identifier: ResourceIdentifier,
-  optional: bool,
-  critical: Option<Diagnostic>,
-  factorize_info: FactorizeInfo,
+  base: BasicContextDependency,
 }
 
 impl ImportMetaGlobDependency {
   pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
-      options,
-      range,
-      resource_identifier,
-      optional,
-      id: DependencyId::new(),
-      critical: None,
-      factorize_info: Default::default(),
+      base: BasicContextDependency::new(options, range, optional),
     }
   }
 }
 
 #[cacheable_dyn]
 impl Dependency for ImportMetaGlobDependency {
-  fn id(&self) -> &DependencyId {
-    &self.id
+  fn id(&self) -> &rspack_core::DependencyId {
+    &self.base.id
   }
 
   fn category(&self) -> &DependencyCategory {
@@ -51,7 +38,7 @@ impl Dependency for ImportMetaGlobDependency {
   }
 
   fn range(&self) -> Option<DependencyRange> {
-    Some(self.range)
+    Some(self.base.range)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -64,20 +51,17 @@ impl Dependency for ImportMetaGlobDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
-    if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
-    }
-    None
+    self.base.critical.clone().map(|critical| vec![critical])
   }
 }
 
 impl ContextDependency for ImportMetaGlobDependency {
   fn request(&self) -> &str {
-    &self.options.request
+    &self.base.options.request
   }
 
   fn options(&self) -> &ContextOptions {
-    &self.options
+    &self.base.options
   }
 
   fn get_context(&self) -> Option<&str> {
@@ -85,11 +69,11 @@ impl ContextDependency for ImportMetaGlobDependency {
   }
 
   fn resource_identifier(&self) -> &str {
-    &self.resource_identifier
+    &self.base.resource_identifier
   }
 
   fn get_optional(&self) -> bool {
-    self.optional
+    self.base.optional
   }
 
   fn type_prefix(&self) -> rspack_core::ContextTypePrefix {
@@ -97,19 +81,19 @@ impl ContextDependency for ImportMetaGlobDependency {
   }
 
   fn critical(&self) -> &Option<Diagnostic> {
-    &self.critical
+    &self.base.critical
   }
 
   fn critical_mut(&mut self) -> &mut Option<Diagnostic> {
-    &mut self.critical
+    &mut self.base.critical
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
-    &self.factorize_info
+    &self.base.factorize_info
   }
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
-    &mut self.factorize_info
+    &mut self.base.factorize_info
   }
 }
 
@@ -150,9 +134,13 @@ impl DependencyTemplate for ImportMetaGlobDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    let context_expr =
-      runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
-    let content = match dep.options.mode {
+    let context_expr = runtime_template.module_raw(
+      compilation,
+      &dep.base.id,
+      &dep.base.options.request,
+      dep.base.optional,
+    );
+    let content = match dep.base.options.mode {
       ContextMode::Lazy => format!(
         "(function(modules) {{ if(typeof modules.keys !== \"function\") return modules; var map = {{}}; modules.keys().forEach(function(key) {{ map[key] = function() {{ return modules(key); }}; }}); return map; }})({context_expr})"
       ),
@@ -160,6 +148,6 @@ impl DependencyTemplate for ImportMetaGlobDependencyTemplate {
         "(function(modules) {{ if(typeof modules.keys !== \"function\") return modules; var map = {{}}; modules.keys().forEach(function(key) {{ map[key] = modules(key); }}); return map; }})({context_expr})"
       ),
     };
-    source.replace(dep.range.start, dep.range.end, content, None);
+    source.replace(dep.base.range.start, dep.base.range.end, content, None);
   }
 }
