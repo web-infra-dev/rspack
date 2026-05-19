@@ -14,14 +14,6 @@ use crate::id_helpers::{
   NaturalChunkCompareCache, compare_chunks_natural, get_long_chunk_name, get_short_chunk_name,
 };
 
-fn is_chunk_id_reserved(
-  id: &ChunkId,
-  used_ids: &ChunkIdMap<ChunkUkey>,
-  name_to_items_keys: Option<&ChunkIdSet>,
-) -> bool {
-  used_ids.contains_key(id) || name_to_items_keys.is_some_and(|keys| keys.contains(id))
-}
-
 #[tracing::instrument(skip_all)]
 #[allow(clippy::too_many_arguments)]
 fn assign_named_chunk_ids(
@@ -69,6 +61,9 @@ fn assign_named_chunk_ids(
       })
       .count(),
   );
+  // name_to_items keeps the current id candidates grouped by name.
+  // invalid_and_repeat_names tracks short names that need long-name fallback.
+  // name_to_items_keys is built lazily only when suffixed ids must avoid other pending names.
   let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> =
     ChunkIdMap::with_capacity_and_hasher(chunks_len, Default::default());
   let mut invalid_and_repeat_names = ChunkIdSet::with_capacity_and_hasher(1, Default::default());
@@ -193,7 +188,11 @@ fn assign_named_chunk_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
-        while is_chunk_id_reserved(&formatted_name, used_ids, name_to_items_keys.as_ref()) {
+        while used_ids.contains_key(&formatted_name)
+          || name_to_items_keys
+            .as_ref()
+            .is_some_and(|keys| keys.contains(&formatted_name))
+        {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));

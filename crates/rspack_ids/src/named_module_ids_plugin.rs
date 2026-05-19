@@ -27,14 +27,6 @@ fn add_conflicted_module_name(
   conflict_name_to_items.entry(name).or_default().insert(item);
 }
 
-fn is_module_id_reserved(
-  id: &ModuleId,
-  used_ids: &ModuleIdMap<ModuleIdentifier>,
-  name_to_items_keys: Option<&ModuleIdSet>,
-) -> bool {
-  used_ids.contains_key(id) || name_to_items_keys.is_some_and(|keys| keys.contains(id))
-}
-
 #[tracing::instrument(skip_all)]
 fn assign_named_module_ids(
   modules: IdentifierSet,
@@ -54,6 +46,9 @@ fn assign_named_module_ids(
       (item, name)
     })
     .collect();
+  // name_to_item keeps the common unique-name path allocation-light.
+  // conflict_name_to_items stores only names that need long-name or suffix fallback.
+  // name_to_items_keys is built lazily only when suffixed ids must avoid other pending names.
   let mut name_to_item: ModuleIdMap<ModuleIdentifier> = ModuleIdMap::default();
   let mut conflict_name_to_items: ModuleIdMap<IdentifierIndexSet> = ModuleIdMap::default();
   let mut needs_name_to_items_keys = false;
@@ -160,7 +155,13 @@ fn assign_named_module_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
-        while is_module_id_reserved(&formatted_name, used_ids, name_to_items_keys.as_ref()) {
+        // Suffixed ids must skip both ids already assigned and ids that are pending
+        // as natural names for another module.
+        while used_ids.contains_key(&formatted_name)
+          || name_to_items_keys
+            .as_ref()
+            .is_some_and(|keys| keys.contains(&formatted_name))
+        {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
           formatted_name = ModuleId::from(format!("{name}{}", i_buffer.format(i)));
