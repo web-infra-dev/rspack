@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 
-use super::BasicContextDependency;
+use super::{BasicContextDependency, basic_context_dependency_module_raw};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -129,18 +129,7 @@ impl DependencyTemplate for ImportMetaGlobDependencyTemplate {
       .downcast_ref::<ImportMetaGlobDependency>()
       .expect("ImportMetaGlobDependencyTemplate should be used for ImportMetaGlobDependency");
 
-    let TemplateContext {
-      compilation,
-      runtime_template,
-      ..
-    } = code_generatable_context;
-
-    let context_expr = runtime_template.module_raw(
-      compilation,
-      &dep.base.id,
-      &dep.base.options.request,
-      dep.base.optional,
-    );
+    let context_expr = basic_context_dependency_module_raw(&dep.base, code_generatable_context);
     let content = match dep.base.options.mode {
       ContextMode::Lazy => concat_string!(
         "(function(modules) { if(typeof modules.keys !== \"function\") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = function() { return modules(key); }; }); return map; })(",

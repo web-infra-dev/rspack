@@ -231,6 +231,12 @@ pub enum FakeMapValue {
   Map(HashMap<String, FakeNamespaceObjectMode>),
 }
 
+struct ContextBlockInfo {
+  user_request: String,
+  dep_id: DependencyId,
+  block_id: AsyncDependenciesBlockIdentifier,
+}
+
 pub type ResolveContextModuleDependencies = Arc<
   dyn Fn(ContextModuleOptions) -> BoxFuture<'static, Result<Vec<ContextElementDependency>>>
     + Send
@@ -559,13 +565,40 @@ impl ContextModule {
     }
   }
 
+  fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
+    let module_graph = compilation.get_module_graph();
+    let mut block_info: Vec<_> = self
+      .get_blocks()
+      .iter()
+      .filter_map(|b| {
+        let block = module_graph.block_by_id(b)?;
+        let dep = block.get_dependencies().first()?;
+        let dependency = module_graph.dependency_by_id(dep);
+        let user_request = dependency
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| {
+            dependency
+              .as_context_dependency()
+              .map(|d| d.request().to_string())
+          })?;
+        Some(ContextBlockInfo {
+          user_request,
+          dep_id: *dep,
+          block_id: block.identifier(),
+        })
+      })
+      .collect();
+    block_info.sort_unstable_by(|a, b| a.user_request.cmp(&b.user_request));
+    block_info
+  }
+
   fn get_glob_source(
     &self,
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
     pattern: &str,
   ) -> String {
-    let module_graph = compilation.get_module_graph();
     let base_dir = extract_glob_base_dir(pattern);
 
     match &self.options.context_options.mode {
@@ -573,33 +606,16 @@ impl ContextModule {
         if self.get_blocks().is_empty() {
           return self.get_empty_object_export_source(runtime_template);
         }
-        let blocks = self.get_blocks();
-        let block_info: Vec<_> = blocks
-          .iter()
-          .filter_map(|b| {
-            let block = module_graph.block_by_id(b)?;
-            let dep = block.get_dependencies().first()?;
-            let dependency = module_graph.dependency_by_id(dep);
-            let user_request = dependency
-              .as_module_dependency()
-              .map(|d| d.user_request().to_string())
-              .or_else(|| {
-                dependency
-                  .as_context_dependency()
-                  .map(|d| d.request().to_string())
-              })?;
-            Some((user_request, *dep, block.identifier()))
-          })
-          .collect();
+        let block_info = self.get_sorted_context_block_info(compilation);
 
         let mut entries = String::new();
-        for (i, (user_request, dep_id, block_id)) in block_info.iter().enumerate() {
+        for (i, info) in block_info.iter().enumerate() {
           let import_promise = runtime_template.module_namespace_promise(
             compilation,
             self.identifier,
-            dep_id,
-            Some(block_id),
-            user_request,
+            &info.dep_id,
+            Some(&info.block_id),
+            &info.user_request,
             DependencyCategory::Esm.as_str(),
             false,
             self.options.context_options.phase.unwrap_or_default(),
@@ -608,7 +624,7 @@ impl ContextModule {
             &mut entries,
             i,
             base_dir,
-            user_request,
+            &info.user_request,
             &concat_string!("function() { return ", import_promise, "; }"),
           );
         }

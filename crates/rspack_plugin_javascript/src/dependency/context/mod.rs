@@ -33,6 +33,19 @@ impl BasicContextDependency {
   }
 }
 
+fn basic_context_dependency_module_raw(
+  base: &BasicContextDependency,
+  code_generatable_context: &mut TemplateContext,
+) -> String {
+  let TemplateContext {
+    compilation,
+    runtime_template,
+    ..
+  } = code_generatable_context;
+
+  runtime_template.module_raw(compilation, &base.id, &base.options.request, base.optional)
+}
+
 mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;

@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 
-use super::BasicContextDependency;
+use super::{BasicContextDependency, basic_context_dependency_module_raw};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -128,18 +128,7 @@ impl DependencyTemplate for ImportMetaContextDependencyTemplate {
       .downcast_ref::<ImportMetaContextDependency>()
       .expect("ImportMetaContextDependencyTemplate should be used for ImportMetaContextDependency");
 
-    let TemplateContext {
-      compilation,
-      runtime_template,
-      ..
-    } = code_generatable_context;
-
-    let content = runtime_template.module_raw(
-      compilation,
-      &dep.base.id,
-      &dep.base.options.request,
-      dep.base.optional,
-    );
+    let content = basic_context_dependency_module_raw(&dep.base, code_generatable_context);
     source.replace(dep.base.range.start, dep.base.range.end, content, None);
   }
 }

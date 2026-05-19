@@ -16,7 +16,7 @@ use crate::{
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, glob_base_dir_end,
-  glob_match_with_options, resolve, walk_dir,
+  glob_match_with_explicit_dot, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -420,12 +420,16 @@ async fn visit_dirs(
   if matcher.is_empty() {
     return Ok(());
   }
+  let skip_dotfiles = !matches!(
+    options.context_options.pattern,
+    ContextModulePattern::Glob(_)
+  );
 
   walk_dir(
     dir,
     fs,
     options.context_options.recursive,
-    true, // always skip dotfiles
+    skip_dotfiles,
     &mut |path| {
       exclude
         .as_ref()
@@ -529,7 +533,7 @@ impl<'a> ContextModuleMatcher<'a> {
   fn matches(&self, request: &str) -> bool {
     if let Some(filename_glob) = self.glob_remainder {
       let stripped = request.strip_prefix("./").unwrap_or(request);
-      glob_match_with_options(filename_glob, stripped, &GlobMatchOptions::default())
+      glob_match_with_explicit_dot(filename_glob, stripped, "", &GlobMatchOptions::default())
     } else if let Some(reg_exp) = self.pattern.reg_exp() {
       reg_exp.test(request)
     } else {
