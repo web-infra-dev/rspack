@@ -28,10 +28,10 @@ async function runBuild(cli: RspackCLI, options: BuildOptions): Promise<void> {
   let createJsonStringifyStream: ((value: unknown) => Readable) | undefined;
 
   if (options.json) {
-    const [stream, jsonExt] = await Promise.all([
-      import('node:stream'),
-      import(/* webpackChunkName: "json-ext" */ '@discoveryjs/json-ext'),
-    ]);
+    const stream = await import('node:stream');
+    const jsonExt = await import(
+      /* webpackChunkName: "json-ext" */ '@discoveryjs/json-ext'
+    );
     createJsonStringifyStream = (value) =>
       stream.Readable.from(jsonExt.stringifyChunked(value));
   }
