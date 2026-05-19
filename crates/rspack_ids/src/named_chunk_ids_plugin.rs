@@ -61,7 +61,7 @@ fn assign_named_chunk_ids(
     .collect();
   named_chunk_ids_artifact
     .chunk_short_names
-    .reserve(chunks_len);
+    .reserve(chunks_len.saturating_sub(named_chunk_ids_artifact.chunk_short_names.len()));
   let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> =
     ChunkIdMap::with_capacity_and_hasher(chunks_len, Default::default());
   let mut invalid_and_repeat_names = ChunkIdSet::with_capacity_and_hasher(1, Default::default());
@@ -79,12 +79,15 @@ fn assign_named_chunk_ids(
       invalid_and_repeat_names.insert(name);
     }
     // Also rename the conflicting chunks in used_ids
-    else if let Some(item) = used_ids.get(&name)
-    // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
-    {
-      items.insert(*item);
-      invalid_and_repeat_names.insert(name);
+    else if let Some(item) = used_ids.get(&name) {
+      // Unless the chunk is explicitly using chunk name as id
+      if matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
+      {
+        items.insert(*item);
+        invalid_and_repeat_names.insert(name);
+      } else {
+        needs_name_to_items_keys = true;
+      }
     }
   }
 
@@ -115,9 +118,11 @@ fn assign_named_chunk_ids(
     })
     .collect();
 
-  named_chunk_ids_artifact
-    .chunk_long_names
-    .reserve(item_name_pair.len());
+  named_chunk_ids_artifact.chunk_long_names.reserve(
+    item_name_pair
+      .len()
+      .saturating_sub(named_chunk_ids_artifact.chunk_long_names.len()),
+  );
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
       .chunk_long_names
@@ -355,9 +360,11 @@ async fn chunk_ids(
   }
 
   // store chunk id map to the artifact
-  named_chunk_ids_artifact
-    .chunk_ids
-    .reserve(chunk_by_ukey.len());
+  named_chunk_ids_artifact.chunk_ids.reserve(
+    chunk_by_ukey
+      .len()
+      .saturating_sub(named_chunk_ids_artifact.chunk_ids.len()),
+  );
   chunk_by_ukey.values().for_each(|chunk| {
     named_chunk_ids_artifact
       .chunk_ids
