@@ -405,6 +405,57 @@ opt-level = "s"
 [profile.release.package."wasi-common"]
 opt-level = "s"
 
+[profile.release.package."cranelift-assembler-x64"]
+opt-level = "s"
+
+[profile.release.package."cranelift-frontend"]
+opt-level = "s"
+
+[profile.release.package."wasmtime-environ"]
+opt-level = "s"
+
+[profile.release.package."wasmtime-internal-cranelift"]
+opt-level = "s"
+
+[profile.release.package.notify]
+opt-level = "s"
+
+[profile.release.package.parcel_sourcemap]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_esm_library]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_html]
+opt-level = "s"
+
+[profile.release.package.rspack_plugin_mf]
+opt-level = "s"
+
+[profile.release.package.swc_html]
+opt-level = "s"
+
+[profile.release.package.swc_html_ast]
+opt-level = "s"
+
+[profile.release.package.swc_html_codegen]
+opt-level = "s"
+
+[profile.release.package.swc_html_minifier]
+opt-level = "s"
+
+[profile.release.package.swc_html_parser]
+opt-level = "s"
+
+[profile.release.package.swc_html_utils]
+opt-level = "s"
+
+[profile.release.package.swc_html_visit]
+opt-level = "s"
+
+[profile.release.package.tracing-subscriber]
+opt-level = "s"
+
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256

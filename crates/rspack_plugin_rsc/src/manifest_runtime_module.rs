@@ -59,13 +59,11 @@ impl RuntimeModule for RscManifestRuntimeModule {
       )
     })?;
 
-    let entry_state = plugin_state.entries.get(&entry_name).ok_or_else(|| {
-      rspack_error::error!(
-        "RSC entry state not found for entry {:?} (compiler ID: {}).",
-        entry_name,
-        server_compiler_id.as_u32()
-      )
-    })?;
+    let Some(entry_state) = plugin_state.entries.get(&entry_name) else {
+      // Worker entries are represented as named entrypoints in the chunk graph,
+      // but they are not top-level RSC compilation entries.
+      return Ok(String::new());
+    };
     let server_manifest = &entry_state.server_actions;
     let client_manifest = &entry_state.client_modules;
     let server_consumer_module_map = entry_state.server_consumer_module_map.as_ref();

@@ -45,13 +45,13 @@ pub struct LocalIdentModuleHashOptions<'a> {
 pub struct LocalIdentOptions<'a> {
   relative_resource: String,
   module_type: &'static str,
-  source: &'a str,
+  source: Arc<str>,
   module_hash: OnceCell<String>,
   compiler_options: &'a CompilerOptions,
   local_ident_name: &'a LocalIdentName,
-  local_ident_hash_digest: &'a HashDigest,
+  local_ident_hash_digest: HashDigest,
   local_ident_hash_digest_length: usize,
-  local_ident_hash_function: &'a HashFunction,
+  local_ident_hash_function: HashFunction,
   local_ident_hash_salt: &'a HashSalt,
 }
 
@@ -59,7 +59,7 @@ impl<'a> LocalIdentOptions<'a> {
   pub fn new(
     resource_data: &ResourceData,
     module_type: &ModuleType,
-    source: &'a str,
+    source: Arc<str>,
     compiler_options: &'a CompilerOptions,
     generator_options: &'a CssModuleGeneratorOptions,
   ) -> Self {
@@ -72,7 +72,6 @@ impl<'a> LocalIdentOptions<'a> {
       .expect("should have local_ident_name when calculating css local ident module hash");
     let local_ident_hash_digest = generator_options
       .local_ident_hash_digest
-      .as_ref()
       .expect("should have local_ident_hash_digest when calculating css local ident module hash");
     let local_ident_hash_digest_length = generator_options
       .local_ident_hash_digest_length
@@ -82,7 +81,6 @@ impl<'a> LocalIdentOptions<'a> {
       );
     let local_ident_hash_function = generator_options
       .local_ident_hash_function
-      .as_ref()
       .expect("should have local_ident_hash_function when calculating css local ident module hash");
     let local_ident_hash_salt = &generator_options.local_ident_hash_salt;
 
@@ -110,7 +108,7 @@ impl<'a> LocalIdentOptions<'a> {
   fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let build_hash = {
-      let mut hasher = RspackHash::new(self.local_ident_hash_function);
+      let mut hasher = RspackHash::new(&self.local_ident_hash_function);
       hasher.write(b"source");
       hasher.write(b"OriginalSource");
       hasher.write(self.source.as_bytes());
@@ -133,7 +131,7 @@ impl<'a> LocalIdentOptions<'a> {
         .collect::<Vec<_>>();
       graph_exports.sort();
 
-      let mut hasher = RspackHash::new(self.local_ident_hash_function);
+      let mut hasher = RspackHash::new(&self.local_ident_hash_function);
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(b"false");
       for name in graph_exports {
@@ -146,7 +144,7 @@ impl<'a> LocalIdentOptions<'a> {
     };
 
     let mut hasher =
-      RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
+      RspackHash::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
     if module_hash_options.exports_only {
       hasher.write(b"javascript");
@@ -192,7 +190,7 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(local_ident_name.as_bytes());
     }
     hasher
-      .digest(self.local_ident_hash_digest)
+      .digest(&self.local_ident_hash_digest)
       .rendered(self.local_ident_hash_digest_length)
       .to_string()
   }
@@ -205,13 +203,13 @@ impl<'a> LocalIdentOptions<'a> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
       let mut hasher =
-        RspackHash::with_salt(self.local_ident_hash_function, self.local_ident_hash_salt);
+        RspackHash::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
       if !output.unique_name.is_empty() {
         hasher.write(output.unique_name.as_bytes());
       }
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(local.as_bytes());
-      let hash = hasher.digest(self.local_ident_hash_digest);
+      let hash = hasher.digest(&self.local_ident_hash_digest);
       hash
         .rendered(self.local_ident_hash_digest_length)
         .to_string()
@@ -471,16 +469,15 @@ pub fn normalize_url(s: &str) -> String {
   result.to_string()
 }
 
-#[allow(clippy::rc_buffer)]
 pub fn css_parsing_traceable_error(
-  source_code: Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
   message: impl Into<String>,
   severity: Severity,
 ) -> Error {
   let mut error = Error::from_string(
-    Some(source_code.to_string()),
+    Some(source_code.to_owned()),
     start as usize,
     end as usize,
     match severity {
@@ -496,13 +493,13 @@ pub fn css_parsing_traceable_error(
 pub fn replace_module_request_prefix<'s>(
   specifier: &'s str,
   diagnostics: &mut Vec<Diagnostic>,
-  source_code: impl Fn() -> Arc<String>,
+  source_code: &str,
   start: css_module_lexer::Pos,
   end: css_module_lexer::Pos,
 ) -> &'s str {
   if let Some(specifier) = specifier.strip_prefix('~') {
     let mut error = css_parsing_traceable_error(
-      source_code(),
+      source_code,
       start,
       end,
       "'@import' or 'url()' with a request starts with '~' is deprecated.".to_string(),

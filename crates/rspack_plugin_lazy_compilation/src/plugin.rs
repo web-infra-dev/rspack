@@ -1,5 +1,6 @@
 use std::{
   fmt::Debug,
+  future::Future,
   sync::{Arc, LazyLock},
 };
 
@@ -33,14 +34,13 @@ pub enum LazyCompilationTest<F: LazyCompilationTestCheck> {
   Fn(F),
 }
 
-#[async_trait::async_trait]
 pub trait LazyCompilationTestCheck: Send + Sync + Debug {
-  async fn test(
-    &self,
+  fn test<'a>(
+    &'a self,
     compiler_id: CompilerId,
     compilation_id: CompilationId,
-    module: &dyn Module,
-  ) -> bool;
+    module: &'a dyn Module,
+  ) -> impl Future<Output = bool> + Send + 'a;
 }
 
 impl<F: LazyCompilationTestCheck> LazyCompilationTest<F> {

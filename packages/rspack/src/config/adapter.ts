@@ -53,6 +53,7 @@ import type {
   AssetResourceGeneratorOptions,
   CssGeneratorOptions,
   CssModuleGeneratorOptions,
+  CssModuleParserOptions,
   CssParserOptions,
   GeneratorOptionsByModuleType,
   JavascriptParserOptions,
@@ -525,7 +526,7 @@ function getRawParserOptions(
   if (type === 'css') {
     return {
       type: 'css',
-      css: getRawCssParserOptions(parser),
+      css: getRawCssParserOptionsForCss(parser),
     };
   }
   if (type === 'css/auto') {
@@ -635,12 +636,30 @@ function getRawAssetParserDataUrl(
 }
 
 function getRawCssParserOptions(
-  parser: CssParserOptions,
-): RawCssParserOptions | RawCssModuleParserOptions {
+  parser: CssModuleParserOptions,
+): RawCssModuleParserOptions {
   return {
     namedExports: parser.namedExports,
     url: parser.url,
+    import: parser.import,
     resolveImport: parser.resolveImport as any,
+    animation: parser.animation,
+    customIdents: parser.customIdents,
+    dashedIdents: parser.dashedIdents,
+  };
+}
+
+function getRawCssParserOptionsForCss(
+  parser: CssParserOptions,
+): RawCssParserOptions {
+  return {
+    namedExports: parser.namedExports,
+    url: parser.url,
+    import: parser.import,
+    resolveImport: parser.resolveImport as any,
+    animation: parser.animation,
+    customIdents: parser.customIdents,
+    dashedIdents: parser.dashedIdents,
   };
 }
 

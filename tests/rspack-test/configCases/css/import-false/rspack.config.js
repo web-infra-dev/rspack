@@ -9,16 +9,16 @@ module.exports = {
     rules: [
       {
         test: /\.css/,
-        type: 'css/auto',
+        type: 'css',
       },
     ],
     parser: {
-      'css/auto': {
-        resolveImport: false,
+      css: {
+        import: false,
       },
     },
     generator: {
-      'css/auto': {
+      css: {
         exportsOnly: false,
       },
     },

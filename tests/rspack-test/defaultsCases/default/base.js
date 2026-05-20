@@ -252,18 +252,23 @@ module.exports = {
 			        },
 			      },
 			      css: Object {
+			        animation: true,
+			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
 			      css/auto: Object {
+			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
 			      css/global: Object {
+			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
 			      css/module: Object {
+			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },

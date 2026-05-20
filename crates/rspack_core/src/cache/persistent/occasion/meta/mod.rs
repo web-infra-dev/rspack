@@ -29,7 +29,6 @@ impl MetaOccasion {
   }
 }
 
-#[async_trait::async_trait]
 impl Occasion for MetaOccasion {
   /// Meta has no structured artifact: it reads/writes a single global counter.
   type Artifact = ();
