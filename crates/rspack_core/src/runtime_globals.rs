@@ -277,6 +277,10 @@ define_runtime_globals! {
 
   const HAS_CSS_MODULES;
 
+  const CSS_INJECT_STYLE;
+
+  const CSS_STYLE_SHEET;
+
   // rspack only
   const RSPACK_UNIQUE_ID;
 
@@ -371,6 +375,8 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::UNCAUGHT_ERROR_HANDLER
     | RuntimeGlobals::RSPACK_VERSION
     | RuntimeGlobals::RSPACK_UNIQUE_ID
+    | RuntimeGlobals::CSS_INJECT_STYLE
+    | RuntimeGlobals::CSS_STYLE_SHEET
     | RuntimeGlobals::ASYNC_STARTUP
     | RuntimeGlobals::RSC_MANIFEST
     | RuntimeGlobals::TO_BINARY
@@ -469,6 +475,8 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::RSPACK_VERSION => "rv",
     RuntimeGlobals::RSPACK_UNIQUE_ID => "ruid",
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules",
+    RuntimeGlobals::CSS_INJECT_STYLE => "is",
+    RuntimeGlobals::CSS_STYLE_SHEET => "css",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
 

@@ -33,7 +33,7 @@ use crate::{
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
-  runtime::CssLoadingRuntimeModule,
+  runtime::{CssInjectStyleRuntimeModule, CssLoadingRuntimeModule, CssStyleSheetRuntimeModule},
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
 };
 
@@ -312,6 +312,22 @@ async fn runtime_requirements_in_tree(
   runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
+  if runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      CssInjectStyleRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+    runtime_requirements_mut.extend(CssInjectStyleRuntimeModule::get_runtime_requirements());
+  }
+
+  if runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      CssStyleSheetRuntimeModule::new(&compilation.runtime_template).boxed(),
+    ));
+    runtime_requirements_mut.extend(CssStyleSheetRuntimeModule::get_runtime_requirements());
+  }
+
   let is_enabled_for_chunk = is_enabled_for_chunk(
     chunk_ukey,
     &ChunkLoading::Enable(ChunkLoadingType::Jsonp),

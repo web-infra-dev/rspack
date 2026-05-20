@@ -1,0 +1,18 @@
+<%- CSS_STYLE_SHEET %> = <%- basicFunction("cssText") %> {
+	var styleSheet = new CSSStyleSheet();
+	if (typeof styleSheet.replaceSync === "function") {
+		styleSheet.replaceSync(cssText);
+	} else if (typeof document !== "undefined" && typeof styleSheet.insertRule === "function") {
+		var styleElement = document.createElement("style");
+		styleElement.textContent = cssText;
+		document.head.appendChild(styleElement);
+		var parsedSheet = styleElement.sheet;
+		if (parsedSheet) {
+			for (var i = 0; i < parsedSheet.cssRules.length; i++) {
+				styleSheet.insertRule(parsedSheet.cssRules[i].cssText, styleSheet.cssRules.length);
+			}
+		}
+		styleElement.parentNode.removeChild(styleElement);
+	}
+	return styleSheet;
+};

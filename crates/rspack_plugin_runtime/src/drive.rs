@@ -30,6 +30,12 @@ pub struct LinkPrefetchData {
 }
 
 #[derive(Debug, Clone)]
+pub struct CreateStyleData {
+  pub code: String,
+  pub chunk: RuntimeModuleChunkWrapper,
+}
+
+#[derive(Debug, Clone)]
 pub struct RuntimeModuleChunkWrapper {
   pub chunk_ukey: ChunkUkey,
   pub compilation_id: CompilationId,
@@ -42,6 +48,7 @@ define_hook!(RuntimePluginCreateScript: SeriesWaterfall(data: CreateScriptData) 
 define_hook!(RuntimePluginCreateLink: SeriesWaterfall(data: CreateLinkData) -> CreateLinkData);
 define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(data: LinkPreloadData) -> LinkPreloadData);
 define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
+define_hook!(RuntimePluginCreateStyle: SeriesWaterfall(data: CreateStyleData) -> CreateStyleData);
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
@@ -54,4 +61,6 @@ pub struct RuntimePluginHooks {
   pub link_preload: RuntimePluginLinkPreloadHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub link_prefetch: RuntimePluginLinkPrefetchHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub create_style: RuntimePluginCreateStyleHook,
 }

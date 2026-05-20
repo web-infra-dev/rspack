@@ -303,6 +303,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_inject_style(&mut self, css: &str) -> String {
+    self
+      .generate_context
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::CSS_INJECT_STYLE);
+
     let module_id = ChunkGraph::get_module_id(
       &self.generate_context.compilation.module_ids_artifact,
       self.module.identifier(),
@@ -314,55 +320,32 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   fn render_css_inject_style_by_module_id(&mut self, module_id: String, css: &str) -> String {
-    let module_argument = self.module_argument().to_string();
-    let hmr_dispose = if self.with_hmr {
-      concat_string!(
-        module_argument,
-        ".hot.dispose(function() { if (__rspack_css_el.parentNode) __rspack_css_el.parentNode.removeChild(__rspack_css_el); });\n"
-      )
-    } else {
-      String::new()
-    };
-
-    concat_string!(
-      "var __rspack_css_el = document.createElement(\"style\");
-__rspack_css_el.setAttribute(\"data-rspack-css-module\", ",
-      module_id,
-      ");
-__rspack_css_el.textContent = ",
-      css,
-      ";
-document.head.appendChild(__rspack_css_el);
-",
-      hmr_dispose
-    )
+    let css_inject_style = self
+      .generate_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::CSS_INJECT_STYLE);
+    concat_string!(css_inject_style, "(", module_id, ", ", css, ");\n")
   }
 
   fn generate_css_style_sheet_exports(&mut self, css: &str) -> String {
+    self
+      .generate_context
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::CSS_STYLE_SHEET);
+
     let module_argument = self.module_argument().to_string();
     let (ns_obj, left, right) = self.get_namespace_object_parts();
+    let css_style_sheet = self
+      .generate_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
     let sheet_code = concat_string!(
-      "var __css_style_sheet = new CSSStyleSheet();
-if (typeof __css_style_sheet.replaceSync === \"function\") {
-  __css_style_sheet.replaceSync(",
+      "var __css_style_sheet = ",
+      css_style_sheet,
+      "(",
       css,
-      ");
-} else if (typeof document !== \"undefined\") {
-  var __css_style_sheet_element = document.createElement(\"style\");
-  __css_style_sheet_element.textContent = ",
-      css,
-      ";
-  document.head.appendChild(__css_style_sheet_element);
-  __css_style_sheet = __css_style_sheet_element.sheet;
-  __css_style_sheet._cssText = ",
-      css,
-      ";
-  __css_style_sheet_element.remove();
-} else {
-  __css_style_sheet._cssText = ",
-      css,
-      ";
-}\n"
+      ");\n"
     );
 
     if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
