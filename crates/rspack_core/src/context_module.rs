@@ -637,19 +637,37 @@ impl ContextModule {
         }
         let dependencies = self.get_dependencies();
         let map = self.get_user_request_map(dependencies, compilation);
-        let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+        let fake_map = self.get_fake_map(dependencies, compilation);
+        let return_module_object = self.get_return_module_object_source(
+          &fake_map,
+          false,
+          None,
+          "fakeMap[id]",
+          runtime_template,
+        );
 
         let mut entries = String::with_capacity(map.len() * 64);
         for (i, (user_request, module_id)) in map.iter().enumerate() {
           let module_id_expr = if let Some(id) = module_id {
-            concat_string!(require, "(", json_stringify(id), ")")
+            format!(
+              "function() {{ var id = {}; return {return_module_object}; }}()",
+              json_stringify(id)
+            )
           } else {
             concat_string!("undefined /* ", json_stringify(user_request), " */")
           };
           Self::append_glob_map_entry(&mut entries, i, base_dir, user_request, &module_id_expr);
         }
 
-        self.get_glob_object_export_source(runtime_template, entries)
+        formatdoc! {r#"
+          {fake_map_init_statement}
+          {module}.exports = {{
+          {entries}
+          }};
+          "#,
+          module = runtime_template.render_module_argument(ModuleArgument::Module),
+          fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
+        }
       }
     }
   }

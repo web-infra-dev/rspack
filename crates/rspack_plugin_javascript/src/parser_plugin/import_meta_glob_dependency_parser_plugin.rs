@@ -1,7 +1,7 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ContextMode, ContextModulePattern, ContextOptions, DependencyCategory, extract_glob_base_dir,
-  get_context, glob_base_dir_end,
+  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
+  extract_glob_base_dir, get_context, glob_base_dir_end,
 };
 use rspack_util::SpanExt;
 use swc_core::{common::Spanned, ecma::ast::CallExpr};
@@ -50,6 +50,11 @@ fn create_import_meta_glob_dependency(
         ContextMode::Lazy
       }
     });
+  let namespace_object = if parser.build_meta.strict_esm_module {
+    ContextNameSpaceObject::Strict
+  } else {
+    ContextNameSpaceObject::Bool(true)
+  };
 
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_pattern.into()),
@@ -57,6 +62,7 @@ fn create_import_meta_glob_dependency(
     category: DependencyCategory::Esm,
     request: base_dir.clone(),
     context: base_dir,
+    namespace_object,
     mode,
     start: node.span().real_lo(),
     end: node.span().real_hi(),

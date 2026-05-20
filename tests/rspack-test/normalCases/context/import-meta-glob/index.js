@@ -4,6 +4,7 @@ const wildcardModules = import.meta.glob('./dir/*')
 const nestedModules = import.meta.glob('./pages/*/index.js')
 const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
 const lazyCjsModules = import.meta.glob('./cjs/*.js')
+const eagerCjsModules = import.meta.glob('./cjs/*.js', { eager: true })
 const dotfileModules = import.meta.glob('./dot/.*.js')
 
 it('should return a thunk for each matched file in lazy mode', async () => {
@@ -70,4 +71,8 @@ it('should expose module objects directly in eager mode', () => {
   expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
   expect(eagerModules['./dir/foo.js'].default).toBe('foo')
   expect(eagerModules['./dir/bar.js'].default).toBe('bar')
+})
+
+it('should expose eager CommonJS matches as dynamic import namespace objects', () => {
+  expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
 })
