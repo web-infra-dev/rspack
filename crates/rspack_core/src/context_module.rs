@@ -545,10 +545,10 @@ impl ContextModule {
     if index > 0 {
       entries.push_str(",\n");
     }
-    entries.push_str(&formatdoc! {r#"
-      {full_key_json}: {value}"#,
-      full_key_json = json_stringify(&Self::glob_map_key(base_dir, user_request)),
-    });
+    entries.push_str("\n  ");
+    entries.push_str(&json_stringify(&Self::glob_map_key(base_dir, user_request)));
+    entries.push_str(": ");
+    entries.push_str(value);
   }
 
   fn get_glob_object_export_source(
@@ -608,7 +608,7 @@ impl ContextModule {
         }
         let block_info = self.get_sorted_context_block_info(compilation);
 
-        let mut entries = String::new();
+        let mut entries = String::with_capacity(block_info.len() * 96);
         for (i, info) in block_info.iter().enumerate() {
           let import_promise = runtime_template.module_namespace_promise(
             compilation,
@@ -639,7 +639,7 @@ impl ContextModule {
         let map = self.get_user_request_map(dependencies, compilation);
         let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
 
-        let mut entries = String::new();
+        let mut entries = String::with_capacity(map.len() * 64);
         for (i, (user_request, module_id)) in map.iter().enumerate() {
           let module_id_expr = if let Some(id) = module_id {
             concat_string!(require, "(", json_stringify(id), ")")

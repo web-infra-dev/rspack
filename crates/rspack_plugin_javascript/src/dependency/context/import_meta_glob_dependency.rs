@@ -1,10 +1,9 @@
-use concat_string::concat_string;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsModuleDependency, ContextDependency, ContextMode, ContextOptions, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, TemplateContext, TemplateReplaceSource,
+  AsModuleDependency, ContextDependency, ContextOptions, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph, ModuleGraphCacheArtifact,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -129,19 +128,7 @@ impl DependencyTemplate for ImportMetaGlobDependencyTemplate {
       .downcast_ref::<ImportMetaGlobDependency>()
       .expect("ImportMetaGlobDependencyTemplate should be used for ImportMetaGlobDependency");
 
-    let context_expr = basic_context_dependency_module_raw(&dep.base, code_generatable_context);
-    let content = match dep.base.options.mode {
-      ContextMode::Lazy => concat_string!(
-        "(function(modules) { if(typeof modules.keys !== \"function\") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = function() { return modules(key); }; }); return map; })(",
-        context_expr,
-        ")"
-      ),
-      _ => concat_string!(
-        "(function(modules) { if(typeof modules.keys !== \"function\") return modules; var map = {}; modules.keys().forEach(function(key) { map[key] = modules(key); }); return map; })(",
-        context_expr,
-        ")"
-      ),
-    };
+    let content = basic_context_dependency_module_raw(&dep.base, code_generatable_context);
     source.replace(dep.base.range.start, dep.base.range.end, content, None);
   }
 }

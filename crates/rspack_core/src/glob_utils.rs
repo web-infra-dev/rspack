@@ -71,19 +71,34 @@ pub fn glob_match_with_explicit_dot(
   let normalized_path = normalize_path_separators(path);
   let normalized_base_dir = normalize_path_separators(base_dir);
 
+  glob_match_normalized_with_explicit_dot(
+    &normalized_pattern,
+    &normalized_path,
+    &normalized_base_dir,
+    options,
+  )
+}
+
+/// Match normalized path strings against a normalized glob pattern.
+pub(crate) fn glob_match_normalized_with_explicit_dot(
+  normalized_pattern: &str,
+  normalized_path: &str,
+  normalized_base_dir: &str,
+  options: &GlobMatchOptions,
+) -> bool {
   if options.require_literal_leading_dot
-    && path_has_dot_component(&normalized_path, &normalized_base_dir)
+    && path_has_dot_component(normalized_path, normalized_base_dir)
     && !pattern_has_explicit_dot_for(
-      &normalized_pattern,
-      &normalized_base_dir,
-      &normalized_path,
+      normalized_pattern,
+      normalized_base_dir,
+      normalized_path,
       options,
     )
   {
     return false;
   }
 
-  glob_match_with_options(&normalized_pattern, &normalized_path, options)
+  glob_match_with_options(normalized_pattern, normalized_path, options)
 }
 
 /// Return whether a character has special meaning in glob patterns.
@@ -127,7 +142,7 @@ pub fn extract_glob_base_dir(pattern: &str) -> &str {
 }
 
 /// Normalize backslashes to forward slashes in a path string.
-fn normalize_path_separators(s: &str) -> String {
+pub(crate) fn normalize_path_separators(s: &str) -> String {
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
   while let Some(c) = chars.next() {

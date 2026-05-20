@@ -16,7 +16,7 @@ use crate::{
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, glob_base_dir_end,
-  glob_match_with_explicit_dot, resolve, walk_dir,
+  glob_match_normalized_with_explicit_dot, normalize_path_separators, resolve, walk_dir,
 };
 
 #[derive(Debug)]
@@ -452,7 +452,7 @@ async fn visit_dirs(
 
       // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
       let relative_path = {
-        let path_str = path_str.to_owned().drain(ctx.len()..).collect::<String>();
+        let path_str = &path_str[ctx.len()..];
         let p = path_str.cow_replace('\\', "/");
         if p.as_ref().starts_with('/') {
           format!(".{p}")
@@ -461,61 +461,66 @@ async fn visit_dirs(
         }
       };
 
-      let requests = if matches!(
+      if matches!(
         options.context_options.pattern,
         ContextModulePattern::Glob(_)
       ) {
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        vec![AlternativeRequest::new(ctx.to_string(), relative_path)]
+        if matcher.matches(&relative_path) {
+          push_context_element_dependency(dependencies, options, &relative_path);
+        }
       } else {
-        alternative_requests(
+        let requests = alternative_requests(
           resolve_options,
           vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-        )
-      };
-
-      for r in &requests {
-        if !matcher.matches(&r.request) {
-          continue;
+        );
+        for r in &requests {
+          if matcher.matches(&r.request) {
+            push_context_element_dependency(dependencies, options, &r.request);
+          }
         }
-        let request = format!(
-          "{}{}{}{}",
-          options.addon,
-          r.request,
-          options.resource_query.clone(),
-          options.resource_fragment.clone(),
-        );
-        let resource_identifier = ContextElementDependency::create_resource_identifier(
-          options.resource.as_str(),
-          &request,
-          options.context_options.attributes.as_ref(),
-        );
-
-        dependencies.push(ContextElementDependency {
-          id: DependencyId::new(),
-          request,
-          user_request: r.request.clone(),
-          category: options.context_options.category,
-          context: options.resource.clone().into(),
-          layer: options.layer.clone(),
-          options: options.context_options.clone(),
-          resource_identifier,
-          attributes: options.context_options.attributes.clone(),
-          referenced_specifiers: options.context_options.referenced_specifiers.clone(),
-          dependency_type: DependencyType::ContextElement(options.type_prefix),
-          factorize_info: Default::default(),
-        });
       }
     },
   )
   .await
 }
 
+fn push_context_element_dependency(
+  dependencies: &mut Vec<ContextElementDependency>,
+  options: &ContextModuleOptions,
+  user_request: &str,
+) {
+  let request = format!(
+    "{}{}{}{}",
+    options.addon, user_request, options.resource_query, options.resource_fragment,
+  );
+  let resource_identifier = ContextElementDependency::create_resource_identifier(
+    options.resource.as_str(),
+    &request,
+    options.context_options.attributes.as_ref(),
+  );
+
+  dependencies.push(ContextElementDependency {
+    id: DependencyId::new(),
+    request,
+    user_request: user_request.to_string(),
+    category: options.context_options.category,
+    context: options.resource.clone().into(),
+    layer: options.layer.clone(),
+    options: options.context_options.clone(),
+    resource_identifier,
+    attributes: options.context_options.attributes.clone(),
+    referenced_specifiers: options.context_options.referenced_specifiers.clone(),
+    dependency_type: DependencyType::ContextElement(options.type_prefix),
+    factorize_info: Default::default(),
+  });
+}
+
 struct ContextModuleMatcher<'a> {
   pattern: &'a ContextModulePattern,
-  glob_remainder: Option<&'a str>,
+  glob_remainder: Option<String>,
 }
 
 impl<'a> ContextModuleMatcher<'a> {
@@ -527,7 +532,7 @@ impl<'a> ContextModuleMatcher<'a> {
       } else {
         "*"
       };
-      remainder.strip_prefix('/').unwrap_or(remainder)
+      normalize_path_separators(remainder.strip_prefix('/').unwrap_or(remainder))
     });
 
     Self {
@@ -541,9 +546,15 @@ impl<'a> ContextModuleMatcher<'a> {
   }
 
   fn matches(&self, request: &str) -> bool {
-    if let Some(filename_glob) = self.glob_remainder {
+    if let Some(filename_glob) = &self.glob_remainder {
       let stripped = request.strip_prefix("./").unwrap_or(request);
-      glob_match_with_explicit_dot(filename_glob, stripped, "", &GlobMatchOptions::default())
+      let normalized_path = stripped.cow_replace('\\', "/");
+      glob_match_normalized_with_explicit_dot(
+        filename_glob,
+        normalized_path.as_ref(),
+        "",
+        &GlobMatchOptions::default(),
+      )
     } else if let Some(reg_exp) = self.pattern.reg_exp() {
       reg_exp.test(request)
     } else {
