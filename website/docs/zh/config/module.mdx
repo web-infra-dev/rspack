@@ -575,6 +575,8 @@ export default {
 
 `css/auto` 模块的生成器选项。
 
+`css/auto`、`css/global` 和 `css/module` 模块类型使用相同的生成器选项。本节示例使用 `css/auto`，如需配置其他模块类型，可以替换为 `css/global` 或 `css/module`。
+
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -838,133 +840,7 @@ export default {
 };
 ```
 
-### module.generator["css/global"].exportsConvention
-
-和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        exportsConvention: 'camel-case',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].exportsOnly
-
-和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        exportsOnly: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].localIdentName
-
-和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        localIdentName: '[local]-[hash:base64:6]',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].localIdentHashDigest
-
-和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        localIdentHashDigest: 'hex',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].localIdentHashDigestLength
-
-和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        localIdentHashDigestLength: 8,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].localIdentHashFunction
-
-和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        localIdentHashFunction: 'xxhash64',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].localIdentHashSalt
-
-和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        localIdentHashSalt: 'my-salt',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/global"].esModule
-
-和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/global': {
-        esModule: true,
-      },
-    },
-  },
-};
-```
+生成器选项和 [`module.generator["css/auto"]`](#modulegeneratorcssauto) 相同。
 
 ### module.generator["css/module"]
 
@@ -982,133 +858,7 @@ export default {
 };
 ```
 
-### module.generator["css/module"].exportsConvention
-
-和 [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportsConvention: 'camel-case',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].exportsOnly
-
-和 [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        exportsOnly: false,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentName
-
-和 [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentName: '[local]-[hash:base64:6]',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentHashDigest
-
-和 [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentHashDigest: 'hex',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentHashDigestLength
-
-和 [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentHashDigestLength: 8,
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentHashFunction
-
-和 [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentHashFunction: 'xxhash64',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].localIdentHashSalt
-
-和 [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        localIdentHashSalt: 'my-salt',
-      },
-    },
-  },
-};
-```
-
-### module.generator["css/module"].esModule
-
-和 [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    generator: {
-      'css/module': {
-        esModule: true,
-      },
-    },
-  },
-};
-```
+生成器选项和 [`module.generator["css/auto"]`](#modulegeneratorcssauto) 相同。
 
 ### module.generator.json.JSONParse
 
@@ -1196,14 +946,22 @@ export default {
       // CSS 模块的解析器选项
       css: {
         namedExports: true,
+        import: true,
       },
       // css/auto 模块的解析器选项
       'css/auto': {
         namedExports: true,
+        import: true,
+      },
+      // css/global 模块的解析器选项
+      'css/global': {
+        namedExports: true,
+        import: true,
       },
       // css/module 模块的解析器选项
       'css/module': {
         namedExports: true,
+        import: true,
       },
     },
   },
@@ -2109,6 +1867,8 @@ export default {
 
 `css/auto` 模块的解析器选项。
 
+`css/auto`、`css/global` 和 `css/module` 模块类型使用相同的解析器选项。本节示例使用 `css/auto`，如需配置其他模块类型，可以替换为 `css/global` 或 `css/module`。
+
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -2179,17 +1939,39 @@ import classes, { class1, class2 } from './index.module.css';
 - **类型：** `boolean`
 - **默认值：** `true`
 
-开启或者关闭对 CSS 中的 `url` 的处理。
+配置是否处理 CSS `url()` 函数。
 
-当开启该选项 `url: true`, Rspack 将 `url` 函数中的路径解析成资源路径。
-当关闭该选项 `url: false`, Rspack 忽略 `url` 函数，保持内容不变。
+当使用 `url: true` 时，Rspack 会将 `url()` 中的路径解析为资源依赖。
+当使用 `url: false` 时，Rspack 会保持 `url()` 不变。
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
-      css: {
+      'css/auto': {
         url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].import
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+配置是否处理 CSS `@import` 规则。
+
+当使用 `import: true` 时，Rspack 会将 `@import` 规则解析为依赖。
+当使用 `import: false` 时，Rspack 会保持 `@import` 规则不变。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        import: true,
       },
     },
   },
@@ -2217,6 +1999,63 @@ export default {
         resolveImport: ({ url }) => {
           return url.includes('style.css');
         },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].animation
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+配置是否重命名 CSS Modules 中的 `@keyframes` 和动画名称。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].customIdents
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+配置是否重命名 CSS Modules 中的自定义标识符，例如 `@counter-style` 和 `@font-palette-values`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        customIdents: false,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].dashedIdents
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+配置是否重命名 CSS Modules 中的短横线标识符，例如 CSS 自定义属性。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        dashedIdents: false,
       },
     },
   },
@@ -2289,6 +2128,24 @@ export default {
 };
 ```
 
+### module.parser["css/global"]
+
+`css/global` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+解析器选项和 [`module.parser["css/auto"]`](#moduleparsercssauto) 相同。
+
 ### module.parser["css/module"]
 
 `css/module` 模块的解析器选项。
@@ -2305,55 +2162,7 @@ export default {
 };
 ```
 
-### module.parser["css/module"].namedExports
-
-和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        namedExports: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].url
-
-和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/module"].resolveImport
-
-参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/module': {
-        resolveImport: ({ url }) => {
-          return url.includes('style.css');
-        },
-      },
-    },
-  },
-};
-```
+解析器选项和 [`module.parser["css/auto"]`](#moduleparsercssauto) 相同。
 
 ## module.rules
 

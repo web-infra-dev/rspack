@@ -257,10 +257,14 @@ document.getElementById('element').className = styles.red;
 
 Rspack 提供了选项，允许你自定义 CSS Modules 的解析和生成方式：
 
-- [module.parser.css](/config/module#moduleparsercss)：配置 CSS Modules 的解析方式。
-- [module.generator["css/auto"]](/config/module#modulegeneratorcssauto)：配置 `css/auto` 模块的生成方式。
-- [module.generator["css/global"]](/config/module#modulegeneratorcssglobal)：配置 `css/global` 模块的生成方式。
-- [module.generator["css/module"]](/config/module#modulegeneratorcssmodule)：配置 `css/module` 模块的生成方式。
+- 解析器选项：
+  - [module.parser["css/auto"]](/config/module#moduleparsercssauto)
+  - [module.parser["css/global"]](/config/module#moduleparsercssglobal)
+  - [module.parser["css/module"]](/config/module#moduleparsercssmodule)
+- 生成器选项：
+  - [module.generator["css/auto"]](/config/module#modulegeneratorcssauto)
+  - [module.generator["css/global"]](/config/module#modulegeneratorcssglobal)
+  - [module.generator["css/module"]](/config/module#modulegeneratorcssmodule)
 
 :::
 
