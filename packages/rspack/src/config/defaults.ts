@@ -401,6 +401,7 @@ const applyModuleDefaults = (
   applyJsonGeneratorOptionsDefaults(module.generator.json);
   F(module.parser, 'css', () => ({}));
   assertNotNill(module.parser.css);
+  D(module.parser.css, 'exportType', 'link');
   D(module.parser.css, 'namedExports', true);
   D(module.parser.css, 'url', true);
   D(module.parser.css, 'import', true);

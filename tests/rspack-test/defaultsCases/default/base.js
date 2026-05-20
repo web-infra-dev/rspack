@@ -253,6 +253,7 @@ module.exports = {
 			      },
 			      css: Object {
 			        animation: true,
+			        exportType: link,
 			        import: true,
 			        namedExports: true,
 			        url: true,
