@@ -172,7 +172,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
     if matches!(
       self.export_type(),
-      Some(CssExportType::Style) | Some(CssExportType::CssStyleSheet) | Some(CssExportType::Text)
+      Some(CssExportType::Style | CssExportType::CssStyleSheet | CssExportType::Text)
     ) {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }

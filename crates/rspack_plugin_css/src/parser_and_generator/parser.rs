@@ -87,7 +87,7 @@ impl<'context> CssModuleParser<'context> {
     self.add_warnings(warnings);
     if matches!(
       self.parser_options.export_type,
-      Some(CssExportType::Text) | Some(CssExportType::CssStyleSheet)
+      Some(CssExportType::Text | CssExportType::CssStyleSheet)
     ) {
       self
         .dependencies

@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use concat_string::concat_string;
+use cow_utils::CowUtils;
 use rspack_core::{
   ChunkGraph, CssExport, CssExportType, CssExports, DependencyType, GenerateContext, Module,
   ModuleArgument, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext,
@@ -198,7 +199,8 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let mut css_text = css_source
       .source()
       .into_string_lossy()
-      .replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "");
+      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
+      .into_owned();
 
     if let Some(source_map) = css_source.map(&ObjectPool::default(), &MapOptions::default()) {
       let base64_map = encode_to_string(source_map.to_json().as_bytes());
