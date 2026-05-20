@@ -123,6 +123,9 @@ async function build() {
 				return;
 			}
 			rustflags.push(`-Cprofile-use=${profileUse}`);
+			// Let LLVM use the profile to apply size-oriented heuristics only to cold code.
+			rustflags.push("-Cllvm-args=-pgso");
+			rustflags.push("-Cllvm-args=-pgso-cold-code-only-for-instr-pgo");
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
