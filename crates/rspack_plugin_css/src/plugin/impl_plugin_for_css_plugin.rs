@@ -7,7 +7,6 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use concat_string::concat_string;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
@@ -135,14 +134,12 @@ impl CssPlugin {
 
         let mut diagnostic = Diagnostic::warn(
           "Conflicting order".into(),
-          concat_string!(
-            "chunk ",
+          format!(
+            "chunk {}\nConflicting order between {} and {}",
             chunk
               .name()
               .unwrap_or(chunk.id().expect("should have chunk id").as_str()),
-            "\nConflicting order between ",
             failed_module.readable_identifier(&compilation.options.context),
-            " and ",
             selected_module.readable_identifier(&compilation.options.context)
           ),
         );
@@ -203,31 +200,25 @@ impl CssPlugin {
                 // TODO: use PrefixSource to create indent
                 if let Some(media) = data.get::<CssMedia>() {
                   num_close_bracket += 1;
-                  container_source.add(RawStringSource::from(concat_string!(
-                    "@media ",
-                    media.to_string(),
-                    "{\n"
-                  )));
+                  container_source.add(RawStringSource::from(format!("@media {media}{{\n")));
                 }
 
                 if let Some(supports) = data.get::<CssSupports>() {
                   num_close_bracket += 1;
-                  container_source.add(RawStringSource::from(concat_string!(
-                    "@supports (",
-                    supports.to_string(),
-                    ") {\n"
+                  container_source.add(RawStringSource::from(format!(
+                    "@supports ({supports}) {{\n"
                   )));
                 }
 
                 if let Some(layer) = data.get::<CssLayer>() {
                   num_close_bracket += 1;
-                  let layer = if let CssLayer::Named(layer) = &layer {
-                    Cow::Owned(concat_string!(" ", layer))
-                  } else {
-                    Cow::Borrowed("")
-                  };
-                  container_source.add(RawStringSource::from(concat_string!(
-                    "@layer", layer, " {\n"
+                  container_source.add(RawStringSource::from(format!(
+                    "@layer{} {{\n",
+                    if let CssLayer::Named(layer) = &layer {
+                      Cow::Owned(format!(" {layer}"))
+                    } else {
+                      Cow::Borrowed("")
+                    }
                   )));
                 }
 

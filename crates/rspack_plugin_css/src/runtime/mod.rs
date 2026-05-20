@@ -1,6 +1,5 @@
 use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
 
-use concat_string::concat_string;
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, CrossOriginLoading, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkIdSet,
@@ -72,13 +71,13 @@ impl CssLoadingRuntimeModule {
 
     match id {
       TemplateId::Raw => base_id,
-      TemplateId::CreateLink => concat_string!(base_id, "_create_link"),
-      TemplateId::WithHmr => concat_string!(base_id, "_with_hmr"),
-      TemplateId::WithLoading => concat_string!(base_id, "_with_loading"),
-      TemplateId::WithPrefetch => concat_string!(base_id, "_with_prefetch"),
-      TemplateId::WithPrefetchLink => concat_string!(base_id, "_with_prefetch_link"),
-      TemplateId::WithPreload => concat_string!(base_id, "_with_preload"),
-      TemplateId::WithPreloadLink => concat_string!(base_id, "_with_preload_link"),
+      TemplateId::CreateLink => format!("{base_id}_create_link"),
+      TemplateId::WithHmr => format!("{base_id}_with_hmr"),
+      TemplateId::WithLoading => format!("{base_id}_with_loading"),
+      TemplateId::WithPrefetch => format!("{base_id}_with_prefetch"),
+      TemplateId::WithPrefetchLink => format!("{base_id}_with_prefetch_link"),
+      TemplateId::WithPreload => format!("{base_id}_with_preload"),
+      TemplateId::WithPreloadLink => format!("{base_id}_with_preload_link"),
     }
   }
 }
@@ -206,10 +205,9 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       // One entry initial chunk maybe is other entry dynamic chunk, so here
       // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
-      source.push_str(&concat_string!(
-        "var installedChunks = ",
-        stringify_chunks(&initial_chunk_ids, 0),
-        ";\n"
+      source.push_str(&format!(
+        "var installedChunks = {};\n",
+        &stringify_chunks(&initial_chunk_ids, 0)
       ));
 
       let create_link_raw = context.runtime_template.render(
@@ -243,29 +241,31 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
       let load_css_chunk_data = runtime_template.basic_function(
         "target, chunkId",
-        &concat_string!(
+        &format!(
+          r#"{}
+installedChunks[chunkId] = 0;
+{}"#,
           with_hmr
-            .then_some(concat_string!(
-              "var moduleIds = [];\nif(target == ",
-              module_factories,
-              ")"
+            .then_some(format!(
+              "var moduleIds = [];\nif(target == {module_factories})"
             ))
             .unwrap_or_default(),
-          "\ninstalledChunks[chunkId] = 0;\n",
-          if with_hmr { "return moduleIds" } else { "" }
+          if with_hmr {
+            "return moduleIds"
+          } else {
+            Default::default()
+          },
         ),
       );
       let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
-        Cow::Owned(concat_string!(
-          "[",
+        Cow::Owned(format!(
+          "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
           initial_chunk_ids
             .iter()
             .map(rspack_util::json_stringify)
             .collect::<Vec<_>>()
             .join(","),
-          "].forEach(loadCssChunkData.bind(null, ",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-          ", 0));"
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
         Cow::Owned(
@@ -273,12 +273,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             .iter()
             .map(|id| {
               let id = rspack_util::json_stringify(id);
-              concat_string!(
-                "loadCssChunkData(",
+              format!(
+                "loadCssChunkData({}, 0, {});",
                 runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-                ", 0, ",
-                id,
-                ");"
+                id
               )
             })
             .collect::<String>(),

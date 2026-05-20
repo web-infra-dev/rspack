@@ -1,4 +1,3 @@
-use concat_string::concat_string;
 use cow_utils::CowUtils;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
@@ -47,7 +46,7 @@ impl CssUrlDependency {
         "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__",
         AUTO_PUBLIC_PATH_PLACEHOLDER,
       );
-      Some(concat_string!(public_path, filename))
+      Some(format!("{public_path}{filename}"))
     } else {
       None
     }
@@ -135,7 +134,7 @@ impl DependencyTemplate for CssUrlDependencyTemplate {
     {
       let target_url = css_escape_string(&target_url);
       let content = if dep.replace_function {
-        concat_string!("url(", target_url, ")")
+        format!("url({target_url})")
       } else {
         target_url
       };
