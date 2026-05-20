@@ -576,8 +576,6 @@ export default {
 
 Generator options for `css/auto` modules.
 
-The `css/auto`, `css/global`, and `css/module` module types share the same generator options. The examples in this section use `css/auto`; replace it with `css/global` or `css/module` to configure those module types.
-
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -843,7 +841,133 @@ export default {
 };
 ```
 
-Same generator options as [`module.generator["css/auto"]`](#modulegeneratorcssauto).
+### module.generator["css/global"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
 
 ### module.generator["css/module"]
 
@@ -861,7 +985,133 @@ export default {
 };
 ```
 
-Same generator options as [`module.generator["css/auto"]`](#modulegeneratorcssauto).
+### module.generator["css/module"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
 
 ### module.generator.json.JSONParse
 
@@ -949,22 +1199,14 @@ export default {
       // Parser options for CSS modules
       css: {
         namedExports: true,
-        import: true,
       },
       // Parser options for css/auto modules
       'css/auto': {
         namedExports: true,
-        import: true,
-      },
-      // Parser options for css/global modules
-      'css/global': {
-        namedExports: true,
-        import: true,
       },
       // Parser options for css/module modules
       'css/module': {
         namedExports: true,
-        import: true,
       },
     },
   },
@@ -1870,8 +2112,6 @@ export default {
 
 Parser options for `css/auto` modules.
 
-The `css/auto`, `css/global`, and `css/module` module types share the same parser options. The examples in this section use `css/auto`; replace it with `css/global` or `css/module` to configure those module types.
-
 ```js title="rspack.config.mjs"
 export default {
   module: {
@@ -1942,39 +2182,17 @@ import classes, { class1, class2 } from './index.module.css';
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether to handle CSS `url()` functions.
+Allow to enable/disables handling the CSS functions url.
 
-When using `url: true`, Rspack will resolve the path in `url()` as an asset dependency.
-When using `url: false`, Rspack will keep `url()` unchanged.
+When using `url: true`, Rspack will resolve the path in `url` function, the resolve file will be treated as an asset.
+When using `url: false`, Rspack will ignore the path in the `url` function, keep the content unchanged.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
-      'css/auto': {
+      css: {
         url: true,
-      },
-    },
-  },
-};
-```
-
-### module.parser["css/auto"].import
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Whether to handle CSS `@import` rules.
-
-When using `import: true`, Rspack will resolve `@import` rules as dependencies.
-When using `import: false`, Rspack will keep `@import` rules unchanged.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      'css/auto': {
-        import: true,
       },
     },
   },
@@ -2008,12 +2226,34 @@ export default {
 };
 ```
 
+### module.parser["css/auto"].import
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to handle CSS `@import` at-rules.
+
+- `true`: resolve and process `@import` rules (default).
+- `false`: leave `@import` rules unchanged in the generated CSS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/auto"].animation
 
 - **Type:** `boolean`
 - **Default:** `true`
 
-Whether to rename `@keyframes` and animation names in CSS Modules.
+Enable or disable renaming local `@keyframes` identifiers and their `animation` or `animation-name` usages.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -2032,14 +2272,14 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to rename custom identifiers in CSS Modules, such as `@counter-style` and `@font-palette-values`.
+Enable or disable renaming custom identifiers, such as local `@counter-style` and `@font-palette-values` names.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        customIdents: false,
+        customIdents: true,
       },
     },
   },
@@ -2051,14 +2291,14 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to rename dashed identifiers in CSS Modules, such as CSS custom properties.
+Enable or disable renaming dashed identifiers, such as CSS custom properties and `@property` declarations.
 
 ```js title="rspack.config.mjs"
 export default {
   module: {
     parser: {
       'css/auto': {
-        dashedIdents: false,
+        dashedIdents: true,
       },
     },
   },
@@ -2131,6 +2371,70 @@ export default {
 };
 ```
 
+### module.parser.css.import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/global"]
 
 Parser options for `css/global` modules.
@@ -2147,7 +2451,119 @@ export default {
 };
 ```
 
-Same parser options as [`module.parser["css/auto"]`](#moduleparsercssauto).
+### module.parser["css/global"].namedExports
+
+Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
 
 ### module.parser["css/module"]
 
@@ -2165,7 +2581,119 @@ export default {
 };
 ```
 
-Same parser options as [`module.parser["css/auto"]`](#moduleparsercssauto).
+### module.parser["css/module"].namedExports
+
+Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
 
 ## module.rules
 
