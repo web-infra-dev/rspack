@@ -1,9 +1,10 @@
 use std::{
   fmt,
   hash::{Hash, Hasher},
+  sync::Arc,
 };
 
-use base64_simd::{STANDARD, URL_SAFE_NO_PAD};
+use base64_simd::{AsOut, STANDARD, URL_SAFE_NO_PAD};
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_util::MergeFrom;
@@ -81,13 +82,16 @@ impl MergeFrom for HashDigest {
 pub enum HashSalt {
   #[default]
   None,
-  Salt(String),
+  Salt(#[cacheable(with=AsPreset)] SmolStr),
 }
 
-impl From<Option<String>> for HashSalt {
-  fn from(value: Option<String>) -> Self {
+impl<T> From<Option<T>> for HashSalt
+where
+  T: Into<SmolStr>,
+{
+  fn from(value: Option<T>) -> Self {
     match value {
-      Some(salt) => Self::Salt(salt),
+      Some(salt) => Self::Salt(salt.into()),
       None => Self::None,
     }
   }
@@ -138,29 +142,20 @@ impl RspackHash {
   }
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
-    // The maximum value of sha256, the largest possible hash
-    let mut result = [0; 32];
-    let len;
-
     match self {
       RspackHash::Xxhash64(hasher) => {
         let buf = hasher.finish().to_be_bytes();
-        len = buf.len();
-        result[..len].copy_from_slice(&buf);
+        RspackHashDigest::new(&buf, digest)
       }
       RspackHash::MD4(hash) => {
         let buf = hash.finalize();
-        len = buf.len();
-        result[..len].copy_from_slice(&buf);
+        RspackHashDigest::new(&buf, digest)
       }
       RspackHash::SHA256(hash) => {
         let buf = hash.finalize();
-        len = buf.len();
-        result[..len].copy_from_slice(&buf);
+        RspackHashDigest::new(&buf, digest)
       }
     }
-
-    RspackHashDigest::new(&result[..len], digest)
   }
 }
 
@@ -229,15 +224,25 @@ impl RspackHashDigest {
         let s = hex(inner, &mut buf);
         s.into()
       }
-      HashDigest::Base64 => STANDARD.encode_to_string(inner).into(),
-      HashDigest::Base64Url => URL_SAFE_NO_PAD.encode_to_string(inner).into(),
-      HashDigest::Base62 => encode_base_n(inner, BASE62_CHARSET).into(),
-      HashDigest::Base58 => encode_base_n(inner, BASE58_CHARSET).into(),
-      HashDigest::Base52 => encode_base_n(inner, BASE52_CHARSET).into(),
-      HashDigest::Base49 => encode_base_n(inner, BASE49_CHARSET).into(),
-      HashDigest::Base36 => encode_base_n(inner, BASE36_CHARSET).into(),
-      HashDigest::Base32 => encode_base_n(inner, BASE32_CHARSET).into(),
-      HashDigest::Base26 => encode_base_n(inner, BASE26_CHARSET).into(),
+      HashDigest::Base64 => {
+        let mut buf = [0; MAX_HASH_ENCODED_LEN];
+        STANDARD
+          .encode_as_str(inner, buf.as_mut_slice().as_out())
+          .into()
+      }
+      HashDigest::Base64Url => {
+        let mut buf = [0; MAX_HASH_ENCODED_LEN];
+        URL_SAFE_NO_PAD
+          .encode_as_str(inner, buf.as_mut_slice().as_out())
+          .into()
+      }
+      HashDigest::Base62 => encode_base_n(inner, BASE62_CHARSET),
+      HashDigest::Base58 => encode_base_n(inner, BASE58_CHARSET),
+      HashDigest::Base52 => encode_base_n(inner, BASE52_CHARSET),
+      HashDigest::Base49 => encode_base_n(inner, BASE49_CHARSET),
+      HashDigest::Base36 => encode_base_n(inner, BASE36_CHARSET),
+      HashDigest::Base32 => encode_base_n(inner, BASE32_CHARSET),
+      HashDigest::Base26 => encode_base_n(inner, BASE26_CHARSET),
     };
     Self { encoded }
   }
@@ -295,36 +300,122 @@ const BASE49_CHARSET: &[u8] = b"abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXY
 const BASE52_CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const BASE58_CHARSET: &[u8] = b"123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 const BASE62_CHARSET: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const MAX_HASH_BYTES_LEN: usize = 32;
+const MAX_HASH_ENCODED_LEN: usize = 64;
+const SMOL_STR_INLINE_CAP: usize = 23;
 
 /// Encodes raw hash bytes into a base-N string using the given charset.
 /// Matches webpack's `encode` in `hash-digest.js`: interprets the buffer as a
 /// big-endian integer and converts to the target base by repeated division.
-fn encode_base_n(data: &[u8], charset: &[u8]) -> String {
+fn encode_base_n(data: &[u8], charset: &[u8]) -> SmolStr {
   if data.is_empty() {
-    return String::new();
+    return SmolStr::default();
   }
 
+  assert!(data.len() <= MAX_HASH_BYTES_LEN);
   let base = charset.len();
+  let output_len = encoded_base_n_len(data, base);
+  debug_assert!(output_len <= MAX_HASH_ENCODED_LEN);
 
-  let mut result = Vec::new();
-  let mut bytes = data.to_vec();
+  if output_len <= SMOL_STR_INLINE_CAP {
+    let mut output = vec![0; output_len];
+    encode_base_n_into(data, charset, base, output_len, |index, byte| {
+      output[index] = byte;
+    });
+    // SAFETY: all charset bytes are ASCII
+    return SmolStr::new_inline(unsafe { std::str::from_utf8_unchecked(&output) });
+  }
 
-  while !bytes.is_empty() {
+  let mut output = Arc::<[u8]>::new_uninit_slice(output_len);
+  let output_slice = Arc::get_mut(&mut output).expect("new Arc must be unique");
+  encode_base_n_into(data, charset, base, output_len, |index, byte| {
+    output_slice[index].write(byte);
+  });
+  // SAFETY: `encode_base_n_into` writes every output slot with ASCII bytes.
+  let output = unsafe { output.assume_init() };
+  // SAFETY: all charset bytes are ASCII.
+  SmolStr::from(unsafe { arc_ascii_bytes_to_str(output) })
+}
+
+fn encode_base_n_into(
+  data: &[u8],
+  charset: &[u8],
+  base: usize,
+  output_len: usize,
+  mut write: impl FnMut(usize, u8),
+) {
+  let mut output_index = output_len;
+  let mut bytes = Vec::with_capacity(data.len());
+
+  let mut remainder = 0usize;
+  for &b in data {
+    let value = remainder * 256 + b as usize;
+    let digit = value / base;
+    remainder = value % base;
+    if !bytes.is_empty() || digit > 0 {
+      bytes.push(digit as u8);
+    }
+  }
+  output_index -= 1;
+  write(output_index, charset[remainder]);
+
+  let mut bytes_len = bytes.len();
+  while bytes_len > 0 {
     let mut remainder = 0usize;
-    let mut next = Vec::new();
-    for &b in &bytes {
+    let mut next_len = 0;
+    for i in 0..bytes_len {
+      let b = bytes[i];
       let value = remainder * 256 + b as usize;
       let digit = value / base;
       remainder = value % base;
-      if !next.is_empty() || digit > 0 {
-        next.push(digit as u8);
+      if next_len > 0 || digit > 0 {
+        bytes[next_len] = digit as u8;
+        next_len += 1;
       }
     }
-    result.push(charset[remainder]);
-    bytes = next;
+    output_index -= 1;
+    write(output_index, charset[remainder]);
+    bytes_len = next_len;
   }
 
-  result.reverse();
-  // SAFETY: all charset bytes are ASCII
-  unsafe { String::from_utf8_unchecked(result) }
+  debug_assert_eq!(output_index, 0);
+}
+
+fn encoded_base_n_len(data: &[u8], base: usize) -> usize {
+  let mut len = 1;
+  let mut bytes = Vec::with_capacity(data.len());
+  let mut remainder = 0usize;
+
+  for &b in data {
+    let value = remainder * 256 + b as usize;
+    let digit = value / base;
+    remainder = value % base;
+    if !bytes.is_empty() || digit > 0 {
+      bytes.push(digit as u8);
+    }
+  }
+
+  let mut bytes_len = bytes.len();
+  while bytes_len > 0 {
+    let mut remainder = 0usize;
+    let mut next_len = 0;
+    for i in 0..bytes_len {
+      let b = bytes[i];
+      let value = remainder * 256 + b as usize;
+      let digit = value / base;
+      remainder = value % base;
+      if next_len > 0 || digit > 0 {
+        bytes[next_len] = digit as u8;
+        next_len += 1;
+      }
+    }
+    len += 1;
+    bytes_len = next_len;
+  }
+
+  len
+}
+
+unsafe fn arc_ascii_bytes_to_str(output: Arc<[u8]>) -> Arc<str> {
+  unsafe { Arc::from_raw(Arc::into_raw(output) as *const str) }
 }
