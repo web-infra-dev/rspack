@@ -426,6 +426,21 @@ pub struct CssModuleParserOptions {
   pub dashed_idents: Option<bool>,
 }
 
+impl Default for CssModuleParserOptions {
+  fn default() -> Self {
+    Self {
+      export_type: None,
+      named_exports: Some(true),
+      url: Some(true),
+      r#import: Some(true),
+      resolve_import: Some(CssParserImport::Bool(true)),
+      animation: Some(true),
+      custom_idents: Some(false),
+      dashed_idents: Some(false),
+    }
+  }
+}
+
 impl From<&CssParserOptions> for CssModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
