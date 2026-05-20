@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1050
+- Update: main.LAST_HASH.hot-update.js, size: 764
 
 ## Manifest
 
@@ -33,11 +33,7 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./bar.css"(module, __unused_rspack_exports, __webpack_require__) {
-var __rspack_css_el = document.createElement("style");
-__rspack_css_el.setAttribute("data-rspack-css-module", "./bar.css");
-__rspack_css_el.textContent = ".bar_css-bar-v2 {\n\tcolor: bar-updated;\n}";
-document.head.appendChild(__rspack_css_el);
-module.hot.dispose(function() { if (__rspack_css_el.parentNode) __rspack_css_el.parentNode.removeChild(__rspack_css_el); });
+__webpack_require__.is("./bar.css", ".bar_css-bar-v2 {\n\tcolor: bar-updated;\n}");
 var exports = {
   "bar-v2": "bar_css-bar-v2",
 };

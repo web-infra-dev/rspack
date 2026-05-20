@@ -702,13 +702,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     let compilation = self.generate_context.compilation;
     let module_id =
-      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-        .map(|id| id.to_string())
-        .unwrap_or_else(|| {
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier()).map_or_else(
+        || {
           module
             .readable_identifier(&compilation.options.context)
             .into_owned()
-        });
+        },
+        |id| id.to_string(),
+      );
     let module_id = Self::prepare_css_module_id_for_concatenation(&module_id);
     Cow::Owned(
       local_ident
@@ -807,14 +808,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
                 module
                   .get_dependencies()
                   .iter()
-                  .filter_map(|dep_id| {
+                  .filter(|dep_id| {
                     let dependency = module_graph.dependency_by_id(dep_id);
                     let request = if let Some(d) = dependency.as_module_dependency() {
                       Some(d.request())
                     } else {
                       dependency.as_context_dependency().map(|d| d.request())
                     };
-                    (request == Some(from_name.as_str())).then_some(dep_id)
+                    request == Some(from_name.as_str())
                   })
                   .filter_map(find_target_module)
                   .max_by_key(|(_, priority)| *priority)
