@@ -2174,6 +2174,32 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].exportType
+
+- **类型：** `'link' | 'text' | 'css-style-sheet' | 'style'`
+- **默认值：** `'link'`
+
+控制 CSS 模块在 JavaScript 中的导出方式。
+
+- `'link'`: 将 CSS 作为 CSS 资源产物输出，并保留常规 CSS 导出行为。
+- `'text'`: 将生成后的 CSS 文本作为默认导出。
+- `'css-style-sheet'`: 将 `CSSStyleSheet` 实例作为默认导出。
+- `'style'`: 在运行时通过 `<style>` 元素把生成后的 CSS 注入到文档中，并保留常规 CSS 导出行为。
+
+当 CSS modules 使用 `'text'` 或 `'css-style-sheet'` 时，局部类名的命名导出仍然可用。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/auto"].url
 
 - **类型：** `boolean`
@@ -2255,6 +2281,22 @@ export default {
 };
 ```
 
+### module.parser.css.exportType
+
+参考 [`module.parser["css/auto"].exportType`](#moduleparsercssautoexporttype)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css.url
 
 和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
@@ -2315,6 +2357,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].exportType
+
+参考 [`module.parser["css/auto"].exportType`](#moduleparsercssautoexporttype)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        exportType: 'text',
       },
     },
   },

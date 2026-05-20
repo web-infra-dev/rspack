@@ -2177,6 +2177,32 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
+### module.parser["css/auto"].exportType
+
+- **Type:** `'link' | 'text' | 'css-style-sheet' | 'style'`
+- **Default:** `'link'`
+
+Controls how CSS modules are exported to JavaScript.
+
+- `'link'`: emits CSS as a CSS asset and keeps the normal CSS export behavior.
+- `'text'`: exports the generated CSS text as the default export.
+- `'css-style-sheet'`: exports a `CSSStyleSheet` instance as the default export.
+- `'style'`: injects the generated CSS into the document with a `<style>` element at runtime and keeps the normal CSS export behavior.
+
+When using CSS modules with `'text'` or `'css-style-sheet'`, named exports for local class names are still available.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/auto"].url
 
 - **Type:** `boolean`
@@ -2258,6 +2284,22 @@ export default {
 };
 ```
 
+### module.parser.css.exportType
+
+Same as [`module.parser["css/auto"].exportType`](#moduleparsercssautoexporttype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css.url
 
 Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
@@ -2318,6 +2360,22 @@ export default {
     parser: {
       'css/module': {
         namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].exportType
+
+Same as [`module.parser["css/auto"].exportType`](#moduleparsercssautoexporttype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        exportType: 'text',
       },
     },
   },
