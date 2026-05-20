@@ -829,28 +829,14 @@ if (typeof __css_style_sheet.replaceSync === \"function\") {
     let module_argument = self.module_argument();
 
     if with_hmr {
-      Cow::Owned(concat_string!(
+      Cow::Owned(format!(
         "// only invalidate when locals change
-var stringified_exports = JSON.stringify(",
-        decl_name,
-        ");
-if (",
-        module_argument,
-        ".hot.data && ",
-        module_argument,
-        ".hot.data.exports && ",
-        module_argument,
-        ".hot.data.exports != stringified_exports) {
-  ",
-        module_argument,
-        ".hot.invalidate();
-} else {
-  ",
-        accept,
-        "}
-",
-        module_argument,
-        ".hot.dispose(function(data) { data.exports = stringified_exports; });"
+var stringified_exports = JSON.stringify({decl_name});
+if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
+  {module_argument}.hot.invalidate();
+}} else {{
+  {accept}}}
+{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
       ))
     } else {
       Cow::Borrowed("")
