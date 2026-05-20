@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
@@ -29,7 +31,7 @@ pub(super) struct CssModuleParser<'context> {
   parser_options: &'context CssModuleParserOptions,
   exports_only: bool,
   parse_context: ParseContext<'context>,
-  source_code: String,
+  source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
   dependencies: Vec<Box<dyn Dependency>>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
@@ -46,10 +48,10 @@ impl<'context> CssModuleParser<'context> {
     exports_only: bool,
     parse_context: ParseContext<'context>,
   ) -> Self {
-    let source_code = remove_bom(parse_context.source.clone())
+    let source_code: Arc<str> = remove_bom(parse_context.source.clone())
       .source()
       .into_string_lossy()
-      .into_owned();
+      .into();
 
     Self {
       generator_options,
@@ -517,11 +519,11 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn get_local_ident_options(&self) -> &LocalIdentOptions<'_> {
-    self.local_ident_options.get_or_init(|| {
+    self.local_ident_options.get_or_init(move || {
       LocalIdentOptions::new(
         self.resource_data(),
         self.parse_context.module_type,
-        &self.source_code,
+        self.source_code.clone(),
         self.parse_context.compiler_options,
         self.generator_options,
       )
