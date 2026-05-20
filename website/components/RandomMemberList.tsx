@@ -78,9 +78,9 @@ const coreTeam: Member[] = [
     desc: 'Rspack core team',
   },
   {
-    id: 'chenjiahan',
+    id: 'Jiahan Chen',
     avatar: 'https://github.com/chenjiahan.png',
-    x: 'https://x.com/jait_chen',
+    x: 'https://x.com/jiahan_c',
     bluesky: 'https://bsky.app/profile/chenjiahan.bsky.social',
     desc: 'Rspack core team, project lead of Vant',
   },
