@@ -4,8 +4,8 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use rspack_core::{
   ChunkGraph, CssExport, CssExportType, CssExports, DependencyType, GenerateContext, Module,
-  ModuleArgument, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext,
-  UsageState, UsedNameItem,
+  ModuleArgument, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, SourceType,
+  TemplateContext, UsageState, UsedNameItem,
   rspack_sources::{
     BoxSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawStringSource,
     ReplaceSource, Source, SourceExt,
@@ -597,17 +597,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
   ) -> Result<()> {
     let module = self.module;
-    let GenerateContext {
-      compilation,
-      concatenation_scope,
-      runtime,
-      runtime_template,
-      ..
-    } = self.generate_context;
-    let Some(scope) = concatenation_scope else {
+    if self.generate_context.concatenation_scope.is_none() {
       return Ok(());
-    };
-    let module_graph = compilation.get_module_graph();
+    }
+    let compilation = self.generate_context.compilation;
+    let runtime = self.generate_context.runtime;
     let mut used_identifiers = HashSet::default();
     let exports_info = compilation
       .exports_info_artifact
@@ -615,73 +609,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
     for (key, elements) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
-      let used_name = export_info.get_used_name(None, *runtime);
+      let used_name = export_info.get_used_name(None, runtime);
       let used_name: Cow<'_, str> = match used_name {
         Some(UsedNameItem::Str(name)) => Cow::Owned(name.to_string()),
         _ => Cow::Borrowed(key),
       };
 
-      let mut content = String::new();
-      for CssExport {
-        ident,
-        from,
-        id: _,
-        orig_name: _,
-      } in elements
-      {
-        if !content.is_empty() {
-          content.push_str(" + \" \" + ");
-        }
-
-        match from {
-          None => {
-            let ident = replace_css_module_id_placeholder(ident, compilation, module);
-            content.push_str(&json_stringify_str(&ident));
-          }
-          Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
-
-            let from_exports_info = compilation
-              .exports_info_artifact
-              .get_exports_info_data(&from.module_identifier);
-            let from_used_name = match from_exports_info
-              .get_read_only_export_info(&Atom::from(ident.as_str()))
-              .get_used_name(None, *runtime)
-            {
-              Some(UsedNameItem::Str(name)) => json_stringify_str(&name),
-              _ => json_stringify_str(ident),
-            };
-
-            let from = json_stringify(
-              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.module_identifier)
-                .expect("should have module"),
-            );
-            content.push_str(&runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE));
-            content.push('(');
-            content.push_str(&from);
-            content.push_str(")[");
-            content.push_str(&from_used_name);
-            content.push(']');
-          }
-        }
-      }
+      let content = self.render_css_export_content(elements, false);
       let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
       if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
         identifier = Cow::Owned(concat_string!("_", identifier));
@@ -698,9 +632,277 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
       self.concat_source.add(RawStringSource::from(export_source));
       used_identifiers.insert(identifier.clone());
+      let Some(ref mut scope) = self.generate_context.concatenation_scope else {
+        unreachable!();
+      };
       scope.register_export(key.into(), identifier.into_owned());
     }
     Ok(())
+  }
+
+  fn resolve_static_css_export(
+    &self,
+    module: &dyn Module,
+    export_name: &str,
+    seen: &mut HashSet<(rspack_core::ModuleIdentifier, String)>,
+  ) -> Option<String> {
+    let compilation = self.generate_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let module_identifier = module.identifier();
+    if !seen.insert((module_identifier, export_name.to_string())) {
+      return None;
+    }
+
+    let exports = module.build_info().css_exports.as_ref()?;
+    let values = exports
+      .get(export_name)?
+      .iter()
+      .filter_map(|css_export| match css_export.from.as_deref() {
+        None => Some(
+          self
+            .replace_css_module_id_placeholder_for_concatenation(&css_export.ident, module)
+            .into_owned(),
+        ),
+        Some(from_request) => {
+          let target_module = css_export
+            .id
+            .as_ref()
+            .and_then(|id| module_graph.get_module_by_dependency_id(id))
+            .or_else(|| {
+              module.get_dependencies().iter().find_map(|id| {
+                let dependency = module_graph.dependency_by_id(id);
+                let request = dependency
+                  .as_module_dependency()
+                  .map(|dep| dep.request())
+                  .or_else(|| dependency.as_context_dependency().map(|dep| dep.request()));
+                (request == Some(from_request))
+                  .then(|| module_graph.get_module_by_dependency_id(id))?
+              })
+            })?;
+          self.resolve_static_css_export(target_module.as_ref(), &css_export.ident, seen)
+        }
+      })
+      .collect::<Vec<_>>();
+
+    if values.is_empty() {
+      None
+    } else {
+      Some(values.join(" "))
+    }
+  }
+
+  fn replace_css_module_id_placeholder_for_concatenation<'b>(
+    &self,
+    local_ident: &'b str,
+    module: &dyn Module,
+  ) -> Cow<'b, str> {
+    if !local_ident.contains(crate::utils::CSS_MODULE_ID_PLACEHOLDER) {
+      return Cow::Borrowed(local_ident);
+    }
+
+    let compilation = self.generate_context.compilation;
+    let module_id =
+      ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+        .map(|id| id.to_string())
+        .unwrap_or_else(|| {
+          module
+            .readable_identifier(&compilation.options.context)
+            .into_owned()
+        });
+    let module_id = Self::prepare_css_module_id_for_concatenation(&module_id);
+    Cow::Owned(
+      local_ident
+        .cow_replace(crate::utils::CSS_MODULE_ID_PLACEHOLDER, &module_id)
+        .into_owned(),
+    )
+  }
+
+  fn prepare_css_module_id_for_concatenation(value: &str) -> String {
+    let mut module_id = value
+      .trim_start_matches(|c: char| c == '.' || c == '-' || !Self::is_css_module_id_start(c))
+      .chars()
+      .map(|c| {
+        if c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '@' {
+          c
+        } else {
+          '_'
+        }
+      })
+      .collect::<String>();
+
+    if module_id.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+      module_id.insert(0, '_');
+    }
+
+    module_id
+  }
+
+  fn is_css_module_id_start(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_' || c == '-'
+  }
+
+  fn render_css_export_content(
+    &mut self,
+    elements: &FxIndexSet<CssExport>,
+    unescape_referenced_ident: bool,
+  ) -> String {
+    let compilation = self.generate_context.compilation;
+    let module = self.module;
+    let runtime = self.generate_context.runtime;
+    let module_graph = compilation.get_module_graph();
+
+    elements
+      .iter()
+      .map(
+        |CssExport {
+           ident,
+           from,
+           id,
+           orig_name: _,
+         }| match from {
+          None => {
+            let ident = self.replace_css_module_id_placeholder_for_concatenation(ident, module);
+            json_stringify_str(&ident)
+          }
+          Some(from_name) => {
+            let current_module_identifier = module.identifier();
+            let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+            let current_module_chunks =
+              if chunk_graph.get_number_of_module_chunks(current_module_identifier) > 0 {
+                Some(chunk_graph.get_module_chunks(current_module_identifier))
+              } else {
+                None
+              };
+            let candidate_priority = |target: &dyn Module| {
+              let target_identifier = target.identifier();
+              let supports_javascript = target
+                .source_types(module_graph)
+                .contains(&SourceType::JavaScript);
+              let shares_chunk = current_module_chunks.is_some_and(|current_chunks| {
+                chunk_graph.get_number_of_module_chunks(target_identifier) > 0
+                  && chunk_graph
+                    .get_module_chunks(target_identifier)
+                    .iter()
+                    .any(|chunk| current_chunks.contains(chunk))
+              });
+              (
+                supports_javascript,
+                shares_chunk,
+                ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_identifier)
+                  .is_some(),
+              )
+            };
+            let find_target_module = |dep_id: &rspack_core::DependencyId| {
+              module_graph
+                .get_module_by_dependency_id(dep_id)
+                .map(|target| {
+                  let priority = candidate_priority(target.as_ref());
+                  (target, priority)
+                })
+            };
+            let from = id
+              .as_ref()
+              .and_then(find_target_module)
+              .or_else(|| {
+                module
+                  .get_dependencies()
+                  .iter()
+                  .filter_map(|dep_id| {
+                    let dependency = module_graph.dependency_by_id(dep_id);
+                    let request = if let Some(d) = dependency.as_module_dependency() {
+                      Some(d.request())
+                    } else {
+                      dependency.as_context_dependency().map(|d| d.request())
+                    };
+                    (request == Some(from_name.as_str())).then_some(dep_id)
+                  })
+                  .filter_map(find_target_module)
+                  .max_by_key(|(_, priority)| *priority)
+              })
+              .map(|(target, _)| target)
+              .and_then(|target| {
+                if target
+                  .source_types(module_graph)
+                  .contains(&SourceType::JavaScript)
+                {
+                  Some(target)
+                } else {
+                  let target_name_for_condition = target.name_for_condition();
+                  module_graph
+                    .modules()
+                    .filter_map(|(_, candidate)| {
+                      (candidate.name_for_condition() == target_name_for_condition
+                        && candidate
+                          .source_types(module_graph)
+                          .contains(&SourceType::JavaScript))
+                      .then_some(candidate)
+                    })
+                    .max_by_key(|candidate| candidate_priority(candidate.as_ref()))
+                    .or(Some(target))
+                }
+              })
+              .expect("should have css from module");
+
+            let from_exports_info = compilation
+              .exports_info_artifact
+              .get_exports_info_data(&from.identifier());
+            if !from
+              .source_types(module_graph)
+              .contains(&SourceType::JavaScript)
+            {
+              let ident = if unescape_referenced_ident {
+                unescape(ident)
+              } else {
+                Cow::Borrowed(ident.as_str())
+              };
+              let mut seen = HashSet::default();
+              let resolved = self
+                .resolve_static_css_export(from.as_ref(), ident.as_ref(), &mut seen)
+                .expect("should resolve static css export");
+              return json_stringify_str(&resolved);
+            }
+            let from_used_name = match from_exports_info
+              .get_read_only_export_info(&Atom::from(ident.as_str()))
+              .get_used_name(None, runtime)
+            {
+              Some(UsedNameItem::Str(name)) => {
+                let name = if unescape_referenced_ident {
+                  Cow::Owned(unescape(name.as_str()).into_owned())
+                } else {
+                  Cow::Borrowed(name.as_str())
+                };
+                json_stringify_str(name.as_ref())
+              }
+              _ => {
+                let ident = if unescape_referenced_ident {
+                  unescape(ident)
+                } else {
+                  Cow::Borrowed(ident.as_str())
+                };
+                json_stringify_str(ident.as_ref())
+              }
+            };
+
+            let from = json_stringify(
+              ChunkGraph::get_module_id(&compilation.module_ids_artifact, from.identifier())
+                .expect("should have module"),
+            );
+            concat_string!(
+              self
+                .generate_context
+                .runtime_template
+                .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              "(",
+              from,
+              ")[",
+              from_used_name,
+              "]"
+            )
+          }
+        },
+      )
+      .collect::<Vec<_>>()
+      .join(" + \" \" + ")
   }
 
   fn stringified_exports<'b>(
