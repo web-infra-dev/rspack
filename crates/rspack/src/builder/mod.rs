@@ -1771,13 +1771,13 @@ impl ModuleOptionsBuilder {
       let css_parser_options = ParserOptions::Css(CssParserOptions::new(Some(CssExportType::Link)));
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions::new(None));
+      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions::default());
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
-      let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions::new(None));
+      let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions::default());
       parser.insert("css/module".to_string(), css_module_parser_options);
 
-      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions::new(None));
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions::default());
       parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
