@@ -23,6 +23,7 @@ import {
   BundlerInfoRspackPlugin,
   ChunkPrefetchPreloadPlugin,
   CommonJsChunkFormatPlugin,
+  CssHttpExternalsRspackPlugin,
   CssModulesPlugin,
   DataUriPlugin,
   DefinePlugin,
@@ -105,6 +106,11 @@ export class RspackOptionsApply {
 
     if (options.externalsPresets.node) {
       new NodeTargetPlugin().apply(compiler);
+      // Keep this aligned with webpack's node externals preset: CSS HTTP(S)
+      // @import/url() requests are externalized during factorization. This
+      // happens before HttpUriPlugin can fetch buildHttp resources, so buildHttp
+      // does not bundle those CSS requests for node targets.
+      new CssHttpExternalsRspackPlugin().apply(compiler);
     }
     if (options.externalsPresets.electronMain) {
       new ElectronTargetPlugin('main').apply(compiler);
@@ -126,15 +132,10 @@ export class RspackOptionsApply {
     if (options.externalsPresets.nwjs) {
       new ExternalsPlugin('node-commonjs', 'nw.gui', false).apply(compiler);
     }
-    if (
-      options.externalsPresets.web ||
-      options.externalsPresets.webAsync ||
-      options.externalsPresets.node
-    ) {
-      new HttpExternalsRspackPlugin(
-        true,
-        !!options.externalsPresets.webAsync,
-      ).apply(compiler);
+    if (options.externalsPresets.web || options.externalsPresets.webAsync) {
+      new HttpExternalsRspackPlugin(!!options.externalsPresets.webAsync).apply(
+        compiler,
+      );
     }
 
     new ChunkPrefetchPreloadPlugin().apply(compiler);

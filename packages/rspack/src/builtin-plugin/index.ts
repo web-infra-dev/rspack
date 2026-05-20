@@ -13,6 +13,7 @@ export * from './CommonJsChunkFormatPlugin';
 export * from './ContextReplacementPlugin';
 export * from './CopyRspackPlugin';
 export * from './CssChunkingPlugin';
+export * from './CssHttpExternalsRspackPlugin';
 export * from './CssModulesPlugin';
 export * from './css-extract/index';
 export * from './DataUriPlugin';
