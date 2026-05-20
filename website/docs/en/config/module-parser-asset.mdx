@@ -1,0 +1,49 @@
+---
+description: 'Asset parser options'
+---
+
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Asset parser options
+
+### module.parser.asset
+
+Parser options for `asset` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset.dataUrlCondition
+
+- **Type:** `{ maxSize: number }`
+- **Default:** `{ maxSize: 8096 }`
+
+If the module size is less than or equal to `maxSize`, then the module will be Base64 encoded, otherwise a file will be created. This option can be used only for [Asset modules](/guide/features/asset-module).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // Modules' size smaller than or equal to 4KB will be Base64 encoded.
+          maxSize: 4 * 1024,
+        },
+      },
+    },
+  },
+};
+```

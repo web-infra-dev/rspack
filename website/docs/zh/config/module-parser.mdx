@@ -1,0 +1,58 @@
+---
+description: '按模块类型配置 parser 选项。'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Module parser
+
+## module.parser
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.parser` 在一个地方配置所有解析器选项。
+
+查看按模块类型拆分的详细页面：
+
+- [Asset parser 选项](/config/module-parser-asset)
+- [JavaScript parser 选项](/config/module-parser-javascript)
+- [JSON parser 选项](/config/module-parser-json)
+- [CSS parser 选项](/config/module-parser-css)
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      // asset 模块的解析器选项
+      asset: {
+        dataUrlCondition: {
+          maxSize: 16192,
+        },
+      },
+      // javascript 模块的解析器选项
+      javascript: {
+        dynamicImportMode: 'lazy',
+        dynamicImportPrefetch: false,
+        dynamicImportPreload: false,
+        url: true,
+        importMeta: true,
+      },
+      // CSS 模块的解析器选项
+      css: {
+        namedExports: true,
+      },
+      // css/auto 模块的解析器选项
+      'css/auto': {
+        namedExports: true,
+      },
+      // css/module 模块的解析器选项
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```

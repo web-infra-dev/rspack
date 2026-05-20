@@ -1,0 +1,550 @@
+---
+description: 'CSS generator options'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# CSS generator options
+
+### module.generator["css/auto"]
+
+Generator options for `css/auto` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].exportsConvention
+
+- **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
+- **Default:** `'as-is'`
+
+Customize how CSS export names are exported to javascript modules, such as keeping them as is, transforming them to camel case, etc.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].exportsOnly
+
+- **Type:** `boolean`
+- **Default:** `true` for node environments, `false` for web environments.
+
+If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
+
+If `false`, generate stylesheets and embed them in the template.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentName
+
+- **Type:** `string`
+- **Default:** `[uniqueName]-[id]-[local]`
+
+Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashDigest
+
+- **Type:** `string`
+- **Default:** `'base64url'`
+
+Configure the digest encoding used for hashes in generated CSS Modules local identifiers. This has the same supported values as [`output.hashDigest`](/config/output#outputhashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashDigestLength
+
+- **Type:** `number`
+- **Default:** `6`
+
+Configure how many characters from the hash are used in generated CSS Modules local identifiers.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashFunction
+
+- **Type:** `string`
+- **Default:** `'md4'`
+
+Configure the hash function used for generated CSS Modules local identifiers. This has the same supported values as [`output.hashFunction`](/config/output#outputhashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].localIdentHashSalt
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Configure a salt added to the hash used for generated CSS Modules local identifiers. When unset, Rspack uses [`output.hashSalt`](/config/output#outputhashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/auto"].esModule
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+This configuration is available for improved ESM-CJS interoperability purposes.
+
+Whether to add `__esModule` to the exports of CSS; if added, it will be treated as ES modules during ESM-CJS interop, otherwise, it will be treated as a CommonJS Module.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+For example, a common use case, when using the CommonJS output from a third-party component library, it is sometimes necessary to add this configuration to ensure correct ESM-CJS interop, to obtain the correct exports (this can be used in conjunction with [rules[].test](/config/module-rules#rulestest) and other matching conditions to add it only for that particular component library).
+
+The original source code of the third-party component library:
+
+```js
+import style from './style.css';
+
+export function Button() {
+  return <button className={style.btn}></button>;
+}
+```
+
+The CommonJS format output published by the third-party component library:
+
+```js
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.Button = Button;
+var _style = _interopRequireDefault(require('./style.css'));
+var _jsxRuntime = require('react/jsx-runtime');
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+function Button() {
+  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
+    className: _style['default'].btn, // <-- Note: After passing through _interopRequireDefault, this need to access default here.
+  });
+}
+```
+
+### module.generator.css
+
+Generator options for `css` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator.css.exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator.css.esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"]
+
+Generator options for `css/global` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/global"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"]
+
+Generator options for `css/module` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsConvention
+
+Same as [`module.generator["css/auto"].exportsConvention`](#modulegeneratorcssautoexportsconvention).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].exportsOnly
+
+Same as [`module.generator["css/auto"].exportsOnly`](#modulegeneratorcssautoexportsonly).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentName
+
+Same as [`module.generator["css/auto"].localIdentName`](#modulegeneratorcssautolocalidentname).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigest
+
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#modulegeneratorcssautolocalidenthashdigest).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashDigestLength
+
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#modulegeneratorcssautolocalidenthashdigestlength).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashFunction
+
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#modulegeneratorcssautolocalidenthashfunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].localIdentHashSalt
+
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#modulegeneratorcssautolocalidenthashsalt).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### module.generator["css/module"].esModule
+
+Same as [`module.generator["css/auto"].esModule`](#modulegeneratorcssautoesmodule).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        esModule: true,
+      },
+    },
+  },
+};
+```

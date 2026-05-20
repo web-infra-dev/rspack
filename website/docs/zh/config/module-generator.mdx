@@ -1,0 +1,94 @@
+---
+description: '按模块类型配置 generator 选项。'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Module generator
+
+## module.generator
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.generator` 在一个地方配置所有生成器选项。
+
+查看按模块类型拆分的详细页面：
+
+- [Asset generator 选项](/config/module-generator-asset)
+- [CSS generator 选项](/config/module-generator-css)
+- [JSON generator 选项](/config/module-generator-json)
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      // asset 模块的生成器选项
+      asset: {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'image/png',
+        },
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // asset/inline 模块的生成器选项
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'image/png',
+        },
+      },
+      // asset/resource 模块的生成器选项
+      'asset/resource': {
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // css/auto 模块的生成器选项
+      'css/auto': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // `css` 模块的生成器选项
+      css: {
+        exportsOnly: false,
+        esModule: true,
+      },
+      // css/global 模块的生成器选项
+      'css/global': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // css/module 模块的生成器选项
+      'css/module': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // `json` 模块的生成器选项
+      json: {
+        JSONParse: true,
+      },
+    },
+  },
+};
+```

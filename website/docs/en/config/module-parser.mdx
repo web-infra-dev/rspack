@@ -1,0 +1,58 @@
+---
+description: 'Configure parser options by module type.'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Module parser
+
+## module.parser
+
+- **Type:** `Object`
+- **Default:** `{}`
+
+Configure all parsers' options in one place with `module.parser`.
+
+See the module-type specific pages for details:
+
+- [Asset parser options](/config/module-parser-asset)
+- [JavaScript parser options](/config/module-parser-javascript)
+- [JSON parser options](/config/module-parser-json)
+- [CSS parser options](/config/module-parser-css)
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      // Parser options for asset modules
+      asset: {
+        dataUrlCondition: {
+          maxSize: 16192,
+        },
+      },
+      // Parser options for javascript modules
+      javascript: {
+        dynamicImportMode: 'lazy',
+        dynamicImportPrefetch: false,
+        dynamicImportPreload: false,
+        url: true,
+        importMeta: true,
+      },
+      // Parser options for CSS modules
+      css: {
+        namedExports: true,
+      },
+      // Parser options for css/auto modules
+      'css/auto': {
+        namedExports: true,
+      },
+      // Parser options for css/module modules
+      'css/module': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```

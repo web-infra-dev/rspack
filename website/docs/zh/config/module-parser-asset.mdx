@@ -1,0 +1,49 @@
+---
+description: 'Asset parser 选项'
+---
+
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
+import PropertyType from '@components/PropertyType';
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Asset parser 选项
+
+### module.parser.asset
+
+`asset` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser.asset.dataUrlCondition
+
+- **类型：** `{ maxSize: number }`
+- **默认值：** `{ maxSize: 8096 }`
+
+如果当前模块的小于等于 `maxSize`，那么模块将被 Base64 编码，否则模块将会以文件形式被输出。该选项仅能作用于 [Asset modules](/guide/features/asset-module)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      asset: {
+        dataUrlCondition: {
+          // 小于等于 4KB 的模块将被 Base64 编码
+          maxSize: 4 * 1024,
+        },
+      },
+    },
+  },
+};
+```
