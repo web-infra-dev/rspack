@@ -1,5 +1,6 @@
 // Lazy (default): each value is a thunk () => Promise<module>
 const lazyModules = import.meta.glob('./dir/*.js')
+const wildcardModules = import.meta.glob('./dir/*')
 const nestedModules = import.meta.glob('./pages/*/index.js')
 const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
 const lazyCjsModules = import.meta.glob('./cjs/*.js')
@@ -14,6 +15,13 @@ it('should return a thunk for each matched file in lazy mode', async () => {
 
   const bar = await lazyModules['./dir/bar.js']()
   expect(bar.default).toBe('bar')
+})
+
+it('should not expose resolver alternative requests in wildcard mode', () => {
+  const keys = Object.keys(wildcardModules).sort()
+  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+  expect(keys).not.toContain('./dir/foo')
+  expect(keys).not.toContain('./dir/bar')
 })
 
 it('should traverse directory wildcard segments in lazy mode', async () => {

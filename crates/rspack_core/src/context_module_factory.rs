@@ -461,10 +461,20 @@ async fn visit_dirs(
         }
       };
 
-      let requests = alternative_requests(
-        resolve_options,
-        vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-      );
+      let requests = if matches!(
+        options.context_options.pattern,
+        ContextModulePattern::Glob(_)
+      ) {
+        // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
+        // paths, not resolver alternative requests like extensionless aliases.
+        // Revisit this branch if import.meta.glob compatibility changes.
+        vec![AlternativeRequest::new(ctx.to_string(), relative_path)]
+      } else {
+        alternative_requests(
+          resolve_options,
+          vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
+        )
+      };
 
       for r in &requests {
         if !matcher.matches(&r.request) {
