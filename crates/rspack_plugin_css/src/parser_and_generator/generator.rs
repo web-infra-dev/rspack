@@ -256,7 +256,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       };
 
       if Self::is_style_export_css_module(imported_module.as_ref()) {
-        code.push_str(&format!("{require}({});\n", json_stringify(module_id)));
+        code.push_str(&concat_string!(
+          require,
+          "(",
+          json_stringify(module_id),
+          ");\n"
+        ));
         continue;
       }
 
@@ -309,39 +314,53 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn render_css_inject_style_by_module_id(&mut self, module_id: String, css: &str) -> String {
     let module_argument = self.module_argument().to_string();
     let hmr_dispose = if self.with_hmr {
-      format!(
-        "{module_argument}.hot.dispose(function() {{ if (__rspack_css_el.parentNode) __rspack_css_el.parentNode.removeChild(__rspack_css_el); }});\n"
+      concat_string!(
+        module_argument,
+        ".hot.dispose(function() { if (__rspack_css_el.parentNode) __rspack_css_el.parentNode.removeChild(__rspack_css_el); });\n"
       )
     } else {
       String::new()
     };
 
-    format!(
+    concat_string!(
       "var __rspack_css_el = document.createElement(\"style\");
-__rspack_css_el.setAttribute(\"data-rspack-css-module\", {module_id});
-__rspack_css_el.textContent = {css};
+__rspack_css_el.setAttribute(\"data-rspack-css-module\", ",
+      module_id,
+      ");
+__rspack_css_el.textContent = ",
+      css,
+      ";
 document.head.appendChild(__rspack_css_el);
-{hmr_dispose}"
+",
+      hmr_dispose
     )
   }
 
   fn generate_css_style_sheet_exports(&mut self, css: &str) -> String {
     let module_argument = self.module_argument().to_string();
     let (ns_obj, left, right) = self.get_namespace_object_parts();
-    let sheet_code = format!(
+    let sheet_code = concat_string!(
       "var __css_style_sheet = new CSSStyleSheet();
-if (typeof __css_style_sheet.replaceSync === \"function\") {{
-  __css_style_sheet.replaceSync({css});
-}} else if (typeof document !== \"undefined\") {{
+if (typeof __css_style_sheet.replaceSync === \"function\") {
+  __css_style_sheet.replaceSync(",
+      css,
+      ");
+} else if (typeof document !== \"undefined\") {
   var __css_style_sheet_element = document.createElement(\"style\");
-  __css_style_sheet_element.textContent = {css};
+  __css_style_sheet_element.textContent = ",
+      css,
+      ";
   document.head.appendChild(__css_style_sheet_element);
   __css_style_sheet = __css_style_sheet_element.sheet;
-  __css_style_sheet._cssText = {css};
+  __css_style_sheet._cssText = ",
+      css,
+      ";
   __css_style_sheet_element.remove();
-}} else {{
-  __css_style_sheet._cssText = {css};
-}}\n"
+} else {
+  __css_style_sheet._cssText = ",
+      css,
+      ";
+}\n"
     );
 
     if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
