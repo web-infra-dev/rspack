@@ -105,10 +105,6 @@ impl StateLock {
 fn get_process_name(pid: u32) -> Option<String> {
   use std::process::Command;
 
-  if let Some(name) = get_current_process_name(pid) {
-    return Some(name);
-  }
-
   let output = Command::new("ps")
     .arg("-p")
     .arg(pid.to_string())
@@ -130,10 +126,6 @@ fn get_process_name(pid: u32) -> Option<String> {
 #[cfg(windows)]
 fn get_process_name(pid: u32) -> Option<String> {
   use std::process::Command;
-
-  if let Some(name) = get_current_process_name(pid) {
-    return Some(name);
-  }
 
   let output = Command::new("tasklist")
     .arg("/FI")
@@ -157,19 +149,6 @@ fn get_process_name(pid: u32) -> Option<String> {
   }
 
   None
-}
-
-#[cfg(any(unix, windows))]
-fn get_current_process_name(pid: u32) -> Option<String> {
-  if pid != std::process::id() {
-    return None;
-  }
-
-  std::env::current_exe().ok().and_then(|path| {
-    path
-      .file_name()
-      .map(|name| name.to_string_lossy().into_owned())
-  })
 }
 
 #[cfg(target_family = "wasm")]
