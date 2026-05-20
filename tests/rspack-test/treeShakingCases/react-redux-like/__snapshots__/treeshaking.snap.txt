@@ -11,24 +11,22 @@ _foo__rspack_import_1["default"];
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 function Provider() {}
 
 /* export default */ const __rspack_default_export = (Provider);
 
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
-
 
 },
 "./selector.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-function useSelector() {
-	return "";
-}
-
 __webpack_require__.d(__webpack_exports__, [
   "default", () => (useSelector)
 ]);
+function useSelector() {
+	return "";
+}
 
 
 },

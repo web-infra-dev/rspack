@@ -2,16 +2,19 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./answer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "answer", () => (answer)
+]);
 const answer = 103330;
 // export default answer;
-
-__webpack_require__.d(__webpack_exports__, [
-  "answer", 0, answer
-]);
 
 
 },
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (result),
+  "render", () => (render)
+]);
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 
 
@@ -24,11 +27,6 @@ function render() {
 
 function result() {}
 
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (result),
-  "render", () => (render)
-]);
-
 
 },
 "./index.js"(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
@@ -40,16 +38,15 @@ __webpack_require__.d(__webpack_exports__, [
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "myanswer", () => (myanswer),
+  "secret", () => (secret)
+]);
 /* import */ var _answer__rspack_import_0 = __webpack_require__("./answer.js");
 
 const secret = "888";
 const myanswer = _answer__rspack_import_0.answer,
 	result = 20000;
-
-__webpack_require__.d(__webpack_exports__, [
-  "myanswer", 0, myanswer,
-  "secret", 0, secret
-]);
 
 
 },

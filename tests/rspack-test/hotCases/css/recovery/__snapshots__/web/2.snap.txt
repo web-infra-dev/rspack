@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6127
+- Update: main.hot-update.js, size: 6126
 
 ## Manifest
 
@@ -63,6 +63,10 @@ __webpack_require__.r(__webpack_exports__);
 },
 "../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack___webpack_module__, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, [
+  "cssReload", () => (cssReload),
+  "normalizeUrl", () => (normalizeUrl)
+]);
 function normalizeUrl(url) {
     let urlString = url.trim();
     if (/^data:/i.test(urlString)) return urlString;
@@ -162,11 +166,6 @@ function cssReload(moduleId, options) {
     };
 }
 
-
-__webpack_require__.d(__webpack_exports__, [
-  "cssReload", () => (cssReload),
-  "normalizeUrl", () => (normalizeUrl)
-]);
 
 
 },

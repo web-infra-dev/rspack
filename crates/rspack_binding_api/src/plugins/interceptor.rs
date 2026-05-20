@@ -1296,7 +1296,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
   async fn run(
     &self,
     _compilation: &Compilation,
-    _circular_modules: &mut IdentifierSet,
+    _circular_modules: &mut Option<IdentifierSet>,
     _diagnostics: &mut Vec<rspack_error::Diagnostic>,
   ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await

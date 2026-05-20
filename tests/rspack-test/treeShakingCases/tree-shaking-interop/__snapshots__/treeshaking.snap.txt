@@ -3,11 +3,10 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["bar_js"], {
 "./bar.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-function test() {}
-
 __webpack_require__.d(__webpack_exports__, [
   "default", () => (test)
 ]);
+function test() {}
 
 
 },
@@ -20,16 +19,15 @@ __webpack_require__.d(__webpack_exports__, [
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
 __webpack_require__.e(/* import() */ "bar_js").then(__webpack_require__.bind(__webpack_require__, "./bar.js")).then(mod => {
 	console.log(mod);
 });
 const a = "a";
 
 exports.test = 30;
-
-__webpack_require__.d(__webpack_exports__, [
-  "a", 0, a
-]);
 
 
 },

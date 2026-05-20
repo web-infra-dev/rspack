@@ -2,6 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./package/autogen/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
 
 function a() {}
 
@@ -9,19 +12,14 @@ function dddd() {}
 
 
 
-__webpack_require__.d(__webpack_exports__, [
-  "a", () => (a)
-]);
-
 
 },
 "./package/autogen/aa.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "aa", () => (aa)
+]);
 const aa = 3;
 const cc = 3;
-
-__webpack_require__.d(__webpack_exports__, [
-  "aa", 0, aa
-]);
 
 
 },

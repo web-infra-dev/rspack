@@ -166,7 +166,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } = code_generatable_context;
 
     let module_identifier = module.identifier();
-    let is_circular_module = compilation.circular_modules.contains(&module_identifier);
+    let is_circular_module = compilation
+      .circular_modules
+      .as_ref()
+      .map(|circular_modules| circular_modules.contains(&module_identifier));
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {

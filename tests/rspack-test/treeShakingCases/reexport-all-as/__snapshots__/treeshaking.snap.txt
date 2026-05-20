@@ -2,13 +2,12 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./package/autogen/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-function a() {}
-
-function dddd() {}
-
 __webpack_require__.d(__webpack_exports__, [
   "a", () => (a)
 ]);
+function a() {}
+
+function dddd() {}
 
 
 },

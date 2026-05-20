@@ -2,16 +2,15 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
 
 function res() {
 	answer;
 }
 const a = 3;
 /* unused export default */ var __rspack_default_export = (/*#__PURE__*/(/* unused pure expression or super */ null && (res())));
-
-__webpack_require__.d(__webpack_exports__, [
-  "a", 0, a
-]);
 
 
 },

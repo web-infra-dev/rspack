@@ -2,6 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "test", () => (test)
+]);
 function test() {}
 
 class Cls {
@@ -12,10 +15,6 @@ if (__AAA__) {
 	const __Cls = Cls;
 	__Cls.prototype.aaa = function (a, b) {};
 }
-
-__webpack_require__.d(__webpack_exports__, [
-  "test", () => (test)
-]);
 
 
 },

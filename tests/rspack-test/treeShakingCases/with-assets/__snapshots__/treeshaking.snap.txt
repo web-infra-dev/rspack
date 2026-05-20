@@ -2,11 +2,10 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-const a = 3;
-
 __webpack_require__.d(__webpack_exports__, [
-  "a", 0, a
+  "a", () => (a)
 ]);
+const a = 3;
 
 
 },

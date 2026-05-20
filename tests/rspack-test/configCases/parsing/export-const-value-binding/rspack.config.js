@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   optimization: {
     concatenateModules: false,
     inlineExports: false,

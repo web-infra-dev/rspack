@@ -361,14 +361,14 @@ pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
   export_map: Vec<(Atom, ESMExportBinding)>,
-  is_circular_module: bool,
+  is_circular_module: Option<bool>,
 }
 
 impl ESMExportInitFragment {
   pub fn new(
     exports_argument: ExportsArgument,
     export_map: Vec<(Atom, ESMExportBinding)>,
-    is_circular_module: bool,
+    is_circular_module: Option<bool>,
   ) -> Self {
     Self {
       exports_argument,
@@ -409,7 +409,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
       runtime_template.render_exports_argument(self.exports_argument),
       exports
     );
-    let res = if self.is_circular_module {
+    let res = if matches!(self.is_circular_module, None | Some(true)) {
       InitFragmentContents {
         start: content,
         end: None,

@@ -2,11 +2,10 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-const c = "a";
-
 __webpack_require__.d(__webpack_exports__, [
-  "c", 0, c
+  "c", () => (c)
 ]);
+const c = "a";
 
 
 },
@@ -17,30 +16,28 @@ const c = "bar";
 
 },
 "./c.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a),
+  "b", () => (/* reexport safe */ _foo__rspack_import_0.b),
+  "c", () => (/* reexport safe */ _foo__rspack_import_0.c)
+]);
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _bar__rspack_import_1 = __webpack_require__("./bar.js");
 
 
 const a = 3;
 
-__webpack_require__.d(__webpack_exports__, [
-  "a", 0, a,
-  "b", () => (/* reexport safe */ _foo__rspack_import_0.b),
-  "c", () => (/* reexport safe */ _foo__rspack_import_0.c)
-]);
-
 
 },
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "b", () => (b),
+  "c", () => (/* reexport safe */ _a_js__rspack_import_0.c)
+]);
 /* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
 
 const a = "foo";
 const b = "foo";
-
-__webpack_require__.d(__webpack_exports__, [
-  "b", 0, b,
-  "c", () => (/* reexport safe */ _a_js__rspack_import_0.c)
-]);
 
 
 },

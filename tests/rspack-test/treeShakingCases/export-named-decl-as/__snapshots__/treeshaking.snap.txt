@@ -3,13 +3,12 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./src/answer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-/* import */ var _plugin_formatNumber__rspack_import_0 = __webpack_require__("./src/plugin/formatNumber.js");
-
-
-
 __webpack_require__.d(__webpack_exports__, [
   "formatNumber", () => (/* reexport safe */ _plugin_formatNumber__rspack_import_0["default"])
 ]);
+/* import */ var _plugin_formatNumber__rspack_import_0 = __webpack_require__("./src/plugin/formatNumber.js");
+
+
 
 
 },
@@ -21,16 +20,15 @@ console.log(_answer__rspack_import_0);
 
 },
 "./src/plugin/formatNumber.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (formatNumber_default)
+]);
 function formatNumber(config) {}
 const plugin = cls => {
 	cls.prototype.formatNumber = formatNumber;
 };
 var formatNumber_default = plugin;
 
-
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (formatNumber_default)
-]);
 
 
 },

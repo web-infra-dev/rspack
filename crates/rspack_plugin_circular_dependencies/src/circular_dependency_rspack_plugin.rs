@@ -362,7 +362,7 @@ impl CircularDependencyRspackPlugin {
 async fn optimize_modules(
   &self,
   compilation: &Compilation,
-  _circular_modules: &mut IdentifierSet,
+  _circular_modules: &mut Option<IdentifierSet>,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {
