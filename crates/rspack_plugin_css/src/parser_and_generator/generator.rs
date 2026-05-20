@@ -699,14 +699,14 @@ if (typeof __css_style_sheet.replaceSync === \"function\") {
       }
       let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
       if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
-        identifier = Cow::Owned(format!("_{identifier}"));
+        identifier = Cow::Owned(concat_string!("_", identifier));
       }
       let base_identifier = identifier.clone();
       let mut i = 0;
       while used_identifiers.contains(&identifier) {
         let mut i_buffer = itoa::Buffer::new();
         let i_str = i_buffer.format(i);
-        identifier = Cow::Owned(format!("{base_identifier}{i_str}"));
+        identifier = Cow::Owned(concat_string!(base_identifier, i_str));
         i += 1;
       }
       // TODO: conditional support `const or var` after we finished runtimeTemplate utils
@@ -829,14 +829,28 @@ if (typeof __css_style_sheet.replaceSync === \"function\") {
     let module_argument = self.module_argument();
 
     if with_hmr {
-      Cow::Owned(format!(
+      Cow::Owned(concat_string!(
         "// only invalidate when locals change
-var stringified_exports = JSON.stringify({decl_name});
-if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_argument}.hot.data.exports != stringified_exports) {{
-  {module_argument}.hot.invalidate();
-}} else {{
-  {accept}}}
-{module_argument}.hot.dispose(function(data) {{ data.exports = stringified_exports; }});"
+var stringified_exports = JSON.stringify(",
+        decl_name,
+        ");
+if (",
+        module_argument,
+        ".hot.data && ",
+        module_argument,
+        ".hot.data.exports && ",
+        module_argument,
+        ".hot.data.exports != stringified_exports) {
+  ",
+        module_argument,
+        ".hot.invalidate();
+} else {
+  ",
+        accept,
+        "}
+",
+        module_argument,
+        ".hot.dispose(function(data) { data.exports = stringified_exports; });"
       ))
     } else {
       Cow::Borrowed("")
@@ -847,7 +861,7 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
     let with_hmr = self.with_hmr;
     let module_argument = self.module_argument();
     if with_hmr {
-      format!("{module_argument}.hot.accept();\n")
+      concat_string!(module_argument, ".hot.accept();\n")
     } else {
       Default::default()
     }

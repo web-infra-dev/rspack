@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
+use concat_string::concat_string;
 use cow_utils::CowUtils;
 use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
@@ -112,7 +113,9 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(b"source");
       hasher.write(b"OriginalSource");
       hasher.write(self.source.as_bytes());
-      hasher.write(format!("webpack://{}|{}", self.module_type, self.relative_resource).as_bytes());
+      hasher.write(
+        concat_string!("webpack://", self.module_type, "|", &self.relative_resource).as_bytes(),
+      );
       hasher.write(b"meta");
       if module_hash_options.named_exports {
         hasher.write(br#"{"isCSSModule":true,"exportsType":"namespace","defaultObject":false}"#);
@@ -334,7 +337,7 @@ fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
     .copied()
     .filter(u8::is_ascii_digit)
     .map_or(0, |b| b - b'0');
-  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
+  concat_string!(char::from(b'a' + (first % 6)).to_string(), &slice[1..])
 }
 
 impl LocalIdentNameRenderOptions<'_> {
@@ -366,7 +369,7 @@ static UNESCAPE_CSS_IDENT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([^a-zA-Z0-9_\u0081-\uffff-])").expect("invalid regex"));
 
 pub fn escape_css(s: &str) -> Cow<'_, str> {
-  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| format!("\\{}", &s[0]))
+  UNESCAPE_CSS_IDENT_REGEX.replace_all(s, |s: &Captures| concat_string!("\\", &s[0]))
 }
 
 pub(crate) fn export_locals_convention(
@@ -408,7 +411,7 @@ pub fn unescape(s: &str) -> Cow<'_, str> {
           if let Ok(r_u32) = u32::from_str_radix(m[1..].trim(), 16)
             && let Some(ch) = char::from_u32(r_u32)
           {
-            return Some(format!("{ch}"));
+            return Some(ch.to_string());
           }
           None
         } else {
@@ -440,17 +443,19 @@ pub fn css_escape_string(s: &str) -> String {
   }
   if count_white_or_bracket < 2 {
     WHITE_OR_BRACKET_REGEX
-      .replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+      .replace_all(s, |caps: &Captures| concat_string!("\\", &caps[0]))
       .into_owned()
   } else if count_quotation <= count_apostrophe {
-    format!(
-      "\"{}\"",
-      QUOTATION_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    concat_string!(
+      "\"",
+      QUOTATION_REGEX.replace_all(s, |caps: &Captures| concat_string!("\\", &caps[0])),
+      "\""
     )
   } else {
-    format!(
-      "\'{}\'",
-      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| format!("\\{}", &caps[0]))
+    concat_string!(
+      "\'",
+      APOSTROPHE_REGEX.replace_all(s, |caps: &Captures| concat_string!("\\", &caps[0])),
+      "\'"
     )
   }
 }
