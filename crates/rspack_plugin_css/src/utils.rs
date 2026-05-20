@@ -275,11 +275,8 @@ pub fn replace_css_module_id_placeholder<'a>(
     return Cow::Borrowed(local_ident);
   }
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .map(|module_id| prepare_css_module_id(module_id.as_str()))
-    .unwrap_or_else(|| {
-      let readable_identifier = module.readable_identifier(&compilation.options.context);
-      Cow::Owned(prepare_css_module_id(readable_identifier.as_ref()).into_owned())
-    });
+    .expect("css module should have module id when rendering local ident");
+  let module_id = prepare_css_module_id(module_id.as_str());
   let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
   Cow::Owned(
     LEADING_DIGIT_REGEX
