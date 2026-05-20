@@ -27,7 +27,7 @@ env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
   CARGO_INCREMENTAL: 0
-  RSPACK_PGO_PROFILE: ${{ inputs.pgo_profile_path }}
+  RSPACK_PGO_PROFILE: ${{ inputs.pgo_profile_path || (inputs.profile == 'release' && inputs.target != 'wasm32-wasip1-threads' && 'crates/node_binding/pgo/rspack.profdata') || '' }}
 
 jobs:
   build:
