@@ -413,6 +413,30 @@ pub struct CssParserOptions {
   pub dashed_idents: Option<bool>,
 }
 
+impl CssParserOptions {
+  pub fn new(export_type: Option<CssExportType>) -> Self {
+    Self {
+      export_type,
+      ..Default::default()
+    }
+  }
+}
+
+impl Default for CssParserOptions {
+  fn default() -> Self {
+    Self {
+      export_type: Some(CssExportType::Link),
+      named_exports: Some(true),
+      url: Some(true),
+      r#import: Some(true),
+      resolve_import: Some(CssParserImport::Bool(true)),
+      animation: Some(true),
+      custom_idents: Some(false),
+      dashed_idents: Some(false),
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
@@ -426,18 +450,18 @@ pub struct CssModuleParserOptions {
   pub dashed_idents: Option<bool>,
 }
 
+impl CssModuleParserOptions {
+  pub fn new(export_type: Option<CssExportType>) -> Self {
+    Self {
+      export_type,
+      ..Default::default()
+    }
+  }
+}
+
 impl Default for CssModuleParserOptions {
   fn default() -> Self {
-    Self {
-      export_type: None,
-      named_exports: Some(true),
-      url: Some(true),
-      r#import: Some(true),
-      resolve_import: Some(CssParserImport::Bool(true)),
-      animation: Some(true),
-      custom_idents: Some(false),
-      dashed_idents: Some(false),
-    }
+    Self::from(&CssParserOptions::new(None))
   }
 }
 
