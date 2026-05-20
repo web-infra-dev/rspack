@@ -2137,6 +2137,7 @@ export interface RawCssModuleGeneratorOptions {
 }
 
 export interface RawCssModuleParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2147,6 +2148,7 @@ export interface RawCssModuleParserOptions {
 }
 
 export interface RawCssParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   import?: boolean

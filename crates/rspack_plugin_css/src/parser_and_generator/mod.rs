@@ -6,10 +6,10 @@ use std::{borrow::Cow, sync::LazyLock};
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  ChunkGraph, Compilation, CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType,
-  ExportsInfoArtifact, GenerateContext, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  ChunkGraph, Compilation, CssExportType, CssModuleGeneratorOptions, CssModuleParserOptions,
+  DependencyType, ExportsInfoArtifact, GenerateContext, Module, ModuleGraph, ModuleIdentifier,
+  ModuleInitFragments, NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals,
+  RuntimeSpec, SourceType, TemplateContext, UsageState,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -74,6 +74,10 @@ impl CssParserAndGenerator {
       .generator_options
       .es_module
       .expect("should have es_module")
+  }
+
+  pub fn export_type(&self) -> &Option<CssExportType> {
+    &self.parser_options.export_type
   }
 }
 
@@ -166,6 +170,13 @@ static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
+    if matches!(
+      self.export_type(),
+      Some(CssExportType::Style) | Some(CssExportType::CssStyleSheet) | Some(CssExportType::Text)
+    ) {
+      return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
+    }
+
     if self.exports_only {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
@@ -301,10 +312,16 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
         Ok(source.boxed())
       }
-      SourceType::JavaScript => {
-        CssModuleGenerator::new(module, generate_context, self.hot, self.es_module())
-          .generate_javascript_source()
-      }
+      SourceType::JavaScript => CssModuleGenerator::new(
+        source,
+        module,
+        generate_context,
+        self.hot,
+        *self.export_type(),
+        self.exports_only,
+        self.es_module(),
+      )
+      .generate_javascript_source(),
       _ => panic!(
         "Unsupported source type: {:?}",
         generate_context.requested_source_type
@@ -335,6 +352,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
     self.es_module().dyn_hash(&mut hasher);
+    self.export_type().dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }

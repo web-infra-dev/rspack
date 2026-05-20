@@ -2,20 +2,26 @@ use std::borrow::Cow;
 
 use concat_string::concat_string;
 use rspack_core::{
-  ChunkGraph, CssExport, CssExports, GenerateContext, Module, ModuleArgument, RESERVED_IDENTIFIER,
-  RuntimeGlobals, UsageState, UsedNameItem,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  ChunkGraph, CssExport, CssExportType, CssExports, DependencyType, GenerateContext, Module,
+  ModuleArgument, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals, TemplateContext,
+  UsageState, UsedNameItem,
+  rspack_sources::{
+    BoxSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawStringSource,
+    ReplaceSource, Source, SourceExt,
+  },
   to_identifier,
 };
 use rspack_error::Result;
 use rspack_util::{
   atom::Atom,
+  base64::encode_to_string,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
 };
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
+  dependency::{CssImportDependency, CssMedia, CssSupports},
   parser_and_generator::{get_unused_local_ident, get_used_exports},
   utils::{replace_css_module_id_placeholder, unescape},
 };
@@ -31,9 +37,12 @@ pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: Cs
 }
 
 pub(crate) struct CssModuleGenerator<'a, 'g> {
+  source: &'a BoxSource,
   module: &'a dyn Module,
   generate_context: &'a mut GenerateContext<'g>,
   with_hmr: bool,
+  export_type: Option<CssExportType>,
+  exports_only: bool,
   es_module: bool,
   module_argument: Option<String>,
   concat_source: ConcatSource,
@@ -41,15 +50,21 @@ pub(crate) struct CssModuleGenerator<'a, 'g> {
 
 impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   pub fn new(
+    source: &'a BoxSource,
     module: &'a dyn Module,
     generate_context: &'a mut GenerateContext<'g>,
     with_hmr: bool,
+    export_type: Option<CssExportType>,
+    exports_only: bool,
     es_module: bool,
   ) -> Self {
     Self {
+      source,
       module,
       generate_context,
       with_hmr,
+      export_type,
+      exports_only,
       es_module,
       module_argument: None,
       concat_source: Default::default(),
@@ -66,8 +81,393 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   }
 
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
-    self.generate_js_exports()?;
-    Ok(self.concat_source.boxed())
+    match self.export_type {
+      Some(CssExportType::Text) => {
+        let css = self.stringify_css_source_for_javascript();
+        let source = self.generate_css_text_exports(&css);
+        self.concat_source.add(RawStringSource::from(source));
+      }
+      Some(CssExportType::CssStyleSheet) => {
+        let css = self.stringify_css_source_for_javascript();
+        let source = self.generate_css_style_sheet_exports(&css);
+        self.concat_source.add(RawStringSource::from(source));
+      }
+      Some(CssExportType::Style) if !self.exports_only => {
+        let imports = self.render_css_imports_for_style();
+        let css = self.stringify_css_source_for_javascript();
+        self.concat_source.add(RawStringSource::from(imports));
+        let inject_style = self.render_css_inject_style(&css);
+        self.concat_source.add(RawStringSource::from(inject_style));
+        self.generate_js_exports()?;
+      }
+      _ => {
+        self.generate_js_exports()?;
+      }
+    }
+    let generated_source = self.concat_source.source().into_string_lossy().into_owned();
+    if self.module.get_source_map_kind().enabled() {
+      Ok(OriginalSource::new(generated_source, self.module.identifier().as_str()).boxed())
+    } else {
+      Ok(RawStringSource::from(generated_source).boxed())
+    }
+  }
+
+  fn stringify_css_source_for_javascript(&mut self) -> String {
+    let css_source = self.generate_css_source_for_module(self.source, self.module);
+    self.stringify_css_source_with_inline_map(css_source)
+  }
+
+  fn stringify_css_source_for_module(&mut self, source: &BoxSource, module: &dyn Module) -> String {
+    let css_source = self.generate_css_source_for_module(source, module);
+    self.stringify_css_source_with_inline_map(css_source)
+  }
+
+  fn generate_css_source_for_module(
+    &mut self,
+    source: &BoxSource,
+    module: &dyn Module,
+  ) -> BoxSource {
+    let generate_context = &mut *self.generate_context;
+    let mut source = ReplaceSource::new(source.clone());
+    let compilation = generate_context.compilation;
+    let mut init_fragments = ModuleInitFragments::default();
+    let mut context = TemplateContext {
+      compilation,
+      module,
+      runtime: generate_context.runtime,
+      init_fragments: &mut init_fragments,
+      concatenation_scope: generate_context.concatenation_scope.take(),
+      data: generate_context.data,
+      runtime_template: generate_context.runtime_template,
+    };
+
+    let module_graph = compilation.get_module_graph();
+    module.get_dependencies().iter().for_each(|id| {
+      let dep = module_graph.dependency_by_id(id);
+
+      if let Some(dependency) = dep.as_dependency_code_generation()
+        && let Some(template) = dependency
+          .dependency_template()
+          .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
+        template.render(dependency, &mut source, &mut context)
+      }
+    });
+
+    for conn in module_graph.get_incoming_connections(&module.identifier()) {
+      let dep = module_graph.dependency_by_id(&conn.dependency_id);
+
+      if matches!(dep.dependency_type(), DependencyType::CssImport) {
+        let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
+          panic!(
+            "dependency with type DependencyType::CssImport should only be CssImportDependency"
+          );
+        };
+
+        if let Some(media) = css_import_dep.media() {
+          context.data.insert(CssMedia(media.to_string()));
+        }
+
+        if let Some(supports) = css_import_dep.supports() {
+          context.data.insert(CssSupports(supports.to_string()));
+        }
+
+        if let Some(layer) = css_import_dep.layer() {
+          context.data.insert(layer.clone());
+        }
+      }
+    }
+
+    if let Some(dependencies) = module.get_presentational_dependencies() {
+      dependencies.iter().for_each(|dependency| {
+        if let Some(template) = dependency
+          .dependency_template()
+          .and_then(|dependency_type| compilation.get_dependency_template(dependency_type))
+        {
+          template.render(dependency.as_ref(), &mut source, &mut context)
+        }
+      });
+    };
+
+    generate_context.concatenation_scope = context.concatenation_scope.take();
+
+    source.boxed()
+  }
+
+  fn stringify_css_source_with_inline_map(&self, css_source: BoxSource) -> String {
+    let mut css_text = css_source
+      .source()
+      .into_string_lossy()
+      .replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "");
+
+    if let Some(source_map) = css_source.map(&ObjectPool::default(), &MapOptions::default()) {
+      let base64_map = encode_to_string(source_map.to_json().as_bytes());
+      if !css_text.ends_with('\n') {
+        css_text.push('\n');
+      }
+      css_text.push_str("/*# sourceMappingURL=data:application/json;charset=utf-8;base64,");
+      css_text.push_str(&base64_map);
+      css_text.push_str("*/");
+    }
+
+    json_stringify_str(&css_text)
+  }
+
+  fn render_css_imports_for_style(&mut self) -> String {
+    let mut visited_non_style_modules = HashSet::default();
+    self.render_css_imports_for_style_module(self.module, &mut visited_non_style_modules)
+  }
+
+  fn render_css_imports_for_style_module(
+    &mut self,
+    module: &dyn Module,
+    visited_non_style_modules: &mut HashSet<rspack_collections::Identifier>,
+  ) -> String {
+    let compilation = self.generate_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let require = self
+      .generate_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let mut code = String::new();
+
+    for dependency_id in module.get_dependencies() {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
+        continue;
+      }
+
+      let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(dependency_id)
+      else {
+        continue;
+      };
+
+      let Some(module_id) = ChunkGraph::get_module_id(
+        &compilation.module_ids_artifact,
+        imported_module.module_identifier,
+      ) else {
+        continue;
+      };
+
+      let Some(imported_module) =
+        module_graph.module_by_identifier(&imported_module.module_identifier)
+      else {
+        continue;
+      };
+
+      if Self::is_style_export_css_module(imported_module.as_ref()) {
+        code.push_str(&format!("{require}({});\n", json_stringify(module_id)));
+        continue;
+      }
+
+      if !visited_non_style_modules.insert(imported_module.identifier()) {
+        continue;
+      }
+
+      code.push_str(
+        &self
+          .render_css_imports_for_style_module(imported_module.as_ref(), visited_non_style_modules),
+      );
+
+      let Some(source) = imported_module.source() else {
+        continue;
+      };
+      let css = self.stringify_css_source_for_module(source, imported_module.as_ref());
+      code.push_str(&self.render_css_inject_style_by_module_id(json_stringify(module_id), &css));
+    }
+
+    code
+  }
+
+  fn is_style_export_css_module(module: &dyn Module) -> bool {
+    module
+      .as_normal_module()
+      .and_then(|module| {
+        module
+          .parser_and_generator()
+          .downcast_ref::<crate::parser_and_generator::CssParserAndGenerator>()
+      })
+      .is_some_and(|parser_and_generator| {
+        matches!(
+          parser_and_generator.export_type(),
+          Some(CssExportType::Style)
+        )
+      })
+  }
+
+  fn render_css_inject_style(&mut self, css: &str) -> String {
+    let module_id = ChunkGraph::get_module_id(
+      &self.generate_context.compilation.module_ids_artifact,
+      self.module.identifier(),
+    )
+    .map(|id| id.to_string())
+    .unwrap_or_default();
+
+    self.render_css_inject_style_by_module_id(json_stringify_str(&module_id), css)
+  }
+
+  fn render_css_inject_style_by_module_id(&mut self, module_id: String, css: &str) -> String {
+    let module_argument = self.module_argument().to_string();
+    let hmr_dispose = if self.with_hmr {
+      format!(
+        "{module_argument}.hot.dispose(function() {{ if (__rspack_css_el.parentNode) __rspack_css_el.parentNode.removeChild(__rspack_css_el); }});\n"
+      )
+    } else {
+      String::new()
+    };
+
+    format!(
+      "var __rspack_css_el = document.createElement(\"style\");
+__rspack_css_el.setAttribute(\"data-rspack-css-module\", {module_id});
+__rspack_css_el.textContent = {css};
+document.head.appendChild(__rspack_css_el);
+{hmr_dispose}"
+    )
+  }
+
+  fn generate_css_style_sheet_exports(&mut self, css: &str) -> String {
+    let module_argument = self.module_argument().to_string();
+    let (ns_obj, left, right) = self.get_namespace_object_parts();
+    let sheet_code = format!(
+      "var __css_style_sheet = new CSSStyleSheet();
+if (typeof __css_style_sheet.replaceSync === \"function\") {{
+  __css_style_sheet.replaceSync({css});
+}} else if (typeof document !== \"undefined\") {{
+  var __css_style_sheet_element = document.createElement(\"style\");
+  __css_style_sheet_element.textContent = {css};
+  document.head.appendChild(__css_style_sheet_element);
+  __css_style_sheet = __css_style_sheet_element.sheet;
+  __css_style_sheet._cssText = {css};
+  __css_style_sheet_element.remove();
+}} else {{
+  __css_style_sheet._cssText = {css};
+}}\n"
+    );
+
+    if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
+      let hmr_code = self.render_exports_hmr(decl_name);
+      concat_string!(
+        sheet_code,
+        exports_string,
+        "\n",
+        hmr_code,
+        "\n",
+        ns_obj,
+        left,
+        module_argument,
+        ".exports = Object.assign({}, ",
+        decl_name,
+        ")",
+        right,
+        ";\n",
+        module_argument,
+        ".exports.default = __css_style_sheet;\n"
+      )
+    } else if self.es_module {
+      concat_string!(
+        sheet_code,
+        ns_obj,
+        "(",
+        module_argument,
+        ".exports = {});\n",
+        module_argument,
+        ".exports.default = __css_style_sheet;\n",
+        self.render_accept_hmr()
+      )
+    } else {
+      concat_string!(
+        sheet_code,
+        module_argument,
+        ".exports = __css_style_sheet;\n",
+        self.render_accept_hmr()
+      )
+    }
+  }
+
+  fn generate_css_text_exports(&mut self, css: &str) -> String {
+    let module_argument = self.module_argument().to_string();
+    let (ns_obj, left, right) = self.get_namespace_object_parts();
+
+    if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
+      let hmr_code = self.render_exports_hmr(decl_name);
+      concat_string!(
+        exports_string,
+        "\n",
+        hmr_code,
+        "\n",
+        ns_obj,
+        left,
+        module_argument,
+        ".exports = Object.assign({}, ",
+        decl_name,
+        ")",
+        right,
+        ";\n",
+        module_argument,
+        ".exports.default = ",
+        css,
+        ";\n"
+      )
+    } else if self.es_module {
+      concat_string!(
+        ns_obj,
+        "(",
+        module_argument,
+        ".exports = {});\n",
+        module_argument,
+        ".exports.default = ",
+        css,
+        ";\n",
+        self.render_accept_hmr()
+      )
+    } else {
+      concat_string!(
+        module_argument,
+        ".exports = ",
+        css,
+        ";\n",
+        self.render_accept_hmr()
+      )
+    }
+  }
+
+  fn stringified_used_css_exports(&mut self) -> Option<(&'static str, String)> {
+    let exports = self.module.build_info().css_exports.as_ref()?;
+
+    if let Some(local_names) = &self.module.build_info().css_local_names {
+      let unused_exports = get_unused_local_ident(
+        exports,
+        local_names,
+        self.module.identifier(),
+        self.generate_context.runtime,
+        &self.generate_context.compilation.exports_info_artifact,
+      );
+      self.generate_context.data.insert(unused_exports);
+    }
+
+    let exports = get_used_exports(
+      exports,
+      self.module.identifier(),
+      self.generate_context.runtime,
+      &self.generate_context.compilation.exports_info_artifact,
+    );
+
+    Some(self.stringified_exports(exports))
+  }
+
+  fn get_namespace_object_parts(&mut self) -> (String, String, String) {
+    if self.es_module {
+      (
+        self
+          .generate_context
+          .runtime_template
+          .render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
+        "(".to_string(),
+        ")".to_string(),
+      )
+    } else {
+      (String::new(), String::new(), String::new())
+    }
   }
 
   fn generate_js_exports(&mut self) -> Result<()> {

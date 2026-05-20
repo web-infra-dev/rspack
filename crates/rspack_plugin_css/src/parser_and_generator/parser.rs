@@ -3,9 +3,10 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ConstDependency, CssExport, CssExports, CssExportsConvention, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, Dependency, DependencyRange,
-  ModuleType, ParseContext, ParseResult, ResourceData,
+  ConstDependency, CssExport, CssExportType, CssExports, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserImportContext,
+  Dependency, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
+  StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
@@ -84,6 +85,17 @@ impl<'context> CssModuleParser<'context> {
     }
 
     self.add_warnings(warnings);
+    if matches!(
+      self.parser_options.export_type,
+      Some(CssExportType::Text) | Some(CssExportType::CssStyleSheet)
+    ) {
+      self
+        .dependencies
+        .push(Box::new(StaticExportsDependency::new(
+          StaticExportsSpec::Array(vec!["default".into()]),
+          false,
+        )));
+    }
     self.parse_context.build_info.css_exports = if self.css_exports.is_empty() {
       None
     } else {
