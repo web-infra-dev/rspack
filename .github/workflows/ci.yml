@@ -62,18 +62,7 @@ jobs:
       target: x86_64-unknown-linux-gnu
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-linux-pgo:
-    name: Build Linux PGO
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      binding_postfix: '-pgo'
-      pgo_profile_path: crates/node_binding/pgo/rspack.profdata
+      pgo_profile_path: pgo/rspack.profdata
 
   test-linux:
     name: Test Linux
@@ -92,16 +81,6 @@ jobs:
     with:
       target: x86_64-unknown-linux-gnu
       runner: '"ubuntu-22.04"'
-
-  bench-binding-pgo:
-    name: Bench Binding PGO
-    needs: [check-changed, build-linux-pgo]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/bench-binding.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-      binding_postfix: '-pgo'
 
   bench-rust:
     name: Rust Bench
