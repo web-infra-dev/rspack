@@ -7,7 +7,7 @@ settings:
 
 patchedDependencies:
   ts-loader@9.5.7:
-    hash: 669445af51ed2be71b7097b9ad5eb56cbc35da4cc8a5712a487d9a22c98934c7
+    hash: 6d1c83a70f82a8f413ad041c6421b93d5e88857dff304f254faa3e71b27a6177
     path: patches/ts-loader@9.5.7.patch
   webpack-sources@3.3.4:
     hash: 0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327
@@ -811,7 +811,7 @@ importers:
         version: 1.3.0(@rspack/core@packages+rspack)(typescript@6.0.3)
       ts-loader:
         specifier: ^9.5.7
-        version: 9.5.7(patch_hash=669445af51ed2be71b7097b9ad5eb56cbc35da4cc8a5712a487d9a22c98934c7)(typescript@6.0.3)
+        version: 9.5.7(patch_hash=6d1c83a70f82a8f413ad041c6421b93d5e88857dff304f254faa3e71b27a6177)(typescript@6.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -13465,7 +13465,7 @@ snapshots:
 
   ts-interface-checker@0.1.13: {}
 
-  ts-loader@9.5.7(patch_hash=669445af51ed2be71b7097b9ad5eb56cbc35da4cc8a5712a487d9a22c98934c7)(typescript@6.0.3):
+  ts-loader@9.5.7(patch_hash=6d1c83a70f82a8f413ad041c6421b93d5e88857dff304f254faa3e71b27a6177)(typescript@6.0.3):
     dependencies:
       chalk: 4.1.2
       enhanced-resolve: 5.21.3

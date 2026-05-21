@@ -1,3 +1,5 @@
+# TODO: Remove this patch after ts-loader no longer requires webpack at runtime.
+# See https://github.com/TypeStrong/ts-loader/issues/1694.
 diff --git a/dist/after-compile.js b/dist/after-compile.js
 index 54ad4ddfe3e918a58d09764939f9cce2c250c21f..a8f3d9eefd41dcff94de07a402dd15f596163f31 100644
 --- a/dist/after-compile.js
