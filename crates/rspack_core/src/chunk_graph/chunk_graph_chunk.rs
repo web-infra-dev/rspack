@@ -734,14 +734,12 @@ impl ChunkGraph {
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> Vec<ModuleIdentifier> {
     let cgc = self.expect_chunk_graph_chunk(chunk);
-    let mut input = cgc.modules.iter().copied().collect::<Vec<_>>();
-    input.sort_unstable();
+    let input = cgc.modules.iter().copied().collect::<Vec<_>>();
 
-    let mut modules = find_graph_roots(input, |module| {
-      let mut set: IdentifierSet = Default::default();
+    let mut modules = find_graph_roots(input, |module, add_dependency| {
       fn add_dependencies(
         module: ModuleIdentifier,
-        set: &mut IdentifierSet,
+        add_dependency: &mut dyn FnMut(ModuleIdentifier),
         module_graph: &ModuleGraph,
         module_graph_cache: &ModuleGraphCacheArtifact,
         side_effects_state_artifact: &SideEffectsStateArtifact,
@@ -763,7 +761,7 @@ impl ChunkGraph {
             crate::ConnectionState::TransitiveOnly => {
               add_dependencies(
                 *connection.module_identifier(),
-                set,
+                add_dependency,
                 module_graph,
                 module_graph_cache,
                 side_effects_state_artifact,
@@ -773,19 +771,18 @@ impl ChunkGraph {
             }
             _ => {}
           }
-          set.insert(*connection.module_identifier());
+          add_dependency(*connection.module_identifier());
         }
       }
 
       add_dependencies(
         module,
-        &mut set,
+        add_dependency,
         module_graph,
         module_graph_cache,
         side_effects_state_artifact,
         exports_info_artifact,
       );
-      set.into_iter().collect()
     });
 
     modules.sort_unstable();
