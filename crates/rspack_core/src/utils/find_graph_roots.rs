@@ -208,18 +208,18 @@ pub fn find_graph_roots<
   // We take the nodes with most incoming edges
   // inside of the cycle
 
-  for cycle in 0..cycle_db.len() {
-    if !cycle_db[cycle].is_root {
+  for cycle in &cycle_db {
+    if !cycle.is_root {
       continue;
     }
     let mut max = 0;
 
     let mut cycle_roots = Vec::new();
-    for node in cycle_db[cycle].nodes.iter() {
+    for node in cycle.nodes.iter() {
       let dependency_len = nodes[*node].dependencies.len();
       for dependency_idx in 0..dependency_len {
         let dep = nodes[*node].dependencies[dependency_idx];
-        if cycle_db[cycle].nodes.contains(&dep) {
+        if cycle.nodes.contains(&dep) {
           nodes[dep].incoming += 1;
           let incoming = nodes[dep].incoming;
           if incoming < max {
