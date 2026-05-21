@@ -120,7 +120,6 @@ export const applyRspackOptionsDefaults = (
 
   applyModuleDefaults(options.module, {
     asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    css: options.experiments.css!,
     targetProperties,
     mode: options.mode,
     uniqueName: options.output.uniqueName,
@@ -354,7 +353,6 @@ const applyModuleDefaults = (
   module: ModuleOptions,
   {
     asyncWebAssembly,
-    css,
     targetProperties,
     mode,
     uniqueName,
@@ -364,7 +362,6 @@ const applyModuleDefaults = (
     hashSalt,
   }: {
     asyncWebAssembly: boolean;
-    css: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
@@ -540,46 +537,6 @@ const applyModuleDefaults = (
       rules.push({
         mimetype: 'application/wasm',
         ...wasm,
-      });
-    }
-
-    if (css) {
-      const resolve = {
-        fullySpecified: true,
-        preferRelative: true,
-      };
-      rules.push({
-        test: /\.css$/i,
-        type: 'css/auto',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css+module',
-        type: 'css/module',
-        resolve,
-      });
-      rules.push({
-        mimetype: 'text/css',
-        type: 'css',
-        resolve,
-      });
-      rules.push({
-        dependency: /css-import-local-module/,
-        type: 'css/module',
-        resolve,
-      });
-      rules.push({
-        dependency: /css-import-global-module/,
-        type: 'css/global',
-        resolve,
-      });
-      rules.push({
-        with: { type: 'css' },
-        type: 'css/auto',
-        parser: {
-          exportType: 'css-style-sheet',
-        },
-        resolve,
       });
     }
 
