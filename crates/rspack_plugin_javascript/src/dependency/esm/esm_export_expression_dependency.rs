@@ -4,14 +4,14 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact,
-  ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph, ModuleGraphCacheArtifact,
-  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName, property_access,
-  rspack_sources::ReplacementEnforce,
+  DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph,
+  ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
 use swc_core::atoms::Atom;
 
-use crate::parser_plugin::JS_DEFAULT_KEYWORD;
+use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -46,6 +46,7 @@ pub struct ESMExportExpressionDependency {
   range_stmt: DependencyRange,
   prefix: String,
   declaration: Option<DeclarationId>,
+  const_value: Option<ConstValue>,
   loc: Option<DependencyLocation>,
 }
 
@@ -55,6 +56,7 @@ impl ESMExportExpressionDependency {
     range_stmt: DependencyRange,
     prefix: String,
     declaration: Option<DeclarationId>,
+    const_value: Option<ConstValue>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
@@ -62,6 +64,7 @@ impl ESMExportExpressionDependency {
       range,
       range_stmt,
       declaration,
+      const_value,
       prefix,
       loc,
     }
@@ -89,9 +92,14 @@ impl Dependency for ESMExportExpressionDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
-        JS_DEFAULT_KEYWORD.clone(),
-      )]),
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        name: JS_DEFAULT_KEYWORD.clone(),
+        inlinable: self
+          .const_value
+          .as_ref()
+          .and_then(|const_value| const_value.as_inlinable().cloned()),
+        ..Default::default()
+      })]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),

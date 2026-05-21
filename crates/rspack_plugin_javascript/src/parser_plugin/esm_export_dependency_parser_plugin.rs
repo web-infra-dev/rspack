@@ -12,11 +12,11 @@ use swc_core::{
 use super::{
   DEFAULT_STAR_JS_WORD, JS_DEFAULT_KEYWORD, JavascriptParserPlugin,
   esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
-  inline_const::{ConstValueData, INLINABLE_CONST_TAG},
+  inline_const::{ConstValueData, INLINABLE_CONST_TAG, to_evaluated_inlinable_value},
   inner_graph::state::InnerGraphMapUsage,
 };
 use crate::{
-  InnerGraphParserPlugin,
+  ConstValue, InnerGraphParserPlugin,
   dependency::{
     DeclarationId, DeclarationInfo, ESMExportExpressionDependency, ESMExportHeaderDependency,
     ESMExportImportedSpecifierDependency, ESMExportSpecifierDependency,
@@ -288,54 +288,66 @@ impl JavascriptParserPlugin for ESMExportDependencyParserPlugin {
       return Some(true);
     }
 
+    let comment = parser
+      .comments
+      .and_then(|c| c.get_leading(expr_span.lo))
+      .map(|c| {
+        c.iter()
+          .dedup()
+          .map(|c| match c.kind {
+            CommentKind::Block => format!("/*{}*/", c.text),
+            CommentKind::Line => format!("//{}\n", c.text),
+          })
+          .collect_vec()
+          .join("")
+      })
+      .unwrap_or_default();
+    let declaration = match expr {
+      ExportDefaultExpression::FnDecl(f) => {
+        let start = f.span().real_lo();
+        let end = if let Some(first_arg) = f.function.params.first() {
+          first_arg.span().real_lo()
+        } else {
+          f.function.body.span().real_lo()
+        };
+        Some(DeclarationId::Func(DeclarationInfo::new(
+          DependencyRange::new(start, end),
+          format!(
+            "{}function{} ",
+            if f.function.is_async { "async " } else { "" },
+            if f.function.is_generator { "*" } else { "" },
+          ),
+          format!(
+            r#"({}"#,
+            if f.function.params.is_empty() {
+              ") "
+            } else {
+              ""
+            }
+          ),
+        )))
+      }
+      ExportDefaultExpression::ClassDecl(c) => c
+        .ident
+        .as_ref()
+        .map(|ident| DeclarationId::Id(ident.sym.to_string())),
+      ExportDefaultExpression::Expr(_) => None,
+    };
+    let const_value = match expr {
+      ExportDefaultExpression::Expr(Expr::Ident(ident)) => parser
+        .get_tag_data::<ConstValueData>(&ident.sym, INLINABLE_CONST_TAG)
+        .map(|data| data.value.clone()),
+      ExportDefaultExpression::Expr(expr) => {
+        to_evaluated_inlinable_value(&parser.evaluate_expression(expr)).map(ConstValue::Inlinable)
+      }
+      _ => None,
+    };
     let dep = ESMExportExpressionDependency::new(
       expr_span.into(),
       statement_span.into(),
-      parser
-        .comments
-        .and_then(|c| c.get_leading(expr_span.lo))
-        .map(|c| {
-          c.iter()
-            .dedup()
-            .map(|c| match c.kind {
-              CommentKind::Block => format!("/*{}*/", c.text),
-              CommentKind::Line => format!("//{}\n", c.text),
-            })
-            .collect_vec()
-            .join("")
-        })
-        .unwrap_or_default(),
-      match expr {
-        ExportDefaultExpression::FnDecl(f) => {
-          let start = f.span().real_lo();
-          let end = if let Some(first_arg) = f.function.params.first() {
-            first_arg.span().real_lo()
-          } else {
-            f.function.body.span().real_lo()
-          };
-          Some(DeclarationId::Func(DeclarationInfo::new(
-            DependencyRange::new(start, end),
-            format!(
-              "{}function{} ",
-              if f.function.is_async { "async " } else { "" },
-              if f.function.is_generator { "*" } else { "" },
-            ),
-            format!(
-              r#"({}"#,
-              if f.function.params.is_empty() {
-                ") "
-              } else {
-                ""
-              }
-            ),
-          )))
-        }
-        ExportDefaultExpression::ClassDecl(c) => c
-          .ident
-          .as_ref()
-          .map(|ident| DeclarationId::Id(ident.sym.to_string())),
-        ExportDefaultExpression::Expr(_) => None,
-      },
+      comment,
+      declaration,
+      const_value,
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
     parser.add_dependency(Box::new(dep));

@@ -7,6 +7,10 @@ module.exports = [
         const: false,
       },
     },
+    optimization: {
+      // Avoid the default export being inlined
+      inlineExports: false,
+    }
   },
   {
     entry: './supports-const.js',
@@ -15,5 +19,9 @@ module.exports = [
         const: true,
       },
     },
+    optimization: {
+      // Avoid the default export being inlined
+      inlineExports: false,
+    }
   },
 ];

@@ -1,8 +1,4 @@
 ```mjs title=main.mjs
-// ./source.js
-/* export default */ const source = (42);
-const named = 'hello';
-
 // ./index.js
 
 
@@ -13,6 +9,7 @@ it('should re-export default as named through a chain', async () => {
 });
 
 var index_named = (/* inlined export .named */"hello");
-export { index_named as named, source as renamedDefault };
+var index_renamedDefault = (/* inlined export ["default"] */42);
+export { index_named as named, index_renamedDefault as renamedDefault };
 
 ```
