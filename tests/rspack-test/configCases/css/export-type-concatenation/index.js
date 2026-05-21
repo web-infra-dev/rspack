@@ -50,7 +50,7 @@ it("should concatenate link exportType (CSS modules) and export class names", as
 it("should concatenate all modules into one concatenated module", () => {
 	const concatModules = __STATS__.modules.filter(m => m.modules);
 	if (concatModules.length > 0) {
-		// index.js + 2 text + 1 text-dep + 2 sheet + 1 sheet-dep + 1 link + 1 link-dep = 9
-		expect(concatModules[0].modules.length).toBeGreaterThanOrEqual(9);
+		// index.js + 2 text + 2 sheet; link modules still participate in CSS chunking.
+		expect(concatModules[0].modules.length).toBeGreaterThanOrEqual(5);
 	}
 });

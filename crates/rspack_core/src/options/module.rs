@@ -481,7 +481,7 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, MergeFrom, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, MergeFrom, Hash)]
 pub enum CssExportType {
   Link,
   Text,

@@ -1,7 +1,8 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, sync::LazyLock};
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
+use regex::Regex;
 use rspack_core::{
   ChunkGraph, CssExport, CssExportType, CssExports, DependencyType, GenerateContext, Module,
   ModuleArgument, RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, UsageState, UsedNameItem,
@@ -26,7 +27,11 @@ use crate::{
   utils::{replace_css_module_id_placeholder, replace_css_module_id_placeholder_with_id, unescape},
 };
 
-#[derive(Default)]
+static REGEX_CHARSET: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r#"(?i)@charset\s+("[^"]*"|'[^']*')\s*;\s*"#).expect("Invalid regex")
+});
+
+#[derive(Clone, Default)]
 struct CssImportConditions {
   media: Option<String>,
   supports: Option<String>,
@@ -45,12 +50,32 @@ impl CssImportConditions {
   fn is_empty(&self) -> bool {
     self.media.is_none() && self.supports.is_none() && self.layer.is_none()
   }
+
+  fn cache_key(&self) -> String {
+    let layer = match &self.layer {
+      Some(CssLayer::Named(layer)) => concat_string!("layer:", layer),
+      Some(CssLayer::Anonymous) => "layer:".to_string(),
+      None => String::new(),
+    };
+    concat_string!(
+      self.media.as_deref().unwrap_or_default(),
+      "|",
+      self.supports.as_deref().unwrap_or_default(),
+      "|",
+      layer
+    )
+  }
 }
 
 #[derive(Clone, Copy)]
 enum CssExportRenderMode {
   Standard,
   Concatenation { unescape_referenced_ident: bool },
+}
+
+enum CssTextFragment {
+  Static(String),
+  Expression(String),
 }
 
 pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
@@ -110,13 +135,13 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   pub fn generate_javascript_source(mut self) -> Result<BoxSource> {
     match self.export_type {
       Some(CssExportType::Text) => {
-        let css = self.stringify_css_source_for_javascript();
-        let source = self.generate_css_text_exports(&css);
+        let css = self.stringify_css_source_for_javascript_with_imports();
+        let source = self.generate_css_text_exports(&css)?;
         self.concat_source.add(RawStringSource::from(source));
       }
       Some(CssExportType::CssStyleSheet) => {
-        let css = self.stringify_css_source_for_javascript();
-        let source = self.generate_css_style_sheet_exports(&css);
+        let css = self.stringify_css_source_for_javascript_with_imports();
+        let source = self.generate_css_style_sheet_exports(&css)?;
         self.concat_source.add(RawStringSource::from(source));
       }
       Some(CssExportType::Style) if !self.exports_only => {
@@ -142,6 +167,160 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn stringify_css_source_for_javascript(&mut self) -> String {
     let css_source = self.generate_css_source_for_module(self.source, self.module);
     self.stringify_css_source_with_inline_map(css_source)
+  }
+
+  fn stringify_css_source_for_javascript_with_imports(&mut self) -> String {
+    if !self.has_css_imports(self.module) {
+      return self.stringify_css_source_for_javascript();
+    }
+
+    let mut seen = HashSet::default();
+    let fragments =
+      self.css_text_fragments_for_module_with_imports(self.source, self.module, &[], &mut seen);
+    self.stringify_css_text_fragments(fragments)
+  }
+
+  fn has_css_imports(&self, module: &dyn Module) -> bool {
+    let module_graph = self.generate_context.compilation.get_module_graph();
+    module.get_dependencies().iter().any(|dependency_id| {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      matches!(dependency.dependency_type(), DependencyType::CssImport)
+    })
+  }
+
+  fn can_inline_css_text_for_module(&self, module: &dyn Module) -> bool {
+    let module_graph = self.generate_context.compilation.get_module_graph();
+    module.get_dependencies().iter().all(|dependency_id| {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      !matches!(
+        dependency.dependency_type(),
+        DependencyType::CssCompose | DependencyType::CssUrl
+      )
+    })
+  }
+
+  fn stringify_css_text_fragments(&self, fragments: Vec<CssTextFragment>) -> String {
+    let mut css_text = String::new();
+    let mut expressions = Vec::new();
+    let mut static_only = true;
+
+    for fragment in fragments {
+      match fragment {
+        CssTextFragment::Static(fragment) => {
+          if !fragment.is_empty() {
+            css_text.push_str(&fragment);
+            expressions.push(json_stringify_str(&fragment));
+          }
+        }
+        CssTextFragment::Expression(expression) => {
+          static_only = false;
+          expressions.push(expression);
+        }
+      }
+    }
+
+    if static_only {
+      return json_stringify_str(&normalize_css_charset(css_text));
+    }
+
+    if expressions.is_empty() {
+      json_stringify_str("")
+    } else {
+      self.normalize_css_charset_expression(&expressions.join(" + "))
+    }
+  }
+
+  fn normalize_css_charset_expression(&self, expression: &str) -> String {
+    concat_string!(
+      "(function(css) { var charset = css.match(/@charset\\s+(\"[^\"]*\"|'[^']*')\\s*;\\s*/i); return charset ? \"@charset \" + charset[1] + \";\\n\" + css.replace(/@charset\\s+(\"[^\"]*\"|'[^']*')\\s*;\\s*/gi, \"\").trimStart() : css; })(",
+      expression,
+      ")"
+    )
+  }
+
+  fn css_text_fragments_for_module_with_imports(
+    &mut self,
+    source: &BoxSource,
+    module: &dyn Module,
+    import_conditions: &[CssImportConditions],
+    seen: &mut HashSet<rspack_collections::Identifier>,
+  ) -> Vec<CssTextFragment> {
+    if !seen.insert(module.identifier()) {
+      return Vec::new();
+    }
+
+    let mut fragments =
+      self.render_css_import_fragments_for_module(module, import_conditions, seen);
+    let css_source = self.generate_css_source_for_module(source, module);
+    let mut own_css = self.css_text_from_source(css_source);
+    self.wrap_css_source_with_import_conditions(&mut own_css, import_conditions);
+    fragments.push(CssTextFragment::Static(own_css));
+    seen.remove(&module.identifier());
+    fragments
+  }
+
+  fn render_css_import_fragments_for_module(
+    &mut self,
+    module: &dyn Module,
+    import_conditions: &[CssImportConditions],
+    seen: &mut HashSet<rspack_collections::Identifier>,
+  ) -> Vec<CssTextFragment> {
+    let compilation = self.generate_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let mut imported_modules = Vec::new();
+
+    for dependency_id in module.get_dependencies() {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
+        continue;
+      }
+      let Some(css_import_dep) = dependency.downcast_ref::<CssImportDependency>() else {
+        panic!("dependency with type DependencyType::CssImport should only be CssImportDependency");
+      };
+      let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(dependency_id)
+      else {
+        continue;
+      };
+      imported_modules.push((
+        imported_module.module_identifier,
+        CssImportConditions::from_dependency(css_import_dep),
+      ));
+    }
+
+    let mut fragments = Vec::new();
+    for (module_identifier, current_import_conditions) in imported_modules {
+      let Some(imported_module) = module_graph.module_by_identifier(&module_identifier) else {
+        continue;
+      };
+
+      let mut next_import_conditions = import_conditions.to_vec();
+      next_import_conditions.push(current_import_conditions);
+
+      if self.can_inline_css_text_for_module(imported_module.as_ref()) {
+        let Some(source) = imported_module.source() else {
+          continue;
+        };
+        fragments.extend(self.css_text_fragments_for_module_with_imports(
+          source,
+          imported_module.as_ref(),
+          &next_import_conditions,
+          seen,
+        ));
+        continue;
+      }
+
+      let Some(module_id) =
+        ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
+      else {
+        continue;
+      };
+      let expression = self.render_css_import_default_expression(json_stringify(module_id));
+      fragments.push(CssTextFragment::Expression(
+        self.wrap_css_expression_with_import_conditions(expression, &next_import_conditions),
+      ));
+    }
+
+    fragments
   }
 
   fn stringify_css_source_for_module_with_import_conditions(
@@ -171,14 +350,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     css_source: BoxSource,
     import_conditions: &[CssImportConditions],
   ) -> String {
-    let mut css_text = css_source
-      .source()
-      .into_string_lossy()
-      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
-      .into_owned();
+    let mut css_text = self.css_text_from_source(css_source.clone());
     self.wrap_css_source_with_import_conditions(&mut css_text, import_conditions);
 
-    if let Some(source_map) = css_source.map(&ObjectPool::default(), &MapOptions::default()) {
+    if import_conditions.is_empty()
+      && let Some(source_map) = css_source.map(&ObjectPool::default(), &MapOptions::default())
+    {
       let base64_map = encode_to_string(source_map.to_json().as_bytes());
       if !css_text.ends_with('\n') {
         css_text.push('\n');
@@ -189,6 +366,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
 
     json_stringify_str(&css_text)
+  }
+
+  fn css_text_from_source(&self, css_source: BoxSource) -> String {
+    css_source
+      .source()
+      .into_string_lossy()
+      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
+      .into_owned()
   }
 
   fn wrap_css_source_with_import_conditions(
@@ -223,12 +408,75 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     }
   }
 
+  fn wrap_css_expression_with_import_conditions(
+    &self,
+    mut expression: String,
+    import_conditions: &[CssImportConditions],
+  ) -> String {
+    for conditions in import_conditions.iter().rev() {
+      if let Some(layer) = &conditions.layer {
+        let header = match layer {
+          CssLayer::Named(layer) => concat_string!("@layer ", layer, " {\n"),
+          CssLayer::Anonymous => "@layer {\n".to_string(),
+        };
+        expression = concat_string!(
+          json_stringify_str(&header),
+          " + (",
+          expression,
+          ") + ",
+          json_stringify_str("\n}")
+        );
+      }
+
+      if let Some(supports) = &conditions.supports {
+        expression = concat_string!(
+          json_stringify_str(&concat_string!("@supports (", supports, ") {\n")),
+          " + (",
+          expression,
+          ") + ",
+          json_stringify_str("\n}")
+        );
+      }
+
+      if let Some(media) = &conditions.media {
+        expression = concat_string!(
+          json_stringify_str(&concat_string!("@media ", media, "{\n")),
+          " + (",
+          expression,
+          ") + ",
+          json_stringify_str("\n}")
+        );
+      }
+    }
+
+    expression
+  }
+
+  fn render_css_import_default_expression(&mut self, module_id: String) -> String {
+    self
+      .generate_context
+      .runtime_template
+      .runtime_requirements_mut()
+      .insert(RuntimeGlobals::REQUIRE);
+    let require = self
+      .generate_context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    concat_string!(
+      "(function(module) { return module && Object.prototype.hasOwnProperty.call(module, \"default\") ? module.default : module; })(",
+      require,
+      "(",
+      module_id,
+      "))"
+    )
+  }
+
   fn render_css_imports_for_style(&mut self) -> String {
-    let mut visited_non_style_modules = HashSet::default();
+    let mut visited_inlined_modules = HashSet::default();
     let mut import_conditions = Vec::new();
     self.render_css_imports_for_style_module(
       self.module,
-      &mut visited_non_style_modules,
+      &mut visited_inlined_modules,
       &mut import_conditions,
     )
   }
@@ -236,7 +484,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn render_css_imports_for_style_module(
     &mut self,
     module: &dyn Module,
-    visited_non_style_modules: &mut HashSet<rspack_collections::Identifier>,
+    visited_inlined_modules: &mut HashSet<String>,
     import_conditions: &mut Vec<CssImportConditions>,
   ) -> String {
     let compilation = self.generate_context.compilation;
@@ -288,14 +536,25 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       }
 
-      if !visited_non_style_modules.insert(imported_module.identifier()) {
+      import_conditions.push(current_import_conditions);
+      let import_conditions_key = import_conditions
+        .iter()
+        .map(CssImportConditions::cache_key)
+        .collect::<Vec<_>>()
+        .join(";");
+      let inlined_module_key = concat_string!(
+        imported_module.identifier().as_str(),
+        "|",
+        import_conditions_key
+      );
+      if !visited_inlined_modules.insert(inlined_module_key.clone()) {
+        import_conditions.pop();
         continue;
       }
 
-      import_conditions.push(current_import_conditions);
       code.push_str(&self.render_css_imports_for_style_module(
         imported_module.as_ref(),
-        visited_non_style_modules,
+        visited_inlined_modules,
         import_conditions,
       ));
 
@@ -309,7 +568,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         import_conditions,
       );
       import_conditions.pop();
-      code.push_str(&self.render_css_inject_style_by_module_id(json_stringify(module_id), &css));
+      let style_module_id = if import_conditions_key.is_empty() {
+        module_id.to_string()
+      } else {
+        concat_string!(module_id.to_string(), "|", import_conditions_key)
+      };
+      code.push_str(
+        &self.render_css_inject_style_by_module_id(json_stringify_str(&style_module_id), &css),
+      );
     }
 
     code
@@ -342,8 +608,15 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       &self.generate_context.compilation.module_ids_artifact,
       self.module.identifier(),
     )
-    .map(|id| id.to_string())
-    .unwrap_or_default();
+    .map_or_else(
+      || {
+        self
+          .module
+          .readable_identifier(&self.generate_context.compilation.options.context)
+          .into_owned()
+      },
+      |id| id.to_string(),
+    );
 
     self.render_css_inject_style_by_module_id(json_stringify_str(&module_id), css)
   }
@@ -356,112 +629,91 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     concat_string!(css_inject_style, "(", module_id, ", ", css, ");\n")
   }
 
-  fn generate_css_style_sheet_exports(&mut self, css: &str) -> String {
+  fn generate_css_style_sheet_exports(&mut self, css: &str) -> Result<String> {
+    let css_style_sheet_expr = self.render_css_style_sheet_expression(css);
+    if self.generate_context.concatenation_scope.is_some() {
+      self.css_modules_exports_to_concatenate_module_string_with_default(Some(
+        css_style_sheet_expr,
+      ))?;
+      return Ok(String::new());
+    }
+
+    let sheet_code = concat_string!("var __css_style_sheet = ", css_style_sheet_expr, ";\n");
+
+    Ok(self.generate_css_default_exports(&sheet_code, "__css_style_sheet", false))
+  }
+
+  fn generate_css_text_exports(&mut self, css: &str) -> Result<String> {
+    if self.generate_context.concatenation_scope.is_some() {
+      self.css_modules_exports_to_concatenate_module_string_with_default(Some(css.to_string()))?;
+      return Ok(String::new());
+    }
+
+    Ok(self.generate_css_default_exports("", css, false))
+  }
+
+  fn generate_css_default_exports(
+    &mut self,
+    prelude: &str,
+    default_expr: &str,
+    with_exports_hmr: bool,
+  ) -> String {
+    let module_argument = self.module_argument().to_string();
+    let (ns_obj, left, right) = self.get_namespace_object_parts();
+
+    if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
+      let hmr_code = if with_exports_hmr {
+        self.render_exports_hmr(decl_name)
+      } else {
+        Cow::Borrowed("")
+      };
+      concat_string!(
+        prelude,
+        exports_string,
+        "\n",
+        hmr_code,
+        "\n",
+        ns_obj,
+        left,
+        module_argument,
+        ".exports = Object.assign({}, ",
+        decl_name,
+        ")",
+        right,
+        ";\n",
+        module_argument,
+        ".exports.default = ",
+        default_expr,
+        ";\n"
+      )
+    } else if self.es_module {
+      concat_string!(
+        prelude,
+        ns_obj,
+        "(",
+        module_argument,
+        ".exports = {});\n",
+        module_argument,
+        ".exports.default = ",
+        default_expr,
+        ";\n"
+      )
+    } else {
+      concat_string!(prelude, module_argument, ".exports = ", default_expr, ";\n")
+    }
+  }
+
+  fn render_css_style_sheet_expression(&mut self, css: &str) -> String {
     self
       .generate_context
       .runtime_template
       .runtime_requirements_mut()
       .insert(RuntimeGlobals::CSS_STYLE_SHEET);
-
-    let module_argument = self.module_argument().to_string();
-    let (ns_obj, left, right) = self.get_namespace_object_parts();
     let css_style_sheet = self
       .generate_context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
-    let sheet_code = concat_string!(
-      "var __css_style_sheet = ",
-      css_style_sheet,
-      "(",
-      css,
-      ");\n"
-    );
-
-    if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
-      let hmr_code = self.render_exports_hmr(decl_name);
-      concat_string!(
-        sheet_code,
-        exports_string,
-        "\n",
-        hmr_code,
-        "\n",
-        ns_obj,
-        left,
-        module_argument,
-        ".exports = Object.assign({}, ",
-        decl_name,
-        ")",
-        right,
-        ";\n",
-        module_argument,
-        ".exports.default = __css_style_sheet;\n"
-      )
-    } else if self.es_module {
-      concat_string!(
-        sheet_code,
-        ns_obj,
-        "(",
-        module_argument,
-        ".exports = {});\n",
-        module_argument,
-        ".exports.default = __css_style_sheet;\n",
-        self.render_accept_hmr()
-      )
-    } else {
-      concat_string!(
-        sheet_code,
-        module_argument,
-        ".exports = __css_style_sheet;\n",
-        self.render_accept_hmr()
-      )
-    }
-  }
-
-  fn generate_css_text_exports(&mut self, css: &str) -> String {
-    let module_argument = self.module_argument().to_string();
-    let (ns_obj, left, right) = self.get_namespace_object_parts();
-
-    if let Some((decl_name, exports_string)) = self.stringified_used_css_exports() {
-      let hmr_code = self.render_exports_hmr(decl_name);
-      concat_string!(
-        exports_string,
-        "\n",
-        hmr_code,
-        "\n",
-        ns_obj,
-        left,
-        module_argument,
-        ".exports = Object.assign({}, ",
-        decl_name,
-        ")",
-        right,
-        ";\n",
-        module_argument,
-        ".exports.default = ",
-        css,
-        ";\n"
-      )
-    } else if self.es_module {
-      concat_string!(
-        ns_obj,
-        "(",
-        module_argument,
-        ".exports = {});\n",
-        module_argument,
-        ".exports.default = ",
-        css,
-        ";\n",
-        self.render_accept_hmr()
-      )
-    } else {
-      concat_string!(
-        module_argument,
-        ".exports = ",
-        css,
-        ";\n",
-        self.render_accept_hmr()
-      )
-    }
+    concat_string!(css_style_sheet, "(", css, ")")
   }
 
   fn stringified_used_css_exports(&mut self) -> Option<(&'static str, String)> {
@@ -625,6 +877,45 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     &mut self,
     exports: FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>,
   ) -> Result<()> {
+    self.css_modules_exports_to_concatenate_module_string_inner(None, Some(exports))
+  }
+
+  fn css_modules_exports_to_concatenate_module_string_with_default(
+    &mut self,
+    default_expr: Option<String>,
+  ) -> Result<()> {
+    let exports = self
+      .module
+      .build_info()
+      .css_exports
+      .as_ref()
+      .map(|exports| {
+        if let Some(local_names) = &self.module.build_info().css_local_names {
+          let unused_exports = get_unused_local_ident(
+            exports,
+            local_names,
+            self.module.identifier(),
+            self.generate_context.runtime,
+            &self.generate_context.compilation.exports_info_artifact,
+          );
+          self.generate_context.data.insert(unused_exports);
+        }
+
+        get_used_exports(
+          exports,
+          self.module.identifier(),
+          self.generate_context.runtime,
+          &self.generate_context.compilation.exports_info_artifact,
+        )
+      });
+    self.css_modules_exports_to_concatenate_module_string_inner(default_expr, exports)
+  }
+
+  fn css_modules_exports_to_concatenate_module_string_inner<'b>(
+    &mut self,
+    default_expr: Option<String>,
+    exports: Option<FxIndexMap<&'b str, &'b FxIndexSet<CssExport>>>,
+  ) -> Result<()> {
     let module = self.module;
     if self.generate_context.concatenation_scope.is_none() {
       return Ok(());
@@ -635,6 +926,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
+
+    if let Some(default_expr) = default_expr {
+      self.register_concatenated_css_export(
+        "default",
+        &default_expr,
+        &mut used_identifiers,
+        exports_info,
+        runtime,
+      );
+    }
+
+    let Some(exports) = exports else {
+      return Ok(());
+    };
 
     for (key, elements) in exports {
       let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
@@ -672,6 +977,41 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       scope.register_export(key.into(), identifier.into_owned());
     }
     Ok(())
+  }
+
+  fn register_concatenated_css_export(
+    &mut self,
+    key: &str,
+    content: &str,
+    used_identifiers: &mut HashSet<Cow<'_, str>>,
+    exports_info: &rspack_core::ExportsInfoData,
+    runtime: Option<&rspack_core::RuntimeSpec>,
+  ) {
+    let export_info = exports_info.get_read_only_export_info(&Atom::from(key));
+    let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) else {
+      return;
+    };
+
+    let mut identifier: Cow<'_, str> = Cow::Owned(to_identifier(&used_name).into_owned());
+    if RESERVED_IDENTIFIER.contains(identifier.as_ref()) {
+      identifier = Cow::Owned(concat_string!("_", identifier));
+    }
+    let base_identifier = identifier.clone();
+    let mut i = 0;
+    while used_identifiers.contains(&identifier) {
+      let mut i_buffer = itoa::Buffer::new();
+      let i_str = i_buffer.format(i);
+      identifier = Cow::Owned(concat_string!(base_identifier, i_str));
+      i += 1;
+    }
+
+    let export_source = concat_string!("var ", identifier, " = ", content, ";\n");
+    self.concat_source.add(RawStringSource::from(export_source));
+    used_identifiers.insert(identifier.clone());
+    let Some(ref mut scope) = self.generate_context.concatenation_scope else {
+      unreachable!();
+    };
+    scope.register_export(key.into(), identifier.into_owned());
   }
 
   fn resolve_static_css_export(
@@ -1036,4 +1376,20 @@ if ({module_argument}.hot.data && {module_argument}.hot.data.exports && {module_
       Default::default()
     }
   }
+}
+
+fn normalize_css_charset(css_text: String) -> String {
+  let Some(caps) = REGEX_CHARSET.captures(&css_text) else {
+    return css_text;
+  };
+  let Some(charset) = caps.get(1) else {
+    return css_text;
+  };
+  let without_charsets = REGEX_CHARSET.replace_all(&css_text, "");
+  concat_string!(
+    "@charset ",
+    charset.as_str(),
+    ";\n",
+    without_charsets.trim_start()
+  )
 }

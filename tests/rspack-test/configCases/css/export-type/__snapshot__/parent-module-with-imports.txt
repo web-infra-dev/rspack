@@ -1,0 +1,82 @@
+@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+.foo {
+    color: rebeccapurple;
+}.auto-no-esm-text {
+	color: brown;
+	font-style: italic;
+}
+
+.another-auto {
+	display: block;
+}
+
+@layer utilities {
+.imported-layer_css-imported-layer {
+	padding: 10px;
+	margin: 5px;
+}
+
+
+}@supports (display: grid) {
+.imported-base_css-imported-base {
+	color: blue;
+	font-size: 14px;
+}
+
+
+}@media screen and (min-width: 768px){
+.imported-base_css-imported-base {
+	color: blue;
+	font-size: 14px;
+}
+
+
+}@media screen and (max-width: 1024px){
+@supports (display: flex) {
+@layer components {
+.imported-layer_css-imported-layer {
+	padding: 10px;
+	margin: 5px;
+}
+
+
+}
+}
+}
+
+
+
+
+
+
+
+.module-with-imports_css-main-class {
+	color: purple;
+	display: flex;
+	background-image: url(7bc91c245a8a10a4.png);
+}
+
+@layer base {
+	.module-with-imports_css-base-class {
+		font-family: sans-serif;
+	}
+}
+
+@supports (display: grid) {
+	.module-with-imports_css-grid-class {
+		display: grid;
+	}
+}
+
+@media (min-width: 600px) {
+	.module-with-imports_css-responsive-class {
+		width: 100%;
+	}
+}
+
+
+}
+}
+}

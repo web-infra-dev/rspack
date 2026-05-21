@@ -272,8 +272,15 @@ pub fn replace_css_module_id_placeholder<'a>(
   module: &dyn Module,
 ) -> Cow<'a, str> {
   let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .expect("css module should have module id when rendering local ident");
-  replace_css_module_id_placeholder_with_id(local_ident, module_id.as_str())
+    .map_or_else(
+      || {
+        module
+          .readable_identifier(&compilation.options.context)
+          .into_owned()
+      },
+      |module_id| module_id.to_string(),
+    );
+  replace_css_module_id_placeholder_with_id(local_ident, &module_id)
 }
 
 pub fn replace_css_module_id_placeholder_with_id<'a>(

@@ -353,7 +353,13 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    if self.exports_only {
+    if !self.es_module() {
+      Some("Module Concatenation is not implemented for CommonJS css exports".into())
+    } else if self.exports_only
+      || self
+        .export_type()
+        .is_some_and(|export_type| export_type != CssExportType::Link)
+    {
       None
     } else {
       // CSS Module cannot be concatenated as it must appear in css chunk, if it's
