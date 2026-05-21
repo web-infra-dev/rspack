@@ -278,6 +278,9 @@ strip    = "none"
 
 [profile.release.package]
 
+[profile.release.package.lightningcss]
+opt-level = "s"
+
 [profile.release.package.regex-syntax]
 opt-level = "s"
 

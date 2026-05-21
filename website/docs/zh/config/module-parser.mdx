@@ -10,19 +10,21 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Module parser
 
+`module.parser` 用于控制 Rspack 如何解析不同类型的模块。它会影响依赖收集、`import.meta` 和动态 `import()` 等语法的识别，以及各类模块自己的解析行为。
+
 ## parser
 
 - **类型：** `Object`
 - **默认值：** `{}`
 
-使用 `module.parser` 在一个地方配置所有解析器选项。
+使用 `module.parser` 可以按模块类型配置解析器选项。
 
-查看按模块类型拆分的详细页面：
+可配置的 parser 选项分组包括：
 
-- [Asset parser 选项](/config/module-parser#asset)
-- [JavaScript parser 选项](/config/module-parser#javascript)
-- [JSON parser 选项](/config/module-parser#json)
-- [CSS parser 选项](/config/module-parser#cssauto)
+- `asset`: [Asset parser 选项](/config/module-parser#asset)
+- `javascript`, `javascript/auto`, `javascript/dynamic`, `javascript/esm`: [JavaScript parser 选项](/config/module-parser#javascript)
+- `json`: [JSON parser 选项](/config/module-parser#json)
+- `css`, `css/auto`, `css/global`, `css/module`: [CSS parser 选项](/config/module-parser#cssauto)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -909,7 +911,7 @@ export default {
 
 <ApiMeta addedVersion="1.2.0" />
 
-`json` 模块的解析器选项
+`json` 模块的解析器选项。
 
 ```js title="rspack.config.mjs"
 export default {

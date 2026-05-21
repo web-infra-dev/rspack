@@ -10,19 +10,21 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Module parser
 
+`module.parser` controls how Rspack reads modules after they are resolved. It affects how dependencies are collected, how syntax such as `import.meta` and dynamic `import()` is interpreted, and other parsing behavior for each module type.
+
 ## parser
 
 - **Type:** `Object`
 - **Default:** `{}`
 
-Configure all parsers' options in one place with `module.parser`.
+Use `module.parser` to define parser options for each module type.
 
 Available parser option groups:
 
-- [Asset parser options](#asset)
-- [JavaScript parser options](#javascript)
-- [JSON parser options](#json)
-- [CSS parser options](#cssauto)
+- `asset`: [Asset parser options](#asset)
+- `javascript`, `javascript/auto`, `javascript/dynamic`, `javascript/esm`: [JavaScript parser options](#javascript)
+- `json`: [JSON parser options](#json)
+- `css`, `css/auto`, `css/global`, `css/module`: [CSS parser options](#cssauto)
 
 ```js title="rspack.config.mjs"
 export default {
