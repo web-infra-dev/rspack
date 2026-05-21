@@ -86,7 +86,7 @@ fn create_resource_identifier_for_context_dependency(
   let recursive = options.recursive.to_string();
   let pattern = match &options.pattern {
     ContextModulePattern::RegExp(r) => r.to_source_string(),
-    ContextModulePattern::Glob(g) => g.to_string(),
+    ContextModulePattern::Glob(g) => ContextModulePattern::glob_patterns_to_string(g),
     ContextModulePattern::None => String::new(),
   };
   let include = options

@@ -7,15 +7,16 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_util::node_path::NodePath;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
-  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
-  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, glob_base_dir_end,
+  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleGlobPattern,
+  ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
+  GlobMatchOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
+  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
   glob_match_normalized_with_explicit_dot, normalize_path_separators, resolve, walk_dir,
 };
 
@@ -461,15 +462,14 @@ async fn visit_dirs(
         }
       };
 
-      if matches!(
-        options.context_options.pattern,
-        ContextModulePattern::Glob(_)
-      ) {
+      if let ContextModulePattern::Glob(patterns) = &options.context_options.pattern {
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if matcher.matches(&relative_path) {
-          push_context_element_dependency(dependencies, options, &relative_path);
+        if let Some(user_request) = glob_user_request(patterns, path_str) {
+          if !dependencies.iter().any(|d| d.user_request == user_request) {
+            push_context_element_dependency(dependencies, options, &relative_path, &user_request);
+          }
         }
       } else {
         let requests = alternative_requests(
@@ -478,7 +478,7 @@ async fn visit_dirs(
         );
         for r in &requests {
           if matcher.matches(&r.request) {
-            push_context_element_dependency(dependencies, options, &r.request);
+            push_context_element_dependency(dependencies, options, &r.request, &r.request);
           }
         }
       }
@@ -491,6 +491,7 @@ fn push_context_element_dependency(
   dependencies: &mut Vec<ContextElementDependency>,
   options: &ContextModuleOptions,
   user_request: &str,
+  exposed_user_request: &str,
 ) {
   let request = format!(
     "{}{}{}{}",
@@ -505,7 +506,7 @@ fn push_context_element_dependency(
   dependencies.push(ContextElementDependency {
     id: DependencyId::new(),
     request,
-    user_request: user_request.to_string(),
+    user_request: exposed_user_request.to_string(),
     category: options.context_options.category,
     context: options.resource.clone().into(),
     layer: options.layer.clone(),
@@ -518,44 +519,56 @@ fn push_context_element_dependency(
   });
 }
 
+fn glob_user_request(patterns: &[ContextModuleGlobPattern], path: &str) -> Option<String> {
+  let normalized_path = normalize_path_separators(path);
+  let matched = patterns
+    .iter()
+    .filter(|pattern| !pattern.negative)
+    .find(|pattern| glob_pattern_matches(pattern, &normalized_path))?;
+
+  if patterns
+    .iter()
+    .filter(|pattern| pattern.negative)
+    .any(|pattern| glob_pattern_matches(pattern, &normalized_path))
+  {
+    return None;
+  }
+
+  let suffix = normalized_path
+    .strip_prefix(matched.absolute_base.as_ref())
+    .unwrap_or(normalized_path.as_str())
+    .trim_start_matches('/');
+  Some(
+    Utf8Path::new(matched.base.as_ref())
+      .node_join_posix(suffix)
+      .to_string(),
+  )
+}
+
+fn glob_pattern_matches(pattern: &ContextModuleGlobPattern, normalized_path: &str) -> bool {
+  glob_match_normalized_with_explicit_dot(
+    pattern.absolute_pattern.as_ref(),
+    normalized_path,
+    pattern.absolute_base.as_ref(),
+    &GlobMatchOptions::default(),
+  )
+}
+
 struct ContextModuleMatcher<'a> {
   pattern: &'a ContextModulePattern,
-  glob_remainder: Option<String>,
 }
 
 impl<'a> ContextModuleMatcher<'a> {
   fn new(pattern: &'a ContextModulePattern) -> Self {
-    let glob_remainder = pattern.glob_pattern().map(|glob_pattern| {
-      let base_dir_len = glob_base_dir_end(glob_pattern);
-      let remainder = if glob_pattern.len() > base_dir_len {
-        &glob_pattern[base_dir_len..]
-      } else {
-        "*"
-      };
-      normalize_path_separators(remainder.strip_prefix('/').unwrap_or(remainder))
-    });
-
-    Self {
-      pattern,
-      glob_remainder,
-    }
+    Self { pattern }
   }
 
   fn is_empty(&self) -> bool {
-    self.glob_remainder.is_none() && self.pattern.is_empty()
+    !matches!(self.pattern, ContextModulePattern::Glob(_)) && self.pattern.is_empty()
   }
 
   fn matches(&self, request: &str) -> bool {
-    if let Some(filename_glob) = &self.glob_remainder {
-      let stripped = request.strip_prefix("./").unwrap_or(request);
-      let normalized_path = stripped.cow_replace('\\', "/");
-      glob_match_normalized_with_explicit_dot(
-        filename_glob,
-        normalized_path.as_ref(),
-        "",
-        &GlobMatchOptions::default(),
-      )
-    } else if let Some(reg_exp) = self.pattern.reg_exp() {
+    if let Some(reg_exp) = self.pattern.reg_exp() {
       reg_exp.test(request)
     } else {
       false

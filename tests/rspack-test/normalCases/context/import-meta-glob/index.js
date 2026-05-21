@@ -6,6 +6,9 @@ const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
 const lazyCjsModules = import.meta.glob('./cjs/*.js')
 const eagerCjsModules = import.meta.glob('./cjs/*.js', { eager: true })
 const dotfileModules = import.meta.glob('./dot/.*.js')
+const filteredModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], { eager: true })
+const multiModules = import.meta.glob(['./dir/*.js', './other/*.js'], { eager: true })
+const lazyMultiModules = import.meta.glob(['./dir/*.js', './other/*.js'])
 
 it('should return a thunk for each matched file in lazy mode', async () => {
   const keys = Object.keys(lazyModules).sort()
@@ -61,6 +64,34 @@ it('should match explicit dotfile glob patterns', async () => {
 
   const hidden = await dotfileModules['./dot/.hidden.js']()
   expect(hidden.default).toBe('hidden')
+})
+
+it('should support negative patterns in glob arrays', () => {
+  const keys = Object.keys(filteredModules).sort()
+  expect(keys).toEqual(['./dir/foo.js'])
+  expect(filteredModules['./dir/foo.js'].default).toBe('foo')
+  expect(filteredModules['./dir/bar.js']).toBeUndefined()
+})
+
+it('should support multiple glob patterns in eager mode', () => {
+  const keys = Object.keys(multiModules).sort()
+  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js', './other/baz.js'])
+  expect(multiModules['./dir/foo.js'].default).toBe('foo')
+  expect(multiModules['./dir/bar.js'].default).toBe('bar')
+  expect(multiModules['./other/baz.js'].default).toBe('baz')
+})
+
+it('should support multiple glob patterns in lazy mode', async () => {
+  const keys = Object.keys(lazyMultiModules).sort()
+  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js', './other/baz.js'])
+
+  const foo = await lazyMultiModules['./dir/foo.js']()
+  const bar = await lazyMultiModules['./dir/bar.js']()
+  const baz = await lazyMultiModules['./other/baz.js']()
+
+  expect(foo.default).toBe('foo')
+  expect(bar.default).toBe('bar')
+  expect(baz.default).toBe('baz')
 })
 
 // Eager: each value is the module object directly

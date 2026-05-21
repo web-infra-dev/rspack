@@ -142,7 +142,7 @@ pub fn extract_glob_base_dir(pattern: &str) -> &str {
 }
 
 /// Normalize backslashes to forward slashes in a path string.
-pub(crate) fn normalize_path_separators(s: &str) -> String {
+pub fn normalize_path_separators(s: &str) -> String {
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
   while let Some(c) = chars.next() {
@@ -356,6 +356,10 @@ mod tests {
     assert_eq!(
       normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
       "C:/fixtures/a\\[b\\]/file.js"
+    );
+    assert_eq!(
+      normalize_path_separators("C:\\repo\\src/*.js"),
+      "C:/repo/src/*.js"
     );
   }
 

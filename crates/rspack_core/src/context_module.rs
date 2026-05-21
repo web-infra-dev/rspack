@@ -123,10 +123,34 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub struct ContextModuleGlobPattern {
+  pub pattern: Arc<str>,
+  pub absolute_pattern: Arc<str>,
+  pub base: Arc<str>,
+  pub absolute_base: Arc<str>,
+  pub negative: bool,
+}
+
+impl ContextModuleGlobPattern {
+  pub fn new(pattern: String, absolute_pattern: String, negative: bool) -> Self {
+    let base = extract_glob_base_dir(&pattern).into();
+    let absolute_base = extract_glob_base_dir(&absolute_pattern).into();
+    Self {
+      pattern: pattern.into(),
+      absolute_pattern: absolute_pattern.into(),
+      base,
+      absolute_base,
+      negative,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub enum ContextModulePattern {
   None,
   RegExp(RspackRegex),
-  Glob(Arc<str>),
+  Glob(Vec<ContextModuleGlobPattern>),
 }
 
 impl ContextModulePattern {
@@ -137,10 +161,10 @@ impl ContextModulePattern {
     }
   }
 
-  pub fn glob_pattern(&self) -> Option<&str> {
+  pub fn glob_patterns(&self) -> Option<&[ContextModuleGlobPattern]> {
     match self {
       Self::None | Self::RegExp(_) => None,
-      Self::Glob(glob_pattern) => Some(glob_pattern.as_ref()),
+      Self::Glob(glob_patterns) => Some(glob_patterns),
     }
   }
 
@@ -148,11 +172,24 @@ impl ContextModulePattern {
     matches!(self, Self::None)
   }
 
+  pub fn glob_patterns_to_string(glob_patterns: &[ContextModuleGlobPattern]) -> String {
+    glob_patterns
+      .iter()
+      .map(|p| {
+        if p.negative {
+          concat_string!("!", p.pattern.as_ref())
+        } else {
+          p.pattern.to_string()
+        }
+      })
+      .join(", ")
+  }
+
   pub fn to_pretty_string(&self, source: bool) -> Option<String> {
     match self {
       Self::None => None,
       Self::RegExp(reg_exp) => Some(reg_exp.to_pretty_string(source)),
-      Self::Glob(glob_pattern) => Some(glob_pattern.to_string()),
+      Self::Glob(glob_patterns) => Some(Self::glob_patterns_to_string(glob_patterns)),
     }
   }
 }
@@ -527,26 +564,12 @@ impl ContextModule {
     }
   }
 
-  fn glob_map_key(base_dir: &str, user_request: &str) -> String {
-    if let Some(stripped) = user_request.strip_prefix("./") {
-      concat_string!(base_dir, stripped)
-    } else {
-      concat_string!(base_dir, user_request)
-    }
-  }
-
-  fn append_glob_map_entry(
-    entries: &mut String,
-    index: usize,
-    base_dir: &str,
-    user_request: &str,
-    value: &str,
-  ) {
+  fn append_glob_map_entry(entries: &mut String, index: usize, user_request: &str, value: &str) {
     if index > 0 {
       entries.push_str(",\n");
     }
     entries.push_str("\n  ");
-    entries.push_str(&json_stringify(&Self::glob_map_key(base_dir, user_request)));
+    entries.push_str(&json_stringify(user_request));
     entries.push_str(": ");
     entries.push_str(value);
   }
@@ -597,10 +620,7 @@ impl ContextModule {
     &self,
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
-    pattern: &str,
   ) -> String {
-    let base_dir = extract_glob_base_dir(pattern);
-
     match &self.options.context_options.mode {
       ContextMode::Lazy => {
         if self.get_blocks().is_empty() {
@@ -623,7 +643,6 @@ impl ContextModule {
           Self::append_glob_map_entry(
             &mut entries,
             i,
-            base_dir,
             &info.user_request,
             &concat_string!("function() { return ", import_promise, "; }"),
           );
@@ -656,7 +675,7 @@ impl ContextModule {
           } else {
             concat_string!("undefined /* ", json_stringify(user_request), " */")
           };
-          Self::append_glob_map_entry(&mut entries, i, base_dir, user_request, &module_id_expr);
+          Self::append_glob_map_entry(&mut entries, i, user_request, &module_id_expr);
         }
 
         formatdoc! {r#"
@@ -678,8 +697,8 @@ impl ContextModule {
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
-    if let ContextModulePattern::Glob(pattern) = &self.options.context_options.pattern {
-      return self.get_glob_source(compilation, runtime_template, pattern);
+    if let ContextModulePattern::Glob(_) = &self.options.context_options.pattern {
+      return self.get_glob_source(compilation, runtime_template);
     }
 
     match self.options.context_options.mode {
