@@ -33,7 +33,7 @@ use crate::{
   },
   parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
-  runtime::{CssInjectStyleRuntimeModule, CssLoadingRuntimeModule, CssStyleSheetRuntimeModule},
+  runtime::{CssExportRuntimeModule, CssExportRuntimeModuleKind, CssLoadingRuntimeModule},
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
 };
 
@@ -315,17 +315,21 @@ async fn runtime_requirements_in_tree(
   if runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
     runtime_modules_to_add.push((
       *chunk_ukey,
-      CssInjectStyleRuntimeModule::new(&compilation.runtime_template).boxed(),
+      CssExportRuntimeModule::new_inject_style(&compilation.runtime_template).boxed(),
     ));
-    runtime_requirements_mut.extend(CssInjectStyleRuntimeModule::get_runtime_requirements());
+    runtime_requirements_mut.extend(CssExportRuntimeModule::get_runtime_requirements(
+      CssExportRuntimeModuleKind::InjectStyle,
+    ));
   }
 
   if runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
     runtime_modules_to_add.push((
       *chunk_ukey,
-      CssStyleSheetRuntimeModule::new(&compilation.runtime_template).boxed(),
+      CssExportRuntimeModule::new_style_sheet(&compilation.runtime_template).boxed(),
     ));
-    runtime_requirements_mut.extend(CssStyleSheetRuntimeModule::get_runtime_requirements());
+    runtime_requirements_mut.extend(CssExportRuntimeModule::get_runtime_requirements(
+      CssExportRuntimeModuleKind::StyleSheet,
+    ));
   }
 
   let is_enabled_for_chunk = is_enabled_for_chunk(

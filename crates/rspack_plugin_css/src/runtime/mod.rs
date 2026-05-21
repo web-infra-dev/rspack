@@ -268,29 +268,27 @@ installedChunks[chunkId] = 0;
         ),
       );
       let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
+        let mut chunk_ids = String::new();
+        for id in &initial_chunk_ids {
+          if !chunk_ids.is_empty() {
+            chunk_ids.push(',');
+          }
+          chunk_ids.push_str(&rspack_util::json_stringify(id));
+        }
         Cow::Owned(format!(
-          "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
-          initial_chunk_ids
-            .iter()
-            .map(rspack_util::json_stringify)
-            .collect::<Vec<_>>()
-            .join(","),
+          "[{chunk_ids}].forEach(loadCssChunkData.bind(null, {}, 0));",
           runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
         ))
       } else if !initial_chunk_ids.is_empty() {
-        Cow::Owned(
-          initial_chunk_ids
-            .iter()
-            .map(|id| {
-              let id = rspack_util::json_stringify(id);
-              format!(
-                "loadCssChunkData({}, 0, {});",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-                id
-              )
-            })
-            .collect::<String>(),
-        )
+        let mut chunk_data = String::new();
+        for id in &initial_chunk_ids {
+          chunk_data.push_str(&format!(
+            "loadCssChunkData({}, 0, {});",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+            rspack_util::json_stringify(id)
+          ));
+        }
+        Cow::Owned(chunk_data)
       } else {
         Cow::Borrowed("// no initial css")
       };
@@ -403,27 +401,44 @@ installedChunks[chunkId] = 0;
   }
 }
 
-#[impl_runtime_module]
-#[derive(Debug)]
-pub struct CssInjectStyleRuntimeModule {}
-
-impl CssInjectStyleRuntimeModule {
-  pub fn get_runtime_requirements() -> RuntimeGlobals {
-    *CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS
-  }
-
-  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(runtime_template)
-  }
+pub mod css_loading {
+  pub use super::CssLoadingRuntimeModule;
 }
 
-#[async_trait::async_trait]
-impl RuntimeModule for CssInjectStyleRuntimeModule {
-  fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), CSS_INJECT_STYLE_TEMPLATE.to_string())]
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum CssExportRuntimeModuleKind {
+  InjectStyle,
+  StyleSheet,
+}
+
+#[impl_runtime_module]
+#[derive(Debug)]
+pub struct CssExportRuntimeModule {
+  kind: CssExportRuntimeModuleKind,
+}
+
+impl CssExportRuntimeModule {
+  pub fn new_inject_style(runtime_template: &RuntimeTemplate) -> Self {
+    Self::new(runtime_template, CssExportRuntimeModuleKind::InjectStyle)
   }
 
-  async fn generate(
+  pub fn new_style_sheet(runtime_template: &RuntimeTemplate) -> Self {
+    Self::new(runtime_template, CssExportRuntimeModuleKind::StyleSheet)
+  }
+
+  pub fn get_runtime_requirements(kind: CssExportRuntimeModuleKind) -> RuntimeGlobals {
+    match kind {
+      CssExportRuntimeModuleKind::InjectStyle => *CSS_INJECT_STYLE_RUNTIME_REQUIREMENTS,
+      CssExportRuntimeModuleKind::StyleSheet => *CSS_STYLE_SHEET_RUNTIME_REQUIREMENTS,
+    }
+  }
+
+  fn new(runtime_template: &RuntimeTemplate, kind: CssExportRuntimeModuleKind) -> Self {
+    Self::with_name(runtime_template, kind.runtime_module_name(), kind)
+  }
+
+  async fn generate_inject_style(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
@@ -488,44 +503,7 @@ impl RuntimeModule for CssInjectStyleRuntimeModule {
     Ok(source)
   }
 
-  fn stage(&self) -> RuntimeModuleStage {
-    RuntimeModuleStage::Attach
-  }
-}
-
-pub mod css_inject_style {
-  pub use super::CssInjectStyleRuntimeModule;
-}
-
-pub mod css_loading {
-  pub use super::CssLoadingRuntimeModule;
-}
-
-pub mod css_style_sheet {
-  pub use super::CssStyleSheetRuntimeModule;
-}
-
-#[impl_runtime_module]
-#[derive(Debug)]
-pub struct CssStyleSheetRuntimeModule {}
-
-impl CssStyleSheetRuntimeModule {
-  pub fn get_runtime_requirements() -> RuntimeGlobals {
-    *CSS_STYLE_SHEET_RUNTIME_REQUIREMENTS
-  }
-
-  pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(runtime_template)
-  }
-}
-
-#[async_trait::async_trait]
-impl RuntimeModule for CssStyleSheetRuntimeModule {
-  fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), CSS_STYLE_SHEET_TEMPLATE.to_string())]
-  }
-
-  async fn generate(
+  fn generate_style_sheet(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
@@ -541,8 +519,41 @@ impl RuntimeModule for CssStyleSheetRuntimeModule {
 
     Ok(source)
   }
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for CssExportRuntimeModule {
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id.to_string(),
+      match self.kind {
+        CssExportRuntimeModuleKind::InjectStyle => CSS_INJECT_STYLE_TEMPLATE,
+        CssExportRuntimeModuleKind::StyleSheet => CSS_STYLE_SHEET_TEMPLATE,
+      }
+      .to_string(),
+    )]
+  }
+
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    match self.kind {
+      CssExportRuntimeModuleKind::InjectStyle => self.generate_inject_style(context).await,
+      CssExportRuntimeModuleKind::StyleSheet => self.generate_style_sheet(context),
+    }
+  }
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+}
+
+impl CssExportRuntimeModuleKind {
+  fn runtime_module_name(self) -> &'static str {
+    match self {
+      CssExportRuntimeModuleKind::InjectStyle => "css_inject_style",
+      CssExportRuntimeModuleKind::StyleSheet => "css_style_sheet",
+    }
   }
 }
