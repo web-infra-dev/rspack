@@ -5,8 +5,8 @@ const STATS = __STATS__.children[__STATS_I__];
 it("should fold every link-export module into a single concatenated module", () => {
 	const concatModules = STATS.modules.filter((m) => m.modules);
 	if (concatModules.length > 0) {
-		// index-link.js + link-root + link-leaf = 3
-		expect(concatModules[0].modules.length).toBeGreaterThanOrEqual(3);
+		// index-link.js + link-root; link-leaf is folded into link-root.
+		expect(concatModules[0].modules.length).toBeGreaterThanOrEqual(2);
 	}
 });
 
