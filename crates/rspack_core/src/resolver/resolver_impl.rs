@@ -1,5 +1,7 @@
 use std::{
+  collections::HashSet,
   fmt,
+  hash::BuildHasherDefault,
   path::{Path, PathBuf},
   sync::Arc,
 };
@@ -7,19 +9,26 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{ArcPathSet, AssertUtf8};
+use rspack_paths::{ArcPath, ArcPathSet, AssertUtf8};
+use rspack_resolver::ResolverPath;
 use rspack_util::location::byte_line_column_to_offset;
+use ustr::IdentityHasher;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
 };
 
+/// A `HashSet<ResolverPath, IdentityHasher>` that preserves the `FxHash`
+/// precomputed by the resolver, so insert/lookup costs collapse to a single
+/// `write_u64` instead of rehashing each absolute path.
+pub type ArcResolverPathSet = HashSet<ResolverPath, BuildHasherDefault<IdentityHasher>>;
+
 #[derive(Debug, Default, Clone)]
 pub struct ResolveDependencies {
-  /// Files that was found on file system
+  /// Files that were found on file system
   pub file_dependencies: ArcPathSet,
-  /// Dependencies that was not found on file system
+  /// Dependencies that were not found on file system
   pub missing_dependencies: ArcPathSet,
 }
 
@@ -175,12 +184,12 @@ impl Resolver {
       file_dependencies: context
         .file_dependencies
         .into_iter()
-        .map(Into::into)
+        .map(resolver_path_to_arc_path)
         .collect(),
       missing_dependencies: context
         .missing_dependencies
         .into_iter()
-        .map(Into::into)
+        .map(resolver_path_to_arc_path)
         .collect(),
     };
     let result = match result {
@@ -446,4 +455,14 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     Severity::Error
   };
   error
+}
+
+/// Zero-cost conversion that hands the resolver's `Arc<Path>` straight to
+/// `ArcPath` and reuses its precomputed `FxHash`. Both types now hash path
+/// bytes with the same scheme (see `rspack_paths::hash_path`), so reusing the
+/// `u64` preserves `HashSet` correctness.
+#[inline]
+fn resolver_path_to_arc_path(rp: ResolverPath) -> ArcPath {
+  let hash = rp.precomputed_hash();
+  ArcPath::from_parts(hash, rp.into_arc())
 }

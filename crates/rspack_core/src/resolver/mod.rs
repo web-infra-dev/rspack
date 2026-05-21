@@ -18,7 +18,8 @@ use sugar_path::SugarPath;
 pub use self::{
   factory::{ResolveOptionsWithDependencyType, ResolverFactory},
   resolver_impl::{
-    ResolveContext, ResolveDependencies, ResolveInnerError, ResolveInnerOptions, Resolver,
+    ArcResolverPathSet, ResolveContext, ResolveDependencies, ResolveInnerError,
+    ResolveInnerOptions, Resolver,
   },
 };
 use crate::{
