@@ -23,7 +23,7 @@ use rspack_util::{
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  dependency::{CssImportDependency, CssMedia, CssSupports},
+  dependency::{CssImportDependency, CssLayer, CssMedia, CssSupports},
   parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
 };
 
@@ -162,6 +162,100 @@ pub fn get_unused_local_ident(
   }
 }
 
+pub(crate) fn render_css_module_source(
+  source: &BoxSource,
+  module: &dyn Module,
+  generate_context: &mut GenerateContext<'_>,
+) -> BoxSource {
+  let mut source = ReplaceSource::new(source.clone());
+  let compilation = generate_context.compilation;
+  let mut init_fragments = ModuleInitFragments::default();
+  let mut context = TemplateContext {
+    compilation,
+    module,
+    runtime: generate_context.runtime,
+    init_fragments: &mut init_fragments,
+    concatenation_scope: generate_context.concatenation_scope.take(),
+    data: generate_context.data,
+    runtime_template: generate_context.runtime_template,
+  };
+
+  let module_graph = compilation.get_module_graph();
+  module.get_dependencies().iter().for_each(|id| {
+    let dep = module_graph.dependency_by_id(id);
+
+    if let Some(dependency) = dep.as_dependency_code_generation() {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
+        template.render(dependency, &mut source, &mut context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
+    }
+  });
+
+  let old_media = context.data.remove::<CssMedia>();
+  let old_supports = context.data.remove::<CssSupports>();
+  let old_layer = context.data.remove::<CssLayer>();
+
+  for conn in module_graph.get_incoming_connections(&module.identifier()) {
+    let dep = module_graph.dependency_by_id(&conn.dependency_id);
+
+    if matches!(dep.dependency_type(), DependencyType::CssImport) {
+      let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
+        panic!("dependency with type DependencyType::CssImport should only be CssImportDependency");
+      };
+
+      if let Some(media) = css_import_dep.media() {
+        context.data.insert(CssMedia(media.to_string()));
+      }
+
+      if let Some(supports) = css_import_dep.supports() {
+        context.data.insert(CssSupports(supports.to_string()));
+      }
+
+      if let Some(layer) = css_import_dep.layer() {
+        context.data.insert(layer.clone());
+      }
+    }
+  }
+
+  if let Some(dependencies) = module.get_presentational_dependencies() {
+    dependencies.iter().for_each(|dependency| {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|dependency_type| compilation.get_dependency_template(dependency_type))
+      {
+        template.render(dependency.as_ref(), &mut source, &mut context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
+    });
+  };
+
+  if let Some(media) = old_media {
+    context.data.insert(media);
+  }
+  if let Some(supports) = old_supports {
+    context.data.insert(supports);
+  }
+  if let Some(layer) = old_layer {
+    context.data.insert(layer);
+  }
+
+  generate_context.concatenation_scope = context.concatenation_scope.take();
+
+  source.boxed()
+}
+
 static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new(r"(^|[^-_a-zA-Z0-9])--([_a-zA-Z][-_a-zA-Z0-9]*)").expect("Invalid regex")
 });
@@ -234,83 +328,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
           .runtime_requirements_mut()
           .insert(RuntimeGlobals::HAS_CSS_MODULES);
 
-        let mut source = ReplaceSource::new(source.clone());
-        let compilation = generate_context.compilation;
-        let mut init_fragments = ModuleInitFragments::default();
-        let mut context = TemplateContext {
-          compilation,
-          module,
-          runtime: generate_context.runtime,
-          init_fragments: &mut init_fragments,
-          concatenation_scope: generate_context.concatenation_scope.take(),
-          data: generate_context.data,
-          runtime_template: generate_context.runtime_template,
-        };
-
-        let module_graph = compilation.get_module_graph();
-        module.get_dependencies().iter().for_each(|id| {
-          let dep = module_graph.dependency_by_id(id);
-
-          if let Some(dependency) = dep.as_dependency_code_generation() {
-            if let Some(template) = dependency
-              .dependency_template()
-              .and_then(|template_type| compilation.get_dependency_template(template_type))
-            {
-              template.render(dependency, &mut source, &mut context)
-            } else {
-              panic!(
-                "Can not find dependency template of {:?}",
-                dependency.dependency_template()
-              );
-            }
-          }
-        });
-
-        for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-          if matches!(dep.dependency_type(), DependencyType::CssImport) {
-            let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
-              panic!(
-                "dependency with type DependencyType::CssImport should only be CssImportDependency"
-              );
-            };
-
-            if let Some(media) = css_import_dep.media() {
-              let media = CssMedia(media.to_string());
-              context.data.insert(media);
-            }
-
-            if let Some(supports) = css_import_dep.supports() {
-              let supports = CssSupports(supports.to_string());
-              context.data.insert(supports);
-            }
-
-            if let Some(layer) = css_import_dep.layer() {
-              context.data.insert(layer.clone());
-            }
-          }
-        }
-
-        if let Some(dependencies) = module.get_presentational_dependencies() {
-          dependencies.iter().for_each(|dependency| {
-            if let Some(template) = dependency
-              .dependency_template()
-              .and_then(|dependency_type| compilation.get_dependency_template(dependency_type))
-            {
-              template.render(dependency.as_ref(), &mut source, &mut context)
-            } else {
-              panic!(
-                "Can not find dependency template of {:?}",
-                dependency.dependency_template()
-              );
-            }
-          });
-        };
-
-        generate_context.concatenation_scope = context.concatenation_scope.take();
-
-        Ok(source.boxed())
+        Ok(render_css_module_source(source, module, generate_context))
       }
       SourceType::JavaScript => CssModuleGenerator::new(
         source,

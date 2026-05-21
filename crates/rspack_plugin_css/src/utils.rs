@@ -271,12 +271,19 @@ pub fn replace_css_module_id_placeholder<'a>(
   compilation: &Compilation,
   module: &dyn Module,
 ) -> Cow<'a, str> {
+  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+    .expect("css module should have module id when rendering local ident");
+  replace_css_module_id_placeholder_with_id(local_ident, module_id.as_str())
+}
+
+pub fn replace_css_module_id_placeholder_with_id<'a>(
+  local_ident: &'a str,
+  module_id: &str,
+) -> Cow<'a, str> {
   if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
     return Cow::Borrowed(local_ident);
   }
-  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .expect("css module should have module id when rendering local ident");
-  let module_id = prepare_css_module_id(module_id.as_str());
+  let module_id = prepare_css_module_id(module_id);
   let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
   Cow::Owned(
     LEADING_DIGIT_REGEX

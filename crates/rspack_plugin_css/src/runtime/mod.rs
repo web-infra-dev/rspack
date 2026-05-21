@@ -415,26 +415,12 @@ impl CssInjectStyleRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template)
   }
-
-  fn template_id(&self, id: CssInjectStyleTemplateId) -> String {
-    let base_id = self.id.to_string();
-    match id {
-      CssInjectStyleTemplateId::Raw => base_id,
-    }
-  }
-}
-
-enum CssInjectStyleTemplateId {
-  Raw,
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssInjectStyleRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.template_id(CssInjectStyleTemplateId::Raw),
-      CSS_INJECT_STYLE_TEMPLATE.to_string(),
-    )]
+    vec![(self.id.to_string(), CSS_INJECT_STYLE_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -489,7 +475,7 @@ impl RuntimeModule for CssInjectStyleRuntimeModule {
       runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
 
     let source = context.runtime_template.render(
-      &self.template_id(CssInjectStyleTemplateId::Raw),
+      &self.id.to_string(),
       Some(serde_json::json!({
         "_data_webpack_prefix": data_webpack_prefix,
         "_create_style": &create_style.code,
@@ -531,26 +517,12 @@ impl CssStyleSheetRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template)
   }
-
-  fn template_id(&self, id: CssStyleSheetTemplateId) -> String {
-    let base_id = self.id.to_string();
-    match id {
-      CssStyleSheetTemplateId::Raw => base_id,
-    }
-  }
-}
-
-enum CssStyleSheetTemplateId {
-  Raw,
 }
 
 #[async_trait::async_trait]
 impl RuntimeModule for CssStyleSheetRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
-    vec![(
-      self.template_id(CssStyleSheetTemplateId::Raw),
-      CSS_STYLE_SHEET_TEMPLATE.to_string(),
-    )]
+    vec![(self.id.to_string(), CSS_STYLE_SHEET_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -561,7 +533,7 @@ impl RuntimeModule for CssStyleSheetRuntimeModule {
     let css_style_sheet = runtime_template.render_runtime_globals(&RuntimeGlobals::CSS_STYLE_SHEET);
 
     let source = context.runtime_template.render(
-      &self.template_id(CssStyleSheetTemplateId::Raw),
+      &self.id.to_string(),
       Some(serde_json::json!({
         "CSS_STYLE_SHEET": &css_style_sheet,
       })),
