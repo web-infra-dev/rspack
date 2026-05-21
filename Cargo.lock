@@ -4148,6 +4148,7 @@ dependencies = [
  "dashmap",
  "indexmap",
  "rspack_cacheable",
+ "rspack_resolver",
  "rustc-hash",
  "ustr-fxhash",
 ]

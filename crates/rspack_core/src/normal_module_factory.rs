@@ -3,6 +3,7 @@ use std::{borrow::Cow, collections::HashMap, ops::Deref, sync::Arc};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, Scheme, get_scheme};
+use rspack_paths::ArcResolverPathSet;
 use rspack_util::MergeFrom;
 use sugar_path::SugarPath;
 use winnow::prelude::*;
@@ -359,8 +360,8 @@ impl NormalModuleFactory {
     let importer = data.issuer_identifier;
     let raw_request = data.request.clone();
 
-    let mut file_dependencies = Default::default();
-    let mut missing_dependencies = Default::default();
+    let mut file_dependencies: ArcResolverPathSet = Default::default();
+    let mut missing_dependencies: ArcResolverPathSet = Default::default();
 
     let plugin_driver = &self.plugin_driver;
     let loader_resolver = self.get_loader_resolver();
@@ -581,8 +582,8 @@ module.exports = "data:,";
             return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
           }
           Err(err) => {
-            data.file_dependencies = file_dependencies;
-            data.missing_dependencies = missing_dependencies;
+            data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
+            data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
             return Err(err);
           }
         }
@@ -822,8 +823,8 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies;
-    data.missing_dependencies = missing_dependencies;
+    data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
+    data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
 
     Ok(Some(ModuleFactoryResult::new_with_module(module)))
   }

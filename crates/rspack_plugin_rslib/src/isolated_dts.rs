@@ -93,12 +93,18 @@ pub(crate) async fn complete_isolated_dts_outputs(
       let (result, resolve_dependencies) = resolver
         .resolve_with_context(issuer_dir.as_std_path(), &request)
         .await;
-      compilation
-        .file_dependencies
-        .extend(resolve_dependencies.file_dependencies);
-      compilation
-        .missing_dependencies
-        .extend(resolve_dependencies.missing_dependencies);
+      compilation.file_dependencies.extend(
+        resolve_dependencies
+          .file_dependencies
+          .into_iter()
+          .map(Into::into),
+      );
+      compilation.missing_dependencies.extend(
+        resolve_dependencies
+          .missing_dependencies
+          .into_iter()
+          .map(Into::into),
+      );
       let Ok(ResolveResult::Resource(resource)) = result else {
         continue;
       };

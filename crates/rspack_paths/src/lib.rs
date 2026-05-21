@@ -17,8 +17,9 @@ use rspack_cacheable::{
   utils::PortablePath,
   with::{Custom, CustomConverter},
 };
+pub use rspack_resolver::ResolverPath;
 use rustc_hash::FxHasher;
-use ustr::IdentityHasher;
+pub use ustr::IdentityHasher;
 
 pub trait AssertUtf8 {
   type Output;
@@ -143,6 +144,16 @@ impl From<&str> for ArcPath {
   }
 }
 
+impl From<ResolverPath> for ArcPath {
+  /// Zero-cost conversion: reuses the resolver's precomputed `FxHash` and the
+  /// existing `Arc<Path>`. Safe because `rspack_paths::hash_path` and the hash
+  /// scheme in `rspack_resolver` are kept identical.
+  fn from(value: ResolverPath) -> Self {
+    let hash = value.precomputed_hash();
+    ArcPath::from_parts(hash, value.into_arc())
+  }
+}
+
 impl CustomConverter for ArcPath {
   type Target = PortablePath;
   fn serialize(&self, guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
@@ -169,6 +180,11 @@ pub type ArcPathMap<V> = HashMap<ArcPath, V, BuildHasherDefault<IdentityHasher>>
 /// A standard `HashSet` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
 pub type ArcPathSet = HashSet<ArcPath, BuildHasherDefault<IdentityHasher>>;
+
+/// A `HashSet<ResolverPath, IdentityHasher>` that preserves the `FxHash`
+/// precomputed inside `rspack_resolver`. Inserting and looking up entries
+/// here only costs a `write_u64` instead of hashing the full absolute path.
+pub type ArcResolverPathSet = HashSet<ResolverPath, BuildHasherDefault<IdentityHasher>>;
 
 /// A standard `DashMap` using `ArcPath` as the key type with a custom `Hasher`
 /// that just uses the precomputed hash for speed instead of calculating it.
