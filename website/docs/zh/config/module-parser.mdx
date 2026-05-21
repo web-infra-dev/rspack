@@ -19,10 +19,10 @@ import WebpackLicense from '@components/WebpackLicense';
 
 查看按模块类型拆分的详细页面：
 
-- [Asset parser 选项](/config/module-parser#parserasset)
-- [JavaScript parser 选项](/config/module-parser#parserjavascript)
-- [JSON parser 选项](/config/module-parser#parserjson)
-- [CSS parser 选项](/config/module-parser#parsercssauto)
+- [Asset parser 选项](/config/module-parser#asset)
+- [JavaScript parser 选项](/config/module-parser#javascript)
+- [JSON parser 选项](/config/module-parser#json)
+- [CSS parser 选项](/config/module-parser#cssauto)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -59,7 +59,7 @@ export default {
 };
 ```
 
-### parser.asset
+### asset
 
 `asset` 模块的解析器选项。
 
@@ -75,7 +75,7 @@ export default {
 };
 ```
 
-### parser.asset.dataUrlCondition
+### asset.dataUrlCondition
 
 - **类型：** `{ maxSize: number }`
 - **默认值：** `{ maxSize: 8096 }`
@@ -97,7 +97,7 @@ export default {
 };
 ```
 
-### parser.javascript
+### javascript
 
 `javascript` 模块的解析器选项。
 
@@ -113,7 +113,7 @@ export default {
 };
 ```
 
-### parser.javascript.commonjsMagicComments
+### javascript.commonjsMagicComments
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 <ApiMeta addedVersion="1.5.6" />
@@ -138,7 +138,7 @@ export default {
 const x = require(/* webpackIgnore: true */ 'x');
 ```
 
-### parser.javascript.dynamicImportMode
+### javascript.dynamicImportMode
 
 <PropertyType
   type="'lazy' | 'eager' | 'weak' | 'lazy-once'"
@@ -159,7 +159,7 @@ export default {
 };
 ```
 
-### parser.javascript.dynamicImportPrefetch
+### javascript.dynamicImportPrefetch
 
 <PropertyType
   type="boolean | number"
@@ -180,7 +180,7 @@ export default {
 };
 ```
 
-### parser.javascript.dynamicImportPreload
+### javascript.dynamicImportPreload
 
 <PropertyType
   type="boolean | number"
@@ -201,7 +201,7 @@ export default {
 };
 ```
 
-### parser.javascript.dynamicImportFetchPriority
+### javascript.dynamicImportFetchPriority
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -224,7 +224,7 @@ export default {
 };
 ```
 
-### parser.javascript.url
+### javascript.url
 
 <PropertyType
   type="true | false | 'relative' | 'new-url-relative'"
@@ -280,7 +280,7 @@ export default {
 <img src="file:///path/to/project/dist/icon.svg" />
 ```
 
-### parser.javascript.exprContextCritical
+### javascript.exprContextCritical
 
 <PropertyType
   type="boolean | undefined"
@@ -301,7 +301,7 @@ export default {
 };
 ```
 
-### parser.javascript.wrappedContextCritical
+### javascript.wrappedContextCritical
 
 <PropertyType
   type="boolean | undefined"
@@ -322,7 +322,7 @@ export default {
 };
 ```
 
-### parser.javascript.unknownContextCritical
+### javascript.unknownContextCritical
 
 <PropertyType
   type="boolean | undefined"
@@ -343,7 +343,7 @@ export default {
 };
 ```
 
-### parser.javascript.wrappedContextRegExp
+### javascript.wrappedContextRegExp
 
 <PropertyType
   type="RegExp | undefined"
@@ -364,7 +364,7 @@ export default {
 };
 ```
 
-### parser.javascript.importMeta
+### javascript.importMeta
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
@@ -389,7 +389,7 @@ export default {
 };
 ```
 
-### parser.javascript.exportsPresence
+### javascript.exportsPresence
 
 <PropertyType
   type="'error' | 'warn' | 'auto' | false"
@@ -415,11 +415,11 @@ export default {
 };
 ```
 
-### parser.javascript.importExportsPresence
+### javascript.importExportsPresence
 
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
-当使用了不存在的导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#parserjavascriptexportspresence) 的配置。
+当使用了不存在的导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#javascriptexportspresence) 的配置。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -433,11 +433,11 @@ export default {
 };
 ```
 
-### parser.javascript.reexportExportsPresence
+### javascript.reexportExportsPresence
 
 <PropertyType type="'error' | 'warn' | 'auto' | false" />
 
-当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#parserjavascriptexportspresence) 的配置。
+当使用了存在冲突的重导出时，是否进行警告或报错。默认会遵循 [module.parser.javascript.exportsPresence](#javascriptexportspresence) 的配置。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -451,7 +451,7 @@ export default {
 };
 ```
 
-### parser.javascript.typeReexportsPresence
+### javascript.typeReexportsPresence
 
 <ApiMeta addedVersion="1.4.1" />
 
@@ -525,7 +525,7 @@ export default {
 
 详细示例可参考：[type reexports presence 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/type-reexports-presence)
 
-### parser.javascript.worker
+### javascript.worker
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
@@ -556,7 +556,7 @@ export default {
 
 > 查看 [Web Workers](/guide/features/web-workers) 了解更多。
 
-### parser.javascript.overrideStrict
+### javascript.overrideStrict
 
 <ApiMeta addedVersion="1.0.0-alpha.4" />
 
@@ -578,7 +578,7 @@ export default {
 };
 ```
 
-### parser.javascript.commonjs
+### javascript.commonjs
 
 <PropertyType
   type="boolean | { exports?: boolean | 'skipInEsm' }"
@@ -601,7 +601,7 @@ export default {
 };
 ```
 
-### parser.javascript.requireAlias
+### javascript.requireAlias
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
@@ -621,7 +621,7 @@ export default {
 };
 ```
 
-### parser.javascript.requireAsExpression
+### javascript.requireAsExpression
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
@@ -641,7 +641,7 @@ export default {
 };
 ```
 
-### parser.javascript.requireDynamic
+### javascript.requireDynamic
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
@@ -661,7 +661,7 @@ export default {
 };
 ```
 
-### parser.javascript.requireResolve
+### javascript.requireResolve
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
@@ -681,7 +681,7 @@ export default {
 };
 ```
 
-### parser.javascript.importDynamic
+### javascript.importDynamic
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
@@ -701,7 +701,7 @@ export default {
 };
 ```
 
-### parser.javascript.strictThisContextOnImports
+### javascript.strictThisContextOnImports
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
@@ -762,7 +762,7 @@ export default {
 
 :::
 
-### parser.javascript.jsx
+### javascript.jsx
 
 <ApiMeta stability={Stability.Experimental} addedVersion="1.5.7" />
 
@@ -788,7 +788,7 @@ export default {
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
-### parser.javascript.importMetaResolve
+### javascript.importMetaResolve
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
 
@@ -814,7 +814,7 @@ export default {
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
-### parser.javascript.pureFunctions
+### javascript.pureFunctions
 
 <ApiMeta stability={Stability.Experimental} />
 
@@ -857,9 +857,9 @@ export default {
 该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
 :::
 
-### parser["javascript/auto"]
+### ["javascript/auto"]
 
-`javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#parserjavascript)相同。
+`javascript/auto` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#javascript)相同。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -873,9 +873,9 @@ export default {
 };
 ```
 
-### parser["javascript/dynamic"]
+### ["javascript/dynamic"]
 
-`javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#parserjavascript)相同。
+`javascript/dynamic` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#javascript)相同。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -889,9 +889,9 @@ export default {
 };
 ```
 
-### parser["javascript/esm"]
+### ["javascript/esm"]
 
-`javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#parserjavascript)相同。
+`javascript/esm` 模块的解析器选项，和 [`javascript` 的模块的解析器选项](#javascript)相同。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -905,7 +905,7 @@ export default {
 };
 ```
 
-### parser.json
+### json
 
 <ApiMeta addedVersion="1.2.0" />
 
@@ -923,7 +923,7 @@ export default {
 };
 ```
 
-### parser.json.exportsDepth
+### json.exportsDepth
 
 <ApiMeta addedVersion="1.2.0" />
 
@@ -954,7 +954,7 @@ export default {
 };
 ```
 
-### parser["css/auto"]
+### ["css/auto"]
 
 `css/auto` 模块的解析器选项。
 
@@ -970,7 +970,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].namedExports
+### ["css/auto"].namedExports
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -1023,7 +1023,7 @@ import classes from './index.module.css';
 import classes, { class1, class2 } from './index.module.css';
 ```
 
-### parser["css/auto"].url
+### ["css/auto"].url
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -1045,7 +1045,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].resolveImport
+### ["css/auto"].resolveImport
 
 <ApiMeta addedVersion="1.7.2" />
 
@@ -1072,7 +1072,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].import
+### ["css/auto"].import
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -1094,7 +1094,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].animation
+### ["css/auto"].animation
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -1113,7 +1113,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].customIdents
+### ["css/auto"].customIdents
 
 - **类型：** `boolean`
 - **默认值：** `false`
@@ -1132,7 +1132,7 @@ export default {
 };
 ```
 
-### parser["css/auto"].dashedIdents
+### ["css/auto"].dashedIdents
 
 - **类型：** `boolean`
 - **默认值：** `false`
@@ -1151,7 +1151,7 @@ export default {
 };
 ```
 
-### parser.css
+### css
 
 `css` 模块的解析器选项。
 
@@ -1167,9 +1167,9 @@ export default {
 };
 ```
 
-### parser.css.namedExports
+### css.namedExports
 
-和 [`module.parser["css/auto"].namedExports`](#parsercssautonamedexports) 一样。
+和 [`module.parser["css/auto"].namedExports`](#cssautonamedexports) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1183,9 +1183,9 @@ export default {
 };
 ```
 
-### parser.css.url
+### css.url
 
-和 [`module.parser["css/auto"].url`](#parsercssautourl) 一样。
+和 [`module.parser["css/auto"].url`](#cssautourl) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1199,9 +1199,9 @@ export default {
 };
 ```
 
-### parser.css.resolveImport
+### css.resolveImport
 
-参考 [`module.parser["css/auto"].resolveImport`](#parsercssautoresolveimport)。
+参考 [`module.parser["css/auto"].resolveImport`](#cssautoresolveimport)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1217,9 +1217,9 @@ export default {
 };
 ```
 
-### parser.css.import
+### css.import
 
-和 [`module.parser["css/auto"].import`](#parsercssautoimport) 一样。
+和 [`module.parser["css/auto"].import`](#cssautoimport) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1233,9 +1233,9 @@ export default {
 };
 ```
 
-### parser.css.animation
+### css.animation
 
-和 [`module.parser["css/auto"].animation`](#parsercssautoanimation) 一样。
+和 [`module.parser["css/auto"].animation`](#cssautoanimation) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1249,9 +1249,9 @@ export default {
 };
 ```
 
-### parser.css.customIdents
+### css.customIdents
 
-和 [`module.parser["css/auto"].customIdents`](#parsercssautocustomidents) 一样。
+和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1265,9 +1265,9 @@ export default {
 };
 ```
 
-### parser.css.dashedIdents
+### css.dashedIdents
 
-和 [`module.parser["css/auto"].dashedIdents`](#parsercssautodashedidents) 一样。
+和 [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1281,7 +1281,7 @@ export default {
 };
 ```
 
-### parser["css/global"]
+### ["css/global"]
 
 `css/global` 模块的解析器选项。
 
@@ -1297,9 +1297,9 @@ export default {
 };
 ```
 
-### parser["css/global"].namedExports
+### ["css/global"].namedExports
 
-和 [`module.parser["css/auto"].namedExports`](#parsercssautonamedexports) 一样。
+和 [`module.parser["css/auto"].namedExports`](#cssautonamedexports) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1313,9 +1313,9 @@ export default {
 };
 ```
 
-### parser["css/global"].url
+### ["css/global"].url
 
-和 [`module.parser["css/auto"].url`](#parsercssautourl) 一样。
+和 [`module.parser["css/auto"].url`](#cssautourl) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1329,9 +1329,9 @@ export default {
 };
 ```
 
-### parser["css/global"].resolveImport
+### ["css/global"].resolveImport
 
-参考 [`module.parser["css/auto"].resolveImport`](#parsercssautoresolveimport)。
+参考 [`module.parser["css/auto"].resolveImport`](#cssautoresolveimport)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1347,9 +1347,9 @@ export default {
 };
 ```
 
-### parser["css/global"].import
+### ["css/global"].import
 
-和 [`module.parser["css/auto"].import`](#parsercssautoimport) 一样。
+和 [`module.parser["css/auto"].import`](#cssautoimport) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1363,9 +1363,9 @@ export default {
 };
 ```
 
-### parser["css/global"].animation
+### ["css/global"].animation
 
-和 [`module.parser["css/auto"].animation`](#parsercssautoanimation) 一样。
+和 [`module.parser["css/auto"].animation`](#cssautoanimation) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1379,9 +1379,9 @@ export default {
 };
 ```
 
-### parser["css/global"].customIdents
+### ["css/global"].customIdents
 
-和 [`module.parser["css/auto"].customIdents`](#parsercssautocustomidents) 一样。
+和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1395,9 +1395,9 @@ export default {
 };
 ```
 
-### parser["css/global"].dashedIdents
+### ["css/global"].dashedIdents
 
-和 [`module.parser["css/auto"].dashedIdents`](#parsercssautodashedidents) 一样。
+和 [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1411,7 +1411,7 @@ export default {
 };
 ```
 
-### parser["css/module"]
+### ["css/module"]
 
 `css/module` 模块的解析器选项。
 
@@ -1427,9 +1427,9 @@ export default {
 };
 ```
 
-### parser["css/module"].namedExports
+### ["css/module"].namedExports
 
-和 [`module.parser["css/auto"].namedExports`](#parsercssautonamedexports) 一样。
+和 [`module.parser["css/auto"].namedExports`](#cssautonamedexports) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1443,9 +1443,9 @@ export default {
 };
 ```
 
-### parser["css/module"].url
+### ["css/module"].url
 
-和 [`module.parser["css/auto"].url`](#parsercssautourl) 一样。
+和 [`module.parser["css/auto"].url`](#cssautourl) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1459,9 +1459,9 @@ export default {
 };
 ```
 
-### parser["css/module"].resolveImport
+### ["css/module"].resolveImport
 
-参考 [`module.parser["css/auto"].resolveImport`](#parsercssautoresolveimport)。
+参考 [`module.parser["css/auto"].resolveImport`](#cssautoresolveimport)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1477,9 +1477,9 @@ export default {
 };
 ```
 
-### parser["css/module"].import
+### ["css/module"].import
 
-和 [`module.parser["css/auto"].import`](#parsercssautoimport) 一样。
+和 [`module.parser["css/auto"].import`](#cssautoimport) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1493,9 +1493,9 @@ export default {
 };
 ```
 
-### parser["css/module"].animation
+### ["css/module"].animation
 
-和 [`module.parser["css/auto"].animation`](#parsercssautoanimation) 一样。
+和 [`module.parser["css/auto"].animation`](#cssautoanimation) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1509,9 +1509,9 @@ export default {
 };
 ```
 
-### parser["css/module"].customIdents
+### ["css/module"].customIdents
 
-和 [`module.parser["css/auto"].customIdents`](#parsercssautocustomidents) 一样。
+和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1525,9 +1525,9 @@ export default {
 };
 ```
 
-### parser["css/module"].dashedIdents
+### ["css/module"].dashedIdents
 
-和 [`module.parser["css/auto"].dashedIdents`](#parsercssautodashedidents) 一样。
+和 [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents) 一样。
 
 ```js title="rspack.config.mjs"
 export default {

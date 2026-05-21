@@ -17,9 +17,9 @@ Configure all generators' options in one place with `module.generator`.
 
 Available generator option groups:
 
-- [Asset generator options](#generatorasset)
-- [CSS generator options](#generatorcssauto)
-- [JSON generator options](#generatorjsonjsonparse)
+- [Asset generator options](#asset)
+- [CSS generator options](#cssauto)
+- [JSON generator options](#jsonjsonparse)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -93,7 +93,7 @@ export default {
 };
 ```
 
-### generator.asset
+### asset
 
 Generator options for `asset` modules.
 
@@ -109,7 +109,7 @@ export default {
 };
 ```
 
-### generator.asset.binary
+### asset.binary
 
 - **Type:** `boolean | undefined`
 - **Default:** `undefined`
@@ -129,7 +129,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl
+### asset.dataUrl
 
 - **Type:** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **Default:** `{}`
@@ -172,7 +172,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl.encoding
+### asset.dataUrl.encoding
 
 - **Type:** `false | 'base64'`
 - **Default:** `'base64'`
@@ -193,7 +193,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl.mimetype
+### asset.dataUrl.mimetype
 
 - **Type:** `string`
 - **Default:** `require('mime-types').lookup(ext)`
@@ -214,12 +214,12 @@ export default {
 };
 ```
 
-### generator.asset.importMode
+### asset.importMode
 
 - **Type:** `'url' | 'preserve'`
 - **Default:** `'url'`
 
-If `"url"`, a URL pointing to the asset will be generated based on [publicPath](#generatorassetpublicpath).
+If `"url"`, a URL pointing to the asset will be generated based on [publicPath](#assetpublicpath).
 If `"preserve"`, preserve import/require statement from generated asset.
 
 Only for modules with module type `'asset'` or `'asset/resource'`.
@@ -252,7 +252,7 @@ export default {
 };
 ```
 
-### generator.asset.filename
+### asset.filename
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -272,7 +272,7 @@ export default {
 };
 ```
 
-### generator.asset.outputPath
+### asset.outputPath
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -293,7 +293,7 @@ export default {
 };
 ```
 
-### generator.asset.publicPath
+### asset.publicPath
 
 - **Type:** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **Default:** `undefined`
@@ -312,7 +312,7 @@ export default {
 };
 ```
 
-### generator.asset.emit
+### asset.emit
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -349,7 +349,7 @@ export default {
 };
 ```
 
-### generator["asset/inline"]
+### ["asset/inline"]
 
 Generator options for `asset/inline` modules.
 
@@ -365,9 +365,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].binary
+### ["asset/inline"].binary
 
-Same as [`module.generator["asset"].binary`](#generatorassetbinary).
+Same as [`module.generator["asset"].binary`](#assetbinary).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -381,9 +381,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl
+### ["asset/inline"].dataUrl
 
-Same as [`module.generator["asset"].dataUrl`](#generatorassetdataurl).
+Same as [`module.generator["asset"].dataUrl`](#assetdataurl).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -399,9 +399,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl.encoding
+### ["asset/inline"].dataUrl.encoding
 
-Same as [`module.generator["asset"].dataUrl.encoding`](#generatorassetdataurlencoding).
+Same as [`module.generator["asset"].dataUrl.encoding`](#assetdataurlencoding).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -417,9 +417,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl.mimetype
+### ["asset/inline"].dataUrl.mimetype
 
-Same as [`module.generator["asset"].dataUrl.mimetype`](#generatorassetdataurlmimetype).
+Same as [`module.generator["asset"].dataUrl.mimetype`](#assetdataurlmimetype).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -435,7 +435,7 @@ export default {
 };
 ```
 
-### generator["asset/resource"]
+### ["asset/resource"]
 
 Generator options for `asset/resource` modules.
 
@@ -451,9 +451,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].binary
+### ["asset/resource"].binary
 
-Same as [`module.generator["asset"].binary`](#generatorassetbinary).
+Same as [`module.generator["asset"].binary`](#assetbinary).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -467,9 +467,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].importMode
+### ["asset/resource"].importMode
 
-Same as [`module.generator["asset"].importMode`](#generatorassetimportmode).
+Same as [`module.generator["asset"].importMode`](#assetimportmode).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -483,9 +483,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].filename
+### ["asset/resource"].filename
 
-Same as [`module.generator["asset"].filename`](#generatorassetfilename).
+Same as [`module.generator["asset"].filename`](#assetfilename).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -499,9 +499,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].outputPath
+### ["asset/resource"].outputPath
 
-Same as [`module.generator["asset"].outputPath`](#generatorassetoutputpath).
+Same as [`module.generator["asset"].outputPath`](#assetoutputpath).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -515,9 +515,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].publicPath
+### ["asset/resource"].publicPath
 
-Same as [`module.generator["asset"].publicPath`](#generatorassetpublicpath).
+Same as [`module.generator["asset"].publicPath`](#assetpublicpath).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -531,7 +531,7 @@ export default {
 };
 ```
 
-### generator["css/auto"]
+### ["css/auto"]
 
 Generator options for `css/auto` modules.
 
@@ -547,7 +547,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].exportsConvention
+### ["css/auto"].exportsConvention
 
 - **Type:** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **Default:** `'as-is'`
@@ -566,7 +566,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].exportsOnly
+### ["css/auto"].exportsOnly
 
 - **Type:** `boolean`
 - **Default:** `true` for node environments, `false` for web environments.
@@ -587,7 +587,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentName
+### ["css/auto"].localIdentName
 
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]`
@@ -606,7 +606,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashDigest
+### ["css/auto"].localIdentHashDigest
 
 - **Type:** `string`
 - **Default:** `'base64url'`
@@ -625,7 +625,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashDigestLength
+### ["css/auto"].localIdentHashDigestLength
 
 - **Type:** `number`
 - **Default:** `6`
@@ -644,7 +644,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashFunction
+### ["css/auto"].localIdentHashFunction
 
 - **Type:** `string`
 - **Default:** `'md4'`
@@ -663,7 +663,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashSalt
+### ["css/auto"].localIdentHashSalt
 
 - **Type:** `string`
 - **Default:** `undefined`
@@ -682,7 +682,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].esModule
+### ["css/auto"].esModule
 
 - **Type:** `boolean`
 - **Default:** `true`
@@ -736,7 +736,7 @@ function Button() {
 }
 ```
 
-### generator.css
+### css
 
 Generator options for `css` modules.
 
@@ -752,9 +752,9 @@ export default {
 };
 ```
 
-### generator.css.exportsOnly
+### css.exportsOnly
 
-Same as [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly).
+Same as [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -768,9 +768,9 @@ export default {
 };
 ```
 
-### generator.css.esModule
+### css.esModule
 
-Same as [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule).
+Same as [`module.generator["css/auto"].esModule`](#cssautoesmodule).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -784,7 +784,7 @@ export default {
 };
 ```
 
-### generator["css/global"]
+### ["css/global"]
 
 Generator options for `css/global` modules.
 
@@ -800,9 +800,9 @@ export default {
 };
 ```
 
-### generator["css/global"].exportsConvention
+### ["css/global"].exportsConvention
 
-Same as [`module.generator["css/auto"].exportsConvention`](#generatorcssautoexportsconvention).
+Same as [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -816,9 +816,9 @@ export default {
 };
 ```
 
-### generator["css/global"].exportsOnly
+### ["css/global"].exportsOnly
 
-Same as [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly).
+Same as [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -832,9 +832,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentName
+### ["css/global"].localIdentName
 
-Same as [`module.generator["css/auto"].localIdentName`](#generatorcssautolocalidentname).
+Same as [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -848,9 +848,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashDigest
+### ["css/global"].localIdentHashDigest
 
-Same as [`module.generator["css/auto"].localIdentHashDigest`](#generatorcssautolocalidenthashdigest).
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -864,9 +864,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashDigestLength
+### ["css/global"].localIdentHashDigestLength
 
-Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#generatorcssautolocalidenthashdigestlength).
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -880,9 +880,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashFunction
+### ["css/global"].localIdentHashFunction
 
-Same as [`module.generator["css/auto"].localIdentHashFunction`](#generatorcssautolocalidenthashfunction).
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -896,9 +896,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashSalt
+### ["css/global"].localIdentHashSalt
 
-Same as [`module.generator["css/auto"].localIdentHashSalt`](#generatorcssautolocalidenthashsalt).
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -912,9 +912,9 @@ export default {
 };
 ```
 
-### generator["css/global"].esModule
+### ["css/global"].esModule
 
-Same as [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule).
+Same as [`module.generator["css/auto"].esModule`](#cssautoesmodule).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -928,7 +928,7 @@ export default {
 };
 ```
 
-### generator["css/module"]
+### ["css/module"]
 
 Generator options for `css/module` modules.
 
@@ -944,9 +944,9 @@ export default {
 };
 ```
 
-### generator["css/module"].exportsConvention
+### ["css/module"].exportsConvention
 
-Same as [`module.generator["css/auto"].exportsConvention`](#generatorcssautoexportsconvention).
+Same as [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -960,9 +960,9 @@ export default {
 };
 ```
 
-### generator["css/module"].exportsOnly
+### ["css/module"].exportsOnly
 
-Same as [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly).
+Same as [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -976,9 +976,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentName
+### ["css/module"].localIdentName
 
-Same as [`module.generator["css/auto"].localIdentName`](#generatorcssautolocalidentname).
+Same as [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -992,9 +992,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashDigest
+### ["css/module"].localIdentHashDigest
 
-Same as [`module.generator["css/auto"].localIdentHashDigest`](#generatorcssautolocalidenthashdigest).
+Same as [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1008,9 +1008,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashDigestLength
+### ["css/module"].localIdentHashDigestLength
 
-Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#generatorcssautolocalidenthashdigestlength).
+Same as [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1024,9 +1024,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashFunction
+### ["css/module"].localIdentHashFunction
 
-Same as [`module.generator["css/auto"].localIdentHashFunction`](#generatorcssautolocalidenthashfunction).
+Same as [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1040,9 +1040,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashSalt
+### ["css/module"].localIdentHashSalt
 
-Same as [`module.generator["css/auto"].localIdentHashSalt`](#generatorcssautolocalidenthashsalt).
+Same as [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1056,9 +1056,9 @@ export default {
 };
 ```
 
-### generator["css/module"].esModule
+### ["css/module"].esModule
 
-Same as [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule).
+Same as [`module.generator["css/auto"].esModule`](#cssautoesmodule).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1072,7 +1072,7 @@ export default {
 };
 ```
 
-### generator.json.JSONParse
+### json.JSONParse
 
 - **Type:** `boolean`
 - **Default:** `true`

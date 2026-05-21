@@ -17,9 +17,9 @@ import WebpackLicense from '@components/WebpackLicense';
 
 查看按模块类型拆分的详细页面：
 
-- [Asset generator 选项](/config/module-generator#generatorasset)
-- [CSS generator 选项](/config/module-generator#generatorcssauto)
-- [JSON generator 选项](/config/module-generator#generatorjsonjsonparse)
+- [Asset generator 选项](/config/module-generator#asset)
+- [CSS generator 选项](/config/module-generator#cssauto)
+- [JSON generator 选项](/config/module-generator#jsonjsonparse)
 
 ```js title="rspack.config.mjs"
 export default {
@@ -93,7 +93,7 @@ export default {
 };
 ```
 
-### generator.asset
+### asset
 
 `asset` 模块的生成器选项。
 
@@ -109,7 +109,7 @@ export default {
 };
 ```
 
-### generator.asset.binary
+### asset.binary
 
 - **类型：** `boolean | undefined`
 - **默认值：** `undefined`
@@ -128,7 +128,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl
+### asset.dataUrl
 
 - **类型：** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
 - **默认值：** `{}`
@@ -171,7 +171,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl.encoding
+### asset.dataUrl.encoding
 
 - **类型：** `false | 'base64'`
 - **默认值：** `'base64'`
@@ -192,7 +192,7 @@ export default {
 };
 ```
 
-### generator.asset.dataUrl.mimetype
+### asset.dataUrl.mimetype
 
 - **类型：** `string`
 - **默认值：** `require('mime-types').lookup(ext)`
@@ -213,12 +213,12 @@ export default {
 };
 ```
 
-### generator.asset.importMode
+### asset.importMode
 
 - **类型：** `'url' | 'preserve'`
 - **默认值：** `'url'`
 
-如果为 `"url"`，将基于 [publicPath](#generatorassetpublicpath) 生成指向 asset 的 URL。
+如果为 `"url"`，将基于 [publicPath](#assetpublicpath) 生成指向 asset 的 URL。
 如果为 `"preserve"`，将保留指向 asset 的 import 或 require 语句。
 
 仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
@@ -251,7 +251,7 @@ export default {
 };
 ```
 
-### generator.asset.filename
+### asset.filename
 
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
@@ -271,7 +271,7 @@ export default {
 };
 ```
 
-### generator.asset.outputPath
+### asset.outputPath
 
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
@@ -292,7 +292,7 @@ export default {
 };
 ```
 
-### generator.asset.publicPath
+### asset.publicPath
 
 - **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
 - **默认值：** `undefined`
@@ -311,7 +311,7 @@ export default {
 };
 ```
 
-### generator.asset.emit
+### asset.emit
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -348,7 +348,7 @@ export default {
 };
 ```
 
-### generator["asset/inline"]
+### ["asset/inline"]
 
 `asset/inline` 模块的生成器选项。
 
@@ -364,9 +364,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].binary
+### ["asset/inline"].binary
 
-和 [`module.generator["asset"].binary`](#generatorassetbinary) 一样。
+和 [`module.generator["asset"].binary`](#assetbinary) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -380,9 +380,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl
+### ["asset/inline"].dataUrl
 
-和 [`module.generator["asset"].dataUrl`](#generatorassetdataurl) 一样。
+和 [`module.generator["asset"].dataUrl`](#assetdataurl) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -398,9 +398,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl.encoding
+### ["asset/inline"].dataUrl.encoding
 
-和 [`module.generator["asset"].dataUrl.encoding`](#generatorassetdataurlencoding) 一样。
+和 [`module.generator["asset"].dataUrl.encoding`](#assetdataurlencoding) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -416,9 +416,9 @@ export default {
 };
 ```
 
-### generator["asset/inline"].dataUrl.mimetype
+### ["asset/inline"].dataUrl.mimetype
 
-和 [`module.generator["asset"].dataUrl.mimetype`](#generatorassetdataurlmimetype) 一样。
+和 [`module.generator["asset"].dataUrl.mimetype`](#assetdataurlmimetype) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -434,7 +434,7 @@ export default {
 };
 ```
 
-### generator["asset/resource"]
+### ["asset/resource"]
 
 `asset/resource` 模块的生成器选项。
 
@@ -450,9 +450,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].binary
+### ["asset/resource"].binary
 
-和 [`module.generator["asset"].binary`](#generatorassetbinary) 一样。
+和 [`module.generator["asset"].binary`](#assetbinary) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -466,9 +466,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].importMode
+### ["asset/resource"].importMode
 
-和 [`module.generator["asset"].importMode`](#generatorassetimportmode) 一样。
+和 [`module.generator["asset"].importMode`](#assetimportmode) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -482,9 +482,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].filename
+### ["asset/resource"].filename
 
-和 [`module.generator["asset"].filename`](#generatorassetfilename) 一样。
+和 [`module.generator["asset"].filename`](#assetfilename) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -498,9 +498,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].outputPath
+### ["asset/resource"].outputPath
 
-和 [`module.generator["asset"].outputPath`](#generatorassetoutputpath) 一样。
+和 [`module.generator["asset"].outputPath`](#assetoutputpath) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -514,9 +514,9 @@ export default {
 };
 ```
 
-### generator["asset/resource"].publicPath
+### ["asset/resource"].publicPath
 
-和 [`module.generator["asset"].publicPath`](#generatorassetpublicpath) 一样。
+和 [`module.generator["asset"].publicPath`](#assetpublicpath) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -530,7 +530,7 @@ export default {
 };
 ```
 
-### generator["css/auto"]
+### ["css/auto"]
 
 `css/auto` 模块的生成器选项。
 
@@ -546,7 +546,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].exportsConvention
+### ["css/auto"].exportsConvention
 
 - **类型：** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
 - **默认值：** `'as-is'`
@@ -565,7 +565,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].exportsOnly
+### ["css/auto"].exportsOnly
 
 - **类型：** `boolean`
 - **默认值：** `true` for node environments, `false` for web environments.
@@ -586,7 +586,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentName
+### ["css/auto"].localIdentName
 
 - **类型：** `string`
 - **默认值：** `[uniqueName]-[id]-[local]`
@@ -605,7 +605,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashDigest
+### ["css/auto"].localIdentHashDigest
 
 - **类型：** `string`
 - **默认值：** `'base64url'`
@@ -624,7 +624,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashDigestLength
+### ["css/auto"].localIdentHashDigestLength
 
 - **类型：** `number`
 - **默认值：** `6`
@@ -643,7 +643,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashFunction
+### ["css/auto"].localIdentHashFunction
 
 - **类型：** `string`
 - **默认值：** `'md4'`
@@ -662,7 +662,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].localIdentHashSalt
+### ["css/auto"].localIdentHashSalt
 
 - **类型：** `string`
 - **默认值：** `undefined`
@@ -681,7 +681,7 @@ export default {
 };
 ```
 
-### generator["css/auto"].esModule
+### ["css/auto"].esModule
 
 - **类型：** `boolean`
 - **默认值：** `true`
@@ -733,7 +733,7 @@ function Button() {
 }
 ```
 
-### generator.css
+### css
 
 `css` 模块的生成器选项。
 
@@ -749,9 +749,9 @@ export default {
 };
 ```
 
-### generator.css.exportsOnly
+### css.exportsOnly
 
-和 [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly) 一样。
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -765,9 +765,9 @@ export default {
 };
 ```
 
-### generator.css.esModule
+### css.esModule
 
-和 [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule) 一样。
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -781,7 +781,7 @@ export default {
 };
 ```
 
-### generator["css/global"]
+### ["css/global"]
 
 `css/global` 模块的生成器选项。
 
@@ -797,9 +797,9 @@ export default {
 };
 ```
 
-### generator["css/global"].exportsConvention
+### ["css/global"].exportsConvention
 
-和 [`module.generator["css/auto"].exportsConvention`](#generatorcssautoexportsconvention) 一样。
+和 [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -813,9 +813,9 @@ export default {
 };
 ```
 
-### generator["css/global"].exportsOnly
+### ["css/global"].exportsOnly
 
-和 [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly) 一样。
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -829,9 +829,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentName
+### ["css/global"].localIdentName
 
-和 [`module.generator["css/auto"].localIdentName`](#generatorcssautolocalidentname) 一样。
+和 [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -845,9 +845,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashDigest
+### ["css/global"].localIdentHashDigest
 
-和 [`module.generator["css/auto"].localIdentHashDigest`](#generatorcssautolocalidenthashdigest) 一样。
+和 [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -861,9 +861,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashDigestLength
+### ["css/global"].localIdentHashDigestLength
 
-和 [`module.generator["css/auto"].localIdentHashDigestLength`](#generatorcssautolocalidenthashdigestlength) 一样。
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -877,9 +877,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashFunction
+### ["css/global"].localIdentHashFunction
 
-和 [`module.generator["css/auto"].localIdentHashFunction`](#generatorcssautolocalidenthashfunction) 一样。
+和 [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -893,9 +893,9 @@ export default {
 };
 ```
 
-### generator["css/global"].localIdentHashSalt
+### ["css/global"].localIdentHashSalt
 
-和 [`module.generator["css/auto"].localIdentHashSalt`](#generatorcssautolocalidenthashsalt) 一样。
+和 [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -909,9 +909,9 @@ export default {
 };
 ```
 
-### generator["css/global"].esModule
+### ["css/global"].esModule
 
-和 [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule) 一样。
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -925,7 +925,7 @@ export default {
 };
 ```
 
-### generator["css/module"]
+### ["css/module"]
 
 `css/module` 模块的生成器选项。
 
@@ -941,9 +941,9 @@ export default {
 };
 ```
 
-### generator["css/module"].exportsConvention
+### ["css/module"].exportsConvention
 
-和 [`module.generator["css/auto"].exportsConvention`](#generatorcssautoexportsconvention) 一样。
+和 [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -957,9 +957,9 @@ export default {
 };
 ```
 
-### generator["css/module"].exportsOnly
+### ["css/module"].exportsOnly
 
-和 [`module.generator["css/auto"].exportsOnly`](#generatorcssautoexportsonly) 一样。
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -973,9 +973,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentName
+### ["css/module"].localIdentName
 
-和 [`module.generator["css/auto"].localIdentName`](#generatorcssautolocalidentname) 一样。
+和 [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -989,9 +989,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashDigest
+### ["css/module"].localIdentHashDigest
 
-和 [`module.generator["css/auto"].localIdentHashDigest`](#generatorcssautolocalidenthashdigest) 一样。
+和 [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1005,9 +1005,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashDigestLength
+### ["css/module"].localIdentHashDigestLength
 
-和 [`module.generator["css/auto"].localIdentHashDigestLength`](#generatorcssautolocalidenthashdigestlength) 一样。
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1021,9 +1021,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashFunction
+### ["css/module"].localIdentHashFunction
 
-和 [`module.generator["css/auto"].localIdentHashFunction`](#generatorcssautolocalidenthashfunction) 一样。
+和 [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1037,9 +1037,9 @@ export default {
 };
 ```
 
-### generator["css/module"].localIdentHashSalt
+### ["css/module"].localIdentHashSalt
 
-和 [`module.generator["css/auto"].localIdentHashSalt`](#generatorcssautolocalidenthashsalt) 一样。
+和 [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1053,9 +1053,9 @@ export default {
 };
 ```
 
-### generator["css/module"].esModule
+### ["css/module"].esModule
 
-和 [`module.generator["css/auto"].esModule`](#generatorcssautoesmodule) 一样。
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1069,7 +1069,7 @@ export default {
 };
 ```
 
-### generator.json.JSONParse
+### json.JSONParse
 
 - **类型：** `boolean`
 - **默认值：** `true`
