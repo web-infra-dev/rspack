@@ -10,7 +10,6 @@ version.workspace = true
 anymap                     = { workspace = true }
 async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
-concat-string              = { workspace = true }
 cow-utils                  = { workspace = true }
 either                     = { workspace = true }
 fast-glob                  = { workspace = true }
