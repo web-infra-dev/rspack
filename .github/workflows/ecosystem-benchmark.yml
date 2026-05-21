@@ -48,6 +48,7 @@ jobs:
       profile: 'ci'
       test: false
       binding_postfix: '-ci'
+      pgo_profile_path: pgo/rspack.profdata
 
   create-comment:
     if: github.repository == 'web-infra-dev/rspack'
