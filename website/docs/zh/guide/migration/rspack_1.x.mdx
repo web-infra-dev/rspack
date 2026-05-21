@@ -74,7 +74,7 @@ Rspack 2.0 的最低 Node.js 版本要求为 **20.19+** 或 **22.12+**，并且�
 
 ### 修改 module.parser.javascript.exportsPresence 的默认值
 
-[module.parser.javascript.exportsPresence](/config/module-parser-javascript#moduleparserjavascriptexportspresence) 的默认值已从 `warn` 变更为 `error`。当检测到导出的内容不存在时，现在将直接抛出错误而不是仅仅警告。
+[module.parser.javascript.exportsPresence](/config/module-parser#parserjavascriptexportspresence) 的默认值已从 `warn` 变更为 `error`。当检测到导出的内容不存在时，现在将直接抛出错误而不是仅仅警告。
 
 如果你希望恢复为旧行为，可显式设置为 `auto`：
 
@@ -92,11 +92,11 @@ export default {
 
 ### 移除 module.parser.javascript.strictExportPresence
 
-`module.parser.javascript.strictExportPresence` 已被移除，可使用 [module.parser.javascript.exportsPresence](/config/module-parser-javascript#moduleparserjavascriptexportspresence) 控制导出内容不存在时的行为。
+`module.parser.javascript.strictExportPresence` 已被移除，可使用 [module.parser.javascript.exportsPresence](/config/module-parser#parserjavascriptexportspresence) 控制导出内容不存在时的行为。
 
 ### 修改 module.parser.javascript.requireAlias 的默认值
 
-[module.parser.javascript.requireAlias](/config/module-parser-javascript#moduleparserjavascriptrequirealias) 的默认值已从 `true` 变更为 `false`。如果你的代码依赖重命名后的 `require` 仍被解析并打包，可显式启用：
+[module.parser.javascript.requireAlias](/config/module-parser#parserjavascriptrequirealias) 的默认值已从 `true` 变更为 `false`。如果你的代码依赖重命名后的 `require` 仍被解析并打包，可显式启用：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -221,7 +221,7 @@ Rspack 2.0 新增了实验性的 [`experiments.pureFunctions`](/config/experimen
 
 启用后，可以根据代码是否可修改选择不同入口：
 
-- 对于无法直接修改源码的第三方模块，例如 `node_modules` 中的包，可使用 [module.parser.javascript.pureFunctions](/config/module-parser-javascript#moduleparserjavascriptpurefunctions) 手动标记顶层导出函数。
+- 对于无法直接修改源码的第三方模块，例如 `node_modules` 中的包，可使用 [module.parser.javascript.pureFunctions](/config/module-parser#parserjavascriptpurefunctions) 手动标记顶层导出函数。
 - 对于可以直接修改源码的业务代码，可在函数定义前使用 `/*#__NO_SIDE_EFFECTS__*/` 注解。
 
 ```js title="rspack.config.mjs"
@@ -588,7 +588,7 @@ export default {
 - `experiments.lazyCompilation`：已移动到顶层的 [lazyCompilation](/config/lazy-compilation)。
 - `experiments.lazyCompilationMiddleware`：已移动到顶层的 [lazyCompilationMiddleware](/guide/features/lazy-compilation#与自定义的服务器集成)。
 - `experiments.lazyBarrel`：已被移除，[Lazy barrel](/guide/optimization/lazy-barrel) 优化现在默认启用。
-- `experiments.typeReexportsPresence`：已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module-parser-javascript#moduleparserjavascripttypereexportspresence) 直接控制类型重导出时的行为。
+- `experiments.typeReexportsPresence`：已被移除，可使用 [module.parser.javascript.typeReexportsPresence](/config/module-parser#parserjavascripttypereexportspresence) 直接控制类型重导出时的行为。
 - `experiments.inlineConst`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 控制常量内联优化。
 - `experiments.inlineEnum`：已被移除，可使用 [optimization.inlineExports](/config/optimization#optimizationinlineexports) 和 `builtin:swc-loader` 的 [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) 控制枚举内联优化。
 - `experiments.outputModule`：已被移除，可使用 [output.module](/config/output#outputmodule) 直接输出 ESM 产物。
