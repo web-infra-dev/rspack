@@ -186,14 +186,6 @@ pub fn find_graph_roots<
 
         // Are there still edges unprocessed in the current node?
         if !stack[top_of_stack_idx].open_edges.is_empty() {
-          let mut edges = stack[top_of_stack_idx]
-            .open_edges
-            .iter()
-            .map(|edge| expect_get(&db, edge))
-            .collect::<Vec<_>>();
-
-          edges.sort_by_key(|a| a.item);
-
           // Process one dependency
           let dependency = stack[top_of_stack_idx]
             .open_edges

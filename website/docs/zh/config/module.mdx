@@ -2223,6 +2223,85 @@ export default {
 };
 ```
 
+### module.parser["css/auto"].import
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+配置是否处理 CSS `@import` 规则。
+
+- `true`: 解析并处理 `@import` 规则（默认）。
+- `false`: 在生成的 CSS 中保留 `@import` 规则，不进行解析。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].animation
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 `@keyframes` 标识符及其 `animation` 或 `animation-name` 使用处的重命名。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].customIdents
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用或禁用对自定义标识符的重命名，例如本地 `@counter-style` 和 `@font-palette-values` 名称。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].dashedIdents
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用或禁用对 dashed identifiers 的重命名，例如 CSS 自定义属性和 `@property` 声明。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 `css` 模块的解析器选项。
@@ -2289,6 +2368,200 @@ export default {
 };
 ```
 
+### module.parser.css.import
+
+和 [`module.parser["css/auto"].import`](#moduleparsercssautoimport) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.animation
+
+和 [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.customIdents
+
+和 [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.dashedIdents
+
+和 [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"]
+
+`css/global` 模块的解析器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].namedExports
+
+和 [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].url
+
+和 [`module.parser["css/auto"].url`](#moduleparsercssautourl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].resolveImport
+
+参考 [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].import
+
+和 [`module.parser["css/auto"].import`](#moduleparsercssautoimport) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].animation
+
+和 [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].customIdents
+
+和 [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].dashedIdents
+
+和 [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 `css/module` 模块的解析器选项。
@@ -2349,6 +2622,70 @@ export default {
         resolveImport: ({ url }) => {
           return url.includes('style.css');
         },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].import
+
+和 [`module.parser["css/auto"].import`](#moduleparsercssautoimport) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].animation
+
+和 [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].customIdents
+
+和 [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].dashedIdents
+
+和 [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        dashedIdents: true,
       },
     },
   },

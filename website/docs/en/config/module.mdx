@@ -2226,6 +2226,85 @@ export default {
 };
 ```
 
+### module.parser["css/auto"].import
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether to handle CSS `@import` at-rules.
+
+- `true`: resolve and process `@import` rules (default).
+- `false`: leave `@import` rules unchanged in the generated CSS.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].animation
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local `@keyframes` identifiers and their `animation` or `animation-name` usages.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].customIdents
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enable or disable renaming custom identifiers, such as local `@counter-style` and `@font-palette-values` names.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/auto"].dashedIdents
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enable or disable renaming dashed identifiers, such as CSS custom properties and `@property` declarations.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser.css
 
 Parser options for `css` modules.
@@ -2292,6 +2371,200 @@ export default {
 };
 ```
 
+### module.parser.css.import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser.css.dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"]
+
+Parser options for `css/global` modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].namedExports
+
+Same as [`module.parser["css/auto"].namedExports`](#moduleparsercssautonamedexports).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        namedExports: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].url
+
+Same as [`module.parser["css/auto"].url`](#moduleparsercssautourl).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        url: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].resolveImport
+
+Same as [`module.parser["css/auto"].resolveImport`](#moduleparsercssautoresolveimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        resolveImport: ({ url }) => {
+          return url.includes('style.css');
+        },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/global"].dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
 ### module.parser["css/module"]
 
 Parser options for `css/module` modules.
@@ -2352,6 +2625,70 @@ export default {
         resolveImport: ({ url }) => {
           return url.includes('style.css');
         },
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].import
+
+Same as [`module.parser["css/auto"].import`](#moduleparsercssautoimport).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        import: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].animation
+
+Same as [`module.parser["css/auto"].animation`](#moduleparsercssautoanimation).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        animation: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].customIdents
+
+Same as [`module.parser["css/auto"].customIdents`](#moduleparsercssautocustomidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### module.parser["css/module"].dashedIdents
+
+Same as [`module.parser["css/auto"].dashedIdents`](#moduleparsercssautodashedidents).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        dashedIdents: true,
       },
     },
   },
