@@ -1,0 +1,6 @@
+@import url(./conditioned.css) layer(components) supports(display: grid) screen and (min-width: 500px);
+@import url(./plain-sibling.css);
+
+.sibling-conditions-class {
+	color: black;
+}

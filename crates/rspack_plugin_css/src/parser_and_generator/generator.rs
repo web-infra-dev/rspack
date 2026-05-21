@@ -22,10 +22,31 @@ use rspack_util::{
 use rustc_hash::FxHashSet as HashSet;
 
 use crate::{
-  dependency::{CssImportDependency, CssMedia, CssSupports},
+  dependency::{CssImportDependency, CssLayer, CssMedia, CssSupports},
   parser_and_generator::{get_unused_local_ident, get_used_exports},
   utils::{replace_css_module_id_placeholder, unescape},
 };
+
+#[derive(Default)]
+struct CssImportConditions {
+  media: Option<String>,
+  supports: Option<String>,
+  layer: Option<CssLayer>,
+}
+
+impl CssImportConditions {
+  fn from_dependency(dep: &CssImportDependency) -> Self {
+    Self {
+      media: dep.media().map(|media| media.trim().to_string()),
+      supports: dep.supports().map(|supports| supports.trim().to_string()),
+      layer: dep.layer().cloned(),
+    }
+  }
+
+  fn is_empty(&self) -> bool {
+    self.media.is_none() && self.supports.is_none() && self.layer.is_none()
+  }
+}
 
 pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
   if let Some(existing) = exports.get_mut(&name) {
@@ -118,9 +139,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     self.stringify_css_source_with_inline_map(css_source)
   }
 
-  fn stringify_css_source_for_module(&mut self, source: &BoxSource, module: &dyn Module) -> String {
+  fn stringify_css_source_for_module_with_import_conditions(
+    &mut self,
+    source: &BoxSource,
+    module: &dyn Module,
+    import_conditions: &[CssImportConditions],
+  ) -> String {
     let css_source = self.generate_css_source_for_module(source, module);
-    self.stringify_css_source_with_inline_map(css_source)
+    self.stringify_css_source_with_inline_map_and_import_conditions(css_source, import_conditions)
   }
 
   fn generate_css_source_for_module(
@@ -154,6 +180,10 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         template.render(dependency, &mut source, &mut context)
       }
     });
+
+    let old_media = context.data.remove::<CssMedia>();
+    let old_supports = context.data.remove::<CssSupports>();
+    let old_layer = context.data.remove::<CssLayer>();
 
     for conn in module_graph.get_incoming_connections(&module.identifier()) {
       let dep = module_graph.dependency_by_id(&conn.dependency_id);
@@ -190,17 +220,36 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       });
     };
 
+    if let Some(media) = old_media {
+      context.data.insert(media);
+    }
+    if let Some(supports) = old_supports {
+      context.data.insert(supports);
+    }
+    if let Some(layer) = old_layer {
+      context.data.insert(layer);
+    }
+
     generate_context.concatenation_scope = context.concatenation_scope.take();
 
     source.boxed()
   }
 
   fn stringify_css_source_with_inline_map(&self, css_source: BoxSource) -> String {
+    self.stringify_css_source_with_inline_map_and_import_conditions(css_source, &[])
+  }
+
+  fn stringify_css_source_with_inline_map_and_import_conditions(
+    &self,
+    css_source: BoxSource,
+    import_conditions: &[CssImportConditions],
+  ) -> String {
     let mut css_text = css_source
       .source()
       .into_string_lossy()
       .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
       .into_owned();
+    self.wrap_css_source_with_import_conditions(&mut css_text, import_conditions);
 
     if let Some(source_map) = css_source.map(&ObjectPool::default(), &MapOptions::default()) {
       let base64_map = encode_to_string(source_map.to_json().as_bytes());
@@ -215,15 +264,53 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     json_stringify_str(&css_text)
   }
 
+  fn wrap_css_source_with_import_conditions(
+    &self,
+    css_text: &mut String,
+    import_conditions: &[CssImportConditions],
+  ) {
+    for conditions in import_conditions.iter().rev() {
+      if let Some(layer) = &conditions.layer {
+        let mut wrapped = match layer {
+          CssLayer::Named(layer) => concat_string!("@layer ", layer, " {\n"),
+          CssLayer::Anonymous => "@layer {\n".to_string(),
+        };
+        wrapped.push_str(css_text);
+        wrapped.push_str("\n}");
+        *css_text = wrapped;
+      }
+
+      if let Some(supports) = &conditions.supports {
+        let mut wrapped = concat_string!("@supports (", supports, ") {\n");
+        wrapped.push_str(css_text);
+        wrapped.push_str("\n}");
+        *css_text = wrapped;
+      }
+
+      if let Some(media) = &conditions.media {
+        let mut wrapped = concat_string!("@media ", media, "{\n");
+        wrapped.push_str(css_text);
+        wrapped.push_str("\n}");
+        *css_text = wrapped;
+      }
+    }
+  }
+
   fn render_css_imports_for_style(&mut self) -> String {
     let mut visited_non_style_modules = HashSet::default();
-    self.render_css_imports_for_style_module(self.module, &mut visited_non_style_modules)
+    let mut import_conditions = Vec::new();
+    self.render_css_imports_for_style_module(
+      self.module,
+      &mut visited_non_style_modules,
+      &mut import_conditions,
+    )
   }
 
   fn render_css_imports_for_style_module(
     &mut self,
     module: &dyn Module,
     visited_non_style_modules: &mut HashSet<rspack_collections::Identifier>,
+    import_conditions: &mut Vec<CssImportConditions>,
   ) -> String {
     let compilation = self.generate_context.compilation;
     let module_graph = compilation.get_module_graph();
@@ -238,6 +325,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       if !matches!(dependency.dependency_type(), DependencyType::CssImport) {
         continue;
       }
+      let Some(css_import_dep) = dependency.downcast_ref::<CssImportDependency>() else {
+        panic!("dependency with type DependencyType::CssImport should only be CssImportDependency");
+      };
 
       let Some(imported_module) = module_graph.module_graph_module_by_dependency_id(dependency_id)
       else {
@@ -257,7 +347,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       };
 
-      if Self::is_style_export_css_module(imported_module.as_ref()) {
+      let current_import_conditions = CssImportConditions::from_dependency(css_import_dep);
+      if Self::is_style_export_css_module(imported_module.as_ref())
+        && import_conditions.is_empty()
+        && current_import_conditions.is_empty()
+      {
         code.push_str(&concat_string!(
           require,
           "(",
@@ -271,15 +365,23 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         continue;
       }
 
-      code.push_str(
-        &self
-          .render_css_imports_for_style_module(imported_module.as_ref(), visited_non_style_modules),
-      );
+      import_conditions.push(current_import_conditions);
+      code.push_str(&self.render_css_imports_for_style_module(
+        imported_module.as_ref(),
+        visited_non_style_modules,
+        import_conditions,
+      ));
 
       let Some(source) = imported_module.source() else {
+        import_conditions.pop();
         continue;
       };
-      let css = self.stringify_css_source_for_module(source, imported_module.as_ref());
+      let css = self.stringify_css_source_for_module_with_import_conditions(
+        source,
+        imported_module.as_ref(),
+        import_conditions,
+      );
+      import_conditions.pop();
       code.push_str(&self.render_css_inject_style_by_module_id(json_stringify(module_id), &css));
     }
 

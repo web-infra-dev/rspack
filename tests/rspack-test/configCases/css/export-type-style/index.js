@@ -8,6 +8,7 @@ import { "e-class" as eClass } from "./e.css";
 import { "f-class" as fClass } from "./f.css";
 import "./empty-middle.css";
 import { "empty-chain-top-class" as emptyChainTopClass } from "./empty-chain-top.css";
+import { "sibling-conditions-class" as siblingConditionsClass } from "./sibling-conditions.css";
 
 it("should export correct CSS module class names", () => {
 	expect(styleClass).toBe("style_css-style-class");
@@ -18,6 +19,7 @@ it("should export correct CSS module class names", () => {
 	expect(dClass).toBe("d_css-d-class");
 	expect(eClass).toBe("e_css-e-class");
 	expect(fClass).toBe("f_css-f-class");
+	expect(siblingConditionsClass).toBe("sibling-conditions_css-sibling-conditions-class");
 });
 
 it("should inject styles into DOM when exportType is style", () => {
@@ -111,6 +113,25 @@ it("should create style tags for nested @import with layer/supports/media condit
 	expect(allCSS.some(c => c.includes("transform: scale(1)"))).toBe(true);
 });
 
+it("should not leak @import conditions between sibling style injections", () => {
+	if (!process.env.BROWSER) {
+		expect(true).toBe(true);
+		return;
+	}
+	const allCSS = Array.from(window.document.getElementsByTagName("style")).map(s => s.textContent);
+
+	const conditioned = allCSS.find(c => c.includes("conditioned-class"));
+	expect(conditioned).toContain("@media screen and (min-width: 500px)");
+	expect(conditioned).toContain("@supports (display: grid)");
+	expect(conditioned).toContain("@layer components");
+
+	const plainSibling = allCSS.find(c => c.includes("plain-sibling-class"));
+	expect(plainSibling).toBeDefined();
+	expect(plainSibling).not.toContain("@media screen and (min-width: 500px)");
+	expect(plainSibling).not.toContain("@supports (display: grid)");
+	expect(plainSibling).not.toContain("@layer components");
+});
+
 it("should create style tag for leaf when middle file is empty (@import only)", () => {
 	if (!process.env.BROWSER) {
 		expect(true).toBe(true);
@@ -152,6 +173,7 @@ it("should have the correct total number of style tags", () => {
 	// f-dep-dep.css, f-dep.css, f.css,
 	// empty-middle-dep.css, empty-middle.css,
 	// empty-chain-leaf.css, empty-chain-b.css, empty-chain-a.css, empty-chain-top.css
-	// = 24
-	expect(styles.length).toBe(24);
+	// conditioned.css, plain-sibling.css, sibling-conditions.css
+	// = 27
+	expect(styles.length).toBe(27);
 });
