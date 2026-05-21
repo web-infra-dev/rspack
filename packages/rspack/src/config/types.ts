@@ -1037,7 +1037,7 @@ export type CssParserResolveImport =
 /** Options object for `css` modules. */
 export type CssParserOptions = {
   /**
-   * Select the JavaScript export emitted by CSS modules.
+   * Configure how CSS content is exported to JavaScript.
    * @default "link"
    */
   exportType?: CssParserExportType;
@@ -1088,8 +1088,8 @@ export type CssParserOptions = {
 /** Options object for `css/auto`, `css/global` and `css/module` modules. */
 export type CssModuleParserOptions = {
   /**
-   * Select the JavaScript export emitted by CSS modules.
-   * @default "link"
+   * Configure how CSS content is exported to JavaScript.
+   * @default undefined, which uses "link" behavior
    */
   exportType?: CssParserExportType;
 
