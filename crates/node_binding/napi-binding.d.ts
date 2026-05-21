@@ -603,6 +603,7 @@ export declare enum BuiltinPluginName {
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
   LibManifestPlugin = 'LibManifestPlugin',
   FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
+  CssHttpExternalsRspackPlugin = 'CssHttpExternalsRspackPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -2138,13 +2139,21 @@ export interface RawCssModuleGeneratorOptions {
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
   url?: boolean
+  import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
 }
 
 export interface RawDllEntryPluginOptions {
@@ -2346,7 +2355,6 @@ export interface RawHtmlRspackPluginOptions {
 }
 
 export interface RawHttpExternalsRspackPluginOptions {
-  css: boolean
   webAsync: boolean
 }
 

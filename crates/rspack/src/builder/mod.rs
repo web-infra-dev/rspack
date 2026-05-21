@@ -1104,6 +1104,9 @@ impl CompilerOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::NodeTargetPlugin);
+      builder_context
+        .plugins
+        .push(BuiltinPluginOptions::CssHttpExternalsRspackPlugin);
     }
 
     use rspack_plugin_externals::ElectronTargetContext;
@@ -1151,14 +1154,12 @@ impl CompilerOptionsBuilder {
         )));
     }
 
-    if externals_presets.web() || externals_presets.web_async() || (externals_presets.node() && css)
-    {
+    if externals_presets.web() || externals_presets.web_async() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::HttpExternalsRspackPlugin((
-          css,
+        .push(BuiltinPluginOptions::HttpExternalsRspackPlugin(
           externals_presets.web_async(),
-        )));
+        ));
     }
 
     // apply node defaults
@@ -1770,28 +1771,44 @@ impl ModuleOptionsBuilder {
       let css_parser_options = ParserOptions::Css(CssParserOptions {
         named_exports: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
+        r#import: Some(true),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css".to_string(), css_parser_options);
 
       let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
       let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/module".to_string(), css_module_parser_options);
 
       let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
         named_exports: Some(true),
+        r#import: Some(true),
         resolve_import: Some(CssParserImport::Bool(true)),
         url: Some(true),
+        animation: Some(true),
+        custom_idents: Some(false),
+        dashed_idents: Some(false),
       });
       parser.insert("css/global".to_string(), css_global_parser_options);
 

@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
 /* import */ var _b_js__rspack_import_0 = __webpack_require__("./b.js");
 
 
@@ -26,9 +26,9 @@ const a = 3;
 
 },
 "./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  bb: () => (bb)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "bb", () => (bb)
+]);
 const bb = 2;
 const cc = 3;
 

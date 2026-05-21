@@ -70,26 +70,36 @@ __webpack_require__.t = function(value, mode) {
 		if((mode & 16) && typeof value.then === 'function') return value;
 	}
 	var ns = Object.create(null);
-  __webpack_require__.r(ns);
-	var def = {};
+	__webpack_require__.r(ns);
+	var def = [], defLoc = -1;
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
+		Object.getOwnPropertyNames(current).forEach((key) => {
+			def.push(key, () => (value[key]));
+			if(defLoc === -1 && key === 'default') defLoc = def.length - 1;
+		});
 	}
-	def['default'] = () => (value);
+	if(defLoc >= 0) def.splice(defLoc, 1, 0, value);
+	else def.push('default', 0, value);
 	__webpack_require__.d(ns, def);
 	return ns;
 };
+
 })();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/esm_register_module
 (() => {

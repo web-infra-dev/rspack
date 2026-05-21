@@ -228,7 +228,7 @@ export function baz() {}
 
 `pureFunctions` 允许你在命中的模块中，手动将顶层标识符标记为“调用无副作用”，供基于 pure function 的 tree shaking 使用。配置的名字必须能解析到该模块中的顶层绑定 —— 即顶层的 function/class/变量声明、`import` 引入的标识符，或它们的 export 别名。这既适用于无法修改源码的第三方库（例如 `node_modules` 中的包），也适用于在消费侧直接断言某个 import 调用是 pure 的场景。
 
-配置方式请参考 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 和 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions)。
+配置方式请参考 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 和 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions)。
 
 :::warning
 该选项目前是实验能力，且只有在启用 `experiments.pureFunctions` 时才会生效。

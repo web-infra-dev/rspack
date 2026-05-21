@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./antd/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  locales: () => (locales)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "locales", () => (locales)
+]);
 /* import */ var _locale_zh__rspack_import_0 = __webpack_require__("./locale_zh.js");
 
 const locales = {
@@ -25,9 +25,9 @@ function test() {}
 
 },
 "./locale_zh.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* import */ var _zh_locale__rspack_import_0 = __webpack_require__("./zh_locale.js");
 
 

@@ -2,10 +2,10 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a),
-  b: () => (b)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a),
+  "b", () => (b)
+]);
 const a = 3;
 const b = 3;
 
@@ -30,10 +30,10 @@ _answer__rspack_import_0.test;
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (/* reexport safe */ _a_js__rspack_import_0.a),
-  b: () => (/* reexport safe */ _a_js__rspack_import_0.b)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (/* reexport safe */ _a_js__rspack_import_0.a),
+  "b", () => (/* reexport safe */ _a_js__rspack_import_0.b)
+]);
 /* import */ var _a_js__rspack_import_0 = __webpack_require__("./a.js");
 
 

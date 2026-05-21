@@ -21,12 +21,17 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -55,16 +60,18 @@ import { resolve } from "path";
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, { 
-  resolve: () => (__rspack_external_path) });
+__webpack_require__.d(a_namespaceObject, [
+  "resolve", () => (__rspack_external_path)
+]);
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 __webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, { 
-  marker: () => (marker),
-  resolve: () => (resolve) });
+__webpack_require__.d(b_namespaceObject, [
+  "marker", () => (marker),
+  "resolve", () => (resolve)
+]);
 
 
 // path?2d49

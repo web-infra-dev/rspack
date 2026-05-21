@@ -32,6 +32,7 @@ fn assign_named_chunk_ids(
   named_chunk_ids_artifact: &mut ChunkNamedIdArtifact,
   mutations: &mut Option<Mutations>,
 ) -> Vec<ChunkUkey> {
+  let chunks_len = chunks.len();
   let item_name_pair: Vec<_> = chunks
     .into_par_iter()
     .map(|item| {
@@ -50,9 +51,24 @@ fn assign_named_chunk_ids(
       (item, ChunkId::from(name))
     })
     .collect();
-  let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> = ChunkIdMap::default();
-  let mut invalid_and_repeat_names: ChunkIdSet =
-    std::iter::once(ChunkId::from(String::new())).collect();
+  named_chunk_ids_artifact.chunk_short_names.reserve(
+    item_name_pair
+      .iter()
+      .filter(|(item, _)| {
+        !named_chunk_ids_artifact
+          .chunk_short_names
+          .contains_key(item)
+      })
+      .count(),
+  );
+  // name_to_items keeps the current id candidates grouped by name.
+  // invalid_and_repeat_names tracks short names that need long-name fallback.
+  // name_to_items_keys is built lazily only when suffixed ids must avoid other pending names.
+  let mut name_to_items: ChunkIdMap<FxIndexSet<ChunkUkey>> =
+    ChunkIdMap::with_capacity_and_hasher(chunks_len, Default::default());
+  let mut invalid_and_repeat_names = ChunkIdSet::with_capacity_and_hasher(1, Default::default());
+  invalid_and_repeat_names.insert(ChunkId::from(String::new()));
+  let mut needs_name_to_items_keys = false;
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
       .chunk_short_names
@@ -65,12 +81,15 @@ fn assign_named_chunk_ids(
       invalid_and_repeat_names.insert(name);
     }
     // Also rename the conflicting chunks in used_ids
-    else if let Some(item) = used_ids.get(&name)
-    // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
-    {
-      items.insert(*item);
-      invalid_and_repeat_names.insert(name);
+    else if let Some(item) = used_ids.get(&name) {
+      // Unless the chunk is explicitly using chunk name as id
+      if matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
+      {
+        items.insert(*item);
+        invalid_and_repeat_names.insert(name);
+      } else {
+        needs_name_to_items_keys = true;
+      }
     }
   }
 
@@ -101,6 +120,12 @@ fn assign_named_chunk_ids(
     })
     .collect();
 
+  named_chunk_ids_artifact.chunk_long_names.reserve(
+    item_name_pair
+      .iter()
+      .filter(|(item, _)| !named_chunk_ids_artifact.chunk_long_names.contains_key(item))
+      .count(),
+  );
   for (item, name) in item_name_pair {
     named_chunk_ids_artifact
       .chunk_long_names
@@ -108,16 +133,22 @@ fn assign_named_chunk_ids(
 
     let items = name_to_items.entry(name.clone()).or_default();
     items.insert(item);
+    if items.len() > 1 {
+      needs_name_to_items_keys = true;
+    }
     // Also rename the conflicting chunks in used_ids
-    if let Some(item) = used_ids.get(&name)
-    // Unless the chunk is explicitly using chunk name as id
-      && matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
-    {
-      items.insert(*item);
+    if let Some(item) = used_ids.get(&name) {
+      // Unless the chunk is explicitly using chunk name as id
+      if matches!(chunk_by_ukey.expect_get(item).name(), Some(chunk_name) if chunk_name != name.as_str())
+      {
+        items.insert(*item);
+      }
+      needs_name_to_items_keys = true;
     }
   }
 
-  let name_to_items_keys = name_to_items.keys().cloned().collect::<ChunkIdSet>();
+  let name_to_items_keys =
+    needs_name_to_items_keys.then(|| name_to_items.keys().cloned().collect::<ChunkIdSet>());
   let mut unnamed_items = vec![];
 
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
@@ -157,7 +188,10 @@ fn assign_named_chunk_ids(
       for item in items {
         let mut i_buffer = itoa::Buffer::new();
         let mut formatted_name = ChunkId::from(format!("{name}{}", i_buffer.format(i)));
-        while name_to_items_keys.contains(&formatted_name) && used_ids.contains_key(&formatted_name)
+        while used_ids.contains_key(&formatted_name)
+          || name_to_items_keys
+            .as_ref()
+            .is_some_and(|keys| keys.contains(&formatted_name))
         {
           i += 1;
           let mut i_buffer = itoa::Buffer::new();
@@ -334,6 +368,16 @@ async fn chunk_ids(
   }
 
   // store chunk id map to the artifact
+  named_chunk_ids_artifact.chunk_ids.reserve(
+    chunk_by_ukey
+      .values()
+      .filter(|chunk| {
+        !named_chunk_ids_artifact
+          .chunk_ids
+          .contains_key(&chunk.ukey())
+      })
+      .count(),
+  );
   chunk_by_ukey.values().for_each(|chunk| {
     named_chunk_ids_artifact
       .chunk_ids

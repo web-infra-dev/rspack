@@ -15,7 +15,7 @@ use rspack_core::{
   RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
   UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
   get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
-  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  get_module_hashbang, property_access, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
@@ -776,8 +776,8 @@ impl EsmLibraryPlugin {
               }
 
               ns_obj.push(format!(
-                "\n  {}: {}",
-                property_name(&used_name).expect("should have property_name"),
+                "\n  {}, {}",
+                rspack_util::json_stringify_str(&used_name),
                 runtime_template.returning_function(&binding.render(), "")
               ));
             }
@@ -828,7 +828,7 @@ impl EsmLibraryPlugin {
               r#"var {} = {};
 Object.keys({}).forEach(function(key) {{
   if (key !== "default" && key !== "__esModule") {{
-    {}({}, {{ [key]: function() {{ return {}[key]; }} }});
+    {}({}, [key, function() {{ return {}[key]; }}]);
   }}
 }});
 "#,
@@ -844,7 +844,7 @@ Object.keys({}).forEach(function(key) {{
           };
           let define_getters = if !ns_obj.is_empty() {
             format!(
-              "{}({}, {{ {} }});\n",
+              "{}({}, [{}\n]);\n",
               runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
               ns_obj.join(",")

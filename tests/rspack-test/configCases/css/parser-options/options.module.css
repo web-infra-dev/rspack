@@ -1,0 +1,14 @@
+@import "./imported.css";
+
+.a {
+  --brand-color: red;
+  color: var(--brand-color);
+  background: url("./missing.png");
+  list-style: thumbs;
+}
+
+@counter-style thumbs {
+  system: cyclic;
+  symbols: "\1F44D";
+  suffix: " ";
+}

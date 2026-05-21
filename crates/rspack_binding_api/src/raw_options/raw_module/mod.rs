@@ -524,10 +524,15 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 pub struct RawCssParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(js_name = "import")]
+  pub r#import: Option<bool>,
   #[napi(
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -535,7 +540,11 @@ impl From<RawCssParserOptions> for CssParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      animation: value.animation,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
     }
   }
 }
@@ -545,10 +554,15 @@ impl From<RawCssParserOptions> for CssParserOptions {
 pub struct RawCssModuleParserOptions {
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
+  #[napi(js_name = "import")]
+  pub r#import: Option<bool>,
   #[napi(
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
@@ -556,7 +570,11 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
     Self {
       named_exports: value.named_exports,
       url: value.url,
+      r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
+      animation: value.animation,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
     }
   }
 }

@@ -86,9 +86,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 self["rspackHotUpdate"]("shared", {
 "./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* import */ var _moduleS__rspack_import_0 = __webpack_require__("./moduleS.js");
 /* export default */ const __rspack_default_export = (1);
 
@@ -97,18 +97,18 @@ __webpack_require__.d(__webpack_exports__, {
 },
 "./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* export default */ const __rspack_default_export = (1);
 
 
 },
 "./moduleS.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* export default */ const __rspack_default_export = ("moduleS");
 
 
@@ -134,18 +134,18 @@ __webpack_require__.d(__webpack_exports__, {
 self["rspackHotUpdate"]("workerA_js", {
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* export default */ const __rspack_default_export = ("module");
 
 
 },
 "./moduleA.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
 /* export default */ const __rspack_default_export = (1);
 
@@ -179,9 +179,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 self["rspackHotUpdate"]("workerB_js", {
 "./moduleB.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* export default */ const __rspack_default_export = (1);
 
 

@@ -129,6 +129,7 @@ async function build() {
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
+			rustflags.push("-Zlocation-detail=none");
 			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
 				rustflags.push("-Cforce-unwind-tables=no");
 			}

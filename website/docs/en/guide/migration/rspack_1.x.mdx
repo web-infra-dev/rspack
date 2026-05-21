@@ -74,7 +74,7 @@ If you need to analyze bundle outputs, it is recommended to use [Rsdoctor](/guid
 
 ### Changed default value of module.parser.javascript.exportsPresence
 
-The default value of [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
+The default value of [module.parser.javascript.exportsPresence](/config/module-parser#javascriptexportspresence) has been changed from `warn` to `error`. When detecting non-existent exports, an error will now be thrown directly instead of just a warning.
 
 If you want to restore the old behavior, you can explicitly set it to `auto`:
 
@@ -92,11 +92,11 @@ export default {
 
 ### Removed module.parser.javascript.strictExportPresence
 
-`module.parser.javascript.strictExportPresence` has been removed. You can use [module.parser.javascript.exportsPresence](/config/module#moduleparserjavascriptexportspresence) to control the behavior when exports don't exist.
+`module.parser.javascript.strictExportPresence` has been removed. You can use [module.parser.javascript.exportsPresence](/config/module-parser#javascriptexportspresence) to control the behavior when exports don't exist.
 
 ### Changed default value of module.parser.javascript.requireAlias
 
-The default value of [module.parser.javascript.requireAlias](/config/module#moduleparserjavascriptrequirealias) changed from `true` to `false`. If your code relies on renamed `require` calls being parsed and bundled, explicitly enable it:
+The default value of [module.parser.javascript.requireAlias](/config/module-parser#javascriptrequirealias) changed from `true` to `false`. If your code relies on renamed `require` calls being parsed and bundled, explicitly enable it:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -221,7 +221,7 @@ Rspack 2.0 adds an experimental [`experiments.pureFunctions`](/config/experiment
 
 After enabling it, you can choose one of these entry points depending on your code ownership:
 
-- Use [module.parser.javascript.pureFunctions](/config/module#moduleparserjavascriptpurefunctions) to manually mark top-level exported functions in matched third-party modules such as packages in `node_modules`.
+- Use [module.parser.javascript.pureFunctions](/config/module-parser#javascriptpurefunctions) to manually mark top-level exported functions in matched third-party modules such as packages in `node_modules`.
 - Use `/*#__NO_SIDE_EFFECTS__*/` on function definitions when you can modify the source code directly.
 
 ```js title="rspack.config.mjs"
@@ -588,7 +588,7 @@ export default {
 - `experiments.lazyCompilation`: moved to the top-level [lazyCompilation](/config/lazy-compilation).
 - `experiments.lazyCompilationMiddleware`: moved to the top-level [lazyCompilationMiddleware](/guide/features/lazy-compilation#integrating-with-custom-server).
 - `experiments.lazyBarrel`: removed; the [Lazy barrel](/guide/optimization/lazy-barrel) optimization is now enabled by default.
-- `experiments.typeReexportsPresence`: removed; use [module.parser.javascript.typeReexportsPresence](/config/module#moduleparserjavascripttypereexportspresence) directly to control the behavior when re-exporting types.
+- `experiments.typeReexportsPresence`: removed; use [module.parser.javascript.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) directly to control the behavior when re-exporting types.
 - `experiments.inlineConst`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control constant inlining optimization.
 - `experiments.inlineEnum`: removed; use [optimization.inlineExports](/config/optimization#optimizationinlineexports) and `builtin:swc-loader`'s [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control enum inlining optimization.
 - `experiments.outputModule`: removed; use [output.module](/config/output#outputmodule) directly to output ESM artifacts.

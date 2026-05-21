@@ -4,7 +4,6 @@ use rspack_tasks::spawn_in_context;
 use tokio::sync::mpsc::unbounded_channel;
 
 /// Tools for consume iterator which return future.
-#[async_trait::async_trait]
 pub trait FutureConsumer {
   type Item;
   /// Use to immediately consume the data produced by the future in the iterator
@@ -13,7 +12,6 @@ pub trait FutureConsumer {
   fn fut_consume(self, func: impl FnMut(Self::Item) + Send) -> impl Future<Output = ()>;
 }
 
-#[async_trait::async_trait]
 impl<I, Fut> FutureConsumer for I
 where
   I: Iterator<Item = Fut>,

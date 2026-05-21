@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./src/App.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* import */ var _containers__rspack_import_0 = __webpack_require__("./src/containers/containers.js");
 
 const { PlatformProvider } = _containers__rspack_import_0;
@@ -19,9 +19,9 @@ const Index = () => {
 
 },
 "./src/containers/containers.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: () => (/* reexport safe */ _platform_container__rspack_import_0.PlatformProvider)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "PlatformProvider", () => (/* reexport safe */ _platform_container__rspack_import_0.PlatformProvider)
+]);
 /* import */ var _platform_container__rspack_import_0 = __webpack_require__("./src/containers/platform-container/index.js");
 
 
@@ -30,9 +30,9 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "./src/containers/platform-container/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  PlatformProvider: () => (PlatformProvider)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "PlatformProvider", () => (PlatformProvider)
+]);
 const usePlatform = 3;
 const PlatformProvider = 1000;
 

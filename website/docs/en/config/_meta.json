@@ -22,6 +22,8 @@
   "lazy-compilation",
   "mode",
   "module",
+  "module-generator",
+  "module-parser",
   "module-rules",
   "node",
   "optimization",

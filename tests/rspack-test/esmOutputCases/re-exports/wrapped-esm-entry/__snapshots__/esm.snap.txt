@@ -9,17 +9,10 @@ __webpack_require__.add({
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  fs: () => (/* reexport safe */ fs__rspack_import_0["default"]),
-  named: () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
-  r: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  readFile: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  starExports: () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
-});
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
 
-/* reexport */ var __rspack_reexport = {};
-/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
+/* reexport */ var __rspack_reexport = [];
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["r","named","default","fs","starExports","readFile"].indexOf(__rspack_import_key) < 0) __rspack_reexport.push(__rspack_import_key, () => fs__rspack_import_0[__rspack_import_key]);
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
@@ -44,6 +37,14 @@ it('should compile and import success', async () => {
 	expect(r).toBeDefined()
 	expect(readFile).toBeDefined()
 })
+
+__webpack_require__.d(__webpack_exports__, [
+  "fs", () => (/* reexport safe */ fs__rspack_import_0["default"]),
+  "named", () => (/* reexport safe */ (/* inlined export _lib__rspack_import_1 */42)),
+  "r", () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  "readFile", () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  "starExports", () => (/* reexport safe */ (/* inlined export _lib2__rspack_import_2 */42))
+]);
 
 
 },
@@ -99,12 +100,17 @@ __webpack_require__.m = __webpack_modules__;
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/esm_module_decorator
 (() => {

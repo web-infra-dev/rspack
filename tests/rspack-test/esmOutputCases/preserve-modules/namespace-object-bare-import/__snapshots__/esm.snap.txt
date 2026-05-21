@@ -14,8 +14,9 @@ import { types_namespaceObject } from "./types.mjs";
 // NAMESPACE OBJECT: ./src/rules/duplicate-package/index.js
 var duplicate_package_namespaceObject = {};
 __webpack_require__.r(duplicate_package_namespaceObject);
-__webpack_require__.d(duplicate_package_namespaceObject, { 
-  value: () => (value) });
+__webpack_require__.d(duplicate_package_namespaceObject, [
+  "value", () => (value)
+]);
 
 
 // ./src/rules/duplicate-package/index.js
@@ -34,8 +35,9 @@ import { __webpack_require__ } from "../../runtime.mjs";
 // NAMESPACE OBJECT: ./src/rules/duplicate-package/types.js
 var types_namespaceObject = {};
 __webpack_require__.r(types_namespaceObject);
-__webpack_require__.d(types_namespaceObject, { 
-  J: () => (CheckVersionMap) });
+__webpack_require__.d(types_namespaceObject, [
+  "J", () => (CheckVersionMap)
+]);
 
 
 // ./src/rules/duplicate-package/types.js
@@ -54,12 +56,17 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/has_own_property
 (() => {

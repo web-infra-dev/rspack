@@ -35,6 +35,7 @@ import type {
   Context,
   CssGeneratorOptions,
   CssModuleGeneratorOptions,
+  CssModuleParserOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
@@ -334,6 +335,14 @@ const applyCssModuleGeneratorOptionsDefaults = (
   D(generatorOptions, 'localIdentHashDigestLength', 6);
 };
 
+const applyCssModuleParserOptionsDefaults = (
+  parserOptions: CssModuleParserOptions,
+) => {
+  D(parserOptions, 'namedExports', true);
+  D(parserOptions, 'url', true);
+  D(parserOptions, 'import', true);
+};
+
 const applyJsonGeneratorOptionsDefaults = (
   generatorOptions: JsonGeneratorOptions,
 ) => {
@@ -394,21 +403,20 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.css);
   D(module.parser.css, 'namedExports', true);
   D(module.parser.css, 'url', true);
+  D(module.parser.css, 'import', true);
+  D(module.parser.css, 'animation', true);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);
-  D(module.parser['css/auto'], 'namedExports', true);
-  D(module.parser['css/auto'], 'url', true);
+  applyCssModuleParserOptionsDefaults(module.parser['css/auto']);
 
   F(module.parser, 'css/global', () => ({}));
   assertNotNill(module.parser['css/global']);
-  D(module.parser['css/global'], 'namedExports', true);
-  D(module.parser['css/global'], 'url', true);
+  applyCssModuleParserOptionsDefaults(module.parser['css/global']);
 
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
-  D(module.parser['css/module'], 'namedExports', true);
-  D(module.parser['css/module'], 'url', true);
+  applyCssModuleParserOptionsDefaults(module.parser['css/module']);
 
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);

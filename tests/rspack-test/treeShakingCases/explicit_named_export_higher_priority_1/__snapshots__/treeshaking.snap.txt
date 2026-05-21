@@ -7,9 +7,9 @@ const a = "bar";
 
 },
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a)
+]);
 /* import */ var _bar__rspack_import_0 = __webpack_require__("./bar.js");
 const a = "foo";
 

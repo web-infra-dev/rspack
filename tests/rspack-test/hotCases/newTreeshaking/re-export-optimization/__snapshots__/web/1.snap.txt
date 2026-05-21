@@ -35,18 +35,18 @@
 self["rspackHotUpdate"]("main", {
 "./bar.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* export default */ const __rspack_default_export = ('bar');
 
 
 },
 "./entry.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 /* import */ var _reexport__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _reexport__rspack_import_1 = __webpack_require__("./bar.js");
 

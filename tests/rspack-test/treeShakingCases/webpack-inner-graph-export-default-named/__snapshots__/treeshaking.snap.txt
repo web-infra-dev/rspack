@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (abc)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (abc)
+]);
 /* import */ var _dep_a__rspack_import_0 = __webpack_require__("./dep.js?a");
 
 
@@ -37,9 +37,9 @@ abc();
 
 },
 "./d.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (def)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (def)
+]);
 /* import */ var _dep_d__rspack_import_0 = __webpack_require__("./dep.js?d");
 
 
@@ -52,10 +52,10 @@ class def {
 
 },
 "./dep.js?a"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export),
-  x: () => (x)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export),
+  "x", () => (x)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (true);
@@ -63,9 +63,9 @@ const x = "x";
 
 },
 "./dep.js?b"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (false);
@@ -73,10 +73,10 @@ const x = "x";
 
 },
 "./dep.js?c"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export),
-  x: () => (x)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export),
+  "x", () => (x)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (true);
@@ -84,10 +84,10 @@ const x = "x";
 
 },
 "./dep.js?d"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export),
-  x: () => (x)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export),
+  "x", () => (x)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (true);
@@ -95,9 +95,9 @@ const x = "x";
 
 },
 "./dep.js?e"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (false);
@@ -105,10 +105,10 @@ const x = "x";
 
 },
 "./dep.js?f"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (__rspack_default_export),
-  x: () => (x)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (__rspack_default_export),
+  "x", () => (x)
+]);
 const x = "x";
 
 /* export default */ const __rspack_default_export = (true);

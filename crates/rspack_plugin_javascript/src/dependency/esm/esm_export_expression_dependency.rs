@@ -4,7 +4,7 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact,
+  DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph, ModuleGraphCacheArtifact,
   SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName, property_access,
   rspack_sources::ReplacementEnforce,
@@ -166,6 +166,10 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } = code_generatable_context;
 
     let module_identifier = module.identifier();
+    let is_circular_module = compilation
+      .circular_modules
+      .as_ref()
+      .map(|circular_modules| circular_modules.contains(&module_identifier));
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -202,8 +206,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               .collect_vec()
               .join("")
               .into(),
-            Atom::from(format!("/* export default binding */ {name}")),
+            ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}"))),
           )],
+          is_circular_module,
         )));
       } else {
         // do nothing for unused or inlined
@@ -244,8 +249,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                DEFAULT_EXPORT.into(),
+                ESMExportBinding::Getter(DEFAULT_EXPORT.into()),
               )],
+              is_circular_module,
             )));
             format!("/* export default */ const {DEFAULT_EXPORT} = ")
           } else {

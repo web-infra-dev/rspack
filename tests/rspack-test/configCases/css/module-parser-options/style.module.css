@@ -1,0 +1,36 @@
+.button {
+  animation-name: fade;
+  color: var(--brand-color);
+  list-style: thumbs;
+  font-palette: --palette;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@counter-style thumbs {
+  system: cyclic;
+  symbols: "+";
+  suffix: " ";
+}
+
+@font-palette-values --palette {
+  font-family: Bixa;
+}
+
+@property --brand-color {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: red;
+}
+
+:root {
+  --brand-color: red;
+}

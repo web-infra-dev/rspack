@@ -52,17 +52,14 @@ pub trait RuntimeModule:
   }
 }
 
-#[async_trait]
 pub trait AttachableRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey);
 }
 
-#[async_trait]
 pub trait NamedRuntimeModule {
   fn name(&self) -> Identifier;
 }
 
-#[async_trait]
 pub trait CustomSourceRuntimeModule {
   fn set_custom_source(&mut self, source: String);
   fn get_custom_source(&self) -> Option<String>;
