@@ -426,9 +426,6 @@ opt-level = "s"
 [profile.release.package.rspack_plugin_esm_library]
 opt-level = "s"
 
-[profile.release.package.rspack_plugin_extract_css]
-opt-level = "s"
-
 [profile.release.package.rspack_plugin_html]
 opt-level = "s"
 
