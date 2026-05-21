@@ -20,9 +20,11 @@ module.exports = {
         type: 'css/auto',
         parser: { exportType: 'css-style-sheet' },
       },
-      // style-attr.css is imported with `with { type: "css" }`, which the
-      // default rules in lib/config/defaults.js route to exportType
-      // "css-style-sheet".
+      {
+        test: /style-attr\.css/,
+        type: 'css/auto',
+        parser: { exportType: 'css-style-sheet' },
+      },
     ],
   },
   experiments: {
