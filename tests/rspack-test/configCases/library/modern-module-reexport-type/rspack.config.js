@@ -4,7 +4,7 @@ module.exports = {
   entry: { main: './index.ts' },
   ignoreWarnings: [
     (warning) => {
-      // when using swc-loader or `transpileOnly: true` with ts-loader, the warning is expected
+      // when using swc-loader, the warning is expected
       expect(warning.message).toContain(
         "export 'T' (reexported as 'T') was not found in './re-export' (possible exports: value)",
       );
@@ -34,9 +34,9 @@ module.exports = {
     rules: [
       {
         test: /\.ts$/,
-        loader: 'ts-loader',
+        loader: 'builtin:swc-loader',
         options: {
-          transpileOnly: true,
+          detectSyntax: 'auto',
         },
       },
     ],
