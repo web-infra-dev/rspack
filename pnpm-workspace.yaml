@@ -23,6 +23,15 @@ allowBuilds:
 
 dedupePeers: true
 
+autoInstallPeers: false
+
+peerDependencyRules:
+  ignoreMissing:
+    - webpack
+    - '@algolia/client-search'
+    - algoliasearch
+    - search-insights
+
 # Reduce the risk of installing compromised packages
 minimumReleaseAge: 1440
 minimumReleaseAgeExclude:
