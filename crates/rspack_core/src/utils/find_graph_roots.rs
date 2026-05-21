@@ -122,9 +122,11 @@ pub fn find_graph_roots<
         // Are there still edges unprocessed in the current node?
         if stack[top_of_stack_idx].next_edge > 0 {
           // Process one dependency
-          stack[top_of_stack_idx].next_edge -= 1;
-          let dependency =
-            nodes[stack[top_of_stack_idx].node].dependencies[stack[top_of_stack_idx].next_edge];
+          let dependency = {
+            let top_of_stack = &mut stack[top_of_stack_idx];
+            top_of_stack.next_edge -= 1;
+            nodes[top_of_stack.node].dependencies[top_of_stack.next_edge]
+          };
           match nodes[dependency].marker {
             Marker::NoMarker => {
               // dependency has not be visited yet
@@ -193,8 +195,8 @@ pub fn find_graph_roots<
       }
       let cycle = nodes[select_node].cycle;
       if let Some(cycle) = cycle {
-        for node in cycle_db[cycle].nodes.iter() {
-          nodes[*node].marker = Marker::DoneMaybeRootCycleMarker;
+        for &node in &cycle_db[cycle].nodes {
+          nodes[node].marker = Marker::DoneMaybeRootCycleMarker;
         }
         cycle_db[cycle].is_root = true;
       } else {
@@ -215,10 +217,10 @@ pub fn find_graph_roots<
     let mut max = 0;
 
     let mut cycle_roots = Vec::new();
-    for node in cycle.nodes.iter() {
-      let dependency_len = nodes[*node].dependencies.len();
+    for &node in &cycle.nodes {
+      let dependency_len = nodes[node].dependencies.len();
       for dependency_idx in 0..dependency_len {
-        let dep = nodes[*node].dependencies[dependency_idx];
+        let dep = nodes[node].dependencies[dependency_idx];
         if cycle.nodes.contains(&dep) {
           nodes[dep].incoming += 1;
           let incoming = nodes[dep].incoming;
