@@ -1,6 +1,6 @@
 use rspack_core::{
-  ContextMode, ContextModuleGlobPattern, ContextModulePattern, ContextNameSpaceObject,
-  ContextOptions, DependencyCategory, get_context, normalize_path_separators,
+  ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
+  extract_glob_base_dir, get_context, normalize_path_separators,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{SpanExt, node_path::NodePath};
@@ -38,16 +38,23 @@ fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
     .collect()
 }
 
-fn create_glob_pattern(
-  pattern: String,
+struct ResolvedContextModuleGlobPattern {
+  absolute_pattern: String,
+  absolute_base: String,
+  negative: bool,
+}
+
+fn resolve_glob_pattern(
+  pattern: &str,
   context: &str,
   compiler_context: &str,
-) -> ContextModuleGlobPattern {
+) -> ResolvedContextModuleGlobPattern {
   let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
-    (pattern.to_string(), true)
+    (pattern, true)
   } else {
     (pattern, false)
   };
+  let pattern = normalize_path_separators(pattern);
   let (base, pattern_to_join) = if let Some(pattern) = pattern.strip_prefix('/') {
     (compiler_context, pattern)
   } else {
@@ -58,19 +65,24 @@ fn create_glob_pattern(
     .node_normalize_posix()
     .to_string();
   let absolute_pattern = normalize_path_separators(&absolute_pattern);
+  let absolute_base = extract_glob_base_dir(&absolute_pattern).to_string();
 
-  ContextModuleGlobPattern::new(pattern, absolute_pattern, negative)
+  ResolvedContextModuleGlobPattern {
+    absolute_pattern,
+    absolute_base,
+    negative,
+  }
 }
 
-fn common_glob_base_dir(patterns: &[ContextModuleGlobPattern], fallback: &str) -> String {
+fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback: &str) -> String {
   let mut positive_patterns = patterns.iter().filter(|pattern| !pattern.negative);
   let Some(first) = positive_patterns.next() else {
     return fallback.to_string();
   };
 
-  let mut common_base = Utf8PathBuf::from(first.absolute_base.as_ref());
+  let mut common_base = Utf8PathBuf::from(first.absolute_base.as_str());
   for pattern in positive_patterns {
-    let base = Utf8Path::new(pattern.absolute_base.as_ref());
+    let base = Utf8Path::new(pattern.absolute_base.as_str());
     while !base.starts_with(&common_base) {
       let Some(parent) = common_base.parent() else {
         return fallback.to_string();
@@ -88,7 +100,7 @@ fn common_glob_base_dir(patterns: &[ContextModuleGlobPattern], fallback: &str) -
 }
 
 fn glob_patterns_are_recursive(
-  patterns: &[ContextModuleGlobPattern],
+  patterns: &[ResolvedContextModuleGlobPattern],
   common_base_dir: &str,
 ) -> bool {
   patterns
@@ -99,7 +111,7 @@ fn glob_patterns_are_recursive(
         || pattern
           .absolute_pattern
           .strip_prefix(common_base_dir)
-          .unwrap_or(pattern.absolute_pattern.as_ref())
+          .unwrap_or(pattern.absolute_pattern.as_str())
           .contains('/')
     })
 }
@@ -115,18 +127,18 @@ fn create_import_meta_glob_dependency(
   }
   let glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
   let context = get_context(parser.resource_data);
-  let glob_patterns = glob_patterns
-    .into_iter()
+  let resolved_glob_patterns = glob_patterns
+    .iter()
     .map(|pattern| {
-      create_glob_pattern(
+      resolve_glob_pattern(
         pattern,
         context.as_str(),
         parser.compiler_options.context.as_str(),
       )
     })
     .collect::<Vec<_>>();
-  let base_dir = common_glob_base_dir(&glob_patterns, context.as_str());
-  let recursive = glob_patterns_are_recursive(&glob_patterns, &base_dir);
+  let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
+  let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
   let mode = node
     .args
@@ -149,8 +161,8 @@ fn create_import_meta_glob_dependency(
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive,
     category: DependencyCategory::Esm,
-    request: base_dir.clone(),
-    context: base_dir,
+    request: base_dir,
+    context: context.to_string(),
     namespace_object,
     mode,
     start: node.span().real_lo(),

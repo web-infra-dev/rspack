@@ -12,11 +12,11 @@ use swc_core::common::util::take::Take;
 use tracing::instrument;
 
 use crate::{
-  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleGlobPattern,
-  ContextModuleOptions, ContextModulePattern, DependencyCategory, DependencyId, DependencyType,
-  GlobMatchOptions, ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult,
-  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
-  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
+  ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
+  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, extract_glob_base_dir,
   glob_match_normalized_with_explicit_dot, normalize_path_separators, resolve, walk_dir,
 };
 
@@ -425,6 +425,16 @@ async fn visit_dirs(
     options.context_options.pattern,
     ContextModulePattern::Glob(_)
   );
+  let resolved_glob_patterns =
+    if let ContextModulePattern::Glob(patterns) = &options.context_options.pattern {
+      Some(resolve_context_module_glob_patterns(
+        patterns,
+        &options.context_options.context,
+        ctx,
+      ))
+    } else {
+      None
+    };
 
   walk_dir(
     dir,
@@ -462,7 +472,7 @@ async fn visit_dirs(
         }
       };
 
-      if let ContextModulePattern::Glob(patterns) = &options.context_options.pattern {
+      if let Some(patterns) = &resolved_glob_patterns {
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
@@ -519,7 +529,91 @@ fn push_context_element_dependency(
   });
 }
 
-fn glob_user_request(patterns: &[ContextModuleGlobPattern], path: &str) -> Option<String> {
+#[derive(Debug)]
+struct ResolvedContextModuleGlobPattern {
+  absolute_pattern: String,
+  base: String,
+  absolute_base: String,
+  negative: bool,
+}
+
+fn resolve_context_module_glob_patterns(
+  patterns: &[String],
+  context: &str,
+  common_base: &str,
+) -> Vec<ResolvedContextModuleGlobPattern> {
+  patterns
+    .iter()
+    .map(|pattern| resolve_context_module_glob_pattern(pattern, context, common_base))
+    .collect()
+}
+
+fn resolve_context_module_glob_pattern(
+  pattern: &str,
+  context: &str,
+  common_base: &str,
+) -> ResolvedContextModuleGlobPattern {
+  let (pattern, negative) = if let Some(pattern) = pattern.strip_prefix('!') {
+    (pattern, true)
+  } else {
+    (pattern, false)
+  };
+  let pattern = normalize_path_separators(pattern);
+  let (base, pattern_to_join) = if let Some(pattern_to_join) = pattern.strip_prefix('/') {
+    (
+      infer_glob_root_context(common_base, extract_glob_base_dir(&pattern)),
+      pattern_to_join,
+    )
+  } else {
+    (
+      if context.is_empty() {
+        common_base.to_string()
+      } else {
+        context.to_string()
+      },
+      pattern.as_str(),
+    )
+  };
+  let absolute_pattern = Utf8Path::new(&base)
+    .node_join_posix(pattern_to_join)
+    .node_normalize_posix()
+    .to_string();
+  let absolute_pattern = normalize_path_separators(&absolute_pattern);
+  let base = extract_glob_base_dir(&pattern).to_string();
+  let absolute_base = extract_glob_base_dir(&absolute_pattern).to_string();
+
+  ResolvedContextModuleGlobPattern {
+    absolute_pattern,
+    base,
+    absolute_base,
+    negative,
+  }
+}
+
+fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
+  let mut common_base = normalize_path_separators(common_base);
+  if !common_base.ends_with('/') {
+    common_base.push('/');
+  }
+  let pattern_base = pattern_base.trim_start_matches('/');
+  let mut matched_len = 0;
+  for idx in pattern_base
+    .char_indices()
+    .map(|(idx, _)| idx)
+    .chain(std::iter::once(pattern_base.len()))
+  {
+    if !pattern_base[..idx].ends_with('/') && idx != pattern_base.len() {
+      continue;
+    }
+    if common_base.ends_with(&pattern_base[..idx]) {
+      matched_len = idx;
+    }
+  }
+
+  common_base[..common_base.len() - matched_len].to_string()
+}
+
+fn glob_user_request(patterns: &[ResolvedContextModuleGlobPattern], path: &str) -> Option<String> {
   let normalized_path = normalize_path_separators(path);
   let matched = patterns
     .iter()
@@ -535,21 +629,21 @@ fn glob_user_request(patterns: &[ContextModuleGlobPattern], path: &str) -> Optio
   }
 
   let suffix = normalized_path
-    .strip_prefix(matched.absolute_base.as_ref())
+    .strip_prefix(&matched.absolute_base)
     .unwrap_or(normalized_path.as_str())
     .trim_start_matches('/');
   Some(
-    Utf8Path::new(matched.base.as_ref())
+    Utf8Path::new(&matched.base)
       .node_join_posix(suffix)
       .to_string(),
   )
 }
 
-fn glob_pattern_matches(pattern: &ContextModuleGlobPattern, normalized_path: &str) -> bool {
+fn glob_pattern_matches(pattern: &ResolvedContextModuleGlobPattern, normalized_path: &str) -> bool {
   glob_match_normalized_with_explicit_dot(
-    pattern.absolute_pattern.as_ref(),
+    &pattern.absolute_pattern,
     normalized_path,
-    pattern.absolute_base.as_ref(),
+    &pattern.absolute_base,
     &GlobMatchOptions::default(),
   )
 }

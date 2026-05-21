@@ -34,8 +34,8 @@ use crate::{
   ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
-  RuntimeSpec, SourceType, contextify, extract_glob_base_dir, get_exports_type_with_strict,
-  get_outgoing_async_modules, impl_module_meta_info, module_update_hash, to_path,
+  RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
+  impl_module_meta_info, module_update_hash, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -123,34 +123,10 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub struct ContextModuleGlobPattern {
-  pub pattern: Arc<str>,
-  pub absolute_pattern: Arc<str>,
-  pub base: Arc<str>,
-  pub absolute_base: Arc<str>,
-  pub negative: bool,
-}
-
-impl ContextModuleGlobPattern {
-  pub fn new(pattern: String, absolute_pattern: String, negative: bool) -> Self {
-    let base = extract_glob_base_dir(&pattern).into();
-    let absolute_base = extract_glob_base_dir(&absolute_pattern).into();
-    Self {
-      pattern: pattern.into(),
-      absolute_pattern: absolute_pattern.into(),
-      base,
-      absolute_base,
-      negative,
-    }
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
 pub enum ContextModulePattern {
   None,
   RegExp(RspackRegex),
-  Glob(Vec<ContextModuleGlobPattern>),
+  Glob(Vec<String>),
 }
 
 impl ContextModulePattern {
@@ -161,7 +137,7 @@ impl ContextModulePattern {
     }
   }
 
-  pub fn glob_patterns(&self) -> Option<&[ContextModuleGlobPattern]> {
+  pub fn glob_patterns(&self) -> Option<&[String]> {
     match self {
       Self::None | Self::RegExp(_) => None,
       Self::Glob(glob_patterns) => Some(glob_patterns),
@@ -172,17 +148,8 @@ impl ContextModulePattern {
     matches!(self, Self::None)
   }
 
-  pub fn glob_patterns_to_string(glob_patterns: &[ContextModuleGlobPattern]) -> String {
-    glob_patterns
-      .iter()
-      .map(|p| {
-        if p.negative {
-          concat_string!("!", p.pattern.as_ref())
-        } else {
-          p.pattern.to_string()
-        }
-      })
-      .join(", ")
+  pub fn glob_patterns_to_string(glob_patterns: &[String]) -> String {
+    glob_patterns.iter().join(", ")
   }
 
   pub fn to_pretty_string(&self, source: bool) -> Option<String> {
