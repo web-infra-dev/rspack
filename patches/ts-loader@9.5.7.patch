@@ -1,0 +1,242 @@
+diff --git a/dist/after-compile.js b/dist/after-compile.js
+index 54ad4ddfe3e918a58d09764939f9cce2c250c21f..a8f3d9eefd41dcff94de07a402dd15f596163f31 100644
+--- a/dist/after-compile.js
++++ b/dist/after-compile.js
+@@ -2,7 +2,6 @@
+ Object.defineProperty(exports, "__esModule", { value: true });
+ exports.makeAfterCompile = makeAfterCompile;
+ const path = require("path");
+-const webpack = require("webpack");
+ const constants = require("./constants");
+ const instances_1 = require("./instances");
+ const utils_1 = require("./utils");
+@@ -52,7 +51,7 @@ function provideCompilerOptionDiagnosticErrorsToWebpack(getCompilerOptionDiagnos
+         const { languageService, loaderOptions, compiler, program } = instance;
+         const errors = (0, utils_1.formatErrors)(program === undefined
+             ? languageService.getCompilerOptionsDiagnostics()
+-            : program.getOptionsDiagnostics(), loaderOptions, instance.colors, compiler, { file: configFilePath || 'tsconfig.json' }, compilation.compiler.context);
++            : program.getOptionsDiagnostics(), loaderOptions, instance.colors, compiler, { file: configFilePath || 'tsconfig.json' }, compilation.compiler.context, compilation.compiler.webpack);
+         compilation.errors.push(...errors);
+     }
+ }
+@@ -63,6 +62,7 @@ function provideCompilerOptionDiagnosticErrorsToWebpack(getCompilerOptionDiagnos
+  */
+ function determineModules(compilation, { filePathKeyMapper }) {
+     const modules = new Map();
++    const webpack = compilation.compiler.webpack;
+     compilation.modules.forEach(module => {
+         if (module instanceof webpack.NormalModule && module.resource) {
+             const modulePath = filePathKeyMapper(module.resource);
+@@ -149,7 +149,7 @@ function provideErrorsToWebpack(filesToCheckForErrors, filesWithErrors, compilat
+             associatedModules.forEach(module => {
+                 removeModuleTSLoaderError(module, loaderOptions);
+                 // append errors
+-                const formattedErrors = (0, utils_1.formatErrors)(errors, loaderOptions, instance.colors, compiler, { module }, compilation.compiler.context);
++                const formattedErrors = (0, utils_1.formatErrors)(errors, loaderOptions, instance.colors, compiler, { module }, compilation.compiler.context, compilation.compiler.webpack);
+                 formattedErrors.forEach(error => {
+                     if (module.addError) {
+                         module.addError(error);
+@@ -163,7 +163,7 @@ function provideErrorsToWebpack(filesToCheckForErrors, filesWithErrors, compilat
+         }
+         else {
+             // otherwise it's a more generic error
+-            const formattedErrors = (0, utils_1.formatErrors)(errors, loaderOptions, instance.colors, compiler, { file: fileName }, compilation.compiler.context);
++            const formattedErrors = (0, utils_1.formatErrors)(errors, loaderOptions, instance.colors, compiler, { file: fileName }, compilation.compiler.context, compilation.compiler.webpack);
+             compilation.errors.push(...formattedErrors);
+         }
+     }
+@@ -182,7 +182,7 @@ function provideSolutionErrorsToWebpack(compilation, modules, instance) {
+             associatedModules.forEach(module => {
+                 removeModuleTSLoaderError(module, loaderOptions);
+                 // append errors
+-                const formattedErrors = (0, utils_1.formatErrors)(perFileDiagnostics, loaderOptions, instance.colors, compiler, { module }, compilation.compiler.context);
++                const formattedErrors = (0, utils_1.formatErrors)(perFileDiagnostics, loaderOptions, instance.colors, compiler, { module }, compilation.compiler.context, compilation.compiler.webpack);
+                 formattedErrors.forEach(error => {
+                     if (module.addError) {
+                         module.addError(error);
+@@ -196,12 +196,12 @@ function provideSolutionErrorsToWebpack(compilation, modules, instance) {
+         }
+         else {
+             // otherwise it's a more generic error
+-            const formattedErrors = (0, utils_1.formatErrors)(perFileDiagnostics, loaderOptions, instance.colors, compiler, { file: path.resolve(perFileDiagnostics[0].file.fileName) }, compilation.compiler.context);
++            const formattedErrors = (0, utils_1.formatErrors)(perFileDiagnostics, loaderOptions, instance.colors, compiler, { file: path.resolve(perFileDiagnostics[0].file.fileName) }, compilation.compiler.context, compilation.compiler.webpack);
+             compilation.errors.push(...formattedErrors);
+         }
+     }
+     // Add global solution errors
+-    compilation.errors.push(...(0, utils_1.formatErrors)(diagnostics.global, instance.loaderOptions, instance.colors, instance.compiler, { file: 'tsconfig.json' }, compilation.compiler.context));
++    compilation.errors.push(...(0, utils_1.formatErrors)(diagnostics.global, instance.loaderOptions, instance.colors, instance.compiler, { file: 'tsconfig.json' }, compilation.compiler.context, compilation.compiler.webpack));
+ }
+ /**
+  * gather all declaration files from TypeScript and output them to webpack.
+@@ -229,6 +229,7 @@ function outputFileToAsset(outputFile, compilation) {
+         // According to @alexander-akait (and @sokra) we should always '/' https://github.com/TypeStrong/ts-loader/pull/1251#issuecomment-799606985
+         .replace(/\\/g, '/');
+     // As suggested by @JonWallsten here: https://github.com/TypeStrong/ts-loader/pull/1251#issuecomment-800032753
++    const webpack = compilation.compiler.webpack;
+     compilation.emitAsset(assetPath, new webpack.sources.RawSource(outputFile.text));
+ }
+ function outputFilesToAsset(outputFiles, compilation, skipOutputFile) {
+@@ -270,6 +271,7 @@ function provideAssetsFromSolutionBuilderHost(instance, compilation) {
+  * the loader, we need to detect and remove any pre-existing errors.
+  */
+ function removeCompilationTSLoaderErrors(compilation, loaderOptions) {
++    const webpack = compilation.compiler.webpack;
+     compilation.errors = compilation.errors.filter(error => error instanceof webpack.WebpackError && error.details !== (0, utils_1.tsLoaderSource)(loaderOptions));
+ }
+ function removeModuleTSLoaderError(module, loaderOptions) {
+diff --git a/dist/config.js b/dist/config.js
+index 6d6e6bf9dbe62e5e3630b00dcf96c3da558e52cb..1f6490f0473c6bbce198f3fff2f23efe036dafda 100644
+--- a/dist/config.js
++++ b/dist/config.js
+@@ -19,7 +19,7 @@ function getConfigFile(compiler, colors, loader, loaderOptions, compilerCompatib
+         }
+         configFile = compiler.readConfigFile(configFilePath, compiler.sys.readFile);
+         if (configFile.error !== undefined) {
+-            configFileError = (0, utils_1.formatErrors)([configFile.error], loaderOptions, colors, compiler, { file: configFilePath }, loader.context)[0];
++            configFileError = (0, utils_1.formatErrors)([configFile.error], loaderOptions, colors, compiler, { file: configFilePath }, loader.context, loader._compiler.webpack)[0];
+         }
+     }
+     else {
+diff --git a/dist/index.js b/dist/index.js
+index 287ce1cfe6e7e0eed2390f56ab7ced7daace42b7..625fc0b850b55fc45356506f48d04e3c2b6cb264 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -427,7 +427,7 @@ function getTranspilationEmit(fileName, contents, instance, loaderContext) {
+     addDependenciesFromSolutionBuilder(instance, fileName, file => loaderContext.addDependency(path.resolve(file)));
+     // _module.errors is not available inside happypack - see https://github.com/TypeStrong/ts-loader/issues/336
+     if (!instance.loaderOptions.happyPackMode) {
+-        const errors = (0, utils_1.formatErrors)(diagnostics, instance.loaderOptions, instance.colors, instance.compiler, { module }, loaderContext.context);
++        const errors = (0, utils_1.formatErrors)(diagnostics, instance.loaderOptions, instance.colors, instance.compiler, { module }, loaderContext.context, loaderContext._compiler.webpack);
+         errors.forEach(error => module.addError(error));
+     }
+     return { outputText, sourceMapText };
+diff --git a/dist/instances.js b/dist/instances.js
+index 5034edbe307373f122f51d0827bbfad0eea59ff9..950be50c814c5dfe8b2dbdcaa65bf93028e731ec 100644
+--- a/dist/instances.js
++++ b/dist/instances.js
+@@ -13,7 +13,6 @@ exports.getEmitOutput = getEmitOutput;
+ const chalk = require("chalk");
+ const fs = require("fs");
+ const path = require("path");
+-const webpack = require("webpack");
+ const after_compile_1 = require("./after-compile");
+ const compilerSetup_1 = require("./compilerSetup");
+ const config_1 = require("./config");
+@@ -45,7 +44,7 @@ function getTypeScriptInstance(loaderOptions, loader) {
+     const compiler = (0, compilerSetup_1.getCompiler)(loaderOptions, log);
+     if (compiler.errorMessage !== undefined) {
+         return {
+-            error: (0, utils_1.makeError)(loaderOptions, colors.red(compiler.errorMessage), ''),
++            error: (0, utils_1.makeError)(loaderOptions, colors.red(compiler.errorMessage), '', undefined, undefined, loader._compiler.webpack),
+         };
+     }
+     return successfulTypeScriptInstance(loaderOptions, loader, log, colors, compiler.compiler, compiler.compilerCompatible, compiler.compilerDetailsLogMessage);
+@@ -83,7 +82,7 @@ function successfulTypeScriptInstance(loaderOptions, loader, log, colors, compil
+     if (configFileAndPath.configFileError !== undefined) {
+         const { message, file } = configFileAndPath.configFileError;
+         return {
+-            error: (0, utils_1.makeError)(loaderOptions, colors.red('error while reading tsconfig.json:' + constants_1.EOL + message), file !== null && file !== void 0 ? file : ''),
++            error: (0, utils_1.makeError)(loaderOptions, colors.red('error while reading tsconfig.json:' + constants_1.EOL + message), file !== null && file !== void 0 ? file : '', undefined, undefined, loader._compiler.webpack),
+         };
+     }
+     const { configFilePath, configFile } = configFileAndPath;
+@@ -104,10 +103,10 @@ function successfulTypeScriptInstance(loaderOptions, loader, log, colors, compil
+     const basePath = loaderOptions.context || path.dirname(configFilePath || '');
+     const configParseResult = (0, config_1.getConfigParseResult)(compiler, configFile, basePath, configFilePath, loaderOptions);
+     if (configParseResult.errors.length > 0 && !loaderOptions.happyPackMode) {
+-        const errors = (0, utils_1.formatErrors)(configParseResult.errors, loaderOptions, colors, compiler, { file: configFilePath }, loader.context);
++        const errors = (0, utils_1.formatErrors)(configParseResult.errors, loaderOptions, colors, compiler, { file: configFilePath }, loader.context, loader._compiler.webpack);
+         errors.forEach(error => module.addError(error));
+         return {
+-            error: (0, utils_1.makeError)(loaderOptions, colors.red('error while parsing tsconfig.json'), configFilePath || ''),
++            error: (0, utils_1.makeError)(loaderOptions, colors.red('error while parsing tsconfig.json'), configFilePath || '', undefined, undefined, loader._compiler.webpack),
+         };
+     }
+     const compilerOptions = (0, compilerSetup_1.getCompilerOptions)(configParseResult, compiler);
+@@ -165,7 +164,7 @@ function successfulTypeScriptInstance(loaderOptions, loader, log, colors, compil
+     }
+     catch (exc) {
+         return {
+-            error: (0, utils_1.makeError)(loaderOptions, colors.red(`A file specified in tsconfig.json could not be found: ${normalizedFilePath}`), normalizedFilePath),
++            error: (0, utils_1.makeError)(loaderOptions, colors.red(`A file specified in tsconfig.json could not be found: ${normalizedFilePath}`), normalizedFilePath, undefined, undefined, loader._compiler.webpack),
+         };
+     }
+     const instance = {
+@@ -206,6 +205,7 @@ function addAssetHooks(loader, instance) {
+     // We need to get the function once and then reuse it, otherwise it will be recreated each time
+     // and all files will always be checked.
+     const cachedMakeAfterCompile = (0, after_compile_1.makeAfterCompile)(instance, instance.configFilePath);
++    const webpack = loader._compiler.webpack;
+     const makeAssetsCallback = (compilation) => {
+         compilation.hooks.processAssets.tap({
+             name: 'ts-loader',
+@@ -312,9 +312,9 @@ function reportTranspileErrors(instance, loader) {
+     instance.reportTranspileErrors = false;
+     // happypack does not have _module.errors - see https://github.com/TypeStrong/ts-loader/issues/336
+     if (!instance.loaderOptions.happyPackMode) {
+-        const solutionErrors = (0, servicesHost_1.getSolutionErrors)(instance, loader.context);
++        const solutionErrors = (0, servicesHost_1.getSolutionErrors)(instance, loader.context, loader._compiler.webpack);
+         const diagnostics = instance.program.getOptionsDiagnostics();
+-        const errors = (0, utils_1.formatErrors)(diagnostics, instance.loaderOptions, instance.colors, instance.compiler, { file: instance.configFilePath || 'tsconfig.json' }, loader.context);
++        const errors = (0, utils_1.formatErrors)(diagnostics, instance.loaderOptions, instance.colors, instance.compiler, { file: instance.configFilePath || 'tsconfig.json' }, loader.context, loader._compiler.webpack);
+         [...solutionErrors, ...errors].forEach(error => module.addError(error));
+     }
+ }
+diff --git a/dist/servicesHost.js b/dist/servicesHost.js
+index fac87ad511acfa12035f1c772bb4cf580d078754..97281391f05c6bb4beb0ad557dc5a99112ca682a 100644
+--- a/dist/servicesHost.js
++++ b/dist/servicesHost.js
+@@ -708,11 +708,11 @@ function makeSolutionBuilderHost(scriptRegex, loader, instance) {
+         solutionBuilderHost.invokeFileWatcher(fileName, eventKind);
+     }
+ }
+-function getSolutionErrors(instance, context) {
++function getSolutionErrors(instance, context, webpack) {
+     const solutionErrors = [];
+     if (instance.solutionBuilderHost &&
+         instance.solutionBuilderHost.diagnostics.transpileErrors.length) {
+-        instance.solutionBuilderHost.diagnostics.transpileErrors.forEach(([filePath, errors]) => solutionErrors.push(...(0, utils_1.formatErrors)(errors, instance.loaderOptions, instance.colors, instance.compiler, { file: filePath ? undefined : 'tsconfig.json' }, context)));
++        instance.solutionBuilderHost.diagnostics.transpileErrors.forEach(([filePath, errors]) => solutionErrors.push(...(0, utils_1.formatErrors)(errors, instance.loaderOptions, instance.colors, instance.compiler, { file: filePath ? undefined : 'tsconfig.json' }, context, webpack)));
+     }
+     return solutionErrors;
+ }
+diff --git a/dist/utils.js b/dist/utils.js
+index 06d1e4129284835413ec2fe3f20c2a451b43678a..d9151592a8d21052c0a999e6f20c916564ab66e2 100644
+--- a/dist/utils.js
++++ b/dist/utils.js
+@@ -18,7 +18,6 @@ exports.useCaseSensitiveFileNames = useCaseSensitiveFileNames;
+ const fs = require("fs");
+ const micromatch = require("micromatch");
+ const path = require("path");
+-const webpack = require("webpack");
+ const constants = require("./constants");
+ const instances_1 = require("./instances");
+ /**
+@@ -39,7 +38,7 @@ function defaultErrorFormatter(error, colors) {
+  * Take TypeScript errors, parse them and format to webpack errors
+  * Optionally adds a file name
+  */
+-function formatErrors(diagnostics, loaderOptions, colors, compiler, merge, context) {
++function formatErrors(diagnostics, loaderOptions, colors, compiler, merge, context, webpack) {
+     return diagnostics === undefined
+         ? []
+         : diagnostics
+@@ -74,7 +73,7 @@ function formatErrors(diagnostics, loaderOptions, colors, compiler, merge, conte
+             const message = loaderOptions.errorFormatter === undefined
+                 ? defaultErrorFormatter(errorInfo, colors)
+                 : loaderOptions.errorFormatter(errorInfo, colors);
+-            const error = makeError(loaderOptions, message, merge.file === undefined ? errorInfo.file : merge.file, start, end);
++            const error = makeError(loaderOptions, message, merge.file === undefined ? errorInfo.file : merge.file, start, end, webpack);
+             return Object.assign(error, merge);
+         });
+ }
+@@ -101,7 +100,7 @@ function fsReadFile(fileName, encoding = 'utf8') {
+         return undefined;
+     }
+ }
+-function makeError(loaderOptions, message, file, location, endLocation) {
++function makeError(loaderOptions, message, file, location, endLocation, webpack) {
+     const error = new webpack.WebpackError(message);
+     error.file = file;
+     error.loc =
