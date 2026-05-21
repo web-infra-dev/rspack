@@ -113,12 +113,12 @@ exclude3:
     assets by path *.br xx KiB
       asset exclude3-main.js.map.br xx KiB [emitted]
       asset exclude3-main.js.br xx KiB [emitted]
-      asset exclude3-main.css.map.br xx KiB [emitted]
+      asset exclude3-main.css.map.br xx bytes [emitted]
       asset exclude3-main.css.br xx bytes [emitted]
     assets by path *.gz xx KiB
       asset exclude3-main.js.map.gz xx KiB [emitted]
       asset exclude3-main.js.gz xx KiB [emitted]
-      asset exclude3-main.css.map.gz xx KiB [emitted]
+      asset exclude3-main.css.map.gz xx bytes [emitted]
       asset exclude3-main.css.gz xx bytes [emitted]
     assets by chunk xx KiB (name: main)
       asset exclude3-main.js xx KiB [emitted] (name: main)
