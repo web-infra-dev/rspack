@@ -466,10 +466,10 @@ async fn visit_dirs(
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = glob_user_request(patterns, path_str) {
-          if !dependencies.iter().any(|d| d.user_request == user_request) {
-            push_context_element_dependency(dependencies, options, &relative_path, &user_request);
-          }
+        if let Some(user_request) = glob_user_request(patterns, path_str)
+          && !dependencies.iter().any(|d| d.user_request == user_request)
+        {
+          push_context_element_dependency(dependencies, options, &relative_path, &user_request);
         }
       } else {
         let requests = alternative_requests(
