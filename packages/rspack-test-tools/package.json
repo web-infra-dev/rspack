@@ -48,7 +48,6 @@
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.3.0",
-    "jest-snapshot": "29.7.0",
     "jsdom": "^26.1.0",
     "memfs": "4.57.2",
     "path-serializer": "0.6.0",

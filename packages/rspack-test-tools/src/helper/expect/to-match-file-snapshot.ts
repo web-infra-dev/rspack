@@ -8,14 +8,11 @@ import chalk from 'chalk';
 import filenamify from 'filenamify';
 import { diff } from 'jest-diff';
 import { serializers } from '../serializers';
+import {
+  getSnapshotSerializers,
+  serializeSnapshot,
+} from './snapshot-serializers';
 
-const { serialize } = require(
-  path.join(path.dirname(require.resolve('jest-snapshot')), './utils.js'),
-);
-// get jest builtin serializers
-const { getSerializers } = require(
-  path.join(path.dirname(require.resolve('jest-snapshot')), './plugins.js'),
-);
 /**
  * Check if 2 strings or buffer are equal
  */
@@ -50,9 +47,9 @@ export function toMatchFileSnapshotSync(
 ) {
   const content = Buffer.isBuffer(rawContent)
     ? rawContent
-    : serialize(rawContent, /* ident */ 2, {
+    : serializeSnapshot(rawContent, /* ident */ 2, {
         plugins: [
-          ...getSerializers(),
+          ...getSnapshotSerializers(),
           // Rspack serializers
           ...serializers,
         ],

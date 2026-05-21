@@ -8,18 +8,20 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Module generator
 
+`module.generator` controls how Rspack turns parsed modules into output code or emitted assets. It affects output-related behavior such as asset filenames, public paths, CSS Modules exports, and other generation settings for each module type.
+
 ## generator
 
 - **Type:** `Object`
 - **Default:** `{}`
 
-Configure all generators' options in one place with `module.generator`.
+Use `module.generator` to define output generation options for each module type.
 
 Available generator option groups:
 
-- [Asset generator options](#asset)
-- [CSS generator options](#cssauto)
-- [JSON generator options](#jsonjsonparse)
+- `asset`, `asset/inline`, `asset/resource`: [Asset generator options](#asset)
+- `css`, `css/auto`, `css/global`, `css/module`: [CSS generator options](#cssauto)
+- `json`: [JSON generator options](#jsonjsonparse)
 
 ```js title="rspack.config.mjs"
 export default {
