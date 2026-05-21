@@ -120,7 +120,6 @@ fn handle_strict_equality_comparison<'a>(
 }
 
 /// `eql` is `true` for `==` and `false` for `!=`
-#[inline(always)]
 fn handle_abstract_equality_comparison<'a>(
   eql: bool,
   left: BasicEvaluatedExpression<'a>,
@@ -149,7 +148,6 @@ fn handle_abstract_equality_comparison<'a>(
   }
 }
 
-#[inline(always)]
 fn handle_nullish_coalescing<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
@@ -174,7 +172,6 @@ fn handle_nullish_coalescing<'a>(
   }
 }
 
-#[inline(always)]
 fn handle_logical_or<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
@@ -209,7 +206,6 @@ fn handle_logical_or<'a>(
   }
 }
 
-#[inline(always)]
 fn handle_logical_and<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
@@ -244,7 +240,6 @@ fn handle_logical_and<'a>(
   }
 }
 
-#[inline(always)]
 fn handle_add<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,
@@ -376,7 +371,6 @@ fn handle_add<'a>(
   Some(res)
 }
 
-#[inline(always)]
 pub fn handle_const_operation<'a>(
   left: BasicEvaluatedExpression<'a>,
   expr: &'a BinExpr,

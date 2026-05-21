@@ -57,7 +57,6 @@ pub struct ContentFetchResult {
 }
 
 impl ContentFetchResult {
-  #[inline(always)]
   pub fn content(&self) -> &[u8] {
     match &self.content {
       BufferOrBytes::Buffer(buffer) => buffer.as_ref(),
