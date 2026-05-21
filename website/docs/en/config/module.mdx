@@ -58,7 +58,7 @@ See the [source code](https://github.com/web-infra-dev/rspack/blob/main/packages
 - **Type:** `Object`
 - **Default:** `{}`
 
-Configure global generator options for different module types. See [Module Generator](/config/module-generator) for details.
+Use `module.generator` to define output generation options for each module type, such as asset filenames, public paths, and CSS Modules exports. See [Module Generator](/config/module-generator) for details.
 
 ## module.noParse
 
@@ -104,7 +104,7 @@ export default {
 - **Type:** `Object`
 - **Default:** `{}`
 
-Configure global parser options for different module types. See [Module Parser](/config/module-parser) for details.
+Use `module.parser` to define parser options for each module type, such as dependency collection and how module syntax is interpreted. See [Module Parser](/config/module-parser) for details.
 
 ## module.rules
 

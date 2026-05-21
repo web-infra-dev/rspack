@@ -8,18 +8,20 @@ import WebpackLicense from '@components/WebpackLicense';
 
 # Module generator
 
+`module.generator` 用于控制 Rspack 在模块解析完成后如何生成最终代码或资源。它会影响资源文件名、publicPath、CSS Modules 导出形式等按模块类型决定的输出行为。
+
 ## generator
 
 - **类型：** `Object`
 - **默认值：** `{}`
 
-使用 `module.generator` 在一个地方配置所有生成器选项。
+使用 `module.generator` 可以按模块类型配置输出生成选项。
 
-查看按模块类型拆分的详细页面：
+可配置的 generator 选项分组包括：
 
-- [Asset generator 选项](/config/module-generator#asset)
-- [CSS generator 选项](/config/module-generator#cssauto)
-- [JSON generator 选项](/config/module-generator#jsonjsonparse)
+- `asset`, `asset/inline`, `asset/resource`: [Asset generator 选项](/config/module-generator#asset)
+- `css`, `css/auto`, `css/global`, `css/module`: [CSS generator 选项](/config/module-generator#cssauto)
+- `json`: [JSON generator 选项](/config/module-generator#jsonjsonparse)
 
 ```js title="rspack.config.mjs"
 export default {
