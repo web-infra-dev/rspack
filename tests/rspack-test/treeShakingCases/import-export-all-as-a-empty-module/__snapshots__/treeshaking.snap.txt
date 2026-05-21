@@ -2,10 +2,10 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, {
-  aaa: () => (/* reexport module object */ _app__rspack_import_0),
-  routes: () => (routes)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "aaa", () => (/* reexport module object */ _app__rspack_import_0),
+  "routes", () => (routes)
+]);
 /* import */ var _answer__rspack_import_1 = __webpack_require__("./answer.js");
 /* import */ var _answer__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_answer__rspack_import_1);
 /* import */ var _app__rspack_import_0 = __webpack_require__("./app.js");

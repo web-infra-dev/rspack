@@ -10,9 +10,9 @@ _answer__rspack_import_0;
 },
 "./test.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  result: () => (result)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "result", () => (result)
+]);
 const result = "";
 
 

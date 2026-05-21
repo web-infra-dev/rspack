@@ -147,7 +147,7 @@ join('btn', 'primary');
 
 > 该功能仍处于实验阶段，目前需要通过 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) 启用，并将在后续版本中默认开启，查看 [指南](/guide/optimization/tree-shaking#no_side_effects-注解) 了解更多。
 
-对于无法直接修改源码的第三方模块，Rspack 还允许你通过 [`module.parser.javascript.pureFunctions`](/config/module#moduleparserjavascriptpurefunctions) 选项手动声明纯函数列表，以达到同样的效果。
+对于无法直接修改源码的第三方模块，Rspack 还允许你通过 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 选项手动声明纯函数列表，以达到同样的效果。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -216,7 +216,7 @@ Rspack 2.0 改进了对 [import.meta](https://developer.mozilla.org/en-US/docs/W
 
 从 Rspack 2.0 开始，在生成 ESM 产物时，Rspack 默认会保留无法识别的 `import.meta` 属性，而不是在编译阶段将其替换。这使你可以使用一些自定义 `import.meta` 属性，也使其行为更符合 ESM 规范。
 
-这一行为也可以通过 [`module.parser.javascript.importMeta`](/config/module#moduleparserjavascriptimportmeta) 进行控制，例如：
+这一行为也可以通过 [`module.parser.javascript.importMeta`](/config/module-parser#javascriptimportmeta) 进行控制，例如：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -380,7 +380,7 @@ export default {
 
 ### 支持控制 CSS 导入 \{#resolve-import}
 
-Rspack 2.0 的 CSS 解析器提供了 [`resolveImport`](/config/module#moduleparsercssautoresolveimport) 选项，它用于控制构建时是否解析并内联 `@import`。
+Rspack 2.0 的 CSS 解析器提供了 [`resolveImport`](/config/module-parser#cssautoresolveimport) 选项，它用于控制构建时是否解析并内联 `@import`。
 
 默认情况下，Rspack 会解析 `@import`，并将导入的内容直接合并到当前文件中。你也可以将 `resolveImport` 设为 `false`，保留原始的 `@import`，交由浏览器或下游工具处理。
 

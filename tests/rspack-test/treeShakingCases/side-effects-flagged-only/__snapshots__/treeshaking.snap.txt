@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  something: () => (/* reexport safe */ _lib__rspack_import_0["default"])
-});
+__webpack_require__.d(__webpack_exports__, [
+  "something", () => (/* reexport safe */ _lib__rspack_import_0["default"])
+]);
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 /* import */ var _src_a__rspack_import_1 = __webpack_require__("./src/a.js");
 
@@ -21,9 +21,9 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  "default": () => (/* export default binding */ __rspack_default_export)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "default", () => (/* export default binding */ __rspack_default_export)
+]);
 const secret = "888";
 const result = 20000;
 const something = function () {};

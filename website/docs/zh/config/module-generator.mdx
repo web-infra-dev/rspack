@@ -1,0 +1,1089 @@
+---
+description: '按模块类型配置 generator 选项。'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.docschina.org/configuration/module/" />
+
+# Module generator
+
+## generator
+
+- **类型：** `Object`
+- **默认值：** `{}`
+
+使用 `module.generator` 在一个地方配置所有生成器选项。
+
+查看按模块类型拆分的详细页面：
+
+- [Asset generator 选项](/config/module-generator#asset)
+- [CSS generator 选项](/config/module-generator#cssauto)
+- [JSON generator 选项](/config/module-generator#jsonjsonparse)
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      // asset 模块的生成器选项
+      asset: {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'image/png',
+        },
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // asset/inline 模块的生成器选项
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+          mimetype: 'image/png',
+        },
+      },
+      // asset/resource 模块的生成器选项
+      'asset/resource': {
+        filename: '[name]-[contenthash][ext]',
+        publicPath: 'https://cdn.example.com/',
+      },
+      // css/auto 模块的生成器选项
+      'css/auto': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // `css` 模块的生成器选项
+      css: {
+        exportsOnly: false,
+        esModule: true,
+      },
+      // css/global 模块的生成器选项
+      'css/global': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // css/module 模块的生成器选项
+      'css/module': {
+        exportsConvention: 'as-is',
+        exportsOnly: false,
+        localIdentHashDigest: 'base64url',
+        localIdentHashDigestLength: 6,
+        localIdentHashFunction: 'md4',
+        localIdentHashSalt: 'my-salt',
+        localIdentName: '[uniqueName]-[id]-[local]',
+        esModule: true,
+      },
+      // `json` 模块的生成器选项
+      json: {
+        JSONParse: true,
+      },
+    },
+  },
+};
+```
+
+### asset
+
+`asset` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### asset.binary
+
+- **类型：** `boolean | undefined`
+- **默认值：** `undefined`
+
+是否将 asset 视为二进制文件，设置为 `false` 时模块会被当作文本处理。不设置将根据模块类型自动判断。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### asset.dataUrl
+
+- **类型：** `Object | (source: Buffer, context: { filename: string, module: Module }) => string`
+- **默认值：** `{}`
+
+仅对模块类型为 `asset` 或 `'asset/inline'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: 'base64',
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+当被作为一个函数使用，它必须为每个模块执行且并须返回一个 data URI 字符串。
+
+```js title="rspack.config.mjs"
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: ({ content }) => {
+          const svgToMiniDataURI = require('mini-svg-data-uri');
+          return svgToMiniDataURI(content);
+        },
+      },
+    },
+  },
+};
+```
+
+### asset.dataUrl.encoding
+
+- **类型：** `false | 'base64'`
+- **默认值：** `'base64'`
+
+设置为 base64 时，模块将使用 base64 算法进行编码。将编码设置为 false 将禁用编码。仅对模块类型为 `'asset'` 或 `'asset/inline'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### asset.dataUrl.mimetype
+
+- **类型：** `string`
+- **默认值：** `require('mime-types').lookup(ext)`
+
+dataUrl 的 MIME 类型，默认从模块资源扩展名解析。仅对模块类型为 `'asset'` 或 `'asset/inline'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+### asset.importMode
+
+- **类型：** `'url' | 'preserve'`
+- **默认值：** `'url'`
+
+如果为 `"url"`，将基于 [publicPath](#assetpublicpath) 生成指向 asset 的 URL。
+如果为 `"preserve"`，将保留指向 asset 的 import 或 require 语句。
+
+仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+- `'asset'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+### asset.filename
+
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** `undefined`
+- **支持的 Template string：** 参考 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)
+
+覆盖 [`output.assetModuleFilename`](/config/output#outputassetmodulefilename)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+### asset.outputPath
+
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** `undefined`
+
+将 asset 输出到指定文件夹，该文件夹相对于 [`output.path`](/config/output#outputpath)。
+
+仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### asset.publicPath
+
+- **类型：** `string | ((pathData: PathData, assetInfo?: AssetInfo) => string)`
+- **默认值：** `undefined`
+
+覆盖 [`output.publicPath`](/config/output#outputpublicpath)，仅对模块类型为 `'asset'` 和 `'asset/resource'` 的模块生效。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### asset.emit
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否将 asset 输出到磁盘。对于 SSR 等场景，你可以将该选项设置为 `false` 来避免输出无用的文件。
+
+仅对模块类型为 `'asset'` 或 `'asset/resource'` 的模块生效。
+
+- `'asset'`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      asset: {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
+- `'asset/resource'`：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        emit: false,
+      },
+    },
+  },
+};
+```
+
+### ["asset/inline"]
+
+`asset/inline` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### ["asset/inline"].binary
+
+和 [`module.generator["asset"].binary`](#assetbinary) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### ["asset/inline"].dataUrl
+
+和 [`module.generator["asset"].dataUrl`](#assetdataurl) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          // options
+        },
+      },
+    },
+  },
+};
+```
+
+### ["asset/inline"].dataUrl.encoding
+
+和 [`module.generator["asset"].dataUrl.encoding`](#assetdataurlencoding) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          encoding: false,
+        },
+      },
+    },
+  },
+};
+```
+
+### ["asset/inline"].dataUrl.mimetype
+
+和 [`module.generator["asset"].dataUrl.mimetype`](#assetdataurlmimetype) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/inline': {
+        dataUrl: {
+          mimetype: 'image/png',
+        },
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"]
+
+`asset/resource` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].binary
+
+和 [`module.generator["asset"].binary`](#assetbinary) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        binary: false,
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].importMode
+
+和 [`module.generator["asset"].importMode`](#assetimportmode) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        importMode: 'preserve',
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].filename
+
+和 [`module.generator["asset"].filename`](#assetfilename) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        filename: 'static/[hash][ext]',
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].outputPath
+
+和 [`module.generator["asset"].outputPath`](#assetoutputpath) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        outputPath: 'foo/',
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].publicPath
+
+和 [`module.generator["asset"].publicPath`](#assetpublicpath) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"]
+
+`css/auto` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].exportsConvention
+
+- **类型：** `'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only'`
+- **默认值：** `'as-is'`
+
+自定义 CSS 导出名称如何导出到 JavaScript 模块，例如保留原样、转换为驼峰命名等等。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].exportsOnly
+
+- **类型：** `boolean`
+- **默认值：** `true` for node environments, `false` for web environments.
+
+如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
+
+如果为 `false`，生成 stylesheets 并将其注入到 template 中。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].localIdentName
+
+- **类型：** `string`
+- **默认值：** `[uniqueName]-[id]-[local]`
+
+自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].localIdentHashDigest
+
+- **类型：** `string`
+- **默认值：** `'base64url'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希摘要编码。支持的值与 [`output.hashDigest`](/config/output#outputhashdigest) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].localIdentHashDigestLength
+
+- **类型：** `number`
+- **默认值：** `6`
+
+配置生成 CSS Modules 局部标识符时使用的哈希字符数。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].localIdentHashFunction
+
+- **类型：** `string`
+- **默认值：** `'md4'`
+
+配置生成 CSS Modules 局部标识符时使用的哈希函数。支持的值与 [`output.hashFunction`](/config/output#outputhashfunction) 相同。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].localIdentHashSalt
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+配置生成 CSS Modules 局部标识符时添加到哈希中的盐值。未设置时，Rspack 会使用 [`output.hashSalt`](/config/output#outputhashsalt)。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].esModule
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否为 CSS 的导出添加 `__esModule`，如果添加则会在 ESM-CJS interop 时当作 ES modules，否则当作 CommonJS modules。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/auto': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+比如在使用第三方组件库的 CommonJS 产物时，有时需要添加该配置确保 ESM-CJS interop 正确，以拿到正确的导出（可配合 [rules[].test](/config/module-rules#rulestest) 等匹配条件只为该组件库添加）。
+
+组件库源码：
+
+```js
+import style from './style.css';
+
+export function Button() {
+  return <button className={style.btn}></button>;
+}
+```
+
+组件库发布的 CommonJS 产物：
+
+```js
+'use strict';
+
+Object.defineProperty(exports, '__esModule', {
+  value: true,
+});
+exports.Button = Button;
+var _style = _interopRequireDefault(require('./style.css'));
+var _jsxRuntime = require('react/jsx-runtime');
+function _interopRequireDefault(obj) {
+  return obj && obj.__esModule ? obj : { default: obj };
+}
+function Button() {
+  return /*#__PURE__*/ (0, _jsxRuntime.jsx)('button', {
+    className: _style['default'].btn, // <-- 注意：这里经过 _interopRequireDefault 后需要访问 default
+  });
+}
+```
+
+### css
+
+`css` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        // options
+      },
+    },
+  },
+};
+```
+
+### css.exportsOnly
+
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### css.esModule
+
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      css: {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"]
+
+`css/global` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].exportsConvention
+
+和 [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].exportsOnly
+
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].localIdentName
+
+和 [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].esModule
+
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/global': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"]
+
+`css/module` 模块的生成器选项。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        // options
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].exportsConvention
+
+和 [`module.generator["css/auto"].exportsConvention`](#cssautoexportsconvention) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsConvention: 'camel-case',
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].exportsOnly
+
+和 [`module.generator["css/auto"].exportsOnly`](#cssautoexportsonly) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        exportsOnly: false,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].localIdentName
+
+和 [`module.generator["css/auto"].localIdentName`](#cssautolocalidentname) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]-[hash:base64:6]',
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].localIdentHashDigest
+
+和 [`module.generator["css/auto"].localIdentHashDigest`](#cssautolocalidenthashdigest) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigest: 'hex',
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].localIdentHashDigestLength
+
+和 [`module.generator["css/auto"].localIdentHashDigestLength`](#cssautolocalidenthashdigestlength) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashDigestLength: 8,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].localIdentHashFunction
+
+和 [`module.generator["css/auto"].localIdentHashFunction`](#cssautolocalidenthashfunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashFunction: 'xxhash64',
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].localIdentHashSalt
+
+和 [`module.generator["css/auto"].localIdentHashSalt`](#cssautolocalidenthashsalt) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        localIdentHashSalt: 'my-salt',
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].esModule
+
+和 [`module.generator["css/auto"].esModule`](#cssautoesmodule) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'css/module': {
+        esModule: true,
+      },
+    },
+  },
+};
+```
+
+### json.JSONParse
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+当 JSON 字符串长度大于 20 时，使用 `JSON.parse`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      json: {
+        JSONParse: false,
+      },
+    },
+  },
+};
+```

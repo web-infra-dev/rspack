@@ -2,11 +2,11 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./bar.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  b: () => (b),
-  bar: () => (/* reexport module object */ _foo__rspack_import_0),
-  c: () => (/* reexport safe */ _result__rspack_import_1.c)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "b", () => (b),
+  "bar", () => (/* reexport module object */ _foo__rspack_import_0),
+  "c", () => (/* reexport safe */ _result__rspack_import_1.c)
+]);
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _result__rspack_import_1 = __webpack_require__("./result.js");
 function b() {}
@@ -18,13 +18,13 @@ function b() {}
 },
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (a),
-  b: () => (/* reexport safe */ _bar__rspack_import_0.b),
-  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
-  c: () => (/* reexport safe */ _bar__rspack_import_0.c),
-  foo: () => (foo)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "a", () => (a),
+  "b", () => (/* reexport safe */ _bar__rspack_import_0.b),
+  "bar", () => (/* reexport safe */ _bar__rspack_import_0.bar),
+  "c", () => (/* reexport safe */ _bar__rspack_import_0.c),
+  "foo", () => (foo)
+]);
 /* import */ var _bar__rspack_import_0 = __webpack_require__("./bar.js");
 /* import */ var _result__rspack_import_1 = __webpack_require__("./result.js");
 const a = 3;
@@ -43,9 +43,9 @@ _foo__rspack_import_0.bar.a;
 
 },
 "./result.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  c: () => (c)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "c", () => (c)
+]);
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _bar__rspack_import_1 = __webpack_require__("./bar.js");
 const c = 103330;

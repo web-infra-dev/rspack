@@ -17,13 +17,14 @@ exports.bar = 2
   \****************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, {
-  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar),
-  foo: () => (foo)
-});
 /* import */ var _bar__rspack_import_0 = __webpack_require__(/*! ./bar */ "./bar.js");
 const foo = 1
 
+
+__webpack_require__.d(__webpack_exports__, [
+  "bar", () => (/* reexport safe */ _bar__rspack_import_0.bar),
+  "foo", 0, foo
+]);
 
 
 },
@@ -81,12 +82,17 @@ __webpack_require__.m = __webpack_modules__;
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/esm_register_module
 (() => {

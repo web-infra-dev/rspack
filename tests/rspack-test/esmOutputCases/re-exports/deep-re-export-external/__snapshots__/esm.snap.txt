@@ -5,13 +5,14 @@ import * as __rspack_external_fs from "fs";
 // NAMESPACE OBJECT: ./externals.js
 var externals_namespaceObject = {};
 __webpack_require__.r(externals_namespaceObject);
-__webpack_require__.d(externals_namespaceObject, { 
-  "default": () => (__rspack_external_fs["default"]),
-  readFile: () => (__rspack_external_fs.readFile) });
+__webpack_require__.d(externals_namespaceObject, [
+  "default", () => (__rspack_external_fs["default"]),
+  "readFile", () => (__rspack_external_fs.readFile)
+]);
 var externals_namespaceObject_starExports = __rspack_external_fs;
 Object.keys(externals_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
-    __webpack_require__.d(externals_namespaceObject, { [key]: function() { return externals_namespaceObject_starExports[key]; } });
+    __webpack_require__.d(externals_namespaceObject, [key, function() { return externals_namespaceObject_starExports[key]; }]);
   }
 });
 
@@ -53,12 +54,17 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/has_own_property
 (() => {

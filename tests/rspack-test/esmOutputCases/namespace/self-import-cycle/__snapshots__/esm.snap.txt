@@ -3,9 +3,10 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./index.js
 var index_namespaceObject = {};
 __webpack_require__.r(index_namespaceObject);
-__webpack_require__.d(index_namespaceObject, { 
-  keys: () => (keys),
-  p: () => (p) });
+__webpack_require__.d(index_namespaceObject, [
+  "keys", () => (keys),
+  "p", () => (p)
+]);
 
 
 // ./index.js
@@ -35,12 +36,17 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/has_own_property
 (() => {

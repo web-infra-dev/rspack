@@ -42,7 +42,6 @@ pub struct LazyCompilationTestFn {
   tsfn: ThreadsafeFunction<ModuleObject, Option<bool>>,
 }
 
-#[async_trait::async_trait]
 impl LazyCompilationTestCheck for LazyCompilationTestFn {
   async fn test(
     &self,
@@ -112,7 +111,6 @@ impl From<&RawLazyCompilationOption> for JsBackend {
   }
 }
 
-#[async_trait::async_trait]
 impl Backend for JsBackend {
   async fn current_active_modules(&mut self) -> rspack_error::Result<IdentifierSet> {
     let active_modules = self

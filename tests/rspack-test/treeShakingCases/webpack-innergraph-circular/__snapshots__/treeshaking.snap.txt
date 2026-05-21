@@ -34,13 +34,13 @@ it("export should be unused when only unused functions use it", () => {
 
 },
 "./inner.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  A: () => (A),
-  B: () => (B),
-  exportAUsed: () => (exportAUsed),
-  exportBUsed: () => (exportBUsed),
-  exportCUsed: () => (exportCUsed)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "A", () => (A),
+  "B", () => (B),
+  "exportAUsed", () => (exportAUsed),
+  "exportBUsed", () => (exportBUsed),
+  "exportCUsed", () => (exportCUsed)
+]);
 function A(s) {
 	return s + "A";
 }
@@ -58,9 +58,9 @@ const exportCUsed = false;
 
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  y: () => (y)
-});
+__webpack_require__.d(__webpack_exports__, [
+  "y", () => (y)
+]);
 /* import */ var _inner__rspack_import_0 = __webpack_require__("./inner.js");
 
 

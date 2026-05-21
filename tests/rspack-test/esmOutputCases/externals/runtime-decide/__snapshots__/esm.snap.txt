@@ -25,9 +25,9 @@ def(exports)
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 /* import */ var _dynamic_exports__rspack_import_0 = __webpack_require__(/*! ./dynamic-exports */ "./dynamic-exports.js");
 /* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_dynamic_exports__rspack_import_0);
-if(__webpack_require__.o(_dynamic_exports__rspack_import_0, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
+if(__webpack_require__.o(_dynamic_exports__rspack_import_0, "readFile")) __webpack_require__.d(__webpack_exports__, ["readFile", function() { return _dynamic_exports__rspack_import_0.readFile; }]);
 /* import */ var fs__rspack_import_1 = __webpack_require__(/*! fs */ "fs");
-if(__webpack_require__.o(fs__rspack_import_1, "readFile")) __webpack_require__.d(__webpack_exports__, { readFile: function() { return fs__rspack_import_1.readFile; } });
+if(__webpack_require__.o(fs__rspack_import_1, "readFile")) __webpack_require__.d(__webpack_exports__, ["readFile", function() { return fs__rspack_import_1.readFile; }]);
 
 
 // side effects
@@ -97,7 +97,7 @@ __webpack_require__.n = (module) => {
 	var getter = module && module.__esModule ?
 		() => (module['default']) :
 		() => (module);
-	__webpack_require__.d(getter, { a: getter });
+	__webpack_require__.d(getter, ["a", getter]);
 	return getter;
 };
 
@@ -105,12 +105,17 @@ __webpack_require__.n = (module) => {
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+	var i = 0;
+	while(i < definition.length) {
+		var key = definition[i++];
+		var binding = definition[i++];
+		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
+		if(!__webpack_require__.o(exports, key)) {
+			Object.defineProperty(exports, key, descriptor);
+		}
+	}
 };
+
 })();
 // webpack/runtime/esm_register_module
 (() => {

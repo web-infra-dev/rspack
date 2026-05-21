@@ -10,7 +10,7 @@ it("should render concatenated export comments in deterministic order", () => {
 
 	/*********** DO NOT MATCH BELOW THIS LINE ***********/
 
-	expectSourceToContain(source, "usedA: () => (/* binding */ usedA)");
-	expectSourceToContain(source, "usedB: () => (/* binding */ usedB)");
+	expectSourceToContain(source, "\"usedA\", () => (/* binding */ usedA)");
+	expectSourceToContain(source, "\"usedB\", () => (/* binding */ usedB)");
 	expectSourceToContain(source, "// UNUSED EXPORTS: unusedA, unusedB");
 });

@@ -88,7 +88,6 @@ impl MinimizeOccasion {
   }
 }
 
-#[async_trait::async_trait]
 impl Occasion for MinimizeOccasion {
   type Artifact = MinimizePersistentCacheArtifact;
 

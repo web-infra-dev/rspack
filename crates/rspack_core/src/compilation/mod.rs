@@ -114,7 +114,7 @@ define_hook!(CompilationDependencyReferencedExports: Sync(
 define_hook!(CompilationConcatenationScope: SeriesBail(compilation: &Compilation, curr_module: ModuleIdentifier) -> ConcatenationScope);
 define_hook!(CompilationOptimizeDependencies: SeriesBail(compilation: &Compilation, side_effects_optimize_artifact: &mut SideEffectsOptimizeArtifact,  build_module_graph_artifact: &mut BuildModuleGraphArtifact, exports_info_artifact: &mut ExportsInfoArtifact,
  diagnostics: &mut Vec<Diagnostic>) -> bool);
-define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, circular_modules: &mut IdentifierSet, diagnostics: &mut Vec<Diagnostic>) -> bool);
+define_hook!(CompilationOptimizeModules: SeriesBail(compilation: &Compilation, circular_modules: &mut Option<IdentifierSet>, diagnostics: &mut Vec<Diagnostic>) -> bool);
 define_hook!(CompilationAfterOptimizeModules: Series(compilation: &Compilation));
 define_hook!(CompilationOptimizeChunks: SeriesBail(compilation: &mut Compilation) -> bool);
 define_hook!(CompilationOptimizeTree: Series(compilation: &Compilation));
@@ -272,7 +272,7 @@ pub struct Compilation {
 
   pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
 
-  pub circular_modules: StealCell<IdentifierSet>,
+  pub circular_modules: StealCell<Option<IdentifierSet>>,
   pub code_generated_modules: IdentifierSet,
   pub build_time_executed_modules: IdentifierSet,
   pub build_chunk_graph_artifact: BuildChunkGraphArtifact,
@@ -378,7 +378,7 @@ impl Compilation {
 
       async_modules_artifact: StealCell::new(AsyncModulesArtifact::default()),
       imported_by_defer_modules_artifact: StealCell::new(Default::default()),
-      circular_modules: StealCell::new(Default::default()),
+      circular_modules: StealCell::new(None),
       dependencies_diagnostics_artifact: StealCell::new(DependenciesDiagnosticsArtifact::default()),
       exports_info_artifact: StealCell::new(ExportsInfoArtifact::default()),
       side_effects_optimize_artifact: StealCell::new(Default::default()),

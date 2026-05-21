@@ -517,10 +517,13 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::OverrideStrictPlugin));
     }
 
-    if compiler_options.optimization.inline_exports {
+    let inline_exports = compiler_options.optimization.inline_exports;
+    if inline_exports {
       build_info.inline_exports = true;
-      plugins.push(Box::new(parser_plugin::InlineConstPlugin));
     }
+    plugins.push(Box::new(parser_plugin::ConstValuePlugin::new(
+      inline_exports,
+    )));
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
         unresolved_mark,
