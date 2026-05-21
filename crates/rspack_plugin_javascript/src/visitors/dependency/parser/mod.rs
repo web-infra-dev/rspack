@@ -451,9 +451,6 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin,
       ));
-      plugins.push(Box::new(
-        parser_plugin::ImportMetaGlobDependencyParserPlugin,
-      ));
       if matches!(
         javascript_options.import_meta,
         Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)

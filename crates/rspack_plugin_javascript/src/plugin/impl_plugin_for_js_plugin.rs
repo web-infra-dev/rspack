@@ -28,14 +28,13 @@ use crate::{
     ESMImportSideEffectDependencyTemplate, ESMImportSpecifierDependencyTemplate,
     ExportInfoDependencyTemplate, ExternalModuleDependencyTemplate,
     ImportContextDependencyTemplate, ImportDependencyTemplate, ImportEagerDependencyTemplate,
-    ImportMetaContextDependencyTemplate, ImportMetaGlobDependencyTemplate,
-    ImportMetaHotAcceptDependencyTemplate, ImportMetaHotDeclineDependencyTemplate,
-    ImportMetaResolveContextDependencyTemplate, ImportMetaResolveDependencyTemplate,
-    ImportMetaResolveHeaderDependencyTemplate, ImportMetaRscDependencyTemplate,
-    ImportWeakDependencyTemplate, IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
+    ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
+    ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
+    ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
@@ -339,8 +338,8 @@ async fn compilation(
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
-    ImportMetaGlobDependencyTemplate::template_type(),
-    Arc::new(ImportMetaGlobDependencyTemplate::default()),
+    ImportMetaContextDependencyTemplate::glob_template_type(),
+    Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
     ImportMetaResolveContextDependencyTemplate::template_type(),

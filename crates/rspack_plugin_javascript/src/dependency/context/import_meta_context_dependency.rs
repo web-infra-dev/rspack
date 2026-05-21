@@ -13,12 +13,35 @@ use super::{BasicContextDependency, basic_context_dependency_module_raw};
 #[derive(Debug, Clone)]
 pub struct ImportMetaContextDependency {
   base: BasicContextDependency,
+  kind: ImportMetaContextDependencyKind,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+enum ImportMetaContextDependencyKind {
+  WebpackContext,
+  Glob,
 }
 
 impl ImportMetaContextDependency {
   pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
     Self {
       base: BasicContextDependency::new(options, range, optional),
+      kind: ImportMetaContextDependencyKind::WebpackContext,
+    }
+  }
+
+  pub fn new_glob(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
+    Self {
+      base: BasicContextDependency::new(options, range, optional),
+      kind: ImportMetaContextDependencyKind::Glob,
+    }
+  }
+
+  fn dependency_type_value(&self) -> DependencyType {
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => DependencyType::ImportMetaContext,
+      ImportMetaContextDependencyKind::Glob => DependencyType::ImportMetaGlob,
     }
   }
 }
@@ -34,7 +57,10 @@ impl Dependency for ImportMetaContextDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ImportMetaContext
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => &DependencyType::ImportMetaContext,
+      ImportMetaContextDependencyKind::Glob => &DependencyType::ImportMetaGlob,
+    }
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -100,7 +126,9 @@ impl ContextDependency for ImportMetaContextDependency {
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ImportMetaContextDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(ImportMetaContextDependencyTemplate::template_type())
+    Some(DependencyTemplateType::Dependency(
+      self.dependency_type_value(),
+    ))
   }
 }
 
@@ -113,6 +141,10 @@ pub struct ImportMetaContextDependencyTemplate;
 impl ImportMetaContextDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::ImportMetaContext)
+  }
+
+  pub fn glob_template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaGlob)
   }
 }
 
