@@ -9,6 +9,8 @@ const dotfileModules = import.meta.glob('./dot/.*.js')
 const filteredModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], { eager: true })
 const multiModules = import.meta.glob(['./dir/*.js', './other/*.js'], { eager: true })
 const lazyMultiModules = import.meta.glob(['./dir/*.js', './other/*.js'])
+const lazyDefaultModules = import.meta.glob('./dir/*.js', { import: 'default' })
+const lazyNamedModules = import.meta.glob('./dir/*.js', { import: 'named' })
 
 it('should return a thunk for each matched file in lazy mode', async () => {
   const keys = Object.keys(lazyModules).sort()
@@ -94,8 +96,29 @@ it('should support multiple glob patterns in lazy mode', async () => {
   expect(baz.default).toBe('baz')
 })
 
+it('should expose selected default exports in lazy mode', async () => {
+  const keys = Object.keys(lazyDefaultModules).sort()
+  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+
+  await expect(lazyDefaultModules['./dir/foo.js']()).resolves.toBe('foo')
+  await expect(lazyDefaultModules['./dir/bar.js']()).resolves.toBe('bar')
+})
+
+it('should expose selected named exports in lazy mode', async () => {
+  await expect(lazyNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
+  await expect(lazyNamedModules['./dir/bar.js']()).resolves.toBe('bar named')
+})
+
 // Eager: each value is the module object directly
 const eagerModules = import.meta.glob('./dir/*.js', { eager: true })
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+})
+const eagerNamedModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'named',
+})
 
 it('should expose module objects directly in eager mode', () => {
   const keys = Object.keys(eagerModules).sort()
@@ -106,4 +129,14 @@ it('should expose module objects directly in eager mode', () => {
 
 it('should expose eager CommonJS matches as dynamic import namespace objects', () => {
   expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
+})
+
+it('should expose selected default exports in eager mode', () => {
+  expect(eagerDefaultModules['./dir/foo.js']).toBe('foo')
+  expect(eagerDefaultModules['./dir/bar.js']).toBe('bar')
+})
+
+it('should expose selected named exports in eager mode', () => {
+  expect(eagerNamedModules['./dir/foo.js']).toBe('foo named')
+  expect(eagerNamedModules['./dir/bar.js']).toBe('bar named')
 })

@@ -35,7 +35,7 @@ use crate::{
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, to_path,
+  impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -188,6 +188,7 @@ pub struct ContextOptions {
   pub end: u32,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  pub glob_import: Option<String>,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -209,6 +210,7 @@ impl Default for ContextOptions {
       start: 0,
       end: 0,
       referenced_specifiers: None,
+      glob_import: None,
       attributes: None,
       phase: None,
     }
@@ -555,6 +557,15 @@ impl ContextModule {
     )
   }
 
+  fn get_glob_import_property_access(&self) -> Option<String> {
+    self
+      .options
+      .context_options
+      .glob_import
+      .as_ref()
+      .map(|import| property_access([import.as_str()], 0))
+  }
+
   fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
     let module_graph = compilation.get_module_graph();
     let mut block_info: Vec<_> = self
@@ -597,7 +608,7 @@ impl ContextModule {
 
         let mut entries = String::with_capacity(block_info.len() * 96);
         for (i, info) in block_info.iter().enumerate() {
-          let import_promise = runtime_template.module_namespace_promise(
+          let mut import_promise = runtime_template.module_namespace_promise(
             compilation,
             self.identifier,
             &info.dep_id,
@@ -607,6 +618,14 @@ impl ContextModule {
             false,
             self.options.context_options.phase.unwrap_or_default(),
           );
+          if let Some(access) = self.get_glob_import_property_access() {
+            import_promise = concat_string!(
+              import_promise,
+              ".then(function(m) { return m",
+              access,
+              "; })"
+            );
+          }
           Self::append_glob_map_entry(
             &mut entries,
             i,
@@ -633,12 +652,17 @@ impl ContextModule {
         );
 
         let mut entries = String::with_capacity(map.len() * 64);
+        let glob_import_access = self.get_glob_import_property_access();
         for (i, (user_request, module_id)) in map.iter().enumerate() {
           let module_id_expr = if let Some(id) = module_id {
-            format!(
+            let mut module_expr = format!(
               "function() {{ var id = {}; return {return_module_object}; }}()",
               json_stringify(id)
-            )
+            );
+            if let Some(access) = &glob_import_access {
+              module_expr.push_str(access);
+            }
+            module_expr
           } else {
             concat_string!("undefined /* ", json_stringify(user_request), " */")
           };
@@ -1334,6 +1358,10 @@ impl Module for ContextModule {
         })
         .join(", ");
     }
+    if let Some(import) = &self.options.context_options.glob_import {
+      id += " globImport: ";
+      id += import;
+    }
     Some(Cow::Owned(id))
   }
 
@@ -1536,6 +1564,10 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
         }
       })
       .join(", ");
+  }
+  if let Some(import) = &options.context_options.glob_import {
+    id += "|globImport: ";
+    id += import;
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {

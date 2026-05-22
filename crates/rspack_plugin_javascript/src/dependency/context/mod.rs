@@ -72,6 +72,11 @@ fn create_resource_identifier_for_context_dependency(
         .join(", ")
     })
     .unwrap_or_default();
+  let glob_import = options
+    .glob_import
+    .as_ref()
+    .map(|import| format!("globImport: {import}"))
+    .unwrap_or_default();
   let mut group_options = String::new();
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.group_options {
@@ -92,7 +97,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports}",
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports} {glob_import}",
   );
   id.into()
 }
