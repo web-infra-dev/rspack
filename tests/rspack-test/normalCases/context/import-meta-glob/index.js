@@ -11,8 +11,16 @@ const multiModules = import.meta.glob(['./dir/*.js', './other/*.js'], { eager: t
 const lazyMultiModules = import.meta.glob(['./dir/*.js', './other/*.js'])
 const lazyDefaultModules = import.meta.glob('./dir/*.js', { import: 'default' })
 const lazyNamedModules = import.meta.glob('./dir/*.js', { import: 'named' })
+const templateLiteralModules = import.meta.glob(`./dir/*.js`)
+const braceModules = import.meta.glob('./brace/*.{js,mjs}', { eager: true })
+const starStarDotModules = import.meta.glob('./star-star-dot/**.js', { eager: true })
+const dotFolderModules = import.meta.glob('./.foo/*.js', { eager: true })
 const lazyQueryModules = import.meta.glob('./query/*.js', {
   query: '?raw',
+  import: 'default',
+})
+const normalizedQueryModules = import.meta.glob('./query/*.js', {
+  query: 'custom',
   import: 'default',
 })
 const eagerObjectQueryModules = import.meta.glob('./query/*.js', {
@@ -48,20 +56,23 @@ const nodeModules = import.meta.glob('./dir/node_modules/**')
 globalThis.__importMetaGlobSideEffects = []
 import.meta.glob('./side-effect/*.js', { eager: true })
 
+const dirKeys = ['./dir/bar.js', './dir/foo.js']
+const dirAndOtherKeys = ['./dir/bar.js', './dir/foo.js', './other/baz.js']
+const onlyFooKeys = ['./dir/foo.js']
+
+const expectDirKeys = modules => expect(Object.keys(modules).sort()).toEqual(dirKeys)
+const expectOnlyFooKeys = modules => expect(Object.keys(modules)).toEqual(onlyFooKeys)
+
 it('should return a thunk for each matched file in lazy mode', async () => {
-  const keys = Object.keys(lazyModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+  expectDirKeys(lazyModules)
 
   const foo = await lazyModules['./dir/foo.js']()
   expect(foo.default).toBe('foo')
-
-  const bar = await lazyModules['./dir/bar.js']()
-  expect(bar.default).toBe('bar')
 })
 
 it('should not expose resolver alternative requests in wildcard mode', () => {
-  const keys = Object.keys(wildcardModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+  const keys = Object.keys(wildcardModules)
+  expect(keys.sort()).toEqual(dirKeys)
   expect(keys).not.toContain('./dir/foo')
   expect(keys).not.toContain('./dir/bar')
 })
@@ -91,65 +102,82 @@ it('should resolve absolute glob patterns from the project root', async () => {
   expect(bar.default).toBe('bar')
 })
 
-it('should resolve lazy CommonJS matches as dynamic import namespace objects', async () => {
-  const cjs = await lazyCjsModules['./cjs/value.js']()
-  expect(cjs.default.answer).toBe(42)
+it('should resolve CommonJS matches as dynamic import namespace objects', async () => {
+  await expect(lazyCjsModules['./cjs/value.js']()).resolves.toMatchObject({
+    default: { answer: 42 },
+  })
+  expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
 })
 
-it('should match explicit dotfile glob patterns', async () => {
-  const keys = Object.keys(dotfileModules)
-  expect(keys).toEqual(['./dot/.hidden.js'])
+it('should match explicit dotfile and dot folder glob patterns', async () => {
+  expect(Object.keys(dotfileModules)).toEqual(['./dot/.hidden.js'])
+  expect(Object.keys(dotFolderModules)).toEqual(['./.foo/test.js'])
 
   const hidden = await dotfileModules['./dot/.hidden.js']()
   expect(hidden.default).toBe('hidden')
+  expect(dotFolderModules['./.foo/test.js'].default).toBe('dot folder')
 })
 
-it('should support negative patterns in glob arrays', () => {
-  const keys = Object.keys(filteredModules).sort()
-  expect(keys).toEqual(['./dir/foo.js'])
+it('should support negative patterns and import selection in glob arrays', async () => {
+  expectOnlyFooKeys(filteredModules)
+  expectOnlyFooKeys(negativeFirstModules)
+  expect(filteredDefaultModules).toEqual({
+    './dir/foo.js': 'foo',
+  })
+  expectOnlyFooKeys(lazyFilteredNamedModules)
+
   expect(filteredModules['./dir/foo.js'].default).toBe('foo')
   expect(filteredModules['./dir/bar.js']).toBeUndefined()
+  expect(negativeFirstModules['./dir/foo.js'].default).toBe('foo')
+  await expect(lazyFilteredNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
 })
 
-it('should support multiple glob patterns in eager mode', () => {
-  const keys = Object.keys(multiModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js', './other/baz.js'])
+it('should support multiple glob patterns in eager and lazy modes', async () => {
+  expect(Object.keys(multiModules).sort()).toEqual(dirAndOtherKeys)
+  expect(Object.keys(lazyMultiModules).sort()).toEqual(dirAndOtherKeys)
+
   expect(multiModules['./dir/foo.js'].default).toBe('foo')
-  expect(multiModules['./dir/bar.js'].default).toBe('bar')
   expect(multiModules['./other/baz.js'].default).toBe('baz')
-})
 
-it('should support multiple glob patterns in lazy mode', async () => {
-  const keys = Object.keys(lazyMultiModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js', './other/baz.js'])
-
-  const foo = await lazyMultiModules['./dir/foo.js']()
-  const bar = await lazyMultiModules['./dir/bar.js']()
   const baz = await lazyMultiModules['./other/baz.js']()
-
-  expect(foo.default).toBe('foo')
-  expect(bar.default).toBe('bar')
   expect(baz.default).toBe('baz')
 })
 
-it('should expose selected default exports in lazy mode', async () => {
-  const keys = Object.keys(lazyDefaultModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+it('should expose selected exports in lazy mode', async () => {
+  expectDirKeys(lazyDefaultModules)
+  expectDirKeys(lazyNamedModules)
 
   await expect(lazyDefaultModules['./dir/foo.js']()).resolves.toBe('foo')
-  await expect(lazyDefaultModules['./dir/bar.js']()).resolves.toBe('bar')
-})
-
-it('should expose selected named exports in lazy mode', async () => {
-  await expect(lazyNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
   await expect(lazyNamedModules['./dir/bar.js']()).resolves.toBe('bar named')
 })
 
+it('should parse static template literal glob patterns', async () => {
+  expectDirKeys(templateLiteralModules)
+  await expect(templateLiteralModules['./dir/foo.js']()).resolves.toMatchObject({
+    default: 'foo',
+  })
+})
+
+it('should support brace expansion in glob patterns', () => {
+  const keys = Object.keys(braceModules).sort()
+  expect(keys).toEqual(['./brace/a.js', './brace/b.mjs'])
+  expect(braceModules['./brace/a.js'].default).toBe('brace js')
+  expect(braceModules['./brace/b.mjs'].default).toBe('brace mjs')
+})
+
+it('should support globstar before an extension', () => {
+  const keys = Object.keys(starStarDotModules)
+  expect(keys).toEqual(['./star-star-dot/a.js'])
+  expect(starStarDotModules['./star-star-dot/a.js'].default).toBe('star star dot')
+})
+
 it('should apply query strings to lazy glob imports without changing keys', async () => {
-  const keys = Object.keys(lazyQueryModules)
-  expect(keys).toEqual(['./query/foo.js'])
+  expect(Object.keys(lazyQueryModules)).toEqual(['./query/foo.js'])
+  expect(Object.keys(normalizedQueryModules)).toEqual(['./query/foo.js'])
   await expect(lazyQueryModules['./query/foo.js']()).resolves.toBe('?raw')
+  await expect(normalizedQueryModules['./query/foo.js']()).resolves.toBe('?custom')
   expect(lazyQueryModules['./query/foo.js?raw']).toBeUndefined()
+  expect(normalizedQueryModules['./query/foo.js?custom']).toBeUndefined()
 })
 
 it('should apply query objects to eager glob imports', () => {
@@ -161,34 +189,12 @@ it('should apply query objects to eager glob imports', () => {
 })
 
 it('should parse glob calls with comments in the argument list', async () => {
-  const keys = Object.keys(commentModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
-
-  const foo = await commentModules['./dir/foo.js']()
-  expect(foo.default).toBe('foo')
+  expectDirKeys(commentModules)
 })
 
 it('should work when glob results are wrapped with Object.keys and Object.values', () => {
-  expect(objectKeyModules.sort()).toEqual(['./dir/bar.js', './dir/foo.js'])
+  expect(objectKeyModules.sort()).toEqual(dirKeys)
   expect(objectValueModules.map(mod => mod.default).sort()).toEqual(['bar', 'foo'])
-})
-
-it('should apply negative patterns independent of array order', () => {
-  const keys = Object.keys(negativeFirstModules).sort()
-  expect(keys).toEqual(['./dir/foo.js'])
-  expect(negativeFirstModules['./dir/foo.js'].default).toBe('foo')
-})
-
-it('should combine import selection with array exclusions in eager mode', () => {
-  expect(filteredDefaultModules).toEqual({
-    './dir/foo.js': 'foo',
-  })
-})
-
-it('should combine import selection with array exclusions in lazy mode', async () => {
-  const keys = Object.keys(lazyFilteredNamedModules)
-  expect(keys).toEqual(['./dir/foo.js'])
-  await expect(lazyFilteredNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
 })
 
 it('should handle matched paths containing single quotes', () => {
@@ -237,22 +243,14 @@ const eagerNamedModules = import.meta.glob('./dir/*.js', {
 })
 
 it('should expose module objects directly in eager mode', () => {
-  const keys = Object.keys(eagerModules).sort()
-  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+  expectDirKeys(eagerModules)
   expect(eagerModules['./dir/foo.js'].default).toBe('foo')
-  expect(eagerModules['./dir/bar.js'].default).toBe('bar')
 })
 
-it('should expose eager CommonJS matches as dynamic import namespace objects', () => {
-  expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
-})
+it('should expose selected exports in eager mode', () => {
+  expectDirKeys(eagerDefaultModules)
+  expectDirKeys(eagerNamedModules)
 
-it('should expose selected default exports in eager mode', () => {
   expect(eagerDefaultModules['./dir/foo.js']).toBe('foo')
-  expect(eagerDefaultModules['./dir/bar.js']).toBe('bar')
-})
-
-it('should expose selected named exports in eager mode', () => {
-  expect(eagerNamedModules['./dir/foo.js']).toBe('foo named')
   expect(eagerNamedModules['./dir/bar.js']).toBe('bar named')
 })
