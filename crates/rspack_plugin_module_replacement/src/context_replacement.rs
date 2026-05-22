@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rspack_core::{
   AfterResolveResult, BeforeResolveResult, ContextElementDependency,
   ContextModuleFactoryAfterResolve, ContextModuleFactoryBeforeResolve, ContextModuleOptions,
-  DependencyId, DependencyType, Plugin,
+  ContextModulePattern, DependencyId, DependencyType, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -53,7 +53,7 @@ async fn cmf_before_resolve(&self, mut result: BeforeResolveResult) -> Result<Be
       data.recursive = new_content_recursive;
     }
     if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
-      data.reg_exp = Some(new_content_reg_exp.clone());
+      data.pattern = ContextModulePattern::RegExp(new_content_reg_exp.clone());
     }
     // if let Some(new_content_callback) = &self.new_content_after_resolve_callback {
     //   new_content_callback(&mut result).await?;
@@ -85,7 +85,7 @@ async fn cmf_after_resolve(&self, mut result: AfterResolveResult) -> Result<Afte
       data.recursive = new_content_recursive;
     }
     if let Some(new_content_reg_exp) = &self.new_content_reg_exp {
-      data.reg_exp = Some(new_content_reg_exp.clone());
+      data.pattern = ContextModulePattern::RegExp(new_content_reg_exp.clone());
     }
     if let Some(new_content_create_context_map) = &self.new_content_create_context_map {
       let new_content_create_context_map = Arc::new(new_content_create_context_map.clone());
