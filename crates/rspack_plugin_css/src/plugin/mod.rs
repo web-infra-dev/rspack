@@ -1,9 +1,14 @@
 #![allow(clippy::comparison_chain)]
 mod drive;
+mod extract;
 mod impl_plugin_for_css_plugin;
 use std::cmp::{self, Reverse};
 
 pub use drive::*;
+pub use extract::{
+  CssExtractAssetModule, CssExtractAssetRenderOptions, CssExtractOrderConflict,
+  get_extract_modules_in_order, render_extract_css_asset,
+};
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   Chunk, ChunkUkey, Compilation, Module, ModuleIdentifier, compare_modules_by_identifier,

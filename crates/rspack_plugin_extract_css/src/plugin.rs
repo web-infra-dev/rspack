@@ -1,46 +1,42 @@
 use std::{
-  borrow::Cow,
   hash::Hash,
   sync::{Arc, LazyLock},
 };
 
-use cow_utils::CowUtils;
-use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkGroupUkey, ChunkKind, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, Filename,
-  ManifestAssetType, Module, ModuleGraph, ModuleIdentifier, ModuleType, NormalModuleFactoryParser,
-  ParserAndGenerator, ParserOptions, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, SourceType, get_undo_path,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawStringSource, SourceExt, SourceMap, SourceMapSource,
-    WithoutOriginalOptions,
-  },
+  AssetInfo, ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationContentHash,
+  CompilationParams, CompilationRenderManifest, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, DependencyType, Filename, ManifestAssetType, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModule, SourceType,
+  rspack_sources::{CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+use rspack_plugin_css::{
+  plugin::{
+    CssExtractAssetModule, CssExtractAssetRenderOptions, CssExtractOrderConflict,
+    get_extract_modules_in_order, render_extract_css_asset,
+  },
+  runtime::{CssLoadingRuntimeInsert, CssLoadingRuntimeModule, ExtractCssLoadingRuntimeOptions},
+};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
 use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use ustr::Ustr;
 
 use crate::{
   css_module::{CssModule, CssModuleFactory},
   parser_plugin::PluginCssExtractParserPlugin,
-  runtime::CssLoadingRuntimeModule,
 };
 pub static PLUGIN_NAME: &str = "css-extract-rspack-plugin";
 
 pub static MODULE_TYPE_STR: LazyLock<Ustr> = LazyLock::new(|| Ustr::from("css/mini-extract"));
 
-static MEDIA_RE: LazyLock<Regex> =
-  LazyLock::new(|| Regex::new(r#";|\s*$"#).expect("should compile"));
 pub static MODULE_TYPE: LazyLock<ModuleType> =
   LazyLock::new(|| ModuleType::Custom(*MODULE_TYPE_STR));
 pub static SOURCE_TYPE: LazyLock<[SourceType; 1]> =
@@ -50,16 +46,6 @@ pub static BASE_URI: &str = "rspack-css-extract://";
 pub static ABSOLUTE_PUBLIC_PATH: &str = "rspack-css-extract:///css-extract-plugin/";
 pub static AUTO_PUBLIC_PATH: &str = "__css_extract_public_path_auto__";
 pub static SINGLE_DOT_PATH_SEGMENT: &str = "__css_extract_single_dot_path_segment__";
-
-static STARTS_WITH_AT_IMPORT: &str = "@import url";
-
-struct CssOrderConflicts {
-  chunk: ChunkUkey,
-  fallback_module: ModuleIdentifier,
-
-  // (module, failed chunkGroups, fulfilled chunkGroups)
-  reasons: Vec<(ModuleIdentifier, Option<String>, Option<String>)>,
-}
 
 #[plugin]
 #[derive(Debug)]
@@ -119,234 +105,30 @@ pub enum InsertType {
   Default,
 }
 
+impl From<InsertType> for CssLoadingRuntimeInsert {
+  fn from(value: InsertType) -> Self {
+    match value {
+      InsertType::Fn(value) => Self::Fn(value),
+      InsertType::Selector(value) => Self::Selector(value),
+      InsertType::Default => Self::Default,
+    }
+  }
+}
+
 impl PluginCssExtract {
   pub fn new(options: CssExtractOptions) -> Self {
     Self::new_inner(Arc::new(options))
   }
 
-  // port from https://github.com/webpack/mini-css-extract-plugin/blob/d5e540baf8280442e523530ebbbe31c57a4c4336/src/index.js#L1127
-  fn sort_modules<'comp>(
-    &self,
-    chunk: &Chunk,
-    modules: &[&dyn Module],
-    compilation: &'comp Compilation,
-    module_graph: &'comp ModuleGraph,
-  ) -> (Vec<&'comp dyn Module>, Option<Vec<CssOrderConflicts>>) {
-    let mut module_deps_reasons: IdentifierMap<IdentifierMap<FxHashSet<ChunkGroupUkey>>> = modules
-      .iter()
-      .map(|m| (m.identifier(), Default::default()))
-      .collect();
-
-    let mut module_dependencies: IdentifierMap<IdentifierSet> = modules
-      .iter()
-      .map(|module| (module.identifier(), IdentifierSet::default()))
-      .collect();
-
-    let mut groups = chunk.groups().iter().copied().collect::<Vec<_>>();
-    groups.sort_by(|a, b| {
-      let a = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get(a);
-      let b = compilation
-        .build_chunk_graph_artifact
-        .chunk_group_by_ukey
-        .expect_get(b);
-      match a.index.cmp(&b.index) {
-        std::cmp::Ordering::Equal => a.ukey.cmp(&b.ukey),
-        order_res => order_res,
-      }
-    });
-
-    let mut modules_by_chunk_group = groups
-      .iter()
-      .map(|chunk_group| {
-        let chunk_group = compilation
-          .build_chunk_graph_artifact
-          .chunk_group_by_ukey
-          .expect_get(chunk_group);
-        let mut sorted_module = modules
-          .iter()
-          .map(|module| {
-            let identifier = module.identifier();
-            (identifier, chunk_group.module_post_order_index(&identifier))
-          })
-          .filter_map(|(id, idx)| idx.map(|idx| (id, idx)))
-          .collect::<Vec<_>>();
-
-        sorted_module.sort_by(|(_, idx1), (_, idx2)| idx2.cmp(idx1));
-
-        for (i, (module, _)) in sorted_module.iter().enumerate() {
-          let set = module_dependencies
-            .get_mut(module)
-            .expect("should have module before");
-
-          let reasons = module_deps_reasons
-            .get_mut(module)
-            .expect("should have module dep reason");
-
-          let mut j = i + 1;
-          while j < sorted_module.len() {
-            let (module, _) = sorted_module[j];
-            set.insert(module);
-
-            let reason = reasons.entry(module).or_default();
-            reason.insert(chunk_group.ukey);
-
-            j += 1;
-          }
-        }
-
-        sorted_module
-      })
-      .collect::<Vec<Vec<(ModuleIdentifier, u32)>>>();
-
-    let mut used_modules: IdentifierSet = Default::default();
-    let mut result: Vec<&dyn Module> = Default::default();
-    let mut conflicts: Option<Vec<CssOrderConflicts>> = None;
-
-    while used_modules.len() < modules.len() {
-      let mut success = false;
-      let mut best_match: Option<Vec<ModuleIdentifier>> = None;
-      let mut best_match_deps: Option<Vec<ModuleIdentifier>> = None;
-
-      for list in &mut modules_by_chunk_group {
-        // skip and remove already added modules
-        while !list.is_empty()
-          && used_modules.contains(&list.last().expect("should have list item").0)
-        {
-          list.pop();
-        }
-
-        // skip empty lists
-        if !list.is_empty() {
-          let module = list.last().expect("should have item").0;
-          let deps = module_dependencies.get(&module).expect("should have deps");
-          let failed_deps = deps
-            .iter()
-            .filter(|dep| !used_modules.contains(dep))
-            .copied()
-            .collect::<Vec<_>>();
-
-          let failed_count = failed_deps.len();
-
-          if best_match_deps.is_none()
-            || best_match_deps
-              .as_ref()
-              .expect("should have best match dep")
-              .len()
-              > failed_deps.len()
-          {
-            best_match = Some(list.iter().map(|(id, _)| *id).collect());
-            best_match_deps = Some(failed_deps);
-          }
-
-          if failed_count == 0 {
-            list.pop();
-            used_modules.insert(module);
-            result.push(
-              module_graph
-                .module_by_identifier(&module)
-                .expect("should have module")
-                .as_ref(),
-            );
-            success = true;
-            break;
-          }
-        }
-      }
-
-      if !success {
-        // no module found => there is a conflict
-        // use list with fewest failed deps
-        // and emit a warning
-        let mut best_match = best_match.expect("should have best match");
-        let best_match_deps = best_match_deps.expect("should have best match");
-        let fallback_module = best_match.pop().expect("should have best match");
-        if !self.options.ignore_order {
-          let reasons = module_deps_reasons
-            .get(&fallback_module)
-            .expect("should have dep reason");
-
-          let new_conflict = CssOrderConflicts {
-            chunk: chunk.ukey(),
-            fallback_module,
-            reasons: best_match_deps
-              .into_iter()
-              .map(|m| {
-                let good_reasons_map = module_deps_reasons.get(&m);
-                let good_reasons =
-                  good_reasons_map.and_then(|reasons| reasons.get(&fallback_module));
-
-                let failed_chunk_groups = reasons.get(&m).map(|reasons| {
-                  reasons
-                    .iter()
-                    .filter_map(|cg| {
-                      let chunk_group = compilation
-                        .build_chunk_graph_artifact
-                        .chunk_group_by_ukey
-                        .expect_get(cg);
-
-                      chunk_group.name()
-                    })
-                    .collect::<Vec<_>>()
-                    .join(",")
-                });
-
-                let good_chunk_groups = good_reasons.map(|reasons| {
-                  reasons
-                    .iter()
-                    .filter_map(|cg| {
-                      compilation
-                        .build_chunk_graph_artifact
-                        .chunk_group_by_ukey
-                        .expect_get(cg)
-                        .name()
-                    })
-                    .collect::<Vec<_>>()
-                    .join(", ")
-                });
-
-                (m, failed_chunk_groups, good_chunk_groups)
-              })
-              .collect(),
-          };
-          if let Some(conflicts) = &mut conflicts {
-            conflicts.push(new_conflict);
-          } else {
-            conflicts = Some(vec![new_conflict]);
-          }
-        }
-
-        used_modules.insert(fallback_module);
-        result.push(
-          module_graph
-            .module_by_identifier(&fallback_module)
-            .expect("should have fallback module")
-            .as_ref(),
-        );
-      }
-    }
-
-    (result, conflicts)
-  }
-
-  async fn render_content_asset(
-    &self,
-    chunk: &Chunk,
-    rendered_modules: &[&dyn Module],
+  fn order_conflict_diagnostics(
+    conflicts: Vec<CssExtractOrderConflict>,
     filename: &str,
-    compilation: &'_ Compilation,
-  ) -> (BoxSource, Vec<Diagnostic>) {
+    compilation: &Compilation,
+  ) -> Vec<Diagnostic> {
     let module_graph = compilation.get_module_graph();
-    // mini-extract-plugin has different conflict order in some cases,
-    // for compatibility, we cannot use experiments.css sorting algorithm
-    let (used_modules, conflicts) =
-      self.sort_modules(chunk, rendered_modules, compilation, module_graph);
-
-    let mut diagnostics = Vec::new();
-    if let Some(conflicts) = conflicts {
-      diagnostics.extend(conflicts.into_iter().map(|conflict| {
+    conflicts
+      .into_iter()
+      .map(|conflict| {
         let chunk = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
@@ -399,116 +181,8 @@ despite it was not able to fulfill desired ordering with these modules:
         diagnostic.file = Some(filename.to_owned().into());
         diagnostic.chunk = Some(chunk.ukey().as_u32());
         diagnostic
-      }));
-    }
-
-    let used_modules = used_modules
-      .into_iter()
-      .filter_map(|module| module.downcast_ref::<CssModule>());
-
-    let mut source = ConcatSource::default();
-    let mut external_source = ConcatSource::default();
-
-    for module in used_modules {
-      let content = Cow::Borrowed(module.content.as_str());
-      let readable_identifier = module.readable_identifier(&compilation.options.context);
-      let starts_with_at_import = content.starts_with(STARTS_WITH_AT_IMPORT);
-
-      let header = self.options.pathinfo.then(|| {
-        let req_str = readable_identifier.cow_replace("*/", "*_/");
-        let req_str_star = "*".repeat(req_str.len());
-        RawStringSource::from(format!(
-          r#"/*!****{req_str_star}****!*\
-  !*** {req_str} ***!
-  \****{req_str_star}****/
-"#
-        ))
-      });
-
-      if starts_with_at_import {
-        if let Some(header) = header {
-          external_source.add(header);
-        }
-        if let Some(media) = &module.media {
-          let new_content = MEDIA_RE.replace_all(content.as_ref(), media);
-          external_source.add(RawStringSource::from(new_content.to_string() + "\n"));
-        } else {
-          external_source.add(RawStringSource::from(content.to_string() + "\n"));
-        }
-      } else {
-        let mut need_supports = false;
-        let mut need_media = false;
-
-        if let Some(header) = header {
-          source.add(header);
-        }
-
-        if let Some(supports) = &module.supports
-          && !supports.is_empty()
-        {
-          need_supports = true;
-          source.add(RawStringSource::from(format!(
-            "@supports ({supports}) {{\n"
-          )));
-        }
-
-        if let Some(media) = &module.media
-          && !media.is_empty()
-        {
-          need_media = true;
-          source.add(RawStringSource::from(format!("@media {media} {{\n")));
-        }
-
-        if let Some(layer) = &module.css_layer {
-          source.add(RawStringSource::from(format!("@layer {layer} {{\n")));
-        }
-
-        // different from webpack, add `enforce_relative` to preserve './'
-        let undo_path = get_undo_path(
-          filename,
-          compilation.options.output.path.to_string(),
-          self.options.enforce_relative,
-        );
-
-        let content = content.cow_replace(ABSOLUTE_PUBLIC_PATH, "");
-        let content = content.cow_replace(SINGLE_DOT_PATH_SEGMENT, ".");
-        let content = content.cow_replace(AUTO_PUBLIC_PATH, &undo_path);
-        let content = content.cow_replace(
-          BASE_URI,
-          chunk
-            .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
-            .and_then(|entry_options| entry_options.base_uri.as_ref())
-            .unwrap_or(&undo_path),
-        );
-
-        if let Some(source_map) = &module.source_map {
-          source.add(SourceMapSource::new(WithoutOriginalOptions {
-            value: content.to_string(),
-            name: readable_identifier,
-            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
-          }))
-        } else {
-          source.add(RawStringSource::from(content.to_string()));
-        }
-
-        source.add(RawStringSource::from_static("\n"));
-
-        if need_media {
-          source.add(RawStringSource::from_static("}\n"));
-        }
-
-        if need_supports {
-          source.add(RawStringSource::from_static("}\n"));
-        }
-
-        if module.css_layer.is_some() {
-          source.add(RawStringSource::from_static("}\n"));
-        }
-      }
-    }
-
-    external_source.add(source);
-    (external_source.boxed(), diagnostics)
+      })
+      .collect()
   }
 }
 
@@ -582,15 +256,18 @@ async fn runtime_requirement_in_tree(
 
     runtime_modules_to_add.push((
       *chunk_ukey,
-      Box::new(CssLoadingRuntimeModule::new(
+      Box::new(CssLoadingRuntimeModule::new_extract(
         &compilation.runtime_template,
-        self.options.attributes.clone(),
-        self.options.link_type.clone(),
-        self.options.insert.clone(),
+        ExtractCssLoadingRuntimeOptions {
+          attributes: self.options.attributes.clone(),
+          link_type: self.options.link_type.clone(),
+          insert: self.options.insert.clone().into(),
+          source_type: SOURCE_TYPE[0],
+        },
       )),
     ));
 
-    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements(
+    runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_extract_runtime_requirements(
       all_runtime_requirements,
     ));
   }
@@ -620,8 +297,13 @@ async fn content_hash(
     .chunk_by_ukey
     .expect_get(chunk_ukey);
 
-  let (used_modules, diagnostics) =
-    self.sort_modules(chunk, &rendered_modules, compilation, module_graph);
+  let (used_modules, diagnostics) = get_extract_modules_in_order(
+    chunk,
+    &rendered_modules,
+    compilation,
+    module_graph,
+    self.options.ignore_order,
+  );
 
   let hasher = hashes
     .entry(SOURCE_TYPE[0])
@@ -700,9 +382,42 @@ async fn render_manifest(
   let (source, more_diagnostics) = compilation
     .chunk_render_cache_artifact
     .use_cache(compilation, chunk, &SOURCE_TYPE[0], || async {
-      let (source, diagnostics) = self
-        .render_content_asset(chunk, &rendered_modules, &filename, compilation)
-        .await;
+      let (used_modules, conflicts) = get_extract_modules_in_order(
+        chunk,
+        &rendered_modules,
+        compilation,
+        module_graph,
+        self.options.ignore_order,
+      );
+      let diagnostics = conflicts
+        .map(|conflicts| Self::order_conflict_diagnostics(conflicts, &filename, compilation))
+        .unwrap_or_default();
+      let modules = used_modules
+        .into_iter()
+        .filter_map(|module| module.downcast_ref::<CssModule>())
+        .map(|module| CssExtractAssetModule {
+          module,
+          content: module.content.as_str(),
+          media: module.media.as_deref(),
+          supports: module.supports.as_deref(),
+          source_map: module.source_map.as_deref(),
+          css_layer: module.css_layer.as_deref(),
+        })
+        .collect::<Vec<_>>();
+      let source = render_extract_css_asset(
+        &modules,
+        &CssExtractAssetRenderOptions {
+          chunk,
+          filename: &filename,
+          compilation,
+          pathinfo: self.options.pathinfo,
+          enforce_relative: self.options.enforce_relative,
+          base_uri: BASE_URI,
+          absolute_public_path: ABSOLUTE_PUBLIC_PATH,
+          auto_public_path: AUTO_PUBLIC_PATH,
+          single_dot_path_segment: SINGLE_DOT_PATH_SEGMENT,
+        },
+      );
       Ok((CachedSource::new(source).boxed(), diagnostics))
     })
     .await?;
