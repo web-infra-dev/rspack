@@ -6,7 +6,8 @@ use rspack_core::{
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rspack_util::{SpanExt, node_path::NodePath};
+use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
+use sugar_path::SugarPath;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -91,6 +92,27 @@ fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
   Some(normalize_import_meta_glob_query(serializer.finish()))
 }
 
+fn import_meta_glob_path_parts<'a>(
+  context: &'a str,
+  compiler_context: &'a str,
+  path: &'a str,
+) -> (&'a str, &'a str) {
+  if let Some(path) = path.strip_prefix('/') {
+    (compiler_context, path)
+  } else {
+    (context, path)
+  }
+}
+
+fn join_import_meta_glob_path(base: &str, path: &str) -> String {
+  normalize_path_separators(
+    &Utf8Path::new(base)
+      .node_join_posix(path)
+      .node_normalize_posix()
+      .to_string(),
+  )
+}
+
 struct ResolvedContextModuleGlobPattern {
   absolute_pattern: String,
   absolute_base: String,
@@ -108,17 +130,10 @@ fn resolve_glob_pattern(
     (pattern, false)
   };
   let pattern = normalize_path_separators(pattern);
-  let (base, pattern_to_join) = if let Some(pattern) = pattern.strip_prefix('/') {
-    (compiler_context, pattern)
-  } else {
-    (context, pattern.as_str())
-  };
+  let (base, pattern_to_join) =
+    import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
   let escaped_base = escape_glob_pattern(base);
-  let absolute_pattern = Utf8Path::new(&escaped_base)
-    .node_join_posix(pattern_to_join)
-    .node_normalize_posix()
-    .to_string();
-  let absolute_pattern = normalize_path_separators(&absolute_pattern);
+  let absolute_pattern = join_import_meta_glob_path(&escaped_base, pattern_to_join);
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
   ResolvedContextModuleGlobPattern {
@@ -163,56 +178,16 @@ fn resolve_import_meta_glob_context(
   };
 
   let base = normalize_path_separators(base);
-  let (base_context, path_to_join) = if let Some(base) = base.strip_prefix('/') {
-    (compiler_context, base)
-  } else {
-    (context, base.as_str())
-  };
-
-  Utf8Path::new(base_context)
-    .node_join_posix(path_to_join)
-    .node_normalize_posix()
-    .to_string()
+  let (base_context, path_to_join) =
+    import_meta_glob_path_parts(context, compiler_context, base.as_str());
+  join_import_meta_glob_path(base_context, path_to_join)
 }
 
-fn relative_posix_path(from: &str, to: &str) -> String {
-  let from = normalize_path_separators(from);
-  let to = normalize_path_separators(to);
-  let from_segments = from
-    .trim_end_matches('/')
-    .trim_start_matches('/')
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-  let to_segments = to
-    .trim_end_matches('/')
-    .trim_start_matches('/')
-    .split('/')
-    .filter(|segment| !segment.is_empty())
-    .collect::<Vec<_>>();
-
-  let mut common_len = 0;
-  while common_len < from_segments.len()
-    && common_len < to_segments.len()
-    && from_segments[common_len] == to_segments[common_len]
-  {
-    common_len += 1;
-  }
-
-  let mut relative_segments = Vec::with_capacity(
-    from_segments.len().saturating_sub(common_len) + to_segments.len().saturating_sub(common_len),
-  );
-  relative_segments.extend(std::iter::repeat_n(
-    "..",
-    from_segments.len().saturating_sub(common_len),
-  ));
-  relative_segments.extend(to_segments.iter().skip(common_len).copied());
-
-  if relative_segments.is_empty() {
-    ".".to_string()
-  } else {
-    relative_segments.join("/")
-  }
+fn absolute_path_to_glob_request(context: &str, absolute_path: &str) -> String {
+  let relative_path = absolute_path.as_path().relative(context);
+  let relative_path = relative_path.to_string_lossy();
+  let relative_path = normalize_path_separators(&relative_path);
+  relative_path_to_request(&relative_path).into_owned()
 }
 
 fn normalize_base_glob_pattern(
@@ -235,16 +210,8 @@ fn normalize_base_glob_pattern(
     };
   };
 
-  let absolute_pattern = Utf8Path::new(compiler_context)
-    .node_join_posix(pattern)
-    .node_normalize_posix()
-    .to_string();
-  let relative_pattern = relative_posix_path(base_context, &absolute_pattern);
-  let relative_pattern = if relative_pattern.starts_with("../") || relative_pattern == ".." {
-    relative_pattern
-  } else {
-    concat_string!("./", relative_pattern)
-  };
+  let absolute_pattern = join_import_meta_glob_path(compiler_context, pattern);
+  let relative_pattern = absolute_path_to_glob_request(base_context, &absolute_pattern);
 
   if negative {
     concat_string!("!", relative_pattern)
