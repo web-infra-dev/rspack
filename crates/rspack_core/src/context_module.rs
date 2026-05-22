@@ -524,11 +524,11 @@ impl ContextModule {
   }
 
   fn get_empty_object_export_source(&self, runtime_template: &mut ModuleCodeTemplate) -> String {
-    formatdoc! {r#"
-      {module}.exports = {{}};
-      "#,
-      module = runtime_template.render_module_argument(ModuleArgument::Module),
-    }
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {};\n"
+    )
   }
 
   fn append_glob_map_entry(entries: &mut String, index: usize, user_request: &str, value: &str) {
@@ -546,13 +546,13 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
     entries: String,
   ) -> String {
-    formatdoc! {r#"
-      {module}.exports = {{
-      {entries}
-      }};
-      "#,
-      module = runtime_template.render_module_argument(ModuleArgument::Module),
-    }
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {\n",
+      entries,
+      "\n};\n"
+    )
   }
 
   fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
@@ -645,15 +645,15 @@ impl ContextModule {
           Self::append_glob_map_entry(&mut entries, i, user_request, &module_id_expr);
         }
 
-        formatdoc! {r#"
-          {fake_map_init_statement}
-          {module}.exports = {{
-          {entries}
-          }};
-          "#,
-          module = runtime_template.render_module_argument(ModuleArgument::Module),
-          fake_map_init_statement = self.get_fake_map_init_statement(&fake_map),
-        }
+        concat_string!(
+          "\n",
+          self.get_fake_map_init_statement(&fake_map),
+          "\n",
+          runtime_template.render_module_argument(ModuleArgument::Module),
+          ".exports = {\n",
+          entries,
+          "\n};\n"
+        )
       }
     }
   }
