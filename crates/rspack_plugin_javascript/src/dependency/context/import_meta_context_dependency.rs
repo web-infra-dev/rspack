@@ -77,7 +77,7 @@ impl ImportMetaContextDependency {
 
 #[cacheable_dyn]
 impl Dependency for ImportMetaContextDependency {
-  fn id(&self) -> &rspack_core::DependencyId {
+  fn id(&self) -> &DependencyId {
     &self.id
   }
 
@@ -194,6 +194,7 @@ impl DependencyTemplate for ImportMetaContextDependencyTemplate {
       runtime_template,
       ..
     } = code_generatable_context;
+
     let content =
       runtime_template.module_raw(compilation, &dep.id, &dep.options.request, dep.optional);
     source.replace(dep.range.start, dep.range.end, content, None);
