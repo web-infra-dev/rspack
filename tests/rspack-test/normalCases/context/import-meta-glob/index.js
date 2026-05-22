@@ -5,6 +5,13 @@ const nestedModules = import.meta.glob('./pages/*/index.js')
 const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
 const lazyCjsModules = import.meta.glob('./cjs/*.js')
 const eagerCjsModules = import.meta.glob('./cjs/*.js', { eager: true })
+const eagerNamespaceModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: '*',
+})
+const explicitNodeModulesModules = import.meta.glob('./dir/node_modules/*.js', {
+  eager: true,
+})
 const skippedExhaustiveModules = import.meta.glob(
   ['./dot/.*.js', './.foo/*.js', './dir/node_modules/**'],
   { eager: true },
@@ -31,6 +38,14 @@ const rootBaseModules = import.meta.glob('/context/import-meta-glob/dir/*.js', {
   eager: true,
   import: 'default',
 })
+const projectRootBaseModules = import.meta.glob(
+  './context/import-meta-glob/dir/*.js',
+  {
+    base: '/',
+    eager: true,
+    import: 'default',
+  },
+)
 const lazyQueryModules = import.meta.glob('./query/*.js', {
   query: '?raw',
   import: 'default',
@@ -48,6 +63,25 @@ const eagerObjectQueryModules = import.meta.glob('./query/*.js', {
   eager: true,
   import: 'named',
 })
+const lazyObjectQueryModules = import.meta.glob('./query/*.js', {
+  query: {
+    a: true,
+    b: 'test',
+    c: 10000,
+  },
+  import: 'default',
+})
+const lazyQueryNamespaceModules = import.meta.glob('./query/*.js', {
+  query: '?raw',
+  import: '*',
+})
+const mixedRootRelativeQueryModules = import.meta.glob(
+  ['/context/import-meta-glob/query/*.js', './other/*.js'],
+  {
+    query: '?raw',
+    import: 'default',
+  },
+)
 const commentModules = import.meta.glob(
   './dir/*.js'
   // for test: annotation contains ")"
@@ -122,6 +156,21 @@ it('should resolve CommonJS matches as dynamic import namespace objects', async 
     default: { answer: 42 },
   })
   expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
+})
+
+it('should expose namespace objects for star imports', () => {
+  expectDirKeys(eagerNamespaceModules)
+  expect(eagerNamespaceModules['./dir/foo.js'].default).toBe('foo')
+  expect(eagerNamespaceModules['./dir/foo.js'].named).toBe('foo named')
+})
+
+it('should allow explicit glob roots inside node_modules', () => {
+  expect(Object.keys(explicitNodeModulesModules)).toEqual([
+    './dir/node_modules/hoge.js',
+  ])
+  expect(explicitNodeModulesModules['./dir/node_modules/hoge.js'].default).toBe(
+    'hoge',
+  )
 })
 
 it('should only search hidden directories and node_modules in exhaustive mode', () => {
@@ -199,6 +248,10 @@ it('should resolve glob patterns and returned keys from custom base paths', () =
     '../dir/bar.js': 'bar',
     '../dir/foo.js': 'foo',
   })
+  expect(projectRootBaseModules).toEqual({
+    './context/import-meta-glob/dir/bar.js': 'bar',
+    './context/import-meta-glob/dir/foo.js': 'foo',
+  })
 })
 
 it('should apply query strings to lazy glob imports without changing keys', async () => {
@@ -216,6 +269,32 @@ it('should apply query objects to eager glob imports', () => {
   expect(eagerObjectQueryModules['./query/foo.js']).toBe(
     '?foo=bar&raw=true&count=1',
   )
+})
+
+it('should apply query objects to lazy glob imports', async () => {
+  expect(Object.keys(lazyObjectQueryModules)).toEqual(['./query/foo.js'])
+  await expect(lazyObjectQueryModules['./query/foo.js']()).resolves.toBe(
+    '?a=true&b=test&c=10000',
+  )
+})
+
+it('should support query with namespace imports', async () => {
+  expect(Object.keys(lazyQueryNamespaceModules)).toEqual(['./query/foo.js'])
+  await expect(lazyQueryNamespaceModules['./query/foo.js']()).resolves.toMatchObject({
+    default: '?raw',
+    named: '?raw',
+  })
+})
+
+it('should support mixed root and relative glob patterns with query', async () => {
+  expect(Object.keys(mixedRootRelativeQueryModules).sort()).toEqual([
+    './other/baz.js',
+    '/context/import-meta-glob/query/foo.js',
+  ])
+  await expect(mixedRootRelativeQueryModules['./other/baz.js']()).resolves.toBe('baz')
+  await expect(
+    mixedRootRelativeQueryModules['/context/import-meta-glob/query/foo.js'](),
+  ).resolves.toBe('?raw')
 })
 
 it('should parse glob calls with comments in the argument list', async () => {

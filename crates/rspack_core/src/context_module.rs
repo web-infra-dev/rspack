@@ -564,8 +564,9 @@ impl ContextModule {
       .options
       .context_options
       .glob_import
-      .as_ref()
-      .map(|import| property_access([import.as_str()], 0))
+      .as_deref()
+      .filter(|import| *import != "*")
+      .map(|import| property_access([import], 0))
   }
 
   fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
