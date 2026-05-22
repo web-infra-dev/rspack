@@ -19,10 +19,41 @@ pub struct ImportMetaContextDependency {
   optional: bool,
   critical: Option<Diagnostic>,
   factorize_info: FactorizeInfo,
+  kind: ImportMetaContextDependencyKind,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+enum ImportMetaContextDependencyKind {
+  WebpackContext,
+  Glob,
 }
 
 impl ImportMetaContextDependency {
   pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
+    Self::new_with_kind(
+      options,
+      range,
+      optional,
+      ImportMetaContextDependencyKind::WebpackContext,
+    )
+  }
+
+  pub fn new_glob(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
+    Self::new_with_kind(
+      options,
+      range,
+      optional,
+      ImportMetaContextDependencyKind::Glob,
+    )
+  }
+
+  fn new_with_kind(
+    options: ContextOptions,
+    range: DependencyRange,
+    optional: bool,
+    kind: ImportMetaContextDependencyKind,
+  ) -> Self {
     let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
     Self {
       options,
@@ -32,6 +63,14 @@ impl ImportMetaContextDependency {
       id: DependencyId::new(),
       critical: None,
       factorize_info: Default::default(),
+      kind,
+    }
+  }
+
+  fn dependency_type_value(&self) -> DependencyType {
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => DependencyType::ImportMetaContext,
+      ImportMetaContextDependencyKind::Glob => DependencyType::ImportMetaGlob,
     }
   }
 }
@@ -47,7 +86,10 @@ impl Dependency for ImportMetaContextDependency {
   }
 
   fn dependency_type(&self) -> &DependencyType {
-    &DependencyType::ImportMetaContext
+    match self.kind {
+      ImportMetaContextDependencyKind::WebpackContext => &DependencyType::ImportMetaContext,
+      ImportMetaContextDependencyKind::Glob => &DependencyType::ImportMetaGlob,
+    }
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -64,10 +106,7 @@ impl Dependency for ImportMetaContextDependency {
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<Vec<Diagnostic>> {
-    if let Some(critical) = self.critical() {
-      return Some(vec![critical.clone()]);
-    }
-    None
+    self.critical.clone().map(|critical| vec![critical])
   }
 }
 
@@ -116,7 +155,9 @@ impl ContextDependency for ImportMetaContextDependency {
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ImportMetaContextDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
-    Some(ImportMetaContextDependencyTemplate::template_type())
+    Some(DependencyTemplateType::Dependency(
+      self.dependency_type_value(),
+    ))
   }
 }
 
@@ -129,6 +170,10 @@ pub struct ImportMetaContextDependencyTemplate;
 impl ImportMetaContextDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::ImportMetaContext)
+  }
+
+  pub fn glob_template_type() -> DependencyTemplateType {
+    DependencyTemplateType::Dependency(DependencyType::ImportMetaGlob)
   }
 }
 

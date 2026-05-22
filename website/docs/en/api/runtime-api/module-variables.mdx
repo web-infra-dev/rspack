@@ -319,6 +319,60 @@ componentsContext.keys().forEach((fileName) => {
 
 `import.meta.webpackContext()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.
 
+### import.meta.glob
+
+<ApiMeta specific={['Rspack']} />
+
+`import.meta.glob` is a Vite-compatible API that allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
+
+- **Type:**
+
+```ts
+function glob(
+  /**
+   * A glob pattern to match files.
+   */
+  pattern: string,
+  options?: {
+    /**
+     * If `true`, modules are loaded synchronously.
+     * @default false
+     */
+    eager?: boolean;
+  },
+): Record<string, () => Promise<Record<string, any>>>;
+```
+
+- **Parameters:**
+  - `pattern`: A glob pattern string to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching.
+  - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
+
+- **Example:**
+
+```js
+// Lazy (default): each value is a function () => Promise<module>
+const modules = import.meta.glob('./dir/*.js');
+
+// All matched modules are available as async thunks
+const foo = await modules['./dir/foo.js']();
+console.log(foo.default);
+
+// Eager: each value is the module object directly
+const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
+console.log(eagerModules['./dir/foo.js'].default);
+
+// Recursive matching with **
+const allModules = import.meta.glob('./components/**/*.js', { eager: true });
+```
+
+:::tip
+Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
+:::
+
+:::warning
+`import.meta.glob()` matches files on the filesystem at build time and includes them in the bundle. Avoid using overly broad glob patterns, as they can significantly increase build time and output size.
+:::
+
 ### import.meta.webpackHot
 
 <ApiMeta specific={['Rspack', 'Webpack']} />

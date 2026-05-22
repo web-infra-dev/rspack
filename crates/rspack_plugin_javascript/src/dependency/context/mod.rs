@@ -1,3 +1,8 @@
+use rspack_core::{
+  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+};
+
 mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
 mod import_context_dependency;
@@ -25,10 +30,6 @@ pub use require_context_dependency::{RequireContextDependency, RequireContextDep
 pub use require_resolve_context_dependency::{
   RequireResolveContextDependency, RequireResolveContextDependencyTemplate,
 };
-use rspack_core::{
-  ContextDependency, ContextMode, ContextOptions, DependencyRange, GroupOptions,
-  ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-};
 pub use url_context_dependency::{URLContextDependency, URLContextDependencyTemplate};
 
 fn create_resource_identifier_for_context_dependency(
@@ -38,11 +39,11 @@ fn create_resource_identifier_for_context_dependency(
   let context = context.unwrap_or_default();
   let request = &options.request;
   let recursive = options.recursive.to_string();
-  let regexp = options
-    .reg_exp
-    .as_ref()
-    .map(|r| r.to_source_string())
-    .unwrap_or_default();
+  let pattern = match &options.pattern {
+    ContextModulePattern::RegExp(r) => r.to_source_string(),
+    ContextModulePattern::Glob(g) => ContextModulePattern::glob_patterns_to_string(g),
+    ContextModulePattern::None => String::new(),
+  };
   let include = options
     .include
     .as_ref()
@@ -91,7 +92,7 @@ fn create_resource_identifier_for_context_dependency(
   }
 
   let id = format!(
-    "context{context}|ctx request{request} {recursive} {regexp} {include} {exclude} {mode} {group_options} {referenced_exports}"
+    "context{context}|ctx request{request} {recursive} {pattern} {include} {exclude} {mode} {group_options} {referenced_exports}",
   );
   id.into()
 }

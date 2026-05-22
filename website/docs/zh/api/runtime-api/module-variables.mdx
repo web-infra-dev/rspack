@@ -319,6 +319,60 @@ componentsContext.keys().forEach((fileName) => {
 
 `import.meta.webpackContext()` 简化了模块导入过程，尤其是当你有大量模块需要管理时。在使用时，请避免匹配到不需要的文件，否则可能导致构建时间和产物体积明显增加。
 
+### import.meta.glob
+
+<ApiMeta specific={['Rspack']} />
+
+`import.meta.glob` 是一个与 Vite 兼容的 API，允许你使用 glob 模式一次导入多个模块。Rspack 将在构建时解析并引用匹配的模块。
+
+- **类型：**
+
+```ts
+function glob(
+  /**
+   * 匹配文件的 glob 模式
+   */
+  pattern: string,
+  options?: {
+    /**
+     * 如果为 `true`，模块将同步加载
+     * @default false
+     */
+    eager?: boolean;
+  },
+): Record<string, () => Promise<Record<string, any>>>;
+```
+
+- **参数：**
+  - `pattern`：匹配文件的 glob 模式字符串（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。
+  - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
+
+- **示例：**
+
+```js
+// 延迟加载（默认）：每个值是一个 () => Promise<module> 函数
+const modules = import.meta.glob('./dir/*.js');
+
+// 所有匹配的模块都可以通过异步 thunk 访问
+const foo = await modules['./dir/foo.js']();
+console.log(foo.default);
+
+// 同步加载：每个值直接是模块对象
+const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
+console.log(eagerModules['./dir/foo.js'].default);
+
+// 使用 ** 进行递归匹配
+const allModules = import.meta.glob('./components/**/*.js', { eager: true });
+```
+
+:::tip
+Rspack 在编译时会通过静态分析来解析 `import.meta.glob()` 的参数，因此 `pattern` 参数必须是字符串字面量，`options` 参数必须是对象字面量。不支持使用变量或动态构造的值。
+:::
+
+:::warning
+`import.meta.glob()` 会在构建时匹配文件系统中的文件并将其包含在 bundle 中。避免使用过于宽泛的 glob 模式，否则可能导致构建时间和产物体积明显增加。
+:::
+
 ### import.meta.webpackHot
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
