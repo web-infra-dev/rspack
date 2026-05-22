@@ -1,11 +1,12 @@
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  extract_glob_base_dir, get_context, normalize_path_separators,
+  ReferencedSpecifier, extract_glob_base_dir, get_context, normalize_path_separators,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, node_path::NodePath};
 use swc_core::{
+  atoms::Atom,
   common::Spanned,
   ecma::ast::{CallExpr, Expr},
 };
@@ -202,17 +203,20 @@ fn create_import_meta_glob_dependency(
   let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
-  let mode = node
-    .args
-    .get(1)
-    .and_then(|arg| arg.expr.as_object())
-    .map_or(ContextMode::Lazy, |obj| {
-      if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
-        ContextMode::Sync
-      } else {
-        ContextMode::Lazy
-      }
-    });
+  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let mode = glob_options.map_or(ContextMode::Lazy, |obj| {
+    if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
+      ContextMode::Sync
+    } else {
+      ContextMode::Lazy
+    }
+  });
+  let glob_import = glob_options
+    .and_then(|obj| get_literal_str_by_obj_prop(obj, "import"))
+    .map(|s| s.value.to_string_lossy().into_owned());
+  let referenced_specifiers = glob_import
+    .as_ref()
+    .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
   let namespace_object = if parser.build_meta.strict_esm_module {
     ContextNameSpaceObject::Strict
   } else {
@@ -229,6 +233,8 @@ fn create_import_meta_glob_dependency(
     mode,
     start: node.span().real_lo(),
     end: node.span().real_hi(),
+    referenced_specifiers,
+    glob_import,
     ..Default::default()
   };
   Some(ImportMetaContextDependency::new_glob(

@@ -321,31 +321,47 @@ componentsContext.keys().forEach((fileName) => {
 
 ### import.meta.glob
 
-<ApiMeta specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
 
-`import.meta.glob` is a Vite-compatible API that allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
+`import.meta.glob` allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
 
 - **Type:**
 
 ```ts
+interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
+  /**
+   * If `true`, modules are loaded synchronously.
+   *
+   * @default false
+   */
+  eager?: Eager;
+  /**
+   * Import only the specific named export. Set to `default` to import the default export.
+   */
+  import?: string;
+}
+
 function glob(
   /**
-   * A glob pattern to match files.
+   * A glob pattern, or an array of glob patterns, to match files.
    */
-  pattern: string,
-  options?: {
-    /**
-     * If `true`, modules are loaded synchronously.
-     * @default false
-     */
-    eager?: boolean;
-  },
-): Record<string, () => Promise<Record<string, any>>>;
+  pattern: string | readonly string[],
+  options?: ImportMetaGlobOptions<false>,
+): Record<string, () => Promise<any>>;
+
+function glob(
+  /**
+   * A glob pattern, or an array of glob patterns, to match files.
+   */
+  pattern: string | readonly string[],
+  options: ImportMetaGlobOptions<true>,
+): Record<string, any>;
 ```
 
 - **Parameters:**
-  - `pattern`: A glob pattern string to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching.
+  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
   - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
+  - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
 
 - **Example:**
 
@@ -361,12 +377,24 @@ console.log(foo.default);
 const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
 console.log(eagerModules['./dir/foo.js'].default);
 
+// Import only the default export from each matched module
+const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
+const fooDefault = await defaultModules['./dir/foo.js']();
+console.log(fooDefault);
+
+// Combine eager loading with import selection
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+});
+console.log(eagerDefaultModules['./dir/foo.js']);
+
 // Recursive matching with **
 const allModules = import.meta.glob('./components/**/*.js', { eager: true });
 ```
 
 :::tip
-Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
+Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal or an array of string literals, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
 :::
 
 :::warning

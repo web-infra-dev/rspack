@@ -26,7 +26,7 @@ fn encodes_base64url_without_padding() {
 
 #[test]
 fn hash_salt_is_written_as_raw_bytes() {
-  let salt = HashSalt::Salt("salt".to_string());
+  let salt = HashSalt::Salt("salt".into());
   let salted = RspackHash::with_salt(&HashFunction::Xxhash64, &salt)
     .digest(&HashDigest::Hex)
     .encoded()

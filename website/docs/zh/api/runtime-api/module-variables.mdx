@@ -321,31 +321,47 @@ componentsContext.keys().forEach((fileName) => {
 
 ### import.meta.glob
 
-<ApiMeta specific={['Rspack']} />
+<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
 
-`import.meta.glob` 是一个与 Vite 兼容的 API，允许你使用 glob 模式一次导入多个模块。Rspack 将在构建时解析并引用匹配的模块。
+`import.meta.glob` 允许你使用 glob 模式一次导入多个模块。Rspack 将在构建时解析并引用匹配的模块。
 
 - **类型：**
 
 ```ts
+interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
+  /**
+   * 如果为 `true`，模块将同步加载
+   *
+   * @default false
+   */
+  eager?: Eager;
+  /**
+   * 只导入指定的具名导出。设置为 `default` 时会导入默认导出。
+   */
+  import?: string;
+}
+
 function glob(
   /**
-   * 匹配文件的 glob 模式
+   * 匹配文件的 glob 模式，或 glob 模式数组
    */
-  pattern: string,
-  options?: {
-    /**
-     * 如果为 `true`，模块将同步加载
-     * @default false
-     */
-    eager?: boolean;
-  },
-): Record<string, () => Promise<Record<string, any>>>;
+  pattern: string | readonly string[],
+  options?: ImportMetaGlobOptions<false>,
+): Record<string, () => Promise<any>>;
+
+function glob(
+  /**
+   * 匹配文件的 glob 模式，或 glob 模式数组
+   */
+  pattern: string | readonly string[],
+  options: ImportMetaGlobOptions<true>,
+): Record<string, any>;
 ```
 
 - **参数：**
-  - `pattern`：匹配文件的 glob 模式字符串（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。
+  - `pattern`：匹配文件的 glob 模式字符串，或 glob 模式字符串数组（例如 `'./dir/*.js'`）。支持 `*`、`?`、`[abc]`、`{a,b}` 以及 `**`（递归匹配）。数组模式也可以包含负向模式，例如 `'!**/bar.js'`。
   - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
+  - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
 
 - **示例：**
 
@@ -361,12 +377,24 @@ console.log(foo.default);
 const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
 console.log(eagerModules['./dir/foo.js'].default);
 
+// 只导入每个匹配模块的默认导出
+const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
+const fooDefault = await defaultModules['./dir/foo.js']();
+console.log(fooDefault);
+
+// 将同步加载和指定导出结合使用
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+});
+console.log(eagerDefaultModules['./dir/foo.js']);
+
 // 使用 ** 进行递归匹配
 const allModules = import.meta.glob('./components/**/*.js', { eager: true });
 ```
 
 :::tip
-Rspack 在编译时会通过静态分析来解析 `import.meta.glob()` 的参数，因此 `pattern` 参数必须是字符串字面量，`options` 参数必须是对象字面量。不支持使用变量或动态构造的值。
+Rspack 在编译时会通过静态分析来解析 `import.meta.glob()` 的参数，因此 `pattern` 参数必须是字符串字面量或字符串字面量数组，`options` 参数必须是对象字面量。不支持使用变量或动态构造的值。
 :::
 
 :::warning
