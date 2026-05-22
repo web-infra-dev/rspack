@@ -38,4 +38,12 @@ eagerGlobModules['./dir/foo.js'].default.toUpperCase();
 const lazyGlobModules = import.meta.glob<GlobModule>('./dir/*.js');
 lazyGlobModules['./dir/foo.js']().then((mod) => mod.default.toUpperCase());
 
+const multiGlobModules = import.meta.glob<GlobModule>(
+  ['./dir/*.js', '!**/bar.js'] as const,
+  {
+    eager: true,
+  },
+);
+multiGlobModules['./dir/foo.js'].default.toUpperCase();
+
 export const cliConfig: Configuration = defineConfig(config);
