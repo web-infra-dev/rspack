@@ -339,6 +339,10 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * Import only the specific named export. Set to `default` to import the default export.
    */
   import?: string;
+  /**
+   * Append a query to each matched module request.
+   */
+  query?: string | Record<string, string | number | boolean>;
 }
 
 function glob(
@@ -362,6 +366,7 @@ function glob(
   - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
   - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
   - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
+  - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.
 
 - **Example:**
 
@@ -388,6 +393,19 @@ const eagerDefaultModules = import.meta.glob('./dir/*.js', {
   import: 'default',
 });
 console.log(eagerDefaultModules['./dir/foo.js']);
+
+// Append a query to each matched import
+const rawModules = import.meta.glob('./dir/*.js', {
+  query: '?raw',
+  import: 'default',
+});
+const rawFoo = await rawModules['./dir/foo.js']();
+
+// Query objects are serialized as URL query strings
+const dataModules = import.meta.glob('./dir/*.js', {
+  query: { type: 'data', inline: true },
+  eager: true,
+});
 
 // Recursive matching with **
 const allModules = import.meta.glob('./components/**/*.js', { eager: true });

@@ -11,6 +11,19 @@ const multiModules = import.meta.glob(['./dir/*.js', './other/*.js'], { eager: t
 const lazyMultiModules = import.meta.glob(['./dir/*.js', './other/*.js'])
 const lazyDefaultModules = import.meta.glob('./dir/*.js', { import: 'default' })
 const lazyNamedModules = import.meta.glob('./dir/*.js', { import: 'named' })
+const lazyQueryModules = import.meta.glob('./query/*.js', {
+  query: '?raw',
+  import: 'default',
+})
+const eagerObjectQueryModules = import.meta.glob('./query/*.js', {
+  query: {
+    foo: 'bar',
+    raw: true,
+    count: 1,
+  },
+  eager: true,
+  import: 'named',
+})
 
 it('should return a thunk for each matched file in lazy mode', async () => {
   const keys = Object.keys(lazyModules).sort()
@@ -107,6 +120,21 @@ it('should expose selected default exports in lazy mode', async () => {
 it('should expose selected named exports in lazy mode', async () => {
   await expect(lazyNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
   await expect(lazyNamedModules['./dir/bar.js']()).resolves.toBe('bar named')
+})
+
+it('should apply query strings to lazy glob imports without changing keys', async () => {
+  const keys = Object.keys(lazyQueryModules)
+  expect(keys).toEqual(['./query/foo.js'])
+  await expect(lazyQueryModules['./query/foo.js']()).resolves.toBe('?raw')
+  expect(lazyQueryModules['./query/foo.js?raw']).toBeUndefined()
+})
+
+it('should apply query objects to eager glob imports', () => {
+  const keys = Object.keys(eagerObjectQueryModules)
+  expect(keys).toEqual(['./query/foo.js'])
+  expect(eagerObjectQueryModules['./query/foo.js']).toBe(
+    '?foo=bar&raw=true&count=1',
+  )
 })
 
 // Eager: each value is the module object directly

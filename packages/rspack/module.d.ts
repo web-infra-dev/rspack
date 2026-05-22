@@ -172,9 +172,11 @@ declare namespace Rspack {
   }
 
   type ImportMetaGlobPattern = string | readonly string[];
+  type ImportMetaGlobQuery = string | Record<string, string | number | boolean>;
   type ImportMetaGlobOptions<Eager extends boolean = boolean> = {
     eager?: Eager;
     import?: string;
+    query?: ImportMetaGlobQuery;
   };
 
   interface Module {

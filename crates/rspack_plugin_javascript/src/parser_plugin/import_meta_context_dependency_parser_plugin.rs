@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
   ReferencedSpecifier, extract_glob_base_dir, get_context, normalize_path_separators,
@@ -8,7 +9,7 @@ use rspack_util::{SpanExt, node_path::NodePath};
 use swc_core::{
   atoms::Atom,
   common::Spanned,
-  ecma::ast::{CallExpr, Expr},
+  ecma::ast::{CallExpr, Expr, Lit, ObjectLit},
 };
 
 use super::JavascriptParserPlugin;
@@ -16,7 +17,10 @@ use crate::{
   dependency::ImportMetaContextDependency,
   utils::{
     eval::{self, BasicEvaluatedExpression},
-    object_properties::{get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop},
+    object_properties::{
+      get_bool_by_obj_prop, get_literal_str_by_obj_prop, get_regex_by_obj_prop,
+      get_value_by_obj_prop,
+    },
   },
   visitors::{
     JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
@@ -41,6 +45,80 @@ fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
       static_string_from_expr(&elem.expr)
     })
     .collect()
+}
+
+struct ImportMetaGlobOptions {
+  mode: ContextMode,
+  glob_import: Option<String>,
+  glob_query: String,
+}
+
+impl ImportMetaGlobOptions {
+  fn new(glob_options: Option<&ObjectLit>) -> Self {
+    let Some(obj) = glob_options else {
+      return Self {
+        mode: ContextMode::Lazy,
+        glob_import: None,
+        glob_query: String::new(),
+      };
+    };
+
+    Self {
+      mode: if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
+        ContextMode::Sync
+      } else {
+        ContextMode::Lazy
+      },
+      glob_import: get_literal_str_by_obj_prop(obj, "import")
+        .map(|s| s.value.to_string_lossy().into_owned()),
+      glob_query: get_value_by_obj_prop(obj, "query")
+        .and_then(static_import_meta_glob_query_from_expr)
+        .unwrap_or_default(),
+    }
+  }
+}
+
+fn normalize_import_meta_glob_query(query: String) -> String {
+  if query.is_empty() || query.starts_with('?') {
+    query
+  } else {
+    concat_string!("?", query)
+  }
+}
+
+fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
+  if let Some(query) = expr.as_lit().and_then(|lit| match lit {
+    Lit::Str(str) => Some(str.value.to_string_lossy().into_owned()),
+    _ => None,
+  }) {
+    return Some(normalize_import_meta_glob_query(query));
+  }
+
+  let query = expr.as_object()?;
+  let mut serializer = form_urlencoded::Serializer::new(String::new());
+  for prop in &query.props {
+    let Some(kv) = prop.as_prop().and_then(|prop| prop.as_key_value()) else {
+      return None;
+    };
+    let key = kv
+      .key
+      .as_ident()
+      .map(|key| key.sym.to_string())
+      .or_else(|| {
+        kv.key
+          .as_str()
+          .map(|key| key.value.to_string_lossy().into_owned())
+      })?;
+    let value = match kv.value.as_lit()? {
+      Lit::Str(str) => str.value.to_string_lossy().into_owned(),
+      Lit::Bool(bool) => bool.value.to_string(),
+      Lit::Num(num) => num.value.to_string(),
+      _ => return None,
+    };
+    serializer.append_pair(&key, &value);
+  }
+
+  Some(normalize_import_meta_glob_query(serializer.finish()))
 }
 
 struct ResolvedContextModuleGlobPattern {
@@ -100,7 +178,7 @@ fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback:
   if common_base.ends_with('/') {
     common_base.to_string()
   } else {
-    format!("{common_base}/")
+    concat_string!(common_base, "/")
   }
 }
 
@@ -203,17 +281,11 @@ fn create_import_meta_glob_dependency(
   let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
-  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
-  let mode = glob_options.map_or(ContextMode::Lazy, |obj| {
-    if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
-      ContextMode::Sync
-    } else {
-      ContextMode::Lazy
-    }
-  });
-  let glob_import = glob_options
-    .and_then(|obj| get_literal_str_by_obj_prop(obj, "import"))
-    .map(|s| s.value.to_string_lossy().into_owned());
+  let ImportMetaGlobOptions {
+    mode,
+    glob_import,
+    glob_query,
+  } = ImportMetaGlobOptions::new(node.args.get(1).and_then(|arg| arg.expr.as_object()));
   let referenced_specifiers = glob_import
     .as_ref()
     .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
@@ -227,7 +299,7 @@ fn create_import_meta_glob_dependency(
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive,
     category: DependencyCategory::Esm,
-    request: base_dir,
+    request: concat_string!(base_dir, glob_query),
     context: context.to_string(),
     namespace_object,
     mode,
