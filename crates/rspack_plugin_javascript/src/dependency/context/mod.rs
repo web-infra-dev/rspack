@@ -1,50 +1,7 @@
-use rspack_cacheable::cacheable;
 use rspack_core::{
-  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyId,
-  DependencyRange, FactorizeInfo, GroupOptions, ResourceIdentifier, TemplateContext,
-  TemplateReplaceSource,
+  ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
+  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
 };
-use rspack_error::Diagnostic;
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(super) struct BasicContextDependency {
-  pub id: DependencyId,
-  pub options: ContextOptions,
-  pub range: DependencyRange,
-  pub resource_identifier: ResourceIdentifier,
-  pub optional: bool,
-  pub critical: Option<Diagnostic>,
-  pub factorize_info: FactorizeInfo,
-}
-
-impl BasicContextDependency {
-  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
-    Self {
-      options,
-      range,
-      resource_identifier,
-      optional,
-      id: DependencyId::new(),
-      critical: None,
-      factorize_info: Default::default(),
-    }
-  }
-}
-
-fn basic_context_dependency_module_raw(
-  base: &BasicContextDependency,
-  code_generatable_context: &mut TemplateContext,
-) -> String {
-  let TemplateContext {
-    compilation,
-    runtime_template,
-    ..
-  } = code_generatable_context;
-
-  runtime_template.module_raw(compilation, &base.id, &base.options.request, base.optional)
-}
 
 mod amd_require_context_dependency;
 mod common_js_require_context_dependency;
