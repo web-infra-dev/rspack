@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt::Debug,
   path::{Path, PathBuf},
   sync::Arc,
@@ -34,7 +35,18 @@ impl Content {
   pub fn into_string_lossy(self) -> String {
     match self {
       Content::String(s) => s,
-      Content::Buffer(b) => String::from_utf8_lossy_owned(b),
+      Content::Buffer(b) => {
+        if let Cow::Owned(string) = String::from_utf8_lossy(&b) {
+          string
+        } else {
+          // SAFETY: `String::from_utf8_lossy`'s contract ensures that if
+          // it returns a `Cow::Borrowed`, it is a valid UTF-8 string.
+          // Otherwise, it returns a new allocation of an owned `String`, with
+          // replacement characters for invalid sequences, which is returned
+          // above.
+          unsafe { String::from_utf8_unchecked(b) }
+        }
+      }
     }
   }
 
