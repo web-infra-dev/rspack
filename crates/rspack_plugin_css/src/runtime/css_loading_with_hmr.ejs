@@ -26,11 +26,11 @@ var applyHandler = <%- basicFunction("options") %> {
 var cssTextKey = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.<%- _runtime_key %> = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(<%- basicFunction("chunkId") %> {
-		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+		var filename = <%- _get_chunk_css_filename %>(chunkId);
 		var url = <%- PUBLIC_PATH %> + filename;
 		var oldTag = loadStylesheet(chunkId, url);
 		if (!oldTag) return;

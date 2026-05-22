@@ -7,4 +7,4 @@ if (<%- SCRIPT_NONCE %>) {
 }
 link.rel = "prefetch";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+link.href = <%- PUBLIC_PATH %> + <%- _get_chunk_css_filename %>(chunkId);

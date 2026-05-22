@@ -20,7 +20,7 @@ use rspack_plugin_css::{
     CssExtractAssetModule, CssExtractAssetRenderOptions, CssExtractOrderConflict,
     get_extract_modules_in_order, render_extract_css_asset,
   },
-  runtime::{CssLoadingRuntimeInsert, CssLoadingRuntimeModule, ExtractCssLoadingRuntimeOptions},
+  runtime::{CssLoadingRuntimeInsert, CssLoadingRuntimeModule, CssLoadingRuntimeOptions},
 };
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
@@ -256,13 +256,19 @@ async fn runtime_requirement_in_tree(
 
     runtime_modules_to_add.push((
       *chunk_ukey,
-      Box::new(CssLoadingRuntimeModule::new_extract(
+      Box::new(CssLoadingRuntimeModule::with_options(
         &compilation.runtime_template,
-        ExtractCssLoadingRuntimeOptions {
+        CssLoadingRuntimeOptions {
+          source_type: SOURCE_TYPE[0],
+          runtime_key: "miniCss".to_string(),
+          get_chunk_css_filename: format!(
+            "{}.miniCssF",
+            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ),
           attributes: self.options.attributes.clone(),
           link_type: self.options.link_type.clone(),
           insert: self.options.insert.clone().into(),
-          source_type: SOURCE_TYPE[0],
+          load_module_data: false,
         },
       )),
     ));

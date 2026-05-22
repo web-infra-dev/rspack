@@ -358,6 +358,7 @@ async fn runtime_requirements_in_tree(
       RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
     )
   {
+    runtime_requirements_mut.extend(RuntimeGlobals::GET_CHUNK_CSS_FILENAME);
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
   }
 
