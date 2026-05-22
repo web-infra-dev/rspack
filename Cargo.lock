@@ -5055,8 +5055,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.8.0"
-source = "git+https://github.com/rstackjs/rspack-resolver?branch=perf%2Fresolver-path-prehashed-deps#c044efbb801197e48063124f96ff3ad597b84320"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e4f80a6b1268eb712e1a030e7a86ed9b3f0a9ac4f14780c2efc20e4e3a050931"
 dependencies = [
  "arc-swap",
  "async-trait",
