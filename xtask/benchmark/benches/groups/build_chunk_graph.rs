@@ -245,7 +245,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
   });
 
   build_module_graph_case(c, &rt, fs.clone(), "rust@build_module_graph", false);
-  build_module_graph_case(c, &rt, fs, "rust@build:swc-loader", true);
+  build_module_graph_case(c, &rt, fs, "rust@build_swc-loader", true);
 }
 
 fn build_module_graph_case(
