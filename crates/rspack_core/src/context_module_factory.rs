@@ -16,8 +16,9 @@ use crate::{
   ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, extract_glob_base_dir,
-  glob_match_normalized_with_explicit_dot, normalize_path_separators, resolve, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, escape_glob_pattern,
+  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
+  resolve, unescape_glob_path, walk_dir,
 };
 
 #[derive(Debug)]
@@ -574,13 +575,14 @@ fn resolve_context_module_glob_pattern(
       pattern.as_str(),
     )
   };
-  let absolute_pattern = Utf8Path::new(&base)
+  let escaped_base = escape_glob_pattern(&base);
+  let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
     .node_normalize_posix()
     .to_string();
   let absolute_pattern = normalize_path_separators(&absolute_pattern);
   let base = extract_glob_base_dir(&pattern).to_string();
-  let absolute_base = extract_glob_base_dir(&absolute_pattern).to_string();
+  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
   ResolvedContextModuleGlobPattern {
     absolute_pattern,

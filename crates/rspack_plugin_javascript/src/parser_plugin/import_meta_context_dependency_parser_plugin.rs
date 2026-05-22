@@ -1,7 +1,8 @@
 use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, extract_glob_base_dir, get_context, normalize_path_separators,
+  ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
+  normalize_path_separators, unescape_glob_path,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -143,12 +144,13 @@ fn resolve_glob_pattern(
   } else {
     (context, pattern.as_str())
   };
-  let absolute_pattern = Utf8Path::new(base)
+  let escaped_base = escape_glob_pattern(base);
+  let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
     .node_normalize_posix()
     .to_string();
   let absolute_pattern = normalize_path_separators(&absolute_pattern);
-  let absolute_base = extract_glob_base_dir(&absolute_pattern).to_string();
+  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
   ResolvedContextModuleGlobPattern {
     absolute_pattern,

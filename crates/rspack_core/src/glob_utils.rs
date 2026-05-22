@@ -162,7 +162,7 @@ pub fn normalize_path_separators(s: &str) -> String {
   result
 }
 
-fn unescape_glob_path(s: &str) -> String {
+pub fn unescape_glob_path(s: &str) -> String {
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
   while let Some(c) = chars.next() {
@@ -273,7 +273,11 @@ fn pattern_has_explicit_dot_for(
   path: &str,
   options: &GlobMatchOptions,
 ) -> bool {
-  let pattern_suffix = pattern.strip_prefix(base_dir).unwrap_or(pattern);
+  let escaped_base_dir = escape_glob_pattern(base_dir);
+  let pattern_suffix = pattern
+    .strip_prefix(base_dir)
+    .or_else(|| pattern.strip_prefix(&escaped_base_dir))
+    .unwrap_or(pattern);
 
   let relative = path.strip_prefix(base_dir).unwrap_or(path);
   let pattern_segments = pattern_suffix

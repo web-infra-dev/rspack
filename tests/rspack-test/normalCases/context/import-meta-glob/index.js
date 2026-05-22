@@ -24,6 +24,29 @@ const eagerObjectQueryModules = import.meta.glob('./query/*.js', {
   eager: true,
   import: 'named',
 })
+const commentModules = import.meta.glob(
+  './dir/*.js'
+  // for test: annotation contains ")"
+  /*
+   * for test: annotation contains ")"
+   * */
+)
+const objectKeyModules = Object.keys(import.meta.glob('./dir/*.js'))
+const objectValueModules = Object.values(import.meta.glob('./dir/*.js', { eager: true }))
+const negativeFirstModules = import.meta.glob(['!**/bar.js', './dir/*.js'], { eager: true })
+const filteredDefaultModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], {
+  eager: true,
+  import: 'default',
+})
+const lazyFilteredNamedModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], {
+  import: 'named',
+})
+const quotedModules = import.meta.glob("./quoted/*.js", { eager: true })
+const escapeModules = import.meta.glob('./escape/**/glob.js', { eager: true })
+const nodeModules = import.meta.glob('./dir/node_modules/**')
+
+globalThis.__importMetaGlobSideEffects = []
+import.meta.glob('./side-effect/*.js', { eager: true })
 
 it('should return a thunk for each matched file in lazy mode', async () => {
   const keys = Object.keys(lazyModules).sort()
@@ -135,6 +158,71 @@ it('should apply query objects to eager glob imports', () => {
   expect(eagerObjectQueryModules['./query/foo.js']).toBe(
     '?foo=bar&raw=true&count=1',
   )
+})
+
+it('should parse glob calls with comments in the argument list', async () => {
+  const keys = Object.keys(commentModules).sort()
+  expect(keys).toEqual(['./dir/bar.js', './dir/foo.js'])
+
+  const foo = await commentModules['./dir/foo.js']()
+  expect(foo.default).toBe('foo')
+})
+
+it('should work when glob results are wrapped with Object.keys and Object.values', () => {
+  expect(objectKeyModules.sort()).toEqual(['./dir/bar.js', './dir/foo.js'])
+  expect(objectValueModules.map(mod => mod.default).sort()).toEqual(['bar', 'foo'])
+})
+
+it('should apply negative patterns independent of array order', () => {
+  const keys = Object.keys(negativeFirstModules).sort()
+  expect(keys).toEqual(['./dir/foo.js'])
+  expect(negativeFirstModules['./dir/foo.js'].default).toBe('foo')
+})
+
+it('should combine import selection with array exclusions in eager mode', () => {
+  expect(filteredDefaultModules).toEqual({
+    './dir/foo.js': 'foo',
+  })
+})
+
+it('should combine import selection with array exclusions in lazy mode', async () => {
+  const keys = Object.keys(lazyFilteredNamedModules)
+  expect(keys).toEqual(['./dir/foo.js'])
+  await expect(lazyFilteredNamedModules['./dir/foo.js']()).resolves.toBe('foo named')
+})
+
+it('should handle matched paths containing single quotes', () => {
+  expect(Object.keys(quotedModules)).toEqual(["./quoted/quote'.js"])
+  expect(quotedModules["./quoted/quote'.js"].default).toBe('single-quote')
+})
+
+it('should handle relative glob bases inside directories with glob special characters', () => {
+  const actual = Object.fromEntries(
+    Object.entries(escapeModules).map(([key, mod]) => [key, mod.relative]),
+  )
+  expect(actual).toEqual({
+    './escape/(parenthesis)/glob.js': {
+      './mod/index.js': '(parenthesis)',
+    },
+    './escape/[brackets]/glob.js': {
+      './mod/index.js': '[brackets]',
+    },
+    './escape/{curlies}/glob.js': {
+      './mod/index.js': '{curlies}',
+    },
+  })
+})
+
+it('should include explicit node_modules glob matches', async () => {
+  const keys = Object.keys(nodeModules)
+  expect(keys).toEqual(['./dir/node_modules/hoge.js'])
+
+  const mod = await nodeModules['./dir/node_modules/hoge.js']()
+  expect(mod.default).toBe('hoge')
+})
+
+it('should execute side effects for unassigned eager glob calls', () => {
+  expect(globalThis.__importMetaGlobSideEffects).toEqual(['one', 'two'])
 })
 
 // Eager: each value is the module object directly
