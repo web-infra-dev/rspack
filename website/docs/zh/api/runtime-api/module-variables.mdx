@@ -343,6 +343,16 @@ interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
    * 为每个匹配模块请求追加 query。
    */
   query?: string | Record<string, string | number | boolean>;
+  /**
+   * 搜索 `node_modules` 和隐藏路径中的文件。
+   *
+   * @default false
+   */
+  exhaustive?: boolean;
+  /**
+   * 用于解析相对 glob 模式和返回 key 的 base 路径。
+   */
+  base?: string;
 }
 
 function glob(
@@ -367,6 +377,8 @@ function glob(
   - `options.eager`：设置为 `true` 时，模块直接包含在 bundle 中并同步加载。默认为 `false`，模块会延迟加载，每个值是一个返回 `Promise` 的 thunk 函数。
   - `options.import`：只导入每个匹配模块的指定导出。例如使用 `'default'` 获取默认导出，或使用 `'setup'` 这样的具名导出。
   - `options.query`：为每个匹配模块请求追加 query。可以是 `'?raw'` 这样的 query 字符串，也可以是会序列化为 URL query 字符串的对象。`import.meta.glob()` 返回对象中的 key 不包含 query。
+  - `options.exhaustive`：搜索 `node_modules` 和隐藏路径中的文件。默认关闭，因为可能增加构建时间。
+  - `options.base`：用于解析相对 glob 模式和返回 key 的 base 路径。绝对 glob 模式仍从项目根目录解析，但返回 key 会相对于 `base`。
 
 - **示例：**
 
@@ -406,6 +418,19 @@ const dataModules = import.meta.glob('./dir/*.js', {
   query: { type: 'data', inline: true },
   eager: true,
 });
+
+// 从 ./base 解析文件，并暴露相对于 ./base 的 key
+const modulesWithBase = import.meta.glob('./**/*.js', {
+  base: './base',
+});
+
+// 包含 node_modules 和隐藏路径中的匹配文件
+const exhaustiveModules = import.meta.glob(
+  ['./node_modules/**/*.js', './.config/*.js'],
+  {
+    exhaustive: true,
+  },
+);
 
 // 使用 ** 进行递归匹配
 const allModules = import.meta.glob('./components/**/*.js', { eager: true });

@@ -177,6 +177,8 @@ declare namespace Rspack {
     eager?: Eager;
     import?: string;
     query?: ImportMetaGlobQuery;
+    exhaustive?: boolean;
+    base?: string;
   };
 
   interface Module {

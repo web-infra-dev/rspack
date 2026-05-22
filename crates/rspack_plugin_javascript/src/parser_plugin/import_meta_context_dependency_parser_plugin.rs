@@ -10,7 +10,7 @@ use rspack_util::{SpanExt, node_path::NodePath};
 use swc_core::{
   atoms::Atom,
   common::Spanned,
-  ecma::ast::{CallExpr, Expr, Lit, ObjectLit},
+  ecma::ast::{CallExpr, Expr, Lit},
 };
 
 use super::JavascriptParserPlugin;
@@ -46,37 +46,6 @@ fn static_glob_patterns_from_expr(expr: &Expr) -> Option<Vec<String>> {
       static_string_from_expr(&elem.expr)
     })
     .collect()
-}
-
-struct ImportMetaGlobOptions {
-  mode: ContextMode,
-  glob_import: Option<String>,
-  glob_query: String,
-}
-
-impl ImportMetaGlobOptions {
-  fn new(glob_options: Option<&ObjectLit>) -> Self {
-    let Some(obj) = glob_options else {
-      return Self {
-        mode: ContextMode::Lazy,
-        glob_import: None,
-        glob_query: String::new(),
-      };
-    };
-
-    Self {
-      mode: if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
-        ContextMode::Sync
-      } else {
-        ContextMode::Lazy
-      },
-      glob_import: get_literal_str_by_obj_prop(obj, "import")
-        .map(|s| s.value.to_string_lossy().into_owned()),
-      glob_query: get_value_by_obj_prop(obj, "query")
-        .and_then(static_import_meta_glob_query_from_expr)
-        .unwrap_or_default(),
-    }
-  }
 }
 
 fn normalize_import_meta_glob_query(query: String) -> String {
@@ -184,6 +153,122 @@ fn common_glob_base_dir(patterns: &[ResolvedContextModuleGlobPattern], fallback:
   }
 }
 
+fn resolve_import_meta_glob_context(
+  context: &str,
+  compiler_context: &str,
+  base: Option<&str>,
+) -> String {
+  let Some(base) = base else {
+    return context.to_string();
+  };
+
+  let base = normalize_path_separators(base);
+  let (base_context, path_to_join) = if let Some(base) = base.strip_prefix('/') {
+    (compiler_context, base)
+  } else {
+    (context, base.as_str())
+  };
+
+  Utf8Path::new(base_context)
+    .node_join_posix(path_to_join)
+    .node_normalize_posix()
+    .to_string()
+}
+
+fn relative_posix_path(from: &str, to: &str) -> String {
+  let from = normalize_path_separators(from);
+  let to = normalize_path_separators(to);
+  let from_segments = from
+    .trim_end_matches('/')
+    .trim_start_matches('/')
+    .split('/')
+    .filter(|segment| !segment.is_empty())
+    .collect::<Vec<_>>();
+  let to_segments = to
+    .trim_end_matches('/')
+    .trim_start_matches('/')
+    .split('/')
+    .filter(|segment| !segment.is_empty())
+    .collect::<Vec<_>>();
+
+  let mut common_len = 0;
+  while common_len < from_segments.len()
+    && common_len < to_segments.len()
+    && from_segments[common_len] == to_segments[common_len]
+  {
+    common_len += 1;
+  }
+
+  let mut relative_segments = Vec::with_capacity(
+    from_segments.len().saturating_sub(common_len) + to_segments.len().saturating_sub(common_len),
+  );
+  relative_segments.extend(std::iter::repeat_n(
+    "..",
+    from_segments.len().saturating_sub(common_len),
+  ));
+  relative_segments.extend(to_segments.iter().skip(common_len).copied());
+
+  if relative_segments.is_empty() {
+    ".".to_string()
+  } else {
+    relative_segments.join("/")
+  }
+}
+
+fn normalize_base_glob_pattern(
+  pattern: String,
+  base_context: &str,
+  compiler_context: &str,
+) -> String {
+  let (negative, pattern) = if let Some(pattern) = pattern.strip_prefix('!') {
+    (true, pattern)
+  } else {
+    (false, pattern.as_str())
+  };
+
+  let pattern = normalize_path_separators(pattern);
+  let Some(pattern) = pattern.strip_prefix('/') else {
+    return if negative {
+      concat_string!("!", pattern)
+    } else {
+      pattern
+    };
+  };
+
+  let absolute_pattern = Utf8Path::new(compiler_context)
+    .node_join_posix(pattern)
+    .node_normalize_posix()
+    .to_string();
+  let relative_pattern = relative_posix_path(base_context, &absolute_pattern);
+  let relative_pattern = if relative_pattern.starts_with("../") || relative_pattern == ".." {
+    relative_pattern
+  } else {
+    concat_string!("./", relative_pattern)
+  };
+
+  if negative {
+    concat_string!("!", relative_pattern)
+  } else {
+    relative_pattern
+  }
+}
+
+fn normalize_import_meta_glob_patterns(
+  patterns: Vec<String>,
+  base_context: &str,
+  compiler_context: &str,
+  has_custom_base: bool,
+) -> Vec<String> {
+  if has_custom_base {
+    patterns
+      .into_iter()
+      .map(|pattern| normalize_base_glob_pattern(pattern, base_context, compiler_context))
+      .collect()
+  } else {
+    patterns
+  }
+}
+
 fn glob_patterns_are_recursive(
   patterns: &[ResolvedContextModuleGlobPattern],
   common_base_dir: &str,
@@ -268,8 +353,39 @@ fn create_import_meta_glob_dependency(
   if dyn_imported.spread.is_some() {
     return None;
   }
-  let glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
-  let context = get_context(parser.resource_data);
+  let raw_glob_patterns = static_glob_patterns_from_expr(&dyn_imported.expr)?;
+  let importer_context = get_context(parser.resource_data);
+  let glob_options = node.args.get(1).and_then(|arg| arg.expr.as_object());
+  let mode = glob_options.map_or(ContextMode::Lazy, |obj| {
+    if get_bool_by_obj_prop(obj, "eager").is_some_and(|b| b.value) {
+      ContextMode::Sync
+    } else {
+      ContextMode::Lazy
+    }
+  });
+  let glob_import = glob_options
+    .and_then(|obj| get_literal_str_by_obj_prop(obj, "import"))
+    .map(|s| s.value.to_string_lossy().into_owned());
+  let glob_query = glob_options
+    .and_then(|obj| get_value_by_obj_prop(obj, "query"))
+    .and_then(static_import_meta_glob_query_from_expr)
+    .unwrap_or_default();
+  let base = glob_options
+    .and_then(|obj| get_value_by_obj_prop(obj, "base"))
+    .and_then(static_string_from_expr);
+  let glob_exhaustive = glob_options
+    .is_some_and(|obj| get_bool_by_obj_prop(obj, "exhaustive").is_some_and(|b| b.value));
+  let context = resolve_import_meta_glob_context(
+    importer_context.as_str(),
+    parser.compiler_options.context.as_str(),
+    base.as_deref(),
+  );
+  let glob_patterns = normalize_import_meta_glob_patterns(
+    raw_glob_patterns,
+    context.as_str(),
+    parser.compiler_options.context.as_str(),
+    base.is_some(),
+  );
   let resolved_glob_patterns = glob_patterns
     .iter()
     .map(|pattern| {
@@ -283,11 +399,6 @@ fn create_import_meta_glob_dependency(
   let base_dir = common_glob_base_dir(&resolved_glob_patterns, context.as_str());
   let recursive = glob_patterns_are_recursive(&resolved_glob_patterns, &base_dir);
 
-  let ImportMetaGlobOptions {
-    mode,
-    glob_import,
-    glob_query,
-  } = ImportMetaGlobOptions::new(node.args.get(1).and_then(|arg| arg.expr.as_object()));
   let referenced_specifiers = glob_import
     .as_ref()
     .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
@@ -302,13 +413,14 @@ fn create_import_meta_glob_dependency(
     recursive,
     category: DependencyCategory::Esm,
     request: concat_string!(base_dir, glob_query),
-    context: context.to_string(),
+    context,
     namespace_object,
     mode,
     start: node.span().real_lo(),
     end: node.span().real_hi(),
     referenced_specifiers,
     glob_import,
+    glob_exhaustive,
     ..Default::default()
   };
   Some(ImportMetaContextDependency::new_glob(

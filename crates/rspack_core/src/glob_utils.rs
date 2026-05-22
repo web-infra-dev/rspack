@@ -186,6 +186,7 @@ pub fn unescape_glob_path(s: &str) -> String {
 /// - `root`: starting directory
 /// - `recursive`: whether to descend into subdirectories
 /// - `skip_dotfiles`: whether to skip files whose name starts with `.`
+/// - `should_enter_dir`: called with (full_path, dirname) for each directory before descending
 /// - `on_file`: called with (full_path, filename) for each file
 #[async_recursion]
 pub(crate) async fn walk_dir(
@@ -193,7 +194,7 @@ pub(crate) async fn walk_dir(
   fs: Arc<dyn ReadableFileSystem>,
   recursive: bool,
   skip_dotfiles: bool,
-  should_enter_dir: &mut (impl FnMut(&Utf8Path) -> bool + Send),
+  should_enter_dir: &mut (impl FnMut(&Utf8Path, &str) -> bool + Send),
   on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
 ) -> Result<()> {
   if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
@@ -202,7 +203,7 @@ pub(crate) async fn walk_dir(
   for filename in fs.read_dir(root).await? {
     let path = root.join(&filename);
     if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
-      if recursive && should_enter_dir(&path) {
+      if recursive && should_enter_dir(&path, &filename) {
         walk_dir(
           &path,
           fs.clone(),
@@ -240,7 +241,7 @@ pub async fn find_files_by_glob(
     fs,
     true,  // always recursive for glob
     false, // dotfile filtering handled in callback below
-    &mut |_path| true,
+    &mut |_path, _dirname| true,
     &mut |path, _filename| {
       if glob_match_with_explicit_dot(
         &normalized_pattern,

@@ -436,13 +436,21 @@ async fn visit_dirs(
     } else {
       None
     };
+  let is_import_meta_glob = resolved_glob_patterns.is_some();
+  let glob_exhaustive = options.context_options.glob_exhaustive;
 
   walk_dir(
     dir,
     fs,
     options.context_options.recursive,
     skip_dotfiles,
-    &mut |path| {
+    &mut |path, dirname| {
+      if is_import_meta_glob
+        && !glob_exhaustive
+        && is_non_exhaustive_import_meta_glob_skipped_dir(dirname)
+      {
+        return false;
+      }
       exclude
         .as_ref()
         .is_none_or(|exclude| !exclude.test(path.as_str()))
@@ -477,7 +485,7 @@ async fn visit_dirs(
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = glob_user_request(patterns, path_str)
+        if let Some(user_request) = glob_user_request(patterns, path_str, glob_exhaustive)
           && !dependencies.iter().any(|d| d.user_request == user_request)
         {
           push_context_element_dependency(dependencies, options, &relative_path, &user_request);
@@ -615,17 +623,25 @@ fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
   common_base[..common_base.len() - matched_len].to_string()
 }
 
-fn glob_user_request(patterns: &[ResolvedContextModuleGlobPattern], path: &str) -> Option<String> {
+fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
+  dirname == "node_modules" || dirname.starts_with('.')
+}
+
+fn glob_user_request(
+  patterns: &[ResolvedContextModuleGlobPattern],
+  path: &str,
+  exhaustive: bool,
+) -> Option<String> {
   let normalized_path = normalize_path_separators(path);
   let matched = patterns
     .iter()
     .filter(|pattern| !pattern.negative)
-    .find(|pattern| glob_pattern_matches(pattern, &normalized_path))?;
+    .find(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))?;
 
   if patterns
     .iter()
     .filter(|pattern| pattern.negative)
-    .any(|pattern| glob_pattern_matches(pattern, &normalized_path))
+    .any(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))
   {
     return None;
   }
@@ -641,12 +657,19 @@ fn glob_user_request(patterns: &[ResolvedContextModuleGlobPattern], path: &str) 
   )
 }
 
-fn glob_pattern_matches(pattern: &ResolvedContextModuleGlobPattern, normalized_path: &str) -> bool {
+fn glob_pattern_matches(
+  pattern: &ResolvedContextModuleGlobPattern,
+  normalized_path: &str,
+  exhaustive: bool,
+) -> bool {
   glob_match_normalized_with_explicit_dot(
     &pattern.absolute_pattern,
     normalized_path,
     &pattern.absolute_base,
-    &GlobMatchOptions::default(),
+    &GlobMatchOptions {
+      require_literal_leading_dot: !exhaustive,
+      ..Default::default()
+    },
   )
 }
 

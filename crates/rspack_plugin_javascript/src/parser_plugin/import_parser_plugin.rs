@@ -495,6 +495,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           end: import_call_span.real_hi(),
           referenced_specifiers: exports,
           glob_import: None,
+          glob_exhaustive: false,
           attributes,
           phase: Some(phase),
         },

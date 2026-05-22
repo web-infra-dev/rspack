@@ -189,6 +189,7 @@ pub struct ContextOptions {
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub glob_import: Option<String>,
+  pub glob_exhaustive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -211,6 +212,7 @@ impl Default for ContextOptions {
       end: 0,
       referenced_specifiers: None,
       glob_import: None,
+      glob_exhaustive: false,
       attributes: None,
       phase: None,
     }
@@ -1362,6 +1364,9 @@ impl Module for ContextModule {
       id += " globImport: ";
       id += import;
     }
+    if self.options.context_options.glob_exhaustive {
+      id += " globExhaustive";
+    }
     Some(Cow::Owned(id))
   }
 
@@ -1568,6 +1573,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   if let Some(import) = &options.context_options.glob_import {
     id += "|globImport: ";
     id += import;
+  }
+  if options.context_options.glob_exhaustive {
+    id += "|globExhaustive";
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {

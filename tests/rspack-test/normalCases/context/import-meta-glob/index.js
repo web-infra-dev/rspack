@@ -5,7 +5,14 @@ const nestedModules = import.meta.glob('./pages/*/index.js')
 const rootModules = import.meta.glob('/context/import-meta-glob/dir/*.js')
 const lazyCjsModules = import.meta.glob('./cjs/*.js')
 const eagerCjsModules = import.meta.glob('./cjs/*.js', { eager: true })
-const dotfileModules = import.meta.glob('./dot/.*.js')
+const skippedExhaustiveModules = import.meta.glob(
+  ['./dot/.*.js', './.foo/*.js', './dir/node_modules/**'],
+  { eager: true },
+)
+const exhaustiveModules = import.meta.glob(
+  ['./dot/.*.js', './.foo/*.js', './dir/node_modules/**'],
+  { eager: true, exhaustive: true },
+)
 const filteredModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], { eager: true })
 const multiModules = import.meta.glob(['./dir/*.js', './other/*.js'], { eager: true })
 const lazyMultiModules = import.meta.glob(['./dir/*.js', './other/*.js'])
@@ -14,7 +21,16 @@ const lazyNamedModules = import.meta.glob('./dir/*.js', { import: 'named' })
 const templateLiteralModules = import.meta.glob(`./dir/*.js`)
 const braceModules = import.meta.glob('./brace/*.{js,mjs}', { eager: true })
 const starStarDotModules = import.meta.glob('./star-star-dot/**.js', { eager: true })
-const dotFolderModules = import.meta.glob('./.foo/*.js', { eager: true })
+const baseModules = import.meta.glob('./dir/*.js', {
+  base: './base',
+  eager: true,
+  import: 'default',
+})
+const rootBaseModules = import.meta.glob('/context/import-meta-glob/dir/*.js', {
+  base: '/context/import-meta-glob/base',
+  eager: true,
+  import: 'default',
+})
 const lazyQueryModules = import.meta.glob('./query/*.js', {
   query: '?raw',
   import: 'default',
@@ -51,7 +67,6 @@ const lazyFilteredNamedModules = import.meta.glob(['./dir/*.js', '!**/bar.js'], 
 })
 const quotedModules = import.meta.glob("./quoted/*.js", { eager: true })
 const escapeModules = import.meta.glob('./escape/**/glob.js', { eager: true })
-const nodeModules = import.meta.glob('./dir/node_modules/**')
 
 globalThis.__importMetaGlobSideEffects = []
 import.meta.glob('./side-effect/*.js', { eager: true })
@@ -109,13 +124,17 @@ it('should resolve CommonJS matches as dynamic import namespace objects', async 
   expect(eagerCjsModules['./cjs/value.js'].default.answer).toBe(42)
 })
 
-it('should match explicit dotfile and dot folder glob patterns', async () => {
-  expect(Object.keys(dotfileModules)).toEqual(['./dot/.hidden.js'])
-  expect(Object.keys(dotFolderModules)).toEqual(['./.foo/test.js'])
-
-  const hidden = await dotfileModules['./dot/.hidden.js']()
-  expect(hidden.default).toBe('hidden')
-  expect(dotFolderModules['./.foo/test.js'].default).toBe('dot folder')
+it('should only search hidden directories and node_modules in exhaustive mode', () => {
+  expect(Object.keys(skippedExhaustiveModules)).toEqual(['./dot/.hidden.js'])
+  expect(skippedExhaustiveModules['./dot/.hidden.js'].default).toBe('hidden')
+  expect(Object.keys(exhaustiveModules).sort()).toEqual([
+    './.foo/test.js',
+    './dir/node_modules/hoge.js',
+    './dot/.hidden.js',
+  ])
+  expect(exhaustiveModules['./dot/.hidden.js'].default).toBe('hidden')
+  expect(exhaustiveModules['./.foo/test.js'].default).toBe('dot folder')
+  expect(exhaustiveModules['./dir/node_modules/hoge.js'].default).toBe('hoge')
 })
 
 it('should support negative patterns and import selection in glob arrays', async () => {
@@ -171,6 +190,17 @@ it('should support globstar before an extension', () => {
   expect(starStarDotModules['./star-star-dot/a.js'].default).toBe('star star dot')
 })
 
+it('should resolve glob patterns and returned keys from custom base paths', () => {
+  expect(baseModules).toEqual({
+    './dir/bar.js': 'base bar',
+    './dir/foo.js': 'base foo',
+  })
+  expect(rootBaseModules).toEqual({
+    '../dir/bar.js': 'bar',
+    '../dir/foo.js': 'foo',
+  })
+})
+
 it('should apply query strings to lazy glob imports without changing keys', async () => {
   expect(Object.keys(lazyQueryModules)).toEqual(['./query/foo.js'])
   expect(Object.keys(normalizedQueryModules)).toEqual(['./query/foo.js'])
@@ -217,14 +247,6 @@ it('should handle relative glob bases inside directories with glob special chara
       './mod/index.js': '{curlies}',
     },
   })
-})
-
-it('should include explicit node_modules glob matches', async () => {
-  const keys = Object.keys(nodeModules)
-  expect(keys).toEqual(['./dir/node_modules/hoge.js'])
-
-  const mod = await nodeModules['./dir/node_modules/hoge.js']()
-  expect(mod.default).toBe('hoge')
 })
 
 it('should execute side effects for unassigned eager glob calls', () => {
