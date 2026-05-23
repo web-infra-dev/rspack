@@ -60,7 +60,7 @@
     "@rstest/core": "^0.9.10",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.41",
-    "@typescript/native-preview": "7.0.0-dev.20260514.1",
+    "@typescript/native-preview": "7.0.0-dev.20260522.1",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
