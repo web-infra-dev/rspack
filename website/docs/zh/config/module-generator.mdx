@@ -54,7 +54,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -70,7 +70,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -81,7 +81,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -570,7 +570,7 @@ export default {
 ### ["css/auto"].exportsOnly
 
 - **类型：** `boolean`
-- **默认值：** `true` for node environments, `false` for web environments.
+- **默认值：** 当 target 不支持 document 时为 `true`，否则为 `false`。
 
 如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
 
@@ -591,7 +591,7 @@ export default {
 ### ["css/auto"].localIdentName
 
 - **类型：** `string`
-- **默认值：** `[uniqueName]-[id]-[local]`
+- **默认值：** development 模式下，如果 [`output.uniqueName`](/config/output#outputuniquename) 非空则为 `[uniqueName]-[id]-[local]`，否则为 `[id]-[local]`；production 模式下为 `[fullhash]`。
 
 自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
@@ -648,7 +648,7 @@ export default {
 ### ["css/auto"].localIdentHashFunction
 
 - **类型：** `string`
-- **默认值：** `'md4'`
+- **默认值：** [`output.hashFunction`](/config/output#outputhashfunction)，其默认值为 `'xxhash64'`
 
 配置生成 CSS Modules 局部标识符时使用的哈希函数。支持的值与 [`output.hashFunction`](/config/output#outputhashfunction) 相同。
 
@@ -667,7 +667,7 @@ export default {
 ### ["css/auto"].localIdentHashSalt
 
 - **类型：** `string`
-- **默认值：** `undefined`
+- **默认值：** [`output.hashSalt`](/config/output#outputhashsalt)，其默认值为 `undefined`
 
 配置生成 CSS Modules 局部标识符时添加到哈希中的盐值。未设置时，Rspack 会使用 [`output.hashSalt`](/config/output#outputhashsalt)。
 
