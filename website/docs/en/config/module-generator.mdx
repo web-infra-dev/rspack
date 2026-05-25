@@ -54,7 +54,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -70,7 +70,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -81,7 +81,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -571,7 +571,7 @@ export default {
 ### ["css/auto"].exportsOnly
 
 - **Type:** `boolean`
-- **Default:** `true` for node environments, `false` for web environments.
+- **Default:** `true` when the target has no document support, otherwise `false`.
 
 If `true`, **only exports** the identifier mappings from CSS into the output JavaScript files, without embedding any stylesheets in the template. Useful if you are using CSS Modules for pre-rendering (e.g. SSR).
 
@@ -592,7 +592,7 @@ export default {
 ### ["css/auto"].localIdentName
 
 - **Type:** `string`
-- **Default:** `[uniqueName]-[id]-[local]`
+- **Default:** `[uniqueName]-[id]-[local]` in development mode when [`output.uniqueName`](/config/output#outputuniquename) is non-empty, `[id]-[local]` in development mode otherwise, and `[fullhash]` in production mode.
 
 Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
 
@@ -649,7 +649,7 @@ export default {
 ### ["css/auto"].localIdentHashFunction
 
 - **Type:** `string`
-- **Default:** `'md4'`
+- **Default:** [`output.hashFunction`](/config/output#outputhashfunction), which defaults to `'xxhash64'`
 
 Configure the hash function used for generated CSS Modules local identifiers. This has the same supported values as [`output.hashFunction`](/config/output#outputhashfunction).
 
@@ -668,7 +668,7 @@ export default {
 ### ["css/auto"].localIdentHashSalt
 
 - **Type:** `string`
-- **Default:** `undefined`
+- **Default:** [`output.hashSalt`](/config/output#outputhashsalt), which defaults to `undefined`
 
 Configure a salt added to the hash used for generated CSS Modules local identifiers. When unset, Rspack uses [`output.hashSalt`](/config/output#outputhashsalt).
 

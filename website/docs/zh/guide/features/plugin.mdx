@@ -171,3 +171,41 @@ export class MyPlugin implements RspackPluginInstance {
   }
 }
 ```
+
+## 发布插件
+
+### 声明 peer dependencies
+
+将插件发布为 npm 包时，如果这个插件仅面向 Rspack，将 `@rspack/core` 声明为 optional peer dependency 即可。版本范围应根据插件实际依赖的 API 来决定；如果使用了某个 Rspack 新版本引入的 API，需要将最低版本限制为该版本。
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    }
+  }
+}
+```
+
+如果这个插件同时适配 Rspack 和 webpack，则将 `@rspack/core` 和 `webpack` 都声明为 optional peer dependencies：
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
+  }
+}
+```

@@ -45,7 +45,7 @@
     "cross-env": "^10.1.0",
     "execa": "^5.1.1",
     "exit-hook": "^5.1.0",
-    "jiti": "^2.6.1",
+    "jiti": "^2.7.0",
     "prebundle": "^1.6.4",
     "rspack-merge": "0.1.1",
     "typescript": "^6.0.3"

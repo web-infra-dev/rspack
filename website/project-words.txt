@@ -44,6 +44,8 @@ dhruvkelawala
 disabletransformbydefault
 ecma
 edusperoni
+elecmonkey
+elecmonkeyjs
 esbuild
 etags
 evanw

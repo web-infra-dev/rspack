@@ -2,17 +2,20 @@
 use std::{cell::RefCell, sync::Arc};
 
 use criterion::BatchSize;
-use rspack::builder::Builder as _;
+use rspack::builder::{Builder as _, CompilerBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Compilation, Compiler, Optimization, build_chunk_graph,
+  Compilation, Compiler, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
+  ModuleRuleUseLoader, Optimization, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_regex::RspackRegex;
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
+use serde_json::json;
 
 use crate::groups::diagnostics::assert_no_compilation_errors;
 
@@ -234,25 +237,28 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
   let random_table =
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
-  let compiler = Compiler::builder()
-    .context("/")
-    .entry("main", "/src/dynamic-0.js")
-    .input_filesystem(fs.clone())
-    .output_filesystem(fs.clone())
-    .optimization(Optimization::builder())
-    .incremental(IncrementalOptions::empty_passes())
-    .build()
-    .unwrap();
-
   rt.block_on(async {
     fs.create_dir_all("/src".into())
       .await
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
   });
+
+  build_module_graph_case(c, &rt, fs.clone(), "rust@build_module_graph", false);
+  build_module_graph_case(c, &rt, fs, "rust@build_swc-loader", true);
+}
+
+fn build_module_graph_case(
+  c: &mut Criterion,
+  rt: &tokio::runtime::Runtime,
+  fs: Arc<MemoryFileSystem>,
+  benchmark_id: &'static str,
+  swc_loader: bool,
+) {
+  let compiler = create_build_module_graph_compiler(fs, swc_loader);
   let compiler = RefCell::new(compiler);
 
-  c.bench_function("rust@build_module_graph", |b| {
+  c.bench_function(benchmark_id, |b| {
     b.iter_batched_ref(
       || {
         let mut compiler = compiler.borrow_mut();
@@ -297,6 +303,51 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
       BatchSize::PerIteration,
     );
   });
+}
+
+fn create_build_module_graph_compiler(fs: Arc<MemoryFileSystem>, swc_loader: bool) -> Compiler {
+  let mut builder = Compiler::builder();
+
+  builder
+    .context("/")
+    .entry("main", "/src/dynamic-0.js")
+    .input_filesystem(fs.clone())
+    .output_filesystem(fs)
+    .optimization(Optimization::builder())
+    .incremental(IncrementalOptions::empty_passes());
+
+  if swc_loader {
+    configure_swc_loader(&mut builder);
+  }
+
+  builder.build().unwrap()
+}
+
+fn configure_swc_loader(builder: &mut CompilerBuilder) {
+  builder
+    .module(ModuleOptions::builder().rule(ModuleRule {
+      test: Some(RuleSetCondition::Regexp(
+        RspackRegex::new("\\.js$").unwrap(),
+      )),
+      effect: ModuleRuleEffect {
+        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+          loader: "builtin:swc-loader".to_string(),
+          options: Some(
+            json!({
+              "jsc": {
+                "parser": {
+                  "syntax": "ecmascript",
+                },
+              },
+            })
+            .to_string(),
+          ),
+        }]),
+        ..Default::default()
+      },
+      ..Default::default()
+    }))
+    .enable_loader_swc();
 }
 
 fn reset_chunk_graph_state(compilation: &mut Compilation) {
