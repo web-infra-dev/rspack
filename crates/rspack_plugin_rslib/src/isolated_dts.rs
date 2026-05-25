@@ -2,12 +2,12 @@ use std::{collections::VecDeque, sync::Arc};
 
 use rspack_core::{
   Compilation, DependencyCategory, IsolatedDts, Resolve, ResolveOptionsWithDependencyType,
-  ResolveResult, TsconfigOptions, TsconfigReferences,
+  ResolveResult, TsconfigOptions, TsconfigReferences, diagnostics::ModuleBuildError,
 };
-use rspack_error::{Result, error};
+use rspack_error::{Diagnostic, Error, Result};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::node_path::NodePath;
+use rspack_util::{identifier::absolute_to_request, node_path::NodePath};
 use rustc_hash::FxHashSet as HashSet;
 use swc_core::{
   common::FileName,
@@ -24,6 +24,11 @@ pub(crate) struct IsolatedDtsAsset {
   pub code: String,
 }
 
+pub(crate) struct CompletedIsolatedDtsOutputs {
+  pub assets: Vec<IsolatedDtsAsset>,
+  pub diagnostics: Vec<Diagnostic>,
+}
+
 struct IsolatedDtsReferences {
   issuer_resource_path: String,
   references: Vec<String>,
@@ -33,12 +38,17 @@ pub(crate) async fn complete_isolated_dts_outputs(
   compilation: &mut Compilation,
   options: &SwcEmitDtsOptions,
   roots: Vec<IsolatedDts>,
-) -> Result<Vec<IsolatedDtsAsset>> {
+  module_resources: Vec<Utf8PathBuf>,
+) -> Result<CompletedIsolatedDtsOutputs> {
   if roots.is_empty() {
-    return Ok(Vec::new());
+    return Ok(CompletedIsolatedDtsOutputs {
+      assets: Vec::new(),
+      diagnostics: Vec::new(),
+    });
   }
 
   let mut outputs = Vec::with_capacity(roots.len());
+  let mut diagnostics = Vec::new();
   let mut queue = VecDeque::with_capacity(roots.len());
 
   for IsolatedDts {
@@ -61,7 +71,10 @@ pub(crate) async fn complete_isolated_dts_outputs(
   }
 
   if queue.is_empty() {
-    return Ok(outputs);
+    return Ok(CompletedIsolatedDtsOutputs {
+      assets: outputs,
+      diagnostics,
+    });
   }
 
   let compiler_root = compilation.options.context.as_path().to_path_buf();
@@ -76,10 +89,14 @@ pub(crate) async fn complete_isolated_dts_outputs(
       dependency_category: DependencyCategory::Esm,
     });
   let mut javascript_compiler = None;
-  let mut seen: HashSet<Utf8PathBuf> = outputs
-    .iter()
-    .map(|output| resolve_path(&compiler_root, &output.resource_path))
-    .collect();
+  // Reference completion should only generate files that are absent from the
+  // normal module graph; normal module builds already own their dts diagnostics.
+  let mut completed_resources: HashSet<Utf8PathBuf> = module_resources.into_iter().collect();
+  completed_resources.extend(
+    outputs
+      .iter()
+      .map(|output| resolve_path(&compiler_root, &output.resource_path)),
+  );
 
   while let Some(IsolatedDtsReferences {
     issuer_resource_path,
@@ -115,10 +132,13 @@ pub(crate) async fn complete_isolated_dts_outputs(
         continue;
       }
 
-      if !seen.insert(resource_path.clone()) {
+      if !completed_resources.insert(resource_path.clone()) {
         continue;
       }
 
+      let diagnostic_file = Utf8PathBuf::from(
+        absolute_to_request(compiler_root.as_str(), resource_path.as_str()).into_owned(),
+      );
       let std_resource_path = resource_path.clone().into_std_path_buf();
       compilation
         .file_dependencies
@@ -141,7 +161,24 @@ pub(crate) async fn complete_isolated_dts_outputs(
           syntax,
           EsVersion::EsNext,
         )?;
-      handle_isolated_dts_diagnostics(&resource_path, dts_output.diagnostics)?;
+      let mut dts_diagnostics = dts_output.diagnostics.into_iter();
+      if let Some(first) = dts_diagnostics.next() {
+        let mut source_error = Error::error(first);
+        source_error.code = Some("RslibPlugin".into());
+
+        let mut dts_error = Error::error("Failed to generate declaration files.".to_string());
+        dts_error.code = Some("RslibPlugin".into());
+        dts_error.source_error = Some(Box::new(source_error));
+        let remaining = dts_diagnostics.collect::<Vec<_>>();
+        if !remaining.is_empty() {
+          dts_error.help = Some(remaining.join("\n"));
+        }
+
+        let mut diagnostic: Diagnostic = Error::from(ModuleBuildError::new(dts_error, None)).into();
+        diagnostic.file = Some(diagnostic_file);
+        diagnostics.push(diagnostic);
+        continue;
+      }
 
       let has_references = !dts_output.references.is_empty();
       let resource_path = resource_path.as_str().to_string();
@@ -158,7 +195,10 @@ pub(crate) async fn complete_isolated_dts_outputs(
     }
   }
 
-  Ok(outputs)
+  Ok(CompletedIsolatedDtsOutputs {
+    assets: outputs,
+    diagnostics,
+  })
 }
 
 fn resolve_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
@@ -230,25 +270,4 @@ fn type_resolve_options(tsconfig: Option<TsconfigOptions>) -> Resolve {
     tsconfig,
     ..Default::default()
   }
-}
-
-fn handle_isolated_dts_diagnostics(
-  resource_path: &Utf8Path,
-  diagnostics: Vec<String>,
-) -> Result<()> {
-  let mut diagnostics = diagnostics.into_iter();
-  let Some(first) = diagnostics.next() else {
-    return Ok(());
-  };
-  let remaining = diagnostics.collect::<Vec<_>>();
-  let help = if remaining.is_empty() {
-    String::new()
-  } else {
-    format!("\n{}", remaining.join("\n"))
-  };
-
-  Err(error!(
-    "Failed to generate declaration files for {}.\n{}{}",
-    resource_path, first, help
-  ))
 }
