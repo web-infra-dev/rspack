@@ -115,7 +115,7 @@ pub enum UsedNameItem {
   Inlined(EvaluatedInlinableValue),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 pub struct InlinedUsedName {
   value: EvaluatedInlinableValue,
   suffix: Vec<Atom>,

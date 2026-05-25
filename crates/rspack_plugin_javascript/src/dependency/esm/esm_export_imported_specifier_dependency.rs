@@ -26,7 +26,7 @@ use rspack_core::{
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
-use rspack_util::json_stringify;
+use rspack_util::{ext::DynHash, json_stringify};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
 use swc_core::ecma::atoms::Atom;
 
@@ -1144,6 +1144,47 @@ pub struct DiscoverActiveExportsFromOtherStarExportsRet {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &rspack_core::Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    // Case: `export { value } from "./file.js"` where `value` is an inlinable
+    // const export. The reexport template renders the imported module's
+    // get_used_name(...) result directly. When that result is inlined, the
+    // connection can be inactive and get_module_graph_hash may skip the imported
+    // module's exports_info, so hash the inline value here to invalidate stale
+    // generated reexport code when the target const changes.
+    let module_graph = compilation.get_module_graph();
+    let ExportMode::NormalReexport(mode) = self.get_mode(
+      module_graph,
+      runtime,
+      &compilation.module_graph_cache_artifact,
+      &compilation.exports_info_artifact,
+    ) else {
+      return;
+    };
+    let Some(imported_module) = module_graph.module_identifier_by_dependency_id(&self.id) else {
+      return;
+    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(imported_module);
+
+    for item in mode.items {
+      if item.hidden || item.checked {
+        continue;
+      }
+      if let Some(UsedName::Inlined(inlined)) =
+        exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &item.ids)
+      {
+        item.name.dyn_hash(hasher);
+        inlined.dyn_hash(hasher);
+      }
+    }
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMExportImportedSpecifierDependencyTemplate::template_type())
   }
