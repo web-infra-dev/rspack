@@ -1,10 +1,19 @@
 use super::OverlayValue;
 use crate::DependencyId;
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct DenseDependencyIdOverlayMap<V> {
   base: Vec<Option<V>>,
   overlay: Option<Vec<Option<OverlayValue<V>>>>,
+}
+
+impl<V> Default for DenseDependencyIdOverlayMap<V> {
+  fn default() -> Self {
+    Self {
+      base: Vec::new(),
+      overlay: None,
+    }
+  }
 }
 
 impl<V> DenseDependencyIdOverlayMap<V> {
