@@ -68,9 +68,7 @@ fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
   let query = expr.as_object()?;
   let mut serializer = form_urlencoded::Serializer::new(String::new());
   for prop in &query.props {
-    let Some(kv) = prop.as_prop().and_then(|prop| prop.as_key_value()) else {
-      return None;
-    };
+    let kv = prop.as_prop().and_then(|prop| prop.as_key_value())?;
     let key = kv
       .key
       .as_ident()
@@ -106,10 +104,10 @@ fn import_meta_glob_path_parts<'a>(
 
 fn join_import_meta_glob_path(base: &str, path: &str) -> String {
   normalize_path_separators(
-    &Utf8Path::new(base)
+    Utf8Path::new(base)
       .node_join_posix(path)
       .node_normalize_posix()
-      .to_string(),
+      .as_ref(),
   )
 }
 
