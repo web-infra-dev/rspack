@@ -18,7 +18,7 @@ use crate::{
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, escape_glob_pattern,
   extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
-  resolve, unescape_glob_path, walk_dir,
+  normalize_path_separators_for_path, resolve, unescape_glob_path, walk_dir,
 };
 
 #[derive(Debug)]
@@ -583,6 +583,7 @@ fn resolve_context_module_glob_pattern(
       pattern.as_str(),
     )
   };
+  let base = normalize_path_separators_for_path(&base);
   let escaped_base = escape_glob_pattern(&base);
   let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
@@ -601,7 +602,7 @@ fn resolve_context_module_glob_pattern(
 }
 
 fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
-  let mut common_base = normalize_path_separators(common_base);
+  let mut common_base = normalize_path_separators_for_path(common_base);
   if !common_base.ends_with('/') {
     common_base.push('/');
   }
@@ -632,7 +633,7 @@ fn glob_user_request(
   path: &str,
   exhaustive: bool,
 ) -> Option<String> {
-  let normalized_path = normalize_path_separators(path);
+  let normalized_path = normalize_path_separators_for_path(path);
   let matched = patterns
     .iter()
     .filter(|pattern| !pattern.negative)

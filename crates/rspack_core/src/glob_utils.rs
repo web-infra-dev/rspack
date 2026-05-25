@@ -68,8 +68,8 @@ pub fn glob_match_with_explicit_dot(
   options: &GlobMatchOptions,
 ) -> bool {
   let normalized_pattern = normalize_path_separators(pattern);
-  let normalized_path = normalize_path_separators(path);
-  let normalized_base_dir = normalize_path_separators(base_dir);
+  let normalized_path = normalize_path_separators_for_path(path);
+  let normalized_base_dir = normalize_path_separators_for_path(base_dir);
 
   glob_match_normalized_with_explicit_dot(
     &normalized_pattern,
@@ -160,6 +160,11 @@ pub fn normalize_path_separators(s: &str) -> String {
     }
   }
   result
+}
+
+/// Normalize backslashes to forward slashes in a literal filesystem path.
+pub fn normalize_path_separators_for_path(s: &str) -> String {
+  s.cow_replace('\\', "/").into_owned()
 }
 
 pub fn unescape_glob_path(s: &str) -> String {
@@ -369,6 +374,18 @@ mod tests {
   }
 
   #[test]
+  fn normalize_path_separators_for_path_treats_glob_chars_as_literals() {
+    assert_eq!(
+      normalize_path_separators_for_path("C:\\fixtures\\a\\[b]\\file.js"),
+      "C:/fixtures/a/[b]/file.js"
+    );
+    assert_eq!(
+      normalize_path_separators_for_path("C:\\fixtures\\a\\{b}\\file.js"),
+      "C:/fixtures/a/{b}/file.js"
+    );
+  }
+
+  #[test]
   fn unescape_glob_path_restores_literal_path_segments() {
     assert_eq!(
       unescape_glob_path("./fixtures/a\\[b\\]/"),
@@ -447,6 +464,23 @@ mod tests {
       "./fixtures/**/.ENV",
       base_dir,
       "./fixtures/.env",
+      &options
+    ));
+  }
+
+  #[test]
+  fn glob_match_with_explicit_dot_treats_windows_path_separators_as_separators() {
+    let options = GlobMatchOptions::default();
+    assert!(glob_match_with_explicit_dot(
+      "C:/repo/escape/**/glob.js",
+      "C:\\repo\\escape\\[brackets]\\glob.js",
+      "C:/repo/escape/",
+      &options
+    ));
+    assert!(glob_match_with_explicit_dot(
+      "C:/repo/escape/**/glob.js",
+      "C:\\repo\\escape\\{curlies}\\glob.js",
+      "C:/repo/escape/",
       &options
     ));
   }

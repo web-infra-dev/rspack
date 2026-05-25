@@ -2,7 +2,7 @@ use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
   ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
-  normalize_path_separators, unescape_glob_path,
+  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
 };
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -111,6 +111,15 @@ fn join_import_meta_glob_path(base: &str, path: &str) -> String {
   )
 }
 
+fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
+  normalize_path_separators_for_path(
+    Utf8Path::new(base)
+      .node_join_posix(path)
+      .node_normalize_posix()
+      .as_ref(),
+  )
+}
+
 struct ResolvedContextModuleGlobPattern {
   absolute_pattern: String,
   absolute_base: String,
@@ -130,7 +139,8 @@ fn resolve_glob_pattern(
   let pattern = normalize_path_separators(pattern);
   let (base, pattern_to_join) =
     import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
-  let escaped_base = escape_glob_pattern(base);
+  let base = normalize_path_separators_for_path(base);
+  let escaped_base = escape_glob_pattern(&base);
   let absolute_pattern = join_import_meta_glob_path(&escaped_base, pattern_to_join);
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
@@ -175,16 +185,16 @@ fn resolve_import_meta_glob_context(
     return context.to_string();
   };
 
-  let base = normalize_path_separators(base);
+  let base = normalize_path_separators_for_path(base);
   let (base_context, path_to_join) =
     import_meta_glob_path_parts(context, compiler_context, base.as_str());
-  join_import_meta_glob_path(base_context, path_to_join)
+  join_import_meta_glob_fs_path(base_context, path_to_join)
 }
 
 fn absolute_path_to_glob_request(context: &str, absolute_path: &str) -> String {
   let relative_path = absolute_path.as_path().relative(context);
   let relative_path = relative_path.to_string_lossy();
-  let relative_path = normalize_path_separators(&relative_path);
+  let relative_path = normalize_path_separators_for_path(&relative_path);
   relative_path_to_request(&relative_path).into_owned()
 }
 
@@ -208,7 +218,8 @@ fn normalize_base_glob_pattern(
     };
   };
 
-  let absolute_pattern = join_import_meta_glob_path(compiler_context, pattern);
+  let compiler_context = normalize_path_separators_for_path(compiler_context);
+  let absolute_pattern = join_import_meta_glob_path(&compiler_context, pattern);
   let relative_pattern = absolute_path_to_glob_request(base_context, &absolute_pattern);
 
   if negative {
