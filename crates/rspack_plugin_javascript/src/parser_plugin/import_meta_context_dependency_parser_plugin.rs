@@ -58,10 +58,7 @@ fn normalize_import_meta_glob_query(query: String) -> String {
 }
 
 fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
-  if let Some(query) = expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(str) => Some(str.value.to_string_lossy().into_owned()),
-    _ => None,
-  }) {
+  if let Some(query) = static_string_from_expr(expr) {
     return Some(normalize_import_meta_glob_query(query));
   }
 
@@ -78,11 +75,14 @@ fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
           .as_str()
           .map(|key| key.value.to_string_lossy().into_owned())
       })?;
-    let value = match kv.value.as_lit()? {
-      Lit::Str(str) => str.value.to_string_lossy().into_owned(),
-      Lit::Bool(bool) => bool.value.to_string(),
-      Lit::Num(num) => num.value.to_string(),
-      _ => return None,
+    let value = if let Some(value) = static_string_from_expr(&kv.value) {
+      value
+    } else {
+      match kv.value.as_lit()? {
+        Lit::Bool(bool) => bool.value.to_string(),
+        Lit::Num(num) => num.value.to_string(),
+        _ => return None,
+      }
     };
     serializer.append_pair(&key, &value);
   }

@@ -50,6 +50,10 @@ const lazyQueryModules = import.meta.glob('./query/*.js', {
   query: '?raw',
   import: 'default',
 })
+const templateLiteralQueryModules = import.meta.glob('./query/*.js', {
+  query: `?raw`,
+  import: 'default',
+})
 const normalizedQueryModules = import.meta.glob('./query/*.js', {
   query: 'custom',
   import: 'default',
@@ -256,8 +260,10 @@ it('should resolve glob patterns and returned keys from custom base paths', () =
 
 it('should apply query strings to lazy glob imports without changing keys', async () => {
   expect(Object.keys(lazyQueryModules)).toEqual(['./query/foo.js'])
+  expect(Object.keys(templateLiteralQueryModules)).toEqual(['./query/foo.js'])
   expect(Object.keys(normalizedQueryModules)).toEqual(['./query/foo.js'])
   await expect(lazyQueryModules['./query/foo.js']()).resolves.toBe('?raw')
+  await expect(templateLiteralQueryModules['./query/foo.js']()).resolves.toBe('?raw')
   await expect(normalizedQueryModules['./query/foo.js']()).resolves.toBe('?custom')
   expect(lazyQueryModules['./query/foo.js?raw']).toBeUndefined()
   expect(normalizedQueryModules['./query/foo.js?custom']).toBeUndefined()
