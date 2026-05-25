@@ -30,15 +30,15 @@ it("should use the same accessor syntax for import and export", function () {
 	// Note that there are no quotes around the "a" and "b" properties in the following lines.
 
 	// Checking harmonyexportinitfragment.js formation of standard export fragment
-	expectSourceToContain(source, "\"a\", 0, bar");
+	expectSourceToContain(source, "a: () => (bar)");
 
 	// Checking formation of imports
 	expectSourceToContain(source, "harmony_module/* .bar */.a;");
 	expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.a);")}`);
 
 	// Checking concatenatedmodule.js formation of exports
-	expectSourceToContain(source, "\"a\", () => (/* reexport */ harmony_module_3_namespaceObject)");
+	expectSourceToContain(source, "a: () => (/* reexport */ harmony_module_3_namespaceObject)");
 
 	// Checking concatenatedmodule.js formation of namespace objects
-	expectSourceToContain(source, "\"a\", () => (apple)");
+	expectSourceToContain(source, "a: () => (apple)");
 });

@@ -88,9 +88,9 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
         __webpack_require__.r(__webpack_exports__);
         const res = modFactory();
         for (const key in res) {
-          __webpack_require__.d(__webpack_exports__, [
-            key, () => res[key],
-          ]);
+          __webpack_require__.d(__webpack_exports__, {
+            [key]: () => res[key],
+          });
         }
       };
 

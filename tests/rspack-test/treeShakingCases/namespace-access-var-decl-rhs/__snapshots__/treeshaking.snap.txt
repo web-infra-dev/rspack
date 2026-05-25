@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "a", () => (a)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
 const a = {
 	a: ""
 };
@@ -12,9 +12,9 @@ const a = {
 
 },
 "./b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "b", () => (b)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  b: () => (b)
+});
 const b = {
 	b: ""
 };
@@ -30,9 +30,9 @@ console.log(_lib__rspack_import_0.getDocPermissionTextSendMe);
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "getDocPermissionTextSendMe", () => (getDocPermissionTextSendMe)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  getDocPermissionTextSendMe: () => (getDocPermissionTextSendMe)
+});
 /* import */ var _enum_js__rspack_import_0 = __webpack_require__("./a.js");
 /* import */ var _enum_js__rspack_import_1 = __webpack_require__("./b.js");
 

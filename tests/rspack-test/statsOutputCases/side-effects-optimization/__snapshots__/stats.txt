@@ -1,5 +1,5 @@
 asset main.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 4 modules
+runtime modules xx bytes 4 modules
 cacheable modules xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]
@@ -29,7 +29,7 @@ cacheable modules xx KiB
 Rspack x.x.x compiled successfully in X s
 
 asset main.no-side.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 4 modules
+runtime modules xx bytes 4 modules
 cacheable modules xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]

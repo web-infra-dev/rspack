@@ -21,17 +21,12 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
-		}
-	}
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
 };
-
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -59,20 +54,18 @@ import fs, { readFile, readFileSync } from "fs";
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
 __webpack_require__.r(a_namespaceObject);
-__webpack_require__.d(a_namespaceObject, [
-  "fsDefault", () => (fs),
-  "readFile", () => (readFile),
-  "readFileSync", () => (readFileSync)
-]);
+__webpack_require__.d(a_namespaceObject, { 
+  fsDefault: () => (fs),
+  readFile: () => (readFile),
+  readFileSync: () => (readFileSync) });
 
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
 __webpack_require__.r(b_namespaceObject);
-__webpack_require__.d(b_namespaceObject, [
-  "marker", () => (marker),
-  "readFile", () => (readFile)
-]);
+__webpack_require__.d(b_namespaceObject, { 
+  marker: () => (marker),
+  readFile: () => (readFile) });
 
 
 // fs?2aa6

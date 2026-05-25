@@ -12,10 +12,10 @@ console.log(_maths_js__rspack_import_0.square);
 
 },
 "./maths.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "square", () => (square),
-  "xxx", () => (/* reexport module object */ _test_js__rspack_import_0)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  square: () => (square),
+  xxx: () => (/* reexport module object */ _test_js__rspack_import_0)
+});
 /* import */ var _test_js__rspack_import_0 = __webpack_require__("./test.js");
 // maths.js
 
@@ -37,9 +37,9 @@ function cube(x) {
 
 },
 "./test.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "test", () => (test)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  test: () => (test)
+});
 function test() {}
 function ccc() {}
 

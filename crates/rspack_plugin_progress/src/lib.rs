@@ -471,7 +471,7 @@ async fn optimize_dependencies(
 async fn optimize_modules(
   &self,
   _compilation: &Compilation,
-  _circular_modules: &mut Option<IdentifierSet>,
+  _circular_modules: &mut IdentifierSet,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   self.sealing_hooks_report("optimize modules", 7).await?;

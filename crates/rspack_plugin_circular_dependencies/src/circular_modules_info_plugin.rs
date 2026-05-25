@@ -301,12 +301,12 @@ fn should_ignore_dependency_type(ty: DependencyType) -> bool {
 async fn optimize_modules(
   &self,
   compilation: &Compilation,
-  circular_modules: &mut Option<IdentifierSet>,
+  circular_modules: &mut IdentifierSet,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   let module_graph = compilation.get_module_graph();
   let graph = CycleGraph::build(module_graph);
-  *circular_modules = Some(CycleDetector::new(&graph).find_circular_modules());
+  *circular_modules = CycleDetector::new(&graph).find_circular_modules();
   Ok(None)
 }
 

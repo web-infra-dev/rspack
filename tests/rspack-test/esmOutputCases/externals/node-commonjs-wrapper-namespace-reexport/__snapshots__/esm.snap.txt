@@ -5,9 +5,8 @@ const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // NAMESPACE OBJECT: ./exports.js
 var exports_namespaceObject = {};
 __webpack_require__.r(exports_namespaceObject);
-__webpack_require__.d(exports_namespaceObject, [
-  "sources", () => (index_js_namespaceObject)
-]);
+__webpack_require__.d(exports_namespaceObject, { 
+  sources: () => (index_js_namespaceObject) });
 
 
 // webpack-sources
@@ -45,17 +44,12 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
-		}
-	}
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
 };
-
 })();
 // webpack/runtime/has_own_property
 (() => {

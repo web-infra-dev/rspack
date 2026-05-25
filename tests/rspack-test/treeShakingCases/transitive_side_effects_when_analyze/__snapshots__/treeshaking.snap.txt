@@ -2,9 +2,9 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, [
-  "a", () => (a)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (a)
+});
 /* import */ var _side_effects_js__rspack_import_0 = __webpack_require__("./side-effects.js");
 /* import */ var _side_effects_js__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_side_effects_js__rspack_import_0);
 

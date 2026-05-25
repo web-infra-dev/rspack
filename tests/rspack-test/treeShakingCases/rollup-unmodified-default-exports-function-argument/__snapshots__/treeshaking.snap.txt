@@ -2,10 +2,10 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "bar", () => (bar),
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (bar),
+  "default": () => (__rspack_default_export)
+});
 var foo = function () {
 	return 42;
 };

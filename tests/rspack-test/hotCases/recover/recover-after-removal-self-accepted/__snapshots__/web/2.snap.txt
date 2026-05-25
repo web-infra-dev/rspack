@@ -35,9 +35,9 @@
 self["rspackHotUpdate"]("main", {
 "./inner.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 module.hot.accept();
 
 /* export default */ const __rspack_default_export = ("-inner");
@@ -46,9 +46,9 @@ module.hot.accept();
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _inner__rspack_import_0 = __webpack_require__("./inner.js");
 
 

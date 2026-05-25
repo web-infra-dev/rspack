@@ -61,10 +61,10 @@ module.exports = {
 			      assets: Array [
 			        Object {
 			          name: entryB.js,
-			          size: 3304,
+			          size: 3169,
 			        },
 			      ],
-			      assetsSize: 3304,
+			      assetsSize: 3169,
 			      auxiliaryAssets: undefined,
 			      auxiliaryAssetsSize: undefined,
 			      childAssets: undefined,

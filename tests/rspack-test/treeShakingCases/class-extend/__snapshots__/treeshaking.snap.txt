@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "v", () => (v)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  v: () => (v)
+});
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 
 
@@ -27,9 +27,9 @@ _app__rspack_import_0.v;
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 class Lib {}
 
 const value = 1;

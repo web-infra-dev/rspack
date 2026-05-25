@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./Layout.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "defaults", () => (defaults)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  defaults: () => (defaults)
+});
 const defaults = {
 	test: 1000
 };
@@ -12,9 +12,9 @@ const defaults = {
 
 },
 "./export.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "Something", () => (Something)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  Something: () => (Something)
+});
 /* import */ var _Layout__rspack_import_0 = __webpack_require__("./Layout.js");
 
 class Test {

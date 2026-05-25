@@ -28,9 +28,9 @@ it("default export should be used", () => {
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "mod", () => (mod)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  mod: () => (mod)
+});
 /* import */ var _package1_script__rspack_import_0 = __webpack_require__("./package1/script.js");
 /* import */ var _package2_script__rspack_import_1 = __webpack_require__("./package2/script.js");
 
@@ -41,9 +41,9 @@ const mod = _package2_script__rspack_import_1["default"];
 
 },
 "./package1/script.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "exportDefaultUsed", () => (exportDefaultUsed)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  exportDefaultUsed: () => (exportDefaultUsed)
+});
 /* import */ var _script1__rspack_import_0 = __webpack_require__("./package1/script1.js");
 
 /* unused export default */ var __rspack_default_export = ((/* unused pure expression or super */ null && (mod)));
@@ -61,9 +61,9 @@ const exportDefaultUsed = false;
 
 },
 "./package1/script2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "exportDefaultUsed", () => (exportDefaultUsed)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  exportDefaultUsed: () => (exportDefaultUsed)
+});
 
 /* export default */ function __rspack_default_export() {
 	return mod;
@@ -75,10 +75,10 @@ const exportDefaultUsed = false;
 
 },
 "./package2/script.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export),
-  "exportDefaultUsed", () => (exportDefaultUsed)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export),
+  exportDefaultUsed: () => (exportDefaultUsed)
+});
 /* import */ var _script1__rspack_import_0 = __webpack_require__("./package2/script1.js");
 
 /* export default */ const __rspack_default_export = (_script1__rspack_import_0["default"]);
@@ -89,9 +89,9 @@ const exportDefaultUsed = true;
 
 },
 "./package2/script1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (1);
 
 

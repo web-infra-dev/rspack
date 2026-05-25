@@ -8,7 +8,7 @@ __webpack_require__.r(reexport_external_namespaceObject);
 var reexport_external_namespaceObject_starExports = __rspack_external_fs;
 Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
   if (key !== "default" && key !== "__esModule") {
-    __webpack_require__.d(reexport_external_namespaceObject, [key, function() { return reexport_external_namespaceObject_starExports[key]; }]);
+    __webpack_require__.d(reexport_external_namespaceObject, { [key]: function() { return reexport_external_namespaceObject_starExports[key]; } });
   }
 });
 
@@ -39,17 +39,12 @@ var __webpack_require__ = {};
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
-		}
-	}
+	for(var key in definition) {
+        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
+            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+        }
+    }
 };
-
 })();
 // webpack/runtime/has_own_property
 (() => {

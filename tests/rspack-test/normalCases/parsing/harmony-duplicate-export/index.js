@@ -21,8 +21,7 @@ it("should not overwrite when using star export (known exports)", function () {
 	expect(x4).toBe("b");
 	expect(x5).toBe("c");
 	expect(x6).toBe("a");
-	// Different from webpack, but is irrelevant as this is an error anyway
-	expect(x7).toBeOneOf(["b", "d"]);
+	expect(x7).toBe("b"); // Looks wrong, but is irrelevant as this is an error anyway
 });
 
 it("should not overwrite when using star export (unknown exports)", function () {
@@ -32,6 +31,5 @@ it("should not overwrite when using star export (unknown exports)", function () 
 	expect(y4).toBe("b");
 	expect(y5).toBe("c");
 	expect(y6).toBe("a");
-	// Different from webpack, but is irrelevant as this is an error anyway
-	expect(y7).toBeOneOf(["b", "d"]);
+	expect(y7).toBe("b"); // Looks wrong, but is irrelevant as this is an error anyway
 });
