@@ -473,7 +473,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
         ContextOptions {
           mode: mode.into(),
           recursive: true,
-          reg_exp,
+          pattern: reg_exp.into(),
           include,
           exclude,
           category: DependencyCategory::Esm,
@@ -494,6 +494,8 @@ impl JavascriptParserPlugin for ImportParserPlugin {
           start: import_call_span.real_lo(),
           end: import_call_span.real_hi(),
           referenced_specifiers: exports,
+          glob_import: None,
+          glob_exhaustive: false,
           attributes,
           phase: Some(phase),
         },

@@ -414,7 +414,8 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 }
 
 /// For each entrypoint, if the runtime chunk is the same as the entry chunk
-/// and any initial ChunkGroup containing this chunk has multiple chunks,
+/// and either this chunk has async chunks or any initial ChunkGroup containing
+/// this chunk has multiple chunks,
 /// split the runtime into a separate runtime chunk.
 ///
 /// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
@@ -440,12 +441,16 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
         return false;
       }
 
-      // Check if any initial ChunkGroup containing this chunk has multiple chunks
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(&runtime_chunk_ukey);
 
+      if chunk.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+        return true;
+      }
+
+      // Check if any initial ChunkGroup containing this chunk has multiple chunks
       chunk.groups().iter().any(|group_ukey| {
         let group = compilation
           .build_chunk_graph_artifact
@@ -474,6 +479,10 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     if let Some(mut mutation) = compilation.incremental.mutations_write() {
       mutation.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
+      });
+      mutation.add(Mutation::ChunkSplit {
+        from: entry_chunk_ukey,
+        to: new_chunk_ukey,
       });
     }
 

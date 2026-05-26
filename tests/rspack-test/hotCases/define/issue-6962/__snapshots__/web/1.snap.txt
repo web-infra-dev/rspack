@@ -34,9 +34,9 @@
 self["rspackHotUpdate"]("main", {
 "./a.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 if (module.hot.data && module.hot.data.crash) throw new Error();
 /* export default */ const __rspack_default_export = (2);
 

@@ -349,19 +349,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let Some(options) = &self.options.emit_dts else {
     return Ok(());
   };
-  let dts_outputs = compilation
-    .get_module_graph()
-    .modules()
-    .filter_map(|(_, module)| module.build_info().isolated_dts.as_deref().cloned())
-    .collect::<Vec<_>>();
+  let mut dts_outputs = Vec::new();
+  let mut module_resources = Vec::new();
+  let module_graph = compilation.get_module_graph();
+  for (_, module) in module_graph.modules() {
+    let module = module.as_ref();
+    if let Some(isolated_dts) = module.build_info().isolated_dts.as_deref() {
+      dts_outputs.push(isolated_dts.clone());
+    }
+    if let Some(normal_module) = module.as_normal_module()
+      && let Some(resource_path) = normal_module.resource_resolved_data().path()
+    {
+      module_resources.push(resource_path.node_normalize());
+    }
+  }
   if dts_outputs.is_empty() {
     return Ok(());
   }
 
-  let dts_outputs = complete_isolated_dts_outputs(compilation, options, dts_outputs).await?;
+  let dts_outputs =
+    complete_isolated_dts_outputs(compilation, options, dts_outputs, module_resources).await?;
+  compilation.extend_diagnostics(dts_outputs.diagnostics);
   let emit_context = EmitIsolatedDtsAssetContext::new(compilation, options);
 
-  for dts in dts_outputs {
+  for dts in dts_outputs.assets {
     emit_isolated_dts_asset(compilation, &emit_context, dts)?;
   }
 

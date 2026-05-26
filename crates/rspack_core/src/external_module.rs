@@ -238,7 +238,7 @@ fn render_module_external_remapping(
   create_namespace_object_name: &str,
   wrap_namespace_getter_name: &str,
 ) -> String {
-  let definitions = remapping
+  let properties = remapping
     .iter()
     .map(|remapping| {
       let access = format!(
@@ -260,12 +260,19 @@ fn render_module_external_remapping(
         runtime_template.returning_function(&access, "")
       };
 
-      format!("{}, {getter}", json_stringify_str(&remapping.exposed_name))
+      format!(
+        "{}: {getter}",
+        module_external_remapping_property_key(&remapping.exposed_name)
+      )
     })
     .collect::<Vec<_>>()
     .join(", ");
 
-  format!("{create_namespace_object_name}([{definitions}])")
+  format!("{create_namespace_object_name}({{{properties}}})")
+}
+
+fn module_external_remapping_property_key(exposed_name: &str) -> String {
+  format!("[{}]", json_stringify_str(exposed_name))
 }
 
 fn get_source_for_module_external(

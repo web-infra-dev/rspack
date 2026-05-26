@@ -13,6 +13,7 @@ camino           = { workspace = true }
 dashmap          = { workspace = true }
 indexmap         = { workspace = true }
 rspack_cacheable = { workspace = true }
+rspack_resolver  = { workspace = true }
 rustc-hash       = { workspace = true }
 ustr             = { workspace = true }
 

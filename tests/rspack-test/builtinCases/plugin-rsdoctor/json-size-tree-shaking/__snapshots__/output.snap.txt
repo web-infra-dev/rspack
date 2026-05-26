@@ -29,7 +29,7 @@ it("should tree-shake unused JSON properties", () => {
 
 },
 "./data.json"(module) {
-module.exports = JSON.parse('{"user":{"name":"Alice","age":25,"email":"alice@example.com","profile":{"bio":"Software Engineer","avatar":"https://example.com/avatar.jpg","social":{"twitter":"@alice","github":"alice"}}}}')
+module.exports = /*#__PURE__*/JSON.parse('{"user":{"name":"Alice","age":25,"email":"alice@example.com","profile":{"bio":"Software Engineer","avatar":"https://example.com/avatar.jpg","social":{"twitter":"@alice","github":"alice"}}}}')
 
 },
 

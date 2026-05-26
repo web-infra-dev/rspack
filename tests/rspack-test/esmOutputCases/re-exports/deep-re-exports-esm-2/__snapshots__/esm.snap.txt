@@ -12,13 +12,13 @@ __webpack_require__.add({
 __webpack_require__.r(__webpack_exports__);
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
 
-/* reexport */ var __rspack_reexport = [];
-/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport.push(__rspack_import_key, () => fs__rspack_import_0[__rspack_import_key]);
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in fs__rspack_import_0) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => fs__rspack_import_0[__rspack_import_key]
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 /* import */ var _lib2__rspack_import_1 = __webpack_require__(/*! ./lib2 */ "./lib2.js");
 
-/* reexport */ var __rspack_reexport = [];
-/* reexport */ for( const __rspack_import_key in _lib2__rspack_import_1) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport.push(__rspack_import_key, () => _lib2__rspack_import_1[__rspack_import_key]);
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in _lib2__rspack_import_1) if(["default","lib"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => _lib2__rspack_import_1[__rspack_import_key]
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 
 
@@ -26,9 +26,10 @@ __webpack_require__.r(__webpack_exports__);
 
 const lib = 42
 
-__webpack_require__.d(__webpack_exports__, [
-  "lib", 0, lib
-]);
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  lib: lib
+});
 
 
 },
@@ -40,8 +41,8 @@ __webpack_require__.d(__webpack_exports__, [
 __webpack_require__.r(__webpack_exports__);
 /* import */ var path__rspack_import_0 = __webpack_require__(/*! path */ "path");
 
-/* reexport */ var __rspack_reexport = [];
-/* reexport */ for( const __rspack_import_key in path__rspack_import_0) if(["default","lib2"].indexOf(__rspack_import_key) < 0) __rspack_reexport.push(__rspack_import_key, () => path__rspack_import_0[__rspack_import_key]);
+/* reexport */ var __rspack_reexport = {};
+/* reexport */ for( const __rspack_import_key in path__rspack_import_0) if(["default","lib2"].indexOf(__rspack_import_key) < 0) __rspack_reexport[__rspack_import_key] =() => path__rspack_import_0[__rspack_import_key]
 /* reexport */ __webpack_require__.d(__webpack_exports__, __rspack_reexport);
 /* import */ var _lib3__rspack_import_1 = __webpack_require__(/*! ./lib3 */ "./lib3.js");
 
@@ -50,12 +51,13 @@ __webpack_require__.r(__webpack_exports__);
 
 const lib2 = 42
 
-__webpack_require__.d(__webpack_exports__, [
-  "fs", () => (/* reexport safe */ _lib3__rspack_import_1.fs),
-  "lib2", 0, lib2,
-  "lib3", () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
-  "lib4", () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
-]);
+__webpack_require__.d(__webpack_exports__, {
+  fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
+  lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
+  lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
+}, {
+  lib2: lib2
+});
 
 
 },
@@ -72,9 +74,9 @@ const lib_local = 24
 
 
 
-__webpack_require__.d(__webpack_exports__, [
-  "fs", () => (/* reexport module object */ fs__rspack_import_0)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  fs: () => (/* reexport module object */ fs__rspack_import_0)
+});
 
 
 },
@@ -153,18 +155,17 @@ __webpack_require__.m = __webpack_modules__;
 
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
 		}
-	}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
-
 })();
 // webpack/runtime/esm_register_module
 (() => {

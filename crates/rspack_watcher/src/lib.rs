@@ -180,11 +180,20 @@ impl FsWatcher {
   ) -> Result<()> {
     self.path_manager.update(files, directories, missing)?;
 
-    // Record baseline mtimes for all registered files BEFORE starting the disk
-    // watcher. This must be synchronous to avoid a race where FSEvents delivers
-    // stale events before the baseline is populated (causing has_mtime_changed
-    // to find no baseline and let the stale event through).
-    self.record_file_mtimes();
+    // Record baseline mtimes for files added in this watch() cycle, BEFORE
+    // starting the disk watcher. Synchronous so a stale FSEvent delivered
+    // immediately after subscription still finds a baseline to compare
+    // against.
+    //
+    // Only newly-added files are stat'd here. Files carried across cycles
+    // already have a baseline that `has_mtime_changed` advanced atomically
+    // on the previous event; re-stat'ing them on every rewatch would
+    // (a) cost O(N) syscalls per rebuild on large projects, and
+    // (b) re-introduce the race fixed by this PR — a user write that
+    //     landed in the gap between aggregate and rewatch would have its
+    //     post-write mtime become the new baseline, and the FSEvent still
+    //     in flight for that write would then be suppressed as a duplicate.
+    self.record_initial_file_mtimes();
 
     self.scanner.scan(start_time);
 
@@ -194,15 +203,18 @@ impl FsWatcher {
     Ok(())
   }
 
-  fn record_file_mtimes(&self) {
+  fn record_initial_file_mtimes(&self) {
     let accessor = self.path_manager.access();
-    let paths: Vec<_> = accessor.files().0.iter().map(|p| p.clone()).collect();
+    // `.1` is `files.added` — the diff set populated by `update()` and
+    // cleared by `reset()`. In steady state (no add/remove churn) this
+    // is empty and the loop is a no-op.
+    let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
     for path in paths {
       if let Ok(mtime) = path
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_mtime(path, mtime);
+        self.path_manager.set_file_mtime_if_absent(path, mtime);
       }
     }
   }

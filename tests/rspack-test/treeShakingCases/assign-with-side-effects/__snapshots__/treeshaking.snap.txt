@@ -2,9 +2,9 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "app", () => (app)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  app: () => (app)
+});
 /* import */ var _lib__rspack_import_0 = __webpack_require__("./lib.js");
 
 
@@ -22,9 +22,9 @@ app.prototype.result = _lib__rspack_import_0.result;
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "result", () => (result)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  result: () => (result)
+});
 const secret = "888";
 const result = 20000;
 const something = function () {};

@@ -23,7 +23,7 @@ use rspack_core::{
   StarReexportsInfo, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
   collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
   filter_runtime, get_exports_type, get_runtime_key, get_terminal_binding, property_access,
-  render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
+  property_name, render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_util::{ext::DynHash, json_stringify};
@@ -766,7 +766,7 @@ impl ESMExportImportedSpecifierDependency {
 
         let mut content = format!(
           r"
-/* reexport */ var __rspack_reexport = [];
+/* reexport */ var __rspack_reexport = {{}};
 /* reexport */ for( {} __rspack_import_key in {import_var}) ",
           if supports_const { "const" } else { "var" }
         );
@@ -782,7 +782,7 @@ impl ESMExportImportedSpecifierDependency {
             rspack_util::json_stringify_str(item)
           );
         }
-        content += "__rspack_reexport.push(__rspack_import_key, ";
+        content += "__rspack_reexport[__rspack_import_key] =";
 
         // Arrow getters capture the loop variable by reference.
         // They are only correct when the loop binding is block-scoped (const/let), not var.
@@ -792,7 +792,6 @@ impl ESMExportImportedSpecifierDependency {
           content +=
             &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
         }
-        content += ");";
 
         let module = mg
           .module_by_identifier(&module.identifier())
@@ -883,11 +882,10 @@ impl ESMExportImportedSpecifierDependency {
       .circular_modules
       .as_ref()
       .map(|circular_modules| circular_modules.contains(&ctxt.module.identifier()));
-    let mut export_map = vec![];
-    export_map.push((
+    let export_map = vec![(
       key.into(),
       ESMExportBinding::Getter(format!("/* {comment} */ {return_value}").into()),
-    ));
+    )];
     ESMExportInitFragment::new(
       ctxt.module.get_exports_argument(),
       export_map,
@@ -912,7 +910,6 @@ impl ESMExportImportedSpecifierDependency {
       .circular_modules
       .as_ref()
       .map(|circular_modules| circular_modules.contains(&module.identifier()));
-    let mut export_map = vec![];
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
       runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
@@ -922,7 +919,7 @@ impl ESMExportImportedSpecifierDependency {
         format!(", {fake_type}")
       }
     );
-    export_map.push((key.into(), ESMExportBinding::Getter(value.into())));
+    let export_map = vec![(key.into(), ESMExportBinding::Getter(value.into()))];
     let cache_var = format!("var {name}_namespace_cache;\n");
 
     (
@@ -974,13 +971,13 @@ impl ESMExportImportedSpecifierDependency {
     let return_value = Self::get_return_value(name.clone(), value_key);
     let exports_name = module.get_exports_argument();
     format!(
-      "if({}({}, {})) {}({}, [{}, function() {{ return {}; }}]);\n",
+      "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),
       name,
       rspack_util::json_stringify_str(&first_value_key),
       runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
       runtime_template.render_exports_argument(exports_name),
-      rspack_util::json_stringify_str(&key),
+      property_name(&key).expect("should have property_name"),
       return_value
     )
   }

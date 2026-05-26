@@ -20,10 +20,10 @@ it("should not threat globals as pure", () => {
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.d(__webpack_exports__, [
-  "ok", () => (ok),
-  "ok2", () => (ok2)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  ok: () => (ok),
+  ok2: () => (ok2)
+});
 try {
 	var x = NOT_DEFINED;
 	var y = x;

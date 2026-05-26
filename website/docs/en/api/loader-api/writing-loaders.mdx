@@ -143,11 +143,9 @@ For example, with the following configuration:
 
 ```js title="rspack.config.mjs"
 export default {
-  //...
   module: {
     rules: [
       {
-        //...
         use: ['a-loader', 'b-loader', 'c-loader'],
       },
     ],
@@ -327,6 +325,46 @@ export default async function myLoader(source, inputSourceMap) {
     }
   } catch (err) {
     callback(err);
+  }
+}
+```
+
+## Publishing loaders
+
+### Declaring peer dependencies
+
+When publishing a loader as an npm package, declare the bundler packages it integrates with as optional peer dependencies. This documents the supported host bundlers without requiring users who only use one bundler to install the other.
+
+If the loader is designed only for Rspack, declare `@rspack/core` as an optional peer dependency. Set the version range according to the APIs the loader relies on. For example, if the loader uses an API introduced in a newer Rspack release, set that release as the minimum supported version.
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    }
+  }
+}
+```
+
+If the loader is designed to work with both Rspack and webpack, declare both `@rspack/core` and `webpack` as optional peer dependencies:
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
   }
 }
 ```

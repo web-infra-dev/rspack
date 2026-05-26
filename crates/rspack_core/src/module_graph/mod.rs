@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rustc_hash::{FxHashMap as HashMap, FxHasher};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
@@ -145,8 +145,7 @@ pub(crate) struct ModuleGraphData {
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
-  connections:
-    rollback::OverlayMap<DependencyId, ModuleGraphConnection, BuildHasherDefault<FxHasher>>,
+  connections: rollback::DenseDependencyIdOverlayMap<ModuleGraphConnection>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318

@@ -35,9 +35,9 @@
 self["rspackHotUpdate"]("main", {
 "./referencer.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
 /* import */ var _module__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_module__rspack_import_0);
 /* import */ var external__rspack_import_1 = __webpack_require__("external");
@@ -57,7 +57,7 @@ __webpack_require__.n = (module) => {
 	var getter = module && module.__esModule ?
 		() => (module['default']) :
 		() => (module);
-	__webpack_require__.d(getter, ["a", getter]);
+	__webpack_require__.d(getter, { a: getter });
 	return getter;
 };
 

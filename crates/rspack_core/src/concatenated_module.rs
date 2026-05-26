@@ -54,7 +54,7 @@ use crate::{
   ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
   SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
   filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -1629,8 +1629,8 @@ impl Module for ConcatenatedModule {
         .iter()
         .map(|(key, value)| {
           format!(
-            "\n  {}, {}",
-            json_stringify_str(key),
+            "\n  {}: {}",
+            property_name(key).expect("should convert to property_name"),
             runtime_template.returning_function(value, "")
           )
         })
@@ -1661,7 +1661,7 @@ impl Module for ConcatenatedModule {
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
         result.add(RawStringSource::from(format!(
-          "{}({}, [{}\n]);\n",
+          "{}({}, {{{}\n}});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           runtime_template.render_exports_argument(exports_argument),
           definitions.join(",")
@@ -1742,8 +1742,8 @@ impl Module for ConcatenatedModule {
           );
 
           ns_obj.push(format!(
-            "\n  {}, {}",
-            json_stringify_str(&used_name),
+            "\n  {}: {}",
+            property_name(&used_name).expect("should have property_name"),
             runtime_template.returning_function(&final_name.name, "")
           ));
         }
@@ -1752,7 +1752,7 @@ impl Module for ConcatenatedModule {
       let name = name_space_name.expect("should have name_space_name");
       let define_getters = if !ns_obj.is_empty() {
         format!(
-          "{}({}, [{}\n]);\n",
+          "{}({}, {{ {} }});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           name,
           ns_obj.join(",")
