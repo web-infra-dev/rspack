@@ -80,22 +80,22 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   if (typeof modFactory === 'string' || typeof modFactory === 'number') {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
-          const finalModFactory = function (
-        __unused_webpack_module,
-        __webpack_exports__,
-        __webpack_require__,
-      ) {
-        __webpack_require__.r(__webpack_exports__);
-        const res = modFactory();
-        for (const key in res) {
-          __webpack_require__.d(__webpack_exports__, {
-            [key]: () => res[key],
-          });
-        }
-      };
+    const finalModFactory = function (
+      __unused_webpack_module,
+      __webpack_exports__,
+      __webpack_require__,
+    ) {
+      __webpack_require__.r(__webpack_exports__);
+      const res = modFactory();
+      for (const key in res) {
+        __webpack_require__.d(__webpack_exports__, {
+          [key]: () => res[key],
+        });
+      }
+    };
 
-      __webpack_modules__[id] = finalModFactory;
-      delete __webpack_module_cache__[id];
+    __webpack_modules__[id] = finalModFactory;
+    delete __webpack_module_cache__[id];
   }
 };
 

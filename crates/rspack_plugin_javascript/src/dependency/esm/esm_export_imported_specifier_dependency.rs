@@ -10,8 +10,8 @@ use rspack_core::{
   AsContextDependency, ChunkGraph, ConditionalInitFragment, ConnectionState, Dependency,
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, DetermineExportAssignmentsKey, ESMExportInitFragment, ExportMode,
-  ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
+  DependencyType, DetermineExportAssignmentsKey, ESMExportBinding, ESMExportInitFragment,
+  ExportMode, ExportModeDynamicReexport, ExportModeEmptyStar, ExportModeFakeNamespaceObject,
   ExportModeNormalReexport, ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
@@ -840,11 +840,19 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
+    let is_circular_module = compilation
+      .circular_modules
+      .as_ref()
+      .map(|circular_modules| circular_modules.contains(&module.identifier()));
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
-    let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))", runtime_template
-                .render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT), json_stringify(&module_id), mode).into()));
+    let value = format!(
+      "/* reexport deferred namespace object */ {name}_deferred_namespace_cache || ({name}_deferred_namespace_cache = {}({}, {}))",
+      runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
+      json_stringify(&module_id),
+      mode
+    );
+    let export_map = vec![(key.into(), ESMExportBinding::Getter(value.into()))];
     let cache_var = format!("var {name}_deferred_namespace_cache;\n");
 
     (
@@ -855,7 +863,11 @@ impl ESMExportImportedSpecifierDependency {
         InitFragmentKey::ESMDeferImportNamespaceObjectFragment(cache_var),
         None,
       ),
-      ESMExportInitFragment::new(module.get_exports_argument(), export_map),
+      ESMExportInitFragment::new(
+        module.get_exports_argument(),
+        export_map,
+        is_circular_module,
+      ),
     )
   }
 
@@ -868,9 +880,20 @@ impl ESMExportImportedSpecifierDependency {
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
     let return_value = Self::get_return_value(name.to_owned(), value_key);
-    let mut export_map = vec![];
-    export_map.push((key.into(), format!("/* {comment} */ {return_value}").into()));
-    ESMExportInitFragment::new(ctxt.module.get_exports_argument(), export_map)
+    let is_circular_module = ctxt
+      .compilation
+      .circular_modules
+      .as_ref()
+      .map(|circular_modules| circular_modules.contains(&ctxt.module.identifier()));
+    let export_map = vec![(
+      key.into(),
+      ESMExportBinding::Getter(format!("/* {comment} */ {return_value}").into()),
+    )];
+    ESMExportInitFragment::new(
+      ctxt.module.get_exports_argument(),
+      export_map,
+      is_circular_module,
+    )
   }
 
   fn get_reexport_fake_namespace_object_fragments(
@@ -882,10 +905,14 @@ impl ESMExportImportedSpecifierDependency {
   ) -> (NormalInitFragment, ESMExportInitFragment) {
     let TemplateContext {
       module,
+      compilation,
       runtime_template,
       ..
     } = ctxt;
-    let mut export_map = vec![];
+    let is_circular_module = compilation
+      .circular_modules
+      .as_ref()
+      .map(|circular_modules| circular_modules.contains(&module.identifier()));
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
       runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
@@ -895,7 +922,7 @@ impl ESMExportImportedSpecifierDependency {
         format!(", {fake_type}")
       }
     );
-    export_map.push((key.into(), value.into()));
+    let export_map = vec![(key.into(), ESMExportBinding::Getter(value.into()))];
     let cache_var = format!("var {name}_namespace_cache;\n");
 
     (
@@ -906,7 +933,11 @@ impl ESMExportImportedSpecifierDependency {
         InitFragmentKey::ESMFakeNamespaceObjectFragment(cache_var),
         None,
       ),
-      ESMExportInitFragment::new(module.get_exports_argument(), export_map),
+      ESMExportInitFragment::new(
+        module.get_exports_argument(),
+        export_map,
+        is_circular_module,
+      ),
     )
   }
 

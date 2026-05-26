@@ -338,14 +338,11 @@ impl InnerGraphParserPlugin {
   ) -> TopLevelSymbol {
     parser.define_variable(name.clone());
 
-    let existing = parser.get_variable_info(name);
-    if let Some(existing) = existing
-      && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_tag_info(tag_info)
-      && tag_info.tag == TOP_LEVEL_SYMBOL
-      && let Some(tag_data) = tag_info.data.as_deref()
+    if let Some(existing) = parser
+      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
+      .copied()
     {
-      return *TopLevelSymbol::downcast_ref(tag_data);
+      return existing;
     }
 
     let symbol = parser.inner_graph.new_top_level_symbol(name.clone());

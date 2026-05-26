@@ -33,7 +33,7 @@ it("should use the same accessor syntax for import and export", function () {
 	/*********** DO NOT MATCH BELOW THIS LINE ***********/
 
 	// Checking harmonyexportinitfragment.js formation of standard export fragment
-	expectSourceToContain(source, "bar: () => (bar)");
+	expectSourceToContain(source, "bar: bar");
 
 	// Checking formation of imports
 	expectSourceToMatch(source, `${regexEscape("const { harmonyexport_cjsimport } = (__webpack_require__(")}\\d+${regexEscape(")/* .bar */.bar);")}`);

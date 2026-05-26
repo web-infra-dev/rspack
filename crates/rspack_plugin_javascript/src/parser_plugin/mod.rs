@@ -57,7 +57,7 @@ pub(crate) use self::{
   import_meta_plugin::{ImportMetaDisabledPlugin, ImportMetaPlugin},
   import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,
-  inline_const::InlineConstPlugin,
+  inline_const::{ConstValue, ConstValuePlugin},
   inner_graph::{connection_active_used_by_exports, plugin::*, runtime_condition_used_by_exports},
   is_included_plugin::IsIncludedPlugin,
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,

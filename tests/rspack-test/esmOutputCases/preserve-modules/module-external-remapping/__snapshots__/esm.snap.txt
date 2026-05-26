@@ -98,12 +98,16 @@ __webpack_require__.m = __webpack_modules__;
 
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for (var key in defs) {
+			if (__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
 })();
 // webpack/runtime/esm_module_decorator
@@ -144,15 +148,16 @@ __webpack_require__.add({
   !*** ./src/wrapped.js ***!
   \************************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  a: () => (/* reexport safe */ node_events__rspack_import_0.a),
-  b: () => (/* reexport safe */ node_events__rspack_import_0.b)
-});
 /* import */ var node_events__rspack_import_0 = __webpack_require__(/*! node:events */ "node:events?df85");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
 console.log.bind(module);
+
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (/* reexport safe */ node_events__rspack_import_0.a),
+  b: () => (/* reexport safe */ node_events__rspack_import_0.b)
+});
 
 
 },

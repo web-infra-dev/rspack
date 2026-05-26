@@ -170,16 +170,22 @@ export class HotUpdatePlugin {
           if (
             module.constructor.name === 'DefinePropertyGettersRuntimeModule'
           ) {
+            // HMR tests re-execute modules and redefine the same export keys, so
+            // the test-only runtime keeps export descriptors configurable (`configurable: true`).
             module.source.source = Buffer.from(
               `
-										${RuntimeGlobals.definePropertyGetters} = function (exports, definition) {
-												for (var key in definition) {
-														if (${RuntimeGlobals.hasOwnProperty}(definition, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
-																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
-														}
-												}
-										};
-										`,
+${RuntimeGlobals.definePropertyGetters} = function (exports, getters, values) {
+  var define = function (defs, kind) {
+    for(var key in defs) {
+      if(${RuntimeGlobals.hasOwnProperty}(defs, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
+        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
+      }
+    }
+  }
+  define(getters, "get");
+  define(values, "value");
+};
+`,
               'utf-8',
             );
           }

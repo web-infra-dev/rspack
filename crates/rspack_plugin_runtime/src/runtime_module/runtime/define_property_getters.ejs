@@ -1,7 +1,11 @@
-<%- DEFINE_PROPERTY_GETTERS %> = <%- basicFunction("exports, definition") %> {
-	for(var key in definition) {
-        if(<%- HAS_OWN_PROPERTY %>(definition, key) && !<%- HAS_OWN_PROPERTY %>(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+<%- DEFINE_PROPERTY_GETTERS %> = <%- basicFunction("exports, getters, values") %> {
+	var define = <%- basicFunction("defs, kind") %> {
+		for(var key in defs) {
+			if(<%- HAS_OWN_PROPERTY %>(defs, key) && !<%- HAS_OWN_PROPERTY %>(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
