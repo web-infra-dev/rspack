@@ -112,11 +112,27 @@ impl DependencyCodeGeneration for ProvideDependency {
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
   ) {
     self.identifier.dyn_hash(hasher);
     self.ids.dyn_hash(hasher);
+    // Case: a ProvidePlugin variable is replaced by an inlined const export,
+    // e.g. `provided = (__webpack_require__("./constants"), 2)`. The generated
+    // code embeds the target export's inline literal, so the dependency hash must
+    // include that payload and not only the provided identifier/import ids.
+    let used_name = compilation
+      .get_module_graph()
+      .connection_by_dependency_id(&self.id)
+      .and_then(|connection| {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(connection.module_identifier());
+        exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &self.ids)
+      });
+    if let Some(UsedName::Inlined(inlined)) = used_name {
+      inlined.dyn_hash(hasher);
+    }
   }
 }
 

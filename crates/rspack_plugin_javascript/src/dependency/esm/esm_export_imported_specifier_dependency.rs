@@ -501,12 +501,9 @@ impl ESMExportImportedSpecifierDependency {
   }
 
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
-    let TemplateContext {
-      module,
-      runtime,
-      runtime_template,
-      ..
-    } = ctxt;
+    let module = ctxt.module;
+    let runtime = ctxt.runtime;
+    let runtime_template = &mut ctxt.runtime_template;
     let compilation = ctxt.compilation;
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
@@ -518,7 +515,7 @@ impl ESMExportImportedSpecifierDependency {
       target_module,
       self.user_request(),
       self.phase,
-      *runtime,
+      runtime,
     );
     match mode {
       ExportMode::Missing | ExportMode::LazyMake | ExportMode::EmptyStar(_) => {
@@ -546,7 +543,7 @@ impl ESMExportImportedSpecifierDependency {
       ExportMode::ReexportDynamicDefault(ExportModeReexportDynamicDefault { name }) => {
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name =
-          exports_info.get_used_name(exports_info_artifact, None, std::slice::from_ref(&name));
+          exports_info.get_used_name(exports_info_artifact, runtime, std::slice::from_ref(&name));
         let key = render_used_name(used_name.as_ref());
 
         let init_fragment = self
@@ -564,7 +561,7 @@ impl ESMExportImportedSpecifierDependency {
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
-          None,
+          runtime,
           std::slice::from_ref(&mode.name),
         );
         let key = render_used_name(used_name.as_ref());
@@ -583,7 +580,7 @@ impl ESMExportImportedSpecifierDependency {
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
-          None,
+          runtime,
           std::slice::from_ref(&mode.name),
         );
         let key = render_used_name(used_name.as_ref());
@@ -628,7 +625,7 @@ impl ESMExportImportedSpecifierDependency {
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
-          None,
+          runtime,
           std::slice::from_ref(&mode.name),
         );
         let key = render_used_name(used_name.as_ref());
@@ -666,7 +663,7 @@ impl ESMExportImportedSpecifierDependency {
         let exports_info = exports_info_artifact.get_exports_info_data(&module_identifier);
         let used_name = exports_info.get_used_name(
           exports_info_artifact,
-          None,
+          runtime,
           std::slice::from_ref(&mode.name),
         );
         let key = render_used_name(used_name.as_ref());
@@ -701,7 +698,7 @@ impl ESMExportImportedSpecifierDependency {
           }
 
           let used_name =
-            exports_info.get_used_name(exports_info_artifact, None, std::slice::from_ref(&name));
+            exports_info.get_used_name(exports_info_artifact, runtime, std::slice::from_ref(&name));
           let key = render_used_name(used_name.as_ref());
 
           if checked {
@@ -749,7 +746,7 @@ impl ESMExportImportedSpecifierDependency {
               )));
           } else {
             let exports_info = exports_info_artifact.get_exports_info_data(imported_module);
-            let used_name = exports_info.get_used_name(exports_info_artifact, None, &ids);
+            let used_name = exports_info.get_used_name(exports_info_artifact, runtime, &ids);
             let init_fragment = self
               .get_reexport_fragment(ctxt, "reexport safe", key, &import_var, used_name.into())
               .boxed();
@@ -1180,6 +1177,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
         exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &item.ids)
       {
         item.name.dyn_hash(hasher);
+        item.ids.dyn_hash(hasher);
         inlined.dyn_hash(hasher);
       }
     }

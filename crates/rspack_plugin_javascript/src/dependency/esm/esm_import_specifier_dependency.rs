@@ -392,6 +392,7 @@ impl DependencyCodeGeneration for ESMImportSpecifierDependency {
     if let Some(UsedName::Inlined(inlined)) =
       exports_info.get_used_name(&compilation.exports_info_artifact, runtime, ids)
     {
+      ids.dyn_hash(hasher);
       inlined.dyn_hash(hasher);
     }
   }
