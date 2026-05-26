@@ -66,7 +66,11 @@ async fn render_manifest(
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, m.identifier())
       .map(|s| PathData::prepare_id(s.as_str()));
     let mut path_data = PathData::default().module_id_optional(module_id.as_deref());
-    if let Some(hash) = &m.build_info().hash {
+    if let Some(hash) = &compilation
+      .get_module_graph()
+      .build_info(&m.identifier())
+      .hash
+    {
       let hash = hash.rendered(16);
       path_data = path_data.content_hash(hash).hash(hash);
     }

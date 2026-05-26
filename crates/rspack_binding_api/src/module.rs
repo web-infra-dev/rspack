@@ -76,6 +76,7 @@ thread_local! {
 pub struct Module {
   pub(crate) identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  build_info_ptr: Option<NonNull<rspack_core::BuildInfo>>,
   compiler_id: CompilerId,
   compiler_reference: WeakReference<JsCompiler>,
   pub(crate) build_info_ref: Option<WeakRef>,
@@ -324,6 +325,46 @@ impl Module {
       ))),
     }
   }
+
+  pub(crate) fn build_info_ref(&mut self) -> napi::Result<&rspack_core::BuildInfo> {
+    if let Some(ptr) = self.build_info_ptr {
+      // SAFETY:
+      // The pointer is only installed for the duration of synchronous hooks/loader calls.
+      return Ok(unsafe { ptr.as_ref() });
+    }
+    match self.compiler_reference.get() {
+      Some(this) => {
+        let compilation = &this.compiler.compilation;
+        compilation
+          .get_module_graph()
+          .build_info_by_identifier(&self.identifier)
+          .ok_or_else(|| {
+            napi::Error::from_reason(format!(
+              "Unable to access buildInfo for module with id = {} now. The module has been removed on the Rust side.",
+              self.identifier
+            ))
+          })
+      }
+      None => Err(napi::Error::from_reason(format!(
+        "Unable to access buildInfo for module with id = {} now. The Compiler has been garbage collected by JavaScript.",
+        self.identifier
+      ))),
+    }
+  }
+
+  pub(crate) fn build_info_mut(&mut self) -> napi::Result<&'static mut rspack_core::BuildInfo> {
+    match self.build_info_ptr.as_mut() {
+      Some(ptr) => {
+        // SAFETY:
+        // The pointer is only installed for the duration of synchronous hooks/loader calls.
+        Ok(unsafe { ptr.as_mut() })
+      }
+      None => Err(napi::Error::from_reason(format!(
+        "Unable to modify buildInfo for module with id = {}. Currently, you can only modify buildInfo while the module is being built.",
+        self.identifier
+      ))),
+    }
+  }
 }
 
 #[napi]
@@ -443,7 +484,7 @@ impl Module {
     source: JsSourceFromJs,
     object: Option<Object>,
   ) -> napi::Result<()> {
-    let module = self.as_mut()?;
+    let build_info = self.build_info_mut()?;
 
     let asset_info = match object {
       Some(object) => {
@@ -457,7 +498,7 @@ impl Module {
       None => Default::default(),
     };
 
-    module.build_info_mut().assets.insert(
+    build_info.assets.insert(
       filename,
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
@@ -509,6 +550,7 @@ pub struct ModuleObject {
   type_id: TypeId,
   identifier: ModuleIdentifier,
   ptr: Option<NonNull<dyn rspack_core::Module>>,
+  build_info_ptr: Option<NonNull<rspack_core::BuildInfo>>,
   compiler_id: CompilerId,
 }
 
@@ -521,6 +563,7 @@ impl ModuleObject {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: None,
+      build_info_ptr: None,
       compiler_id,
     }
   }
@@ -532,6 +575,23 @@ impl ModuleObject {
       type_id: module.as_any().type_id(),
       identifier: module.identifier(),
       ptr: Some(module_ptr),
+      build_info_ptr: None,
+      compiler_id,
+    }
+  }
+
+  pub fn with_ptr_and_build_info(
+    module_ptr: NonNull<dyn rspack_core::Module>,
+    build_info_ptr: NonNull<rspack_core::BuildInfo>,
+    compiler_id: CompilerId,
+  ) -> Self {
+    let module = unsafe { module_ptr.as_ref() };
+
+    Self {
+      type_id: module.as_any().type_id(),
+      identifier: module.identifier(),
+      ptr: Some(module_ptr),
+      build_info_ptr: Some(build_info_ptr),
       compiler_id,
     }
   }
@@ -554,12 +614,44 @@ impl ModuleObject {
           && let Some(r) = refs.remove(module_identifier)
         {
           match r {
-            Either5::A(mut normal_module) => normal_module.module.ptr = None,
-            Either5::B(mut concatenated_module) => concatenated_module.module.ptr = None,
-            Either5::C(mut context_module) => context_module.module.ptr = None,
-            Either5::D(mut external_module) => external_module.module.ptr = None,
-            Either5::E(mut module) => module.ptr = None,
+            Either5::A(mut normal_module) => {
+              normal_module.module.ptr = None;
+              normal_module.module.build_info_ptr = None;
+            }
+            Either5::B(mut concatenated_module) => {
+              concatenated_module.module.ptr = None;
+              concatenated_module.module.build_info_ptr = None;
+            }
+            Either5::C(mut context_module) => {
+              context_module.module.ptr = None;
+              context_module.module.build_info_ptr = None;
+            }
+            Either5::D(mut external_module) => {
+              external_module.module.ptr = None;
+              external_module.module.build_info_ptr = None;
+            }
+            Either5::E(mut module) => {
+              module.ptr = None;
+              module.build_info_ptr = None;
+            }
           }
+        }
+      }
+    });
+  }
+
+  pub fn cleanup_build_info_ptr(compiler_id: &CompilerId, module_identifier: &ModuleIdentifier) {
+    MODULE_INSTANCE_REFS.with(|refs| {
+      let mut refs_by_compiler_id = refs.borrow_mut();
+      if let Some(refs) = refs_by_compiler_id.get_mut(compiler_id)
+        && let Some(r) = refs.get_mut(module_identifier)
+      {
+        match r {
+          Either5::A(normal_module) => normal_module.module.build_info_ptr = None,
+          Either5::B(concatenated_module) => concatenated_module.module.build_info_ptr = None,
+          Either5::C(context_module) => context_module.module.build_info_ptr = None,
+          Either5::D(external_module) => external_module.module.build_info_ptr = None,
+          Either5::E(module) => module.build_info_ptr = None,
         }
       }
     });
@@ -595,6 +687,7 @@ impl ToNapiValue for ModuleObject {
             Either5::E(module) => &mut **module,
           };
           instance.ptr = val.ptr;
+          instance.build_info_ptr = val.build_info_ptr;
           match instance_ref {
             Either5::A(r) => ToNapiValue::to_napi_value(env, r),
             Either5::B(r) => ToNapiValue::to_napi_value(env, r),
@@ -613,6 +706,7 @@ impl ToNapiValue for ModuleObject {
                 identifier: val.identifier,
                 compiler_id: val.compiler_id,
                 ptr: val.ptr,
+                build_info_ptr: val.build_info_ptr,
                 compiler_reference,
                 build_info_ref: Default::default(),
               };
@@ -666,30 +760,35 @@ impl FromNapiValue for ModuleObject {
           type_id: TypeId::of::<rspack_core::NormalModule>(),
           identifier: normal_module.module.identifier,
           ptr: normal_module.module.ptr,
+          build_info_ptr: normal_module.module.build_info_ptr,
           compiler_id: normal_module.module.compiler_id,
         },
         Either5::B(concatenated_module) => Self {
           type_id: TypeId::of::<rspack_core::ConcatenatedModule>(),
           identifier: concatenated_module.module.identifier,
           ptr: concatenated_module.module.ptr,
+          build_info_ptr: concatenated_module.module.build_info_ptr,
           compiler_id: concatenated_module.module.compiler_id,
         },
         Either5::C(context_module) => Self {
           type_id: TypeId::of::<rspack_core::ContextModule>(),
           identifier: context_module.module.identifier,
           ptr: context_module.module.ptr,
+          build_info_ptr: context_module.module.build_info_ptr,
           compiler_id: context_module.module.compiler_id,
         },
         Either5::D(external_module) => Self {
           type_id: TypeId::of::<rspack_core::ExternalModule>(),
           identifier: external_module.module.identifier,
           ptr: external_module.module.ptr,
+          build_info_ptr: external_module.module.build_info_ptr,
           compiler_id: external_module.module.compiler_id,
         },
         Either5::E(module) => Self {
           type_id: TypeId::of::<dyn rspack_core::Module>(),
           identifier: module.identifier,
           ptr: module.ptr,
+          build_info_ptr: module.build_info_ptr,
           compiler_id: module.compiler_id,
         },
       })

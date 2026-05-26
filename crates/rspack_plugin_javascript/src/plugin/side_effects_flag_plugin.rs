@@ -188,7 +188,7 @@ async fn finish_modules(
       continue;
     };
 
-    let build_info = module.build_info();
+    let build_info = module_graph.build_info(module_identifier);
     if !self.analyze_side_effects_free || build_info.deferred_pure_checks.is_empty() {
       continue;
     }
@@ -234,11 +234,7 @@ async fn finish_modules(
             (*ref_module, deferred_check.atom.clone())
           };
 
-          let ref_module = module_graph
-            .module_by_identifier(&ref_module_id)
-            .expect("should have module");
-
-          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
+          let Some(side_effects_free) = &module_graph.build_info(&ref_module_id).side_effects_free else {
             return true;
           };
           !side_effects_free.contains(&atom)

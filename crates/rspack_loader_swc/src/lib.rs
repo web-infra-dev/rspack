@@ -14,7 +14,7 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
+use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -64,7 +64,7 @@ impl SwcLoader {
       .resource_path()
       .map(|p| p.to_path_buf())
       .unwrap_or_default();
-    loader_context.context.module.build_info_mut().isolated_dts = None;
+    loader_context.context.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());
     };
@@ -221,19 +221,22 @@ impl SwcLoader {
     if let Some(isolated_dts) = isolated_dts? {
       handle_isolated_dts_diagnostics(isolated_dts.diagnostics)?;
 
+      let compiler_context = loader_context.context.options.context.clone();
       set_build_info(
-        loader_context.context.module.build_info_mut(),
+        loader_context.context.build_info_mut(),
         resource_path.as_path(),
-        loader_context.context.options.context.as_path(),
+        compiler_context.as_path(),
         isolated_dts.code,
         isolated_dts.references,
       );
     }
 
     if let Some(rsc) = rsc_meta.borrow_mut().take() {
-      let module = &mut loader_context.context.module;
-      module.build_info_mut().rsc = Some(rsc);
-      if let Some(code) = to_server_entry(module)? {
+      loader_context.context.build_info_mut().rsc = Some(rsc);
+      if let Some(code) = to_server_entry(
+        &loader_context.context.module,
+        loader_context.context.build_info(),
+      )? {
         loader_context.finish_with(code);
         return Ok(());
       }

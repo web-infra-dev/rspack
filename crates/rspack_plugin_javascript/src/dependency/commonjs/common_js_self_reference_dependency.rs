@@ -161,8 +161,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       UsedName::Normal(dep.names.clone())
     };
 
-    let exports_argument = module.get_exports_argument();
-    let module_argument = module.get_module_argument();
+    let exports_argument = module.get_exports_argument(module_graph);
+    let module_argument = module.get_module_argument(module_graph);
 
     let base = if dep.base.is_exports() {
       runtime_template.render_exports_argument(exports_argument)

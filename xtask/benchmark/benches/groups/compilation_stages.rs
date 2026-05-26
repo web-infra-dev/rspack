@@ -1516,10 +1516,10 @@ fn chunk_asset_totals(compilation: &Compilation) -> (usize, usize, usize) {
 }
 
 fn count_module_assets(compilation: &Compilation) -> usize {
-  compilation
-    .get_module_graph()
+  let module_graph = compilation.get_module_graph();
+  module_graph
     .modules()
-    .map(|(_, module)| module.build_info().assets.len())
+    .map(|(module_identifier, _)| module_graph.build_info(module_identifier).assets.len())
     .sum()
 }
 
@@ -1578,11 +1578,10 @@ fn seed_module_assets(compilation: &mut Compilation) -> usize {
   module_identifiers.truncate(MODULE_ASSET_SEED_COUNT);
 
   for (asset_index, module_identifier) in module_identifiers.iter().copied().enumerate() {
-    let module = compilation
+    let build_info = compilation
       .get_module_graph_mut()
-      .module_by_identifier_mut(&module_identifier)
-      .expect("seeded module should exist");
-    module.build_info_mut().assets.insert(
+      .build_info_mut_by_identifier(&module_identifier);
+    build_info.assets.insert(
       format!("module-assets/module-{asset_index}.txt"),
       CompilationAsset::new(
         Some(RawStringSource::from(format!("module asset fixture {asset_index}")).boxed()),

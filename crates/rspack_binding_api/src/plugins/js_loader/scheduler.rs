@@ -8,6 +8,7 @@ use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
 use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use crate::module::ModuleObject;
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -61,12 +62,19 @@ pub(crate) async fn loader_yield(
     .await
     .to_rspack_result()?;
 
-  let new_cx = runner
-    .call_async(loader_context.try_into()?)
+  let js_loader_context: JsLoaderContext = loader_context.try_into()?;
+  let module_identifier = *js_loader_context.module.identifier();
+  let compiler_id = loader_context.context.compiler_id;
+  let new_cx_result = match runner
+    .call_async(js_loader_context)
     .await
-    .to_rspack_result()?
-    .await
-    .to_rspack_result()?;
+    .to_rspack_result()
+  {
+    Ok(promise) => promise.await.to_rspack_result(),
+    Err(error) => Err(error),
+  };
+  ModuleObject::cleanup_build_info_ptr(&compiler_id, &module_identifier);
+  let new_cx = new_cx_result?;
 
   if loader_context.state() == LoaderState::Pitching {
     let list = collect_loaders_without_pitch(loader_context, &new_cx);

@@ -26,8 +26,11 @@ pub async fn create_module_assets(
   let mut chunk_asset_map = vec![];
   let mut module_assets = vec![];
   let mg = compilation.get_module_graph();
-  for (identifier, module) in mg.modules() {
-    let assets = &module.build_info().assets;
+  for (identifier, _) in mg.modules() {
+    let assets = &mg
+      .build_info_by_identifier(identifier)
+      .expect("should have module build info")
+      .assets;
     if assets.is_empty() {
       continue;
     }

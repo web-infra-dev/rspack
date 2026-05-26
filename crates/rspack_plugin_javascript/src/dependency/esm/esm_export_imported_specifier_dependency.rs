@@ -98,11 +98,10 @@ impl ESMExportImportedSpecifierDependency {
 
   // Because it is shared by multiply ESMExportImportedSpecifierDependency, so put it to `BuildInfo`
   pub fn active_exports<'a>(&self, module_graph: &'a ModuleGraph) -> &'a HashSet<Atom> {
-    let build_info = module_graph
+    let parent_module = module_graph
       .get_parent_module(&self.id)
-      .and_then(|ident| module_graph.module_by_identifier(ident))
-      .expect("should have mgm")
-      .build_info();
+      .expect("should have parent module");
+    let build_info = module_graph.build_info(parent_module);
     &build_info.esm_named_exports
   }
 
@@ -111,13 +110,11 @@ impl ESMExportImportedSpecifierDependency {
     &self,
     module_graph: &'a ModuleGraph,
   ) -> Option<(ModuleIdentifier, &'a Vec<DependencyId>)> {
-    let module = module_graph
-      .get_parent_module(&self.id)
-      .and_then(|ident| module_graph.module_by_identifier(ident));
+    let parent_module = module_graph.get_parent_module(&self.id);
 
-    if let Some(module) = module {
-      let build_info = module.build_info();
-      Some((module.identifier(), &build_info.all_star_exports))
+    if let Some(module_identifier) = parent_module {
+      let build_info = module_graph.build_info(module_identifier);
+      Some((*module_identifier, &build_info.all_star_exports))
     } else {
       None
     }
@@ -799,7 +796,7 @@ impl ESMExportImportedSpecifierDependency {
         let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
-        let exports_name = module.get_exports_argument();
+        let exports_name = module.get_exports_argument(compilation.get_module_graph());
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
         ctxt.init_fragments.push(
@@ -864,7 +861,7 @@ impl ESMExportImportedSpecifierDependency {
         None,
       ),
       ESMExportInitFragment::new(
-        module.get_exports_argument(),
+        module.get_exports_argument(compilation.get_module_graph()),
         export_map,
         is_circular_module,
       ),
@@ -890,7 +887,9 @@ impl ESMExportImportedSpecifierDependency {
       ESMExportBinding::Getter(format!("/* {comment} */ {return_value}").into()),
     )];
     ESMExportInitFragment::new(
-      ctxt.module.get_exports_argument(),
+      ctxt
+        .module
+        .get_exports_argument(ctxt.compilation.get_module_graph()),
       export_map,
       is_circular_module,
     )
@@ -934,7 +933,7 @@ impl ESMExportImportedSpecifierDependency {
         None,
       ),
       ESMExportInitFragment::new(
-        module.get_exports_argument(),
+        module.get_exports_argument(compilation.get_module_graph()),
         export_map,
         is_circular_module,
       ),
@@ -967,12 +966,13 @@ impl ESMExportImportedSpecifierDependency {
       return "/* unused export */\n".to_string();
     }
     let TemplateContext {
+      compilation,
       module,
       runtime_template,
       ..
     } = ctxt;
     let return_value = Self::get_return_value(name.clone(), value_key);
-    let exports_name = module.get_exports_argument();
+    let exports_name = module.get_exports_argument(compilation.get_module_graph());
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
       runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY),

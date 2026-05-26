@@ -133,7 +133,12 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>>;
   /// Size of the original source
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64;
+  fn size(
+    &self,
+    module: &dyn Module,
+    build_info: Option<&BuildInfo>,
+    source_type: Option<&SourceType>,
+  ) -> f64;
   /// Generate source or AST based on the built source or AST
   async fn generate(
     &self,

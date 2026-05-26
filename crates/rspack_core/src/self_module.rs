@@ -130,11 +130,13 @@ impl Module for SelfModule {
   }
 
   async fn build(
-    self: Box<Self>,
-    _build_context: BuildContext,
+    mut self: Box<Self>,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],

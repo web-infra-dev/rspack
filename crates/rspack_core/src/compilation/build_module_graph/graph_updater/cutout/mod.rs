@@ -50,8 +50,11 @@ impl Cutout {
           clean_entry_dependencies = true;
         }
         UpdateParam::CheckNeedBuild => {
-          force_build_modules.extend(module_graph.modules().filter_map(|(_, module)| {
-            if module.need_build(&compilation.value_cache_versions) {
+          force_build_modules.extend(module_graph.modules().filter_map(|(identifier, module)| {
+            if module.need_build(
+              module_graph.build_info(identifier),
+              &compilation.value_cache_versions,
+            ) {
               Some(module.identifier())
             } else {
               None

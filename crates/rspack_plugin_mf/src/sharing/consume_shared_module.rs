@@ -171,9 +171,10 @@ impl Module for ConsumeSharedModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let mut blocks = vec![];
     let mut dependencies = vec![];
     if let Some(fallback) = &self.options.import {
@@ -187,6 +188,7 @@ impl Module for ConsumeSharedModule {
     }
 
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies,
       blocks,

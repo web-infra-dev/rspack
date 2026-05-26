@@ -457,8 +457,8 @@ impl DependencyTemplate for CommonJsExportRequireDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let exports_argument = module.get_exports_argument();
-    let module_argument = module.get_module_argument();
+    let exports_argument = module.get_exports_argument(mg);
+    let module_argument = module.get_module_argument(mg);
 
     let exports_info = compilation
       .exports_info_artifact

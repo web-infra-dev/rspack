@@ -106,13 +106,10 @@ impl<'a> ArtifactComparator<'a> {
     }
 
     // Second pass: Compare BuildInfo using the DependencyId mapping
-    for (module_id, module1) in modules1 {
-      let module2 = modules2
-        .get(&module_id)
-        .expect("module should exist in both graphs");
+    for (module_id, _) in modules1 {
       let module_debug_info = debug_info.with_field("module", &format!("{module_id:?}"));
 
-      self.compare_module_build_info(module1, module2, &module_debug_info, &dep_id_map)?;
+      self.compare_module_build_info(&module_id, &module_debug_info, &dep_id_map)?;
     }
 
     Ok(())
@@ -230,13 +227,12 @@ impl<'a> ArtifactComparator<'a> {
   /// and serialize the rest for direct comparison.
   fn compare_module_build_info(
     &self,
-    module1: &rspack_core::BoxModule,
-    module2: &rspack_core::BoxModule,
+    module_id: &rspack_core::ModuleIdentifier,
     debug_info: &DebugInfo,
     dep_id_map: &HashMap<DependencyId, DependencyId>,
   ) -> Result<()> {
-    let build_info1 = module1.build_info();
-    let build_info2 = module2.build_info();
+    let build_info1 = self.mg1.build_info(module_id);
+    let build_info2 = self.mg2.build_info(module_id);
 
     // Compare all_star_exports using the DependencyId mapping
     self.compare_all_star_exports(

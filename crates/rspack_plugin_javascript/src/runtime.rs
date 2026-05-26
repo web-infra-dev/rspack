@@ -208,8 +208,10 @@ pub async fn render_module(
       });
 
       let mut args = Vec::new();
+      let module_graph = compilation.get_module_graph();
       if need_module || need_exports || need_require {
-        let module_argument = runtime_template.render_module_argument(module.get_module_argument());
+        let module_argument =
+          runtime_template.render_module_argument(module.get_module_argument(module_graph));
         args.push(if need_module {
           module_argument
         } else {
@@ -219,7 +221,7 @@ pub async fn render_module(
 
       if need_exports || need_require {
         let exports_argument =
-          runtime_template.render_exports_argument(module.get_exports_argument());
+          runtime_template.render_exports_argument(module.get_exports_argument(module_graph));
         args.push(if need_exports {
           exports_argument
         } else {
@@ -240,7 +242,12 @@ pub async fn render_module(
           args.join(", ")
         )));
       }
-      if module.build_info().strict && !all_strict {
+      if compilation
+        .get_module_graph()
+        .build_info(&module.identifier())
+        .strict
+        && !all_strict
+      {
         container_sources.add(RawStringSource::from_static("\"use strict\";\n"));
       }
       container_sources.add(render_source.source);

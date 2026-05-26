@@ -147,7 +147,7 @@ pub struct NormalModule {
   presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
 
   factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
+  build_info: Option<Box<BuildInfo>>,
   build_meta: BuildMeta,
   parsed: bool,
 
@@ -216,7 +216,7 @@ impl NormalModule {
       code_generation_dependencies: None,
       presentational_dependencies: None,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info: None,
       build_meta: Default::default(),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
@@ -237,6 +237,17 @@ impl NormalModule {
 
   pub fn resource_resolved_data(&self) -> &Arc<ResourceData> {
     &self.resource_data
+  }
+
+  pub(crate) fn build_info(&self) -> &BuildInfo {
+    self
+      .build_info
+      .as_deref()
+      .expect("NormalModule BuildInfo should be available while building")
+  }
+
+  pub(crate) fn build_info_mut(&mut self) -> &mut BuildInfo {
+    self.build_info.get_or_insert_with(Box::default).as_mut()
   }
 
   pub fn request(&self) -> &str {
@@ -362,17 +373,32 @@ impl Module for NormalModule {
     Cow::Owned(context.shorten(&self.user_request))
   }
 
-  fn size(&self, source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
+  fn size(&self, source_type: Option<&SourceType>, compilation: Option<&Compilation>) -> f64 {
+    let build_info = compilation.and_then(|compilation| {
+      compilation
+        .get_module_graph()
+        .build_info_by_identifier(&self.id)
+    });
     if let Some(source_type) = source_type {
       // Fast-path: lock-free builtin slots / tiny fallback map for custom source types.
       if let Some(size) = self.cached_source_sizes.get(source_type) {
         return size;
       }
 
-      let size = f64::max(1.0, self.parser_and_generator.size(self, Some(source_type)));
+      let size = f64::max(
+        1.0,
+        self
+          .parser_and_generator
+          .size(self, build_info, Some(source_type)),
+      );
       self.cached_source_sizes.get_or_insert(source_type, size)
     } else {
-      f64::max(1.0, self.parser_and_generator.size(self, source_type))
+      f64::max(
+        1.0,
+        self
+          .parser_and_generator
+          .size(self, build_info, source_type),
+      )
     }
   }
 
@@ -390,6 +416,7 @@ impl Module for NormalModule {
   ) -> Result<BuildResult> {
     // so does webpack
     self.parsed = true;
+    self.build_info = Some(build_context.build_info);
 
     let no_parse = if let Some(no_parse) = build_context.compiler_options.module.no_parse.as_ref() {
       no_parse.try_match(self.request.as_str()).await?
@@ -433,27 +460,30 @@ impl Module for NormalModule {
     self = loader_result.context.module;
 
     if let Some(err) = err {
-      self.build_info.cacheable = loader_result.cacheable;
-      self.build_info.file_dependencies = loader_result
-        .file_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.context_dependencies = loader_result
-        .context_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.missing_dependencies = loader_result
-        .missing_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
-      self.build_info.build_dependencies = loader_result
-        .build_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect();
+      {
+        let build_info = self.build_info_mut();
+        build_info.cacheable = loader_result.cacheable;
+        build_info.file_dependencies = loader_result
+          .file_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect();
+        build_info.context_dependencies = loader_result
+          .context_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect();
+        build_info.missing_dependencies = loader_result
+          .missing_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect();
+        build_info.build_dependencies = loader_result
+          .build_dependencies
+          .into_iter()
+          .map(Into::into)
+          .collect();
+      }
 
       self.source = None;
 
@@ -469,9 +499,11 @@ impl Module for NormalModule {
       )));
       self.diagnostics.push(diagnostic);
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      let hash = self.init_build_hash(&build_context.compiler_options.output, &self.build_meta);
+      self.build_info_mut().hash = Some(hash);
+      let build_info = self.take_build_info();
       return Ok(BuildResult {
+        build_info,
         module: BoxModule::new(self),
         dependencies: Vec::new(),
         blocks: Vec::new(),
@@ -505,27 +537,30 @@ impl Module for NormalModule {
     };
     let source = self.create_source(content, loader_result.source_map)?;
 
-    self.build_info.cacheable = loader_result.cacheable;
-    self.build_info.file_dependencies = loader_result
-      .file_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.context_dependencies = loader_result
-      .context_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.missing_dependencies = loader_result
-      .missing_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
-    self.build_info.build_dependencies = loader_result
-      .build_dependencies
-      .into_iter()
-      .map(Into::into)
-      .collect();
+    {
+      let build_info = self.build_info_mut();
+      build_info.cacheable = loader_result.cacheable;
+      build_info.file_dependencies = loader_result
+        .file_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      build_info.context_dependencies = loader_result
+        .context_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      build_info.missing_dependencies = loader_result
+        .missing_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+      build_info.build_dependencies = loader_result
+        .build_dependencies
+        .into_iter()
+        .map(Into::into)
+        .collect();
+    }
 
     if no_parse {
       self.parsed = false;
@@ -533,10 +568,12 @@ impl Module for NormalModule {
       self.code_generation_dependencies = Some(Vec::new());
       self.presentational_dependencies = Some(Vec::new());
 
-      self.build_info.hash =
-        Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+      let hash = self.init_build_hash(&build_context.compiler_options.output, &self.build_meta);
+      self.build_info_mut().hash = Some(hash);
 
+      let build_info = self.take_build_info();
       return Ok(BuildResult {
+        build_info,
         module: BoxModule::new(self),
         dependencies: vec![],
         blocks: vec![],
@@ -571,7 +608,10 @@ impl Module for NormalModule {
         compiler_options: &build_context.compiler_options,
         additional_data: loader_result.additional_data,
         factory_meta: self.factory_meta.as_ref(),
-        build_info: &mut self.build_info,
+        build_info: self
+          .build_info
+          .as_deref_mut()
+          .expect("NormalModule BuildInfo should be available while parsing"),
         build_meta: &mut self.build_meta,
         parse_meta: loader_result.parse_meta,
         runtime_template: &build_context.runtime_template,
@@ -600,10 +640,12 @@ impl Module for NormalModule {
     self.code_generation_dependencies = Some(code_generation_dependencies);
     self.presentational_dependencies = Some(presentational_dependencies);
 
-    self.build_info.hash =
-      Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
+    let hash = self.init_build_hash(&build_context.compiler_options.output, &self.build_meta);
+    self.build_info_mut().hash = Some(hash);
 
+    let build_info = self.take_build_info();
     Ok(BuildResult {
+      build_info,
       module: BoxModule::new(self),
       dependencies,
       blocks,
@@ -685,7 +727,17 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.build_info.hash.dyn_hash(&mut hasher);
+    compilation
+      .get_module_graph()
+      .build_info_by_identifier(&self.id)
+      .and_then(|build_info| build_info.hash.as_ref())
+      .or(
+        self
+          .build_info
+          .as_ref()
+          .and_then(|build_info| build_info.hash.as_ref()),
+      )
+      .dyn_hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {
       self
@@ -824,20 +876,16 @@ impl Module for NormalModule {
     self.factory_meta = Some(factory_meta);
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
-  }
-
   fn build_meta(&self) -> &BuildMeta {
     &self.build_meta
   }
 
   fn build_meta_mut(&mut self) -> &mut BuildMeta {
     &mut self.build_meta
+  }
+
+  fn take_build_info(&mut self) -> Box<BuildInfo> {
+    self.build_info.take().unwrap_or_default()
   }
 }
 

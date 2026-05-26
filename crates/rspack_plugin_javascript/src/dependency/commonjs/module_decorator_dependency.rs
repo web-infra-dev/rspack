@@ -141,7 +141,8 @@ impl DependencyTemplate for ModuleDecoratorDependencyTemplate {
     init_fragments.push(Box::new(NormalInitFragment::new(
       format!(
         "/* module decorator */ {module} = {decorator}({module});\n",
-        module = runtime_template.render_module_argument(module.get_module_argument()),
+        module = runtime_template
+          .render_module_argument(module.get_module_argument(compilation.get_module_graph())),
         decorator = runtime_template.render_runtime_globals(&dep.decorator),
       ),
       InitFragmentStage::StageProvides,

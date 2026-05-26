@@ -185,9 +185,10 @@ impl Module for ContainerEntryModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
 
@@ -235,6 +236,7 @@ impl Module for ContainerEntryModule {
     // I will add `name` field to struct.
 
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies,
       blocks,

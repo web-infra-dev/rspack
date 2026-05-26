@@ -6,7 +6,7 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
+  BoxDependency, BoxModule, BuildInfo, Compilation, CompilationOptimizeChunkModules, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
@@ -735,7 +735,7 @@ impl ModuleConcatenationPlugin {
           return (false, false, module_id, bailout_reason);
         }
 
-        if !m.build_info().strict {
+        if !module_graph.build_info(&module_id).strict {
           bailout_reason.push("Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
@@ -1210,7 +1210,7 @@ impl ModuleConcatenationPlugin {
         let s = unsafe { token.used(&*compilation) };
         s.spawn(move |compilation| async move {
           let modules_set = config.get_modules();
-          let new_module = create_concatenated_module(compilation, &config).await?;
+          let (new_module, build_info) = create_concatenated_module(compilation, &config).await?;
           let new_module_id = new_module.identifier();
           let connections = prepare_concatenated_module_connections(
             compilation,
@@ -1244,6 +1244,7 @@ impl ModuleConcatenationPlugin {
             connections,
             root_outgoings,
             root_incomings,
+            build_info,
             config,
           ))
         });
@@ -1260,10 +1261,10 @@ impl ModuleConcatenationPlugin {
     let mut remove_connection_tasks = vec![];
 
     for res in new_modules {
-      let (new_module, outgoings, root_outgoings, root_incomings, config) = res?;
+      let (new_module, outgoings, root_outgoings, root_incomings, build_info, config) = res?;
       let new_module_id = new_module.identifier();
       let root_module_id = config.root_module;
-      add_concatenated_module(compilation, new_module, config);
+      add_concatenated_module(compilation, new_module, build_info, config);
 
       for connection in outgoings.iter().chain(root_outgoings.iter()) {
         set_original_mid_tasks.push((*connection, new_module_id));
@@ -1351,7 +1352,7 @@ pub struct NoRuntimeModuleCache {
 async fn create_concatenated_module(
   compilation: &Compilation,
   config: &ConcatConfiguration,
-) -> Result<BoxModule> {
+) -> Result<(BoxModule, BuildInfo)> {
   let module_graph = compilation.get_module_graph();
   let root_module_id = config.root_module;
   let modules_set = config.get_modules();
@@ -1394,8 +1395,8 @@ async fn create_concatenated_module(
     ),
     factory_meta: root_module.factory_meta().cloned(),
     build_meta: root_module.build_meta().clone(),
-    module_argument: root_module.get_module_argument(),
-    exports_argument: root_module.get_exports_argument(),
+    module_argument: root_module.get_module_argument(module_graph),
+    exports_argument: root_module.get_exports_argument(module_graph),
   };
   let modules = modules_set
     .iter()
@@ -1426,9 +1427,11 @@ async fn create_concatenated_module(
     config.runtime.clone(),
     compilation,
   )));
+  let build_info = new_module.take_build_info();
   let build_result = new_module
     .build(
       rspack_core::BuildContext {
+        build_info,
         compiler_id: compilation.compiler_id(),
         compilation_id: compilation.id(),
         resolver_factory: compilation.resolver_factory.clone(),
@@ -1442,7 +1445,7 @@ async fn create_concatenated_module(
     .await?;
   new_module = build_result.module;
 
-  Ok(new_module)
+  Ok((new_module, *build_result.build_info))
 }
 
 fn prepare_concatenated_module_connections<F>(
@@ -1536,6 +1539,7 @@ where
 fn add_concatenated_module(
   compilation: &mut Compilation,
   new_module: BoxModule,
+  build_info: BuildInfo,
   config: ConcatConfiguration,
 ) {
   let root_module_id = config.root_module;
@@ -1551,8 +1555,10 @@ fn add_concatenated_module(
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   let module_graph = compilation.get_module_graph_mut();
 
-  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
+  let module_identifier = new_module.identifier();
+  let module_graph_module = ModuleGraphModule::new(module_identifier);
   module_graph.add_module_graph_module(module_graph_module);
+  module_graph.set_build_info(module_identifier, build_info);
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate
 

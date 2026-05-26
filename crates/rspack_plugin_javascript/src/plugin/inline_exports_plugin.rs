@@ -14,10 +14,10 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency};
 
 fn inline_enabled(dependency_id: &DependencyId, mg: &ModuleGraph) -> bool {
-  let module = mg
-    .get_module_by_dependency_id(dependency_id)
+  let module_identifier = mg
+    .module_identifier_by_dependency_id(dependency_id)
     .expect("should have target module");
-  module.build_info().inline_exports
+  mg.build_info(module_identifier).inline_exports
 }
 
 pub fn is_export_inlined(

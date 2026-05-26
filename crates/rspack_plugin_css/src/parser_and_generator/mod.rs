@@ -187,7 +187,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(
+    &self,
+    module: &dyn Module,
+    _build_info: Option<&rspack_core::BuildInfo>,
+    source_type: Option<&SourceType>,
+  ) -> f64 {
     match source_type.unwrap_or(&SourceType::Css) {
       SourceType::JavaScript => 42.0,
       SourceType::Css => module.source().map_or(0, |source| source.size()) as f64,

@@ -144,8 +144,13 @@ impl ModuleExecutor {
     let module_assets = std::mem::take(&mut self.module_assets);
     for (original_module_identifier, assets) in module_assets {
       // recursive import module may not exist the module, just skip it
-      if let Some(module) = mg.module_by_identifier_mut(&original_module_identifier) {
-        module.build_info_mut().assets.extend(assets);
+      if mg
+        .module_by_identifier(&original_module_identifier)
+        .is_some()
+      {
+        mg.build_info_mut_by_identifier(&original_module_identifier)
+          .assets
+          .extend(assets);
       }
     }
 

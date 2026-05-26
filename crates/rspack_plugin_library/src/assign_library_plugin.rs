@@ -399,7 +399,13 @@ async fn embed_in_runtime_bailout(
     .data
     .get::<CodeGenerationDataTopLevelDeclarations>()
     .map(|d| d.inner())
-    .or_else(|| module.build_info().top_level_declarations.as_ref());
+    .or_else(|| {
+      compilation
+        .get_module_graph()
+        .build_info(&module.identifier())
+        .top_level_declarations
+        .as_ref()
+    });
   if let Some(top_level_decls) = top_level_decls {
     let full_name = self
       .get_resolved_full_name(&options, compilation, chunk)

@@ -69,13 +69,13 @@ pub use self::{
   runtime_requirements::RuntimeRequirementsPass,
 };
 use crate::{
-  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, CacheCount,
-  CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact, CgmRuntimeRequirementsArtifact,
-  Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact, ChunkRenderArtifact,
-  ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey, CodeGenerateCacheArtifact,
-  CodeGenerationJob, CodeGenerationResult, CodeGenerationResults, CompilationLogger,
-  CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
+  AsyncModulesArtifact, BindingCell, BoxDependency, BoxModule, BuildChunkGraphArtifact, BuildInfo,
+  CacheCount, CacheOptions, CgcRuntimeRequirementsArtifact, CgmHashArtifact,
+  CgmRuntimeRequirementsArtifact, Chunk, ChunkByUkey, ChunkContentHash, ChunkGraph,
+  ChunkGroupByUkey, ChunkGroupUkey, ChunkHashesArtifact, ChunkKind, ChunkNamedIdArtifact,
+  ChunkRenderArtifact, ChunkRenderCacheArtifact, ChunkRenderResult, ChunkUkey,
+  CodeGenerateCacheArtifact, CodeGenerationJob, CodeGenerationResult, CodeGenerationResults,
+  CompilationLogger, CompilationLogging, CompilerOptions, CompilerPlatform, ConcatenationScope,
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
@@ -96,10 +96,10 @@ use crate::{
 };
 
 define_hook!(CompilationAddEntry: Series(entry_name: Option<&str>, options: &mut EntryOptions));
-define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
+define_hook!(CompilationBuildModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule, build_info: &mut BuildInfo),tracing=false);
 define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoked_modules: &IdentifierSet));
-define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
-define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
+define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule, build_info: &mut BuildInfo));
+define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule, build_info: &mut BuildInfo),tracing=false);
 define_hook!(CompilationExecuteModule:
   Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, side_effects_state_artifact: &mut SideEffectsStateArtifact));

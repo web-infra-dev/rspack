@@ -31,6 +31,7 @@ async fn build_module(
   _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
+  _build_info: &mut rspack_core::BuildInfo,
 ) -> Result<()> {
   if self.module {
     module.set_source_map_kind(SourceMapKind::SourceMap);

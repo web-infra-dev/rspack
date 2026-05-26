@@ -3,7 +3,7 @@ use std::fmt;
 use rspack_cacheable::{cacheable, with::Skip};
 use rustc_hash::FxHashSet;
 
-use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
+use crate::{BuildInfo, DependencyId, ModuleIdentifier, ModuleIssuer};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -54,6 +54,8 @@ pub struct ModuleGraphModule {
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
   pub optimization_bailout: Vec<OptimizationBailoutItem>,
+  #[cacheable(with=Skip)]
+  pub(crate) build_info: Option<Box<BuildInfo>>,
 }
 
 impl ModuleGraphModule {
@@ -69,6 +71,7 @@ impl ModuleGraphModule {
       post_order_index: None,
       depth: None,
       optimization_bailout: vec![],
+      build_info: None,
     }
   }
 
@@ -120,5 +123,17 @@ impl ModuleGraphModule {
 
   pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<OptimizationBailoutItem> {
     &mut self.optimization_bailout
+  }
+
+  pub(crate) fn build_info(&self) -> Option<&BuildInfo> {
+    self.build_info.as_deref()
+  }
+
+  pub(crate) fn build_info_mut(&mut self) -> Option<&mut BuildInfo> {
+    self.build_info.as_deref_mut()
+  }
+
+  pub(crate) fn set_build_info(&mut self, build_info: Box<BuildInfo>) {
+    self.build_info = Some(build_info);
   }
 }

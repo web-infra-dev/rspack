@@ -8,9 +8,9 @@ use rustc_hash::FxHashSet;
 
 use super::alternatives::{TempDependency, TempModule};
 use crate::{
-  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, Dependency,
-  DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection, ModuleGraphModule,
-  ModuleIdentifier, RayonConsumer,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildInfo,
+  Dependency, DependencyId, DependencyParents, ModuleGraph, ModuleGraphConnection,
+  ModuleGraphModule, ModuleIdentifier, RayonConsumer,
   cache::persistent::{codec::CacheCodec, storage::Storage},
   compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
 };
@@ -21,6 +21,7 @@ pub const SCOPE: &str = "occasion_make_module_graph";
 #[cacheable]
 struct Node<'a> {
   pub mgm: OwnedOrRef<'a, ModuleGraphModule>,
+  pub build_info: OwnedOrRef<'a, BuildInfo>,
   pub module: OwnedOrRef<'a, BoxModule>,
   pub dependencies: Vec<(
     OwnedOrRef<'a, BoxDependency>,
@@ -55,6 +56,7 @@ pub fn save_module_graph(
       let module = mg
         .module_by_identifier(identifier)
         .expect("should have module");
+      let build_info = mg.build_info(identifier);
       let blocks = module
         .get_blocks()
         .par_iter()
@@ -84,6 +86,7 @@ pub fn save_module_graph(
         .map(|lazy_deps| lazy_deps.into());
       let mut node = Node {
         mgm: mgm.into(),
+        build_info: build_info.into(),
         module: module.into(),
         dependencies,
         connections,
@@ -141,6 +144,7 @@ pub async fn recovery_module_graph(
     .with_max_len(1)
     .consume(|node| {
       let mgm = node.mgm.into_owned();
+      let build_info = node.build_info.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();
@@ -167,7 +171,9 @@ pub async fn recovery_module_graph(
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
+      let module_identifier = module.identifier();
       mg.add_module_graph_module(mgm);
+      mg.set_build_info(module_identifier, build_info);
       mg.add_module(module);
     });
   // recovery incoming connections

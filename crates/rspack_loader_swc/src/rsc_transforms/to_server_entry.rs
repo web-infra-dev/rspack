@@ -1,5 +1,5 @@
 use indoc::formatdoc;
-use rspack_core::{Module as RspackCoreModule, NormalModule, RscModuleType};
+use rspack_core::{BuildInfo, Module as RspackCoreModule, NormalModule, RscModuleType};
 use rspack_error::Result;
 use rspack_util::json_stringify_str;
 use swc::atoms::Wtf8Atom;
@@ -82,7 +82,7 @@ fn to_esm_server_entry(resource: &str, server_refs: &[Wtf8Atom]) -> Result<Strin
   Ok(esm_source)
 }
 
-pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
+pub fn to_server_entry(module: &NormalModule, build_info: &BuildInfo) -> Result<Option<String>> {
   if module
     .get_layer()
     .is_none_or(|layer| layer != "react-server-components")
@@ -90,7 +90,7 @@ pub fn to_server_entry(module: &NormalModule) -> Result<Option<String>> {
     return Ok(None);
   }
 
-  let Some(rsc) = module.build_info().rsc.as_ref() else {
+  let Some(rsc) = build_info.rsc.as_ref() else {
     return Ok(None);
   };
 

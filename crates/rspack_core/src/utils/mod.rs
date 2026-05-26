@@ -160,10 +160,10 @@ pub fn get_module_hashbang(
       // For concatenated modules, get the root module's build_info
       let root_module_id = concatenated_module.get_root();
       module_graph
-        .module_by_identifier(&root_module_id)
-        .map_or_else(|| module.build_info(), |m| m.build_info())
+        .build_info_by_identifier(&root_module_id)
+        .unwrap_or_else(|| module_graph.build_info(module_id))
     } else {
-      module.build_info()
+      module_graph.build_info(module_id)
     };
 
   build_info
@@ -187,10 +187,10 @@ pub fn get_module_directives(
       // For concatenated modules, get the root module's build_info
       let root_module_id = concatenated_module.get_root();
       module_graph
-        .module_by_identifier(&root_module_id)
-        .map_or_else(|| module.build_info(), |m| m.build_info())
+        .build_info_by_identifier(&root_module_id)
+        .unwrap_or_else(|| module_graph.build_info(module_id))
     } else {
-      module.build_info()
+      module_graph.build_info(module_id)
     };
 
   build_info

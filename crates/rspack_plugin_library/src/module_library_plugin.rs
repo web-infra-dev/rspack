@@ -89,7 +89,7 @@ async fn render_startup(
     module_graph,
     &compilation.module_graph_cache_artifact,
     &compilation.exports_info_artifact,
-    boxed_module.build_info().strict,
+    module_graph.build_info(module).strict,
   );
   for export_info in exports_info.exports().values() {
     if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {

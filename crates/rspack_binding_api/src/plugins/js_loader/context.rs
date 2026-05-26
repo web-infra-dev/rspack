@@ -127,13 +127,18 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
-    let module = &cx.context.module;
-
     #[allow(clippy::unwrap_used)]
+    let build_info_ptr =
+      NonNull::new(cx.context.build_info_mut() as *mut rspack_core::BuildInfo).unwrap();
+    let module = &mut cx.context.module;
+    #[allow(clippy::unwrap_used)]
+    let module_ptr = NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap();
+
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module).unwrap(),
+      module: ModuleObject::with_ptr_and_build_info(
+        module_ptr,
+        build_info_ptr,
         cx.context.compiler_id,
       ),
       hot: cx.hot,

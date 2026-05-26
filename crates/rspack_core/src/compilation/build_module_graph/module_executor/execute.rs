@@ -145,7 +145,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         continue;
       }
       let module = mg.module_by_identifier(&m).expect("should have module");
-      let build_info = module.build_info();
+      let build_info = mg
+        .build_info_by_identifier(&m)
+        .expect("should have module build info");
       execute_result
         .file_dependencies
         .extend(build_info.file_dependencies.iter().cloned());

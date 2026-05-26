@@ -101,13 +101,14 @@ fn traverse_module(
   if resource.is_empty() {
     return;
   }
+  let module_graph = compilation.get_module_graph();
 
   // A nested `use server-entry` starts an independent ownership scope.
   // CSS below it belongs to the nested entry, not to its parent entry.
-  let server_entry = is_server_entry_module(module).then(|| resource.to_string());
+  let server_entry = is_server_entry_module(module_graph, module).then(|| resource.to_string());
   let current_server_entry = server_entry.as_deref().or(current_server_entry);
 
-  if get_module_rsc_information(module).is_some_and(|rsc| rsc.import_meta_rsc)
+  if get_module_rsc_information(module_graph, module).is_some_and(|rsc| rsc.import_meta_rsc)
     && let Some(server_entry) = current_server_entry
   {
     component_info
@@ -130,8 +131,9 @@ fn traverse_module(
   }
 
   let is_first_visit_client_module = visited_client_modules.insert(module.identifier());
-  if is_client_component_entry_module(module) {
+  if is_client_component_entry_module(module_graph, module) {
     record_client_component_import(
+      module_graph,
       module,
       resource.as_ref(),
       imported_identifiers,
@@ -153,10 +155,9 @@ fn traverse_module(
   }
 
   if is_first_visit_client_module {
-    collect_once_per_module(module, resource.as_ref(), component_info);
+    collect_once_per_module(module_graph, module, resource.as_ref(), component_info);
   }
 
-  let module_graph = compilation.get_module_graph();
   for dependency_id in module_graph.get_outgoing_deps_in_order(&module.identifier()) {
     let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
       continue;
@@ -225,6 +226,7 @@ fn record_css_import(
 }
 
 fn record_client_component_import(
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   resource: &str,
   imported_identifiers: &[Atom],
@@ -240,12 +242,14 @@ fn record_client_component_import(
   {
     if is_under_server_dynamic_import {
       add_client_import_to_scope(
+        module_graph,
         module,
         resource,
         imported_identifiers,
         &mut component_info.client_component_imports,
       );
       add_client_import_to_scope(
+        module_graph,
         module,
         resource,
         imported_identifiers,
@@ -255,6 +259,7 @@ fn record_client_component_import(
     }
 
     add_client_import_for_server_entry(
+      module_graph,
       module,
       resource,
       imported_identifiers,
@@ -265,6 +270,7 @@ fn record_client_component_import(
 }
 
 fn collect_once_per_module(
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   resource: &str,
   component_info: &mut ComponentInfo,
@@ -277,7 +283,7 @@ fn collect_once_per_module(
     component_info.should_inject_ssr_modules = true;
   }
 
-  let actions = get_actions_from_build_info(module);
+  let actions = get_actions_from_build_info(module_graph, module);
   if let Some(actions) = actions {
     component_info.action_imports.push((
       resource.to_string(),
@@ -310,6 +316,7 @@ fn get_imported_ids(module_graph: &ModuleGraph, dependency_id: &DependencyId) ->
 }
 
 fn add_client_import_for_server_entry(
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   resource: &str,
   imported_identifiers: &[Atom],
@@ -317,6 +324,7 @@ fn add_client_import_for_server_entry(
   component_info: &mut ComponentInfo,
 ) {
   add_client_import_to_scope(
+    module_graph,
     module,
     resource,
     imported_identifiers,
@@ -325,6 +333,7 @@ fn add_client_import_for_server_entry(
 
   let Some(server_entry) = current_server_entry else {
     add_client_import_to_scope(
+      module_graph,
       module,
       resource,
       imported_identifiers,
@@ -338,6 +347,7 @@ fn add_client_import_for_server_entry(
     .entry(server_entry.to_string())
     .or_default();
   add_client_import_to_scope(
+    module_graph,
     module,
     resource,
     imported_identifiers,
@@ -346,6 +356,7 @@ fn add_client_import_for_server_entry(
 }
 
 fn add_client_import_to_scope(
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   mod_request: &str,
   imported_identifiers: &[Atom],
@@ -356,6 +367,7 @@ fn add_client_import_to_scope(
     client_component_imports.insert(mod_request.to_string(), Default::default());
   }
   add_client_import(
+    module_graph,
     module,
     mod_request,
     imported_identifiers,
@@ -365,16 +377,20 @@ fn add_client_import_to_scope(
 }
 
 fn add_client_import(
+  module_graph: &ModuleGraph,
   module: &dyn Module,
   mod_request: &str,
   imported_identifiers: &[Atom],
   is_first_visit_module: bool,
   client_component_imports: &mut ClientComponentImports,
 ) {
-  let rsc = get_module_rsc_information(module);
+  let rsc = get_module_rsc_information(module_graph, module);
   let is_cjs_module = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
-  let assumed_source_type =
-    get_assumed_source_type(module, if is_cjs_module { "commonjs" } else { "auto" });
+  let assumed_source_type = get_assumed_source_type(
+    module_graph,
+    module,
+    if is_cjs_module { "commonjs" } else { "auto" },
+  );
 
   let client_imports_set: &mut FxIndexSet<Atom> = client_component_imports
     .entry(mod_request.to_string())
@@ -415,19 +431,25 @@ fn add_client_import(
 }
 
 // Gives { id: name } record of actions from the build info.
-fn get_actions_from_build_info(module: &dyn Module) -> Option<&FxIndexMap<Atom, Atom>> {
-  let rsc = get_module_rsc_information(module)?;
+fn get_actions_from_build_info<'a>(
+  module_graph: &'a ModuleGraph,
+  module: &dyn Module,
+) -> Option<&'a FxIndexMap<Atom, Atom>> {
+  let rsc = get_module_rsc_information(module_graph, module)?;
   Some(&rsc.action_ids)
 }
 
-fn get_module_rsc_information(module: &dyn Module) -> Option<&RscMeta> {
-  module.build_info().rsc.as_ref()
+fn get_module_rsc_information<'a>(
+  module_graph: &'a ModuleGraph,
+  module: &dyn Module,
+) -> Option<&'a RscMeta> {
+  module_graph.build_info(&module.identifier()).rsc.as_ref()
 }
 
-fn is_client_component_entry_module(module: &dyn Module) -> bool {
-  let rsc = get_module_rsc_information(module);
+fn is_client_component_entry_module(module_graph: &ModuleGraph, module: &dyn Module) -> bool {
+  let rsc = get_module_rsc_information(module_graph, module);
   let has_client_directive = matches!(rsc, Some(rsc) if rsc.module_type == RscModuleType::Client);
-  let is_action_layer_entry = is_action_client_layer_module(module);
+  let is_action_layer_entry = is_action_client_layer_module(module_graph, module);
   let is_image = if let Some(module) = module.as_normal_module() {
     IMAGE_REGEX.is_match(module.resource_resolved_data().resource())
   } else {
@@ -436,20 +458,24 @@ fn is_client_component_entry_module(module: &dyn Module) -> bool {
   has_client_directive || is_action_layer_entry || is_image
 }
 
-fn is_server_entry_module(module: &dyn Module) -> bool {
-  get_module_rsc_information(module)
+fn is_server_entry_module(module_graph: &ModuleGraph, module: &dyn Module) -> bool {
+  get_module_rsc_information(module_graph, module)
     .is_some_and(|rsc| rsc.module_type == RscModuleType::ServerEntry)
 }
 
 // Determine if the whole module is client action, 'use server' in nested closure in the client module
-fn is_action_client_layer_module(module: &dyn Module) -> bool {
-  let rsc = get_module_rsc_information(module);
+fn is_action_client_layer_module(module_graph: &ModuleGraph, module: &dyn Module) -> bool {
+  let rsc = get_module_rsc_information(module_graph, module);
   matches!(&rsc, Some(rsc) if !rsc.action_ids.is_empty())
     && matches!(&rsc, Some(rsc) if rsc.module_type == RscModuleType::Client)
 }
 
-fn get_assumed_source_type<'a>(module: &dyn Module, source_type: &'a str) -> &'a str {
-  let rsc = get_module_rsc_information(module);
+fn get_assumed_source_type<'a>(
+  module_graph: &ModuleGraph,
+  module: &dyn Module,
+  source_type: &'a str,
+) -> &'a str {
+  let rsc = get_module_rsc_information(module_graph, module);
   let is_cjs = rsc.as_ref().is_some_and(|rsc| rsc.is_cjs);
   let client_refs: &[Wtf8Atom] = rsc
     .as_ref()

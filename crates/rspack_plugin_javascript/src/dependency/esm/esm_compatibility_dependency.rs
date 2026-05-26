@@ -64,7 +64,8 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
         format!(
           "{}({});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::MAKE_NAMESPACE_OBJECT),
-          runtime_template.render_exports_argument(module.get_exports_argument()),
+          runtime_template
+            .render_exports_argument(module.get_exports_argument(compilation.get_module_graph())),
         ),
         InitFragmentStage::StageESMExports,
         0,
@@ -82,7 +83,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
             module_graph
               .module_by_identifier(&module.identifier())
               .expect("should have mgm")
-              .get_module_argument()
+              .get_module_argument(module_graph)
           ),
         ),
         InitFragmentStage::StageAsyncBoundary,

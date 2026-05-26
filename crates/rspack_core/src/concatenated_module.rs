@@ -811,20 +811,16 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.factory_meta = Some(v);
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
-  }
-
   fn build_meta(&self) -> &BuildMeta {
     &self.root_module_ctxt.build_meta
   }
 
   fn build_meta_mut(&mut self) -> &mut BuildMeta {
     &mut self.root_module_ctxt.build_meta
+  }
+
+  fn take_build_info(&mut self) -> Box<BuildInfo> {
+    Box::new(std::mem::take(&mut self.build_info))
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -865,20 +861,19 @@ impl Module for ConcatenatedModule {
   /// the compilation is asserted to be `Some(Compilation)`, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ModuleConcatenationPlugin.js#L394-L418
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
     let modules: IdentifierSet = self.modules.iter().map(|item| item.id).collect();
 
-    let root_module = module_graph
-      .module_by_identifier(&self.root_module_ctxt.id)
-      .expect("should have root module");
-
     // populate root inline_exports
-    self.build_info.inline_exports = root_module.build_info().inline_exports;
+    self.build_info.inline_exports = module_graph
+      .build_info(&self.root_module_ctxt.id)
+      .inline_exports;
 
     let dependency_parts = self
       .modules
@@ -909,7 +904,7 @@ impl Module for ConcatenatedModule {
       let module = module_graph
         .module_by_identifier(&m.id)
         .expect("should have module");
-      let cur_build_info = module.build_info();
+      let cur_build_info = module_graph.build_info(&m.id);
 
       // populate cacheable
       if !cur_build_info.cacheable {
@@ -924,7 +919,7 @@ impl Module for ConcatenatedModule {
       self.diagnostics.extend(module.diagnostics().into_owned());
 
       // populate topLevelDeclarations
-      let module_build_info = module.build_info();
+      let module_build_info = module_graph.build_info(&m.id);
       if let Some(decls) = &module_build_info.top_level_declarations
         && let Some(top_level_declarations) = &mut self.build_info.top_level_declarations
       {
@@ -945,6 +940,7 @@ impl Module for ConcatenatedModule {
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
@@ -1636,7 +1632,10 @@ impl Module for ConcatenatedModule {
         })
         .collect();
 
-      let exports_argument = self.get_exports_argument();
+      let exports_argument = compilation
+        .get_module_graph()
+        .build_info(&self.id)
+        .exports_argument;
 
       let should_skip_render_definitions = compilation
         .plugin_driver
@@ -1655,7 +1654,7 @@ impl Module for ConcatenatedModule {
         if should_add_esm_flag {
           result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
           result.add(RawStringSource::from(
-            runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
+            runtime_template.define_es_module_flag_statement(exports_argument),
           ));
         }
 

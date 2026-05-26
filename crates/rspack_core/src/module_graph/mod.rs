@@ -23,7 +23,7 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
+  BoxDependency, BoxModule, BuildInfo, DependencyCondition, DependencyId, ExportsInfoArtifact,
   ModuleIdentifier,
 };
 
@@ -373,10 +373,24 @@ impl ModuleGraph {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
+    let module_identifier = module_graph_module.module_identifier;
     self
       .inner
       .module_graph_modules
-      .insert(module_graph_module.module_identifier, module_graph_module);
+      .insert(module_identifier, module_graph_module);
+  }
+
+  pub fn set_build_info(&mut self, identifier: ModuleIdentifier, build_info: BuildInfo) {
+    self.set_build_info_box(identifier, Box::new(build_info));
+  }
+
+  pub fn set_build_info_box(&mut self, identifier: ModuleIdentifier, build_info: Box<BuildInfo>) {
+    self
+      .inner
+      .module_graph_modules
+      .get_mut(&identifier)
+      .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"))
+      .set_build_info(build_info);
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -773,6 +787,18 @@ impl ModuleGraph {
     self.inner.module_graph_modules.get(identifier)
   }
 
+  pub fn build_info_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BuildInfo> {
+    self
+      .module_graph_module_by_identifier(identifier)
+      .and_then(ModuleGraphModule::build_info)
+  }
+
+  pub fn build_info(&self, identifier: &ModuleIdentifier) -> &BuildInfo {
+    self
+      .build_info_by_identifier(identifier)
+      .unwrap_or_else(|| panic!("BuildInfo with identifier {identifier:?} not found"))
+  }
+
   /// Get a mutable module graph module by identifier, panicking if not found.
   ///
   /// **PREFERRED METHOD**: Use this for all internal code where the module graph module
@@ -788,6 +814,17 @@ impl ModuleGraph {
       .module_graph_modules
       .get_mut(identifier)
       .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"))
+  }
+
+  pub fn build_info_mut_by_identifier(&mut self, identifier: &ModuleIdentifier) -> &mut BuildInfo {
+    let mgm = self.module_graph_module_by_identifier_mut(identifier);
+    if mgm.build_info().is_none() {
+      mgm.set_build_info(Box::new(BuildInfo::default()));
+    }
+
+    mgm
+      .build_info_mut()
+      .unwrap_or_else(|| panic!("BuildInfo with identifier {identifier:?} not found"))
   }
 
   pub fn get_ordered_outgoing_connections(
@@ -960,8 +997,8 @@ impl ModuleGraph {
 
   pub fn get_module_hash(&self, module_id: &ModuleIdentifier) -> Option<&RspackHashDigest> {
     self
-      .module_by_identifier(module_id)
-      .and_then(|m| m.build_info().hash.as_ref())
+      .build_info_by_identifier(module_id)
+      .and_then(|info| info.hash.as_ref())
   }
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different

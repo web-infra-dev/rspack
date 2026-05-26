@@ -93,9 +93,10 @@ impl Module for DelegatedModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let dependencies = vec![
       Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
       Box::new(StaticExportsDependency::new(
@@ -111,6 +112,7 @@ impl Module for DelegatedModule {
     ];
     self.build_meta = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],
@@ -184,7 +186,11 @@ impl Module for DelegatedModule {
     Ok(code_generation_result)
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build(
+    &self,
+    _build_info: &BuildInfo,
+    _value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     false
   }
 

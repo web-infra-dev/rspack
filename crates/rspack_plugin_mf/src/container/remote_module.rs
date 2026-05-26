@@ -156,6 +156,7 @@ impl Module for RemoteModule {
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let mut dependencies: Vec<BoxDependency> = Vec::new();
 
     if self.external_requests.len() == 1 {
@@ -189,6 +190,7 @@ impl Module for RemoteModule {
     }
 
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],

@@ -132,15 +132,17 @@ impl Module for FallbackModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
       dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],

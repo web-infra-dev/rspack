@@ -166,7 +166,12 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     SOURCE_TYPES
   }
 
-  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
+  fn size(
+    &self,
+    module: &dyn Module,
+    _build_info: Option<&rspack_core::BuildInfo>,
+    _source_type: Option<&SourceType>,
+  ) -> f64 {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
@@ -407,7 +412,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   fn get_concatenation_bailout_reason(
     &self,
     module: &dyn rspack_core::Module,
-    _mg: &ModuleGraph,
+    mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     // Only ES modules are valid for optimization
@@ -429,7 +434,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some("Module is not an ECMAScript module".into());
     }
 
-    if let Some(bailout) = module.build_info().module_concatenation_bailout.as_deref() {
+    if let Some(bailout) = mg
+      .build_info(&module.identifier())
+      .module_concatenation_bailout
+      .as_deref()
+    {
       return Some(format!("Module uses {bailout}").into());
     }
     None

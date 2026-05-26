@@ -1167,15 +1167,19 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
     module: &mut BoxModule,
+    build_info: &mut rspack_core::BuildInfo,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
-    let _ = self
+    let result = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr_and_build_info(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(build_info as *mut rspack_core::BuildInfo).unwrap(),
         compiler_id,
       ))
-      .await?;
+      .await;
+    ModuleObject::cleanup_build_info_ptr(&compiler_id, &module.identifier());
+    let _ = result?;
     Ok(())
   }
 
@@ -1191,15 +1195,19 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
     module: &mut BoxModule,
+    build_info: &mut rspack_core::BuildInfo,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
-    let _ = self
+    let result = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr_and_build_info(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(build_info as *mut rspack_core::BuildInfo).unwrap(),
         compiler_id,
       ))
-      .await?;
+      .await;
+    ModuleObject::cleanup_build_info_ptr(&compiler_id, &module.identifier());
+    let _ = result?;
     Ok(())
   }
 
@@ -1215,15 +1223,19 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     compiler_id: CompilerId,
     _compilation_id: CompilationId,
     module: &mut BoxModule,
+    build_info: &mut rspack_core::BuildInfo,
   ) -> rspack_error::Result<()> {
     #[allow(clippy::unwrap_used)]
-    let _ = self
+    let result = self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
+      .call_with_sync(ModuleObject::with_ptr_and_build_info(
         NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
+        NonNull::new(build_info as *mut rspack_core::BuildInfo).unwrap(),
         compiler_id,
       ))
-      .await?;
+      .await;
+    ModuleObject::cleanup_build_info_ptr(&compiler_id, &module.identifier());
+    let _ = result?;
     Ok(())
   }
 

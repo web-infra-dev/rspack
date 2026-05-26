@@ -20,6 +20,7 @@ use crate::{
 };
 
 pub fn collect_json_module_sizes(
+  module_graph: &ModuleGraph,
   modules: &IdentifierMap<&BoxModule>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> RsdoctorJsonModuleSizes {
@@ -30,7 +31,7 @@ pub fn collect_json_module_sizes(
       continue;
     }
 
-    let Some(json_data) = module.build_info().json_data.as_ref() else {
+    let Some(json_data) = module_graph.build_info(module_id).json_data.as_ref() else {
       continue;
     };
 

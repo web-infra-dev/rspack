@@ -74,7 +74,7 @@ impl DependencyTemplate for ModuleArgumentDependencyTemplate {
         .get_module_graph()
         .module_by_identifier(&module.identifier())
         .expect("should have mgm")
-        .get_module_argument(),
+        .get_module_argument(compilation.get_module_graph()),
     );
 
     let content = if let Some(id) = &dep.id {

@@ -72,7 +72,11 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
 
   fn generate_js_exports(&mut self) -> Result<()> {
     let module = self.module;
-    let build_info = module.build_info();
+    let build_info = self
+      .generate_context
+      .compilation
+      .get_module_graph()
+      .build_info(&module.identifier());
 
     if self.generate_context.concatenation_scope.is_some() {
       if let Some(ref exports) = build_info.css_exports {

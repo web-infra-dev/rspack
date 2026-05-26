@@ -48,10 +48,10 @@ pub(crate) fn has_impure_deferred_pure_checks(
         (*ref_module, deferred_check.atom.clone())
       };
 
-      let Some(ref_module) = module_graph.module_by_identifier(&ref_module_id) else {
+      let Some(build_info) = module_graph.build_info_by_identifier(&ref_module_id) else {
         return true;
       };
-      let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
+      let Some(side_effects_free) = &build_info.side_effects_free else {
         return true;
       };
 

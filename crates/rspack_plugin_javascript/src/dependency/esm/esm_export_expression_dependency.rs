@@ -198,7 +198,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         && let UsedName::Normal(used) = used
       {
         init_fragments.push(Box::new(ESMExportInitFragment::new(
-          module.get_exports_argument(),
+          module.get_exports_argument(compilation.get_module_graph()),
           vec![(
             used
               .iter()
@@ -241,7 +241,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
         if let UsedName::Normal(used) = used {
           if supports_const {
             init_fragments.push(Box::new(ESMExportInitFragment::new(
-              module.get_exports_argument(),
+              module.get_exports_argument(compilation.get_module_graph()),
               vec![(
                 used
                   .iter()
@@ -257,7 +257,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           } else {
             format!(
               r#"/* export default */ {}{} = "#,
-              runtime_template.render_exports_argument(module.get_exports_argument()),
+              runtime_template.render_exports_argument(
+                module.get_exports_argument(compilation.get_module_graph())
+              ),
               property_access(used, 0)
             )
           }

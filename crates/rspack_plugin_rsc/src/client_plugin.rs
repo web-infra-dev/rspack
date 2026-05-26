@@ -407,7 +407,12 @@ fn collect_actions(
   }
   visited_modules.insert(*module_identifier);
 
-  if let Some(action_ids) = module.build_info().rsc.as_ref().map(|rsc| &rsc.action_ids) {
+  if let Some(action_ids) = module_graph
+    .build_info(module_identifier)
+    .rsc
+    .as_ref()
+    .map(|rsc| &rsc.action_ids)
+  {
     let pairs = action_ids
       .into_iter()
       .map(|(id, exported_name)| (id.clone(), exported_name.clone()))

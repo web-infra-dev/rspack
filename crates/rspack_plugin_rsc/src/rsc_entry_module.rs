@@ -252,9 +252,10 @@ impl Module for RscEntryModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let all_client_modules = self.all_client_modules();
@@ -271,6 +272,7 @@ impl Module for RscEntryModule {
         dependencies.push(Box::new(dep));
       }
       Ok(BuildResult {
+        build_info: Box::new(std::mem::take(&mut self.build_info)),
         module: BoxModule::new(self),
         dependencies,
         blocks: vec![],
@@ -376,6 +378,7 @@ impl Module for RscEntryModule {
       }
 
       Ok(BuildResult {
+        build_info: Box::new(std::mem::take(&mut self.build_info)),
         module: BoxModule::new(self),
         dependencies,
         blocks,

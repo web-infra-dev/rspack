@@ -109,7 +109,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     )
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(
+    &self,
+    module: &dyn Module,
+    _build_info: Option<&rspack_core::BuildInfo>,
+    source_type: Option<&SourceType>,
+  ) -> f64 {
     match source_type.unwrap_or(&SourceType::Wasm) {
       SourceType::JavaScript => {
         40.0
@@ -135,8 +140,9 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       runtime_template,
       ..
     } = generate_context;
-    let hash = module
-      .build_info()
+    let hash = compilation
+      .get_module_graph()
+      .build_info(&module.identifier())
       .hash
       .as_ref()
       .map(|hash| hash.rendered(16))

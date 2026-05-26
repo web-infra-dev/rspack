@@ -96,11 +96,10 @@ impl BuildModuleGraphArtifact {
   /// This function will update index on MakeArtifact.
   pub fn revoke_module(&mut self, module_identifier: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mg = &mut self.module_graph;
-    let module = mg
-      .module_by_identifier(module_identifier)
-      .expect("should have module");
     // clean module build info
-    let build_info = module.build_info();
+    let build_info = mg
+      .build_info_by_identifier(module_identifier)
+      .expect("should have module build info");
     let resource_id = ResourceId::from(module_identifier);
     self
       .file_dependencies

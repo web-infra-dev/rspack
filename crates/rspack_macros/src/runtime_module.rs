@@ -201,14 +201,6 @@ pub fn impl_runtime_module(
 
       fn set_factory_meta(&mut self, v: ::rspack_core::FactoryMeta) {}
 
-      fn build_info(&self) -> &::rspack_core::BuildInfo {
-        unreachable!()
-      }
-
-      fn build_info_mut(&mut self) -> &mut ::rspack_core::BuildInfo {
-        unreachable!()
-      }
-
       fn build_meta(&self) -> &::rspack_core::BuildMeta {
         unreachable!()
       }
@@ -251,6 +243,7 @@ pub fn impl_runtime_module(
         _compilation: Option<&::rspack_core::Compilation>,
       ) -> ::rspack_error::Result<::rspack_core::BuildResult> {
         Ok(::rspack_core::BuildResult {
+          build_info: Default::default(),
           module: ::rspack_core::BoxModule::new(self),
           dependencies: vec![],
           blocks: vec![],

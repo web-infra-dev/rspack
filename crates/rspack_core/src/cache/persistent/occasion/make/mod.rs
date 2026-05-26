@@ -98,7 +98,9 @@ impl Occasion for MakeOccasion {
     let mut missing_dep = FileCounter::default();
     let mut build_dep = FileCounter::default();
     for (mid, module) in mg.modules() {
-      let build_info = module.build_info();
+      let build_info = mg
+        .build_info_by_identifier(mid)
+        .expect("should have module build info");
       let resource_id = ResourceId::from(*mid);
       file_dep.add_files(&resource_id, &build_info.file_dependencies);
       context_dep.add_files(&resource_id, &build_info.context_dependencies);

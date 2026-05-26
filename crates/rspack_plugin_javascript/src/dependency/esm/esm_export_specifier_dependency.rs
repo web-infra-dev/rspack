@@ -222,7 +222,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       ESMExportBinding::Getter(dep.value.clone())
     };
     init_fragments.push(Box::new(ESMExportInitFragment::new(
-      module.get_exports_argument(),
+      module.get_exports_argument(compilation.get_module_graph()),
       vec![(used_name, binding)],
       is_circular_module,
     )));

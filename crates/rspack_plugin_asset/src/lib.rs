@@ -348,8 +348,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       )
       .is_ok_and(|x| x.is_preserve());
 
-    if module
-      .build_info()
+    if module_graph
+      .build_info(&(module as &dyn Module).identifier())
       .asset_data_url
       .as_ref()
       .is_some_and(|x| x.is_source() || x.is_inline() || x.is_bytes())
@@ -389,7 +389,12 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
+  fn size(
+    &self,
+    module: &dyn Module,
+    build_info: Option<&rspack_core::BuildInfo>,
+    source_type: Option<&SourceType>,
+  ) -> f64 {
     let original_source_size = module.source().map_or(0, |source| source.size()) as f64;
     match source_type.unwrap_or(&SourceType::Asset) {
       SourceType::Asset => original_source_size,
@@ -398,27 +403,29 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           return 0.0;
         }
 
-        let parsed_size = module.build_info().asset_data_url.as_ref().map(|config| {
-          match config {
-            CanonicalizedDataUrlOption::Source | CanonicalizedDataUrlOption::Bytes => {
-              original_source_size
-            }
-            CanonicalizedDataUrlOption::Asset(is_inline) => {
-              if *is_inline {
-                // copied from webpack's AssetGenerator
-                // roughly for data url
-                // Example: m.exports="data:image/png;base64,ag82/f+2=="
-                // 4/3 = base64 encoding
-                // 34 = ~ data url header + footer + rounding
-                original_source_size * 1.34 + 36.0
-              } else {
-                // copied from webpack's AssetGenerator
-                // roughly for url
-                // Example: m.exports=r.p+"0123456789012345678901.ext"
-                42.0
+        let parsed_size = build_info.and_then(|build_info| {
+          build_info.asset_data_url.as_ref().map(|config| {
+            match config {
+              CanonicalizedDataUrlOption::Source | CanonicalizedDataUrlOption::Bytes => {
+                original_source_size
+              }
+              CanonicalizedDataUrlOption::Asset(is_inline) => {
+                if *is_inline {
+                  // copied from webpack's AssetGenerator
+                  // roughly for data url
+                  // Example: m.exports="data:image/png;base64,ag82/f+2=="
+                  // 4/3 = base64 encoding
+                  // 34 = ~ data url header + footer + rounding
+                  original_source_size * 1.34 + 36.0
+                } else {
+                  // copied from webpack's AssetGenerator
+                  // roughly for url
+                  // Example: m.exports=r.p+"0123456789012345678901.ext"
+                  42.0
+                }
               }
             }
-          }
+          })
         });
 
         parsed_size.unwrap_or_default()
@@ -491,8 +498,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     generate_context: &mut GenerateContext,
   ) -> Result<BoxSource> {
     let compilation = generate_context.compilation;
-    let parsed_asset_config = module
-      .build_info()
+    let parsed_asset_config = compilation
+      .get_module_graph()
+      .build_info(&(module as &dyn Module).identifier())
       .asset_data_url
       .as_ref()
       .expect("should have parsed_asset_config in generate phase");
@@ -753,8 +761,9 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    let parsed_asset_config = module
-      .build_info()
+    let parsed_asset_config = compilation
+      .get_module_graph()
+      .build_info(&(module as &dyn Module).identifier())
       .asset_data_url
       .as_ref()
       .expect("should have parsed_asset_config in generate phase");

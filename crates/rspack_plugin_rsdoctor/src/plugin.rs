@@ -276,7 +276,8 @@ async fn collect_json_sizes(&self, compilation: &mut Compilation) -> Result<Opti
     .map(|(id, module)| (*id, module))
     .collect::<IdentifierMap<_>>();
 
-  let json_sizes = collect_json_module_sizes(&modules, &compilation.exports_info_artifact);
+  let json_sizes =
+    collect_json_module_sizes(module_graph, &modules, &compilation.exports_info_artifact);
 
   JSON_MODULE_SIZE_MAP.insert(compilation.id(), json_sizes);
 

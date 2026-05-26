@@ -18,7 +18,6 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct TempModule {
   id: ModuleIdentifier,
-  build_info: BuildInfo,
   build_meta: BuildMeta,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -29,7 +28,6 @@ impl TempModule {
     let m = module.as_ref();
     OwnedOrRef::Owned(BoxModule::new(Box::new(Self {
       id: m.identifier(),
-      build_info: m.build_info().clone(),
       build_meta: m.build_meta().clone(),
       dependencies: m.get_dependencies().to_vec(),
       // clean all of blocks
@@ -61,14 +59,6 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn build_info(&self) -> &BuildInfo {
-    &self.build_info
-  }
-
-  fn build_info_mut(&mut self) -> &mut BuildInfo {
-    &mut self.build_info
-  }
-
   fn build_meta(&self) -> &BuildMeta {
     &self.build_meta
   }
@@ -97,7 +87,11 @@ impl Module for TempModule {
     unreachable!()
   }
 
-  fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {
+  fn need_build(
+    &self,
+    _build_info: &BuildInfo,
+    _value_cache_versions: &ValueCacheVersions,
+  ) -> bool {
     // return true to make sure this module always rebuild
     true
   }
@@ -123,6 +117,7 @@ impl Module for TempModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
+      build_info: Box::new(BuildInfo::default()),
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],

@@ -360,6 +360,7 @@ async fn build_module(
   _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
+  _build_info: &mut rspack_core::BuildInfo,
 ) -> Result<()> {
   self
     .active_modules
@@ -387,6 +388,7 @@ async fn succeed_module(
   _compiler_id: CompilerId,
   _compilation_id: CompilationId,
   module: &mut BoxModule,
+  _build_info: &mut rspack_core::BuildInfo,
 ) -> Result<()> {
   self.modules_done.fetch_add(1, Relaxed);
   self

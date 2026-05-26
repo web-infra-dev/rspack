@@ -32,8 +32,8 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
 
     // entry resource
     if source_types.is_empty()
-      && module
-        .build_info()
+      && module_graph
+        .build_info(&module.identifier())
         .asset_data_url
         .as_ref()
         .is_some_and(|config| !config.is_inline() && !config.is_source())
@@ -51,8 +51,13 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
     self.0.parse(parse_context).await
   }
 
-  fn size(&self, module: &dyn Module, source_type: Option<&SourceType>) -> f64 {
-    self.0.size(module, source_type)
+  fn size(
+    &self,
+    module: &dyn Module,
+    build_info: Option<&rspack_core::BuildInfo>,
+    source_type: Option<&SourceType>,
+  ) -> f64 {
+    self.0.size(module, build_info, source_type)
   }
 
   async fn generate(

@@ -40,12 +40,20 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     &[SourceType::JavaScript]
   }
 
-  fn size(&self, module: &dyn Module, _source_type: Option<&SourceType>) -> f64 {
-    module
-      .build_info()
-      .json_data
-      .as_ref()
-      .map_or(0.0, |data| stringify(data.clone()).len() as f64)
+  fn size(
+    &self,
+    module: &dyn Module,
+    build_info: Option<&rspack_core::BuildInfo>,
+    _source_type: Option<&SourceType>,
+  ) -> f64 {
+    build_info
+      .and_then(|build_info| {
+        build_info
+          .json_data
+          .as_ref()
+          .map(|data| stringify(data.clone()).len() as f64)
+      })
+      .unwrap_or_else(|| module.source().map_or(0.0, |source| source.size() as f64))
   }
 
   async fn parse<'a>(
@@ -179,17 +187,15 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     let module_graph = compilation.get_module_graph();
     match generate_context.requested_source_type {
       SourceType::JavaScript => {
-        let module = module_graph
-          .module_by_identifier(&module.identifier())
-          .expect("should have module identifier");
-        let json_data = module
-          .build_info()
+        let module_identifier = module.identifier();
+        let json_data = module_graph
+          .build_info(&module_identifier)
           .json_data
           .as_ref()
           .expect("should have json data");
         let exports_info = compilation
           .exports_info_artifact
-          .get_exports_info_data(&module.identifier());
+          .get_exports_info_data(&module_identifier);
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)

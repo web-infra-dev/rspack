@@ -48,15 +48,22 @@ impl Task<TaskContext> for BuildTask {
       forwarded_ids,
     } = *self;
 
+    let mut build_info = module.take_build_info();
     plugin_driver
       .compilation_hooks
       .build_module
-      .call(compiler_id, compilation_id, &mut module)
+      .call(
+        compiler_id,
+        compilation_id,
+        &mut module,
+        build_info.as_mut(),
+      )
       .await?;
 
     let result = module
       .build(
         BuildContext {
+          build_info,
           compiler_id,
           compilation_id,
           compiler_options: compiler_options.clone(),
@@ -98,14 +105,18 @@ impl Task<TaskContext> for BuildResultTask {
       mut forwarded_ids,
     } = *self;
     let mut module = build_result.module;
+    let mut build_info = build_result.build_info;
 
     plugin_driver
       .compilation_hooks
       .succeed_module
-      .call(context.compiler_id, context.compilation_id, &mut module)
+      .call(
+        context.compiler_id,
+        context.compilation_id,
+        &mut module,
+        build_info.as_mut(),
+      )
       .await?;
-
-    let build_info = module.build_info();
 
     if !module.diagnostics().is_empty() {
       context
@@ -186,6 +197,7 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
+    module_graph.set_build_info_box(module_identifier, build_info);
 
     module_graph.add_module(module);
 

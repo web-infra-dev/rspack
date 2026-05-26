@@ -1072,6 +1072,7 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
+    self.build_info = *build_context.build_info;
     self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
@@ -1116,6 +1117,7 @@ impl Module for ExternalModule {
     }
     self.build_meta.exports_type = exports_type;
     Ok(BuildResult {
+      build_info: Box::new(std::mem::take(&mut self.build_info)),
       module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,

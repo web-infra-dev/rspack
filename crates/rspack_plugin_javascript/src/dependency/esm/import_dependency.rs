@@ -129,7 +129,10 @@ impl Dependency for ImportDependency {
       create_referenced_exports_by_referenced_specifiers(
         referenced_specifiers,
         exports_type,
-        module.build_info().json_data.is_some(),
+        module_graph
+          .build_info(&module.identifier())
+          .json_data
+          .is_some(),
       )
     } else {
       create_exports_object_referenced()
