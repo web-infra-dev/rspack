@@ -19,11 +19,11 @@
     "mermaid": "^11.15.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "semver": "^7.7.4",
-    "tailwindcss": "^3.4.19"
+    "semver": "^7.7.4"
   },
   "devDependencies": {
     "@rsbuild/plugin-sass": "^1.5.2",
+    "@rsbuild/plugin-tailwindcss": "^2.0.0",
     "@rspress/core": "^2.0.12",
     "@rspress/plugin-algolia": "^2.0.12",
     "@rspress/plugin-client-redirects": "^2.0.12",
@@ -39,6 +39,7 @@
     "rsbuild-plugin-google-analytics": "1.0.5",
     "rsbuild-plugin-open-graph": "1.1.2",
     "rspress-plugin-font-open-sans": "1.0.3",
+    "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3"
   }
 }
