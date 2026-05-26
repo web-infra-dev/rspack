@@ -503,7 +503,7 @@ impl ESMExportImportedSpecifierDependency {
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
     let module = ctxt.module;
     let runtime = ctxt.runtime;
-    let runtime_template = &mut ctxt.runtime_template;
+    let runtime_template = &mut *ctxt.runtime_template;
     let compilation = ctxt.compilation;
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
