@@ -403,7 +403,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
       content.push_str(": ");
       content.push_str(&runtime_template.returning_function(getter, ""));
     }
-    while let Some((key, getter)) = getters.next() {
+    for (key, getter) in getters {
       content.push_str(",\n  ");
       content.push_str(&property_name(key)?);
       content.push_str(": ");
@@ -425,7 +425,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
       values_content.push_str(": ");
       values_content.push_str(value);
     }
-    while let Some((key, value)) = values.next() {
+    for (key, value) in values {
       values_content.push_str(",\n  ");
       values_content.push_str(&property_name(key)?);
       values_content.push_str(": ");
