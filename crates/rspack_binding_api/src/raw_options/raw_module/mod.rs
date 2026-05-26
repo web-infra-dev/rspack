@@ -1032,6 +1032,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         side_effects: value.side_effects,
         enforce,
         extract_source_map: value.extract_source_map,
+        ..Default::default()
       },
       extract_source_map: value.extract_source_map,
     })
@@ -1048,7 +1049,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
 
-    Ok(ModuleOptions {
+    let mut module_options = ModuleOptions {
       rules,
       parser: value
         .parser
@@ -1069,7 +1070,9 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-    })
+    };
+    module_options.assign_rule_ids()?;
+    Ok(module_options)
   }
 }
 

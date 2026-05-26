@@ -10,10 +10,10 @@ use atomic_refcell::AtomicRefCell;
 use rspack_core::{
   AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssModuleGeneratorOptions,
-  CssModuleParserOptions, DependencyType, ManifestAssetType, Module, ModuleGraph, ModuleType,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
+  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
+  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
+  SourceType, get_css_chunk_filename_template,
   rspack_sources::{
     BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -519,54 +519,19 @@ impl Plugin for CssPlugin {
 
     ctx.register_parser_and_generator_builder(
       ModuleType::Css,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_css())
-          .expect("should have CssParserOptions");
-        let g = g
-          .and_then(|g| g.get_css())
-          .expect("should have CssGeneratorOptions");
-        Box::new(CssParserAndGenerator::new(
-          CssModuleGeneratorOptions::from(g),
-          CssModuleParserOptions::from(p),
-        )) as Box<dyn ParserAndGenerator>
-      }),
+      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
     );
     ctx.register_parser_and_generator_builder(
       ModuleType::CssGlobal,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_css_global())
-          .expect("should have CssModuleParserOptions");
-        let g = g
-          .and_then(|g| g.get_css_global())
-          .expect("should have CssModuleGeneratorOptions");
-        Box::new(CssParserAndGenerator::new(g.clone(), p.clone())) as Box<dyn ParserAndGenerator>
-      }),
+      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
     );
     ctx.register_parser_and_generator_builder(
       ModuleType::CssModule,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_css_module())
-          .expect("should have CssModuleParserOptions");
-        let g = g
-          .and_then(|g| g.get_css_module())
-          .expect("should have CssModuleGeneratorOptions");
-        Box::new(CssParserAndGenerator::new(g.clone(), p.clone())) as Box<dyn ParserAndGenerator>
-      }),
+      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
     );
     ctx.register_parser_and_generator_builder(
       ModuleType::CssAuto,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_css_auto())
-          .expect("should have CssModuleParserOptions");
-        let g = g
-          .and_then(|g| g.get_css_auto())
-          .expect("should have CssModuleGeneratorOptions");
-        Box::new(CssParserAndGenerator::new(g.clone(), p.clone())) as Box<dyn ParserAndGenerator>
-      }),
+      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
     );
 
     Ok(())

@@ -1857,7 +1857,7 @@ impl ModuleOptionsBuilder {
 
     let default_rules = default_rules(async_web_assembly, css);
 
-    Ok(ModuleOptions {
+    let mut module_options = ModuleOptions {
       rules: vec![
         ModuleRule {
           rules: Some(default_rules),
@@ -1871,7 +1871,9 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-    })
+    };
+    module_options.assign_rule_ids()?;
+    Ok(module_options)
   }
 }
 
