@@ -59,14 +59,22 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .expect_get(&chunk_ukey);
+    let runtime = chunk.runtime().clone();
     let initial_chunks =
       chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+    let async_chunks =
+      chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
-    let mut chunk_imports = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .values()
-      .filter(|chunk| !initial_chunks.contains(&chunk.ukey()))
+    let mut chunk_imports = async_chunks
+      .iter()
+      .filter(|chunk_ukey| !initial_chunks.contains(*chunk_ukey))
+      .map(|chunk_ukey| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_by_ukey
+          .expect_get(chunk_ukey)
+      })
+      .filter(|chunk| !chunk.runtime().is_disjoint(&runtime))
       .filter(|chunk| chunk.id().is_some())
       .filter(|chunk| chunk_has_js(&chunk.ukey(), compilation))
       .map(|chunk| {
