@@ -549,8 +549,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@swc/helpers':
-        specifier: 0.5.21
-        version: 0.5.21
+        specifier: 0.5.22
+        version: 0.5.22
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4
@@ -651,8 +651,8 @@ importers:
         specifier: ^0.9.10
         version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
-        specifier: 0.5.21
-        version: 0.5.21
+        specifier: 0.5.22
+        version: 0.5.22
       '@swc/plugin-remove-console':
         specifier: ^12.9.0
         version: 12.9.0
@@ -3042,8 +3042,8 @@ packages:
   '@swc/counter@0.1.3':
     resolution: {integrity: sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==}
 
-  '@swc/helpers@0.5.21':
-    resolution: {integrity: sha512-jI/VAmtdjB/RnI8GTnokyX7Ug8c+g+ffD6QRLa6XQewtnGyukKkKSk3wLTM3b5cjt1jNh9x0jfVlagdN2gDKQg==}
+  '@swc/helpers@0.5.22':
+    resolution: {integrity: sha512-/e2Ly3Docn9kYByap6TV4oquJ3wQuz3c+kC74riqtkwU9CwTMeuj6t2rW+bRr4pyOx/CYQM4wr0RgaKQwGEz0A==}
 
   '@swc/plugin-remove-console@12.9.0':
     resolution: {integrity: sha512-Ve64fWHghdhMHMYAmKlIdyV0aIbj8PX6mlUwXyf1dJXsBirkDm3HYtGw+XIpyNtIUfg1Rojyqc+TXATrqgRdhg==}
@@ -8953,8 +8953,8 @@ snapshots:
 
   '@rsbuild/core@2.0.6(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)
-      '@swc/helpers': 0.5.21
+      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.22)
+      '@swc/helpers': 0.5.22
     optionalDependencies:
       core-js: 3.49.0
     transitivePeerDependencies:
@@ -8962,8 +8962,8 @@ snapshots:
 
   '@rsbuild/core@2.0.7(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)
-      '@swc/helpers': 0.5.21
+      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.22)
+      '@swc/helpers': 0.5.22
     optionalDependencies:
       core-js: 3.49.0
     transitivePeerDependencies:
@@ -9114,12 +9114,12 @@ snapshots:
       '@rspack/binding-win32-ia32-msvc': 2.0.4
       '@rspack/binding-win32-x64-msvc': 2.0.4
 
-  '@rspack/core@2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)':
+  '@rspack/core@2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.22)':
     dependencies:
       '@rspack/binding': 2.0.4
     optionalDependencies:
       '@module-federation/runtime-tools': 2.5.0
-      '@swc/helpers': 0.5.21
+      '@swc/helpers': 0.5.22
 
   '@rspack/dev-middleware@2.0.1(@rspack/core@packages+rspack)':
     optionalDependencies:
@@ -9141,7 +9141,7 @@ snapshots:
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)
+      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.22)
 
   '@rspack/plugin-react-refresh@2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)':
     dependencies:
@@ -9348,7 +9348,7 @@ snapshots:
 
   '@swc/counter@0.1.3': {}
 
-  '@swc/helpers@0.5.21':
+  '@swc/helpers@0.5.22':
     dependencies:
       tslib: 2.8.1
 
