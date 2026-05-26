@@ -1,4 +1,5 @@
 const { rspack } = require('@rspack/core');
+const path = require('path');
 
 const sharedObj = {
   time: 1,
@@ -9,16 +10,18 @@ module.exports = {
   entry: './index.js',
   context: __dirname,
   cache: true,
-  output: {
-    module: true,
-    library: {
-      type: 'module',
-    },
-  },
   experiments: {
     cache: true,
   },
   incremental: true,
+  module: {
+    rules: [
+      {
+        include: path.resolve(__dirname, 'reexport.js'),
+        sideEffects: true,
+      },
+    ],
+  },
   optimization: {
     mangleExports: false,
   },
