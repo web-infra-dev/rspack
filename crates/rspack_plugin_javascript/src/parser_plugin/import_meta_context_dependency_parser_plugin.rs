@@ -11,7 +11,7 @@ use sugar_path::SugarPath;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
-  ecma::ast::{CallExpr, Expr, Lit},
+  ecma::ast::{CallExpr, Expr, Lit, PropName},
 };
 
 use super::JavascriptParserPlugin;
@@ -66,15 +66,7 @@ fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
   let mut serializer = form_urlencoded::Serializer::new(String::new());
   for prop in &query.props {
     let kv = prop.as_prop().and_then(|prop| prop.as_key_value())?;
-    let key = kv
-      .key
-      .as_ident()
-      .map(|key| key.sym.to_string())
-      .or_else(|| {
-        kv.key
-          .as_str()
-          .map(|key| key.value.to_string_lossy().into_owned())
-      })?;
+    let key = static_import_meta_glob_query_key_from_prop_name(&kv.key)?;
     let value = if let Some(value) = static_string_from_expr(&kv.value) {
       value
     } else {
@@ -88,6 +80,29 @@ fn static_import_meta_glob_query_from_expr(expr: &Expr) -> Option<String> {
   }
 
   Some(normalize_import_meta_glob_query(serializer.finish()))
+}
+
+fn static_import_meta_glob_query_key_from_prop_name(prop_name: &PropName) -> Option<String> {
+  match prop_name {
+    PropName::Ident(ident) => Some(ident.sym.to_string()),
+    PropName::Str(str) => Some(str.value.to_string_lossy().into_owned()),
+    PropName::Num(num) => Some(num.value.to_string()),
+    PropName::Computed(computed) => static_import_meta_glob_query_key_from_expr(&computed.expr),
+    _ => None,
+  }
+}
+
+fn static_import_meta_glob_query_key_from_expr(expr: &Expr) -> Option<String> {
+  if let Some(key) = static_string_from_expr(expr) {
+    return Some(key);
+  }
+
+  match expr.as_lit()? {
+    Lit::Num(num) => Some(num.value.to_string()),
+    Lit::Bool(bool) => Some(bool.value.to_string()),
+    Lit::Null(_) => Some("null".to_string()),
+    _ => None,
+  }
 }
 
 fn import_meta_glob_path_parts<'a>(

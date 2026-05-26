@@ -70,6 +70,9 @@ const eagerObjectQueryModules = import.meta.glob('./query/*.js', {
 const lazyObjectQueryModules = import.meta.glob('./query/*.js', {
   query: {
     a: true,
+    1: 'one',
+    ['two']: 2,
+    [true]: 'yes',
     b: 'test',
     c: 10000,
   },
@@ -280,7 +283,7 @@ it('should apply query objects to eager glob imports', () => {
 it('should apply query objects to lazy glob imports', async () => {
   expect(Object.keys(lazyObjectQueryModules)).toEqual(['./query/foo.js'])
   await expect(lazyObjectQueryModules['./query/foo.js']()).resolves.toBe(
-    '?a=true&b=test&c=10000',
+    '?a=true&1=one&two=2&true=yes&b=test&c=10000',
   )
 })
 
