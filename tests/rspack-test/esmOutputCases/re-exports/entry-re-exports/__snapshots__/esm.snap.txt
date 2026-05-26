@@ -28,8 +28,7 @@ it('should have correct output for entry re-exports', async () => {
 const bar_0 = __webpack_require__("./bar.js");
 var M = bar_0.M;
 
-var index_foo = (/* inlined export .foo */1);
-export { M as bar, index_foo as foo };
+export { M as bar, foo_foo as foo };
 
 ```
 

@@ -270,6 +270,18 @@ impl EsmLibraryPlugin {
       );
     }
 
+    Self::add_chunk_export_alias(chunk, local, exported, chunk_exports, strict_exports)
+  }
+
+  fn add_chunk_export_alias(
+    chunk: ChunkUkey,
+    local: Atom,
+    exported: Atom,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
+    strict_exports: bool,
+  ) -> Option<Atom> {
+    let ctx = chunk_exports.get_mut_unwrap(&chunk);
+
     // we've not exported this local symbol, check if we've already exported this symbol
     if ctx.exported_symbols.contains(&exported) {
       // the name is already exported and we know the exported_local is not the same
@@ -1870,6 +1882,69 @@ var {} = {{}};
     }
   }
 
+  fn get_same_chunk_inlined_export_binding(
+    module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
+    module_id: &ModuleIdentifier,
+    export_name: Vec<Atom>,
+    chunk_link: &ChunkLinkContext,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    already_visited: &mut FxHashSet<ExportInfo>,
+  ) -> Option<Atom> {
+    if export_name.len() != 1 {
+      return None;
+    }
+
+    if !chunk_link.hoisted_modules.contains(module_id) {
+      return None;
+    }
+
+    let exports_info = exports_info_artifact.get_exports_info_data(module_id);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
+    let export_info_id = export_info.id();
+
+    if !already_visited.insert(export_info_id) {
+      return None;
+    }
+
+    if let Some(ModuleInfo::Concatenated(info)) = concate_modules_map.get(module_id)
+      && let Some(UsedName::Inlined(_)) =
+        exports_info.get_used_name(exports_info_artifact, None, &export_name)
+      && let Some(direct_export) = info
+        .export_map
+        .as_ref()
+        .and_then(|map| map.get(&export_name[0]))
+    {
+      let direct_export = Atom::new(direct_export.clone());
+      return info.get_internal_name(&direct_export).cloned();
+    }
+
+    let target = find_target(
+      &export_info,
+      module_graph,
+      exports_info_artifact,
+      Arc::new(|module: &ModuleIdentifier| chunk_link.hoisted_modules.contains(module)),
+      already_visited,
+    );
+
+    if let FindTargetResult::ValidTarget(target) = target
+      && !target.defer
+      && let Some(target_export) = target.export
+    {
+      return Self::get_same_chunk_inlined_export_binding(
+        module_graph,
+        exports_info_artifact,
+        &target.module,
+        target_export,
+        chunk_link,
+        concate_modules_map,
+        already_visited,
+      );
+    }
+
+    None
+  }
+
   #[allow(clippy::too_many_arguments)]
   fn link_entry_module_exports(
     &self,
@@ -2080,6 +2155,55 @@ var {} = {{}};
             }
           }
           Ref::Inline(inlined_value) => {
+            let current_chunk_link = link
+              .get(&current_chunk)
+              .expect("should have current chunk link");
+            if let Some(local_name) = Self::get_same_chunk_inlined_export_binding(
+              module_graph,
+              &compilation.exports_info_artifact,
+              &entry_module,
+              vec![name.clone()],
+              current_chunk_link,
+              concate_modules_map,
+              &mut Default::default(),
+            ) {
+              let exported = Self::add_chunk_export_alias(
+                current_chunk,
+                local_name,
+                name.clone(),
+                exports,
+                !allow_rename
+                  && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk)),
+              );
+
+              if exported.is_none()
+                && !allow_rename
+                && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk))
+              {
+                errors.push(
+                  rspack_error::error!(
+                    "Entry {entry_module} has conflict exports: {name} has already been exported"
+                  )
+                  .into(),
+                );
+              }
+
+              if current_chunk != entry_chunk
+                && let Some(exported) = exported
+              {
+                Self::add_chunk_re_export(
+                  entry_chunk,
+                  current_chunk,
+                  exported.clone(),
+                  name.clone(),
+                  exports,
+                  !allow_rename,
+                );
+              }
+
+              continue;
+            }
+
             let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
             let new_name = find_new_name(
               &name,
