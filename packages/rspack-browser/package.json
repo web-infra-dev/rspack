@@ -41,7 +41,7 @@
     "webpack-sources": "3.3.4"
   },
   "peerDependencies": {
-    "@swc/helpers": ">=0.5.1"
+    "@swc/helpers": "^0.5.23"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {

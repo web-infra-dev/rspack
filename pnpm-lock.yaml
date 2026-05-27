@@ -549,8 +549,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)
       '@swc/helpers':
-        specifier: 0.5.21
-        version: 0.5.21
+        specifier: 0.5.23
+        version: 0.5.23
       '@types/fs-extra':
         specifier: 11.0.4
         version: 11.0.4
@@ -651,8 +651,8 @@ importers:
         specifier: ^0.9.10
         version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
-        specifier: 0.5.21
-        version: 0.5.21
+        specifier: 0.5.23
+        version: 0.5.23
       '@swc/plugin-remove-console':
         specifier: ^12.9.0
         version: 12.9.0
@@ -3044,6 +3044,9 @@ packages:
 
   '@swc/helpers@0.5.21':
     resolution: {integrity: sha512-jI/VAmtdjB/RnI8GTnokyX7Ug8c+g+ffD6QRLa6XQewtnGyukKkKSk3wLTM3b5cjt1jNh9x0jfVlagdN2gDKQg==}
+
+  '@swc/helpers@0.5.23':
+    resolution: {integrity: sha512-5lSsMOTXURePglDfvuAQUqkGek9Hg2kksOYay2m0+XR++b2NWYL/4sWyuvVBIs8oKnJaxkdi9whaL/sqN13afw==}
 
   '@swc/plugin-remove-console@12.9.0':
     resolution: {integrity: sha512-Ve64fWHghdhMHMYAmKlIdyV0aIbj8PX6mlUwXyf1dJXsBirkDm3HYtGw+XIpyNtIUfg1Rojyqc+TXATrqgRdhg==}
@@ -8953,8 +8956,8 @@ snapshots:
 
   '@rsbuild/core@2.0.6(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)':
     dependencies:
-      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)
-      '@swc/helpers': 0.5.21
+      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.23)
+      '@swc/helpers': 0.5.23
     optionalDependencies:
       core-js: 3.49.0
     transitivePeerDependencies:
@@ -9121,6 +9124,13 @@ snapshots:
       '@module-federation/runtime-tools': 2.5.0
       '@swc/helpers': 0.5.21
 
+  '@rspack/core@2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.23)':
+    dependencies:
+      '@rspack/binding': 2.0.4
+    optionalDependencies:
+      '@module-federation/runtime-tools': 2.5.0
+      '@swc/helpers': 0.5.23
+
   '@rspack/dev-middleware@2.0.1(@rspack/core@packages+rspack)':
     optionalDependencies:
       '@rspack/core': link:packages/rspack
@@ -9141,7 +9151,7 @@ snapshots:
     dependencies:
       react-refresh: 0.18.0
     optionalDependencies:
-      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.21)
+      '@rspack/core': 2.0.4(@module-federation/runtime-tools@2.5.0)(@swc/helpers@0.5.23)
 
   '@rspack/plugin-react-refresh@2.0.0(@rspack/core@packages+rspack)(react-refresh@0.18.0)':
     dependencies:
@@ -9349,6 +9359,10 @@ snapshots:
   '@swc/counter@0.1.3': {}
 
   '@swc/helpers@0.5.21':
+    dependencies:
+      tslib: 2.8.1
+
+  '@swc/helpers@0.5.23':
     dependencies:
       tslib: 2.8.1
 
