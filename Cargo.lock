@@ -3835,6 +3835,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
+ "simdutf8",
  "sugar_path",
  "swc_core",
  "swc_experimental_ecma_ast",
@@ -4015,6 +4016,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simdutf8",
  "tokio",
  "tracing",
  "winnow",
@@ -5083,8 +5085,7 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81a72d10c90a000749a73245046be8071ecdd1ce6d21673ff17fe1da8eed6e8d"
+source = "git+https://github.com/rstackjs/rspack-sources?branch=perf%2Foptimize-mappings-encoder#55d8ae98cf12ef0914d29b730d941ffbf95d1477"
 dependencies = [
  "dyn-clone",
  "memchr",
