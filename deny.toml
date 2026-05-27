@@ -249,6 +249,7 @@ skip = [
     { crate = "linux-raw-sys", reason = "external dependency"},
     { crate = "rustix", reason = "external dependency"},
     { crate = "ctor", reason = "external dependency"},
+    { crate = "cargo_metadata", reason = "dev-only duplicate from SWC testing fixtures in rspack_loader_swc; not used by production crates"},
     { crate = "windows-link", reason = "external dependency"},
 ]
 # Similarly to `skip` allows you to skip certain crates during duplicate
