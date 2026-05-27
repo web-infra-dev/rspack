@@ -274,6 +274,8 @@ impl RstestPlugin {
   }
 
   fn add_rstest_mock_chunk_loading_guard(source: String) -> String {
+    // TODO: Remove this compatibility guard once the minimum supported Rstest version
+    // no longer patches the old runtime template on the JavaScript side.
     const RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;";
     const LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;";
 
