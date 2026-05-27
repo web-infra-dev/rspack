@@ -31,7 +31,7 @@ use swc_core::{
 
 use crate::{
   collect_ts_info::collect_typescript_info,
-  rsc_transforms::{rsc_pass, to_server_entry},
+  rsc_transforms::{RscTransformOptions, rsc_transform, to_server_entry},
 };
 
 #[cacheable]
@@ -191,17 +191,41 @@ impl SwcLoader {
             .react_server_components
             .enabled
           {
-            swc_core::common::pass::Either::Left(rsc_pass(
-              loader_context,
+            let module = &loader_context.context.module;
+            let is_react_server_layer = module
+              .get_layer()
+              .is_some_and(|layer| layer == "react-server-components");
+
+            // Avoid transforming the redirected server entry module to prevent duplicate RSC metadata generation.
+            let server_entry_proxy = loader_context
+              .resource_query()
+              .is_some_and(|q| q.contains("rsc-server-entry-proxy=true"));
+
+            // Match the RSC manifest resource key from get_module_resource: path + query.
+            let module_resource = match loader_context.resource_query() {
+              Some(query) => format!("{resource_path}{query}"),
+              None => resource_path.to_string(),
+            };
+
+            let disable_client_api_checks = self
+              .options_with_additional
+              .rspack_experiments
+              .react_server_components
+              .disable_client_api_checks;
+
+            swc_core::common::pass::Either::Left(rsc_transform(
               filename,
-              resource_path.as_str(),
+              resource_path.to_string(),
+              module_resource,
               comments,
               &rsc_meta,
-              self
-                .options_with_additional
-                .rspack_experiments
-                .react_server_components
-                .disable_client_api_checks,
+              RscTransformOptions {
+                is_react_server_layer,
+                enable_server_entry: !server_entry_proxy,
+                disable_client_api_checks,
+                is_development: Mode::is_development(&loader_context.context.options.mode),
+                hash_salt: String::new(),
+              },
             ))
           } else {
             swc_core::common::pass::Either::Right(noop_pass())

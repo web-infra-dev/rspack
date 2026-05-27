@@ -1,0 +1,6 @@
+module_type: Client
+server_refs: []
+client_refs: []
+import_meta_rsc: false
+is_cjs: true
+action_ids: []

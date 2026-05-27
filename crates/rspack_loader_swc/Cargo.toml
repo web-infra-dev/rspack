@@ -47,6 +47,9 @@ tracing                        = { workspace = true }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 stacker = { workspace = true }
 
+[dev-dependencies]
+swc_core = { workspace = true, features = ["testing_transform"] }
+
 [lints]
 workspace = true
 
