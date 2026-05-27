@@ -31,7 +31,7 @@ module.exports = {
 			.toMatchInlineSnapshot(`
 				asset main.js 444 bytes [emitted] (name: main)
 				orphan modules 192 bytes [orphan] 4 modules
-				runtime modules 706 bytes 3 modules
+				runtime modules 705 bytes 3 modules
 				./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 				  | orphan modules 192 bytes [orphan] 4 modules
 				Rspack compiled successfully

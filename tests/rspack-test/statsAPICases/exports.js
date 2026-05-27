@@ -79,7 +79,7 @@ module.exports = {
 			        main.js,
 			      ],
 			      filteredModules: undefined,
-			      hash: 897df4ea08e4096d,
+			      hash: cdb99ed02c08ea23,
 			      id: 889,
 			      idHints: Array [],
 			      initial: true,
@@ -437,7 +437,7 @@ module.exports = {
 			      size: 192,
 			      sizes: Object {
 			        javascript: 192,
-			        runtime: 706,
+			        runtime: 705,
 			      },
 			      type: chunk,
 			    },
@@ -467,7 +467,7 @@ module.exports = {
 			  errorsCount: 0,
 			  filteredAssets: undefined,
 			  filteredModules: undefined,
-			  hash: 1f8f3ee4d0c4d74b,
+			  hash: 8231f20d8ffb8e3d,
 			  modules: Array [
 			    Object {
 			      assets: Array [],
@@ -1106,9 +1106,9 @@ module.exports = {
 			      preOrderIndex: undefined,
 			      providedExports: Array [],
 			      reasons: Array [],
-			      size: 344,
+			      size: 343,
 			      sizes: Object {
-			        runtime: 344,
+			        runtime: 343,
 			      },
 			      type: module,
 			      usedExports: null,
@@ -1237,7 +1237,7 @@ module.exports = {
 		})).toMatchInlineSnapshot(`
 			asset main.js 444 bytes [emitted] (name: main)
 			orphan modules 192 bytes [orphan] 4 modules
-			runtime modules 706 bytes 3 modules
+			runtime modules 705 bytes 3 modules
 			./fixtures/esm/abc.js + 3 modules 192 bytes [code generated]
 			  [no exports]
 			  [no exports used]
