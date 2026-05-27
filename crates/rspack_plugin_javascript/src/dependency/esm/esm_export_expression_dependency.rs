@@ -248,6 +248,11 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
       {
         if let UsedName::Normal(used) = used {
           if supports_const {
+            let binding = if matches!(is_circular_module, Some(false)) {
+              ESMExportBinding::Value(DEFAULT_EXPORT.into())
+            } else {
+              ESMExportBinding::Getter(DEFAULT_EXPORT.into())
+            };
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
@@ -257,7 +262,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                ESMExportBinding::Getter(DEFAULT_EXPORT.into()),
+                binding,
               )],
               is_circular_module,
             )));
