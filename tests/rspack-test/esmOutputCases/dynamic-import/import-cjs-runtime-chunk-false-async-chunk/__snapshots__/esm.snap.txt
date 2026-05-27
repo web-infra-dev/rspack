@@ -36,12 +36,10 @@ export default dynamic_default_0;
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
-import { createRequire as __rspack_createRequire } from "node:module";
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // ./index.js
 it("should split runtime for Promise.all with external and bundled async chunks", async () => {
 	const [stream, mod] = await Promise.all([
-		import("node:stream"),
+		import("node:module").then(function(module) { return __webpack_require__.t(module.createRequire(import.meta.url)("node:stream"), 22) }),
 		import("./dynamic.mjs").then(__webpack_require__.t.bind(__webpack_require__, /*! ./dynamic */ "./dynamic.js", 19)),
 	]);
 
@@ -49,8 +47,6 @@ it("should split runtime for Promise.all with external and bundled async chunks"
 	expect(mod.value).toBe(42);
 });
 
-// node:stream
-const external_node_stream_namespaceObject = __rspack_createRequire_require("node:stream");
 export {};
 
 ```

@@ -1,31 +1,31 @@
 ```mjs title=main.mjs
-import { resolve } from "path";
 import { __webpack_require__ } from "./runtime.mjs";
 
-// path
-
-// fs
-
 // ./index.js
+const index_require = () => {
+	throw new Error("user require should not be called");
+};
 
+import.meta.__customImport__ = async request => {
+	throw new Error(`custom import should not load ${request}`);
+};
 
+async function loadPlatform(require) {
+	const os = await import("node:module").then(function(module) { return __webpack_require__.t(module.createRequire(import.meta.url)("os"), 22) });
+	return [typeof os.platform, typeof os.default.platform, require];
+}
 
-it("should externalize node builtins with correct external types", async () => {
-	const main = await import(/* webpackIgnore: true */ "./main.mjs");
-	const nodePath = await import(/* webpackIgnore: true */ "path");
-	const nodeFs = await import(/* webpackIgnore: true */ "fs");
-
-	// esm import should use "module" external type
-	expect(resolve).toBe(nodePath.resolve);
-	// esm re-export should use "module" external type
-	expect(main.readFileSync).toBe(nodeFs.readFileSync);
-
-	// dynamic import should use "import" external type
-	const dynamicOs = await import("node:module").then(function(module) { return __webpack_require__.t(module.createRequire(import.meta.url)("os"), 22) });
-	expect(dynamicOs.platform).toBeDefined();
+it("should not capture user require for commonjs dynamic external", async () => {
+	expect(await loadPlatform("local-require")).toEqual([
+		"function",
+		"function",
+		"local-require"
+	]);
 });
 
-export { readFileSync } from "fs";
+
+
+export { index_require as userRequire, loadPlatform };
 
 ```
 
