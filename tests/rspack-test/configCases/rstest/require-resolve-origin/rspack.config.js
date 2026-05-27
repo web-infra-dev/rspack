@@ -11,15 +11,6 @@ module.exports = [
     output: {
       filename: 'requireResolveOrigin.js',
     },
-    module: {
-      parser: {
-        javascript: {
-          requireResolve: false,
-          requireAsExpression: false,
-          commonjsMagicComments: true,
-        },
-      },
-    },
     optimization: {
       concatenateModules: false,
       minimize: false,
@@ -40,11 +31,31 @@ module.exports = [
     output: {
       filename: 'requireResolveOriginFunctionName.js',
     },
+    optimization: {
+      concatenateModules: false,
+      minimize: false,
+    },
+    plugins: [
+      new RstestPlugin({
+        injectModulePathName: false,
+        hoistMockModule: false,
+        importMetaPathName: false,
+        manualMockRoot: path.resolve(__dirname, '__mocks__'),
+        injectRequireResolveOrigin: {
+          functionName: 'globalThis.__custom_require_resolve__',
+        },
+      }),
+    ],
+  },
+  {
+    entry: './src/index.js',
+    target: 'node',
+    output: {
+      filename: 'requireResolveOriginMagicComments.js',
+    },
     module: {
       parser: {
         javascript: {
-          requireResolve: false,
-          requireAsExpression: false,
           commonjsMagicComments: true,
         },
       },
@@ -59,9 +70,7 @@ module.exports = [
         hoistMockModule: false,
         importMetaPathName: false,
         manualMockRoot: path.resolve(__dirname, '__mocks__'),
-        injectRequireResolveOrigin: {
-          functionName: 'globalThis.__custom_require_resolve__',
-        },
+        injectRequireResolveOrigin: true,
       }),
     ],
   },

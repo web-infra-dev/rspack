@@ -55,6 +55,8 @@ pub struct RstestParserPluginOptions {
   pub inject_dynamic_import_origin: bool,
   /// Whether to rewrite `require.resolve()` calls with origin info.
   pub inject_require_resolve_origin: bool,
+  /// Whether to respect `/* webpackIgnore: true */` in CommonJS calls.
+  pub commonjs_magic_comments: bool,
 }
 
 impl Default for RstestParserPluginOptions {
@@ -67,6 +69,7 @@ impl Default for RstestParserPluginOptions {
       globals: true,
       inject_dynamic_import_origin: false,
       inject_require_resolve_origin: false,
+      commonjs_magic_comments: false,
     }
   }
 }
@@ -87,6 +90,10 @@ impl RstestParserPlugin {
     error_span: Span,
     span: Span,
   ) -> bool {
+    if !self.options.commonjs_magic_comments {
+      return false;
+    }
+
     try_extract_magic_comment(parser, error_span, span)
       .get_ignore()
       .unwrap_or_default()

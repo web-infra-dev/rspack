@@ -250,7 +250,7 @@ async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut Box<dyn ParserAndGenerator>,
-  _parser_options: Option<&ParserOptions>,
+  parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
@@ -263,6 +263,10 @@ async fn nmf_parser(
       .require_resolve_origin_callee
       .get()
       .is_some_and(|c| c.is_some());
+    let commonjs_magic_comments = parser_options
+      .and_then(|options| options.get_javascript())
+      .and_then(|options| options.commonjs_magic_comments)
+      .unwrap_or(false);
 
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
@@ -273,6 +277,7 @@ async fn nmf_parser(
         globals: self.options.globals,
         inject_dynamic_import_origin,
         inject_require_resolve_origin,
+        commonjs_magic_comments,
       },
     )) as BoxJavascriptParserPlugin);
   }
