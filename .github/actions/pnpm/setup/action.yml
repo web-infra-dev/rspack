@@ -25,6 +25,19 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install pnpm
-      uses: pnpm/action-setup@0e279bb959325dab635dd2c09392533439d90093 # v6.0.8
-      with:
-        standalone: ${{ startsWith(inputs.node-version, '20') }}
+      shell: bash
+      run: |
+        if [[ "${{runner.os}}" == "Windows" ]]; then
+          # add the npm prefix to PATH to ensure the installed corepack work properly
+          NPM_PREFIX=$(cygpath -u "$(npm config get prefix)")
+          export PATH="$NPM_PREFIX:$PATH"
+        fi
+        PNPM_VERSION=$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
+        if [[ "${{ inputs.node-version }}" == 20* ]]; then
+          npm install -g "@pnpm/exe@$PNPM_VERSION" --force
+        else
+          npm install -g corepack@0.31.0 --force
+          echo "Corepack version: $(corepack --version)"
+          corepack enable
+        fi
+        pnpm --version
