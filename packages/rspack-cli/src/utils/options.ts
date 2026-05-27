@@ -125,15 +125,26 @@ function setBuiltinEnvArg(
   value: unknown,
 ) {
   const envName = `RSPACK_${envNameSuffix}`;
-  if (!(envName in env)) {
+  // `Object.hasOwn` (not `in`) so that a polluted `Object.prototype` cannot
+  // hide a legitimate write of the reserved RSPACK_* flag.
+  if (!Object.hasOwn(env, envName)) {
     env[envName] = value;
   }
 }
+
+// Keys that would mutate `Object.prototype` (or escape via the constructor) if
+// allowed to appear in a dotted `--env` path. Aligned with lodash `_.set`
+// hardening (CVE-2020-8203).
+const DANGEROUS_ENV_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function normalizeEnvToObject(options: CommonOptions) {
   function parseValue(previous: Record<string, unknown>, value: string) {
     const [allKeys, val] = value.split(/=(.+)/, 2);
     const splitKeys = allKeys.split(/\.(?!$)/);
+
+    if (splitKeys.some((k) => DANGEROUS_ENV_KEYS.has(k.replace(/=$/, '')))) {
+      return previous;
+    }
 
     let prevRef = previous;
 
@@ -149,7 +160,9 @@ function normalizeEnvToObject(options: CommonOptions) {
       }
 
       if (!prevRef[someKey] || typeof prevRef[someKey] === 'string') {
-        prevRef[someKey] = {};
+        // Null-prototype intermediates so lookups never reach `Object.prototype`,
+        // even if a future contributor reintroduces a dangerous key.
+        prevRef[someKey] = Object.create(null);
       }
 
       if (index === splitKeys.length - 1) {
@@ -166,7 +179,10 @@ function normalizeEnvToObject(options: CommonOptions) {
     return previous;
   }
 
-  return ((options.env as string[]) ?? []).reduce(parseValue, {});
+  return ((options.env as string[]) ?? []).reduce(
+    parseValue,
+    Object.create(null) as Record<string, unknown>,
+  );
 }
 
 export function setDefaultNodeEnv(
