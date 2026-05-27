@@ -219,6 +219,7 @@ async fn normal_module_factory_module(
     module_factory_create_data,
     create_data.resource_resolve_data.resource().to_owned(),
     active,
+    is_entries,
     self.client.clone(),
   )
   .boxed();
@@ -229,9 +230,34 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
+
+  // Proxy modules that current entries point to in this compilation.
+  // A previously-active entry proxy whose entry has been removed (e.g. by a
+  // dynamic entry function) must NOT be force-rebuilt here — its underlying
+  // resource may no longer exist, and the orphan will be cleaned up later by
+  // `BuildEntryAndClean` in `finish_module_graph`. The dep -> module lookup
+  // works because incremental mode preserves the connection across builds;
+  // entries whose deps haven't been factorized yet (first build, freshly
+  // added entry) simply won't appear in this set, which is fine — we only
+  // use it to *prove* stale-ness, never to drop ids we're unsure about.
+  let current_entry_proxy_ids: IdentifierSet = {
+    let mg = compilation.build_module_graph_artifact.get_module_graph();
+    compilation
+      .entries
+      .values()
+      .flat_map(|e| e.all_dependencies())
+      .filter_map(|dep_id| mg.module_identifier_by_dependency_id(dep_id).copied())
+      .collect()
+  };
+
   let module_graph = compilation
     .build_module_graph_artifact
     .get_module_graph_mut();
+  // Start from the full backend snapshot. Ids whose proxies haven't been
+  // factorized yet (first build, new entry, non-incremental) must stay so
+  // that `normal_module_factory_module`'s `active` check sees them later.
+  // Only drop ids that we positively identify as stale entry proxies.
+  let mut next_active_modules: IdentifierSet = active_modules.iter().copied().collect();
   for module_id in &active_modules {
     let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
       continue;
@@ -240,10 +266,15 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
       continue;
     };
 
+    if active_module.is_entry() && !current_entry_proxy_ids.contains(module_id) {
+      next_active_modules.remove(module_id);
+      continue;
+    }
+
     active_module.invalid();
   }
 
-  *self.active_modules.write().await = active_modules.into_iter().collect();
+  *self.active_modules.write().await = next_active_modules;
 
   Ok(())
 }

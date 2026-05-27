@@ -49,6 +49,7 @@ pub(crate) struct LazyCompilationProxyModule {
   dep_options: DependencyOptions,
   resource: String,
   active: bool,
+  is_entry: bool,
   client: String,
   need_build: bool,
 }
@@ -72,6 +73,7 @@ impl LazyCompilationProxyModule {
     create_data: &ModuleFactoryCreateData,
     resource: String,
     active: bool,
+    is_entry: bool,
     client: String,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
@@ -99,9 +101,14 @@ impl LazyCompilationProxyModule {
       dep_options,
       resource,
       active,
+      is_entry,
       client,
       need_build: false,
     }
+  }
+
+  pub(crate) fn is_entry(&self) -> bool {
+    self.is_entry
   }
 
   pub fn invalid(&mut self) {

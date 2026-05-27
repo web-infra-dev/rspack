@@ -90,6 +90,29 @@ impl Cutout {
       .fix_build_meta
       .analyze_force_build_modules(artifact, &force_build_modules);
 
+    // Snapshot the targets of entry-like dependencies before they get revoked.
+    // For entry deps (no parent module, no parent block) the connection is the
+    // only edge back to their target module. After `revoke_dependency(force=false)`
+    // below removes that connection, later `BuildEntryAndClean` can no longer
+    // find the target via the module graph, so it would miss running an orphan
+    // check on the target. Add those targets to `need_check_modules` up-front
+    // so `fix_issuers` can revoke them if they end up without any incoming.
+    {
+      let module_graph = artifact.get_module_graph();
+      for dep_id in &force_build_deps {
+        if module_graph.get_parent_module(dep_id).is_some()
+          || module_graph.get_parent_block(dep_id).is_some()
+        {
+          continue;
+        }
+        if let Some(con) = module_graph.connection_by_dependency_id(dep_id) {
+          self
+            .fix_issuers
+            .add_need_check_module(*con.module_identifier());
+        }
+      }
+    }
+
     let mut build_deps = HashSet::default();
 
     // do revoke dependencies and collect deps
