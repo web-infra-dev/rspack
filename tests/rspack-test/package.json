@@ -25,7 +25,7 @@
     "@rspack/plugin-react-refresh": "^2.0.0",
     "@rspack/test-tools": "workspace:*",
     "@rstest/core": "^0.9.10",
-    "@swc/helpers": "0.5.22",
+    "@swc/helpers": "0.5.21",
     "@swc/plugin-remove-console": "^12.9.0",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
