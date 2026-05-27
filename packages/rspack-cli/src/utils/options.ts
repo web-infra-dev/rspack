@@ -125,9 +125,10 @@ function setBuiltinEnvArg(
   value: unknown,
 ) {
   const envName = `RSPACK_${envNameSuffix}`;
-  // `Object.hasOwn` (not `in`) so that a polluted `Object.prototype` cannot
-  // hide a legitimate write of the reserved RSPACK_* flag.
-  if (!Object.hasOwn(env, envName)) {
+  // `hasOwnProperty.call` (not `in`) so that a polluted `Object.prototype`
+  // cannot hide a legitimate write of the reserved RSPACK_* flag.
+  // (`Object.hasOwn` would be cleaner but requires ES2022.)
+  if (!Object.prototype.hasOwnProperty.call(env, envName)) {
     env[envName] = value;
   }
 }
@@ -160,9 +161,7 @@ function normalizeEnvToObject(options: CommonOptions) {
       }
 
       if (!prevRef[someKey] || typeof prevRef[someKey] === 'string') {
-        // Null-prototype intermediates so lookups never reach `Object.prototype`,
-        // even if a future contributor reintroduces a dangerous key.
-        prevRef[someKey] = Object.create(null);
+        prevRef[someKey] = {};
       }
 
       if (index === splitKeys.length - 1) {
@@ -179,10 +178,7 @@ function normalizeEnvToObject(options: CommonOptions) {
     return previous;
   }
 
-  return ((options.env as string[]) ?? []).reduce(
-    parseValue,
-    Object.create(null) as Record<string, unknown>,
-  );
+  return ((options.env as string[]) ?? []).reduce(parseValue, {});
 }
 
 export function setDefaultNodeEnv(

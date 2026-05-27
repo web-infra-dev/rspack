@@ -16,6 +16,15 @@ describe('normalizeCommonOptions --env parsing', () => {
     expect(opts.env.RSPACK_BUNDLE).toBe(true);
   });
 
+  it('keeps env as a plain object so config functions can call Object methods', () => {
+    const opts: any = { env: ['app.name=demo', 'flag=true'] };
+    normalizeCommonOptions(opts, 'build');
+    // User configs commonly do `env.hasOwnProperty(...)` or `env instanceof Object`.
+    expect(opts.env instanceof Object).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(opts.env, 'flag')).toBe(true);
+    expect(opts.env.hasOwnProperty('app')).toBe(true);
+  });
+
   describe('prototype-pollution hardening', () => {
     afterEach(() => {
       // Defensive cleanup so a regression in this file cannot leak pollution
