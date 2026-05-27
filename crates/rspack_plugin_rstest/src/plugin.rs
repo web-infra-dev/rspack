@@ -4,6 +4,7 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
+use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -257,6 +258,7 @@ impl RstestPlugin {
     format!(
       r#"{define_property_getters} = function(exports, getters, values) {{
 	var define = function(defs, kind) {{
+		if(!defs) return;
 		for(var key in defs) {{
 			if({has_own_property}(defs, key) && !{has_own_property}(exports, key)) {{
 				var descriptor = {{ enumerable: true, configurable: true }};
@@ -282,14 +284,15 @@ impl RstestPlugin {
     }
 
     source
-      .replace(
+      .cow_replace(
         "for (var moduleId in moreModules) {",
         &format!("for (var moduleId in moreModules) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
       )
-      .replace(
+      .cow_replace(
         "for (moduleId in __webpack_modules__) {",
         &format!("for (moduleId in __webpack_modules__) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
       )
+      .into_owned()
   }
 
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {

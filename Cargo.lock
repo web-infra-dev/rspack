@@ -4848,6 +4848,7 @@ name = "rspack_plugin_rstest"
 version = "0.100.4"
 dependencies = [
  "camino",
+ "cow-utils",
  "regex",
  "rspack_cacheable",
  "rspack_collections",
