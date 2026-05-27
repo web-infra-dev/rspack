@@ -178,7 +178,9 @@ ${RuntimeGlobals.definePropertyGetters} = function (exports, getters, values) {
   var define = function (defs, kind) {
     for(var key in defs) {
       if(${RuntimeGlobals.hasOwnProperty}(defs, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
-        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
+        var descriptor = { enumerable: true, configurable: true };
+        descriptor[kind] = defs[key];
+        Object.defineProperty(exports, key, descriptor);
       }
     }
   }
