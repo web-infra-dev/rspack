@@ -125,17 +125,13 @@ function setBuiltinEnvArg(
   value: unknown,
 ) {
   const envName = `RSPACK_${envNameSuffix}`;
-  // `hasOwnProperty.call` (not `in`) so that a polluted `Object.prototype`
-  // cannot hide a legitimate write of the reserved RSPACK_* flag.
-  // (`Object.hasOwn` would be cleaner but requires ES2022.)
+  // `hasOwnProperty.call` so a polluted prototype can't mask the write.
   if (!Object.prototype.hasOwnProperty.call(env, envName)) {
     env[envName] = value;
   }
 }
 
-// Keys that would mutate `Object.prototype` (or escape via the constructor) if
-// allowed to appear in a dotted `--env` path. Aligned with lodash `_.set`
-// hardening (CVE-2020-8203).
+// Reject these segments in dotted `--env` paths to avoid prototype pollution.
 const DANGEROUS_ENV_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function normalizeEnvToObject(options: CommonOptions) {
