@@ -6,9 +6,7 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  webpack-sources@3.3.4:
-    hash: 0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327
-    path: patches/webpack-sources@3.3.4.patch
+  webpack-sources@3.3.4: 0d62122aa5f9ac77d9ad3b4959c3c0492778a5948c0b00b45a673f3facfca327
 
 importers:
 
