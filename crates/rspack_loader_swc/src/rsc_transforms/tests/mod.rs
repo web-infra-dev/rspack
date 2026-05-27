@@ -4,6 +4,7 @@
 // files are regenerated for Rspack semantics instead of copied from upstream.
 
 use std::{
+  borrow::Cow,
   cell::RefCell,
   env, fs,
   path::{Path, PathBuf},
@@ -11,6 +12,7 @@ use std::{
   sync::Arc,
 };
 
+use cow_utils::CowUtils;
 use rspack_core::{RscMeta, RscModuleType};
 use rspack_javascript_compiler::{JavaScriptCompiler, transform::SwcOptions};
 use swc_core::{
@@ -201,7 +203,7 @@ fn compare_or_update(expected_path: &Path, actual: &str) {
   let actual = normalize_newlines(actual);
 
   if should_update() {
-    fs::write(expected_path, &actual)
+    fs::write(expected_path, actual.as_bytes())
       .unwrap_or_else(|error| panic!("failed to write {}: {error}", expected_path.display()));
     return;
   }
@@ -213,8 +215,8 @@ fn compare_or_update(expected_path: &Path, actual: &str) {
     )
   });
   assert_eq!(
-    normalize_newlines(&expected),
-    actual,
+    normalize_newlines(&expected).as_ref(),
+    actual.as_ref(),
     "fixture output mismatch for {}",
     expected_path.display()
   );
@@ -225,8 +227,8 @@ fn should_update() -> bool {
     || env::var_os("UPDATE").is_some_and(|value| value != "0")
 }
 
-fn normalize_newlines(value: &str) -> String {
-  value.replace("\r\n", "\n")
+fn normalize_newlines(value: &str) -> Cow<'_, str> {
+  value.cow_replace("\r\n", "\n")
 }
 
 fn format_meta(meta: Option<&RscMeta>) -> String {
@@ -237,7 +239,7 @@ fn format_meta(meta: Option<&RscMeta>) -> String {
   let action_ids = meta
     .action_ids
     .iter()
-    .map(|(id, name)| format!("{}:{}", id, name))
+    .map(|(id, name)| format!("{id}:{name}"))
     .collect::<Vec<_>>()
     .join(",");
 

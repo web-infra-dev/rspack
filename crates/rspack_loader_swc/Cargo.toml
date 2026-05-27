@@ -9,6 +9,7 @@ version.workspace = true
 [features]
 default = []
 plugin = [
+  "rspack_util/plugin",
   # plugin_transform_host_native cannot be enabled directly to avoid wasmer dependency
   "swc_core/__plugin_transform_host",
   "swc_core/__plugin_transform_host_schema_v1",
@@ -48,7 +49,8 @@ tracing                        = { workspace = true }
 stacker = { workspace = true }
 
 [dev-dependencies]
-swc_core = { workspace = true, features = ["testing_transform"] }
+cow-utils = { workspace = true }
+swc_core  = { workspace = true, features = ["testing_transform"] }
 
 [lints]
 workspace = true
