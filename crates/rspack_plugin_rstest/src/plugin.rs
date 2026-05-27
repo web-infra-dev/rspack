@@ -5,13 +5,14 @@ use std::{
 
 use camino::{Utf8Path, Utf8PathBuf};
 use regex::Regex;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
-  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, ResolveOptionsWithDependencyType, ResolveResult,
-  SideEffectsOptimizeArtifact,
+  BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyType,
+  ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
+  RuntimeModule, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -50,6 +51,65 @@ pub struct RstestPluginOptions {
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
   pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
+}
+
+pub fn builtin_plugins() -> Vec<BoxPlugin> {
+  vec![RstestRuntimePlugin::new().boxed()]
+}
+
+#[plugin]
+#[derive(Debug)]
+struct RstestRuntimePlugin;
+
+impl RstestRuntimePlugin {
+  fn new() -> Self {
+    Self::new_inner()
+  }
+}
+
+#[plugin_hook(CompilationRuntimeModule for RstestRuntimePlugin, stage = i32::MAX)]
+async fn runtime_module(
+  &self,
+  compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
+  _chunk: &ChunkUkey,
+  runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let Some(runtime_module) = runtime_modules.get_mut(module_identifier) else {
+    return Ok(());
+  };
+
+  let runtime_module_name = runtime_module.name().to_string();
+
+  match runtime_module_name.as_str() {
+    "webpack/runtime/define_property_getters" => {
+      runtime_module.set_custom_source(
+        RstestPlugin::generate_define_property_getters_runtime_source(compilation),
+      );
+    }
+    "webpack/runtime/require_chunk_loading" | "webpack/runtime/module_chunk_loading" => {
+      let source = runtime_module.generate_with_custom(compilation).await?;
+      runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(source));
+    }
+    _ => {}
+  }
+
+  Ok(())
+}
+
+impl Plugin for RstestRuntimePlugin {
+  fn name(&self) -> &'static str {
+    "rstest runtime"
+  }
+
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .runtime_module
+      .tap(runtime_module::new(self));
+
+    Ok(())
+  }
 }
 
 #[derive(Debug, Default)]
@@ -185,6 +245,51 @@ impl RstestPlugin {
       dep.set_request(resolved_request.clone());
     }
     data.request = resolved_request;
+  }
+
+  fn generate_define_property_getters_runtime_source(compilation: &Compilation) -> String {
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let define_property_getters =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let has_own_property =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
+
+    format!(
+      r#"{define_property_getters} = function(exports, getters, values) {{
+	var define = function(defs, kind) {{
+		for(var key in defs) {{
+			if({has_own_property}(defs, key) && !{has_own_property}(exports, key)) {{
+				var descriptor = {{ enumerable: true, configurable: true }};
+				descriptor[kind] = defs[key];
+				Object.defineProperty(exports, key, descriptor);
+			}}
+		}}
+	}};
+	define(getters, "get");
+	define(values, "value");
+}};"#
+    )
+  }
+
+  fn add_rstest_mock_chunk_loading_guard(source: String) -> String {
+    const RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;";
+    const LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;";
+
+    if source.contains(RSTEST_MOCK_CHUNK_LOADING_GUARD)
+      || source.contains(LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD)
+    {
+      return source;
+    }
+
+    source
+      .replace(
+        "for (var moduleId in moreModules) {",
+        &format!("for (var moduleId in moreModules) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+      )
+      .replace(
+        "for (moduleId in __webpack_modules__) {",
+        &format!("for (moduleId in __webpack_modules__) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+      )
   }
 
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {

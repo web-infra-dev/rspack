@@ -880,6 +880,7 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?;
           let options = raw_options.into();
           plugins.push(RstestPlugin::new(options).boxed());
+          plugins.extend(rspack_plugin_rstest::builtin_plugins());
         }
       }
       BuiltinPluginName::RslibPlugin => {
