@@ -2262,6 +2262,7 @@ export interface RawExternalItemFnResult {
 
 export interface RawExternalsPluginOptions {
   type: string
+  fallbackType?: string
   externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
   placeInInitial: boolean
 }

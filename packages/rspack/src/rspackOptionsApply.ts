@@ -102,6 +102,7 @@ export class RspackOptionsApply {
         options.externalsType,
         options.externals,
         false,
+        getModernModuleCjsExternalType(options),
       ).apply(compiler);
     }
 
@@ -436,4 +437,18 @@ export class RspackOptionsApply {
 
     compiler.hooks.afterResolvers.call(compiler);
   }
+}
+
+function getModernModuleCjsExternalType(
+  options: RspackOptionsNormalized,
+): 'commonjs' | 'node-commonjs' {
+  const presets = options.externalsPresets;
+  return presets.node ||
+    presets.electron ||
+    presets.electronMain ||
+    presets.electronPreload ||
+    presets.electronRenderer ||
+    presets.nwjs
+    ? 'node-commonjs'
+    : 'commonjs';
 }

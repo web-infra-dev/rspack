@@ -562,9 +562,7 @@ For compatibility, Rspack does not enable this automatically when [`output.libra
 
 For static ESM imports, Rspack renders the external like [`'module'`](#externalstypemodule), using a static `import` statement. For dynamic `import()`, Rspack renders the external like [`'module-import'`](#externalstypemodule-import), using `import()`.
 
-For CommonJS `require()`, Rspack currently renders the external like [`'node-commonjs'`](#externalstypenode-commonjs) and creates a `require` function with `createRequire` in the generated ESM output.
-
-This means `modern-module` does not yet distinguish CommonJS external variants for `require()` dependencies. In particular, it does not currently provide a variant that preserves a bare `require()` call in the generated ESM output.
+For CommonJS `require()`, Rspack chooses the CommonJS external variant from the target. Node-like targets render the external like [`'node-commonjs'`](#externalstypenode-commonjs) and create a `require` function with `createRequire` in the generated ESM output. Other targets render it like [`'commonjs'`](#externalstypecommonjs), preserving a bare `require()` call.
 
 **Example**
 
@@ -597,7 +595,7 @@ export default {
 };
 ```
 
-The generated ESM output keeps the static import as an `import` statement, keeps the dynamic import as `import()`, and renders the `require()` external through `createRequire`:
+Because this example targets Node.js, the generated ESM output keeps the static import as an `import` statement, keeps the dynamic import as `import()`, and renders the `require()` external through `createRequire`:
 
 ```js
 import { createRequire as __rspack_createRequire } from 'node:module';

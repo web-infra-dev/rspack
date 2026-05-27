@@ -378,12 +378,7 @@ fn resolve_external_type<'a>(
         match external_type {
           ExternalTypeEnum::Import => "import",
           ExternalTypeEnum::Module => "module",
-          // `modern-module` currently collapses require-style CommonJS
-          // externals to node-commonjs in ESM output. This preserves a
-          // distinct identity from plain commonjs externals, but it also means
-          // we don't yet support selecting other CJS render variants such as
-          // preserving a bare require(...).
-          ExternalTypeEnum::CommonJs => "node-commonjs",
+          ExternalTypeEnum::CommonJs(external_type) => external_type.as_str(),
         }
       } else {
         "module"
@@ -417,7 +412,7 @@ pub struct ExternalModule {
 pub enum ExternalTypeEnum {
   Import,
   Module,
-  CommonJs,
+  CommonJs(ExternalType),
 }
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;
