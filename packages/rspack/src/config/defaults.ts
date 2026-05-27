@@ -674,6 +674,11 @@ const applyOutputDefaults = (
   );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
+  F(
+    environment,
+    'computedProperty',
+    () => tp && optimistic(tp.computedProperty),
+  );
   F(environment, 'methodShorthand', () => tp && optimistic(tp.methodShorthand));
   F(environment, 'arrowFunction', () => tp && optimistic(tp.arrowFunction));
   F(environment, 'asyncFunction', () => tp && optimistic(tp.asyncFunction));

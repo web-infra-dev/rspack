@@ -2207,6 +2207,7 @@ export interface RawEntryDynamicResult {
 
 export interface RawEnvironment {
   const: boolean
+  computedProperty: boolean
   methodShorthand: boolean
   arrowFunction: boolean
   nodePrefixForCoreModules: boolean

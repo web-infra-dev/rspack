@@ -121,6 +121,7 @@ function getRawOutputEnvironment(
 ): RawEnvironment {
   return {
     const: Boolean(environment.const),
+    computedProperty: Boolean(environment.computedProperty),
     methodShorthand: Boolean(environment.methodShorthand),
     arrowFunction: Boolean(environment.arrowFunction),
     nodePrefixForCoreModules: Boolean(environment.nodePrefixForCoreModules),

@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6094
+- Update: main.hot-update.js, size: 6038
 
 ## Manifest
 
@@ -178,9 +178,7 @@ __webpack_require__.d = function (exports, getters, values) {
   var define = function (defs, kind) {
     for(var key in defs) {
       if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
-        var descriptor = { enumerable: true, configurable: true };
-        descriptor[kind] = defs[key];
-        Object.defineProperty(exports, key, descriptor);
+        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
       }
     }
   }
