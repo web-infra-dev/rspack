@@ -745,33 +745,35 @@ impl ChunkGraph {
         side_effects_state_artifact: &SideEffectsStateArtifact,
         exports_info_artifact: &ExportsInfoArtifact,
       ) {
-        for connection in module_graph.get_outgoing_connections(&module) {
-          // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
-          let active_state = connection.active_state(
-            module_graph,
-            None,
-            module_graph_cache,
-            side_effects_state_artifact,
-            exports_info_artifact,
-          );
-          match active_state {
-            crate::ConnectionState::Active(false) => {
-              continue;
-            }
-            crate::ConnectionState::TransitiveOnly => {
-              add_dependencies(
-                *connection.module_identifier(),
-                add_dependency,
+        let mut current_modules = vec![module];
+        let mut visited_modules = IdentifierSet::default();
+
+        while !current_modules.is_empty() {
+          let next_modules = current_modules
+            .iter()
+            .filter(|module| visited_modules.insert(**module))
+            .flat_map(|module| module_graph.get_outgoing_connections(module))
+            .filter_map(|connection| {
+              // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
+              let active_state = connection.active_state(
                 module_graph,
+                None,
                 module_graph_cache,
                 side_effects_state_artifact,
                 exports_info_artifact,
               );
-              continue;
-            }
-            _ => {}
-          }
-          add_dependency(*connection.module_identifier());
+              match active_state {
+                crate::ConnectionState::Active(false) => None,
+                crate::ConnectionState::TransitiveOnly => Some(*connection.module_identifier()),
+                _ => {
+                  add_dependency(*connection.module_identifier());
+                  None
+                }
+              }
+            })
+            .collect::<Vec<_>>();
+
+          current_modules = next_modules;
         }
       }
 
