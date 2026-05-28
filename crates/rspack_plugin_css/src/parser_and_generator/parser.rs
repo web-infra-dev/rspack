@@ -48,7 +48,7 @@ pub(super) struct CssModuleParser<'context> {
 struct ComposesOrderState {
   graph: FxHashMap<DependencyId, FxHashSet<DependencyId>>,
   request_to_dependency: FxHashMap<String, DependencyId>,
-  dependencies_in_source_order: Vec<(u32, DependencyId)>,
+  dependencies_in_source_order: Vec<(DependencyId, i32)>,
   compose_dependency_count: usize,
   current_rule_key: Option<String>,
   current_rule_prev_dependency: Option<DependencyId>,
@@ -109,7 +109,7 @@ impl ComposesOrderState {
       .insert(request.to_string(), dependency_id);
     self
       .dependencies_in_source_order
-      .push((source_start, dependency_id));
+      .push((dependency_id, source_order_to_i32(source_start)));
     self.compose_dependency_count += 1;
     dependency_id
   }
@@ -118,12 +118,16 @@ impl ComposesOrderState {
     self.compose_dependency_count > 1
   }
 
-  fn source_order(&self) -> Vec<DependencyId> {
+  fn source_order(&self) -> Vec<(DependencyId, i32)> {
     let mut dependencies_in_source_order = self.dependencies_in_source_order.clone();
-    dependencies_in_source_order.sort_by_key(|(source_start, _)| *source_start);
+    dependencies_in_source_order.sort_by_key(|(_, source_order)| *source_order);
+    let base_source_order = dependencies_in_source_order
+      .first()
+      .map(|(_, source_order)| *source_order)
+      .unwrap_or_default();
     let dependencies_in_source_order = dependencies_in_source_order
       .into_iter()
-      .map(|(_, dependency_id)| dependency_id)
+      .map(|(dependency_id, _)| dependency_id)
       .collect::<Vec<_>>();
 
     topological_sort(dependencies_in_source_order, |dependency_id| {
@@ -134,7 +138,20 @@ impl ComposesOrderState {
         .flat_map(|successors| successors.iter().copied())
         .collect::<Vec<_>>()
     })
+    .into_iter()
+    .enumerate()
+    .map(|(source_order, dependency_id)| {
+      (
+        dependency_id,
+        base_source_order.saturating_add(source_order.try_into().unwrap_or(i32::MAX)),
+      )
+    })
+    .collect()
   }
+}
+
+fn source_order_to_i32(source_order: u32) -> i32 {
+  source_order.try_into().unwrap_or(i32::MAX)
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -804,8 +821,6 @@ impl<'context> CssModuleParser<'context> {
       .composes_order
       .source_order()
       .into_iter()
-      .enumerate()
-      .map(|(source_order, dependency_id)| (dependency_id, source_order as i32))
       .collect::<FxHashMap<_, _>>();
 
     for dep in &mut self.dependencies {

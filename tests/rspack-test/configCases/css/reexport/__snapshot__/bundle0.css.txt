@@ -1,0 +1,351 @@
+@value primary from "./theme.module.css";
+@value error from "./theme.module.css";
+
+@value colors: "./theme.module.css";
+@value danger: error from colors;
+
+.value-at-rule_module_css-color {
+	color: danger
+}
+
+.value-at-rule_module_css-button {
+	background-color: primary;
+	color: white;
+}
+
+.value-at-rule_module_css-button-error {
+	background-color: error;
+	border: 2px solid darkred;
+}
+
+
+
+.cyclical_module_css-class {
+	color: __value__;
+}
+
+.cyclical_module_css-class-with-composes-nested {
+	
+}
+
+
+
+.reset_module_css-reset-display {
+	display: unset;
+}
+
+.atoms-extra_module_css-transition {
+	
+	transition: transform Xs ease;
+}
+
+.atoms-extra_module_css-cursor {
+	cursor: pointer;
+}
+
+.atoms_module_css-display-flex {
+	display: flex;
+}
+
+.atoms_module_css-align-center {
+	align-items: center;
+}
+
+.atoms_module_css-padding-box {
+	padding: 16px;
+}
+
+.atoms_module_css-interactive {
+	
+	will-change: transform;
+}
+
+.atoms_module_css-interactive:hover {
+	transform: scale(1.02);
+}
+
+.button_module_css-base {
+	
+	
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+
+
+.button-reexport_module_css-base-reexport {
+	
+	
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+.classes_module_css-localName {
+	background: red;
+}
+
+.classes_module_css-localNameOther {
+	color: blue;
+}
+
+.classes_module_css-bar {
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+.classes-the-same_module_css-localName {
+	background: blue;
+}
+
+
+
+
+
+
+.styles_module_css-button-color-red {
+	color: red;
+}
+
+.styles_module_css-u-1\/2 {
+	width: 50%;
+}
+
+.button-global-font-size\a1 {
+	font-size: 14px;
+}
+
+.styles_module_css-composes-here {
+	display: block;
+}
+
+.styles_module_css-composes-here {
+	background-color: black;
+}
+
+.styles_module_css-button-complex {
+	
+	background: blue;
+}
+
+.styles_module_css-button-complex-1 {
+	
+}
+
+.styles_module_css-button-complex-2 {
+	
+}
+
+.styles_module_css-local-composes {
+	
+	color: blue;
+}
+
+.styles_module_css-local-composes {
+	
+	color: blue;
+}
+
+
+
+.styles_module_css-local-composes-with-reexport {
+	
+	color: blue;
+}
+
+@value composes-test-here: composes-here;
+
+.styles_module_css-local-composes-with-reexport-and-value {
+	composes: composes-test-here, __import_f__, global(bar);
+	color: blue;
+}
+
+.styles_module_css-exportName73 {  color: red; }
+.styles_module_css-exportName74 {  color: green; }
+.styles_module_css-exportName75 { color: blue }
+.styles_module_css-exportName74 {  color: white; }
+.styles_module_css-exportName74 {  color: black; }
+
+.styles_module_css-multiple-composes-with-simple {
+	
+	
+	color: red;
+}
+
+.styles_module_css-multiple-composes-with-composes {
+	
+	
+	color: blue;
+}
+
+.styles_module_css-the-same-classes-in-composes-but-different-modules {
+	
+	
+}
+
+:root {
+	--color: red;
+}
+
+@value --my-custom-property-1: --color;
+
+
+
+.styles_module_css-custom-properties {
+	color: var(--color);
+	background-color: var(--shared from "./shared-custom-properties.module.css");
+	border-color: var(--deep-shared from "./shared-custom-properties.module.css");
+	outline-color: var(--my-custom-property-1);
+	text-decoration-color: var(--reexport-my-var-u1);
+}
+
+.styles_module_css-from {
+	color: var(--my-var-u1 from "./vars.module.css");
+}
+
+@value primary, secondary as my-custom-color from "./colors.module.css";
+
+.styles_module_css-button-with-color {
+	background-color: primary;
+	color: my-custom-color;
+}
+
+@value foo: red;
+
+.styles_module_css-button-with-color-too {
+	color: foo;
+}
+
+@value blue: #3498db;
+@value rename: blue;
+
+.styles_module_css-button-rename-1 {
+	background-color: rename;
+}
+
+@value danger from "./colors.module.css";
+@value rename-2: danger;
+
+.styles_module_css-button-rename-2 {
+	background-color: rename-2;
+}
+
+@value danger as danger-alias from "./colors.module.css";
+@value rename-3: danger-alias;
+
+.styles_module_css-button-rename-3 {
+	background-color: rename-3;
+}
+
+@value colors: "./colors.module.css";
+@value third from colors;
+
+.styles_module_css-button-rename-4 {
+	background-color: third;
+}
+
+.styles_module_css-button-export-5 {
+	content: __REEXPORT3__
+}
+
+@value selector: my-selector-value;
+.styles_module_css-selector { value: selector; }
+
+@value other-selector from "./selectors.module.css";
+.styles_module_css-other-selector { value: other-selector; }
+
+@value other-selector as alias-other-selector from "./selectors.module.css";
+.styles_module_css-alias-other-selector { value: alias-other-selector; }
+
+@value reexport-selector from "./selectors.module.css";
+.styles_module_css-reexport-selector { value: reexport-selector; }
+
+@value reexport-selector as reexport-selector-alias from "./selectors.module.css";
+.styles_module_css-reexport-selector-alias { value: reexport-selector-alias; }
+
+@value colors: "./colors.module.css";
+@value third from colors;
+.styles_module_css-third { background-color: third; }
+
+@value danger as danger-alias-selector from "./colors.module.css";
+@value rename-3: danger-alias-selector;
+.styles_module_css-rename-3 { background-color: rename-3; }
+
+.styles_module_css-local-class {
+	color: white;
+}
+
+.global-class-other {
+	color: red;
+}
+
+.styles_module_css-class-with-composes {
+	
+}
+
+
+
+.styles_module_css-class-local-my { color: red }
+
+.styles_module_css-composes-from-import {
+	
+	color: red;
+}
+
+
+
+.styles_module_css-local-for-reexport { color: blue; }
+
+.styles_module_css-deep-reexport-in-composes {
+	
+}
+
+
+
+.styles_module_css-deep-reexport-in-composes-other {
+	
+}
+
+
+
+.styles_module_css-only-reexport {
+	
+}
+
+
+
+.styles_module_css-class-from-pseudo-import {
+	color: __import_localName__;
+}
+
+
+
+
+
+.styles_module_css-class {
+	color: __value_cyclical__;
+}
+
+
+
+
+
+@value in-composes: abc-from-def_local;
+
+.styles_module_css-local-for-reexport { color: blue; }
+
+.styles_module_css-deep-reexport-in-composes-other-other {
+	
+}
