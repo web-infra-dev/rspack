@@ -48,9 +48,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
         // Try to extract source map from the content
         let extract_result = match &content {
           Content::String(s) => extract_source_map(fs, s, resource_data.resource()).await,
-          Content::Buffer(b) => {
-            extract_source_map(fs, &String::from_utf8_lossy(b), resource_data.resource()).await
-          }
+          Content::Buffer(b) => match simdutf8::basic::from_utf8(b) {
+            Ok(s) => extract_source_map(fs, s, resource_data.resource()).await,
+            Err(_) => {
+              extract_source_map(fs, &String::from_utf8_lossy(b), resource_data.resource()).await
+            }
+          },
         };
 
         match extract_result {
