@@ -237,10 +237,6 @@ rspack_util                            = { version = "=0.100.4", path = "crates/
 rspack_watcher                         = { version = "=0.100.4", path = "crates/rspack_watcher", default-features = false }
 rspack_workspace                       = { version = "=0.100.4", path = "crates/rspack_workspace", default-features = false }
 
-[patch.crates-io]
-rspack_sources               = { git = "https://github.com/rstackjs/rspack-sources", branch = "perf/optimize-mappings-encoder" }
-swc_experimental_ecma_ast    = { git = "https://github.com/hardfist/swc-experimental", branch = "perf/optimize-ast-allocation" }
-swc_experimental_ecma_parser = { git = "https://github.com/hardfist/swc-experimental", branch = "perf/optimize-ast-allocation" }
 
 [workspace.metadata.release]
 rate-limit = { existing-packages = 70, new-packages = 70 }

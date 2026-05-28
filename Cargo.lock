@@ -5085,7 +5085,8 @@ dependencies = [
 [[package]]
 name = "rspack_sources"
 version = "0.4.23"
-source = "git+https://github.com/rstackjs/rspack-sources?branch=perf%2Foptimize-mappings-encoder#0c054acc75ccc1dbfeaacfa1d126ad689a0ce938"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81a72d10c90a000749a73245046be8071ecdd1ce6d21673ff17fe1da8eed6e8d"
 dependencies = [
  "dyn-clone",
  "memchr",
@@ -6611,8 +6612,9 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ast_macros"
-version = "0.6.7"
-source = "git+https://github.com/hardfist/swc-experimental?branch=perf%2Foptimize-ast-allocation#80d0d713c6590fabb325212390560577e5b1063f"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b84de9820debe553b4316c3b12860d6da49a0f4170af49d49496425b9be87d94"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6622,7 +6624,8 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_ast"
 version = "0.6.7"
-source = "git+https://github.com/hardfist/swc-experimental?branch=perf%2Foptimize-ast-allocation#80d0d713c6590fabb325212390560577e5b1063f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "078f89faf183e8af0817206ed39008c765e35c80a3656c0a0e1dab47f15bd947"
 dependencies = [
  "hashbrown 0.16.1",
  "num-bigint",
@@ -6635,7 +6638,8 @@ dependencies = [
 [[package]]
 name = "swc_experimental_ecma_parser"
 version = "0.6.7"
-source = "git+https://github.com/hardfist/swc-experimental?branch=perf%2Foptimize-ast-allocation#80d0d713c6590fabb325212390560577e5b1063f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8beae6cf921cb8f0cef7433320aeb9cbf9ff877b7bc8bcd35c3a20b8f848c721"
 dependencies = [
  "bitflags 2.11.1",
  "either",
