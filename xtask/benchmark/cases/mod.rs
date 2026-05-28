@@ -20,4 +20,5 @@ pub mod bundle_threejs_production_sourcemap;
 pub mod module_graph_api;
 pub mod persistent_cache_restore;
 pub mod persistent_cache_restore_after_single_file_change;
+pub mod rspack_sources;
 pub mod scan_dependencies;

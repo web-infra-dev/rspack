@@ -3589,6 +3589,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_split_chunks",
  "rspack_regex",
+ "rspack_sources",
  "rspack_tasks",
  "rustc-hash",
  "serde_json",
@@ -5118,18 +5119,18 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81a72d10c90a000749a73245046be8071ecdd1ce6d21673ff17fe1da8eed6e8d"
+version = "0.100.4"
 dependencies = [
  "dyn-clone",
  "memchr",
+ "regex",
  "rkyv 0.8.16",
  "rustc-hash",
  "serde",
  "simd-json",
  "simd-utf16-len",
  "static_assertions",
+ "twox-hash",
 ]
 
 [[package]]
@@ -7470,6 +7471,12 @@ dependencies = [
  "termcolor",
  "toml 1.0.2+spec-1.1.0",
 ]
+
+[[package]]
+name = "twox-hash"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c"
 
 [[package]]
 name = "typenum"

@@ -47,5 +47,6 @@ criterion_main!(
   stages::create_concatenate_module::stage,
   stages::concatenate_module_code_generation::stage,
   cases::persistent_cache_restore::case,
-  cases::persistent_cache_restore_after_single_file_change::case
+  cases::persistent_cache_restore_after_single_file_change::case,
+  cases::rspack_sources::case
 );

@@ -35,6 +35,7 @@ rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_split_chunks = { workspace = true }
 rspack_regex               = { workspace = true }
+rspack_sources             = { workspace = true }
 rspack_tasks               = { workspace = true }
 rustc-hash                 = { workspace = true }
 serde_json                 = { workspace = true }
