@@ -110,9 +110,10 @@ fn escape_identifier_impl(v: &str, out: &mut String) -> bool {
   out.push_str(&vstr[..first_invalid]);
   out.push('_');
 
-  let mut pos = first_invalid + 1;
+  let start = first_invalid + 1;
+  let mut pos = start;
   let mut is_safe = false;
-  for i in pos..v.len() {
+  for i in start..v.len() {
     if is_ident_safe(v[i]) {
       if !is_safe {
         pos = i;
@@ -128,7 +129,6 @@ fn escape_identifier_impl(v: &str, out: &mut String) -> bool {
         out.push('_');
         is_safe = false;
       }
-      pos = i + 1;
     }
   }
 
