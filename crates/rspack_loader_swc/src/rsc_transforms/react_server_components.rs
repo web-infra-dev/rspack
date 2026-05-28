@@ -9,8 +9,8 @@ use regex::Regex;
 use rspack_core::{RscMeta, RscModuleType};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use swc::atoms::Wtf8Atom;
 use swc_core::{
+  atoms::{Wtf8Atom, atom},
   common::{FileName, Span, errors::HANDLER, util::take::Take},
   ecma::{
     ast::*,
@@ -419,8 +419,8 @@ struct ReactServerComponentValidator {
   disable_client_api_checks: bool,
   filepath: String,
   invalid_server_lib_apis_mapping: FxHashMap<&'static str, Vec<&'static str>>,
-  invalid_server_imports: Vec<&'static str>,
-  invalid_client_imports: Vec<&'static str>,
+  invalid_server_imports: Vec<Wtf8Atom>,
+  invalid_client_imports: Vec<Wtf8Atom>,
   pub directive_import_collection: Option<DirectiveImportCollection>,
   imports: ImportMap,
 }
@@ -471,8 +471,12 @@ impl ReactServerComponentValidator {
           ],
         ),
       ]),
-      invalid_server_imports: vec!["client-only"],
-      invalid_client_imports: vec!["server-only"],
+      invalid_server_imports: vec![
+        atom!("client-only").into(),
+        atom!("react-dom/client").into(),
+        atom!("react-dom/server").into(),
+      ],
+      invalid_client_imports: vec![atom!("server-only").into()],
       imports: ImportMap::default(),
     }
   }
@@ -506,17 +510,18 @@ impl ReactServerComponentValidator {
       return;
     }
     for import in imports {
-      if let Some(source_str) = import.source.0.as_str() {
-        if self.invalid_server_imports.contains(&source_str) {
-          report_error(RSCErrorKind::ErrServerImport((
-            source_str.to_string(),
-            import.source.1,
-          )));
-        }
+      let source = &import.source.0;
+      if self.invalid_server_imports.contains(source) {
+        report_error(RSCErrorKind::ErrServerImport((
+          source.to_string_lossy().into_owned(),
+          import.source.1,
+        )));
+      }
 
-        if !self.disable_client_api_checks {
-          self.assert_invalid_server_lib_apis(source_str, import);
-        }
+      if let Some(source_str) = source.as_str()
+        && !self.disable_client_api_checks
+      {
+        self.assert_invalid_server_lib_apis(source_str, import);
       }
     }
   }
@@ -526,11 +531,10 @@ impl ReactServerComponentValidator {
       return;
     }
     for import in imports {
-      if let Some(source_str) = import.source.0.as_str()
-        && self.invalid_client_imports.contains(&source_str)
-      {
+      let source = &import.source.0;
+      if self.invalid_client_imports.contains(source) {
         report_error(RSCErrorKind::ErrClientImport((
-          source_str.to_string(),
+          source.to_string_lossy().into_owned(),
           import.source.1,
         )));
       }

@@ -1,0 +1,16 @@
+  x You're importing a module that depends on "react-dom/server". This package only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  | 
+  | 
+   ,-[input.js:9:1]
+ 8 | 
+ 9 | import 'react-dom/server'
+   : ^^^^^^^^^^^^^^^^^^^^^^^^^
+   `----
+  x You're importing a module that depends on "react-dom/client". This package only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+  | 
+  | 
+    ,-[input.js:11:1]
+ 10 | 
+ 11 | import 'react-dom/client'
+    : ^^^^^^^^^^^^^^^^^^^^^^^^^
+    `----
