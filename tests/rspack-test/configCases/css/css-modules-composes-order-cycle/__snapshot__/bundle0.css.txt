@@ -1,0 +1,42 @@
+.cycle-p {
+  color: purple;
+}
+
+.cycle-q {
+  color: orange;
+}
+
+.cycle-z {
+  color: yellow;
+}
+
+.cycle-x {
+  color: cyan;
+}
+
+.cycle-y {
+  color: magenta;
+}
+
+.seen {
+  
+}
+
+.cycleOne {
+  
+  
+}
+
+.cycleTwo {
+  
+  
+}
+
+.later {
+  
+  
+}
+
+.independent {
+  
+}

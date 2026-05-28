@@ -8,9 +8,14 @@ module.exports = {
     __filename: false,
   },
   module: {
+    generator: {
+      'css/module': {
+        localIdentName: '[local]',
+      },
+    },
     rules: [
       {
-        test: /\.modules\.css$/,
+        test: /\.module\.css$/,
         type: 'css/module',
       },
     ],
