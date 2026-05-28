@@ -738,17 +738,12 @@ impl ChunkGraph {
 
     let mut modules = find_graph_roots(input, |module, add_dependency| {
       let mut current_modules = vec![module];
-      let mut visited_modules = IdentifierSet::default();
-      let mut dependencies = IdentifierSet::default();
 
       while !current_modules.is_empty() {
-        let mut next_modules = Vec::new();
-
-        current_modules
+        let next_modules = current_modules
           .iter()
-          .filter(|module| visited_modules.insert(**module))
           .flat_map(|module| module_graph.get_outgoing_connections(module))
-          .for_each(|connection| {
+          .filter_map(|connection| {
             // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
             let active_state = connection.active_state(
               module_graph,
@@ -758,18 +753,15 @@ impl ChunkGraph {
               exports_info_artifact,
             );
             match active_state {
-              crate::ConnectionState::Active(false) => {}
-              crate::ConnectionState::TransitiveOnly => {
-                next_modules.push(*connection.module_identifier());
-              }
+              crate::ConnectionState::Active(false) => None,
+              crate::ConnectionState::TransitiveOnly => Some(*connection.module_identifier()),
               _ => {
-                let dependency = *connection.module_identifier();
-                if dependencies.insert(dependency) {
-                  add_dependency(dependency);
-                }
+                add_dependency(*connection.module_identifier());
+                None
               }
             }
-          });
+          })
+          .collect::<Vec<_>>();
 
         current_modules = next_modules;
       }
