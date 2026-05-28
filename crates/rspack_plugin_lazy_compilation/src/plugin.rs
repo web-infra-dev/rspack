@@ -231,15 +231,11 @@ async fn normal_module_factory_module(
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
 
-  // Proxy modules that current entries point to in this compilation.
-  // A previously-active entry proxy whose entry has been removed (e.g. by a
-  // dynamic entry function) must NOT be force-rebuilt here — its underlying
-  // resource may no longer exist, and the orphan will be cleaned up later by
-  // `BuildEntryAndClean` in `finish_module_graph`. The dep -> module lookup
-  // works because incremental mode preserves the connection across builds;
-  // entries whose deps haven't been factorized yet (first build, freshly
-  // added entry) simply won't appear in this set, which is fine — we only
-  // use it to *prove* stale-ness, never to drop ids we're unsure about.
+  // Entry proxies whose entry was removed must NOT be force-rebuilt — the
+  // source may no longer exist on disk. `BuildEntryAndClean` will clean
+  // them up later. Use this set only to prove stale-ness, never to drop
+  // ids we're unsure about (a freshly-added entry's dep may not be
+  // factorized yet and won't appear here).
   let current_entry_proxy_ids: IdentifierSet = {
     let mg = compilation.build_module_graph_artifact.get_module_graph();
     compilation
@@ -250,28 +246,52 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
       .collect()
   };
 
+  // Seed from the backend snapshot — not-yet-factorized ids must survive
+  // so the later `active` check in `normal_module_factory_module` sees them.
+  let mut next_active_modules: IdentifierSet = active_modules.iter().copied().collect();
+  let mut to_invalidate: IdentifierSet = IdentifierSet::default();
+  {
+    let module_graph = compilation.build_module_graph_artifact.get_module_graph();
+    for module_id in &active_modules {
+      let Some(active_module) = module_graph.module_by_identifier(module_id) else {
+        continue;
+      };
+      let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
+        continue;
+      };
+
+      if active_module.is_entry() && !current_entry_proxy_ids.contains(module_id) {
+        // proxy identifier doesn't encode dep kind, so the same resource may
+        // be both an entry and a lazy `import()` target. Only drop if no
+        // non-entry incoming connection still references it.
+        let still_referenced_by_import =
+          module_graph.get_incoming_connections(module_id).any(|con| {
+            !matches!(
+              module_graph
+                .dependency_by_id(&con.dependency_id)
+                .dependency_type(),
+              DependencyType::Entry
+            )
+          });
+        if !still_referenced_by_import {
+          next_active_modules.remove(module_id);
+          continue;
+        }
+      }
+
+      to_invalidate.insert(*module_id);
+    }
+  }
+
   let module_graph = compilation
     .build_module_graph_artifact
     .get_module_graph_mut();
-  // Start from the full backend snapshot. Ids whose proxies haven't been
-  // factorized yet (first build, new entry, non-incremental) must stay so
-  // that `normal_module_factory_module`'s `active` check sees them later.
-  // Only drop ids that we positively identify as stale entry proxies.
-  let mut next_active_modules: IdentifierSet = active_modules.iter().copied().collect();
-  for module_id in &active_modules {
-    let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
-      continue;
-    };
-    let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
-      continue;
-    };
-
-    if active_module.is_entry() && !current_entry_proxy_ids.contains(module_id) {
-      next_active_modules.remove(module_id);
-      continue;
+  for module_id in &to_invalidate {
+    if let Some(active_module) = module_graph.module_by_identifier_mut(module_id)
+      && let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>()
+    {
+      active_module.invalid();
     }
-
-    active_module.invalid();
   }
 
   *self.active_modules.write().await = next_active_modules;

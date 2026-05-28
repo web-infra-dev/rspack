@@ -100,12 +100,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     *imported_dependencies = next_imported_dependencies;
   } else {
-    // On a non-incremental run (e.g. the very first compile, before state
-    // becomes Hot) we still need to seed `imported_dependencies` so that the
-    // next incremental rebuild can reuse these dep ids instead of allocating
-    // fresh ones. Without this, the next compilation would see all entry
-    // deps as "new" and lose the dep -> proxy/module connection that other
-    // plugins (LazyCompilationPlugin, incremental cleanup) rely on.
+    // Cold branch must still seed `imported_dependencies` — otherwise the
+    // next Hot rebuild reallocates dep ids and breaks every downstream
+    // lookup that relies on dep id continuity across compiles.
     let mut imported_dependencies = self.imported_dependencies.borrow_mut();
     let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
       Default::default();
