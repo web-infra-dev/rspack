@@ -763,15 +763,16 @@ impl ChunkGraph {
                 next_modules.push(*connection.module_identifier());
               }
               _ => {
-                dependencies.insert(*connection.module_identifier());
+                let dependency = *connection.module_identifier();
+                if dependencies.insert(dependency) {
+                  add_dependency(dependency);
+                }
               }
             }
           });
 
         current_modules = next_modules;
       }
-
-      dependencies.into_iter().for_each(add_dependency);
     });
 
     modules.sort_unstable();
