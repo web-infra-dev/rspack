@@ -6,13 +6,14 @@ use std::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
-  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin,
+  CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
+use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
@@ -219,7 +220,6 @@ async fn normal_module_factory_module(
     module_factory_create_data,
     create_data.resource_resolve_data.resource().to_owned(),
     active,
-    is_entries,
     self.client.clone(),
   )
   .boxed();
@@ -231,20 +231,15 @@ async fn normal_module_factory_module(
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
 
-  // Entry proxies whose entry was removed must NOT be force-rebuilt — the
-  // source may no longer exist on disk. `BuildEntryAndClean` will clean
-  // them up later. Use this set only to prove stale-ness, never to drop
-  // ids we're unsure about (a freshly-added entry's dep may not be
-  // factorized yet and won't appear here).
-  let current_entry_proxy_ids: IdentifierSet = {
-    let mg = compilation.build_module_graph_artifact.get_module_graph();
-    compilation
-      .entries
-      .values()
-      .flat_map(|e| e.all_dependencies())
-      .filter_map(|dep_id| mg.module_identifier_by_dependency_id(dep_id).copied())
-      .collect()
-  };
+  // Dep ids of every entry dependency the current compilation knows about.
+  // Used below to detect an entry proxy whose only remaining edge points to
+  // an entry dep that has just been dropped.
+  let current_entry_dep_ids: FxHashSet<DependencyId> = compilation
+    .entries
+    .values()
+    .flat_map(|e| e.all_dependencies())
+    .copied()
+    .collect();
 
   // Seed from the backend snapshot — not-yet-factorized ids must survive
   // so the later `active` check in `normal_module_factory_module` sees them.
@@ -256,27 +251,32 @@ async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
       let Some(active_module) = module_graph.module_by_identifier(module_id) else {
         continue;
       };
-      let Some(active_module) = active_module.downcast_ref::<LazyCompilationProxyModule>() else {
+      if active_module
+        .downcast_ref::<LazyCompilationProxyModule>()
+        .is_none()
+      {
         continue;
-      };
+      }
 
-      if active_module.is_entry() && !current_entry_proxy_ids.contains(module_id) {
-        // proxy identifier doesn't encode dep kind, so the same resource may
-        // be both an entry and a lazy `import()` target. Only drop if no
-        // non-entry incoming connection still references it.
-        let still_referenced_by_import =
-          module_graph.get_incoming_connections(module_id).any(|con| {
-            !matches!(
-              module_graph
-                .dependency_by_id(&con.dependency_id)
-                .dependency_type(),
-              DependencyType::Entry
-            )
-          });
-        if !still_referenced_by_import {
-          next_active_modules.remove(module_id);
-          continue;
-        }
+      // Drop the proxy only when its sole incoming edge is an entry dep
+      // that no longer belongs to any current entry. Any other shape
+      // (multiple incomings, non-entry dep, or still-current entry dep)
+      // keeps the proxy active.
+      let mut incoming = module_graph.get_incoming_connections(module_id);
+      let only = incoming.next();
+      let is_stale = incoming.next().is_none()
+        && only.is_some_and(|con| {
+          matches!(
+            module_graph
+              .dependency_by_id(&con.dependency_id)
+              .dependency_type(),
+            DependencyType::Entry
+          ) && !current_entry_dep_ids.contains(&con.dependency_id)
+        });
+
+      if is_stale {
+        next_active_modules.remove(module_id);
+        continue;
       }
 
       to_invalidate.insert(*module_id);
