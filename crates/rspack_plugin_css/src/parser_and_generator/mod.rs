@@ -7,11 +7,11 @@ use std::{borrow::Cow, sync::LazyLock};
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, CssBuildInfo,
-  CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType, ExportsInfoArtifact,
-  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, TemplateContext, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
+  CssAutoOrModuleParserOptions, CssBuildInfo, CssModuleGeneratorOptions, DependencyType,
+  ExportsInfoArtifact, GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier,
+  ModuleInitFragments, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -74,10 +74,13 @@ fn css_generator_options(
     .expect("should have CssModuleGeneratorOptions")
 }
 
-fn css_parser_options(parser_options: Option<&ParserOptions>) -> &CssModuleParserOptions {
-  parser_options
-    .and_then(ParserOptions::get_css_module)
-    .expect("should have CssModuleParserOptions")
+fn css_parser_options(parser_options: Option<&ParserOptions>) -> CssAutoOrModuleParserOptions {
+  match parser_options.expect("should have CssParserOptions") {
+    ParserOptions::CssAutoOrModule(options) => options.clone(),
+    ParserOptions::CssModule(options) => options.clone().into(),
+    ParserOptions::Css(options) => options.into(),
+    _ => panic!("should have CssParserOptions"),
+  }
 }
 
 pub fn get_used_exports<'a>(
@@ -239,7 +242,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     CssModuleParser::new(
       generator_options,
-      parser_options,
+      &parser_options,
       exports_only,
       parse_context,
     )

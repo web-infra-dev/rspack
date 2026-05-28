@@ -1,16 +1,27 @@
 'use strict';
 
-const path = require('path');
-const { rspack } = require('@rspack/core');
-
 /** @type {(env: Env, options: TestOptions) => import("@rspack/core").Configuration[]} */
-module.exports = (env, { testPath }) => [
+module.exports = () => [
   {
     target: 'web',
     mode: 'development',
 
     module: {
+      parser: {
+        'css/auto': {
+          customIdents: true,
+          dashedIdents: true,
+        },
+        'css/module': {
+          customIdents: true,
+          dashedIdents: true,
+        },
+      },
       rules: [
+        {
+          test: /\.css$/i,
+          type: 'css/auto',
+        },
         {
           test: /\.my-css$/i,
           type: 'css/auto',

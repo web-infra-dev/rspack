@@ -1,29 +1,29 @@
 Array [
   .style_modules_css-class {
-	color: IMPORTED_NAME;
-	background: IMPORTED_NAME;
+	color: red;
+	background: red;
 }
 
 
-.style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: red}
 
 .style_modules_css-class {
-	color: i__imported_a_0;
-	color: i__imported__b_1;
-	color: i__imported___c_2;
-	color: i__imported__d_3;
-}
-
-
-
-.style_modules_css-class {
-	color: something;
+	color: red;
+	color: red;
+	color: red;
+	color: red;
 }
 
 
 
 .style_modules_css-class {
-	color: again;
+	color: red;
+}
+
+
+
+.style_modules_css-class {
+	color: red;
 }
 
 /* TODO fix me */
@@ -36,7 +36,7 @@ Array [
 
 
 .style_modules_css-class {
-	color:    _i_multile_values   ;
+	color:    red, red, func()   ;
 }
 
 .style_modules_css-nest {
@@ -49,30 +49,30 @@ Array [
 	unknown: unknown;
 },
   .style_modules_css-class {
-	color: IMPORTED_NAME;
-	background: IMPORTED_NAME;
+	color: red;
+	background: red;
 }
 
 
-.style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: red}
 
 .style_modules_css-class {
-	color: i__imported_a_0;
-	color: i__imported__b_1;
-	color: i__imported___c_2;
-	color: i__imported__d_3;
-}
-
-
-
-.style_modules_css-class {
-	color: something;
+	color: red;
+	color: red;
+	color: red;
+	color: red;
 }
 
 
 
 .style_modules_css-class {
-	color: again;
+	color: red;
+}
+
+
+
+.style_modules_css-class {
+	color: red;
 }
 
 /* TODO fix me */
@@ -85,7 +85,7 @@ Array [
 
 
 .style_modules_css-class {
-	color:    _i_multile_values   ;
+	color:    red, red, func()   ;
 }
 
 .style_modules_css-nest {
@@ -98,30 +98,30 @@ Array [
 	unknown: unknown;
 },
   .style_modules_css-class {
-	color: IMPORTED_NAME;
-	background: IMPORTED_NAME;
+	color: red;
+	background: red;
 }
 
 
-.style_modules_css-class {background: IMPORTED_NAME}
+.style_modules_css-class {background: red}
 
 .style_modules_css-class {
-	color: i__imported_a_0;
-	color: i__imported__b_1;
-	color: i__imported___c_2;
-	color: i__imported__d_3;
-}
-
-
-
-.style_modules_css-class {
-	color: something;
+	color: red;
+	color: red;
+	color: red;
+	color: red;
 }
 
 
 
 .style_modules_css-class {
-	color: again;
+	color: red;
+}
+
+
+
+.style_modules_css-class {
+	color: red;
 }
 
 /* TODO fix me */
@@ -134,7 +134,7 @@ Array [
 
 
 .style_modules_css-class {
-	color:    _i_multile_values   ;
+	color:    red, red, func()   ;
 }
 
 .style_modules_css-nest {

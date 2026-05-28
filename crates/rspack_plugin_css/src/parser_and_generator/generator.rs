@@ -228,24 +228,23 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
             content.push_str(&json_stringify_str(&ident));
           }
           Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
+            let Some(from) = module.get_dependencies().iter().find_map(|id| {
+              let dependency = module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.as_module_dependency() {
+                Some(d.request())
+              } else {
+                dependency.as_context_dependency().map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return module_graph.module_graph_module_by_dependency_id(id);
+              }
+              None
+            }) else {
+              content.push_str(&json_stringify_str(ident));
+              continue;
+            };
 
             let from_exports_info = compilation
               .exports_info_artifact
@@ -340,24 +339,23 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
             stringified_exports.push_str(&json_stringify_str(&ident));
           }
           Some(from_name) => {
-            let from = module
-              .get_dependencies()
-              .iter()
-              .find_map(|id| {
-                let dependency = module_graph.dependency_by_id(id);
-                let request = if let Some(d) = dependency.as_module_dependency() {
-                  Some(d.request())
-                } else {
-                  dependency.as_context_dependency().map(|d| d.request())
-                };
-                if let Some(request) = request
-                  && request == from_name
-                {
-                  return module_graph.module_graph_module_by_dependency_id(id);
-                }
-                None
-              })
-              .expect("should have css from module");
+            let Some(from) = module.get_dependencies().iter().find_map(|id| {
+              let dependency = module_graph.dependency_by_id(id);
+              let request = if let Some(d) = dependency.as_module_dependency() {
+                Some(d.request())
+              } else {
+                dependency.as_context_dependency().map(|d| d.request())
+              };
+              if let Some(request) = request
+                && request == from_name
+              {
+                return module_graph.module_graph_module_by_dependency_id(id);
+              }
+              None
+            }) else {
+              stringified_exports.push_str(&json_stringify_str(&unescape(ident)));
+              continue;
+            };
 
             let from_exports_info = compilation
               .exports_info_artifact

@@ -33,9 +33,11 @@ import {
 } from './target';
 import type {
   Context,
+  CssAutoOrModuleParserOptions,
   CssGeneratorOptions,
   CssModuleGeneratorOptions,
   CssModuleParserOptions,
+  CssParserOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
@@ -307,6 +309,12 @@ const applyCssGeneratorOptionsDefaults = (
   D(generatorOptions, 'esModule', true);
 };
 
+const applyCssParserOptionsDefaults = (parserOptions: CssParserOptions) => {
+  D(parserOptions, 'namedExports', true);
+  D(parserOptions, 'url', true);
+  D(parserOptions, 'import', true);
+};
+
 const applyCssModuleGeneratorOptionsDefaults = (
   generatorOptions: CssModuleGeneratorOptions,
   {
@@ -338,9 +346,20 @@ const applyCssModuleGeneratorOptionsDefaults = (
 const applyCssModuleParserOptionsDefaults = (
   parserOptions: CssModuleParserOptions,
 ) => {
-  D(parserOptions, 'namedExports', true);
-  D(parserOptions, 'url', true);
-  D(parserOptions, 'import', true);
+  applyCssParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'animation', true);
+  D(parserOptions, 'container', true);
+  D(parserOptions, 'customIdents', true);
+  D(parserOptions, 'dashedIdents', true);
+  D(parserOptions, 'function', true);
+  D(parserOptions, 'grid', true);
+};
+
+const applyCssAutoOrModuleParserOptionsDefaults = (
+  parserOptions: CssAutoOrModuleParserOptions,
+) => {
+  applyCssModuleParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'pure', false);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -401,14 +420,11 @@ const applyModuleDefaults = (
   applyJsonGeneratorOptionsDefaults(module.generator.json);
   F(module.parser, 'css', () => ({}));
   assertNotNill(module.parser.css);
-  D(module.parser.css, 'namedExports', true);
-  D(module.parser.css, 'url', true);
-  D(module.parser.css, 'import', true);
-  D(module.parser.css, 'animation', true);
+  applyCssParserOptionsDefaults(module.parser.css);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);
-  applyCssModuleParserOptionsDefaults(module.parser['css/auto']);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/auto']);
 
   F(module.parser, 'css/global', () => ({}));
   assertNotNill(module.parser['css/global']);
@@ -416,7 +432,7 @@ const applyModuleDefaults = (
 
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
-  applyCssModuleParserOptionsDefaults(module.parser['css/module']);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/module']);
 
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);
