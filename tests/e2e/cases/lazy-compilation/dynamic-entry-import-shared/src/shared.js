@@ -1,1 +1,1 @@
-document.body.id = 'shared';
+document.body.dataset.sharedAsEntry = '1';

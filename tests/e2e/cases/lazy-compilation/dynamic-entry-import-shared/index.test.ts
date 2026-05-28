@@ -16,17 +16,28 @@ test('shared file as both import() and entry — remove import() first, then ent
   // Stage 1: activate via import(). main.js triggers import('./shared.js'),
   // which factorizes shared as DynamicImport — proxy.is_entry = false.
   await page.goto(`http://localhost:${rspack.devServer.options.port}/`);
-  await expect(page.locator('#shared')).toBeVisible({ timeout: 30000 });
+  await page.waitForFunction(
+    () => document.body.dataset.sharedFromImport === '1',
+    null,
+    { timeout: 30000 },
+  );
 
   // Stage 2: activate the same proxy via the entry route.
   await page.goto(
     `http://localhost:${rspack.devServer.options.port}/shared.html`,
   );
-  await expect(page.locator('#shared')).toBeVisible({ timeout: 30000 });
+  await page.waitForFunction(
+    () => document.body.dataset.sharedAsEntry === '1',
+    null,
+    { timeout: 30000 },
+  );
 
   // Stage 3: remove only the import() — entry to shared.js remains.
-  fileAction.updateFile('src/main.js', (content) =>
-    content.replace(/^.*import\(['"]\.\/shared\.js['"]\);?.*$/m, ''),
+  // Overwrite main.js entirely; tweaking with regex is brittle because
+  // `import().then(...)` spans multiple lines.
+  fileAction.updateFile(
+    'src/main.js',
+    () => "document.body.dataset.main = '1';\n",
   );
   await rspack.waitingForBuild();
   await new Promise((r) => setTimeout(r, 500));
