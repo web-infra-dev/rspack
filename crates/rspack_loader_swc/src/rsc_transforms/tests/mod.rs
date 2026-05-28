@@ -12,7 +12,6 @@ use std::{
   sync::Arc,
 };
 
-use cow_utils::CowUtils;
 use rspack_core::{RscMeta, RscModuleType};
 use rspack_javascript_compiler::{JavaScriptCompiler, transform::SwcOptions};
 use swc_core::{
@@ -228,7 +227,22 @@ fn should_update() -> bool {
 }
 
 fn normalize_newlines(value: &str) -> Cow<'_, str> {
-  value.cow_replace("\r\n", "\n")
+  let Some(mut index) = value.find("\r\n") else {
+    return Cow::Borrowed(value);
+  };
+
+  let mut normalized = String::with_capacity(value.len());
+  let mut rest = value;
+  loop {
+    normalized.push_str(&rest[..index]);
+    normalized.push('\n');
+    rest = &rest[index + 2..];
+    let Some(next_index) = rest.find("\r\n") else {
+      normalized.push_str(rest);
+      return Cow::Owned(normalized);
+    };
+    index = next_index;
+  }
 }
 
 fn format_meta(meta: Option<&RscMeta>) -> String {

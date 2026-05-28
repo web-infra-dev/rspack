@@ -49,8 +49,7 @@ tracing                        = { workspace = true }
 stacker = { workspace = true }
 
 [dev-dependencies]
-cow-utils = { workspace = true }
-swc_core  = { workspace = true, features = ["testing_transform"] }
+swc_core = { workspace = true, features = ["testing_transform"] }
 
 [lints]
 workspace = true

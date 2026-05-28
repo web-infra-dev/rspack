@@ -4060,7 +4060,6 @@ name = "rspack_loader_swc"
 version = "0.100.4"
 dependencies = [
  "async-trait",
- "cow-utils",
  "either",
  "hex",
  "indoc",
