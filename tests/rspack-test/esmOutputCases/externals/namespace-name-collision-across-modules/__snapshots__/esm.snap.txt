@@ -1,5 +1,5 @@
 ```mjs title=fs.mjs
-// fs?a6ed
+// fs?78e7
 const external_fs_namespaceObject = import("fs").then(function(module) { return module; });
 var readFile = external_fs_namespaceObject.readFile;
 var readFileSync = external_fs_namespaceObject.readFileSync;
@@ -47,7 +47,7 @@ export { readFile, readFileSync } from "fs";
 ```
 
 ```mjs title=path.mjs
-// path?3687
+// path?5fdd
 const external_path_namespaceObject = import("path").then(function(module) { return module; });
 var join = external_path_namespaceObject.join;
 var sep = external_path_namespaceObject.sep;

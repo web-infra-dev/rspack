@@ -409,6 +409,9 @@ export type Environment = {
   /** The environment supports const and let for variable declarations. */
   const?: boolean;
 
+  /** The environment supports computed property names in object literals ('{ [expr]: value }'). */
+  computedProperty?: boolean;
+
   /** The environment supports destructuring ('{ a, b } = obj'). */
   destructuring?: boolean;
 

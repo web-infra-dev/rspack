@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 22
 expression: options
 ---
 CompilerOptions {
@@ -97,6 +96,7 @@ CompilerOptions {
         script_type: "",
         environment: Environment {
             const: false,
+            computed_property: false,
             method_shorthand: true,
             arrow_function: false,
             node_prefix_for_core_modules: false,

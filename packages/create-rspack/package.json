@@ -15,7 +15,7 @@
     "create-rspack": "bin.js"
   },
   "files": [
-    "template-*",
+    "template-*/**",
     "dist",
     "bin.js"
   ],

@@ -43,6 +43,8 @@ minimumReleaseAgeExclude:
   - '@rsdoctor/*'
   - '@rslint/*'
   - '@rstack-dev/doc-ui'
+  - 'rsbuild-plugin-*'
+  - '@swc/*'
 
 patchedDependencies:
   webpack-sources@3.3.4: patches/webpack-sources@3.3.4.patch

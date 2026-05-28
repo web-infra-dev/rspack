@@ -2,7 +2,7 @@
 	var define = <%- basicFunction("defs, kind") %> {
 		for(var key in defs) {
 			if(<%- HAS_OWN_PROPERTY %>(defs, key) && !<%- HAS_OWN_PROPERTY %>(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+				<%- _define_property_code %>
 			}
 		}
 	};
