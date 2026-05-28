@@ -10,7 +10,7 @@ use rspack_plugin_javascript::{
     self,
     eval::{self},
   },
-  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
+  visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
 use swc_core::{
@@ -25,6 +25,7 @@ use crate::{
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
+  require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
 };
 
 const DIR_NAME: &str = "__dirname";
@@ -52,6 +53,10 @@ pub struct RstestParserPluginOptions {
   /// Pre-resolved at plugin construction — false here covers both "feature
   /// disabled" and "callee resolved to default `import`".
   pub inject_dynamic_import_origin: bool,
+  /// Whether to rewrite `require.resolve()` calls with origin info.
+  pub inject_require_resolve_origin: bool,
+  /// Whether to respect `/* webpackIgnore: true */` in CommonJS calls.
+  pub commonjs_magic_comments: bool,
 }
 
 impl Default for RstestParserPluginOptions {
@@ -63,6 +68,8 @@ impl Default for RstestParserPluginOptions {
       manual_mock_root: String::new(),
       globals: true,
       inject_dynamic_import_origin: false,
+      inject_require_resolve_origin: false,
+      commonjs_magic_comments: false,
     }
   }
 }
@@ -75,6 +82,72 @@ pub struct RstestParserPlugin {
 impl RstestParserPlugin {
   pub fn new(options: RstestParserPluginOptions) -> Self {
     Self { options }
+  }
+
+  fn has_ignore_comment(
+    &self,
+    parser: &mut JavascriptParser,
+    error_span: Span,
+    span: Span,
+  ) -> bool {
+    if !self.options.commonjs_magic_comments {
+      return false;
+    }
+
+    try_extract_magic_comment(parser, error_span, span)
+      .get_ignore()
+      .unwrap_or_default()
+  }
+
+  fn process_require_resolve_origin(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+  ) -> Option<bool> {
+    let callee_expr = call_expr.callee.as_expr()?;
+    let member_expr = callee_expr.as_member()?;
+    let require_ident = member_expr.obj.as_ident()?;
+
+    if parser.get_variable_info(&require_ident.sym).is_some() {
+      return None;
+    }
+
+    if !(1..=2).contains(&call_expr.args.len()) {
+      return None;
+    }
+
+    let first_arg = call_expr.args.first()?;
+    if first_arg.spread.is_some()
+      || self.has_ignore_comment(parser, call_expr.span, first_arg.span())
+    {
+      return None;
+    }
+
+    if call_expr
+      .args
+      .get(1)
+      .is_some_and(|arg| arg.spread.is_some())
+    {
+      return None;
+    }
+
+    let resource_path = parser.resource_data.path()?;
+    let origin_path = resource_path.as_str().to_string();
+
+    let last_arg = call_expr
+      .args
+      .last()
+      .expect("call_expr.args has at least one element");
+    parser.add_presentational_dependency(Box::new(RstestRequireResolveOriginDependency::new(
+      call_expr.callee.span().into(),
+      last_arg.span().real_hi(),
+      origin_path,
+    )));
+
+    // Returning `Some(true)` short-circuits the default walker for this call,
+    // so preserve dependency collection for nested expressions in arguments.
+    parser.walk_expr_or_spread(&call_expr.args);
+    Some(true)
   }
 
   fn process_require_actual(
@@ -709,6 +782,19 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     None
   }
 
+  fn call(
+    &self,
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    if self.options.inject_require_resolve_origin && for_name == "require.resolve" {
+      return self.process_require_resolve_origin(parser, call_expr);
+    }
+
+    None
+  }
+
   fn import_call(
     &self,
     parser: &mut JavascriptParser,
@@ -885,6 +971,16 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'static>> {
+    if self.options.inject_require_resolve_origin && for_name == expr_name::REQUIRE_RESOLVE {
+      return Some(eval::evaluate_to_identifier(
+        expr_name::REQUIRE_RESOLVE.into(),
+        expr_name::REQUIRE_RESOLVE.into(),
+        Some(true),
+        start,
+        end,
+      ));
+    }
+
     if self.options.import_meta_path_name {
       if for_name == IMPORT_META_DIRNAME {
         return Some(eval::evaluate_to_string(

@@ -31,6 +31,7 @@ pub struct RawHttpExternalsRspackPluginOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawExternalsPluginOptions {
   pub r#type: String,
+  pub fallback_type: Option<String>,
   #[napi(
     ts_type = "(string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]"
   )]

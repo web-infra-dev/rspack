@@ -9,6 +9,7 @@ version.workspace = true
 
 [dependencies]
 camino                   = { workspace = true }
+cow-utils                = { workspace = true }
 regex                    = { workspace = true }
 rspack_cacheable         = { workspace = true }
 rspack_collections       = { workspace = true }

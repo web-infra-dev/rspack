@@ -21,6 +21,8 @@ module.exports = {
         },
       },
     },
+    // Avoid the default export of separate.js is inlined, which causes the splitChunks separate cache group disappear.
+    inlineExports: false,
   },
   externals: {
     'external-self': './main.mjs',

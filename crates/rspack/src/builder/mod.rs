@@ -1090,12 +1090,18 @@ impl CompilerOptionsBuilder {
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
       let externals_type = expect!(self.externals_type.clone());
+      let fallback_type = if target_properties.node_builtins() {
+        "node-commonjs".to_string()
+      } else {
+        "commonjs".to_string()
+      };
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
           externals_type,
           externals,
           false,
+          fallback_type,
         )));
     }
 
@@ -1151,6 +1157,7 @@ impl CompilerOptionsBuilder {
           "node-commonjs".to_string(),
           vec!["nw.gui".to_string().into()],
           false,
+          "commonjs".to_string(),
         )));
     }
 
@@ -3108,6 +3115,9 @@ impl OutputOptionsBuilder {
       .map(|t| optimistic!(t.big_int_literal))
       .unwrap_or_default();
     environment.r#const = tp.map(|t| optimistic!(t.r#const)).unwrap_or_default();
+    environment.computed_property = tp
+      .map(|t| optimistic!(t.computed_property))
+      .unwrap_or_default();
     environment.method_shorthand = tp
       .map(|t| optimistic!(t.method_shorthand))
       .unwrap_or_default();

@@ -158,7 +158,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
   }
 }
 
-fn to_evaluated_inlinable_value(
+pub(super) fn to_evaluated_inlinable_value(
   evaluated: &BasicEvaluatedExpression,
 ) -> Option<EvaluatedInlinableValue> {
   if evaluated.is_bool() {

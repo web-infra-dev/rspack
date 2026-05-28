@@ -561,9 +561,7 @@ export default {
 
 对于静态 ESM import，Rspack 会像 [`'module'`](#externalstypemodule) 一样渲染 external，生成静态 `import` 语句。对于动态 `import()`，Rspack 会像 [`'module-import'`](#externalstypemodule-import) 一样渲染 external，生成 `import()`。
 
-对于 CommonJS `require()`，Rspack 当前会像 [`'node-commonjs'`](#externalstypenode-commonjs) 一样渲染 external，在生成的 ESM 产物中通过 `createRequire` 构造 `require` 函数。
-
-这意味着 `modern-module` 暂时不会为 `require()` 依赖区分不同的 CommonJS external 变体。特别是，当前还没有提供在生成的 ESM 产物中保留裸 `require()` 调用的变体。
+对于 CommonJS `require()`，Rspack 会根据 target 选择 CommonJS external 变体。Node-like target 会像 [`'node-commonjs'`](#externalstypenode-commonjs) 一样渲染 external，在生成的 ESM 产物中通过 `createRequire` 构造 `require` 函数。其他 target 会像 [`'commonjs'`](#externalstypecommonjs) 一样渲染 external，保留裸 `require()` 调用。
 
 **示例**
 
@@ -596,7 +594,7 @@ export default {
 };
 ```
 
-生成的 ESM 产物会保留静态 import 为 `import` 语句，保留动态 import 为 `import()`，并通过 `createRequire` 渲染 `require()` external：
+因为这个示例的 target 是 Node.js，生成的 ESM 产物会保留静态 import 为 `import` 语句，保留动态 import 为 `import()`，并通过 `createRequire` 渲染 `require()` external：
 
 ```js
 import { createRequire as __rspack_createRequire } from 'node:module';

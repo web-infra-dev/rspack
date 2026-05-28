@@ -524,6 +524,7 @@ pub struct LibraryCustomUmdObject {
 #[derive(Debug, Default, Copy, Clone)]
 pub struct Environment {
   pub r#const: bool,
+  pub computed_property: bool,
   pub method_shorthand: bool,
   pub arrow_function: bool,
   pub node_prefix_for_core_modules: bool,
@@ -544,6 +545,10 @@ pub struct Environment {
 impl Environment {
   pub fn supports_const(&self) -> bool {
     self.r#const
+  }
+
+  pub fn supports_computed_property(&self) -> bool {
+    self.computed_property
   }
 
   pub fn supports_method_shorthand(&self) -> bool {

@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
@@ -9,6 +8,7 @@ use rspack_core::{
   DependencyType, ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, InitFragmentKey,
   InitFragmentStage, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
 use rspack_util::ext::DynHash;
 use swc_core::atoms::Atom;
@@ -112,24 +112,27 @@ impl DependencyCodeGeneration for ProvideDependency {
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,
-    _compilation: &Compilation,
-    _runtime: Option<&RuntimeSpec>,
+    compilation: &Compilation,
+    runtime: Option<&RuntimeSpec>,
   ) {
     self.identifier.dyn_hash(hasher);
     self.ids.dyn_hash(hasher);
-  }
-}
-
-fn path_to_string(path: Option<&UsedName>) -> String {
-  match path {
-    Some(p) => match p {
-      UsedName::Normal(vec) if !vec.is_empty() => vec
-        .iter()
-        .map(|part| format!("[\"{}\"]", part.as_str()))
-        .join(""),
-      _ => String::new(),
-    },
-    None => String::new(),
+    // Case: a ProvidePlugin variable is replaced by an inlined const export,
+    // e.g. `provided = (__webpack_require__("./constants"), 2)`. The generated
+    // code embeds the target export's inline literal, so the dependency hash must
+    // include that payload and not only the provided identifier/import ids.
+    let used_name = compilation
+      .get_module_graph()
+      .connection_by_dependency_id(&self.id)
+      .and_then(|connection| {
+        let exports_info = compilation
+          .exports_info_artifact
+          .get_exports_info_data(connection.module_identifier());
+        exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &self.ids)
+      });
+    if let Some(UsedName::Inlined(inlined)) = used_name {
+      inlined.dyn_hash(hasher);
+    }
   }
 }
 
@@ -175,14 +178,25 @@ impl DependencyTemplate for ProvideDependencyTemplate {
       .get_exports_info_data(con.module_identifier());
     let used_name =
       exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.ids);
+    let module_raw = runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak());
+    let provided_expr = match used_name {
+      Some(UsedName::Normal(used_name)) => format!("{module_raw}{}", property_access(used_name, 0)),
+      Some(UsedName::Inlined(inlined)) => format!(
+        "({}, {})",
+        module_raw,
+        inlined.render(&to_normal_comment(&format!(
+          "inlined export {}",
+          property_access(&dep.ids, 0)
+        )))
+      ),
+      None => module_raw,
+    };
 
     init_fragments.push(Box::new(
       NormalInitFragment::new(
         format!(
-          "/* provided dependency */ var {} = {}{};\n",
-          dep.identifier,
-          runtime_template.module_raw(compilation, dep.id(), dep.request(), dep.weak()),
-          path_to_string(used_name.as_ref())
+          "/* provided dependency */ var {} = {};\n",
+          dep.identifier, provided_expr
         ),
         InitFragmentStage::StageProvides,
         1,

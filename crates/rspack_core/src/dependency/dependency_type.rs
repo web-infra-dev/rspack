@@ -136,6 +136,7 @@ pub enum DependencyType {
   RstestMockModuleId,
   RstestHoistMock,
   RstestDynamicImportOrigin,
+  RstestRequireResolveOrigin,
   /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
@@ -227,6 +228,7 @@ impl DependencyType {
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
       DependencyType::RstestDynamicImportOrigin => "rstest dynamic import origin",
+      DependencyType::RstestRequireResolveOrigin => "rstest require.resolve origin",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
       DependencyType::ImportMetaRsc => "import.meta.rspackRsc",

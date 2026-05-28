@@ -15,7 +15,7 @@ use rspack_core::{
   create_exports_object_referenced, property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::json_stringify_str;
+use rspack_util::{ext::DynHash, json_stringify_str};
 use swc_core::ecma::atoms::Atom;
 
 use super::{
@@ -369,6 +369,34 @@ impl AsContextDependency for ESMImportSpecifierDependency {}
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSpecifierDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut dyn std::hash::Hasher,
+    compilation: &rspack_core::Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    // Case: `import { value } from "./file.js"` where `value` is an inlinable
+    // const export. Once the import is inlined, the connection can become
+    // inactive, so get_module_graph_hash may not include the target module's
+    // exports_info. Code generation still reads the inlined value from
+    // get_used_name(...), so hash it here to avoid reusing stale generated code
+    // when the target const value changes.
+    let module_graph = compilation.get_module_graph();
+    let ids = self.get_ids(module_graph);
+    let Some(module) = module_graph.get_module_by_dependency_id(&self.id) else {
+      return;
+    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    if let Some(UsedName::Inlined(inlined)) =
+      exports_info.get_used_name(&compilation.exports_info_artifact, runtime, ids)
+    {
+      ids.dyn_hash(hasher);
+      inlined.dyn_hash(hasher);
+    }
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSpecifierDependencyTemplate::template_type())
   }

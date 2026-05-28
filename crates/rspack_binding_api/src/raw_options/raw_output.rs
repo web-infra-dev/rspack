@@ -44,6 +44,7 @@ impl From<RawCrossOriginLoading> for CrossOriginLoading {
 #[napi(object)]
 pub struct RawEnvironment {
   pub r#const: bool,
+  pub computed_property: bool,
   pub method_shorthand: bool,
   pub arrow_function: bool,
   pub node_prefix_for_core_modules: bool,
@@ -65,6 +66,7 @@ impl From<RawEnvironment> for Environment {
   fn from(value: RawEnvironment) -> Self {
     Self {
       r#const: value.r#const,
+      computed_property: value.computed_property,
       method_shorthand: value.method_shorthand,
       arrow_function: value.arrow_function,
       node_prefix_for_core_modules: value.node_prefix_for_core_modules,
