@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -26,6 +26,7 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
@@ -120,13 +121,36 @@ impl CanonicalizedDataUrlOption {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
-  pub ident: String,
-  pub from: Option<String>,
+  #[cacheable(with=AsPreset)]
+  pub ident: SmolStr,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub from: Option<SmolStr>,
   pub id: Option<DependencyId>,
-  pub orig_name: String,
+  #[cacheable(with=AsPreset)]
+  pub orig_name: SmolStr,
 }
 
-pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
+pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
+pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssBuildInfo {
+  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  pub exports: CssExports,
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub local_names: CssLocalNames,
+}
+
+impl CssBuildInfo {
+  pub fn exports(&self) -> Option<&CssExports> {
+    (!self.exports.is_empty()).then_some(&self.exports)
+  }
+
+  pub fn local_names(&self) -> Option<&CssLocalNames> {
+    (!self.local_names.is_empty()).then_some(&self.local_names)
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -157,9 +181,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
   pub asset_data_url: Option<CanonicalizedDataUrlOption>,
-  #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
-  pub css_exports: Option<CssExports>,
-  pub css_local_names: Option<HashMap<String, String>>,
+  pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
@@ -197,8 +219,7 @@ impl Default for BuildInfo {
       need_create_require: false,
       json_data: None,
       asset_data_url: None,
-      css_exports: None,
-      css_local_names: None,
+      css: None,
       side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,

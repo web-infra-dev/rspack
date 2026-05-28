@@ -24,6 +24,7 @@ use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use smol_str::SmolStr;
 
 use crate::{
   CssPlugin,
@@ -68,7 +69,7 @@ impl CssPlugin {
     compilation: &Compilation,
     chunk: &Chunk,
     css_modules: &[&dyn Module],
-  ) -> HashSet<String> {
+  ) -> HashSet<SmolStr> {
     css_modules
       .iter()
       .filter_map(|module| {

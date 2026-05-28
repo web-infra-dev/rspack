@@ -36,6 +36,7 @@ mod source_size_cache;
 pub mod task_loop;
 mod template;
 mod to_path;
+mod topological_sort;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
@@ -63,6 +64,7 @@ pub use self::{
   source_size_cache::*,
   template::*,
   to_path::to_path,
+  topological_sort::*,
 };
 
 /// join string component in a more human readable way

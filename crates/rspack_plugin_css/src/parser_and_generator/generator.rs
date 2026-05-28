@@ -20,12 +20,12 @@ use crate::{
   utils::{replace_css_module_id_placeholder, unescape},
 };
 
-pub fn update_css_exports(exports: &mut CssExports, name: String, css_export: CssExport) -> bool {
-  if let Some(existing) = exports.get_mut(&name) {
+pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssExport) -> bool {
+  if let Some(existing) = exports.get_mut(name) {
     existing.insert(css_export)
   } else {
     exports
-      .insert(name, FxIndexSet::from_iter([css_export]))
+      .insert(name.into(), FxIndexSet::from_iter([css_export]))
       .is_none()
   }
 }
@@ -73,37 +73,34 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
   fn generate_js_exports(&mut self) -> Result<()> {
     let module = self.module;
     let build_info = module.build_info();
+    let css_build_info = build_info
+      .css
+      .as_deref()
+      .expect("CSS modules should have CssBuildInfo");
+    let exports_info_artifact = &self.generate_context.compilation.exports_info_artifact;
 
     if self.generate_context.concatenation_scope.is_some() {
-      if let Some(ref exports) = build_info.css_exports {
-        let exports_info_artifact = &self.generate_context.compilation.exports_info_artifact;
-        if let Some(local_names) = &build_info.css_local_names {
-          let unused_exports = get_unused_local_ident(
-            exports,
-            local_names,
-            module.identifier(),
-            self.generate_context.runtime,
-            exports_info_artifact,
-          );
-          self.generate_context.data.insert(unused_exports);
-        }
-        let exports = get_used_exports(
-          exports,
+      if let Some(exports) = get_used_exports(
+        css_build_info,
+        module.identifier(),
+        self.generate_context.runtime,
+        exports_info_artifact,
+      ) {
+        if let Some(unused_exports) = get_unused_local_ident(
+          css_build_info,
           module.identifier(),
           self.generate_context.runtime,
           exports_info_artifact,
-        );
+        ) {
+          self.generate_context.data.insert(unused_exports);
+        }
 
         self.css_modules_exports_to_concatenate_module_string(exports)?;
       }
       return Ok(());
     }
 
-    let exports_info = self
-      .generate_context
-      .compilation
-      .exports_info_artifact
-      .get_exports_info_data(&module.identifier());
+    let exports_info = exports_info_artifact.get_exports_info_data(&module.identifier());
     let (ns_obj, left, right): (Cow<'_, str>, &str, &str) = if self.es_module
       && exports_info
         .other_exports_info()
@@ -124,24 +121,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       (Cow::Borrowed(""), "", "")
     };
 
-    let exports_str = if let Some(exports) = &build_info.css_exports {
-      if let Some(local_names) = &build_info.css_local_names {
-        let unused_exports = get_unused_local_ident(
-          exports,
-          local_names,
-          module.identifier(),
-          self.generate_context.runtime,
-          &self.generate_context.compilation.exports_info_artifact,
-        );
-        self.generate_context.data.insert(unused_exports);
-      }
-
-      let exports = get_used_exports(
-        exports,
+    let exports_str = if let Some(exports) = get_used_exports(
+      css_build_info,
+      module.identifier(),
+      self.generate_context.runtime,
+      exports_info_artifact,
+    ) {
+      if let Some(unused_exports) = get_unused_local_ident(
+        css_build_info,
         module.identifier(),
         self.generate_context.runtime,
-        &self.generate_context.compilation.exports_info_artifact,
-      );
+        exports_info_artifact,
+      ) {
+        self.generate_context.data.insert(unused_exports);
+      }
 
       self.css_modules_exports_to_string(exports, &ns_obj, left, right)
     } else {
