@@ -19,8 +19,8 @@ use ustr::Ustr;
 use crate::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGraphModule, ChunkGroupByUkey, ChunkGroupUkey,
   ChunkUkey, Compilation, ExportsInfoArtifact, Module, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
-  find_graph_roots, merge_runtime,
+  ModuleGraphConnection, ModuleIdentifier, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
+  SourceType, find_graph_roots, merge_runtime,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -737,34 +737,52 @@ impl ChunkGraph {
     let input = cgc.modules.iter().copied().collect::<Vec<_>>();
 
     let mut modules = find_graph_roots(input, |module, add_dependency| {
-      let mut current_modules = vec![module];
-
-      while !current_modules.is_empty() {
-        let next_modules = current_modules
-          .iter()
-          .flat_map(|module| module_graph.get_outgoing_connections(module))
-          .filter_map(|connection| {
-            // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
-            let active_state = connection.active_state(
-              module_graph,
-              None,
-              module_graph_cache,
-              side_effects_state_artifact,
-              exports_info_artifact,
-            );
-            match active_state {
-              crate::ConnectionState::Active(false) => None,
-              crate::ConnectionState::TransitiveOnly => Some(*connection.module_identifier()),
-              _ => {
-                add_dependency(*connection.module_identifier());
-                None
-              }
-            }
-          })
-          .collect::<Vec<_>>();
-
-        current_modules = next_modules;
+      fn get_connection_dependencies<'a>(
+        connection: &'a ModuleGraphConnection,
+        module_graph: &'a ModuleGraph,
+        module_graph_cache: &'a ModuleGraphCacheArtifact,
+        side_effects_state_artifact: &'a SideEffectsStateArtifact,
+        exports_info_artifact: &'a ExportsInfoArtifact,
+      ) -> Box<dyn Iterator<Item = ModuleIdentifier> + 'a> {
+        // https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ChunkGraph.js#L290
+        let active_state = connection.active_state(
+          module_graph,
+          None,
+          module_graph_cache,
+          side_effects_state_artifact,
+          exports_info_artifact,
+        );
+        match active_state {
+          crate::ConnectionState::Active(false) => Box::new(std::iter::empty()),
+          crate::ConnectionState::TransitiveOnly => Box::new(
+            module_graph
+              .get_outgoing_connections(connection.module_identifier())
+              .flat_map(move |connection| {
+                get_connection_dependencies(
+                  connection,
+                  module_graph,
+                  module_graph_cache,
+                  side_effects_state_artifact,
+                  exports_info_artifact,
+                )
+              }),
+          ),
+          _ => Box::new(std::iter::once(*connection.module_identifier())),
+        }
       }
+
+      module_graph
+        .get_outgoing_connections(&module)
+        .flat_map(|connection| {
+          get_connection_dependencies(
+            connection,
+            module_graph,
+            module_graph_cache,
+            side_effects_state_artifact,
+            exports_info_artifact,
+          )
+        })
+        .for_each(add_dependency);
     });
 
     modules.sort_unstable();
