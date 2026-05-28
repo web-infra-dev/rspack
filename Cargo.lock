@@ -6364,9 +6364,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_testing"
-version = "23.0.0"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73eac019328e8d673df479bebc2faa944336de9ea58c1b740d50992a9ae9cb55"
+checksum = "497be914cd77ff4169871e3f4b4eb5ce710e36bfc2d953ad008df796874f5ecb"
 dependencies = [
  "anyhow",
  "hex",
@@ -6586,9 +6586,9 @@ dependencies = [
 
 [[package]]
 name = "swc_ecma_transforms_testing"
-version = "47.0.0"
+version = "46.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "26a3f503d38bfa5d69c9b3062b2b0bf448f8bc3798cbd33e9610b76434b8124a"
+checksum = "f49e30e9c3dbe227ffb8b701d0ccc19e060d8446faead55c3226db32af162911"
 dependencies = [
  "ansi_term",
  "anyhow",
@@ -7101,9 +7101,9 @@ dependencies = [
 
 [[package]]
 name = "testing"
-version = "23.0.0"
+version = "22.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "496362f56c48a4a23373f647a3b91047d101cd05bb061279c2d6781dacc8ae36"
+checksum = "bd50c53833442165fa5bf385497986c6ca501e8cf2df442919f5475aded14134"
 dependencies = [
  "cargo_metadata 0.18.1",
  "difference",
