@@ -3,9 +3,9 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssExport, CssExports,
-  CssExportsConvention, CssLocalNames, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserImportContext, Dependency, DependencyId, DependencyRange, ModuleType,
-  ParseContext, ParseResult, ResourceData,
+  CssExportsConvention, CssLayer as CssModuleRenderLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
+  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -40,6 +40,8 @@ pub(super) struct CssModuleParser<'context> {
   code_generation_dependencies: Vec<BoxModuleDependency>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
+  inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  render_condition: CssModuleRenderCondition,
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
 }
@@ -163,6 +165,17 @@ impl<'context> CssModuleParser<'context> {
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
     let source_code: Arc<str> = source.source().into_string_lossy().into();
+    let (inherited_render_conditions, render_condition) = parse_context
+      .build_info
+      .css
+      .as_deref()
+      .map(|css| {
+        (
+          css.inherited_render_conditions.clone(),
+          css.render_condition.clone(),
+        )
+      })
+      .unwrap_or_default();
 
     Self {
       generator_options,
@@ -177,6 +190,8 @@ impl<'context> CssModuleParser<'context> {
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
       css_local_names: Default::default(),
+      inherited_render_conditions,
+      render_condition,
       composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
     }
@@ -520,20 +535,49 @@ impl<'context> CssModuleParser<'context> {
       range.start,
       range.end,
     );
+    let layer = layer.map(str::trim).map(|s| {
+      if s.is_empty() {
+        CssLayer::Anonymous
+      } else {
+        CssLayer::Named(s.to_string())
+      }
+    });
+    let inherited_render_conditions = self.css_import_inherited_render_conditions();
+    let render_condition = Self::css_import_render_condition(media, supports, layer.as_ref());
     self.dependencies.push(Box::new(CssImportDependency::new(
       request.to_string(),
       DependencyRange::new(range.start, range.end),
-      media.map(|s| s.to_string()),
-      supports.map(|s| s.to_string()),
-      layer.map(|s| {
-        if s.is_empty() {
-          CssLayer::Anonymous
-        } else {
-          CssLayer::Named(s.to_string())
-        }
-      }),
+      inherited_render_conditions,
+      render_condition,
     )));
     Ok(())
+  }
+
+  fn css_import_inherited_render_conditions(&self) -> Vec<CssModuleRenderCondition> {
+    if self.render_condition.is_empty() {
+      return self.inherited_render_conditions.clone();
+    }
+
+    let mut inherited_render_conditions =
+      Vec::with_capacity(self.inherited_render_conditions.len() + 1);
+    inherited_render_conditions.extend(self.inherited_render_conditions.iter().cloned());
+    inherited_render_conditions.push(self.render_condition.clone());
+    inherited_render_conditions
+  }
+
+  fn css_import_render_condition(
+    media: Option<&str>,
+    supports: Option<&str>,
+    layer: Option<&CssLayer>,
+  ) -> CssModuleRenderCondition {
+    CssModuleRenderCondition::new(
+      media.map(|media| media.trim().into()),
+      supports.map(|supports| supports.trim().into()),
+      layer.map(|layer| match layer {
+        CssLayer::Anonymous => CssModuleRenderLayer::Anonymous,
+        CssLayer::Named(layer) => CssModuleRenderLayer::Named(layer.as_str().into()),
+      }),
+    )
   }
 
   async fn should_import(

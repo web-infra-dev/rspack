@@ -134,12 +134,51 @@ pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
 pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
 
 #[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CssLayer {
+  Anonymous,
+  Named(#[cacheable(with=AsPreset)] SmolStr),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+pub struct CssModuleRenderCondition {
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub media: Option<SmolStr>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub supports: Option<SmolStr>,
+  pub layer: Option<CssLayer>,
+}
+
+impl CssModuleRenderCondition {
+  pub fn new(media: Option<SmolStr>, supports: Option<SmolStr>, layer: Option<CssLayer>) -> Self {
+    Self {
+      media,
+      supports,
+      layer,
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.media.is_none() && self.supports.is_none() && self.layer.is_none()
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
   #[cacheable(with=AsMap<AsPreset, AsVec>)]
   pub exports: CssExports,
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   pub local_names: CssLocalNames,
+  /// Conditions inherited from parent CSS modules.
+  ///
+  /// Webpack stores the current module condition before inherited conditions.
+  /// Rspack stores inherited conditions from outermost to innermost, so render
+  /// can append the current condition and emit wrappers in source order without
+  /// prepending or reversing.
+  pub inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  pub render_condition: CssModuleRenderCondition,
 }
 
 impl CssBuildInfo {

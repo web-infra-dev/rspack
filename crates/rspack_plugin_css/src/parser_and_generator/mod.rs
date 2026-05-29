@@ -1,5 +1,6 @@
 pub mod generator;
 mod parser;
+mod source_builder;
 
 use std::{borrow::Cow, sync::LazyLock};
 
@@ -23,11 +24,9 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
+pub(crate) use source_builder::CssSourceBuilder;
 
-use crate::{
-  dependency::{CssImportDependency, CssMedia, CssSupports},
-  parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
-};
+use crate::parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser};
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -293,30 +292,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
             }
           }
         });
-
-        for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-          if matches!(dep.dependency_type(), DependencyType::CssImport) {
-            let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
-              panic!(
-                "dependency with type DependencyType::CssImport should only be CssImportDependency"
-              );
-            };
-
-            if let Some(media) = css_import_dep.media() {
-              context.data.insert(CssMedia(media.to_string()));
-            }
-
-            if let Some(supports) = css_import_dep.supports() {
-              context.data.insert(CssSupports(supports.to_string()));
-            }
-
-            if let Some(layer) = css_import_dep.layer() {
-              context.data.insert(layer.clone());
-            }
-          }
-        }
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies.iter().for_each(|dependency| {
