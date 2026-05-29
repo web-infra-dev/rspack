@@ -12,6 +12,7 @@ it("should keep prefetch and preload handlers for context chunks", async () => {
 	expect(Object.keys(modules).sort()).toEqual([
 		"./modules/a.js",
 		"./modules/b.js",
+		"./modules/c.js",
 	]);
 	expect(prefetchValue.default).toBe("a");
 	expect(preloadValue.default).toBe("b");
