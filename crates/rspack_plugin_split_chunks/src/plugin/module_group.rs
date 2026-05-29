@@ -794,7 +794,7 @@ async fn merge_matched_item_into_module_group_map(
       .entry(key)
       .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
-  let should_extend_chunks = !(is_anonymous && matches!(selected_chunks, SelectedChunks::All(_)))
+  let should_extend_chunks = !(is_anonymous && matches!(&selected_chunks, SelectedChunks::All(_)))
     || module_group.chunks.is_empty();
   module_group.add_module(module.identifier());
   if should_extend_chunks {
