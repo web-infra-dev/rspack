@@ -1,6 +1,9 @@
 # Rspack Rust benchmarks
 
 Rust benchmark cases live in `xtask/benchmark/cases` and `xtask/benchmark/stages`.
+The `rspack_sources` benchmarks live in their own `rspack_sources` benchmark
+target so CodSpeed builds and runs them in a separate binary, isolated from the
+allocator state left behind by the larger compilation benchmark suite.
 
 ## Prepare benchmark fixtures
 
@@ -25,29 +28,41 @@ When this command is run outside a CodSpeed runner environment, `cargo-codspeed`
 Use the build helper to run the same CodSpeed build command used by CI:
 
 ```bash
-npm run build:bench
+pnpm run build:bench
 ```
 
 The script expands to:
 
 ```bash
-cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark
+cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources
 ```
 
-This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements.
+This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. Both benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect both benchmark suites.
+
+To build only the isolated `rspack_sources` target:
+
+```bash
+pnpm run build:bench:rspack-sources
+```
 
 ## Run local CPU simulation measurements
 
 Use the local helper script to run benchmarks through the CodSpeed runner in CPU simulation mode:
 
 ```bash
-npm run bench:rust:local
+pnpm run bench:rust:local
 ```
 
 Pass a benchmark name filter after `--` to run a single benchmark:
 
 ```bash
-npm run bench:rust:local -- build_chunk_graph
+pnpm run bench:rust:local -- build_chunk_graph
+```
+
+To run only the isolated `rspack_sources` binary:
+
+```bash
+pnpm run bench:rust:local -- --bench rspack_sources
 ```
 
 The script expands to:
