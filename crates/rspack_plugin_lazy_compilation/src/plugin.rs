@@ -7,13 +7,14 @@ use std::{
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
-  CompilerMake, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt, ModuleFactory,
-  ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  Plugin,
+  CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, NormalModuleCreateData,
+  NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_regex::RspackRegex;
+use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
@@ -229,21 +230,71 @@ async fn normal_module_factory_module(
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
 async fn compiler_make(&self, compilation: &mut Compilation) -> Result<()> {
   let active_modules = self.backend.lock().await.current_active_modules().await?;
+
+  // Dep ids of every entry dependency the current compilation knows about.
+  // Used below to detect an entry proxy whose only remaining edge points to
+  // an entry dep that has just been dropped.
+  let current_entry_dep_ids: FxHashSet<DependencyId> = compilation
+    .entries
+    .values()
+    .flat_map(|e| e.all_dependencies())
+    .copied()
+    .collect();
+
+  // Seed from the backend snapshot — not-yet-factorized ids must survive
+  // so the later `active` check in `normal_module_factory_module` sees them.
+  let mut next_active_modules: IdentifierSet = active_modules.iter().copied().collect();
+  let mut to_invalidate: IdentifierSet = IdentifierSet::default();
+  {
+    let module_graph = compilation.build_module_graph_artifact.get_module_graph();
+    for module_id in &active_modules {
+      let Some(active_module) = module_graph.module_by_identifier(module_id) else {
+        continue;
+      };
+      if active_module
+        .downcast_ref::<LazyCompilationProxyModule>()
+        .is_none()
+      {
+        continue;
+      }
+
+      // Drop the proxy only when its sole incoming edge is an entry dep
+      // that no longer belongs to any current entry. Any other shape
+      // (multiple incomings, non-entry dep, or still-current entry dep)
+      // keeps the proxy active.
+      let mut incoming = module_graph.get_incoming_connections(module_id);
+      let only = incoming.next();
+      let is_stale = incoming.next().is_none()
+        && only.is_some_and(|con| {
+          matches!(
+            module_graph
+              .dependency_by_id(&con.dependency_id)
+              .dependency_type(),
+            DependencyType::Entry
+          ) && !current_entry_dep_ids.contains(&con.dependency_id)
+        });
+
+      if is_stale {
+        next_active_modules.remove(module_id);
+        continue;
+      }
+
+      to_invalidate.insert(*module_id);
+    }
+  }
+
   let module_graph = compilation
     .build_module_graph_artifact
     .get_module_graph_mut();
-  for module_id in &active_modules {
-    let Some(active_module) = module_graph.module_by_identifier_mut(module_id) else {
-      continue;
-    };
-    let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>() else {
-      continue;
-    };
-
-    active_module.invalid();
+  for module_id in &to_invalidate {
+    if let Some(active_module) = module_graph.module_by_identifier_mut(module_id)
+      && let Some(active_module) = active_module.downcast_mut::<LazyCompilationProxyModule>()
+    {
+      active_module.invalid();
+    }
   }
 
-  *self.active_modules.write().await = active_modules.into_iter().collect();
+  *self.active_modules.write().await = next_active_modules;
 
   Ok(())
 }

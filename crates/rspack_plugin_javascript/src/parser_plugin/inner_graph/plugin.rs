@@ -114,11 +114,14 @@ impl InnerGraphParserPlugin {
               InnerGraphMapSetValue::Str(v) => {
                 new_set.insert(InnerGraphMapSetValue::Str(v));
               }
-              InnerGraphMapSetValue::TopLevel(v) => {
-                if v == *key {
+              InnerGraphMapSetValue::TopLevel(dep_symbol) => {
+                if dep_symbol == *key {
                   continue;
                 }
-                match state.inner_graph.get(&v) {
+                if deferred_pure_checks_by_symbol.contains_key(&dep_symbol) {
+                  new_set.insert(InnerGraphMapSetValue::TopLevel(dep_symbol));
+                }
+                match state.inner_graph.get(&dep_symbol) {
                   Some(InnerGraphMapValue::True) => {
                     set_is_true = true;
                     break;
@@ -191,7 +194,7 @@ impl InnerGraphParserPlugin {
 
     let mut finalized = vec![];
     for (symbol, cbs) in state.usage_map.drain() {
-      let deferred_pure_checks = deferred_pure_checks_by_symbol
+      let mut deferred_pure_checks = deferred_pure_checks_by_symbol
         .get(&symbol)
         .cloned()
         .unwrap_or_default();
@@ -199,10 +202,19 @@ impl InnerGraphParserPlugin {
       let used_by_exports = if let Some(usage) = usage {
         match usage {
           InnerGraphMapValue::Set(set) => {
-            let finalized_set = set
-              .iter()
-              .map(|item| item.to_atom(&state.symbol_map))
-              .collect::<HashSet<_>>();
+            let mut finalized_set = HashSet::default();
+            for item in set {
+              match item {
+                InnerGraphMapSetValue::TopLevel(dep_symbol) => {
+                  if let Some(checks) = deferred_pure_checks_by_symbol.get(dep_symbol) {
+                    deferred_pure_checks.extend(checks.iter().cloned());
+                  }
+                }
+                InnerGraphMapSetValue::Str(export_name) => {
+                  finalized_set.insert(export_name.clone());
+                }
+              }
+            }
             UsedByExports::set(finalized_set)
           }
           InnerGraphMapValue::True => UsedByExports::bool(true),
