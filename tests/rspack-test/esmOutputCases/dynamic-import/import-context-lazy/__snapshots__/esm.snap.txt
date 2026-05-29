@@ -169,9 +169,9 @@ __webpack_require__.d = (exports, definition) => {
 // webpack/runtime/esm_ensure_chunk
 (() => {
 __webpack_require__.f = {};
-__webpack_require__.e = function(chunkId) {
+__webpack_require__.e = function(chunkId, fetchPriority) {
 	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
-		__webpack_require__.f[key](chunkId, promises);
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
 		return promises;
 	}, []));
 };

@@ -55,9 +55,9 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   ) -> rspack_error::Result<String> {
     Ok(format!(
       r#"{ensure_chunk_handlers} = {{}};
-{ensure_chunk} = function(chunkId) {{
+{ensure_chunk} = function(chunkId, fetchPriority) {{
 	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
-		{ensure_chunk_handlers}[key](chunkId, promises);
+		{ensure_chunk_handlers}[key](chunkId, promises, fetchPriority);
 		return promises;
 	}}, []));
 }};
