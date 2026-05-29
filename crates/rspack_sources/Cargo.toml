@@ -24,6 +24,7 @@ rustc-hash        = { workspace = true, features = ["std"] }
 serde             = { workspace = true, features = ["rc", "std"] }
 simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }
 simd-utf16-len    = { workspace = true }
+simdutf8          = { workspace = true }
 static_assertions = { workspace = true }
 
 [dev-dependencies]

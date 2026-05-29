@@ -44,21 +44,16 @@ impl<'a> SourceValue<'a> {
       SourceValue::Buffer(cow) => match cow {
         Cow::Borrowed(bytes) => String::from_utf8_lossy(bytes),
         Cow::Owned(bytes) => {
-          match String::from_utf8_lossy(&bytes) {
-            Cow::Borrowed(_) => {
-              // SAFETY: When `String::from_utf8_lossy` returns `Cow::Borrowed(_)`,
-              // it guarantees that the input slice contains only valid UTF-8 bytes.
-              // Since we're operating on the exact same `bytes` that were just
-              // validated by `from_utf8_lossy`, we can safely skip the UTF-8
-              // validation in `String::from_utf8_unchecked`.
-              //
-              // This optimization avoids the redundant UTF-8 validation that would
-              // occur if we used `String::from_utf8(bytes).unwrap()` or similar.
-              #[allow(unsafe_code)]
-              Cow::Owned(unsafe { String::from_utf8_unchecked(bytes) })
+          let s = if simdutf8::basic::from_utf8(&bytes).is_ok() {
+            // SAFETY: `simdutf8::basic::from_utf8` has validated these exact bytes.
+            #[allow(unsafe_code)]
+            unsafe {
+              String::from_utf8_unchecked(bytes)
             }
-            Cow::Owned(s) => Cow::Owned(s),
-          }
+          } else {
+            String::from_utf8_lossy(&bytes).into_owned()
+          };
+          Cow::Owned(s)
         }
       },
     }

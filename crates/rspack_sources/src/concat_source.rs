@@ -439,7 +439,7 @@ fn optimize(children: &mut Vec<BoxSource>) -> Vec<BoxSource> {
   }
 
   let mut new_children = Vec::new();
-  let mut current_raw_sources = Vec::new();
+  let mut current_raw_sources = Vec::with_capacity(original_children.len());
 
   for child in original_children {
     if child.as_ref().as_any().is::<RawStringSource>() {

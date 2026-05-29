@@ -5134,6 +5134,7 @@ dependencies = [
  "serde",
  "simd-json",
  "simd-utf16-len",
+ "simdutf8",
  "static_assertions",
  "twox-hash",
 ]
