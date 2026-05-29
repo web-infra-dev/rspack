@@ -2,7 +2,7 @@ use swc_core::{
   atoms::Atom,
   common::Span,
   ecma::ast::{
-    AssignExpr, BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr,
+    AssignExpr, BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, Ident, IfStmt, MemberExpr,
     OptChainExpr, UnaryExpr, UnaryOp, VarDeclarator,
   },
 };
@@ -313,10 +313,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     expr: &AssignExpr,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Assign) {
-      let res = plugin.assign(parser, expr, for_name);
+      let res = plugin.assign(parser, expr, ident, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

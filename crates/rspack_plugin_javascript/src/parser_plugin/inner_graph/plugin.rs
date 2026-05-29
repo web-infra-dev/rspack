@@ -862,6 +862,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
     &self,
     parser: &mut JavascriptParser,
     expr: &swc_core::ecma::ast::AssignExpr,
+    _ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {

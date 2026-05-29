@@ -1,4 +1,8 @@
 module.exports = [
-	/require function is used in a way in which dependencies cannot be statically extracted/,
-	/createRequire\(\)\.main is not supported by webpack/
+	/module\.createRequire supports only file URLs and absolute paths/,
+	/module\.createRequire supports only file URLs and absolute paths/,
+	/the request of a dependency is an expression/,
+	/createRequire\(\)\.main is not supported by Rspack/,
+	/createRequire\(\)\.main is not supported by Rspack/,
+	/createRequire\(\)\.resolve is not supported by Rspack/
 ];

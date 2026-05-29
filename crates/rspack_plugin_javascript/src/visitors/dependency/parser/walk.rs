@@ -1575,7 +1575,9 @@ impl JavascriptParser<'_> {
         |this, ident| {
           if !ident
             .sym
-            .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
+            .call_hooks_name(this, |this, for_name| {
+              drive.assign(this, expr, ident, for_name)
+            })
             .unwrap_or_default()
           {
             // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
@@ -1590,7 +1592,9 @@ impl JavascriptParser<'_> {
         |this: &mut JavascriptParser<'_>, ident| {
           if !ident
             .sym
-            .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
+            .call_hooks_name(this, |this, for_name| {
+              drive.assign(this, expr, ident, for_name)
+            })
             .unwrap_or_default()
           {
             this.define_variable(ident.sym.clone());

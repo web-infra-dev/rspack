@@ -3,7 +3,7 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
   FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
@@ -20,7 +20,9 @@ use crate::dependency::{
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
+  resource_identifier: String,
   optional: bool,
+  context: Option<Context>,
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
@@ -37,13 +39,21 @@ impl CommonJsRequireDependency {
     range: DependencyRange,
     range_expr: Option<DependencyRange>,
     optional: bool,
+    context: Option<Context>,
     loc: Option<DependencyLocation>,
     referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
+    let resource_identifier = if let Some(context) = &context {
+      format!("{}|{}|{}", DependencyType::CjsRequire, context, request)
+    } else {
+      format!("{}|{}", DependencyType::CjsRequire, request)
+    };
     Self {
       id: DependencyId::new(),
       request,
+      resource_identifier,
       optional,
+      context,
       range,
       range_expr,
       loc,
@@ -78,6 +88,14 @@ impl Dependency for CommonJsRequireDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsRequire
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    self.context.as_ref()
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 
   fn range(&self) -> Option<DependencyRange> {

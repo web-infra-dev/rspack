@@ -1744,6 +1744,10 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
+          create_require: target_properties
+            .node
+            .filter(|node| *node)
+            .map(|_| "createRequire from module".to_string()),
           jsx: Some(false),
           ..Default::default()
         }),

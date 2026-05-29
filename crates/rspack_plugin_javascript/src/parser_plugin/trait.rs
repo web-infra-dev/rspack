@@ -535,6 +535,7 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
     &self,
     _parser: &mut JavascriptParser,
     _expr: &AssignExpr,
+    _ident: &Ident,
     _for_name: &str,
   ) -> Option<bool> {
     None

@@ -3,8 +3,10 @@ use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::BasicEvaluatedExpression;
 use crate::{
-  parser_plugin::JavascriptParserPlugin,
-  visitors::{AllowedMemberTypes, ExprRef, JavascriptParser, MemberExpressionInfo},
+  parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, CreatedRequireTagData, JavascriptParserPlugin},
+  visitors::{
+    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
+  },
 };
 
 pub fn eval_member_expression<'a>(
@@ -16,6 +18,13 @@ pub fn eval_member_expression<'a>(
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
+    let is_created_require_member = matches!(
+      info.root_info,
+      ExportedVariableInfo::VariableInfo(id)
+        if parser
+          .get_variable_tag_data::<CreatedRequireTagData>(id, CREATED_REQUIRE_IDENTIFIER_TAG)
+          .is_some()
+    );
     drive
       .evaluate_identifier(
         parser,
@@ -23,6 +32,7 @@ pub fn eval_member_expression<'a>(
         member.span.real_lo(),
         member.span.real_hi(),
       )
+      .filter(|_| !is_created_require_member)
       .or_else(|| drive.evaluate(parser, expr))
       .or_else(|| {
         // TODO: fallback with `evaluateDefinedIdentifier`

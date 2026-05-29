@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -11,18 +11,33 @@ use rspack_core::{
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
+  resource_identifier: String,
   pub weak: bool,
+  context: Option<Context>,
   range: DependencyRange,
   optional: bool,
   factorize_info: FactorizeInfo,
 }
 
 impl RequireResolveDependency {
-  pub fn new(request: String, range: DependencyRange, weak: bool, optional: bool) -> Self {
+  pub fn new(
+    request: String,
+    range: DependencyRange,
+    weak: bool,
+    optional: bool,
+    context: Option<Context>,
+  ) -> Self {
+    let resource_identifier = if let Some(context) = &context {
+      format!("{}|{}|{}", DependencyType::RequireResolve, context, request)
+    } else {
+      format!("{}|{}", DependencyType::RequireResolve, request)
+    };
     Self {
       range,
       request,
+      resource_identifier,
       weak,
+      context,
       optional,
       id: DependencyId::new(),
       factorize_info: Default::default(),
@@ -42,6 +57,14 @@ impl Dependency for RequireResolveDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireResolve
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    self.context.as_ref()
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
   }
 
   fn range(&self) -> Option<DependencyRange> {
