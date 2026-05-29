@@ -172,50 +172,59 @@ fn bench_rspack_sources(criterion: &mut Criterion) {
   let mut group = criterion.benchmark_group("rspack_sources");
 
   group.bench_function(
-    "concat_generate_string_with_cache",
+    "sources@concat_generate_string_with_cache",
     benchmark_concat_generate_string_with_cache,
   );
-  group.bench_function("concat_generate_string", benchmark_concat_generate_string);
+  group.bench_function(
+    "sources@concat_generate_string",
+    benchmark_concat_generate_string,
+  );
 
-  group.bench_function("cached_source_hash", benchmark_cached_source_hash);
-
-  group.bench_function("concat_source_add_many", benchmark_concat_source_add_many);
-  group.bench_function("concat_source_add_few", benchmark_concat_source_add_few);
+  group.bench_function("sources@cached_source_hash", benchmark_cached_source_hash);
 
   group.bench_function(
-    "complex_replace_source_map",
+    "sources@concat_source_add_many",
+    benchmark_concat_source_add_many,
+  );
+  group.bench_function(
+    "sources@concat_source_add_few",
+    benchmark_concat_source_add_few,
+  );
+
+  group.bench_function(
+    "sources@complex_replace_source_map",
     benchmark_complex_replace_source_map,
   );
 
   group.bench_function(
-    "complex_replace_source_map_cached_source_stream_chunks",
+    "sources@complex_replace_source_map_cached_source_stream_chunks",
     benchmark_complex_replace_source_map_cached_source_stream_chunks,
   );
 
   group.bench_function(
-    "complex_replace_source_source",
+    "sources@complex_replace_source_source",
     benchmark_complex_replace_source_source,
   );
 
   group.bench_function(
-    "complex_replace_source_size",
+    "sources@complex_replace_source_size",
     benchmark_complex_replace_source_size,
   );
 
   group.bench_function(
-    "parse_source_map_from_json",
+    "sources@parse_source_map_from_json",
     benchmark_parse_source_map_from_json,
   );
 
-  group.bench_function("source_map_to_json", benchmark_source_map_to_json);
+  group.bench_function("sources@source_map_to_json", benchmark_source_map_to_json);
 
   group.bench_function(
-    "repetitive_react_components_map",
+    "sources@repetitive_react_components_map",
     benchmark_repetitive_react_components_map,
   );
 
   group.bench_function(
-    "repetitive_react_components_source",
+    "sources@repetitive_react_components_source",
     benchmark_repetitive_react_components_source,
   );
 
