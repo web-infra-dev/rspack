@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ptr::NonNull};
+use std::{cell::RefCell, collections::BTreeMap, ptr::NonNull};
 
 use napi::{
   Either, Env,
@@ -201,7 +201,7 @@ impl Dependency {
   }
 }
 
-type DependencyInstanceRefs = HashMap<DependencyId, OneShotInstanceRef<Dependency>>;
+type DependencyInstanceRefs = BTreeMap<DependencyId, OneShotInstanceRef<Dependency>>;
 
 type DependencyInstanceRefsByCompilationId =
   RefCell<HashMap<CompilationId, DependencyInstanceRefs>>;
@@ -271,13 +271,13 @@ impl ToNapiValue for DependencyWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = HashMap::default();
+            let refs = BTreeMap::default();
             entry.insert(refs)
           }
         };
 
         match refs.entry(val.dependency_id) {
-          std::collections::hash_map::Entry::Occupied(mut occupied_entry) => {
+          std::collections::btree_map::Entry::Occupied(mut occupied_entry) => {
             let r = occupied_entry.get_mut();
             let instance = &mut **r;
             instance.compilation = val.compilation;
@@ -285,7 +285,7 @@ impl ToNapiValue for DependencyWrapper {
 
             ToNapiValue::to_napi_value(env, r)
           }
-          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+          std::collections::btree_map::Entry::Vacant(vacant_entry) => {
             let js_dependency = Dependency {
               compilation: val.compilation,
               dependency_id: val.dependency_id,

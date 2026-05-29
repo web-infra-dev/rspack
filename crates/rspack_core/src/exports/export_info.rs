@@ -1,5 +1,6 @@
+use std::collections::BTreeMap;
+
 use rspack_util::atom::Atom;
-use rustc_hash::FxHashMap as HashMap;
 
 use super::{ExportInfoTargetValue, ExportProvided, ExportsInfo, ExportsInfoData, UsageState};
 use crate::{
@@ -45,7 +46,7 @@ pub struct ExportInfoData {
   name: Option<Atom>,
   /// this is mangled name, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/ExportsInfo.js#L1181-L1188
   used_name: Option<UsedNameItem>,
-  target: HashMap<Option<DependencyId>, ExportInfoTargetValue>,
+  target: BTreeMap<Option<DependencyId>, ExportInfoTargetValue>,
   /// This is rspack only variable, it is used to flag if the target has been initialized
   target_is_set: bool,
   provided: Option<ExportProvided>,
@@ -105,7 +106,7 @@ impl ExportInfoData {
                   },
                 )
               })
-              .collect::<HashMap<Option<DependencyId>, ExportInfoTargetValue>>(),
+              .collect::<BTreeMap<Option<DependencyId>, ExportInfoTargetValue>>(),
           )
         } else {
           None
@@ -147,7 +148,7 @@ impl ExportInfoData {
     self.used_name.as_ref()
   }
 
-  pub fn target(&self) -> &HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+  pub fn target(&self) -> &BTreeMap<Option<DependencyId>, ExportInfoTargetValue> {
     &self.target
   }
 
@@ -155,7 +156,7 @@ impl ExportInfoData {
     self.target_is_set
   }
 
-  pub fn target_mut(&mut self) -> &mut HashMap<Option<DependencyId>, ExportInfoTargetValue> {
+  pub fn target_mut(&mut self) -> &mut BTreeMap<Option<DependencyId>, ExportInfoTargetValue> {
     &mut self.target
   }
 

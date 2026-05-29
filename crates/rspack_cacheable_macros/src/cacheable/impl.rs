@@ -55,10 +55,11 @@ pub fn impl_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
   visitor.visit_item_mut(&mut input);
 
   let crate_path = &args.crate_path;
-  let archived_impl_hash = if args.hashable {
-    quote! {#[rkyv(derive(Hash, PartialEq, Eq))]}
-  } else {
-    quote! {}
+  let archived_impl_traits = match (args.hashable, args.orderable) {
+    (true, true) => quote! {#[rkyv(derive(Hash, PartialEq, Eq, PartialOrd, Ord))]},
+    (true, false) => quote! {#[rkyv(derive(Hash, PartialEq, Eq))]},
+    (false, true) => quote! {#[rkyv(derive(PartialEq, Eq, PartialOrd, Ord))]},
+    (false, false) => quote! {},
   };
   let bounds = if visitor.omit_bounds {
     quote! {
@@ -85,7 +86,7 @@ pub fn impl_cacheable(tokens: TokenStream, args: CacheableArgs) -> TokenStream {
           #crate_path::__private::rkyv::Serialize
       )]
       #[rkyv(crate=#crate_path::__private::rkyv)]
-      #archived_impl_hash
+      #archived_impl_traits
       #bounds
       #input
   }

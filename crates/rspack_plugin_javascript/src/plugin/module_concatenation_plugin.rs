@@ -1,5 +1,9 @@
 #![allow(clippy::only_used_in_recursion)]
-use std::{borrow::Cow, collections::VecDeque, sync::Arc};
+use std::{
+  borrow::Cow,
+  collections::{BTreeMap, VecDeque},
+  sync::Arc,
+};
 
 use rayon::prelude::*;
 use rspack_collections::{
@@ -981,14 +985,7 @@ impl ModuleConcatenationPlugin {
             })
             .collect(),
         };
-        let incoming_connections_len = incomings.from_non_modules.len()
-          + incomings
-            .from_modules
-            .values()
-            .map(std::vec::Vec::len)
-            .sum::<usize>();
-        let mut active_incomings =
-          HashMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
+        let mut active_incomings = BTreeMap::new();
         for connection in incomings
           .from_non_modules
           .iter()
@@ -1344,7 +1341,7 @@ pub struct NoRuntimeModuleCache {
   provided_names: bool,
   connections: Vec<(ModuleGraphConnection, (bool, bool))>,
   incomings: IncomingConnections,
-  active_incomings: HashMap<DependencyId, bool>,
+  active_incomings: BTreeMap<DependencyId, bool>,
   number_of_chunks: usize,
 }
 
@@ -1619,7 +1616,7 @@ fn add_concatenated_module(
 fn is_connection_active_in_runtime(
   connection: &ModuleGraphConnection,
   runtime: Option<&RuntimeSpec>,
-  cached_active_incomings: &HashMap<DependencyId, bool>,
+  cached_active_incomings: &BTreeMap<DependencyId, bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   artifacts: &ModuleGraphArtifacts,

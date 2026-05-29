@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, collections::BTreeMap};
 
 use itertools::Itertools;
 use rspack_util::atom::Atom;
@@ -231,7 +231,7 @@ impl ExportInfoData {
     self.used_name().is_some()
   }
 
-  pub fn get_max_target(&self) -> Cow<'_, HashMap<Option<DependencyId>, ExportInfoTargetValue>> {
+  pub fn get_max_target(&self) -> Cow<'_, BTreeMap<Option<DependencyId>, ExportInfoTargetValue>> {
     if self.target().len() <= 1 {
       return Cow::Borrowed(self.target());
     }
@@ -244,7 +244,7 @@ impl ExportInfoData {
     if max_priority == min_priority {
       return Cow::Borrowed(self.target());
     }
-    let mut map = HashMap::default();
+    let mut map = BTreeMap::default();
     for (k, v) in self.target().iter() {
       if max_priority == v.priority {
         map.insert(*k, v.clone());

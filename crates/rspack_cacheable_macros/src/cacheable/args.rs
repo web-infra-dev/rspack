@@ -7,6 +7,7 @@ use syn::{
 mod kw {
   syn::custom_keyword!(with);
   syn::custom_keyword!(hashable);
+  syn::custom_keyword!(orderable);
 }
 
 /// #[cacheable] type-only args
@@ -14,6 +15,7 @@ pub struct CacheableArgs {
   pub crate_path: syn::Path,
   pub with: Option<syn::Type>,
   pub hashable: bool,
+  pub orderable: bool,
 }
 
 impl Parse for CacheableArgs {
@@ -21,6 +23,7 @@ impl Parse for CacheableArgs {
     let mut crate_path = parse_quote! { ::rspack_cacheable };
     let mut with = None;
     let mut hashable = false;
+    let mut orderable = false;
 
     let mut needs_punct = false;
     while !input.is_empty() {
@@ -43,6 +46,9 @@ impl Parse for CacheableArgs {
       } else if input.peek(kw::hashable) {
         input.parse::<kw::hashable>()?;
         hashable = true;
+      } else if input.peek(kw::orderable) {
+        input.parse::<kw::orderable>()?;
+        orderable = true;
       } else {
         return Err(input.error("unexpected #[cacheable] type-only parameters"));
       }
@@ -54,6 +60,7 @@ impl Parse for CacheableArgs {
       crate_path,
       with,
       hashable,
+      orderable,
     })
   }
 }

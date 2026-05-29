@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+  collections::{BTreeMap, BTreeSet},
+  sync::Arc,
+};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
@@ -46,13 +49,13 @@ pub(super) struct CssModuleParser<'context> {
 
 #[derive(Default)]
 struct ComposesOrderState {
-  graph: FxHashMap<DependencyId, FxHashSet<DependencyId>>,
+  graph: BTreeMap<DependencyId, BTreeSet<DependencyId>>,
   request_to_dependency: FxHashMap<String, DependencyId>,
   dependencies_in_source_order: Vec<(DependencyId, i32)>,
   compose_dependency_count: usize,
   current_rule_key: Option<String>,
   current_rule_prev_dependency: Option<DependencyId>,
-  current_rule_dependencies: FxHashSet<DependencyId>,
+  current_rule_dependencies: BTreeSet<DependencyId>,
 }
 
 impl ComposesOrderState {

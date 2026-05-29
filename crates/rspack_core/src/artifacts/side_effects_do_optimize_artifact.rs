@@ -1,8 +1,10 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+  collections::BTreeMap,
+  ops::{Deref, DerefMut},
+};
 
 use rayon::prelude::{FromParallelIterator, IntoParallelIterator, ParallelIterator};
 use rspack_util::atom::Atom;
-use rustc_hash::FxHashMap;
 
 use crate::{
   ArtifactExt, DependencyId, ExportInfo, ModuleIdentifier, incremental::IncrementalPasses,
@@ -22,10 +24,10 @@ pub struct SideEffectsDoOptimizeMoveTarget {
 }
 
 #[derive(Debug, Default, Clone)]
-pub struct SideEffectsOptimizeArtifact(FxHashMap<DependencyId, SideEffectsDoOptimize>);
+pub struct SideEffectsOptimizeArtifact(BTreeMap<DependencyId, SideEffectsDoOptimize>);
 
 impl Deref for SideEffectsOptimizeArtifact {
-  type Target = FxHashMap<DependencyId, SideEffectsDoOptimize>;
+  type Target = BTreeMap<DependencyId, SideEffectsDoOptimize>;
 
   fn deref(&self) -> &Self::Target {
     &self.0
@@ -38,33 +40,33 @@ impl DerefMut for SideEffectsOptimizeArtifact {
   }
 }
 
-impl From<FxHashMap<DependencyId, SideEffectsDoOptimize>> for SideEffectsOptimizeArtifact {
-  fn from(value: FxHashMap<DependencyId, SideEffectsDoOptimize>) -> Self {
+impl From<BTreeMap<DependencyId, SideEffectsDoOptimize>> for SideEffectsOptimizeArtifact {
+  fn from(value: BTreeMap<DependencyId, SideEffectsDoOptimize>) -> Self {
     Self(value)
   }
 }
 
-impl From<SideEffectsOptimizeArtifact> for FxHashMap<DependencyId, SideEffectsDoOptimize> {
+impl From<SideEffectsOptimizeArtifact> for BTreeMap<DependencyId, SideEffectsDoOptimize> {
   fn from(value: SideEffectsOptimizeArtifact) -> Self {
     value.0
   }
 }
 
-impl FromIterator<<FxHashMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item>
+impl FromIterator<<BTreeMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item>
   for SideEffectsOptimizeArtifact
 {
   fn from_iter<
-    T: IntoIterator<Item = <FxHashMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item>,
+    T: IntoIterator<Item = <BTreeMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item>,
   >(
     iter: T,
   ) -> Self {
-    Self(FxHashMap::from_iter(iter))
+    Self(BTreeMap::from_iter(iter))
   }
 }
 
 impl IntoIterator for SideEffectsOptimizeArtifact {
-  type Item = <FxHashMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item;
-  type IntoIter = <FxHashMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::IntoIter;
+  type Item = <BTreeMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::Item;
+  type IntoIter = <BTreeMap<DependencyId, SideEffectsDoOptimize> as IntoIterator>::IntoIter;
 
   fn into_iter(self) -> Self::IntoIter {
     self.0.into_iter()

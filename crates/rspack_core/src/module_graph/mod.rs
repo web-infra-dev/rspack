@@ -1,7 +1,7 @@
 pub mod internal;
 pub mod rollback;
 
-use std::hash::BuildHasherDefault;
+use std::{collections::BTreeMap, hash::BuildHasherDefault};
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
@@ -26,6 +26,8 @@ use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
   ModuleIdentifier,
 };
+
+type DependencyIdMap<V> = BTreeMap<DependencyId, V>;
 
 // TODO Here request can be used Atom
 pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
@@ -112,7 +114,7 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  dependencies: DependencyIdMap<BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
@@ -133,9 +135,9 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
+  dependency_id_to_parents: DependencyIdMap<DependencyParents>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+  connection_to_condition: DependencyIdMap<DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -149,7 +151,7 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: DependencyIdMap<DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {

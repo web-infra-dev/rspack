@@ -2,7 +2,7 @@ use rspack_cacheable::cacheable;
 use rspack_tasks::fetch_new_dependency_id;
 use serde::Serialize;
 
-#[cacheable(hashable)]
+#[cacheable(hashable, orderable)]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct DependencyId(u32);
 

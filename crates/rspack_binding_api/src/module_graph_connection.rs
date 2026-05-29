@@ -1,4 +1,4 @@
-use std::{cell::RefCell, ptr::NonNull};
+use std::{cell::RefCell, collections::BTreeMap, ptr::NonNull};
 
 use napi::bindgen_prelude::ToNapiValue;
 use napi_derive::napi;
@@ -183,7 +183,7 @@ impl ModuleGraphConnection {
   }
 }
 
-type ModuleGraphConnectionRefs = FxHashMap<DependencyId, OneShotRef>;
+type ModuleGraphConnectionRefs = BTreeMap<DependencyId, OneShotRef>;
 
 type ModuleGraphConnectionRefsByCompilationId =
   RefCell<FxHashMap<CompilationId, ModuleGraphConnectionRefs>>;
@@ -228,17 +228,17 @@ impl ToNapiValue for ModuleGraphConnectionWrapper {
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {
-            let refs = FxHashMap::default();
+            let refs = BTreeMap::default();
             entry.insert(refs)
           }
         };
 
         match refs.entry(val.dependency_id) {
-          std::collections::hash_map::Entry::Occupied(occupied_entry) => {
+          std::collections::btree_map::Entry::Occupied(occupied_entry) => {
             let r = occupied_entry.get();
             ToNapiValue::to_napi_value(env, r)
           }
-          std::collections::hash_map::Entry::Vacant(vacant_entry) => {
+          std::collections::btree_map::Entry::Vacant(vacant_entry) => {
             let js_dependency = ModuleGraphConnection {
               compilation: val.compilation,
               dependency_id: val.dependency_id,
