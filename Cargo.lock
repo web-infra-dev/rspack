@@ -3589,6 +3589,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_plugin_split_chunks",
  "rspack_regex",
+ "rspack_sources",
  "rspack_tasks",
  "rustc-hash",
  "serde_json",
@@ -3870,6 +3871,8 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
+ "simdutf8",
+ "smol_str",
  "sugar_path",
  "swc_core",
  "swc_experimental_ecma_ast",
@@ -4050,6 +4053,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simdutf8",
  "tokio",
  "tracing",
  "winnow",
@@ -4296,6 +4300,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "smol_str",
  "tokio",
  "tracing",
  "urlencoding",
@@ -5118,18 +5123,18 @@ dependencies = [
 
 [[package]]
 name = "rspack_sources"
-version = "0.4.23"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81a72d10c90a000749a73245046be8071ecdd1ce6d21673ff17fe1da8eed6e8d"
+version = "0.100.5"
 dependencies = [
  "dyn-clone",
  "memchr",
+ "regex",
  "rkyv 0.8.16",
  "rustc-hash",
  "serde",
  "simd-json",
  "simd-utf16-len",
  "static_assertions",
+ "twox-hash",
 ]
 
 [[package]]
@@ -7472,6 +7477,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "twox-hash"
+version = "2.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9ea3136b675547379c4bd395ca6b938e5ad3c3d20fad76e7fe85f9e0d011419c"
+
+[[package]]
 name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7827,7 +7838,6 @@ dependencies = [
  "wasmtime-internal-slab",
  "wasmtime-internal-unwinder",
  "wasmtime-internal-versioned-export-macros",
- "wasmtime-internal-winch",
  "windows-sys 0.59.0",
 ]
 
@@ -7958,23 +7968,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "wasmtime-internal-winch"
-version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2012e7384c25b91aab2f1b6a1e1cbab9d0f199bbea06cc873597a3f047f05730"
-dependencies = [
- "anyhow",
- "cranelift-codegen",
- "gimli",
- "object",
- "target-lexicon",
- "wasmparser",
- "wasmtime-environ",
- "wasmtime-internal-cranelift",
- "winch-codegen",
-]
-
-[[package]]
 name = "wast"
 version = "35.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8064,26 +8057,6 @@ name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
-
-[[package]]
-name = "winch-codegen"
-version = "35.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "839a334ef7c62d8368dbd427e767a6fbb1ba08cc12ecce19cbb666c10613b585"
-dependencies = [
- "anyhow",
- "cranelift-assembler-x64",
- "cranelift-codegen",
- "gimli",
- "regalloc2",
- "smallvec",
- "target-lexicon",
- "thiserror 2.0.17",
- "wasmparser",
- "wasmtime-environ",
- "wasmtime-internal-cranelift",
- "wasmtime-internal-math",
-]
 
 [[package]]
 name = "windows"

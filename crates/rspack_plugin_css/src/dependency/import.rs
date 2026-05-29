@@ -16,6 +16,7 @@ pub struct CssImportDependency {
   media: Option<String>,
   supports: Option<String>,
   layer: Option<CssLayer>,
+  source_order: i32,
   factorize_info: FactorizeInfo,
 }
 
@@ -41,6 +42,7 @@ impl CssImportDependency {
       media,
       supports,
       layer,
+      source_order: source_order_to_i32(range.start),
       factorize_info: Default::default(),
     }
   }
@@ -74,6 +76,10 @@ impl Dependency for CssImportDependency {
 
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
+  }
+
+  fn source_order(&self) -> Option<i32> {
+    Some(self.source_order)
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
@@ -126,6 +132,10 @@ impl DependencyCodeGeneration for CssImportDependency {
 }
 
 impl AsContextDependency for CssImportDependency {}
+
+fn source_order_to_i32(source_order: u32) -> i32 {
+  source_order.try_into().unwrap_or(i32::MAX)
+}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]

@@ -6,10 +6,11 @@ use std::{borrow::Cow, sync::LazyLock};
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  ChunkGraph, Compilation, CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType,
-  ExportsInfoArtifact, GenerateContext, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec,
-  SourceType, TemplateContext, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, CssBuildInfo,
+  CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType, ExportsInfoArtifact,
+  GenerateContext, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule,
+  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType,
+  TemplateContext, UsageState,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -21,6 +22,7 @@ use rspack_util::{
   fx_hash::{FxIndexMap, FxIndexSet},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::SmolStr;
 
 use crate::{
   dependency::{CssImportDependency, CssMedia, CssSupports},
@@ -78,54 +80,58 @@ impl CssParserAndGenerator {
 }
 
 pub fn get_used_exports<'a>(
-  exports: &'a CssExports,
+  css_build_info: &'a CssBuildInfo,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> CssExportsRef<'a> {
+) -> Option<CssExportsRef<'a>> {
+  let exports = css_build_info.exports()?;
   let exports_info = exports_info_artifact
     .get_exports_info_optional(&identifier)
     .map(|info| info.as_data(exports_info_artifact));
 
-  exports
-    .iter()
-    .filter(|(name, _)| {
-      let export_info = exports_info
-        .as_ref()
-        .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
+  Some(
+    exports
+      .iter()
+      .filter(|(name, _)| {
+        let export_info = exports_info
+          .as_ref()
+          .map(|info| info.get_read_only_export_info(&Atom::from(name.as_str())));
 
-      if let Some(export_info) = export_info {
-        export_info.get_used(runtime) != UsageState::Unused
-      } else {
-        true
-      }
-    })
-    .map(|(name, exports)| (name.as_str(), exports))
-    .collect()
+        if let Some(export_info) = export_info {
+          export_info.get_used(runtime) != UsageState::Unused
+        } else {
+          true
+        }
+      })
+      .map(|(name, exports)| (name.as_str(), exports))
+      .collect(),
+  )
 }
 
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataUnusedLocalIdent {
-  pub(crate) idents: FxHashSet<String>,
+  pub(crate) idents: FxHashSet<SmolStr>,
 }
 
 pub fn get_unused_local_ident(
-  exports: &CssExports,
-  local_names: &FxHashMap<String, String>,
+  css_build_info: &CssBuildInfo,
   identifier: ModuleIdentifier,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
-) -> CodeGenerationDataUnusedLocalIdent {
+) -> Option<CodeGenerationDataUnusedLocalIdent> {
+  let exports = css_build_info.exports()?;
+  let local_names = css_build_info.local_names()?;
   let exports_names = exports.iter().fold(
     FxHashMap::<&str, FxHashSet<Atom>>::default(),
     |mut map, (name, css_exports)| {
       css_exports.iter().for_each(|css_export| {
         if let Some(set) = map.get_mut(css_export.orig_name.as_str()) {
-          set.insert(Atom::from(name.clone()));
+          set.insert(Atom::from(name.as_str()));
         } else {
           map.insert(
-            &css_export.orig_name,
-            FxHashSet::from_iter([Atom::from(name.clone())]),
+            css_export.orig_name.as_str(),
+            FxHashSet::from_iter([Atom::from(name.as_str())]),
           );
         }
       });
@@ -137,7 +143,7 @@ pub fn get_unused_local_ident(
     .get_exports_info_optional(&identifier)
     .map(|info| info.as_data(exports_info_artifact));
 
-  CodeGenerationDataUnusedLocalIdent {
+  Some(CodeGenerationDataUnusedLocalIdent {
     idents: exports_names
       .iter()
       .filter(|(_, export_names)| {
@@ -155,7 +161,7 @@ pub fn get_unused_local_ident(
       })
       .filter_map(|(css_name, _)| local_names.get(*css_name).cloned())
       .collect(),
-  }
+  })
 }
 
 static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
@@ -199,6 +205,28 @@ impl ParserAndGenerator for CssParserAndGenerator {
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
+    let named_exports = self
+      .parser_options
+      .named_exports
+      .expect("should have named_exports");
+
+    {
+      let build_info = &mut *parse_context.build_info;
+      let build_meta = &mut *parse_context.build_meta;
+
+      build_info.strict = true;
+      build_meta.exports_type = if named_exports {
+        BuildMetaExportsType::Namespace
+      } else {
+        BuildMetaExportsType::Default
+      };
+      build_meta.default_object = if named_exports {
+        BuildMetaDefaultObject::False
+      } else {
+        BuildMetaDefaultObject::Redirect
+      };
+    }
+
     CssModuleParser::new(
       &self.generator_options,
       &self.parser_options,
@@ -266,13 +294,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
             };
 
             if let Some(media) = css_import_dep.media() {
-              let media = CssMedia(media.to_string());
-              context.data.insert(media);
+              context.data.insert(CssMedia(media.to_string()));
             }
 
             if let Some(supports) = css_import_dep.supports() {
-              let supports = CssSupports(supports.to_string());
-              context.data.insert(supports);
+              context.data.insert(CssSupports(supports.to_string()));
             }
 
             if let Some(layer) = css_import_dep.layer() {

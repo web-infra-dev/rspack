@@ -1,0 +1,351 @@
+@value primary from "./theme.module.css";
+@value error from "./theme.module.css";
+
+@value colors: "./theme.module.css";
+@value danger: error from colors;
+
+.E_OvvY {
+	color: danger
+}
+
+.Q-49ks {
+	background-color: primary;
+	color: white;
+}
+
+.UILpUa {
+	background-color: error;
+	border: 2px solid darkred;
+}
+
+
+
+.UU_tpl {
+	color: __value__;
+}
+
+.txv8eJ {
+	
+}
+
+
+
+.BRXavc {
+	display: unset;
+}
+
+.FHXYtO {
+	
+	transition: transform Xs ease;
+}
+
+._6cWniN {
+	cursor: pointer;
+}
+
+.gohrJR {
+	display: flex;
+}
+
+.A5yP4X {
+	align-items: center;
+}
+
+.kUDfcD {
+	padding: 16px;
+}
+
+.xYqD9j {
+	
+	will-change: transform;
+}
+
+.xYqD9j:hover {
+	transform: scale(1.02);
+}
+
+._8aNfK_ {
+	
+	
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+
+
+.qdzzZe {
+	
+	
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+.GB2FOr {
+	background: red;
+}
+
+._0VYBFQ {
+	color: blue;
+}
+
+.JXn9Xg {
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+.furHaz {
+	background: blue;
+}
+
+
+
+
+
+
+.ZGT0QO {
+	color: red;
+}
+
+.JTr570 {
+	width: 50%;
+}
+
+.button-global-font-size\a1 {
+	font-size: 14px;
+}
+
+._5Vcxg3 {
+	display: block;
+}
+
+._5Vcxg3 {
+	background-color: black;
+}
+
+.zH1PuB {
+	
+	background: blue;
+}
+
+.nUmUBn {
+	
+}
+
+.A0m68u {
+	
+}
+
+.I62MUF {
+	
+	color: blue;
+}
+
+.I62MUF {
+	
+	color: blue;
+}
+
+
+
+.TU_6N_ {
+	
+	color: blue;
+}
+
+@value composes-test-here: composes-here;
+
+.iYZI63 {
+	composes: composes-test-here, __import_f__, global(bar);
+	color: blue;
+}
+
+._1gEiam {  color: red; }
+.w5QDWv {  color: green; }
+.xuvJ78 { color: blue }
+.w5QDWv {  color: white; }
+.w5QDWv {  color: black; }
+
+.GUOebj {
+	
+	
+	color: red;
+}
+
+.zB2SIO {
+	
+	
+	color: blue;
+}
+
+.Kv804y {
+	
+	
+}
+
+:root {
+	--color: red;
+}
+
+@value --my-custom-property-1: --color;
+
+
+
+.lN8cZb {
+	color: var(--color);
+	background-color: var(--shared from "./shared-custom-properties.module.css");
+	border-color: var(--deep-shared from "./shared-custom-properties.module.css");
+	outline-color: var(--my-custom-property-1);
+	text-decoration-color: var(--reexport-my-var-u1);
+}
+
+.Qd9RVw {
+	color: var(--my-var-u1 from "./vars.module.css");
+}
+
+@value primary, secondary as my-custom-color from "./colors.module.css";
+
+.Mx1drJ {
+	background-color: primary;
+	color: my-custom-color;
+}
+
+@value foo: red;
+
+.A62m63 {
+	color: foo;
+}
+
+@value blue: #3498db;
+@value rename: blue;
+
+.TLOxAV {
+	background-color: rename;
+}
+
+@value danger from "./colors.module.css";
+@value rename-2: danger;
+
+.J75kHj {
+	background-color: rename-2;
+}
+
+@value danger as danger-alias from "./colors.module.css";
+@value rename-3: danger-alias;
+
+._8-YjdR {
+	background-color: rename-3;
+}
+
+@value colors: "./colors.module.css";
+@value third from colors;
+
+._0vDmWC {
+	background-color: third;
+}
+
+.trrWBd {
+	content: __REEXPORT3__
+}
+
+@value selector: my-selector-value;
+.hydESP { value: selector; }
+
+@value other-selector from "./selectors.module.css";
+.lwweu5 { value: other-selector; }
+
+@value other-selector as alias-other-selector from "./selectors.module.css";
+.z-yLea { value: alias-other-selector; }
+
+@value reexport-selector from "./selectors.module.css";
+.K3y_NA { value: reexport-selector; }
+
+@value reexport-selector as reexport-selector-alias from "./selectors.module.css";
+._2jSHbX { value: reexport-selector-alias; }
+
+@value colors: "./colors.module.css";
+@value third from colors;
+._61LowY { background-color: third; }
+
+@value danger as danger-alias-selector from "./colors.module.css";
+@value rename-3: danger-alias-selector;
+.zVEFPg { background-color: rename-3; }
+
+.XuepqC {
+	color: white;
+}
+
+.global-class-other {
+	color: red;
+}
+
+.LzSpqq {
+	
+}
+
+
+
+.MEIRRY { color: red }
+
+.WnmXrp {
+	
+	color: red;
+}
+
+
+
+.rh1p7E { color: blue; }
+
+.OBvJMj {
+	
+}
+
+
+
+.GuBn9B {
+	
+}
+
+
+
+.GZUeRs {
+	
+}
+
+
+
+.MTGbMU {
+	color: __import_localName__;
+}
+
+
+
+
+
+._6VHhxw {
+	color: __value_cyclical__;
+}
+
+
+
+
+
+@value in-composes: abc-from-def_local;
+
+.rh1p7E { color: blue; }
+
+._3M386q {
+	
+}

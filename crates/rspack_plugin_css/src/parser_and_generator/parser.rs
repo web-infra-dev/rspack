@@ -2,11 +2,12 @@ use std::sync::Arc;
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
-  BoxDependencyTemplate, BoxModuleDependency, BuildMetaDefaultObject, BuildMetaExportsType,
-  ConstDependency, CssExport, CssExports, CssExportsConvention, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, Dependency, DependencyRange,
-  ModuleType, ParseContext, ParseResult, ResourceData,
+  BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssExport, CssExports,
+  CssExportsConvention, CssLocalNames, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssParserImport, CssParserImportContext, Dependency, DependencyId, DependencyRange, ModuleType,
+  ParseContext, ParseResult, ResourceData,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
+  topological_sort,
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -31,14 +32,126 @@ pub(super) struct CssModuleParser<'context> {
   parser_options: &'context CssModuleParserOptions,
   exports_only: bool,
   parse_context: ParseContext<'context>,
+  source: Arc<dyn Source>,
   source_code: Arc<str>,
   diagnostics: Vec<Diagnostic>,
   dependencies: Vec<Box<dyn Dependency>>,
   presentational_dependencies: Vec<BoxDependencyTemplate>,
   code_generation_dependencies: Vec<BoxModuleDependency>,
   css_exports: CssExports,
-  css_local_names: FxHashMap<String, String>,
+  css_local_names: CssLocalNames,
+  composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
+}
+
+#[derive(Default)]
+struct ComposesOrderState {
+  graph: FxHashMap<DependencyId, FxHashSet<DependencyId>>,
+  request_to_dependency: FxHashMap<String, DependencyId>,
+  dependencies_in_source_order: Vec<(DependencyId, i32)>,
+  compose_dependency_count: usize,
+  current_rule_key: Option<String>,
+  current_rule_prev_dependency: Option<DependencyId>,
+  current_rule_dependencies: FxHashSet<DependencyId>,
+}
+
+impl ComposesOrderState {
+  fn reset_current_rule(&mut self) {
+    self.current_rule_key = None;
+    self.current_rule_prev_dependency = None;
+    self.current_rule_dependencies.clear();
+  }
+
+  fn track_request_order(
+    &mut self,
+    local_classes: &[String],
+    request: &str,
+    source_start: u32,
+    dependency_id: DependencyId,
+  ) {
+    let rule_key = local_classes.join("\0");
+    if self.current_rule_key.as_deref() != Some(rule_key.as_str()) {
+      self.current_rule_key = Some(rule_key);
+      self.current_rule_prev_dependency = None;
+      self.current_rule_dependencies.clear();
+    }
+
+    let dependency_id = self.dependency_id_for_request(request, source_start, dependency_id);
+    if !self.current_rule_dependencies.insert(dependency_id) {
+      return;
+    }
+
+    if let Some(prev_dependency_id) = self.current_rule_prev_dependency
+      && prev_dependency_id != dependency_id
+    {
+      self
+        .graph
+        .entry(prev_dependency_id)
+        .or_default()
+        .insert(dependency_id);
+    }
+
+    self.current_rule_prev_dependency = Some(dependency_id);
+  }
+
+  fn dependency_id_for_request(
+    &mut self,
+    request: &str,
+    source_start: u32,
+    dependency_id: DependencyId,
+  ) -> DependencyId {
+    if let Some(dependency_id) = self.request_to_dependency.get(request) {
+      return *dependency_id;
+    }
+
+    self
+      .request_to_dependency
+      .insert(request.to_string(), dependency_id);
+    self
+      .dependencies_in_source_order
+      .push((dependency_id, source_order_to_i32(source_start)));
+    self.compose_dependency_count += 1;
+    dependency_id
+  }
+
+  fn has_multiple_dependencies(&self) -> bool {
+    self.compose_dependency_count > 1
+  }
+
+  fn source_order(&self) -> Vec<(DependencyId, i32)> {
+    let mut dependencies_in_source_order = self.dependencies_in_source_order.clone();
+    dependencies_in_source_order.sort_by_key(|(_, source_order)| *source_order);
+    let base_source_order = dependencies_in_source_order
+      .first()
+      .map(|(_, source_order)| *source_order)
+      .unwrap_or_default();
+    let dependencies_in_source_order = dependencies_in_source_order
+      .into_iter()
+      .map(|(dependency_id, _)| dependency_id)
+      .collect::<Vec<_>>();
+
+    topological_sort(dependencies_in_source_order, |dependency_id| {
+      self
+        .graph
+        .get(&dependency_id)
+        .into_iter()
+        .flat_map(|successors| successors.iter().copied())
+        .collect::<Vec<_>>()
+    })
+    .into_iter()
+    .enumerate()
+    .map(|(source_order, dependency_id)| {
+      (
+        dependency_id,
+        base_source_order.saturating_add(source_order.try_into().unwrap_or(i32::MAX)),
+      )
+    })
+    .collect()
+  }
+}
+
+fn source_order_to_i32(source_order: u32) -> i32 {
+  source_order.try_into().unwrap_or(i32::MAX)
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -48,16 +161,15 @@ impl<'context> CssModuleParser<'context> {
     exports_only: bool,
     parse_context: ParseContext<'context>,
   ) -> Self {
-    let source_code: Arc<str> = remove_bom(parse_context.source.clone())
-      .source()
-      .into_string_lossy()
-      .into();
+    let source = remove_bom(parse_context.source.clone());
+    let source_code: Arc<str> = source.source().into_string_lossy().into();
 
     Self {
       generator_options,
       parser_options,
       exports_only,
       parse_context,
+      source,
       source_code,
       diagnostics: vec![],
       dependencies: vec![],
@@ -65,13 +177,12 @@ impl<'context> CssModuleParser<'context> {
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
       css_local_names: Default::default(),
+      composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
     }
   }
 
   pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
-    self.prepare_build_meta();
-
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
@@ -83,17 +194,12 @@ impl<'context> CssModuleParser<'context> {
         .await?;
     }
 
+    self.apply_composes_source_order();
     self.add_warnings(warnings);
-    self.parse_context.build_info.css_exports = if self.css_exports.is_empty() {
-      None
-    } else {
-      Some(self.css_exports)
-    };
-    self.parse_context.build_info.css_local_names = if self.css_local_names.is_empty() {
-      None
-    } else {
-      Some(self.css_local_names)
-    };
+
+    let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
+    css_build_info.exports = self.css_exports;
+    css_build_info.local_names = self.css_local_names;
 
     Ok(
       ParseResult {
@@ -101,7 +207,7 @@ impl<'context> CssModuleParser<'context> {
         blocks: vec![],
         presentational_dependencies: self.presentational_dependencies,
         code_generation_dependencies: self.code_generation_dependencies,
-        source: remove_bom(self.parse_context.source),
+        source: self.source,
         side_effects_bailout: None,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
@@ -109,20 +215,6 @@ impl<'context> CssModuleParser<'context> {
         self.parse_context.loaders,
       )),
     )
-  }
-
-  fn prepare_build_meta(&mut self) {
-    self.parse_context.build_info.strict = true;
-    self.parse_context.build_meta.exports_type = if self.named_exports() {
-      BuildMetaExportsType::Namespace
-    } else {
-      BuildMetaExportsType::Default
-    };
-    self.parse_context.build_meta.default_object = if self.named_exports() {
-      BuildMetaDefaultObject::False
-    } else {
-      BuildMetaDefaultObject::Redirect
-    };
   }
 
   fn mode(&self) -> css_module_lexer::Mode {
@@ -300,6 +392,7 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
+        self.reset_current_composes_rule();
         let (_prefix, name) = name.split_at(1);
         self
           .handle_local_ident_declaration(name, range.start + 1, range.end, module_hash_options)
@@ -581,7 +674,7 @@ impl<'context> CssModuleParser<'context> {
 
     self
       .css_local_names
-      .insert(name.into_owned(), local_ident.clone());
+      .insert(name.as_ref().into(), local_ident.as_str().into());
 
     self
       .dependencies
@@ -625,10 +718,10 @@ impl<'context> CssModuleParser<'context> {
     for convention_name in convention_names.iter() {
       update_css_exports(
         &mut self.css_exports,
-        convention_name.to_owned(),
+        convention_name,
         CssExport {
-          ident: local_ident.clone(),
-          orig_name: name.to_owned(),
+          ident: local_ident.as_str().into(),
+          orig_name: name.into(),
           from: None,
           id: None,
         },
@@ -664,6 +757,9 @@ impl<'context> CssModuleParser<'context> {
         DependencyRange::new(range.start, range.end),
       );
       dep_id = Some(*dep.id());
+      self
+        .composes_order
+        .track_request_order(&local_classes, from, range.start, *dep.id());
       self.dependencies.push(Box::new(dep));
     } else if from.is_none() {
       self
@@ -683,30 +779,57 @@ impl<'context> CssModuleParser<'context> {
         for (convention_name, local_class) in
           convention_names.into_iter().zip(convention_local_class)
         {
-          if let Some(existing) = self.css_exports.get(name.as_str())
-            && from.is_none()
-          {
-            let existing = existing.clone();
-            self
-              .css_exports
-              .get_mut(local_class.as_str())
-              .expect("composes local class must already added to exports")
-              .extend(existing);
-          } else {
-            self
-              .css_exports
-              .get_mut(local_class.as_str())
-              .expect("composes local class must already added to exports")
-              .insert(CssExport {
-                ident: convention_name.clone(),
-                orig_name: name.clone(),
-                from: from
-                  .filter(|f| *f != "global")
-                  .map(|f| f.trim_matches(|c| c == '\'' || c == '"').to_string()),
-                id: dep_id,
-              });
+          if from.is_none() {
+            let existing = self.css_exports.get(name.as_str()).cloned();
+            if let Some(existing) = existing {
+              self
+                .css_exports
+                .get_mut(local_class.as_str())
+                .expect("composes local class must already added to exports")
+                .extend(existing);
+              continue;
+            }
           }
+
+          self
+            .css_exports
+            .get_mut(local_class.as_str())
+            .expect("composes local class must already added to exports")
+            .insert(CssExport {
+              ident: convention_name.as_str().into(),
+              orig_name: name.as_str().into(),
+              from: from
+                .filter(|f| *f != "global")
+                .map(|f| f.trim_matches(|c| c == '\'' || c == '"').into()),
+              id: dep_id,
+            });
         }
+      }
+    }
+  }
+
+  fn reset_current_composes_rule(&mut self) {
+    self.composes_order.reset_current_rule();
+  }
+
+  fn apply_composes_source_order(&mut self) {
+    if !self.composes_order.has_multiple_dependencies() {
+      return;
+    }
+
+    let source_order_by_dependency = self
+      .composes_order
+      .source_order()
+      .into_iter()
+      .collect::<FxHashMap<_, _>>();
+
+    for dep in &mut self.dependencies {
+      let dependency_id = *dep.id();
+      let Some(source_order) = source_order_by_dependency.get(&dependency_id) else {
+        continue;
+      };
+      if let Some(dep) = dep.downcast_mut::<CssComposeDependency>() {
+        dep.set_source_order(*source_order);
       }
     }
   }
@@ -718,12 +841,12 @@ impl<'context> CssModuleParser<'context> {
     for name in convention_names.iter() {
       update_css_exports(
         &mut self.css_exports,
-        name.to_owned(),
+        name,
         CssExport {
-          ident: value.to_string(),
+          ident: value.as_ref().into(),
           from: None,
           id: None,
-          orig_name: prop.to_string(),
+          orig_name: prop.into(),
         },
       );
     }

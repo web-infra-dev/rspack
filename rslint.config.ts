@@ -7,6 +7,7 @@ export default defineConfig([
     // Global ignores — entry with only `ignores` excludes matching files from all rules
     ignores: [
       'packages/rspack/src/runtime/moduleFederationDefaultRuntime.js',
+      'xtask/benchmark/benches/fixtures/rspack_sources/**',
       '**/tests/**',
     ],
   },

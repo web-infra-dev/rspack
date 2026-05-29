@@ -1,0 +1,34 @@
+[package]
+authors.workspace       = true
+categories.workspace    = true
+description             = "Rusty webpack-sources port."
+documentation.workspace = true
+edition.workspace       = true
+homepage.workspace      = true
+keywords                = ["sources", "sourcemap"]
+license.workspace       = true
+name                    = "rspack_sources"
+readme                  = "README.md"
+repository.workspace    = true
+version.workspace       = true
+
+[features]
+codspeed         = []
+rspack_cacheable = ["dep:rkyv"]
+
+[dependencies]
+dyn-clone         = { workspace = true }
+memchr            = { workspace = true, features = ["std"] }
+rkyv              = { workspace = true, optional = true }
+rustc-hash        = { workspace = true, features = ["std"] }
+serde             = { workspace = true, features = ["rc", "std"] }
+simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }
+simd-utf16-len    = { workspace = true }
+static_assertions = { workspace = true }
+
+[dev-dependencies]
+regex     = { workspace = true }
+twox-hash = { workspace = true, features = ["xxhash64"] }
+
+[lints]
+workspace = true

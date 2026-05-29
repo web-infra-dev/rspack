@@ -43,7 +43,7 @@ use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_cacheable::{
   cacheable,
-  with::{AsOption, AsPreset},
+  with::{AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -57,6 +57,7 @@ use rspack_tasks::CompilerContext;
 use rspack_util::allocative;
 use rspack_util::{fx_hash::FxIndexMap, itoa, tracing_preset::TRACING_BENCH_TARGET};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
+use smol_str::SmolStr;
 use tracing::instrument;
 use ustr::Ustr;
 
@@ -1338,7 +1339,8 @@ pub struct AssetInfo {
   /// An empty string means no version, it will always emit
   pub version: String,
   /// unused local idents of the chunk
-  pub css_unused_idents: Option<HashSet<String>>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  pub css_unused_idents: Option<HashSet<SmolStr>>,
   /// whether this asset is over the size limit
   pub is_over_size_limit: Option<bool>,
   /// the plugin that created the asset
@@ -1401,7 +1403,7 @@ impl AssetInfo {
     self.javascript_module = Some(v);
   }
 
-  pub fn set_css_unused_idents(&mut self, v: HashSet<String>) {
+  pub fn set_css_unused_idents(&mut self, v: HashSet<SmolStr>) {
     self.css_unused_idents = Some(v);
   }
 
