@@ -7,8 +7,8 @@ use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
   CompilerHooks, CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
   CssModuleGeneratorOptions, CssModuleParserOptions, GeneratorOptions, JsonGeneratorOptions,
-  JsonParserOptions, ModuleRuleIds, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
-  ParserAndGenerator, ParserOptions,
+  JsonParserOptions, MODULE_RULE_ID_UNASSIGNED, ModuleRuleEffect, ModuleRuleIds, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
 };
 
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
@@ -153,7 +153,18 @@ pub struct ResolvedModuleOptionsCacheKey {
 }
 
 impl ResolvedModuleOptionsCacheKey {
-  pub fn new(rule_ids: ModuleRuleIds, module_type: ModuleType) -> Self {
+  pub fn new(module_rules: &[&ModuleRuleEffect], module_type: ModuleType) -> Self {
+    let rule_ids = module_rules
+      .iter()
+      .map(|rule| {
+        debug_assert_ne!(
+          rule.id, MODULE_RULE_ID_UNASSIGNED,
+          "module rule id has not been assigned"
+        );
+        rule.id
+      })
+      .collect::<ModuleRuleIds>();
+
     Self {
       rule_ids,
       module_type,

@@ -1477,10 +1477,6 @@ impl ModuleOptions {
 }
 
 fn assign_rule_id(rule: &mut ModuleRule, next_id: &mut usize) -> Result<()> {
-  if rule.effect.id != MODULE_RULE_ID_UNASSIGNED {
-    panic!("module rule id has already been assigned");
-  }
-
   if *next_id >= MODULE_RULE_ID_UNASSIGNED as usize {
     return Err(error!(
       "module.rules exceeds the maximum supported rule count of {}",
@@ -1536,16 +1532,15 @@ mod tests {
   }
 
   #[test]
-  #[should_panic(expected = "module rule id has already been assigned")]
-  fn assign_rule_ids_panics_when_called_twice() {
+  fn assign_rule_ids_can_be_called_twice() {
     let mut options = ModuleOptions {
       rules: vec![ModuleRule::default()],
       ..Default::default()
     };
 
     options.assign_rule_ids().expect("should assign rule ids");
-    options
-      .assign_rule_ids()
-      .expect("should panic before returning");
+    options.assign_rule_ids().expect("should reassign rule ids");
+
+    assert_eq!(options.rules[0].effect.id, 0);
   }
 }

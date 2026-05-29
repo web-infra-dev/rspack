@@ -13,13 +13,12 @@ use crate::{
   CompilerOptions, Context, CssModuleGeneratorOptions, CssModuleParserOptions, Dependency,
   DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx, GeneratorOptions, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
-  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleId, ModuleRuleIds, ModuleRuleUse,
-  ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType,
+  NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve,
+  ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -322,10 +321,6 @@ fn normalize_css_generator_options(
   }
 }
 
-fn rule_effect_key(rule: &ModuleRuleEffect) -> ModuleRuleId {
-  rule.id
-}
-
 fn resolve_module_options(
   options_cache: &FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
   module_rules: &[&ModuleRuleEffect],
@@ -333,13 +328,7 @@ fn resolve_module_options(
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
 ) -> Arc<ResolvedModuleOptions> {
-  let cache_key = ResolvedModuleOptionsCacheKey::new(
-    module_rules
-      .iter()
-      .map(|rule| rule_effect_key(rule))
-      .collect::<ModuleRuleIds>(),
-    *module_type,
-  );
+  let cache_key = ResolvedModuleOptionsCacheKey::new(module_rules, *module_type);
   if let Some(options) = options_cache.get(&cache_key) {
     return Arc::clone(&options);
   }
@@ -485,9 +474,19 @@ mod tests {
 
   #[test]
   fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
-    let rule = asset_rule_effect(200.0, false);
+    let mut module_options = crate::ModuleOptions {
+      rules: vec![crate::ModuleRule {
+        effect: asset_rule_effect(200.0, false),
+        ..Default::default()
+      }],
+      ..Default::default()
+    };
+    module_options
+      .assign_rule_ids()
+      .expect("should assign rule ids");
+    let rule = &module_options.rules[0].effect;
     let options_cache = FxDashMap::default();
-    let module_rules = [&rule];
+    let module_rules = [rule];
     let global_parser = ParserOptions::Asset(AssetParserOptions {
       data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
         max_size: Some(100.0),
@@ -515,10 +514,7 @@ mod tests {
 
     assert!(Arc::ptr_eq(&first, &second));
     assert_eq!(options_cache.len(), 1);
-    assert_eq!(
-      first.cache_key().rule_ids.as_slice(),
-      &[rule_effect_key(&rule)]
-    );
+    assert_eq!(first.cache_key().rule_ids.as_slice(), &[rule.id]);
     assert_eq!(first.cache_key().module_type, ModuleType::Asset);
 
     let parser_options = first
