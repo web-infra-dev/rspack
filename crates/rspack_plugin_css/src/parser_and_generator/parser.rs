@@ -514,7 +514,8 @@ impl<'context> CssModuleParser<'context> {
     supports: Option<&str>,
     layer: Option<&str>,
   ) -> Result<()> {
-    if request.is_empty() {
+    let request = normalize_url(request);
+    if request.trim().is_empty() {
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -524,17 +525,18 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
-    if !self.import() || !self.should_import(request, media, supports, layer).await {
+    if !self.import() || !self.should_import(&request, media, supports, layer).await {
       return Ok(());
     }
 
     let request = replace_module_request_prefix(
-      request,
+      &request,
       &mut self.diagnostics,
       &self.source_code,
       range.start,
       range.end,
-    );
+    )
+    .to_string();
     let layer = layer.map(str::trim).map(|s| {
       if s.is_empty() {
         CssLayer::Anonymous
@@ -545,7 +547,7 @@ impl<'context> CssModuleParser<'context> {
     let inherited_render_conditions = self.css_import_inherited_render_conditions();
     let render_condition = Self::css_import_render_condition(media, supports, layer.as_ref());
     self.dependencies.push(Box::new(CssImportDependency::new(
-      request.to_string(),
+      request,
       DependencyRange::new(range.start, range.end),
       inherited_render_conditions,
       render_condition,
