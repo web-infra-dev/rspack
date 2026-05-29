@@ -129,6 +129,7 @@ fn get_key<I: Iterator<Item = ChunkUkey>>(
 pub(crate) struct Combinator {
   combinations: FxHashMap<ChunksKey, Vec<ChunkCombination>>,
   used_exports_combinations: FxHashMap<ChunksKey, Vec<ChunkCombination>>,
+  non_used_exports_chunks_keys: Vec<Option<ChunksKey>>,
   grouped_by_exports: Vec<Vec<ChunksKey>>,
 }
 
@@ -184,7 +185,11 @@ impl Combinator {
     let chunks = module_chunks
       .get(module_index)
       .expect("should have module chunks");
-    let chunks_key = get_key(chunks.iter().copied(), chunk_index_map);
+    let chunks_key = self
+      .non_used_exports_chunks_keys
+      .get(module_index)
+      .and_then(|key| *key)
+      .unwrap_or_else(|| get_key(chunks.iter().copied(), chunk_index_map));
     self
       .combinations
       .get(&chunks_key)
@@ -289,26 +294,43 @@ impl Combinator {
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
   ) {
-    let chunk_sets_in_graph = all_modules
+    self.non_used_exports_chunks_keys = all_modules
       .par_iter()
       .enumerate()
-      .filter_map(|(module_index, _)| {
+      .map(|(module_index, _)| {
         let chunks = module_chunks
           .get(module_index)
           .expect("should have module chunks");
         if chunks.is_empty() {
-          return None;
+          None
+        } else {
+          Some(get_key(chunks.iter().copied(), chunk_index_map))
         }
-        let chunk_key = get_key(chunks.iter().copied(), chunk_index_map);
-        Some((
-          chunk_key,
-          ChunkCombination {
-            key: chunk_key,
-            chunks: Arc::new(chunks.clone()),
-          },
-        ))
       })
-      .collect::<FxHashMap<_, _>>();
+      .collect::<Vec<_>>();
+
+    let mut chunk_sets_in_graph = FxHashMap::with_capacity_and_hasher(
+      self.non_used_exports_chunks_keys.len(),
+      Default::default(),
+    );
+    for (module_index, chunk_key) in self
+      .non_used_exports_chunks_keys
+      .iter()
+      .enumerate()
+      .filter_map(|(module_index, chunk_key)| chunk_key.map(|chunk_key| (module_index, chunk_key)))
+    {
+      chunk_sets_in_graph
+        .entry(chunk_key)
+        .or_insert_with(|| ChunkCombination {
+          key: chunk_key,
+          chunks: Arc::new(
+            module_chunks
+              .get(module_index)
+              .expect("should have module chunks")
+              .clone(),
+          ),
+        });
+    }
 
     let mut chunk_sets_by_count = Vec::<ChunkCombination>::with_capacity(chunk_sets_in_graph.len());
     for chunks in chunk_sets_in_graph.values() {
@@ -430,7 +452,10 @@ impl SplitChunksPlugin {
             return Ok(());
           }
 
-          if let Some(removed_chunks) = removed_module_chunks.get(mid) && belong_to_chunks.iter().all(|c| removed_chunks.contains(c)) {
+          let removed_chunks = removed_module_chunks.get(mid);
+          if let Some(removed_chunks) = removed_chunks
+            && belong_to_chunks.iter().all(|c| removed_chunks.contains(c))
+          {
             return Ok(());
           }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
@@ -551,7 +576,9 @@ impl SplitChunksPlugin {
                 continue;
               }
 
-              if selected_chunks.iter().any(|c| removed_module_chunks.get(mid).is_some_and(|chunks| chunks.contains(c))) {
+              if let Some(removed_chunks) = removed_chunks
+                && selected_chunks.iter().any(|c| removed_chunks.contains(c))
+              {
                 continue;
               }
               merge_matched_item_into_module_group_map(
