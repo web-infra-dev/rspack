@@ -61,12 +61,9 @@ async fn runtime_requirements_in_tree(
   // ESM library chunks are self-registering modules loaded by
   // rspack_plugin_esm_library. The generic module chunk loader expects
   // import() to return installChunk data, so it must not attach the JS handler.
-  if is_modern_module_library_chunk(chunk_ukey, compilation)
+  let omit_on_demand_loading = is_modern_module_library_chunk(chunk_ukey, compilation)
     && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
-    && !runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
-  {
-    return Ok(None);
-  }
+    && !runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
 
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);
   if !is_enabled_for_chunk {
@@ -79,11 +76,26 @@ async fn runtime_requirements_in_tree(
     | RuntimeGlobals::ON_CHUNKS_LOADED
     | RuntimeGlobals::BASE_URI
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK;
+  let prefetch_preload_runtime_globals =
+    RuntimeGlobals::PREFETCH_CHUNK_HANDLERS | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS;
+  let non_ensure_runtime_globals = RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+    | RuntimeGlobals::ON_CHUNKS_LOADED
+    | RuntimeGlobals::BASE_URI
+    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+    | prefetch_preload_runtime_globals;
 
-  if runtime_requirements.intersects(has_chunk_loading_runtime_globals) {
+  if runtime_requirements.intersects(has_chunk_loading_runtime_globals)
+    && (!omit_on_demand_loading || runtime_requirements.intersects(non_ensure_runtime_globals))
+  {
     runtime_modules_to_add.push((
       *chunk_ukey,
-      ModuleChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
+      if omit_on_demand_loading {
+        ModuleChunkLoadingRuntimeModule::without_on_demand_loading(&compilation.runtime_template)
+          .boxed()
+      } else {
+        ModuleChunkLoadingRuntimeModule::new(&compilation.runtime_template).boxed()
+      },
     ));
   }
 
@@ -99,14 +111,17 @@ async fn runtime_requirements_in_tree(
   }
 
   if all_runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
-    || all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    || (all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      && !omit_on_demand_loading)
   {
     runtime_requirements_mut
       .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_basic());
   }
   if all_runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-    runtime_requirements_mut
-      .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_loading());
+    if !omit_on_demand_loading {
+      runtime_requirements_mut
+        .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_loading());
+    }
     if all_runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
       runtime_requirements_mut
         .extend(ModuleChunkLoadingRuntimeModule::get_runtime_requirements_with_prefetch());
