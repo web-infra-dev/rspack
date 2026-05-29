@@ -293,6 +293,7 @@ impl Combinator {
     all_modules: &[ModuleIdentifier],
     module_chunks: &ModuleChunks,
     chunk_index_map: &FxHashMap<ChunkUkey, u32>,
+    min_chunks: usize,
   ) {
     self.non_used_exports_chunks_keys = all_modules
       .par_iter()
@@ -301,7 +302,7 @@ impl Combinator {
         let chunks = module_chunks
           .get(module_index)
           .expect("should have module chunks");
-        if chunks.is_empty() {
+        if chunks.is_empty() || chunks.len() < min_chunks {
           None
         } else {
           Some(get_key(chunks.iter().copied(), chunk_index_map))
@@ -494,6 +495,9 @@ impl SplitChunksPlugin {
               cache_group_index,
               cache_group,
             } = cache_group;
+            if belong_to_chunks.len() < cache_group.min_chunks as usize {
+              continue;
+            }
             let combs = if cache_group.used_exports {
               if used_exports_combs.is_none() {
                 used_exports_combs = Some(combinator.get_combs(
