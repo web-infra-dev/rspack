@@ -2158,7 +2158,7 @@ export interface RawCssParserOptions {
 
 export interface RawDeterministicModuleIdsPluginOptions {
   context?: string
-  test?: RawModuleFilter
+  test?: (module: Module) => boolean
   maxLength?: number
   salt?: number
   fixedLength?: boolean

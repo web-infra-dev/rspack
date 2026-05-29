@@ -76,6 +76,7 @@ fn into_module_filter(test: RawModuleFilter) -> ModuleFilterFn {
 #[napi(object, object_to_js = false)]
 pub struct RawDeterministicModuleIdsPluginOptions {
   pub context: Option<String>,
+  #[napi(ts_type = "(module: Module) => boolean")]
   pub test: Option<RawModuleFilter>,
   pub max_length: Option<u32>,
   pub salt: Option<u32>,
