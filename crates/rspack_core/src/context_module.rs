@@ -862,7 +862,9 @@ impl ContextModule {
           r#"Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId{fetch_priority_arg}); }}))"#
         )
       } else {
-        format!("Promise.all(ids[{chunks_position}].map({ensure_chunk}))")
+        format!(
+          "Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId); }}))"
+        )
       }
     } else {
       let mut chunks_position_buffer = itoa::Buffer::new();
