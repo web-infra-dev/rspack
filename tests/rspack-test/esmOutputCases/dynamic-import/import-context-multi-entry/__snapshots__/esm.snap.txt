@@ -148,26 +148,14 @@ __webpack_require__.d = (exports, definition) => {
 };
 
 })();
-// webpack/runtime/esm_chunk_loading
+// webpack/runtime/esm_ensure_chunk
 (() => {
-var installedChunks = {};
-var chunkMap = {
-"a": function() { return import("./a.mjs"); }
-};
+__webpack_require__.f = {};
 __webpack_require__.e = function(chunkId) {
-	var installedChunkData = installedChunks[chunkId];
-	if(installedChunkData === 0) return Promise.resolve();
-	if(installedChunkData) return installedChunkData;
-	var loadChunk = chunkMap[chunkId];
-	if(!loadChunk) return Promise.resolve();
-	var promise = loadChunk().then(function() {
-		installedChunks[chunkId] = 0;
-	}, function(error) {
-		delete installedChunks[chunkId];
-		throw error;
-	});
-	installedChunks[chunkId] = promise;
-	return promise;
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises);
+		return promises;
+	}, []));
 };
 
 })();
@@ -175,6 +163,16 @@ __webpack_require__.e = function(chunkId) {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -189,6 +187,32 @@ __webpack_require__.r = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
 })();
 
 export { __webpack_require__ };
@@ -235,26 +259,14 @@ __webpack_require__.d = (exports, definition) => {
 };
 
 })();
-// webpack/runtime/esm_chunk_loading
+// webpack/runtime/esm_ensure_chunk
 (() => {
-var installedChunks = {};
-var chunkMap = {
-"b": function() { return import("./b.mjs"); }
-};
+__webpack_require__.f = {};
 __webpack_require__.e = function(chunkId) {
-	var installedChunkData = installedChunks[chunkId];
-	if(installedChunkData === 0) return Promise.resolve();
-	if(installedChunkData) return installedChunkData;
-	var loadChunk = chunkMap[chunkId];
-	if(!loadChunk) return Promise.resolve();
-	var promise = loadChunk().then(function() {
-		installedChunks[chunkId] = 0;
-	}, function(error) {
-		delete installedChunks[chunkId];
-		throw error;
-	});
-	installedChunks[chunkId] = promise;
-	return promise;
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises);
+		return promises;
+	}, []));
 };
 
 })();
@@ -262,6 +274,16 @@ __webpack_require__.e = function(chunkId) {
 (() => {
 __webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
 
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -276,6 +298,32 @@ __webpack_require__.r = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"b": function() { return import("./b.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
 })();
 
 export { __webpack_require__ };

@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
@@ -34,6 +34,45 @@ impl RuntimeModule for EsmRegisterModuleRuntimeModule {
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
     ))
+  }
+}
+
+#[impl_runtime_module]
+#[derive(Debug)]
+pub(crate) struct EsmEnsureChunkRuntimeModule {}
+
+impl EsmEnsureChunkRuntimeModule {
+  pub(crate) fn new(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template)
+  }
+}
+
+#[async_trait::async_trait]
+impl RuntimeModule for EsmEnsureChunkRuntimeModule {
+  async fn generate(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
+    Ok(format!(
+      r#"{ensure_chunk_handlers} = {{}};
+{ensure_chunk} = function(chunkId) {{
+	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
+		{ensure_chunk_handlers}[key](chunkId, promises);
+		return promises;
+	}}, []));
+}};
+"#,
+      ensure_chunk = context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+      ensure_chunk_handlers = context
+        .runtime_template
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    ))
+  }
+
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
   }
 }
 
@@ -92,12 +131,15 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
 var chunkMap = {{
 {chunk_imports}
 }};
-{ensure_chunk} = function(chunkId) {{
+{ensure_chunk_handlers}.j = function(chunkId, promises) {{
 	var installedChunkData = installedChunks[chunkId];
-	if(installedChunkData === 0) return Promise.resolve();
-	if(installedChunkData) return installedChunkData;
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {{
+		promises.push(installedChunkData);
+		return;
+	}}
 	var loadChunk = chunkMap[chunkId];
-	if(!loadChunk) return Promise.resolve();
+	if(!loadChunk) return;
 	var promise = loadChunk().then(function() {{
 		installedChunks[chunkId] = 0;
 	}}, function(error) {{
@@ -105,14 +147,18 @@ var chunkMap = {{
 		throw error;
 	}});
 	installedChunks[chunkId] = promise;
-	return promise;
+	promises.push(promise);
 }};
 "#,
       chunk_imports = chunk_imports.join(",\n"),
-      ensure_chunk = context
+      ensure_chunk_handlers = context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     ))
+  }
+
+  fn stage(&self) -> RuntimeModuleStage {
+    RuntimeModuleStage::Attach
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {

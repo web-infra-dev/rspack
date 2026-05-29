@@ -46,7 +46,9 @@ use crate::{
     extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
-  runtime::{EsmChunkLoadingRuntimeModule, EsmRegisterModuleRuntimeModule},
+  runtime::{
+    EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule, EsmRegisterModuleRuntimeModule,
+  },
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -566,6 +568,9 @@ async fn additional_tree_runtime_requirements(
 ) -> Result<()> {
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
     runtime_requirements.remove(RuntimeGlobals::ENSURE_CHUNK);
+    runtime_modules.push(Box::new(EsmEnsureChunkRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
     runtime_modules.push(Box::new(EsmChunkLoadingRuntimeModule::new(
       &compilation.runtime_template,
     )));

@@ -13,6 +13,18 @@ use crate::{
   should_export_webpack_require_for_module_chunk_loading,
 };
 
+fn is_modern_module_library_chunk(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  let chunk = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .expect_get(chunk_ukey);
+  chunk
+    .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    .and_then(|options| options.library.as_ref())
+    .or(compilation.options.output.library.as_ref())
+    .is_some_and(|library| library.library_type == "modern-module")
+}
+
 #[plugin]
 #[derive(Debug, Default)]
 pub struct ModuleChunkLoadingPlugin;
@@ -44,6 +56,16 @@ async fn runtime_requirements_in_tree(
   let chunk_loading_value = ChunkLoading::Enable(ChunkLoadingType::Import);
   if should_export_webpack_require_for_module_chunk_loading(chunk_ukey, compilation) {
     runtime_requirements_mut.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+  }
+
+  // ESM library chunks are self-registering modules loaded by
+  // rspack_plugin_esm_library. The generic module chunk loader expects
+  // import() to return installChunk data, so it must not attach the JS handler.
+  if is_modern_module_library_chunk(chunk_ukey, compilation)
+    && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+    && !runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
+  {
+    return Ok(None);
   }
 
   let is_enabled_for_chunk = is_enabled_for_chunk(chunk_ukey, &chunk_loading_value, compilation);

@@ -111,7 +111,7 @@ it("should support lazy import context", async () => {
 });
 
 it("should support lazy import.meta.glob", async () => {
-	const modules = __webpack_require__(/*! <TEST_ROOT>/esmOutputCases/dynamic-import/import-context-lazy/modules/ */ "./modules lazy ./modules/*.js");
+	const modules = __webpack_require__(/*! ./modules/ */ "./modules lazy ./modules/*.js");
 
 	expect(Object.keys(modules).sort()).toEqual([
 		"./modules/a.js",
@@ -166,27 +166,14 @@ __webpack_require__.d = (exports, definition) => {
 };
 
 })();
-// webpack/runtime/esm_chunk_loading
+// webpack/runtime/esm_ensure_chunk
 (() => {
-var installedChunks = {};
-var chunkMap = {
-"a": function() { return import("./a.mjs"); },
-"b": function() { return import("./b.mjs"); }
-};
+__webpack_require__.f = {};
 __webpack_require__.e = function(chunkId) {
-	var installedChunkData = installedChunks[chunkId];
-	if(installedChunkData === 0) return Promise.resolve();
-	if(installedChunkData) return installedChunkData;
-	var loadChunk = chunkMap[chunkId];
-	if(!loadChunk) return Promise.resolve();
-	var promise = loadChunk().then(function() {
-		installedChunks[chunkId] = 0;
-	}, function(error) {
-		delete installedChunks[chunkId];
-		throw error;
-	});
-	installedChunks[chunkId] = promise;
-	return promise;
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises);
+		return promises;
+	}, []));
 };
 
 })();
@@ -208,6 +195,33 @@ __webpack_require__.r = (exports) => {
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
 };
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); },
+"b": function() { return import("./b.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
 })();
 
 export { __webpack_require__ };

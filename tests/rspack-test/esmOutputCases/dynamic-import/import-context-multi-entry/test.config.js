@@ -12,6 +12,7 @@ module.exports = {
       .replaceAll(
         "/*! <TEST_ROOT>/esmOutputCases/dynamic-import/import-context-multi-entry/modules-b/ */",
         "/*! ./modules-b/ */",
-      );
+      )
+      .replace(/[ \t]+$/gm, "");
   },
 };
