@@ -12,7 +12,8 @@ use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
   ModuleFilterFn, assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier,
-  get_full_module_name, get_used_module_ids_and_modules_with_async_filter,
+  get_full_module_name, get_used_module_ids_and_modules_with_artifact,
+  get_used_module_ids_and_modules_with_async_filter,
 };
 
 #[derive(Debug, Clone, Default)]
@@ -78,9 +79,14 @@ async fn module_ids(
     module_ids.clear();
   }
 
-  let (mut used_ids, modules) =
+  // Use the sync path when no async test filter is provided (the common case),
+  // avoiding unnecessary async overhead on the hot path.
+  let (mut used_ids, modules) = if self.test.is_some() {
     get_used_module_ids_and_modules_with_async_filter(compilation, module_ids, self.test.as_ref())
-      .await?;
+      .await?
+  } else {
+    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None)
+  };
 
   let mut module_ids_map = std::mem::take(module_ids);
   let context = self
