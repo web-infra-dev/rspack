@@ -71,6 +71,7 @@ import {
   URLPlugin,
   WorkerPlugin,
 } from './builtin-plugin';
+import { getTargetProperties, getTargetsProperties } from './config/target';
 import MemoryCachePlugin from './lib/cache/MemoryCachePlugin';
 import EntryOptionPlugin from './lib/EntryOptionPlugin';
 import IgnoreWarningsPlugin from './lib/IgnoreWarningsPlugin';
@@ -442,13 +443,17 @@ export class RspackOptionsApply {
 function getModernModuleCjsExternalType(
   options: RspackOptionsNormalized,
 ): 'commonjs' | 'node-commonjs' {
-  const presets = options.externalsPresets;
-  return presets.node ||
-    presets.electron ||
-    presets.electronMain ||
-    presets.electronPreload ||
-    presets.electronRenderer ||
-    presets.nwjs
-    ? 'node-commonjs'
-    : 'commonjs';
+  const { context, target } = options;
+  assertNotNill(context);
+
+  if (target == null || target === false) {
+    return 'commonjs';
+  }
+
+  const targetProperties =
+    typeof target === 'string'
+      ? getTargetProperties(target, context)
+      : getTargetsProperties(target, context);
+
+  return targetProperties.nodeBuiltins ? 'node-commonjs' : 'commonjs';
 }
