@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  cell::OnceCell,
   hash::{Hash, Hasher},
   sync::{Arc, OnceLock},
 };
@@ -181,23 +182,33 @@ impl Source for CachedSource {
 }
 
 struct CachedSourceChunks<'source> {
-  chunks: Box<dyn Chunks + 'source>,
-  cache: Arc<CachedData>,
-  source: Cow<'source, str>,
-  is_ascii: bool,
+  cache_source: &'source CachedSource,
+  chunks: OnceCell<Box<dyn Chunks + 'source>>,
+  source: OnceCell<Cow<'source, str>>,
 }
 
-impl<'a> CachedSourceChunks<'a> {
-  fn new(cache_source: &'a CachedSource) -> Self {
-    let source = cache_source.source().into_string_lossy();
-    let is_ascii = cache_source.is_ascii();
-
+impl<'source> CachedSourceChunks<'source> {
+  fn new(cache_source: &'source CachedSource) -> Self {
     Self {
-      chunks: cache_source.inner.stream_chunks(),
-      cache: cache_source.cache.clone(),
-      source,
-      is_ascii,
+      cache_source,
+      chunks: OnceCell::new(),
+      source: OnceCell::new(),
     }
+  }
+
+  fn get_or_init_chunks(&self) -> &dyn Chunks {
+    self
+      .chunks
+      .get_or_init(|| self.cache_source.inner.stream_chunks())
+      .as_ref()
+  }
+
+  fn get_or_init_source(&self) -> TextSpan<'_> {
+    let source = self
+      .source
+      .get_or_init(|| self.cache_source.source().into_string_lossy());
+    let is_ascii = self.cache_source.is_ascii();
+    TextSpan::with_known(source.as_ref(), is_ascii)
   }
 }
 
@@ -211,13 +222,13 @@ impl Chunks for CachedSourceChunks<'_> {
     on_name: crate::helpers::OnName<'_, 'a>,
   ) -> GeneratedInfo {
     let cell = if options.columns {
-      &self.cache.columns_map
+      &self.cache_source.cache.columns_map
     } else {
-      &self.cache.line_only_map
+      &self.cache_source.cache.line_only_map
     };
     match cell.get() {
       Some(map) => {
-        let source = TextSpan::with_known(self.source.as_ref(), self.is_ascii);
+        let source = self.get_or_init_source();
         if let Some(map) = map {
           stream_chunks_of_source_map(
             options,
@@ -236,7 +247,7 @@ impl Chunks for CachedSourceChunks<'_> {
         let (generated_info, map) = stream_and_get_source_and_map(
           options,
           object_pool,
-          self.chunks.as_ref(),
+          self.get_or_init_chunks(),
           on_chunk,
           on_source,
           on_name,
