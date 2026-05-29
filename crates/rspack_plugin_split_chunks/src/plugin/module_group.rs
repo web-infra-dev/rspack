@@ -537,6 +537,31 @@ impl SplitChunksPlugin {
                 continue;
               }
 
+              if matches!(&cache_group.chunk_filter, ChunkFilter::All)
+                && matches!(&cache_group.name, ChunkNameGetter::Disabled)
+              {
+                if let Some(removed_chunks) = removed_chunks
+                  && chunk_combination
+                    .iter()
+                    .any(|c| removed_chunks.contains(c))
+                {
+                  continue;
+                }
+
+                let mut module_group = {
+                  module_group_map
+                    .entry(ModuleGroupKey::Anonymous {
+                      cache_group_index: *cache_group_index,
+                      chunks_key: chunk_combination.key,
+                    })
+                    .or_insert_with(|| ModuleGroup::new(None, *cache_group_index, cache_group))
+                };
+                module_group.add_module(module.identifier());
+                if module_group.chunks.is_empty() {
+                  module_group.chunks.extend(chunk_combination.iter().copied());
+                }
+                continue;
+              }
 
               let selected_chunks = if matches!(&cache_group.chunk_filter, ChunkFilter::All) {
                 SelectedChunks::All(chunk_combination)
