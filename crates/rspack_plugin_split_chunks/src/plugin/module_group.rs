@@ -745,6 +745,7 @@ async fn merge_matched_item_into_module_group_map(
       f(ctx).await?
     }
   };
+  let is_anonymous = chunk_name.is_none();
   let key = if let Some(cache_group_name) = &chunk_name {
     ModuleGroupKey::Named {
       cache_group_index,
@@ -764,8 +765,12 @@ async fn merge_matched_item_into_module_group_map(
       .entry(key)
       .or_insert_with(|| ModuleGroup::new(chunk_name, cache_group_index, cache_group))
   };
+  let should_extend_chunks = !(is_anonymous && matches!(selected_chunks, SelectedChunks::All(_)))
+    || module_group.chunks.is_empty();
   module_group.add_module(module.identifier());
-  module_group.chunks.extend(selected_chunks.iter().copied());
+  if should_extend_chunks {
+    module_group.chunks.extend(selected_chunks.iter().copied());
+  }
 
   Ok(())
 }
