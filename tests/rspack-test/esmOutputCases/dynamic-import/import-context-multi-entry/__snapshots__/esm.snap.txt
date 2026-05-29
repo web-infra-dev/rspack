@@ -64,7 +64,7 @@ module.exports = {
 });
 // ./entry-a.js
 it("should load entry a glob", async () => {
-  const modules = __webpack_require__(/*! <TEST_ROOT>/esmOutputCases/dynamic-import/import-context-multi-entry/modules-a/ */ "./modules-a lazy ./modules-a/*.js");
+  const modules = __webpack_require__(/*! ./modules-a/ */ "./modules-a lazy ./modules-a/*.js");
 
   expect(Object.keys(modules)).toEqual(["./modules-a/a.js"]);
 
@@ -96,7 +96,7 @@ module.exports = {
 });
 // ./entry-b.js
 it("should load entry b glob", async () => {
-  const modules = __webpack_require__(/*! <TEST_ROOT>/esmOutputCases/dynamic-import/import-context-multi-entry/modules-b/ */ "./modules-b lazy ./modules-b/*.js");
+  const modules = __webpack_require__(/*! ./modules-b/ */ "./modules-b lazy ./modules-b/*.js");
 
   expect(Object.keys(modules)).toEqual(["./modules-b/b.js"]);
 
