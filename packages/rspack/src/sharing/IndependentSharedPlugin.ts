@@ -276,7 +276,13 @@ export class IndependentSharedPlugin {
         if (!shareConfig.treeShaking || shareConfig.import === false) {
           return;
         }
-        const shareRequests = shareRequestsMap[shareName].requests;
+        const shareRequests = Array.from(
+          new Map(
+            (shareRequestsMap[shareName]?.requests || []).map(
+              ([request, version]) => [version, [request, version] as const],
+            ),
+          ).values(),
+        );
         await Promise.all(
           shareRequests.map(async ([request, version]) => {
             const sharedConfig = sharedOptions.find(
@@ -392,12 +398,9 @@ export class IndependentSharedPlugin {
         ),
       );
     }
-    finalPlugins.push(
-      new VirtualEntryPlugin(sharedOptions, !extraOptions),
-      // new rspack.experiments.VirtualModulesPlugin({
-      // 	[VIRTUAL_ENTRY]: this.createEntry()
-      // })
-    );
+    if (extraOptions || !parentConfig.entry) {
+      finalPlugins.push(new VirtualEntryPlugin(sharedOptions, !extraOptions));
+    }
     const fullOutputDir = resolve(
       parentCompiler.outputPath,
       outputDirWithShareName,
@@ -420,7 +423,10 @@ export class IndependentSharedPlugin {
       },
       mode: parentConfig.mode || 'development',
 
-      entry: VirtualEntryPlugin.entry,
+      entry:
+        !extraOptions && parentConfig.entry
+          ? (parentConfig.entry as RspackOptions['entry'])
+          : VirtualEntryPlugin.entry,
 
       output: {
         path: fullOutputDir,
