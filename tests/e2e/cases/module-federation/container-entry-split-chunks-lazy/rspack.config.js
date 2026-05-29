@@ -7,6 +7,7 @@ module.exports = {
   entry: './src/index.jsx',
   mode: 'development',
   devtool: false,
+  lazyCompilation: { entries: true },
   resolve: {
     extensions: ['...', '.jsx'],
   },
@@ -35,6 +36,11 @@ module.exports = {
     ],
   },
   optimization: {
+    // host (main) and the container (remoteEntry) run on the same page and would otherwise
+    // each emit their own runtime, clashing on the shared `self["rspackHotUpdate"]` global.
+    // A single shared runtime keeps one HMR global, so lazyCompilation entry activation
+    // (delivered over HMR) works in this self-referential MF setup. See #12443.
+    runtimeChunk: 'single',
     splitChunks: {
       chunks: 'all',
       minSize: 0, // ensure dev server and hmr client is splitted into vendor chunk
