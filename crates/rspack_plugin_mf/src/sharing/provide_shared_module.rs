@@ -92,6 +92,10 @@ impl ProvideSharedModule {
   pub fn share_key(&self) -> &str {
     &self.name
   }
+
+  pub fn share_scope(&self) -> &ShareScope {
+    &self.share_scope
+  }
 }
 
 impl Identifiable for ProvideSharedModule {

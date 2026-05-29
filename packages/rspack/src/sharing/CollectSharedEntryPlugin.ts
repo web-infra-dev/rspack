@@ -7,6 +7,7 @@ import {
   createBuiltinPlugin,
   RspackBuiltinPlugin,
 } from '../builtin-plugin/base';
+import type { Compilation } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import { normalizeConsumeShareOptions } from './ConsumeSharedPlugin';
 import {
@@ -53,28 +54,14 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
   apply(compiler: Compiler) {
     super.apply(compiler);
 
-    compiler.hooks.thisCompilation.tap(
-      'Collect shared entry',
-      (compilation) => {
-        compilation.hooks.processAssets.tap(
-          {
-            name: 'CollectSharedEntry',
-            stage:
-              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE,
-          },
-          () => {
-            compilation.getAssets().forEach((asset) => {
-              if (asset.name === SHARE_ENTRY_ASSET) {
-                this._collectedEntries = JSON.parse(
-                  asset.source.source().toString(),
-                );
-              }
-              compilation.deleteAsset(asset.name);
-            });
-          },
-        );
-      },
-    );
+    const readCollectedEntries = (compilation: Compilation) => {
+      const asset = compilation.getAsset(SHARE_ENTRY_ASSET);
+      if (!asset) return;
+      this._collectedEntries = JSON.parse(asset.source.source().toString());
+      compilation.deleteAsset(asset.name);
+    };
+
+    compiler.hooks.finishMake.tap('CollectSharedEntry', readCollectedEntries);
   }
 
   raw(): BuiltinPlugin {

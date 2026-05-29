@@ -5,7 +5,7 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 module.exports = {
   entry: './index.js',
   output: {
-    publicPath: '/',
+    publicPath: 'PUBLIC_PATH',
     chunkFilename: '[id].js',
   },
   target: 'async-node',
@@ -17,6 +17,7 @@ module.exports = {
         type: 'commonjs-module',
         name: 'tree_shaking_shared_pnpm_versions',
       },
+      runtimePlugins: [require.resolve('./runtime-plugin.js')],
       shared: {
         'ui-lib': {
           requiredVersion: '*',
