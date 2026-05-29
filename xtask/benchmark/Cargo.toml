@@ -45,6 +45,10 @@ swc_core                   = { workspace = true, features = ["__parser", "base"]
 harness = false
 name    = "benches"
 
+[[bench]]
+harness = false
+name    = "rspack_sources"
+
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]
 
