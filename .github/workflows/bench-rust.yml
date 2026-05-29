@@ -60,7 +60,7 @@ jobs:
         run: cargo codegen
 
       - name: Build benchmark (simulation,memory)
-        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark
+        run: pnpm run build:bench
 
       - name: Prepare Valgrind temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
