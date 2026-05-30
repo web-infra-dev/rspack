@@ -28,7 +28,11 @@ impl RequireResolveDependency {
     context: Option<Context>,
   ) -> Self {
     let resource_identifier = if let Some(context) = &context {
-      format!("{}|{}|{}", DependencyType::RequireResolve, context, request)
+      create_resource_identifier_for_contextual_commonjs_dependency(
+        "require.resolve",
+        context,
+        &request,
+      )
     } else {
       format!("{}|{}", DependencyType::RequireResolve, request)
     };

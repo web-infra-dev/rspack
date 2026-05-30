@@ -44,7 +44,11 @@ impl CommonJsRequireDependency {
     referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
     let resource_identifier = if let Some(context) = &context {
-      format!("{}|{}|{}", DependencyType::CjsRequire, context, request)
+      create_resource_identifier_for_contextual_commonjs_dependency(
+        "cjs require",
+        context,
+        &request,
+      )
     } else {
       format!("{}|{}", DependencyType::CjsRequire, request)
     };
