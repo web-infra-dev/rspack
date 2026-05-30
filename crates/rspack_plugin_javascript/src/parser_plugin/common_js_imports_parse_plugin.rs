@@ -208,6 +208,17 @@ fn parse_create_require_argument(
     return None;
   }
 
+  if let Some(spread) = call_expr.args[0].spread {
+    if emit_warning {
+      add_create_require_warning(
+        parser,
+        "module.createRequire does not support spread arguments.",
+        spread,
+      );
+    }
+    return None;
+  }
+
   let arg = &call_expr.args[0].expr;
   let Some(value) = evaluate_create_require_argument(parser, arg) else {
     if emit_warning {
@@ -266,10 +277,12 @@ fn add_require_cache_dependency(parser: &mut JavascriptParser, range: Dependency
   )));
 }
 
-fn current_resource_context(parser: &JavascriptParser) -> Option<Context> {
-  Path::new(parser.resource_data.resource())
-    .parent()
-    .map(|path| Context::new(path.to_string_lossy().to_string().into()))
+fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members: &[Atom]) -> Span {
+  if members.len() > 1 {
+    member_ranges[1]
+  } else {
+    member_expr.span()
+  }
 }
 
 fn current_created_require_context(parser: &JavascriptParser) -> Option<Context> {
@@ -284,7 +297,6 @@ fn current_created_require_context(parser: &JavascriptParser) -> Option<Context>
     })
     .map(CreatedRequireTagData::downcast)
     .map(|data| data.context)
-    .or_else(|| current_resource_context(parser))
 }
 
 fn tag_commonjs_require_referenced(
@@ -1255,16 +1267,20 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     callee_members: &[Atom],
     call_expr: &CallExpr,
     members: &[Atom],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
       && for_name == CREATE_REQUIRE_SPECIFIER_TAG
-      && members.len() == 1
-      && members[0].as_ref() == "cache"
+      && members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
       && parse_create_require_arguments(parser, call_expr, false).is_some()
     {
-      add_require_cache_dependency(parser, member_expr.span().into());
+      add_require_cache_dependency(
+        parser,
+        require_cache_range(member_expr, member_ranges, members).into(),
+      );
       return Some(true);
     }
 

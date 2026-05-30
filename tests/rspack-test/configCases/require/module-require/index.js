@@ -56,6 +56,7 @@ it("should not parse relative createRequire filename", () => {
 it("should preserve createRequire binding for unsupported uses", () => {
 	const createRequire = _createRequire;
 	expect(() => createRequire("./foo/c.js")).toThrow(/absolute path|file URL/);
+	expect(() => _createRequire(...import.meta.url)("./a")).toThrow(/absolute path|file URL/);
 });
 
 it("should stop parsing reassigned created require bindings", () => {
