@@ -60,7 +60,7 @@
     "webpack-sources": "3.3.4"
   },
   "devDependencies": {
-    "@rslib/core": "^0.21.5",
+    "@rslib/core": "^0.22.0",
     "@rspack/core": "workspace:*",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",
