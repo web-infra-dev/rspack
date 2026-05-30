@@ -7,8 +7,8 @@ use rspack_core::{
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
   FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers,
+  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
 use crate::dependency::{
@@ -20,7 +20,7 @@ use crate::dependency::{
 pub struct CommonJsRequireDependency {
   id: DependencyId,
   request: String,
-  resource_identifier: String,
+  resource_identifier: Option<ResourceIdentifier>,
   optional: bool,
   context: Option<Context>,
   range: DependencyRange,
@@ -43,15 +43,14 @@ impl CommonJsRequireDependency {
     loc: Option<DependencyLocation>,
     referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
-    let resource_identifier = if let Some(context) = &context {
+    let resource_identifier = context.as_ref().map(|context| {
       create_resource_identifier_for_contextual_commonjs_dependency(
         "cjs require",
         context,
         &request,
       )
-    } else {
-      format!("{}|{}", DependencyType::CjsRequire, request)
-    };
+      .into()
+    });
     Self {
       id: DependencyId::new(),
       request,
@@ -99,7 +98,7 @@ impl Dependency for CommonJsRequireDependency {
   }
 
   fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
+    self.resource_identifier.as_ref().map(|id| id.as_str())
   }
 
   fn range(&self) -> Option<DependencyRange> {

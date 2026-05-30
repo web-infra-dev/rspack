@@ -3,7 +3,8 @@ use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  ModuleGraphCacheArtifact, ResourceIdentifier, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource,
 };
 
 #[cacheable]
@@ -11,7 +12,7 @@ use rspack_core::{
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
-  resource_identifier: String,
+  resource_identifier: Option<ResourceIdentifier>,
   pub weak: bool,
   context: Option<Context>,
   range: DependencyRange,
@@ -27,15 +28,14 @@ impl RequireResolveDependency {
     optional: bool,
     context: Option<Context>,
   ) -> Self {
-    let resource_identifier = if let Some(context) = &context {
+    let resource_identifier = context.as_ref().map(|context| {
       create_resource_identifier_for_contextual_commonjs_dependency(
         "require.resolve",
         context,
         &request,
       )
-    } else {
-      format!("{}|{}", DependencyType::RequireResolve, request)
-    };
+      .into()
+    });
     Self {
       range,
       request,
@@ -68,7 +68,7 @@ impl Dependency for RequireResolveDependency {
   }
 
   fn resource_identifier(&self) -> Option<&str> {
-    Some(&self.resource_identifier)
+    self.resource_identifier.as_ref().map(|id| id.as_str())
   }
 
   fn range(&self) -> Option<DependencyRange> {
