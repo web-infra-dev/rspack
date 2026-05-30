@@ -7,8 +7,8 @@ use rspack_core::{
   BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
   DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
   Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
+  SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -27,6 +27,32 @@ use crate::{
 
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
+
+// Library wrappers of these types pass externals as closure arguments baked into
+// the entry chunk. When `lazyCompilation` activates a proxy for the first time,
+// any external the lazily-built module pulls in lands in a hot update chunk that
+// lives outside the original wrapper closure, so the factory body can't resolve
+// its closure identifier and throws at runtime. Reserving the externals during
+// the inactive build folds them into the initial wrapper, so the identifiers are
+// already defined when the activation update arrives.
+const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
+
+// `enabled_library_types` is resolved during compilation (it covers the global
+// `output.library.type` and any per-entry library type), so it is only reliable
+// here at build time rather than when the plugin is applied.
+fn has_closure_library(output: &OutputOptions) -> bool {
+  if let Some(enabled) = &output.enabled_library_types
+    && enabled
+      .iter()
+      .any(|library_type| CLOSURE_LIBRARY_TYPES.contains(&library_type.as_str()))
+  {
+    return true;
+  }
+  output
+    .library
+    .as_ref()
+    .is_some_and(|library| CLOSURE_LIBRARY_TYPES.contains(&library.library_type.as_str()))
+}
 
 #[cacheable]
 #[derive(Debug)]
@@ -50,6 +76,7 @@ pub(crate) struct LazyCompilationProxyModule {
   resource: String,
   active: bool,
   client: String,
+  reserved_externals: Vec<String>,
   need_build: bool,
 }
 
@@ -73,6 +100,7 @@ impl LazyCompilationProxyModule {
     resource: String,
     active: bool,
     client: String,
+    reserved_externals: Vec<String>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
@@ -100,6 +128,7 @@ impl LazyCompilationProxyModule {
       resource,
       active,
       client,
+      reserved_externals,
       need_build: false,
     }
   }
@@ -165,7 +194,7 @@ impl Module for LazyCompilationProxyModule {
 
   async fn build(
     mut self: Box<Self>,
-    _build_context: BuildContext,
+    build_context: BuildContext,
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     let client_dep = CommonJsRequireDependency::new(
@@ -191,6 +220,21 @@ impl Module for LazyCompilationProxyModule {
         vec![Box::new(dep)],
         None,
       )));
+    } else if has_closure_library(&build_context.compiler_options.output) {
+      // Reserve statically-declared externals on the inactive proxy so the
+      // initial entry chunk's library wrapper already exposes their closure
+      // identifiers. Once the proxy activates and the lazily-built module
+      // references those externals, the identifiers resolve instead of throwing.
+      for request in &self.reserved_externals {
+        dependencies.push(Box::new(CommonJsRequireDependency::new(
+          request.clone(),
+          DependencyRange::new(0, 0),
+          None,
+          false,
+          None,
+          None,
+        )) as BoxDependency);
+      }
     }
 
     Ok(BuildResult {

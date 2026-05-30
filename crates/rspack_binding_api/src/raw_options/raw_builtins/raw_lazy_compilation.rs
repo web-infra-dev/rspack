@@ -92,6 +92,7 @@ pub struct RawLazyCompilationOption {
   pub entries: bool,
   pub imports: bool,
   pub client: String,
+  pub reserved_externals: Vec<String>,
 }
 
 pub(crate) struct JsBackend {

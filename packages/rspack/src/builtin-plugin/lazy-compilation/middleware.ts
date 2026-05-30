@@ -2,6 +2,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createRequire } from 'node:module';
 import { type Compiler, MultiCompiler } from '../..';
 import type { LazyCompilationOptions } from '../../config';
+import type { ExternalItem, Externals } from '../../config';
 import type { DevServerMiddlewareHandler } from '../../config/devServer';
 import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 
@@ -128,9 +129,44 @@ function applyPlugin(
     options.entries ?? true,
     options.imports ?? true,
     `${options.client || getDefaultClient(compiler)}?${encodeURIComponent(getFullServerUrl(options))}`,
+    collectReservedExternals(compiler.options.externals),
     options.test,
   );
   plugin.apply(compiler);
+}
+
+// Library wrappers like UMD/AMD/System expose externals as closure arguments
+// baked into the entry chunk. Reserving statically-declared external requests up
+// front folds them into that wrapper so a lazily-activated module can resolve
+// them. Externals live on the JS options (not on the Rust `CompilerOptions`), so
+// they are collected here and threaded to the plugin.
+function collectReservedExternals(externals: Externals | undefined): string[] {
+  const requests = new Set<string>();
+  const visit = (item: ExternalItem) => {
+    if (typeof item === 'string') {
+      requests.add(item);
+      return;
+    }
+    if (!item || typeof item !== 'object' || item instanceof RegExp) {
+      return;
+    }
+    for (const [request, value] of Object.entries(item)) {
+      // `false` opts a request out of externalization, so don't reserve it;
+      // every other key mirrors what `ExternalsPlugin` externalizes.
+      if (value === false) {
+        continue;
+      }
+      requests.add(request);
+    }
+  };
+  if (Array.isArray(externals)) {
+    for (const item of externals) {
+      visit(item);
+    }
+  } else if (externals !== undefined) {
+    visit(externals);
+  }
+  return [...requests];
 }
 
 function readModuleIdsFromBody(

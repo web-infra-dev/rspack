@@ -2507,6 +2507,7 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   client: string
+  reservedExternals: Array<string>
 }
 
 export interface RawLibManifestPluginOptions {
