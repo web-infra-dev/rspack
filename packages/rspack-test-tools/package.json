@@ -37,10 +37,10 @@
     "dev": "rslib -w"
   },
   "dependencies": {
-    "@babel/generator": "7.29.1",
-    "@babel/parser": "7.29.3",
-    "@babel/traverse": "7.29.0",
-    "@babel/types": "7.29.0",
+    "@babel/generator": "7.29.7",
+    "@babel/parser": "7.29.7",
+    "@babel/traverse": "7.29.7",
+    "@babel/types": "7.29.7",
     "chalk": "^4.1.2",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
@@ -49,7 +49,7 @@
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.3.0",
     "jsdom": "^26.1.0",
-    "memfs": "4.57.2",
+    "memfs": "4.57.3",
     "path-serializer": "0.6.0",
     "pretty-format": "30.3.0",
     "rimraf": "^5.0.10",
