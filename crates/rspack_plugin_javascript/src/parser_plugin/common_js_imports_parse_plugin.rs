@@ -149,19 +149,19 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
 }
 
 fn create_require_context_from_path(value: &str) -> Option<Context> {
-  let is_directory_request = value.ends_with('/') || value.ends_with('\\');
-  let path = if value.starts_with("file://") {
-    Url::parse(value)
-      .ok()?
-      .to_file_path()
-      .ok()?
-      .to_string_lossy()
-      .to_string()
+  let (path, is_directory_request) = if value.starts_with("file://") {
+    let url = Url::parse(value).ok()?;
+    let is_directory_request = url.path().ends_with('/');
+    let path = url.to_file_path().ok()?.to_string_lossy().to_string();
+    (path, is_directory_request)
   } else {
     if !Path::new(value).is_absolute() {
       return None;
     }
-    value.to_string()
+    (
+      value.to_string(),
+      value.ends_with('/') || value.ends_with('\\'),
+    )
   };
   let path = Path::new(&path);
   let context = if is_directory_request {
