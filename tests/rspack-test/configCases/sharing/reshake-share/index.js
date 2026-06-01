@@ -1,5 +1,5 @@
-import shared_0 from 'ui-lib';
-import shared_1 from 'ui-lib-dep';
+import * as uiLib from 'ui-lib';
+import * as uiLibDep from 'ui-lib-dep';
 
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
@@ -30,6 +30,9 @@ const customPluginAssetPath = path.join(
 
 
 it("should build independent share file", () => {
+	expect(uiLib.Badge).toBe("Badge");
+	expect(uiLib.MessagePro).toBe("MessagePro");
+	expect(uiLibDep.Message).toBe("Message");
 	expect(fs.existsSync(uiLibShareContainerPath)).toBe(true);
 	expect(fs.existsSync(uiLibDepShareContainerPath)).toBe(true);
 	expect(fs.existsSync(customPluginAssetPath)).toBe(true);

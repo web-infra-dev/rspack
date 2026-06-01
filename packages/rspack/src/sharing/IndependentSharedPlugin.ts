@@ -72,9 +72,7 @@ class VirtualEntryPlugin {
   createEntry() {
     const { sharedOptions, collectShared } = this;
     const entryContent = sharedOptions.reduce<string>((acc, cur, index) => {
-      const importLine = collectShared
-        ? `import * as shared_${index} from '${cur[0]}';\n`
-        : `import shared_${index} from '${cur[0]}';\n`;
+      const importLine = `import shared_${index} from '${cur[0]}';\n`;
       // Always mark the import as used to prevent tree-shaking removal
       // Optional console for debugging: reference the variable, not a string
       const logLine = collectShared ? `console.log(shared_${index});\n` : '';
@@ -134,9 +132,6 @@ const getShareRequests = (
       ),
     ).values(),
   );
-
-const hasShareRequests = (shareRequestsMap: ShareRequestsMap) =>
-  Object.values(shareRequestsMap).some(({ requests }) => requests.length > 0);
 
 export class IndependentSharedPlugin {
   mfName: string;
@@ -214,10 +209,7 @@ export class IndependentSharedPlugin {
     compiler.hooks.finishMake.tapPromise(
       'IndependentSharedPlugin',
       async () => {
-        let shareRequestsMap = collectSharedEntryPlugin.getData();
-        if (this.treeShaking && !hasShareRequests(shareRequestsMap)) {
-          shareRequestsMap = await this.createIndependentCompiler(compiler);
-        }
+        const shareRequestsMap = collectSharedEntryPlugin.getData();
         this.prepareBuildAssets(shareRequestsMap);
         await this.createIndependentCompilers(compiler, shareRequestsMap);
         this.onBuildAssets?.(this.buildAssets);
@@ -361,7 +353,7 @@ export class IndependentSharedPlugin {
 
   private async createIndependentCompiler(
     parentCompiler: Compiler,
-    extraOptions?: {
+    extraOptions: {
       currentShare: Omit<SharedContainerPluginOptions, 'mfName'>;
       shareRequestsMap: ShareRequestsMap;
     },
@@ -378,22 +370,17 @@ export class IndependentSharedPlugin {
 
     const outputDirWithShareName = resolveOutputDir(
       outputDir,
-      extraOptions?.currentShare.shareName || '',
+      extraOptions.currentShare.shareName,
     );
     const parentConfig = parentCompiler.options;
 
     const finalPlugins = [];
     const rspack = parentCompiler.rspack;
-    const extraPlugin = extraOptions
-      ? new SharedContainerPlugin({
-          mfName: `${mfName}_${treeShaking ? 't' : 'f'}`,
-          library,
-          ...extraOptions.currentShare,
-        })
-      : new CollectSharedEntryPlugin({
-          sharedOptions,
-          shareScope: 'default',
-        });
+    const extraPlugin = new SharedContainerPlugin({
+      mfName: `${mfName}_${treeShaking ? 't' : 'f'}`,
+      library,
+      ...extraOptions.currentShare,
+    });
     (parentConfig.plugins || []).forEach((plugin) => {
       if (
         plugin !== undefined &&
@@ -413,12 +400,11 @@ export class IndependentSharedPlugin {
         consumes: sharedOptions
           .filter(
             ([key, options]) =>
-              !extraOptions ||
               extraOptions.currentShare.shareName !== (options.shareKey || key),
           )
           .map(([key, options]) => ({
             [key]: {
-              import: extraOptions ? false : options.import,
+              import: false,
               shareKey: options.shareKey || key,
               shareScope: options.shareScope,
               requiredVersion: options.requiredVersion,
@@ -440,7 +426,7 @@ export class IndependentSharedPlugin {
         ),
       );
     }
-    finalPlugins.push(new VirtualEntryPlugin(sharedOptions, !extraOptions));
+    finalPlugins.push(new VirtualEntryPlugin(sharedOptions, false));
     const fullOutputDir = resolve(
       parentCompiler.outputPath,
       outputDirWithShareName,
@@ -486,27 +472,24 @@ export class IndependentSharedPlugin {
     compiler.outputFileSystem = parentCompiler.outputFileSystem;
     compiler.intermediateFileSystem = parentCompiler.intermediateFileSystem;
 
-    const { currentShare } = extraOptions || {};
+    const { currentShare } = extraOptions;
 
     return new Promise<any>((resolve, reject) => {
       compiler.run((err: any, stats: any) => {
         if (err || stats?.hasErrors()) {
-          const target = currentShare ? currentShare.shareName : 'Collect deps';
           console.error(
-            `${target} Compile failed:`,
+            `${currentShare.shareName} Compile failed:`,
             err ||
               stats
                 .toJson()
                 .errors.map((e: Error) => e.message)
                 .join('\n'),
           );
-          reject(err || new Error(`${target} Compile failed`));
+          reject(err || new Error(`${currentShare.shareName} Compile failed`));
           return;
         }
 
-        if (currentShare) {
-          console.log(`${currentShare.shareName} Compile success`);
-        }
+        console.log(`${currentShare.shareName} Compile success`);
         resolve(extraPlugin.getData());
       });
     });
