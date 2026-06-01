@@ -1,6 +1,7 @@
 import { createRequire as _createRequire } from "module";
 import { createRequire as __createRequire, builtinModules } from "module";
 import { createRequire as nodeCreateRequire } from "node:module";
+import * as esm from "./esm.mjs";
 
 it("should evaluate require/createRequire", () => {
 	expect(
@@ -32,6 +33,12 @@ it("should resolve using created require", () => {
 	expect(_createRequire(import.meta.url).resolve("./b")).toBe("./b.js");
 });
 
+it("should preserve optional created require members", () => {
+	const require = _createRequire(import.meta.url);
+	expect(require?.resolve("./b")).toMatch(/[\\/]b\.js$/);
+	expect(require?.cache).toBe(_createRequire(import.meta.url).cache);
+});
+
 it("should provide require.cache", () => {
 	const _require = _createRequire(import.meta.url);
 	expect(require.cache).toBe(_require.cache);
@@ -58,8 +65,36 @@ it("should not parse relative createRequire filename", () => {
 
 it("should preserve createRequire binding for unsupported uses", () => {
 	const createRequire = _createRequire;
+	const require = _createRequire(import.meta.url);
 	expect(() => createRequire("./foo/c.js")).toThrow(/absolute path|file URL/);
 	expect(() => _createRequire(...import.meta.url)("./a")).toThrow(/absolute path|file URL/);
+	expect(() => _createRequire(import.meta.url)(..."./a")).toThrow();
+	expect(() => _createRequire(import.meta.url).resolve()).toThrow();
+	expect(
+		(function () { return require.resolve(..."./b"); }).toString()
+	).toContain("...");
+});
+
+it("should not hoist var createRequire bindings before initialization", () => {
+	expect(() => {
+		hoistedRequire("./a");
+		var hoistedRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	}).toThrow();
+});
+
+it("should not tag lexical createRequire bindings before initialization", () => {
+	expect(() => {
+		lexicalRequire("./a");
+		const lexicalRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	}).toThrow();
+
+	expect(() => {
+		const before = sameDeclarationRequire("./a"), sameDeclarationRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+		return before;
+	}).toThrow();
+
+	const initializedRequire = _createRequire(new URL("./foo/c.js", import.meta.url)), after = initializedRequire("./a");
+	expect(after).toBe(4);
 });
 
 it("should stop parsing reassigned created require bindings", () => {
@@ -97,4 +132,11 @@ it("should add warning on using require.main", () => {
 
 it("should import Node.js module", () => {
 	expect(Array.isArray(builtinModules)).toBe(true);
+});
+
+it("should create require in ESM modules", () => {
+	expect(esm.required).toBe(1);
+	expect(esm.directRequired).toBe(3);
+	expect(esm.resolved).toBe("./b.js");
+	expect(esm.nodeRequired).toBe(4);
 });

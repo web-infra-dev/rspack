@@ -21,7 +21,7 @@ pub use common_js_full_require_dependency::{
   CommonJsFullRequireDependency, CommonJsFullRequireDependencyTemplate,
 };
 pub use common_js_require_dependency::{
-  CommonJsRequireDependency, CommonJsRequireDependencyTemplate,
+  CommonJsRequireDependency, CommonJsRequireDependencyTemplate, ContextualCommonJsRequireDependency,
 };
 pub use common_js_self_reference_dependency::{
   CommonJsSelfReferenceDependency, CommonJsSelfReferenceDependencyTemplate,
@@ -37,7 +37,8 @@ pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDep
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,
 };
-use rspack_core::Context;
+use rspack_cacheable::cacheable;
+use rspack_core::{Context, ResourceIdentifier};
 
 fn create_resource_identifier_for_contextual_commonjs_dependency(
   dep_type: &str,
@@ -51,6 +52,33 @@ fn create_resource_identifier_for_contextual_commonjs_dependency(
   identifier.push('|');
   identifier.push_str(request);
   identifier
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+struct ContextualCommonJsDependencyData {
+  context: Context,
+  resource_identifier: ResourceIdentifier,
+}
+
+impl ContextualCommonJsDependencyData {
+  fn new(dep_type: &str, context: Context, request: &str) -> Self {
+    let resource_identifier =
+      create_resource_identifier_for_contextual_commonjs_dependency(dep_type, &context, request)
+        .into();
+    Self {
+      context,
+      resource_identifier,
+    }
+  }
+
+  fn context(&self) -> &Context {
+    &self.context
+  }
+
+  fn resource_identifier(&self) -> &str {
+    self.resource_identifier.as_str()
+  }
 }
 
 static OBJECT_PROTOTYPE_METHODS: &[&str] = &[

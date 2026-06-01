@@ -18,13 +18,14 @@ pub fn eval_member_expression<'a>(
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
-    let is_created_require_member = matches!(
-      info.root_info,
-      ExportedVariableInfo::VariableInfo(id)
-        if parser
-          .get_variable_tag_data::<CreatedRequireTagData>(id, CREATED_REQUIRE_IDENTIFIER_TAG)
-          .is_some()
-    );
+    let is_created_require_member = parser.javascript_options.create_require.is_some()
+      && matches!(
+        info.root_info,
+        ExportedVariableInfo::VariableInfo(id)
+          if parser
+            .get_variable_tag_data::<CreatedRequireTagData>(id, CREATED_REQUIRE_IDENTIFIER_TAG)
+            .is_some()
+      );
     drive
       .evaluate_identifier(
         parser,

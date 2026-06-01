@@ -168,7 +168,6 @@ impl RstestParserPlugin {
             first_arg_range,
             Some(call_expr.span.into()),
             parser.in_try,
-            None,
             loc,
             None,
           );
@@ -571,7 +570,6 @@ impl RstestParserPlugin {
                   first_arg_range,
                   Some(call_expr.span.into()),
                   parser.in_try,
-                  None,
                   loc,
                   None,
                 );

@@ -1,49 +1,58 @@
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsCacheable};
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ResourceIdentifier, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource,
+  ModuleGraphCacheArtifact, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
+
+use super::ContextualCommonJsDependencyData;
 
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RequireResolveDependency {
   pub id: DependencyId,
   pub request: String,
-  resource_identifier: Option<ResourceIdentifier>,
   pub weak: bool,
-  context: Option<Context>,
   range: DependencyRange,
   optional: bool,
+  #[cacheable(with=AsCacheable)]
+  contextual: Option<Box<ContextualCommonJsDependencyData>>,
   factorize_info: FactorizeInfo,
 }
 
 impl RequireResolveDependency {
-  pub fn new(
+  pub fn new(request: String, range: DependencyRange, weak: bool, optional: bool) -> Self {
+    Self {
+      range,
+      request,
+      weak,
+      optional,
+      id: DependencyId::new(),
+      contextual: None,
+      factorize_info: Default::default(),
+    }
+  }
+
+  pub fn new_contextual(
     request: String,
     range: DependencyRange,
     weak: bool,
     optional: bool,
-    context: Option<Context>,
+    context: Context,
   ) -> Self {
-    let resource_identifier = context.as_ref().map(|context| {
-      create_resource_identifier_for_contextual_commonjs_dependency(
-        "require.resolve",
-        context,
-        &request,
-      )
-      .into()
-    });
+    let contextual = Box::new(ContextualCommonJsDependencyData::new(
+      "require.resolve",
+      context,
+      &request,
+    ));
     Self {
       range,
       request,
-      resource_identifier,
       weak,
-      context,
       optional,
       id: DependencyId::new(),
+      contextual: Some(contextual),
       factorize_info: Default::default(),
     }
   }
@@ -64,11 +73,14 @@ impl Dependency for RequireResolveDependency {
   }
 
   fn get_context(&self) -> Option<&Context> {
-    self.context.as_ref()
+    self.contextual.as_ref().map(|data| data.context())
   }
 
   fn resource_identifier(&self) -> Option<&str> {
-    self.resource_identifier.as_ref().map(|id| id.as_str())
+    self
+      .contextual
+      .as_ref()
+      .map(|data| data.resource_identifier())
   }
 
   fn range(&self) -> Option<DependencyRange> {

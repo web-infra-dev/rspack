@@ -483,8 +483,11 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+    }
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       let commonjs_exports = javascript_options
         .commonjs
