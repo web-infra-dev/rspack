@@ -137,16 +137,14 @@ fn module_namespace_promise_rstest(
   // both the static/mock dependency and the dynamic import to the SAME id, so a
   // hoisted `rs.mock` already covers their dynamic import — leave that codegen
   // byte-identical to upstream. importActual keeps its dedicated
-  // `rstest_import_actual` path regardless.
-  let target_is_external = {
-    let module_graph = compilation.get_module_graph();
-    module_graph
-      .module_identifier_by_dependency_id(dep_id)
-      .and_then(|mid| module_graph.module_by_identifier(mid))
+  // `rstest_import_actual` path regardless, so `&&` short-circuits the
+  // module-graph lookup for it.
+  let use_dynamic_shim = !is_import_actual && {
+    compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(dep_id)
       .is_some_and(|m| m.as_external_module().is_some())
   };
-
-  let use_dynamic_shim = !is_import_actual && target_is_external;
 
   let header = if weak {
     Some(format!(
