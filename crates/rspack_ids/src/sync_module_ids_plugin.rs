@@ -173,7 +173,7 @@ async fn revive_modules(
       ));
     }
     if let Some(old_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
-      used_ids.remove(&old_id);
+      used_ids.remove(old_id);
     }
     ChunkGraph::set_module_id(module_ids, module.identifier(), id.clone());
     used_ids.insert(id, module.identifier());
