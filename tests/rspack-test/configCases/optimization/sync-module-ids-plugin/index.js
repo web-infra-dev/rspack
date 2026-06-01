@@ -7,7 +7,7 @@ it("should sync module ids across compilers", () => {
   const fs = __non_webpack_require__("fs");
   const path = __non_webpack_require__("path");
   const ids = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "module-ids.json"), "utf-8")
+    fs.readFileSync(path.join(__dirname, "read-module-ids.json"), "utf-8")
   );
 
   expect(typeof ids["./a.js"]).toBe("number");

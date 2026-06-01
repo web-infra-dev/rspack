@@ -191,9 +191,14 @@ import {
 interface Ids {
   DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
+  SyncModuleIdsPlugin: typeof SyncModuleIdsPlugin;
 }
 
-export const ids: Ids = { DeterministicModuleIdsPlugin, HashedModuleIdsPlugin };
+export const ids: Ids = {
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+  SyncModuleIdsPlugin,
+};
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 
