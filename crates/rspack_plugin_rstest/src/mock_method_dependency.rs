@@ -5,6 +5,7 @@ use rspack_core::{
   InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
   TemplateContext, TemplateReplaceSource,
 };
+use rspack_util::json_stringify_str;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -17,6 +18,14 @@ pub struct MockMethodDependency {
   request: String,
   hoist: bool,
   method: MockMethod,
+  /// Byte offset (end of the last call argument's expression, before any
+  /// trailing comma) at which to inject the clean `request` literal as the
+  /// trailing argument of the emitted `rstest_*` call, e.g. turning
+  /// `rstest_mock(id, factory)` into `rstest_mock(id, factory, "request")`.
+  /// `None` skips injection — used for `rs.hoisted` (no request) and the 1-arg
+  /// auto-mock form (whose request is carried by the synthetic-target
+  /// dependency's suffix instead, to avoid colliding at the same offset).
+  args_request_end: Option<u32>,
 }
 
 #[cacheable]
@@ -47,6 +56,7 @@ impl MockMethodDependency {
       request,
       hoist,
       method,
+      args_request_end: None,
     }
   }
 
@@ -65,7 +75,15 @@ impl MockMethodDependency {
       request,
       hoist,
       method,
+      args_request_end: None,
     }
+  }
+
+  /// Set the byte offset at which to inject the clean `request` literal as the
+  /// trailing argument of the emitted `rstest_*` call. See [`Self::args_request_end`].
+  pub fn with_request_arg_end(mut self, end: Option<u32>) -> Self {
+    self.args_request_end = end;
+    self
   }
 }
 
@@ -131,6 +149,16 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       &hoist_id,
       request,
     );
+
+    // Step 4: Inject the clean request as the trailing argument of the call,
+    // e.g. `rstest_mock(id, factory)` -> `rstest_mock(id, factory, "request")`,
+    // so a dynamic `import(request)` (a different external module id) can be
+    // intercepted by request via rstest_dynamic_require. Inserted at the end of
+    // the last argument expression (before any trailing comma) to stay valid
+    // for `rs.mock('x', f,)`. `None` for rs.hoisted and the 1-arg auto-mock form.
+    if let Some(end) = dep.args_request_end {
+      source.replace(end, end, format!(", {}", json_stringify_str(request)), None);
+    }
   }
 }
 

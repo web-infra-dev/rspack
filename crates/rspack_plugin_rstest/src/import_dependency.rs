@@ -6,6 +6,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_util::json_stringify_str;
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -130,6 +131,24 @@ fn module_namespace_promise_rstest(
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
+  // Only an externalized specifier exhibits the two-id split: rspack mints a
+  // distinct id for the dynamic import (`external import "X"`) than the one the
+  // hoisted `rs.mock` patches (`external module "X"`). Internal modules resolve
+  // both the static/mock dependency and the dynamic import to the SAME id, so a
+  // hoisted `rs.mock` already covers their dynamic import — leave that codegen
+  // byte-identical to upstream. importActual keeps its dedicated
+  // `rstest_import_actual` path regardless.
+  let target_is_external = {
+    let module_graph = compilation.get_module_graph();
+    module_graph
+      .module_identifier_by_dependency_id(dep_id)
+      .and_then(|mid| module_graph.module_by_identifier(mid))
+      .map(|m| m.as_external_module().is_some())
+      .unwrap_or(false)
+  };
+
+  let use_dynamic_shim = !is_import_actual && target_is_external;
+
   let header = if weak {
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
@@ -148,6 +167,24 @@ fn module_namespace_promise_rstest(
           ".then(function() {{ {header}\nreturn {}}})",
           runtime_template.module_raw(compilation, dep_id, request, weak)
         )
+      } else if use_dynamic_shim {
+        // External dynamic `import(request)`: route through
+        // `rstest_dynamic_require` with the clean request literal, so the hoisted
+        // `rs.mock` (installed under the different static id) is found by request.
+        // `final_require` is the REQUIRE global here (use_dynamic_shim implies
+        // !is_import_actual). See packages/core/src/core/plugins/mockRuntimeCode.js.
+        //
+        // Guarded by `rstest_dynamic_require ? … : …` so this codegen stays safe
+        // when a NEWER @rspack/core runs against an OLDER @rstest/core runtime
+        // that predates `rstest_dynamic_require`: the helper is then `undefined`,
+        // and we fall back to the plain `__webpack_require__(id)` form (identical
+        // to the non-shim branch below), degrading to pre-fix behavior instead of
+        // throwing `undefined.bind(...)`. Without this guard, any external dynamic
+        // `import()` — even unmocked — would crash under a stale runtime.
+        appending = format!(
+          ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
+          json_stringify_str(request)
+        );
       } else {
         appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
       }
