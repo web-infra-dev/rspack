@@ -149,6 +149,7 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
+#[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
   let (path, is_directory_request) = if value.starts_with("file://") {
     let url = Url::parse(value).ok()?;
@@ -181,6 +182,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
   Some(Context::new(context.into()))
 }
 
+#[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
@@ -198,6 +200,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   Some(base.join(&request).ok()?.to_string())
 }
 
+#[inline(never)]
 fn parse_create_require_argument(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
@@ -250,6 +253,7 @@ fn parse_create_require_argument(
   })
 }
 
+#[inline(never)]
 fn parse_create_require_arguments(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
@@ -258,6 +262,7 @@ fn parse_create_require_arguments(
   parse_create_require_argument(parser, call_expr, emit_warning).map(|argument| argument.context)
 }
 
+#[inline(never)]
 fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   if let Callee::Expr(callee) = &call_expr.callee {
     parser.walk_expression(callee);
@@ -288,18 +293,18 @@ fn add_unsupported_create_require_member_warning(
   let mut message = "createRequire()".to_string();
   if !members.is_empty() {
     message.push('.');
-    message.push_str(
-      &members
-        .iter()
-        .map(|item| item.as_ref())
-        .collect::<Vec<_>>()
-        .join("."),
-    );
+    for (i, item) in members.iter().enumerate() {
+      if i > 0 {
+        message.push('.');
+      }
+      message.push_str(item.as_ref());
+    }
   }
   message.push_str(" is not supported by Rspack.");
   add_create_require_warning(parser, &message, span);
 }
 
+#[inline(never)]
 fn tag_created_require_declarator(
   parser: &mut JavascriptParser,
   call: &CallExpr,
@@ -320,6 +325,7 @@ fn tag_created_require_declarator(
   walk_create_require_callee(parser, call);
 }
 
+#[inline(never)]
 fn add_require_cache_dependency(parser: &mut JavascriptParser, range: DependencyRange) {
   parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
     range,
@@ -327,6 +333,7 @@ fn add_require_cache_dependency(parser: &mut JavascriptParser, range: Dependency
   )));
 }
 
+#[inline(never)]
 fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members: &[Atom]) -> Span {
   if members.len() > 1 {
     member_ranges[1]
@@ -335,6 +342,7 @@ fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members
   }
 }
 
+#[inline(never)]
 fn current_created_require_context(parser: &JavascriptParser) -> Option<Context> {
   parser
     .current_tag_info
