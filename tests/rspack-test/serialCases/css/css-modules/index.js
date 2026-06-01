@@ -8,23 +8,22 @@ it("should allow to create css modules", () => new Promise((resolve, reject) => 
 	import("./use-style.js").then(({ default: x }) => {
 		try {
 			expect(x).toEqual({
-				global: undefined,
-				class: prod ? "my-app-491-S" : "./style.module.css-class",
+				class: prod ? "my-app-491-S" : "style_module_css-class",
 				local: prod
 					? "my-app-491-Zw my-app-491-yl my-app-491-J_ my-app-491-gc"
-					: "./style.module.css-local1 ./style.module.css-local2 ./style.module.css-local3 ./style.module.css-local4",
+					: "style_module_css-local1 style_module_css-local2 style_module_css-local3 style_module_css-local4",
 				local2: prod
 					? "my-app-491-Xg my-app-491-AY"
-					: "./style.module.css-local5 ./style.module.css-local6",
+					: "style_module_css-local5 style_module_css-local6",
 				nested: prod
-					? "my-app-491-RX undefined my-app-491-X2"
-					: "./style.module.css-nested1 undefined ./style.module.css-nested3",
-				ident: prod ? "my-app-491-yR" : "./style.module.css-ident",
-				keyframes: prod ? "my-app-491-y3" : "./style.module.css-localkeyframes",
-				animation: prod ? "my-app-491-oQ" : "./style.module.css-animation",
+					? "my-app-491-RX my-app-491-X2"
+					: "style_module_css-nested1 style_module_css-nested3",
+				ident: prod ? "my-app-491-yR" : "style_module_css-ident",
+				keyframes: prod ? "my-app-491-y3" : "style_module_css-localkeyframes",
+				animation: prod ? "my-app-491-oQ" : "style_module_css-animation",
 				vars: prod
-					? "--my-app-491-y4 my-app-491-gR undefined my-app-491-xk"
-					: "--./style.module.css-local-color ./style.module.css-vars undefined ./style.module.css-globalVars"
+					? "my-app-491-gR my-app-491-xk"
+					: "style_module_css-vars style_module_css-globalVars"
 			});
 		} catch (e) {
 			return done(e);
