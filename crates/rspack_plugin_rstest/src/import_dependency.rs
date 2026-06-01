@@ -143,8 +143,7 @@ fn module_namespace_promise_rstest(
     module_graph
       .module_identifier_by_dependency_id(dep_id)
       .and_then(|mid| module_graph.module_by_identifier(mid))
-      .map(|m| m.as_external_module().is_some())
-      .unwrap_or(false)
+      .is_some_and(|m| m.as_external_module().is_some())
   };
 
   let use_dynamic_shim = !is_import_actual && target_is_external;
