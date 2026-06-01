@@ -24,11 +24,10 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
-  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::{SyntaxContext, comments::SingleThreadedComments};
+use swc_core::common::SyntaxContext;
 use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
@@ -1522,7 +1521,6 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let comments = SingleThreadedComments::default();
                 let mut ast = Ast::new(source_str.len(), StringAllocator::default());
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
                   Syntax::Es(EsSyntax {
@@ -1531,7 +1529,7 @@ var {} = {{}};
                   }),
                   EsVersion::EsNext,
                   StringSource::new(&source_str),
-                  Some(&comments),
+                  None,
                   ast.string_allocator(),
                 );
                 let mut parser = Parser::new_from(&mut ast, lexer);
@@ -1540,8 +1538,8 @@ var {} = {{}};
                   Err(err) => {
                     return Err(Error::from_string(
                       Some(source_str.clone()),
-                      err.span().real_lo() as usize,
-                      err.span().real_hi() as usize,
+                      err.span().start.saturating_sub(1) as usize,
+                      err.span().end.saturating_sub(1) as usize,
                       "JavaScript parse error:\n".to_string(),
                       err.kind().msg().to_string(),
                     ));
@@ -1551,8 +1549,8 @@ var {} = {{}};
                 let semantic = resolver(module, ast);
                 let ids = collect_ident(ast, module);
 
-                concate_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
-                concate_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+                concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
 
                 let top_level_scope_id = semantic.top_level_scope_id();
                 let mut all_used_names = FxHashSet::default();
@@ -1567,7 +1565,7 @@ var {} = {{}};
 
                 for ident in ids {
                   let scope = semantic.node_scope(ident.id);
-                  let is_global = scope.to_ctxt() == concate_info.global_ctxt;
+                  let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
                   let legacy = if is_global {
                     let leg = ident.to_legacy(ast, &semantic);
                     concate_info.global_scope_ident.push(leg.clone());
