@@ -16,8 +16,8 @@ importers:
         specifier: 0.5.3
         version: 0.5.3(jiti@2.7.0)
       '@rstest/core':
-        specifier: ^0.9.10
-        version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
+        specifier: ^0.10.3
+        version: 0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -646,8 +646,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: ^0.9.10
-        version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
+        specifier: ^0.10.3
+        version: 0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -3259,8 +3259,8 @@ packages:
       '@rspress/core':
         optional: true
 
-  '@rstest/core@0.9.10':
-    resolution: {integrity: sha512-JUSUYYXWIHEBUn193u2RglZujvGPv46Blxpl17QFwc0y9vEXe2y/IfGwGrVsJfZz7PaWZ5NnbFf0J55YIIns+g==}
+  '@rstest/core@0.10.3':
+    resolution: {integrity: sha512-UiJ1td7KszgAfPVroNKnQQ60S0EeyHdPZArng08ffMMCmwo/6aeLmjk4s+W/ojR5iredelM9Z0Yc01vN3kSaeA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -9822,11 +9822,10 @@ snapshots:
     optionalDependencies:
       '@rspress/core': 2.0.13(@module-federation/runtime-tools@2.5.0)(@rspack/core@2.0.5)(@types/mdast@4.0.4)(@types/react@19.2.15)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rstest/core@0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)':
+  '@rstest/core@0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)':
     dependencies:
-      '@rsbuild/core': 2.0.7(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.8(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)
       '@types/chai': 5.2.3
-      tinypool: 2.1.0
     optionalDependencies:
       jsdom: 26.1.0
     transitivePeerDependencies:

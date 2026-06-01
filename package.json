@@ -59,7 +59,7 @@
   },
   "devDependencies": {
     "@rslint/core": "0.5.3",
-    "@rstest/core": "^0.9.10",
+    "@rstest/core": "^0.10.3",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.41",
     "@typescript/native-preview": "7.0.0-dev.20260527.2",
