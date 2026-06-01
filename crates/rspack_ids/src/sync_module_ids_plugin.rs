@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Mutex};
 
 use derive_more::Debug;
 use rspack_core::{
-  ChunkGraph, Compilation, CompilationBeforeModuleIds, CompilationModuleIds, LibIdentOptions,
+  ChunkGraph, Compilation, CompilationRecordModules, CompilationReviveModules, LibIdentOptions,
   ModuleId, ModuleIdsArtifact, Plugin,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -107,8 +107,8 @@ impl SyncModuleIdsPlugin {
   }
 }
 
-#[plugin_hook(CompilationBeforeModuleIds for SyncModuleIdsPlugin)]
-async fn before_module_ids(
+#[plugin_hook(CompilationReviveModules for SyncModuleIdsPlugin)]
+async fn revive_modules(
   &self,
   compilation: &Compilation,
   modules: &rspack_collections::IdentifierSet,
@@ -187,66 +187,12 @@ async fn before_module_ids(
   Ok(())
 }
 
-#[plugin_hook(CompilationModuleIds for SyncModuleIdsPlugin, stage = 10000)]
-async fn module_ids(
+#[plugin_hook(CompilationRecordModules for SyncModuleIdsPlugin)]
+async fn record_modules(
   &self,
   compilation: &Compilation,
-  module_ids: &mut ModuleIdsArtifact,
-  _diagnostics: &mut Vec<rspack_error::Diagnostic>,
+  module_ids: &ModuleIdsArtifact,
 ) -> Result<()> {
-  if self.need_read() {
-    let data = {
-      let state = self
-        .state
-        .lock()
-        .expect("SyncModuleIdsPlugin state should not be poisoned");
-      state.data.clone()
-    };
-
-    if let Some(data) = data {
-      let module_graph = compilation.get_module_graph();
-      let context = self
-        .context
-        .as_deref()
-        .unwrap_or(compilation.options.context.as_str());
-      let mut used_ids = module_ids
-        .iter()
-        .map(|(module_identifier, id)| (id.to_string(), *module_identifier))
-        .collect::<BTreeMap<_, _>>();
-
-      for (_, module) in module_graph.modules() {
-        if let Some(test) = &self.test
-          && !test(compilation.compiler_id(), module.as_ref()).await?
-        {
-          continue;
-        }
-        let Some(name) = module.lib_ident(LibIdentOptions { context }) else {
-          continue;
-        };
-        let Some(id) = data.get(name.as_ref()).cloned() else {
-          continue;
-        };
-        if let Some(used_by) = used_ids.get(&id.to_string())
-          && *used_by != module.identifier()
-        {
-          return Err(error!(
-            "SyncModuleIdsPlugin: Unable to restore id '{}' from '{}' as it's already used.",
-            id, self.path
-          ));
-        }
-        if let Some(old_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
-          used_ids.remove(&old_id.to_string());
-        }
-        ChunkGraph::set_module_id(module_ids, module.identifier(), id.clone());
-        used_ids.insert(id.to_string(), module.identifier());
-      }
-    }
-  }
-
-  if !self.need_write() {
-    return Ok(());
-  }
-
   let old_data = {
     let mut state = self
       .state
@@ -318,11 +264,20 @@ impl Plugin for SyncModuleIdsPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compilation_hooks
-      .before_module_ids
-      .tap(before_module_ids::new(self));
-    ctx.compilation_hooks.module_ids.tap(module_ids::new(self));
+    if self.need_read() {
+      ctx
+        .compilation_hooks
+        .revive_modules
+        .tap(revive_modules::new(self));
+    }
+
+    if self.need_write() {
+      ctx
+        .compilation_hooks
+        .record_modules
+        .tap(record_modules::new(self));
+    }
+
     Ok(())
   }
 }

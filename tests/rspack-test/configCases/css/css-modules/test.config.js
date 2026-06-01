@@ -16,10 +16,6 @@ const findDeterministicBundle = (dir, i) => {
 
 module.exports = {
 	findBundle(i, options) {
-		if (i !== 0) {
-			return [];
-		}
-
 		if (i === 6) {
 			return [`bundle${i}.js`];
 		}
