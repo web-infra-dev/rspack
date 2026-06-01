@@ -131,7 +131,7 @@ pub fn is_create_require_import(
   source: &Atom,
   export_name: Option<&Atom>,
 ) -> bool {
-  let Some(option) = parser.javascript_options.create_require.as_deref() else {
+  let Some(option) = parser.javascript_options.create_require_option() else {
     return false;
   };
   let Some((specifier, module)) = parse_create_require_option(option) else {

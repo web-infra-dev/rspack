@@ -18,7 +18,7 @@ pub fn eval_member_expression<'a>(
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
-    let is_created_require_member = parser.javascript_options.create_require.is_some()
+    let is_created_require_member = parser.javascript_options.is_create_require_enabled()
       && matches!(
         info.root_info,
         ExportedVariableInfo::VariableInfo(id)

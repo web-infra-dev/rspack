@@ -20,11 +20,11 @@ use rspack_core::{
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
   GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  JavascriptParserCommonjsOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
+  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -417,10 +417,12 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       commonjs_magic_comments: value.commonjs_magic_comments,
       create_require: value
         .create_require
-        .and_then(|create_require| match create_require {
-          Either::A(true) => Some("createRequire from module".to_string()),
-          Either::A(false) => None,
-          Either::B(value) => Some(value),
+        .map(|create_require| match create_require {
+          Either::A(true) => {
+            JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
+          }
+          Either::A(false) => JavascriptParserCreateRequire::Disabled,
+          Either::B(value) => JavascriptParserCreateRequire::Enabled(value),
         }),
       jsx: value.jsx,
       defer_import: value.defer_import,

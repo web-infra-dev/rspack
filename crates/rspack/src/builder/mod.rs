@@ -44,13 +44,14 @@ use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
   CompilerPlatform, Context, CrossOriginLoading, CssAutoOrModuleParserOptions, CssGeneratorOptions,
-  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
-  EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
-  ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserOptions,
+  DynamicImportMode, EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments,
+  ExternalItem, ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1744,10 +1745,11 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
-          create_require: target_properties
-            .node
-            .filter(|node| *node)
-            .map(|_| "createRequire from module".to_string()),
+          create_require: Some(if target_properties.node.is_some_and(|node| node) {
+            JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
+          } else {
+            JavascriptParserCreateRequire::Disabled
+          }),
           jsx: Some(false),
           ..Default::default()
         }),
