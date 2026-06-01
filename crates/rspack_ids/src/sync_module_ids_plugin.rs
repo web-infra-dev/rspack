@@ -11,18 +11,13 @@ use serde_json::Value;
 
 use crate::id_helpers::ModuleFilterFn;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum SyncModuleIdsPluginMode {
   Read,
   Create,
+  #[default]
   Merge,
   Update,
-}
-
-impl Default for SyncModuleIdsPluginMode {
-  fn default() -> Self {
-    Self::Merge
-  }
 }
 
 #[derive(Debug, Clone)]
@@ -147,7 +142,7 @@ async fn revive_modules(
   let module_graph = compilation.get_module_graph();
   let mut used_ids = module_ids
     .iter()
-    .map(|(module_identifier, id)| (id.to_string(), *module_identifier))
+    .map(|(module_identifier, id)| (id.clone(), *module_identifier))
     .collect::<BTreeMap<_, _>>();
   let context = self
     .context
@@ -169,7 +164,7 @@ async fn revive_modules(
     let Some(id) = data.get(name.as_ref()).cloned() else {
       continue;
     };
-    if let Some(used_by) = used_ids.get(&id.to_string())
+    if let Some(used_by) = used_ids.get(&id)
       && *used_by != module.identifier()
     {
       return Err(error!(
@@ -178,10 +173,10 @@ async fn revive_modules(
       ));
     }
     if let Some(old_id) = ChunkGraph::get_module_id(module_ids, module.identifier()) {
-      used_ids.remove(&old_id.to_string());
+      used_ids.remove(&old_id);
     }
     ChunkGraph::set_module_id(module_ids, module.identifier(), id.clone());
-    used_ids.insert(id.to_string(), module.identifier());
+    used_ids.insert(id, module.identifier());
   }
 
   Ok(())
