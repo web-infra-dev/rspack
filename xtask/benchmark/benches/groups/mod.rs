@@ -4,5 +4,4 @@ pub mod compilation_stages;
 pub mod diagnostics;
 pub mod module_graph_api;
 pub mod persistent_cache;
-pub mod rspack_sources;
 pub mod scan_dependencies;

@@ -79,6 +79,7 @@ use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
   compilation::JsCompilationWrapper,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -183,7 +184,11 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
 }
 
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
-type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
+// The register callback itself is compiler-scoped because it can capture compiler or
+// compilation JS objects across builds. The taps returned by that callback stay as ordinary
+// TSFNs: uncached taps die with the returned vector, while cached taps are explicitly
+// released by `clear_cache()`.
+type RegisterFunction<T, R> = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,
