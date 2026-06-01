@@ -21,9 +21,8 @@ use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-    ContextualCommonJsRequireDependency, RequireHeaderDependency, RequireResolveContextDependency,
-    RequireResolveDependency, RequireResolveHeaderDependency,
-    local_module_dependency::LocalModuleDependency,
+    RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
+    RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
   },
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -700,7 +699,7 @@ impl CommonJsImportsParserPlugin {
             refs
           });
       let dep: Box<dyn rspack_core::Dependency> = if let Some(context) = request_context {
-        Box::new(ContextualCommonJsRequireDependency::new(
+        Box::new(CommonJsRequireDependency::new_contextual(
           param.string().clone(),
           range_expr,
           Some(span.into()),
