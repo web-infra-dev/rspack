@@ -67,7 +67,7 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
   client: String,
-  reserved_externals: Vec<String>,
+  reserved_externals: Arc<[String]>,
   active_modules: RwLock<IdentifierSet>,
 }
 
@@ -86,7 +86,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
       imports,
       test,
       client,
-      reserved_externals,
+      Arc::from(reserved_externals),
       Default::default(),
     )
   }

@@ -1,6 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
@@ -76,7 +76,10 @@ pub(crate) struct LazyCompilationProxyModule {
   resource: String,
   active: bool,
   client: String,
-  reserved_externals: Vec<String>,
+  // Immutable once collected from config; shared across every proxy module as a
+  // slice so each clones the `Arc`, not the whole list.
+  #[cacheable(with=AsVec)]
+  reserved_externals: Arc<[String]>,
   need_build: bool,
 }
 
@@ -100,7 +103,7 @@ impl LazyCompilationProxyModule {
     resource: String,
     active: bool,
     client: String,
-    reserved_externals: Vec<String>,
+    reserved_externals: Arc<[String]>,
   ) -> Self {
     let lib_ident = lib_ident.map(|s| format!("{s}!lazy-compilation-proxy"));
 
@@ -225,7 +228,7 @@ impl Module for LazyCompilationProxyModule {
       // initial entry chunk's library wrapper already exposes their closure
       // identifiers. Once the proxy activates and the lazily-built module
       // references those externals, the identifiers resolve instead of throwing.
-      for request in &self.reserved_externals {
+      for request in self.reserved_externals.iter() {
         dependencies.push(Box::new(CommonJsRequireDependency::new(
           request.clone(),
           DependencyRange::new(0, 0),
