@@ -275,8 +275,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2
       enhanced-resolve:
-        specifier: 5.21.3
-        version: 5.21.3
+        specifier: 5.22.1
+        version: 5.22.1
       http-proxy-middleware:
         specifier: ^4.0.0
         version: 4.0.0
@@ -674,7 +674,7 @@ importers:
         version: 19.2.3(@types/react@19.2.15)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.21.3)
+        version: 2.11.1(enhanced-resolve@5.22.1)
       acorn:
         specifier: ^8.16.0
         version: 8.16.0
@@ -4705,6 +4705,10 @@ packages:
 
   enhanced-resolve@5.21.3:
     resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.22.1:
+    resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -10361,10 +10365,10 @@ snapshots:
 
   '@vue/shared@3.5.35': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.21.3)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.22.1)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.21.3
+      enhanced-resolve: 5.22.1
       parse5: 7.3.0
       pug: 3.0.3
       webpack-merge: 6.0.1
@@ -11377,6 +11381,11 @@ snapshots:
   emojis-list@3.0.0: {}
 
   enhanced-resolve@5.21.3:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
+  enhanced-resolve@5.22.1:
     dependencies:
       graceful-fs: 4.2.11
       tapable: 2.3.3
