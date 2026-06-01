@@ -101,10 +101,6 @@ web_modules/
 dist
 compiled
 webpack-dist
-!tests/rspack-test/configCases/css/import/node_modules/condition-names-subpath/dist/
-!tests/rspack-test/configCases/css/import/node_modules/condition-names-subpath/dist/custom.css
-!tests/rspack-test/configCases/css/import/node_modules/condition-names-subpath-extra/dist/
-!tests/rspack-test/configCases/css/import/node_modules/condition-names-subpath-extra/dist/custom.css
 
 # Serverless directories
 .serverless/
