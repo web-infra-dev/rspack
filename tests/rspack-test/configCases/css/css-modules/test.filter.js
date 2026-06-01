@@ -1,1 +1,1 @@
-module.exports = () => "TODO: DeterministicModuleIdsPlugin and SyncModuleIdsPlugin are not exposed";
+module.exports = () => "TODO: support the full webpack css-modules fixture";

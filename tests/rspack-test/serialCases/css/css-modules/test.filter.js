@@ -1,1 +1,1 @@
-module.exports = () => "TODO: DeterministicModuleIdsPlugin and SyncModuleIdsPlugin are not exposed";
+module.exports = () => "TODO: support missing CSS module exports as warnings";
