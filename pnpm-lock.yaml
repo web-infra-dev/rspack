@@ -793,8 +793,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       terser:
-        specifier: 5.46.2
-        version: 5.46.2
+        specifier: 5.48.0
+        version: 5.48.0
       terser-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -11954,7 +11954,7 @@ snapshots:
       entities: 4.5.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.46.2
+      terser: 5.48.0
 
   html-rspack-plugin@6.1.9(@rspack/core@packages+rspack):
     dependencies:
