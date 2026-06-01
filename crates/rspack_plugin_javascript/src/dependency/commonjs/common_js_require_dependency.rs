@@ -25,8 +25,6 @@ pub struct CommonJsRequireDependency {
   range: DependencyRange,
   range_expr: Option<DependencyRange>,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AsCacheable)]
-  contextual: Option<Box<ContextualCommonJsDependencyData>>,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   #[cacheable(with=AsOption<AsCacheable>)]
@@ -50,35 +48,6 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       loc,
-      contextual: None,
-      referenced_specifiers,
-      branch_guards: None,
-      factorize_info: Default::default(),
-    }
-  }
-
-  pub fn new_contextual(
-    request: String,
-    range: DependencyRange,
-    range_expr: Option<DependencyRange>,
-    optional: bool,
-    context: Context,
-    loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
-  ) -> Self {
-    let contextual = Box::new(ContextualCommonJsDependencyData::new(
-      "cjs require",
-      context,
-      &request,
-    ));
-    Self {
-      id: DependencyId::new(),
-      request,
-      optional,
-      range,
-      range_expr,
-      loc,
-      contextual: Some(contextual),
       referenced_specifiers,
       branch_guards: None,
       factorize_info: Default::default(),
@@ -110,17 +79,6 @@ impl Dependency for CommonJsRequireDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsRequire
-  }
-
-  fn get_context(&self) -> Option<&Context> {
-    self.contextual.as_ref().map(|data| data.context())
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    self
-      .contextual
-      .as_ref()
-      .map(|data| data.resource_identifier())
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -196,6 +154,131 @@ impl DependencyCodeGeneration for CommonJsRequireDependency {
 impl AsContextDependency for CommonJsRequireDependency {}
 
 #[cacheable]
+#[derive(Debug, Clone)]
+pub struct ContextualCommonJsRequireDependency {
+  inner: CommonJsRequireDependency,
+  #[cacheable(with=AsCacheable)]
+  contextual: Box<ContextualCommonJsDependencyData>,
+}
+
+impl ContextualCommonJsRequireDependency {
+  pub fn new(
+    request: String,
+    range: DependencyRange,
+    range_expr: Option<DependencyRange>,
+    optional: bool,
+    context: Context,
+    loc: Option<DependencyLocation>,
+    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  ) -> Self {
+    let contextual = Box::new(ContextualCommonJsDependencyData::new(
+      "cjs require",
+      context,
+      &request,
+    ));
+    let inner = CommonJsRequireDependency::new(
+      request,
+      range,
+      range_expr,
+      optional,
+      loc,
+      referenced_specifiers,
+    );
+    Self { inner, contextual }
+  }
+
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    self.inner.set_referenced_specifiers(referenced_specifiers);
+  }
+}
+
+#[cacheable_dyn]
+impl Dependency for ContextualCommonJsRequireDependency {
+  fn id(&self) -> &DependencyId {
+    &self.inner.id
+  }
+
+  fn loc(&self) -> Option<DependencyLocation> {
+    self.inner.loc.clone()
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    &DependencyCategory::CommonJS
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    &DependencyType::CjsRequire
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    Some(self.contextual.context())
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(self.contextual.resource_identifier())
+  }
+
+  fn range(&self) -> Option<DependencyRange> {
+    self.inner.range_expr
+  }
+
+  fn get_referenced_exports(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    self.inner.get_referenced_exports(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      runtime,
+    )
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    rspack_core::AffectType::True
+  }
+}
+
+#[cacheable_dyn]
+impl ModuleDependency for ContextualCommonJsRequireDependency {
+  fn request(&self) -> &str {
+    &self.inner.request
+  }
+
+  fn user_request(&self) -> &str {
+    &self.inner.request
+  }
+
+  fn get_optional(&self) -> bool {
+    self.inner.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.inner.branch_guards.as_deref())
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    &self.inner.factorize_info
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    &mut self.inner.factorize_info
+  }
+}
+
+#[cacheable_dyn]
+impl DependencyCodeGeneration for ContextualCommonJsRequireDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    Some(CommonJsRequireDependencyTemplate::template_type())
+  }
+}
+
+impl AsContextDependency for ContextualCommonJsRequireDependency {}
+
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CommonJsRequireDependencyTemplate;
 
@@ -215,6 +298,12 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
     let dep = dep
       .as_any()
       .downcast_ref::<CommonJsRequireDependency>()
+      .or_else(|| {
+        dep
+          .as_any()
+          .downcast_ref::<ContextualCommonJsRequireDependency>()
+          .map(|dep| &dep.inner)
+      })
       .expect(
         "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
       );
