@@ -8,15 +8,15 @@ use std::{
 
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
-  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
-  SourceType, get_css_chunk_filename_template,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
+  Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo,
+  CssLayer as CssModuleRenderLayer, CssModuleRenderCondition, DependencyType, ManifestAssetType,
+  Module, ModuleFactoryCreateData, ModuleGraph, ModuleType, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;

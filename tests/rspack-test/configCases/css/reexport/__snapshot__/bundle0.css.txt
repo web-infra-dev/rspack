@@ -1,9 +1,3 @@
-@value primary from "./theme.module.css";
-@value error from "./theme.module.css";
-
-@value colors: "./theme.module.css";
-@value danger: error from colors;
-
 .value-at-rule_module_css-color {
 	color: danger
 }
@@ -165,10 +159,10 @@
 	color: blue;
 }
 
-@value composes-test-here: composes-here;
+
 
 .styles_module_css-local-composes-with-reexport-and-value {
-	composes: composes-test-here, __import_f__, global(bar);
+	
 	color: blue;
 }
 
@@ -199,7 +193,7 @@
 	--color: red;
 }
 
-@value --my-custom-property-1: --color;
+
 
 
 
@@ -215,42 +209,42 @@
 	color: var(--my-var-u1 from "./vars.module.css");
 }
 
-@value primary, secondary as my-custom-color from "./colors.module.css";
+
 
 .styles_module_css-button-with-color {
 	background-color: primary;
 	color: my-custom-color;
 }
 
-@value foo: red;
+
 
 .styles_module_css-button-with-color-too {
 	color: foo;
 }
 
-@value blue: #3498db;
-@value rename: blue;
+
+
 
 .styles_module_css-button-rename-1 {
 	background-color: rename;
 }
 
-@value danger from "./colors.module.css";
-@value rename-2: danger;
+
+
 
 .styles_module_css-button-rename-2 {
 	background-color: rename-2;
 }
 
-@value danger as danger-alias from "./colors.module.css";
-@value rename-3: danger-alias;
+
+
 
 .styles_module_css-button-rename-3 {
 	background-color: rename-3;
 }
 
-@value colors: "./colors.module.css";
-@value third from colors;
+
+
 
 .styles_module_css-button-rename-4 {
 	background-color: third;
@@ -260,27 +254,27 @@
 	content: __REEXPORT3__
 }
 
-@value selector: my-selector-value;
+
 .styles_module_css-selector { value: selector; }
 
-@value other-selector from "./selectors.module.css";
+
 .styles_module_css-other-selector { value: other-selector; }
 
-@value other-selector as alias-other-selector from "./selectors.module.css";
+
 .styles_module_css-alias-other-selector { value: alias-other-selector; }
 
-@value reexport-selector from "./selectors.module.css";
+
 .styles_module_css-reexport-selector { value: reexport-selector; }
 
-@value reexport-selector as reexport-selector-alias from "./selectors.module.css";
+
 .styles_module_css-reexport-selector-alias { value: reexport-selector-alias; }
 
-@value colors: "./colors.module.css";
-@value third from colors;
+
+
 .styles_module_css-third { background-color: third; }
 
-@value danger as danger-alias-selector from "./colors.module.css";
-@value rename-3: danger-alias-selector;
+
+
 .styles_module_css-rename-3 { background-color: rename-3; }
 
 .styles_module_css-local-class {
@@ -342,7 +336,7 @@
 
 
 
-@value in-composes: abc-from-def_local;
+
 
 .styles_module_css-local-for-reexport { color: blue; }
 
