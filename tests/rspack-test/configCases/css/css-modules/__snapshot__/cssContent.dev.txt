@@ -1,0 +1,19 @@
+.\.\/style\.module\.my-css-myCssClass {
+    color: red;
+}
+
+.class {
+    color: teal;
+}
+
+.\.\/identifiers\.module\.css-UnusedClassName{
+    color: red;
+    padding: var(--variable-unused-class);
+    --variable-unused-class: 10px;
+}
+
+.\.\/identifiers\.module\.css-UsedClassName {
+    color: green;
+    padding: var(--variable-used-class);
+    --variable-used-class: 10px;
+}
