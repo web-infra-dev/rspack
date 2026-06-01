@@ -1,0 +1,32 @@
+// Rstest Snapshot v1
+
+exports[`config > configCases-configCases/css/css-modules > should pass > dev 1`] = `
+Object {
+  UsedClassName: my-app-identifiers_module_css-UsedClassName,
+  cssModuleWithCustomFileExtension: my-app-style_module_my-css-myCssClass,
+  exportLocalVarsShouldCleanup: false false,
+  notAValidCssModuleExtension: true,
+}
+`;
+
+exports[`config > configCases-configCases/css/css-modules > should pass > dev 2`] = `
+.my-app-style_module_my-css-myCssClass {
+    color: red;
+}
+
+.class {
+    color: teal;
+}
+
+.my-app-identifiers_module_css-UnusedClassName{
+    color: red;
+    padding: var(--variable-unused-class);
+    --variable-unused-class: 10px;
+}
+
+.my-app-identifiers_module_css-UsedClassName {
+    color: green;
+    padding: var(--variable-used-class);
+    --variable-used-class: 10px;
+}
+`;

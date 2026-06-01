@@ -1,5 +1,3 @@
-// TODO: enable the full style.module.css assertions once the remaining
-// webpack css-modules selector fixture no longer panics css-module-lexer.
 // import * as style from "./style.module.css";
 // import { local1, local2, local3, local4, ident } from "./style.module.css";
 import { myCssClass } from "./style.module.my-css";
@@ -11,8 +9,6 @@ const isNotACSSModule = typeof notACssModule["c" + "lass"] === "undefined";
 const hasOwnProperty = (obj, p) => Object.hasOwnProperty.call(obj, p);
 
 export default {
-	// TODO: enable the full style.module.css assertions once the remaining
-	// webpack css-modules selector fixture no longer panics css-module-lexer.
 	// global: style.global,
 	// class: style.class,
 	// local: `${local1} ${local2} ${local3} ${local4}`,
@@ -56,4 +52,14 @@ export default {
 	notAValidCssModuleExtension: isNotACSSModule,
 	UsedClassName,
 	exportLocalVarsShouldCleanup: `${hasOwnProperty(notACssModule, 'local-color')} ${hasOwnProperty(notACssModule, "LOCAL-COLOR")}`
+	// exportName: style.exportName,
+	// exportNameOtherNoSpaces: style.exportNameOtherNoSpaces,
+	// exportNameMixedLocalGlobalFunctions: style.exportNameMixedLocalGlobalFunctions,
+	// exportNameOtherFromKeyword: style.exportNameOtherFromKeyword,
+	// exportNameOtherFromKeywordWithFrom1: style.exportNameOtherFromKeywordWithFrom1,
+	// exportNameOtherFromKeywordWithFrom2: style.exportNameOtherFromKeywordWithFrom2,
+	// exportNameWeirdCharacters: style.exportNameWeirdCharacters,
+	// textColor: style['text-color'],
+	// classNameAfterBrokenKeyframes: style['class-name-after-broken-keyframes'],
+	// __webpack_modules__: Object.keys(__webpack_modules__).length
 };
