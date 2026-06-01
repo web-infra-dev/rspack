@@ -1745,10 +1745,8 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
-          create_require: Some(if target_properties.node.is_some_and(|node| node) {
+          create_require: target_properties.node.filter(|node| *node).map(|_| {
             JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
-          } else {
-            JavascriptParserCreateRequire::Disabled
           }),
           jsx: Some(false),
           ..Default::default()
