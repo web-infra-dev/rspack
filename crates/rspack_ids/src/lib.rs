@@ -5,6 +5,7 @@ pub use hashed_module_ids_plugin::*;
 mod named_module_ids_plugin;
 pub use named_module_ids_plugin::*;
 pub mod id_helpers;
+pub use id_helpers::ModuleFilterFn;
 mod named_chunk_ids_plugin;
 pub use named_chunk_ids_plugin::*;
 mod deterministic_chunk_ids_plugin;

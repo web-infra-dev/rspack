@@ -90,6 +90,18 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: '"ubuntu-22.04"'
 
+  bench-rust-walltime:
+    name: Rust Bench Walltime
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/bench-rust.yml
+    with:
+      target: x86_64-unknown-linux-gnu
+      measurement: walltime
+      bench_target: benches
+      bench_filter: bundle@threejs
+      runner: '["self-hosted", "Linux", "X64"]'
+
   test-windows:
     name: Test Windows
     needs: [check-changed]

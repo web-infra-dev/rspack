@@ -9,6 +9,18 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      measurement: # CodSpeed measurement mode, "simulation" or "walltime"
+        required: false
+        type: string
+        default: 'simulation'
+      bench_target: # Optional Cargo benchmark target to build and run
+        required: false
+        type: string
+        default: ''
+      bench_filter: # Optional Cargo benchmark name filter to run
+        required: false
+        type: string
+        default: ''
       ref: # Git reference to checkout
         required: false
         type: string
@@ -23,7 +35,7 @@ permissions:
 
 jobs:
   bench-rust:
-    name: 'Bench Rust'
+    name: 'Bench Rust ${{ inputs.measurement }}'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
@@ -59,13 +71,21 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
-      - name: Build benchmark (simulation,memory)
-        run: pnpm run build:bench
+      - name: Build benchmark (${{ inputs.measurement }})
+        run: |
+          bench_args=()
+          if [ -n "${{ inputs.bench_target }}" ]; then
+            bench_args+=(--bench "${{ inputs.bench_target }}")
+          else
+            bench_args+=(--bench benches --bench rspack_sources)
+          fi
+          cargo codspeed build -m ${{ inputs.measurement }} --profile codspeed -p rspack_benchmark "${bench_args[@]}"
 
-      - name: Prepare Valgrind temporary directory
+      - name: Prepare CodSpeed temporary directory
         run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
 
-      - name: Run benchmark (simulation,memory)
+      - name: Run benchmark (simulation)
+        if: ${{ inputs.measurement == 'simulation' }}
         uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
         timeout-minutes: 30
         env:
@@ -73,13 +93,43 @@ jobs:
           RAYON_NUM_THREADS: 1
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
         with:
-          mode: 'simulation'
-          run: pnpm run bench:rust
+          mode: simulation
+          run: |
+            if [ -n "${{ inputs.bench_target }}" ]; then
+              bench_args=(--bench "${{ inputs.bench_target }}")
+              if [ -n "${{ inputs.bench_filter }}" ]; then
+                bench_args+=("${{ inputs.bench_filter }}")
+              fi
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+            else
+              pnpm run bench:rust
+            fi
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: 4.13.0
+
+      - name: Run benchmark (walltime)
+        if: ${{ inputs.measurement == 'walltime' }}
+        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
+        timeout-minutes: 30
+        env:
+          TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
+        with:
+          mode: walltime
+          run: |
+            if [ -n "${{ inputs.bench_target }}" ]; then
+              bench_args=(--bench "${{ inputs.bench_target }}")
+              if [ -n "${{ inputs.bench_filter }}" ]; then
+                bench_args+=("${{ inputs.bench_filter }}")
+              fi
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+            else
+              pnpm run bench:rust
+            fi
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.13.0
 
       - name: Prepare Valgrind temporary files artifact
-        if: ${{ always() }}
+        if: ${{ always() && inputs.measurement == 'simulation' }}
         run: |
           mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
           {
@@ -89,7 +139,7 @@ jobs:
           } > "${RUNNER_TEMP}/codspeed-valgrind-tmp/MANIFEST.txt"
 
       - name: Upload Valgrind temporary files
-        if: ${{ always() }}
+        if: ${{ always() && inputs.measurement == 'simulation' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: codspeed-valgrind-tmp-${{ inputs.target }}

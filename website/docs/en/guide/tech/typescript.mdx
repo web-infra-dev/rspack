@@ -95,7 +95,7 @@ See [resolve.tsConfig](/config/resolve#resolvetsconfig) for details.
 
 ## Client types
 
-It's possible to use the type of webpack or Rspack specific features in your TypeScript code, such as [import.meta.webpackContext](/api/runtime-api/module-variables#importmetawebpackcontext).
+It's possible to use the type of Rspack specific features in your TypeScript code, such as [import.meta.glob](/api/runtime-api/module-variables#importmetaglob).
 
 Rspack provides client module types via `@rspack/core/module`, you can declare them in different ways:
 
@@ -110,7 +110,7 @@ Rspack provides client module types via `@rspack/core/module`, you can declare t
    It can then be used in any TypeScript file:
 
    ```ts title="src/index.ts"
-   console.log(import.meta.webpackContext); // without reference declared above, TypeScript will throw an error
+   const modules = import.meta.glob('./dir/*.js'); // without reference declared above, TypeScript will throw an error
    ```
 
 2. You can also add `@rspack/core/module` to the `types` field of tsconfig.json. You could refer to the [tsconfig types document](https://www.typescriptlang.org/tsconfig/#types) for more details.

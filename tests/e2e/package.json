@@ -8,13 +8,13 @@
     "test:CI": "CI=1 pnpm run test"
   },
   "devDependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^7.29.7",
     "@babel/preset-react": "^7.28.5",
     "@playwright/test": "1.60.0",
     "core-js": "3.49.0",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "^2.0.1",
-    "@rspack/plugin-react-refresh": "^2.0.0",
+    "@rspack/dev-server": "^2.0.3",
+    "@rspack/plugin-react-refresh": "^2.0.1",
     "@module-federation/runtime-tools": "2.5.0",
     "@swc/helpers": "0.5.23",
     "@types/fs-extra": "11.0.4",
@@ -27,7 +27,7 @@
     "react-refresh": "^0.18.0",
     "typescript": "^6.0.3",
     "tailwindcss": "^3.4.19",
-    "vue": "^3.5.34",
+    "vue": "^3.5.35",
     "rspack-vue-loader": "^17.5.0",
     "css-loader": "^7.1.4",
     "ws": "^8.20.1"

@@ -182,13 +182,17 @@ interface Electron {
 
 export const electron: Electron = { ElectronTargetPlugin };
 
-import { HashedModuleIdsPlugin } from './builtin-plugin';
+import {
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+} from './builtin-plugin';
 
 interface Ids {
+  DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
-export const ids: Ids = { HashedModuleIdsPlugin };
+export const ids: Ids = { DeterministicModuleIdsPlugin, HashedModuleIdsPlugin };
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 

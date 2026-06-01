@@ -2132,6 +2132,9 @@ var {} = {{}};
         .expect("should have module")
         .as_external_module()
         .expect("should be external module");
+      if external_module.resolve_external_type() != "module" {
+        continue;
+      }
       entry_chunk_link
         .raw_star_exports
         .entry(external_module.get_request().primary().into())

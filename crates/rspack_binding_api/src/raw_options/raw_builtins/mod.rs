@@ -30,7 +30,10 @@ use napi::{
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-use raw_ids::{RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions};
+use raw_ids::{
+  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
+  RawOccurrenceChunkIdsPluginOptions,
+};
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
   RawCollectShareEntryPluginOptions, RawModuleFederationManifestPluginOptions,
@@ -570,9 +573,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::NaturalModuleIdsPlugin => {
         plugins.push(NaturalModuleIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::DeterministicModuleIdsPlugin => {
-        plugins.push(DeterministicModuleIdsPlugin::default().boxed())
-      }
+      BuiltinPluginName::DeterministicModuleIdsPlugin => plugins.push(
+        DeterministicModuleIdsPlugin::new(
+          downcast_into::<RawDeterministicModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::HashedModuleIdsPlugin => plugins.push(
         HashedModuleIdsPlugin::new(
           downcast_into::<RawHashedModuleIdsPluginOptions>(self.options)

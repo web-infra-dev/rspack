@@ -13,8 +13,9 @@ use json::{
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
-  GenerateContext, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption,
-  ParserAndGenerator, Plugin, RuntimeSpec, SourceType, UsageState, UsedNameItem,
+  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
+  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
+  UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
@@ -263,13 +264,13 @@ impl Plugin for JsonPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_json())
+      Box::new(|options| {
+        let p = options
+          .parser_options_computed(ParserOptions::get_json)
           .expect("should have JsonParserOptions");
 
-        let g = g
-          .and_then(|g| g.get_json())
+        let g = options
+          .generator_options_computed(GeneratorOptions::get_json)
           .expect("should have JsonGeneratorOptions");
 
         Box::new(JsonParserAndGenerator {
