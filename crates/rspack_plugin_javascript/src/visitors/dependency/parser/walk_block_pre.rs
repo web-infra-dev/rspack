@@ -99,7 +99,7 @@ impl JavascriptParser<'_> {
 
   fn block_pre_walk_class_declaration(&mut self, decl: MaybeNamedClassDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.clone())
+      // TODO
     }
   }
 
@@ -119,24 +119,37 @@ impl JavascriptParser<'_> {
           drive.export_specifier(
             parser,
             ExportLocal::Named(export),
-            &def.sym,
+            &def.to_id(),
             &def.sym,
             def.span,
           );
         });
       }
       ExportNamedDeclaration::Specifiers(named) => {
-        for (local_id, exported_name, exported_name_span) in
-          ExportNamedDeclaration::named_export_specifiers(named)
-        {
-          if named.src.is_none() {
-            drive.export_specifier(
-              self,
-              ExportLocal::Named(export),
-              &local_id,
-              &exported_name,
-              exported_name_span,
-            );
+        for spec in named.specifiers.iter() {
+          match spec {
+            ExportSpecifier::Namespace(_) => {
+              unreachable!("should handle in block_pre_walk_export_all_declaration")
+            }
+            ExportSpecifier::Default(s) => unreachable!("invalid export syntax"),
+            ExportSpecifier::Named(n) => {
+              let local_id = match &n.orig {
+                swc_core::ecma::ast::ModuleExportName::Ident(ident) => ident.to_id(),
+                swc_core::ecma::ast::ModuleExportName::Str(_) => {
+                  unreachable!("invalid export syntax")
+                }
+              };
+              let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
+              if named.src.is_none() {
+                drive.export_specifier(
+                  self,
+                  ExportLocal::Named(export),
+                  &local_id,
+                  &exported_name.atom().into_owned(),
+                  exported_name.span(),
+                );
+              }
+            }
           }
         }
       }
@@ -159,7 +172,7 @@ impl JavascriptParser<'_> {
               drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &ident.sym,
+                &ident.to_id(),
                 &JS_DEFAULT_KEYWORD,
                 ident.span(),
               );
@@ -177,7 +190,7 @@ impl JavascriptParser<'_> {
               drive.export_specifier(
                 self,
                 ExportLocal::Default(export),
-                &ident.sym,
+                &ident.to_id(),
                 &JS_DEFAULT_KEYWORD,
                 ident.span(),
               );

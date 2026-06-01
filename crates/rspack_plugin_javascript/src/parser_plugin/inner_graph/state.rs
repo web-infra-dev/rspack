@@ -4,7 +4,7 @@ use std::{
 };
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{atoms::Atom, common::Span};
+use swc_core::{atoms::Atom, common::Span, ecma::ast::Id};
 
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
@@ -109,10 +109,10 @@ impl InnerGraphState {
     &self.symbol_map[name]
   }
 
-  pub(crate) fn new_top_level_symbol(&mut self, name: Atom) -> TopLevelSymbol {
+  pub(crate) fn new_top_level_symbol(&mut self, id: Id) -> TopLevelSymbol {
     let symbol = TopLevelSymbol::new();
     let data = TopLevelSymbolData {
-      name,
+      name: id.0.clone(),
       depend_on_pure: Default::default(),
     };
     self.symbol_map.insert(symbol, data);

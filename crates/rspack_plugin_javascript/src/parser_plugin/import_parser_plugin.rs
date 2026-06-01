@@ -11,7 +11,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::{Span, Spanned},
   ecma::{
-    ast::{BlockStmtOrExpr, CallExpr, Expr, Ident, MemberExpr, Pat, VarDeclarator},
+    ast::{BlockStmtOrExpr, CallExpr, Expr, Id, Ident, MemberExpr, Pat, VarDeclarator},
     atoms::Atom,
   },
 };
@@ -26,7 +26,7 @@ use crate::{
   visitors::{
     ContextModuleScanResult, JavascriptParser, Statement, TagInfoData, TopLevelScope,
     VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
-    create_traceable_error, get_non_optional_part, parse_order_string,
+    create_traceable_error, get_non_optional_part, parse_order_string, var_info::IdOrName,
   },
 };
 
@@ -35,16 +35,16 @@ const DYNAMIC_IMPORT_TAG: &str = "dynamic import";
 fn tag_dynamic_import_referenced(
   parser: &mut JavascriptParser,
   import_call: &CallExpr,
-  variable_name: Atom,
+  variable_id: &Id,
 ) {
   let import_span = import_call.span();
   parser.dynamic_import_references.add_import(import_span);
   parser
     .dynamic_import_references
     .get_import_mut_expect(&import_span)
-    .variable_name = Some(variable_name.clone());
-  parser.tag_variable(
-    variable_name,
+    .variable_name = Some(variable_id.0.clone());
+  parser.tag_var(
+    variable_id,
     DYNAMIC_IMPORT_TAG,
     Some(ImportTagData { import_span }),
   );
@@ -137,11 +137,9 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
-      && let Some(info) = name_info.info
-      && let Some(name) = info.name.clone()
+      && let Some(IdOrName::Id(origin)) = parser.get_var_origin(&ident.to_id()).cloned()
       && parser
-        .get_tag_data::<ImportTagData>(&name, DYNAMIC_IMPORT_TAG)
+        .get_tag_data::<ImportTagData>(&origin, DYNAMIC_IMPORT_TAG)
         .is_some()
     {
       return Some(true);
@@ -162,8 +160,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       && call.callee.is_import()
       && let Some(binding) = declarator.name.as_ident()
     {
-      parser.define_variable(binding.id.sym.clone());
-      tag_dynamic_import_referenced(parser, call, binding.id.sym.clone());
+      tag_dynamic_import_referenced(parser, call, &binding.id.to_id());
     }
     None
   }
@@ -178,7 +175,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     if let Some(keys) = parser
@@ -217,7 +214,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -241,7 +238,7 @@ impl JavascriptParserPlugin for ImportParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ImportTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -653,7 +650,7 @@ fn walk_import_then_fulfilled_callback(
     scope_params.into_iter(),
     |parser| {
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
-        tag_dynamic_import_referenced(parser, import_call, ns_obj.id.sym.clone());
+        tag_dynamic_import_referenced(parser, import_call, &ns_obj.id.to_id());
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
         if let Some(keys) =
           parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)

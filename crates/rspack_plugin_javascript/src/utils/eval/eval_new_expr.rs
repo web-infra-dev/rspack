@@ -9,12 +9,15 @@ pub fn eval_new_expression<'a>(
   scanner: &mut JavascriptParser,
   expr: &'a NewExpr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
-  let ident = expr.callee.as_ident()?;
-  if ident.sym.as_str() != "RegExp" {
+  let id = expr.callee.as_ident()?.to_id();
+  if id.0.as_str() != "RegExp" {
     // FIXME: call hooks
     return None;
   }
-  if scanner.get_variable_info(&Atom::from("RegExp")).is_some() {
+  if scanner.is_free_var(&id)
+    && let Some(origin) = scanner.get_var_origin(&id)
+    && origin.name().as_str() != "RegExp"
+  {
     return None;
   }
   let Some(args) = &expr.args else {

@@ -335,7 +335,7 @@ impl JavascriptParserPlugin for CommonJsExportsParserPlugin {
       if !exports_arg.is_identifier() {
         return None;
       }
-      let base = match exports_arg.identifier().as_str() {
+      let base = match exports_arg.identifier().name().as_str() {
         "exports" => ExportsBase::DefinePropertyExports,
         "module.exports" => ExportsBase::DefinePropertyModuleExports,
         "this" if parser.is_top_level_scope() => ExportsBase::DefinePropertyThis,

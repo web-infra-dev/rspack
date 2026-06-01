@@ -26,7 +26,7 @@ use crate::{
   },
   visitors::{
     JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    static_string_from_expr, var_info::IdOrName,
   },
 };
 
@@ -433,19 +433,25 @@ impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
-    let name = match for_name {
-      expr_name::IMPORT_META_CONTEXT => expr_name::IMPORT_META_CONTEXT,
-      expr_name::IMPORT_META_GLOB => expr_name::IMPORT_META_GLOB,
-      _ => return None,
-    };
-
-    Some(eval::evaluate_to_identifier(
-      name.into(),
-      expr_name::IMPORT_META.into(),
-      Some(true),
-      start,
-      end,
-    ))
+    if for_name == expr_name::IMPORT_META_CONTEXT {
+      Some(eval::evaluate_to_identifier(
+        IdOrName::Name(expr_name::IMPORT_META_CONTEXT.into()),
+        IdOrName::Name(expr_name::IMPORT_META.into()),
+        Some(true),
+        start,
+        end,
+      ))
+    } else if for_name == expr_name::IMPORT_META_GLOB {
+      Some(eval::evaluate_to_identifier(
+        IdOrName::Name(expr_name::IMPORT_META_GLOB.into()),
+        IdOrName::Name(expr_name::IMPORT_META.into()),
+        Some(true),
+        start,
+        end,
+      ))
+    } else {
+      None
+    }
   }
 
   fn call(

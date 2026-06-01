@@ -28,7 +28,7 @@ pub use self::{
   eval_tpl_expr::{TemplateStringKind, eval_tagged_tpl_expression, eval_tpl_expression},
   eval_unary_expr::eval_unary_expression,
 };
-use crate::visitors::ExportedVariableInfo;
+use crate::visitors::var_info::IdOrName;
 
 type Boolean = bool;
 type Number = f64;
@@ -39,8 +39,8 @@ type Regexp = (String, String); // (expr, flags)
 
 #[derive(Debug, Clone)]
 struct IdentifierData {
-  identifier: Atom,
-  root_info: ExportedVariableInfo,
+  identifier: IdOrName,
+  root_info: IdOrName,
   members: Option<Vec<Atom>>,
   members_optionals: Option<Vec<bool>>,
   member_ranges: Option<Vec<Span>>,
@@ -399,8 +399,8 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn set_identifier(
     &mut self,
-    name: Atom,
-    root_info: ExportedVariableInfo,
+    name: IdOrName,
+    root_info: IdOrName,
     members: Option<Vec<Atom>>,
     members_optionals: Option<Vec<bool>>,
     member_ranges: Option<Vec<Span>>,
@@ -476,7 +476,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn identifier(&self) -> &Atom {
+  pub fn identifier(&self) -> &IdOrName {
     assert!(self.is_identifier());
     match &self.payload {
       Payload::Identifier(identifier) => &identifier.identifier,
@@ -484,7 +484,7 @@ impl<'a> BasicEvaluatedExpression<'a> {
     }
   }
 
-  pub fn root_info(&self) -> &ExportedVariableInfo {
+  pub fn root_info(&self) -> &IdOrName {
     assert!(self.is_identifier());
     match &self.payload {
       Payload::Identifier(identifier) => &identifier.root_info,
@@ -700,20 +700,14 @@ pub fn evaluate_to_undefined<'a>(start: u32, end: u32) -> BasicEvaluatedExpressi
 }
 
 pub fn evaluate_to_identifier<'a>(
-  identifier: Atom,
-  root_info: Atom,
+  identifier: IdOrName,
+  root_info: IdOrName,
   truthy: Option<bool>,
   start: u32,
   end: u32,
 ) -> BasicEvaluatedExpression<'a> {
   let mut eval = BasicEvaluatedExpression::with_range(start, end);
-  eval.set_identifier(
-    identifier,
-    ExportedVariableInfo::Name(root_info),
-    None,
-    None,
-    None,
-  );
+  eval.set_identifier(identifier, root_info, None, None, None);
   eval.set_side_effects(false);
   match truthy {
     Some(v) => {

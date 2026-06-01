@@ -4,7 +4,7 @@ use rspack_core::{
   UsedByExports, UsedByExportsCondition, filter_runtime, get_target,
 };
 
-pub mod plugin;
+// pub mod plugin;
 pub mod state;
 
 pub(crate) fn has_impure_deferred_pure_checks(

@@ -5,19 +5,21 @@ use rspack_core::{
 use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
-  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Ident, ImportDecl},
+  ecma::ast::{BinExpr, BinaryOp, Callee, Expr, Id, Ident, ImportDecl},
 };
 
 use super::{
-  InnerGraphParserPlugin, JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation,
+  // InnerGraphParserPlugin,
+  JavascriptParserPlugin,
+  inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
   dependency::{ESMImportSideEffectDependency, ESMImportSpecifierDependency},
   utils::object_properties::get_attributes,
   visitors::{
-    AllowedMemberTypes, AtomMembers, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo,
-    TagInfoData, get_non_optional_member_chain_from_expr,
-    get_non_optional_member_chain_from_member, get_non_optional_part,
+    AllowedMemberTypes, AtomMembers, JavascriptParser, MemberExpressionInfo, TagInfoData,
+    get_non_optional_member_chain_from_expr, get_non_optional_member_chain_from_member,
+    get_non_optional_part, var_info::IdOrName,
   },
 };
 
@@ -89,18 +91,18 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     statement: &ImportDecl,
     source: &Atom,
     id: Option<&Atom>,
-    name: &Atom,
+    local: &Id,
   ) -> Option<bool> {
     let phase = if parser.javascript_options.defer_import.unwrap_or_default() {
       statement.phase.into()
     } else {
       ImportPhase::Evaluation
     };
-    parser.tag_variable::<ESMSpecifierData>(
-      name.clone(),
+    parser.tag_var::<ESMSpecifierData>(
+      local,
       ESM_SPECIFIER_TAG,
       Some(ESMSpecifierData {
-        name: name.clone(),
+        name: local.0.clone(),
         source: source.clone(),
         ids: id.into_iter().cloned().collect(),
         namespace_import: id.is_none(),
@@ -122,9 +124,8 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     }
     let root_info = right.root_info();
     let (source, name, source_order, phase, attributes, namespace_import, mut ids) =
-      if let ExportedVariableInfo::VariableInfo(variable) = root_info
-        && let Some(settings) =
-          parser.get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)
+      if let IdOrName::Id(id) = root_info
+        && let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(&id, ESM_SPECIFIER_TAG)
       {
         (
           settings.source.clone(),
@@ -172,10 +173,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    // InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }
@@ -187,9 +185,9 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
   ) -> Option<bool> {
     if let MemberExpressionInfo::Expression(info) =
       parser.get_member_expression_info_from_expr(expr, AllowedMemberTypes::Expression)?
-      && let ExportedVariableInfo::VariableInfo(id) = &info.root_info
+      && let IdOrName::Id(id) = &info.root_info
       && parser
-        .get_variable_tag_data::<ESMSpecifierData>(*id, ESM_SPECIFIER_TAG)
+        .get_tag_data::<ESMSpecifierData>(&id, ESM_SPECIFIER_TAG)
         .is_some()
     {
       return Some(true);
@@ -207,7 +205,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
     let referenced_properties_in_destructuring = parser
@@ -236,10 +234,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    // InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }
@@ -260,7 +255,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
@@ -305,10 +300,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    // InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     parser.walk_expr_or_spread(&call_expr.args);
     Some(true)
@@ -327,7 +319,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
 
@@ -368,10 +360,7 @@ impl JavascriptParserPlugin for ESMImportDependencyParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     parser.add_dependency(Box::new(dep));
 
-    InnerGraphParserPlugin::on_usage(
-      parser,
-      InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
-    );
+    // InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::ESMImportSpecifier(dep_id));
 
     Some(true)
   }

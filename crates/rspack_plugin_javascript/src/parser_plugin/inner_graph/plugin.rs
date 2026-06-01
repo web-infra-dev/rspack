@@ -8,7 +8,7 @@ use swc_core::{
   atoms::Atom,
   common::{BytePos, Mark, Span, Spanned, SyntaxContext},
   ecma::ast::{
-    AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat, VarDeclarator,
+    AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, Id, ModuleDecl, Pat, VarDeclarator,
   },
 };
 
@@ -51,7 +51,7 @@ impl InnerGraphParserPlugin {
     }
 
     if let Some(tag_info) = parser.current_tag_info {
-      let tag_info = parser.definitions_db.expect_get_tag_info(tag_info);
+      let tag_info = parser.definitions_db2.expect_get_tag_info(tag_info);
       let symbol = TopLevelSymbol::downcast(tag_info.data.clone().expect("should have data"));
       let usage = parser.inner_graph.get_top_level_symbol();
       parser.inner_graph.add_usage(
@@ -319,11 +319,11 @@ impl InnerGraphParserPlugin {
     }
   }
 
-  pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
+  pub fn add_variable_usage(parser: &mut JavascriptParser, id: &Id, usage: InnerGraphMapUsage) {
     let symbol = parser
-      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
-      .copied()
-      .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
+      .get_tag_data(id, TOP_LEVEL_SYMBOL)
+      .map(TopLevelSymbol::downcast)
+      .unwrap_or_else(|| Self::tag_top_level_symbol(parser, id));
 
     parser.inner_graph.add_usage(symbol, usage);
   }
@@ -346,24 +346,14 @@ impl InnerGraphParserPlugin {
 
   pub fn tag_top_level_symbol(
     parser: &mut crate::visitors::JavascriptParser,
-    name: &Atom,
+    id: &Id,
   ) -> TopLevelSymbol {
-    parser.define_variable(name.clone());
-
-    if let Some(existing) = parser
-      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
-      .copied()
-    {
-      return existing;
+    if let Some(data) = parser.get_tag_data(id, TOP_LEVEL_SYMBOL) {
+      return TopLevelSymbol::downcast(data);
     }
 
-    let symbol = parser.inner_graph.new_top_level_symbol(name.clone());
-    parser.tag_variable_with_flags(
-      name.clone(),
-      TOP_LEVEL_SYMBOL,
-      Some(symbol),
-      VariableInfoFlags::NORMAL,
-    );
+    let symbol = parser.inner_graph.new_top_level_symbol(id.clone());
+    parser.tag_var_no_alias(id, TOP_LEVEL_SYMBOL, Some(symbol));
     symbol
   }
 }

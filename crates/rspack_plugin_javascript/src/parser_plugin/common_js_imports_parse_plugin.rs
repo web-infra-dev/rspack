@@ -8,7 +8,7 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
+    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Id, Ident, MemberExpr, NewExpr, UnaryExpr,
     VarDeclarator,
   },
 };
@@ -23,9 +23,9 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    CallHooksName, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
+    CallHooks, JavascriptParser, TagInfoData, VariableDeclaration, VariableDeclarationKind,
     context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
-    get_non_optional_part,
+    get_non_optional_part, to_unresolved_id, var_info::IdOrName,
   },
 };
 
@@ -100,7 +100,7 @@ struct RequireTagData {
 fn tag_commonjs_require_referenced(
   parser: &mut JavascriptParser,
   require_call: &CallExpr,
-  variable_name: Atom,
+  variable_id: &Id,
 ) {
   let require_span = require_call.span();
   parser
@@ -109,9 +109,9 @@ fn tag_commonjs_require_referenced(
   parser
     .common_js_require_references
     .get_require_mut_expect(&require_span)
-    .variable_name = Some(variable_name.clone());
-  parser.tag_variable(
-    variable_name,
+    .variable_name = Some(variable_id.0.clone());
+  parser.tag_var(
+    variable_id,
     COMMONJS_REQUIRE_TAG,
     Some(RequireTagData { require_span }),
   );
@@ -195,8 +195,8 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExp
 
   if let Some(ident) = callee.as_ident() {
     return ident
-      .sym
-      .call_hooks_name(parser, |_, for_name| {
+      .to_id()
+      .call_hooks(parser, |_, for_name| {
         (for_name == expr_name::REQUIRE).then_some(true)
       })
       .unwrap_or_default();
@@ -204,7 +204,7 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExp
 
   if let Some(member) = callee.as_member() {
     return member
-      .call_hooks_name(parser, |_, for_name| {
+      .call_hooks(parser, |_, for_name| {
         (for_name == expr_name::MODULE_REQUIRE).then_some(true)
       })
       .unwrap_or_default();
@@ -271,7 +271,7 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    if parser.get_variable_info(&ident.sym).is_some() {
+    if !parser.is_free_var(&ident.to_id()) {
       return false;
     }
 
@@ -609,11 +609,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
-      && let Some(info) = name_info.info
-      && let Some(name) = info.name.clone()
+      && let Some(IdOrName::Id(origin)) = parser.get_var_origin(&ident.to_id()).cloned()
       && parser
-        .get_tag_data::<RequireTagData>(&name, COMMONJS_REQUIRE_TAG)
+        .get_tag_data::<RequireTagData>(&origin, COMMONJS_REQUIRE_TAG)
         .is_some()
     {
       return Some(true);
@@ -633,8 +631,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.name.as_ident()
       && is_require_call_expr(parser, call)
     {
-      parser.define_variable(binding.id.sym.clone());
-      tag_commonjs_require_referenced(parser, call, binding.id.sym.clone());
+      tag_commonjs_require_referenced(parser, call, &binding.id.to_id());
     }
     None
   }
@@ -647,7 +644,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     if for_name == COMMONJS_REQUIRE_TAG {
       let tag_info = parser
-        .definitions_db
+        .definitions_db2
         .expect_get_tag_info(parser.current_tag_info?);
       let data = RequireTagData::downcast(tag_info.data.clone()?);
       if let Some(keys) = parser
@@ -693,7 +690,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -717,7 +714,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = RequireTagData::downcast(tag_info.data.clone()?);
     let ids = get_non_optional_part(members, members_optionals);
@@ -785,29 +782,29 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
     match for_name {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE.into(),
-        expr_name::REQUIRE.into(),
+        to_unresolved_id(expr_name::REQUIRE.into(), parser.unresolved_mark).into(),
+        to_unresolved_id(expr_name::REQUIRE.into(), parser.unresolved_mark).into(),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE.into(),
-        expr_name::REQUIRE_RESOLVE.into(),
+        IdOrName::Name(expr_name::REQUIRE_RESOLVE.into()),
+        IdOrName::Name(expr_name::REQUIRE_RESOLVE.into()),
         Some(true),
         start,
         end,
       )),
       expr_name::REQUIRE_RESOLVE_WEAK => Some(eval::evaluate_to_identifier(
-        expr_name::REQUIRE_RESOLVE_WEAK.into(),
-        expr_name::REQUIRE_RESOLVE_WEAK.into(),
+        IdOrName::Name(expr_name::REQUIRE_RESOLVE_WEAK.into()),
+        IdOrName::Name(expr_name::REQUIRE_RESOLVE_WEAK.into()),
         Some(true),
         start,
         end,

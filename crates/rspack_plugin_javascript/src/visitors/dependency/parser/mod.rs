@@ -15,7 +15,7 @@ use std::{
 };
 
 use bitflags::bitflags;
-pub use call_hooks_name::CallHooksName;
+pub use call_hooks_name::CallHooks;
 use rspack_cacheable::{
   cacheable,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
@@ -35,11 +35,11 @@ use swc_core::{
   common::{BytePos, Mark, Span, Spanned, comments::Comments},
   ecma::{
     ast::{
-      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
+      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Id, Ident, Lit, MemberExpr,
       MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
       Pat, Program, RestPat, Stmt, ThisExpr,
     },
-    utils::ExprFactory,
+    utils::{ExprFactory, ident::IdentLike},
   },
 };
 
@@ -48,16 +48,23 @@ use crate::{
   dependency::{DependencyBranchGuard, local_module::LocalModule, set_dependency_branch_guards},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
-    self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
-    JavascriptParserPlugin, RequireReferencesState, inner_graph::state::InnerGraphState,
+    self,
+    ImportsReferencesState,
+    // InnerGraphParserPlugin,
+    JavaScriptParserPluginDrive,
+    JavascriptParserPlugin,
+    RequireReferencesState,
+    inner_graph::state::InnerGraphState,
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    ScanDependenciesResult,
+    ScanDependenciesResult, TagInfoId,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
     scope_info::{
-      ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
+      ScopeInfoDB, ScopeInfoId, TagInfo, VariableInfo, VariableInfoFlags, VariableInfoId,
     },
+    to_custom_id,
+    var_info::{DefinitionsDB, IdOrName, THIS_ID},
   },
 };
 
@@ -121,7 +128,7 @@ pub enum MemberExpressionInfo<'ast> {
 #[derive(Debug)]
 pub struct CallExpressionInfo<'ast> {
   pub call: &'ast CallExpr,
-  pub root_info: ExportedVariableInfo,
+  pub root_info: IdOrName,
   pub callee_members: AtomMembers,
   pub members: AtomMembers,
   pub members_optionals: OptionalMembers,
@@ -130,8 +137,8 @@ pub struct CallExpressionInfo<'ast> {
 
 #[derive(Debug)]
 pub struct ExpressionExpressionInfo {
-  pub name: String,
-  pub root_info: ExportedVariableInfo,
+  pub name: IdOrName,
+  pub root_info: IdOrName,
   pub members: AtomMembers,
   pub members_optionals: OptionalMembers,
   pub member_ranges: MemberRanges,
@@ -162,13 +169,13 @@ fn object_and_members_to_name(object: &Atom, members_reversed: &[impl AsRef<str>
 }
 
 pub trait RootName {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name(&self) -> Option<IdOrName> {
     None
   }
 }
 
 impl RootName for Expr {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name(&self) -> Option<IdOrName> {
     match self {
       Expr::Ident(ident) => ident.get_root_name(),
       Expr::This(this) => this.get_root_name(),
@@ -179,7 +186,7 @@ impl RootName for Expr {
 }
 
 impl RootName for ExprRef<'_> {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name(&self) -> Option<IdOrName> {
     match self {
       ExprRef::Ident(ident) => ident.get_root_name(),
       ExprRef::This(this) => this.get_root_name(),
@@ -190,22 +197,22 @@ impl RootName for ExprRef<'_> {
 }
 
 impl RootName for ThisExpr {
-  fn get_root_name(&self) -> Option<Atom> {
-    Some("this".into())
+  fn get_root_name(&self) -> Option<IdOrName> {
+    Some(IdOrName::Name("this".into()))
   }
 }
 
 impl RootName for Ident {
-  fn get_root_name(&self) -> Option<Atom> {
-    Some(self.sym.clone())
+  fn get_root_name(&self) -> Option<IdOrName> {
+    Some(IdOrName::Id(self.to_id()))
   }
 }
 
 impl RootName for MetaPropExpr {
-  fn get_root_name(&self) -> Option<Atom> {
+  fn get_root_name(&self) -> Option<IdOrName> {
     match self.kind {
-      MetaPropKind::NewTarget => Some("new.target".into()),
-      MetaPropKind::ImportMeta => Some("import.meta".into()),
+      MetaPropKind::NewTarget => Some(IdOrName::Name("new.target".into())),
+      MetaPropKind::ImportMeta => Some(IdOrName::Name("import.meta".into())),
     }
   }
 }
@@ -370,7 +377,9 @@ pub struct JavascriptParser<'parser> {
   pub(crate) module_layer: Option<&'parser ModuleLayer>,
   pub module_identifier: &'parser ModuleIdentifier,
   pub(crate) plugin_drive: Rc<JavaScriptParserPluginDrive>,
+  pub(crate) unresolved_mark: Mark,
   // ===== states =======
+  pub(crate) definitions_db2: DefinitionsDB,
   pub(crate) definitions_db: ScopeInfoDB,
   pub(crate) definitions: ScopeInfoId,
   pub(crate) top_level_scope: TopLevelScope,
@@ -524,12 +533,12 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(parser_plugin::ConstValuePlugin::new(
       inline_exports,
     )));
-    if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
-        compiler_options.experiments.pure_functions,
-      )));
-    }
+    // if compiler_options.optimization.inner_graph {
+    //   plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
+    //     unresolved_mark,
+    //     compiler_options.experiments.pure_functions,
+    //   )));
+    // }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
@@ -557,6 +566,8 @@ impl<'parser> JavascriptParser<'parser> {
       top_level_scope: TopLevelScope::Top,
       is_esm: matches!(module_type, ModuleType::JsEsm),
       in_tagged_template_tag: false,
+      unresolved_mark,
+      definitions_db2: Default::default(),
       definitions: db.create(),
       definitions_db: db,
       plugin_drive,
@@ -592,10 +603,10 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn into_results(mut self) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
     if self.errors.is_empty() {
-      InnerGraphParserPlugin::finalize_dependency_usage(
-        &mut self.inner_graph,
-        &mut self.dependencies,
-      );
+      // InnerGraphParserPlugin::finalize_dependency_usage(
+      //   &mut self.inner_graph,
+      //   &mut self.dependencies,
+      // );
       Ok(ScanDependenciesResult {
         dependencies: self.dependencies,
         blocks: self.blocks,
@@ -764,210 +775,11 @@ impl<'parser> JavascriptParser<'parser> {
     self.module_layer
   }
 
-  pub fn get_variable_info(&mut self, name: &Atom) -> Option<&VariableInfo> {
-    let id = self.definitions_db.get(self.definitions, name)?;
-    Some(self.definitions_db.expect_get_variable(id))
-  }
-
-  fn get_tag_data_by_id<Data: TagInfoData>(
-    &self,
-    tag_info_id: TagInfoId,
-    tag: &'static str,
-  ) -> Option<&Data> {
-    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
-
-    while let Some(cur_tag_info) = tag_info {
-      if cur_tag_info.tag == tag {
-        return cur_tag_info
-          .data
-          .as_deref()
-          .map(|data| TagInfoData::downcast_ref(data));
-      }
-      tag_info = cur_tag_info
-        .next
-        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
-    }
-
-    None
-  }
-
-  pub fn get_tag_data<Data: TagInfoData>(
-    &mut self,
-    name: &Atom,
-    tag: &'static str,
-  ) -> Option<&Data> {
-    self
-      .get_variable_info(name)
-      .and_then(|variable_info| variable_info.tag_info)
-      .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
-  }
-
-  pub fn get_variable_tag_data<Data: TagInfoData>(
-    &self,
-    id: VariableInfoId,
-    tag: &'static str,
-  ) -> Option<&Data> {
-    self
-      .definitions_db
-      .expect_get_variable(id)
-      .tag_info
-      .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
-  }
-
-  pub fn get_free_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
-    let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
-    };
-    let Some(name) = &info.name else {
-      return None;
-    };
-    if !info.is_free() {
-      return None;
-    }
-    Some(NameInfo {
-      name,
-      info: Some(info),
-    })
-  }
-
-  pub fn get_name_info_from_variable<'a>(&'a mut self, name: &'a Atom) -> Option<NameInfo<'a>> {
-    let Some(info) = self.get_variable_info(name) else {
-      return Some(NameInfo { name, info: None });
-    };
-    let Some(name) = &info.name else {
-      return None;
-    };
-    if !info.is_free() && !info.is_tagged() {
-      return None;
-    }
-    Some(NameInfo {
-      name,
-      info: Some(info),
-    })
-  }
-
   pub fn get_all_variables_from_current_scope(
     &self,
   ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
     let scope = self.definitions_db.expect_get_scope(self.definitions);
     scope.variables()
-  }
-
-  pub fn define_variable(&mut self, name: Atom) {
-    let definitions = self.definitions;
-    if let Some(variable_info) = self.get_variable_info(&name)
-      && variable_info.tag_info.is_some()
-      && definitions == variable_info.declared_scope
-    {
-      return;
-    }
-    let info = VariableInfo::create(
-      &mut self.definitions_db,
-      definitions,
-      None,
-      VariableInfoFlags::NORMAL,
-      None,
-    );
-    self.definitions_db.set(definitions, name, info);
-  }
-
-  pub fn set_variable(&mut self, name: Atom, variable: ExportedVariableInfo) {
-    let scope_id = self.definitions;
-    match variable {
-      ExportedVariableInfo::Name(variable) => {
-        if name == variable {
-          self.definitions_db.delete(scope_id, &name);
-        } else {
-          let variable = VariableInfo::create(
-            &mut self.definitions_db,
-            scope_id,
-            Some(variable),
-            VariableInfoFlags::FREE,
-            None,
-          );
-          self.definitions_db.set(scope_id, name, variable);
-        }
-      }
-      ExportedVariableInfo::VariableInfo(variable) => {
-        self.definitions_db.set(scope_id, name, variable);
-      }
-    }
-  }
-
-  fn undefined_variable(&mut self, name: &Atom) {
-    self.definitions_db.delete(self.definitions, name)
-  }
-
-  pub fn tag_variable<Data: TagInfoData>(
-    &mut self,
-    name: Atom,
-    tag: &'static str,
-    data: Option<Data>,
-  ) {
-    self.tag_variable_impl(name, tag, data, None);
-  }
-
-  pub fn tag_variable_with_flags<Data: TagInfoData>(
-    &mut self,
-    name: Atom,
-    tag: &'static str,
-    data: Option<Data>,
-    flags: VariableInfoFlags,
-  ) {
-    self.tag_variable_impl(name, tag, data, Some(flags));
-  }
-
-  fn tag_variable_impl<Data: TagInfoData>(
-    &mut self,
-    name: Atom,
-    tag: &'static str,
-    data: Option<Data>,
-    flags: Option<VariableInfoFlags>,
-  ) {
-    let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let data = data.map(|data| TagInfoData::into_any(data));
-    let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
-      let old_info = self.definitions_db.expect_get_variable(old_info_id);
-      if let Some(old_tag_info) = old_info.tag_info {
-        let declared_scope = old_info.declared_scope;
-        // FIXME: remove `.clone`
-        let name = old_info.name.clone();
-        let flags = old_info.flags | flags;
-        let tag_info = Some(TagInfo::create(
-          &mut self.definitions_db,
-          tag,
-          data,
-          Some(old_tag_info),
-        ));
-        VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
-          name,
-          flags,
-          tag_info,
-        )
-      } else {
-        let declared_scope = old_info.declared_scope;
-        let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
-        VariableInfo::create(
-          &mut self.definitions_db,
-          declared_scope,
-          Some(name.clone()),
-          flags,
-          tag_info,
-        )
-      }
-    } else {
-      let tag_info = Some(TagInfo::create(&mut self.definitions_db, tag, data, None));
-      VariableInfo::create(
-        &mut self.definitions_db,
-        self.definitions,
-        Some(name.clone()),
-        flags,
-        tag_info,
-      )
-    };
-    self.definitions_db.set(self.definitions, name, new_info);
   }
 
   fn _get_member_expression_info<'ast>(
@@ -986,26 +798,48 @@ impl<'parser> JavascriptParser<'parser> {
         let callee = expr.callee.as_expr()?;
         let (root_name, mut root_members) = if let Some(member) = callee.as_member() {
           let extracted = self.extract_member_expression_chain(ExprRef::Member(member));
-          let root_name = extracted.object.get_root_name()?;
+          let root_name = match &extracted.object {
+            ExprRef::MetaProp(expr) => match expr.kind {
+              MetaPropKind::NewTarget => IdOrName::Name("new.target".into()),
+              MetaPropKind::ImportMeta => IdOrName::Name("import.meta".into()),
+            },
+            ExprRef::Ident(ident) => ident.to_id().into(),
+            ExprRef::This(_) => THIS_ID.clone().into(),
+            _ => return None,
+          };
           (root_name, extracted.members)
         } else {
-          (callee.get_root_name()?, AtomMembers::new())
+          let root_name = match &**callee {
+            Expr::MetaProp(expr) => match expr.kind {
+              MetaPropKind::NewTarget => IdOrName::Name("new.target".into()),
+              MetaPropKind::ImportMeta => IdOrName::Name("import.meta".into()),
+            },
+            Expr::Ident(ident) => ident.to_id().into(),
+            Expr::This(_) => THIS_ID.clone().into(),
+            _ => return None,
+          };
+          (root_name, AtomMembers::new())
         };
-        let NameInfo {
-          info: root_info, ..
-        } = self.get_name_info_from_variable(&root_name)?;
+
+        let root_info = match &root_name {
+          IdOrName::Id(id) => {
+            if self.get_var_origin(id).is_some() {
+              Some(id)
+            } else {
+              return None;
+            }
+          }
+          IdOrName::Name(name) => None,
+        };
 
         root_members.reverse();
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
+        let fallback = root_name.clone();
         Some(MemberExpressionInfo::Call(CallExpressionInfo {
           call: expr,
-          root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
-          ),
+          root_info: root_info.map_or_else(|| fallback, |i| IdOrName::Id(i.clone())),
           callee_members: root_members,
           members,
           members_optionals,
@@ -1016,24 +850,41 @@ impl<'parser> JavascriptParser<'parser> {
         if !allowed_types.contains(AllowedMemberTypes::Expression) {
           return None;
         }
-        let root_name = object.get_root_name()?;
+        let root_name = match object {
+          ExprRef::MetaProp(expr) => match expr.kind {
+            MetaPropKind::NewTarget => IdOrName::Name("new.target".into()),
+            MetaPropKind::ImportMeta => IdOrName::Name("import.meta".into()),
+          },
+          ExprRef::Ident(ident) => ident.to_id().into(),
+          ExprRef::This(_) => THIS_ID.clone().into(),
+          _ => unreachable!(),
+        };
+        let (resolved_root, root_info) = match &root_name {
+          IdOrName::Id(id) => {
+            if let Some(origin) = self.get_var_origin(id) {
+              (origin.name().clone(), Some(id))
+            } else {
+              return None;
+            }
+          }
+          IdOrName::Name(name) => (name.clone(), None),
+        };
 
-        let NameInfo {
-          name: resolved_root,
-          info: root_info,
-        } = self.get_name_info_from_variable(&root_name)?;
-
-        let name = object_and_members_to_name(resolved_root, &members);
+        let name = if members.is_empty() {
+          root_info.map_or_else(
+            || IdOrName::Name(resolved_root.clone()),
+            |id| IdOrName::Id(id.clone()),
+          )
+        } else {
+          IdOrName::Name(object_and_members_to_name(&resolved_root, &members).into())
+        };
         members.reverse();
         members_optionals.reverse();
         member_ranges.reverse();
-        let root_name_for_info = root_name.clone();
+        let fallback = root_name.clone();
         Some(MemberExpressionInfo::Expression(ExpressionExpressionInfo {
           name,
-          root_info: root_info.map_or_else(
-            || ExportedVariableInfo::Name(root_name_for_info),
-            |i| ExportedVariableInfo::VariableInfo(i.id()),
-          ),
+          root_info: root_info.map_or_else(|| fallback, |i| IdOrName::Id(i.clone())),
           members,
           members_optionals,
           member_ranges,
@@ -1146,8 +997,8 @@ impl<'parser> JavascriptParser<'parser> {
   {
     let drive = self.plugin_drive.clone();
     if !ident
-      .sym
-      .call_hooks_name(self, |parser, for_name| {
+      .to_id()
+      .call_hooks(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
       .unwrap_or_default()
@@ -1385,13 +1236,6 @@ impl<'parser> JavascriptParser<'parser> {
     let scope = self.definitions_db.expect_get_scope(self.definitions);
     scope.is_strict
   }
-
-  pub fn is_variable_defined(&mut self, name: &Atom) -> bool {
-    let Some(info) = self.get_variable_info(name) else {
-      return false;
-    };
-    !info.is_free()
-  }
 }
 
 impl JavascriptParser<'_> {
@@ -1444,80 +1288,42 @@ impl JavascriptParser<'_> {
       ),
       Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
-        let name = &ident.sym;
-        if name.eq("undefined") {
+        if ident.sym.eq("undefined") {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
           eval.set_undefined();
           return Some(eval);
         }
         let drive = self.plugin_drive.clone();
-        name
-          .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.real_hi())
-          })
-          .or_else(|| {
-            let info = self.get_variable_info(name);
-            if let Some(info) = info {
-              if let Some(name) = &info.name
-                && (info.is_free() || info.is_tagged())
-              {
-                let mut eval =
-                  BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
-                eval.set_identifier(
-                  name.to_owned(),
-                  ExportedVariableInfo::VariableInfo(info.id()),
-                  None,
-                  None,
-                  None,
-                );
-                Some(eval)
-              } else {
-                None
-              }
-            } else {
-              let mut eval =
-                BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
-              eval.set_identifier(
-                ident.sym.clone(),
-                ExportedVariableInfo::Name(name.clone()),
-                None,
-                None,
-                None,
-              );
-              Some(eval)
-            }
-          })
+        let id = ident.to_id();
+        id.call_hooks(self, |parser, name| {
+          drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.real_hi())
+        })
+        .or_else(|| {
+          if let Some(origin) = self.get_var_origin(&id) {
+            let mut eval =
+              BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
+            eval.set_identifier(origin.clone(), id.into(), None, None, None);
+            return Some(eval);
+          }
+          None
+        })
       }
       Expr::This(this) => {
         let drive = self.plugin_drive.clone();
-        let default_eval = || {
-          let mut eval =
-            BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.real_hi());
-          eval.set_identifier(
-            "this".into(),
-            ExportedVariableInfo::Name("this".into()),
-            None,
-            None,
-            None,
-          );
-          Some(eval)
-        };
-        let Some(info) = self.get_variable_info(&"this".into()) else {
-          // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
-          return drive
-            .evaluate_identifier(self, "this", this.span.real_lo(), this.span.real_hi())
-            .or_else(default_eval);
-        };
-        if let Some(name) = &info.name
-          && (info.is_free() || info.is_tagged())
-        {
-          let name = name.clone();
-          return drive
-            .evaluate_identifier(self, &name, this.span.real_lo(), this.span.real_hi())
-            .or_else(default_eval);
-        }
-        None
+        let id = THIS_ID.clone();
+        id.call_hooks(self, |parser, name| {
+          drive.evaluate_identifier(parser, name, this.span.real_lo(), this.span.real_hi())
+        })
+        .or_else(|| {
+          if let Some(origin) = self.get_var_origin(&id) {
+            let mut eval =
+              BasicEvaluatedExpression::with_range(this.span.real_lo(), this.span.real_hi());
+            eval.set_identifier(origin.clone(), id.into(), None, None, None);
+            return Some(eval);
+          }
+          None
+        })
       }
       _ => None,
     }

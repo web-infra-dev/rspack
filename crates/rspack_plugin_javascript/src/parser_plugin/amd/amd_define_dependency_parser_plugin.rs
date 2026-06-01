@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap;
 use swc_core::{
   common::Spanned,
   ecma::{
-    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit, Pat},
+    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Id, Lit, Pat},
     utils::ExprExt,
   },
 };
@@ -27,6 +27,7 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
+    to_unresolved_id, var_info::IdOrName,
   },
 };
 
@@ -105,8 +106,8 @@ fn get_lit_str(expr: &Expr) -> Option<Atom> {
   })
 }
 
-fn get_ident_name(pat: &Pat) -> Atom {
-  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
+fn get_ident(pat: &Pat) -> Option<Id> {
+  pat.as_ident().map(|ident| ident.to_id())
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -432,7 +433,7 @@ impl AMDDefineDependencyParserPlugin {
 
     // TODO: ensure all fn_params are identifiers
 
-    let mut fn_renames = FxHashMap::default();
+    let mut fn_renames: FxHashMap<Id, IdOrName> = FxHashMap::default();
     if let Some(array) = array {
       let mut identifiers = FxHashMap::default();
       let param = parser.evaluate_expression(array);
@@ -448,8 +449,13 @@ impl AMDDefineDependencyParserPlugin {
           }
           let idx = i - fn_params_offset;
           i += 1;
-          if let Some(name) = identifiers.get(&idx) {
-            fn_renames.insert(get_ident_name(param), name.clone());
+          if let Some(name) = identifiers.get(&idx)
+            && let Some(ident) = get_ident(param)
+          {
+            fn_renames.insert(
+              ident,
+              to_unresolved_id(name.clone(), parser.unresolved_mark).into(),
+            );
             return false;
           }
           true
@@ -463,8 +469,13 @@ impl AMDDefineDependencyParserPlugin {
         }
         let idx = i - fn_params_offset;
         i += 1;
-        if idx < RESERVED_NAMES.len() {
-          fn_renames.insert(get_ident_name(param), RESERVED_NAMES[idx].into());
+        if idx < RESERVED_NAMES.len()
+          && let Some(ident) = get_ident(param)
+        {
+          fn_renames.insert(
+            ident,
+            to_unresolved_id(RESERVED_NAMES[idx].into(), parser.unresolved_mark).into(),
+          );
           return false;
         }
         true
@@ -477,12 +488,8 @@ impl AMDDefineDependencyParserPlugin {
         true,
         fn_params.expect("fn_params should not be None").into_iter(),
         |parser| {
-          for (name, rename_identifier) in fn_renames.iter() {
-            let variable = parser
-              .get_variable_info(rename_identifier)
-              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
-            parser.set_variable(name.clone(), variable);
+          for (id, rename_identifier) in fn_renames.iter() {
+            parser.set_var_origin(id, rename_identifier.clone());
           }
 
           parser.in_try = in_try;
@@ -533,12 +540,8 @@ impl AMDDefineDependencyParserPlugin {
                   .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
               }),
             |parser| {
-              for (name, rename_identifier) in fn_renames.iter() {
-                let variable = parser
-                  .get_variable_info(rename_identifier)
-                  .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-                  .unwrap_or(ExportedVariableInfo::Name(rename_identifier.clone()));
-                parser.set_variable(name.clone(), variable);
+              for (id, rename_identifier) in fn_renames.iter() {
+                parser.set_var_origin(id, rename_identifier.clone());
               }
 
               parser.in_try = in_try;

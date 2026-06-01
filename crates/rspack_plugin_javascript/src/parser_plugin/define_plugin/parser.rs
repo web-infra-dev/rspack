@@ -162,11 +162,11 @@ impl JavascriptParserPlugin for DefineParserPlugin {
       && (self
         .walk_data
         .define_record
-        .contains_key(info.name.as_str())
+        .contains_key(info.name.name().as_str())
         || self
           .walk_data
           .object_define_record
-          .contains_key(info.name.as_str()))
+          .contains_key(info.name.name().as_str()))
     {
       return Some(true);
     }

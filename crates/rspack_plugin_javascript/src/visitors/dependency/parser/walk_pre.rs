@@ -119,7 +119,7 @@ impl JavascriptParser<'_> {
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(ident.sym.clone());
+      // TODO
     }
   }
 
@@ -181,7 +181,7 @@ impl JavascriptParser<'_> {
         .unwrap_or_default()
       {
         self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
-          this.define_variable(ident.sym.clone());
+          // TODO
         });
       }
     }

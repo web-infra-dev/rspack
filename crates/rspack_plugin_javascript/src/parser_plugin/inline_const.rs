@@ -2,7 +2,7 @@ use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::ryu_js;
 use swc_core::ecma::{
-  ast::{ObjectPatProp, Pat, VarDeclarator},
+  ast::{Id, ObjectPatProp, Pat, VarDeclarator},
   atoms::Atom,
 };
 
@@ -67,7 +67,7 @@ impl JavascriptParserPlugin for ConstValuePlugin {
     // Propagate inlinable constants. Help the rest const variable declarations that referencing the
     // inlinable constants to evaluate to an inlinable constants.
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = ConstValueData::downcast(tag_info.data.clone()?);
     let value = match data.value {
@@ -111,7 +111,7 @@ impl JavascriptParserPlugin for ConstValuePlugin {
       } else {
         ConstValue::NoInlinable
       };
-      tag_const_variable(parser, name.id.sym.clone(), const_value);
+      tag_const_variable(parser, &name.id.to_id(), const_value);
     } else {
       tag_const_pattern(parser, &declarator.name);
     }
@@ -120,19 +120,14 @@ impl JavascriptParserPlugin for ConstValuePlugin {
   }
 }
 
-fn tag_const_variable(parser: &mut JavascriptParser, name: Atom, value: ConstValue) {
-  parser.tag_variable_with_flags(
-    name,
-    INLINABLE_CONST_TAG,
-    Some(ConstValueData { value }),
-    VariableInfoFlags::NORMAL,
-  );
+fn tag_const_variable(parser: &mut JavascriptParser, id: &Id, value: ConstValue) {
+  parser.tag_var_no_alias(&id, INLINABLE_CONST_TAG, Some(ConstValueData { value }));
 }
 
 fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
   match pattern {
     Pat::Ident(ident) => {
-      tag_const_variable(parser, ident.id.sym.clone(), ConstValue::NoInlinable);
+      tag_const_variable(parser, &ident.id.to_id(), ConstValue::NoInlinable);
     }
     Pat::Array(array) => {
       for elem in array.elems.iter().flatten() {
@@ -147,7 +142,7 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
         match prop {
           ObjectPatProp::KeyValue(prop) => tag_const_pattern(parser, &prop.value),
           ObjectPatProp::Assign(prop) => {
-            tag_const_variable(parser, prop.key.sym.clone(), ConstValue::NoInlinable);
+            tag_const_variable(parser, &prop.key.to_id(), ConstValue::NoInlinable);
           }
           ObjectPatProp::Rest(rest) => tag_const_pattern(parser, &rest.arg),
         }

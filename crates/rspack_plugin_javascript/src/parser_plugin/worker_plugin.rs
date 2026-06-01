@@ -364,8 +364,8 @@ impl JavascriptParserPlugin for WorkerPlugin {
     if let Some(ident) = decl.name.as_ident()
       && self.inner.pattern_syntax.contains_key(ident.sym.as_str())
     {
-      parser.tag_variable(
-        ident.sym.clone(),
+      parser.tag_var(
+        &ident.id.to_id(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -378,8 +378,8 @@ impl JavascriptParserPlugin for WorkerPlugin {
 
   fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
     if self.inner.pattern_syntax.contains_key(for_name) {
-      parser.tag_variable(
-        ident.sym.clone(),
+      parser.tag_var(
+        &ident.to_id(),
         WORKER_SPECIFIER_TAG,
         Some(WorkerSpecifierData {
           key: ident.sym.clone(),
@@ -403,7 +403,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
       return None;
     }
     let tag_info = parser
-      .definitions_db
+      .definitions_db2
       .expect_get_tag_info(parser.current_tag_info?);
     let data = WorkerSpecifierData::downcast(tag_info.data.clone()?);
     if let Some(value) = self.inner.pattern_syntax.get(data.key.as_str())
@@ -440,7 +440,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
-        .definitions_db
+        .definitions_db2
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");
@@ -503,7 +503,7 @@ impl JavascriptParserPlugin for WorkerPlugin {
   ) -> Option<bool> {
     if for_name == ESM_SPECIFIER_TAG {
       let tag_info = parser
-        .definitions_db
+        .definitions_db2
         .expect_get_tag_info(parser.current_tag_info?);
       let settings = ESMSpecifierData::downcast(tag_info.data.clone()?);
       let ids = settings.ids.iter().map(|id| id.as_str()).join(".");

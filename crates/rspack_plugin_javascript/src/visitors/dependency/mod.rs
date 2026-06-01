@@ -15,7 +15,7 @@ use swc_core::common::{BytePos, Mark, comments::Comments};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
-    AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
+    AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooks,
     DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
     JavascriptParser, MemberExpressionInfo, MemberRanges, OptionalMembers, RootName,
     ScopeTerminated, TagInfoData, TopLevelScope, ast::*, estree::*,

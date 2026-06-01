@@ -100,7 +100,7 @@ pub fn eval_tagged_tpl_expression<'a>(
   tagged_tpl: &'a TaggedTpl,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let tag = scanner.evaluate_expression(&tagged_tpl.tag);
-  if !tag.is_identifier() || tag.identifier() != "String.raw" {
+  if !tag.is_identifier() || tag.identifier().name() != "String.raw" {
     return None;
   };
   let kind = TemplateStringKind::Raw;

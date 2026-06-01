@@ -2,7 +2,7 @@ use swc_core::{
   atoms::Atom,
   common::Span,
   ecma::ast::{
-    AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Ident,
+    AssignExpr, AwaitExpr, BinExpr, CallExpr, ClassMember, CondExpr, Expr, ForOfStmt, Id, Ident,
     IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program, ThisExpr,
     UnaryExpr, VarDeclarator,
   },
@@ -169,8 +169,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
-    Statement, VariableDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser, Statement,
+    VariableDeclaration, var_info::IdOrName,
   },
 };
 
@@ -398,7 +398,7 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
   fn unhandled_expression_member_chain(
     &self,
     _parser: &mut JavascriptParser,
-    _root_info: &ExportedVariableInfo,
+    _root_info: &IdOrName,
     _expr: &MemberExpr,
   ) -> Option<bool> {
     None
@@ -563,7 +563,7 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
   fn meta_property(
     &self,
     _parser: &mut JavascriptParser,
-    _root_name: &Atom,
+    _root_name: &str,
     _span: Span,
   ) -> Option<bool> {
     None
@@ -584,7 +584,7 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
     _statement: &ImportDecl,
     _source: &Atom,
     _export_name: Option<&Atom>,
-    _identifier_name: &Atom,
+    _local: &Id,
   ) -> Option<bool> {
     None
   }
@@ -618,7 +618,7 @@ Please annotate your `impl JavascriptParserPlugin for ...` block with `#[rspack_
     &self,
     _parser: &mut JavascriptParser,
     _statement: ExportLocal,
-    _local_id: &Atom,
+    _local_id: &Id,
     _export_name: &Atom,
     _export_name_span: Span,
   ) -> Option<bool> {

@@ -14,7 +14,7 @@ use url::Url;
 
 use super::{JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation};
 use crate::{
-  InnerGraphParserPlugin,
+  // InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},
   magic_comment::try_extract_magic_comment,
   visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
@@ -163,7 +163,7 @@ impl JavascriptParserPlugin for URLPlugin {
       );
       let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
-      InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_idx));
+      // InnerGraphParserPlugin::on_usage(parser, InnerGraphUsageOperation::URLDependency(dep_id));
       return Some(true);
     }
 
@@ -213,8 +213,8 @@ impl JavascriptParserPlugin for URLPlugin {
 
   fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
     let expr = expr.as_new()?;
-    let callee = expr.callee.as_ident()?;
-    if parser.get_free_info_from_variable(&callee.sym).is_none() || !callee.sym.eq("URL") {
+    let callee = expr.callee.as_ident()?.to_id();
+    if parser.is_free_var(&callee) && parser.get_var_name(&callee) == "URL" {
       return None;
     }
     get_url_request(parser, expr)?;

@@ -18,7 +18,7 @@ use swc_core::{
       KeyValuePatProp, ModuleDecl, ModuleExportName, ModuleItem, ObjectPat, ObjectPatProp, Pat,
       Program, PropName, RestPat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr,
     },
-    utils::{ExprCtx, ExprExt},
+    utils::{ExprCtx, ExprExt, ident::IdentLike},
     visit::{Visit, VisitWith},
   },
 };
@@ -949,7 +949,7 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
+  if parser.is_defined_var(&ident.to_id()) || allow_unresolved_marked {
     return ExplicitSideEffectsFreeCallee::Direct;
   }
 
@@ -961,16 +961,7 @@ fn try_extract_deferred_check(
   ident: Atom,
   span: Span,
 ) -> Option<DeferredPureCheck> {
-  let info = parser.get_variable_info(&ident)?;
-
-  let tag_info_id = info.tag_info?;
-  let tag_info = parser.definitions_db.expect_get_tag_info(tag_info_id);
-
-  if tag_info.tag != ESM_SPECIFIER_TAG {
-    return None;
-  }
-
-  let data = ESMSpecifierData::downcast(tag_info.data.clone()?);
+  let data = parser.get_tag_data::<ESMSpecifierData>(&ident.to_id(), ESM_SPECIFIER_TAG)?;
 
   parser
     .get_dependencies()

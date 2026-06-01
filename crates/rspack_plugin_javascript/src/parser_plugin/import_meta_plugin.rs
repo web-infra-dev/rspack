@@ -20,8 +20,8 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-    RootName, context_reg_exp, create_context_dependency, create_traceable_error, expr_name,
+    AllowedMemberTypes, ExprRef, JavascriptParser, MemberExpressionInfo, RootName, context_reg_exp,
+    create_context_dependency, create_traceable_error, expr_name, var_info::IdOrName,
   },
 };
 
@@ -233,7 +233,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       && let Some(meta_expr) = member_expr.obj.as_meta_prop()
       && meta_expr
         .get_root_name()
-        .is_some_and(|name| name == expr_name::IMPORT_META)
+        .is_some_and(|name| matches!(name, IdOrName::Name(name) if name == expr_name::IMPORT_META))
       && (match &member_expr.prop {
         MemberProp::Ident(_) => true,
         MemberProp::Computed(computed) => computed.expr.is_lit(),
@@ -264,8 +264,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
       && for_name == expr_name::IMPORT_META_RESOLVE
     {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_RESOLVE.into(),
-        expr_name::IMPORT_META_RESOLVE.into(),
+        IdOrName::Name(expr_name::IMPORT_META_RESOLVE.into()),
+        IdOrName::Name(expr_name::IMPORT_META_RESOLVE.into()),
         Some(true),
         start,
         end,
@@ -383,7 +383,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -510,49 +510,46 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
   fn unhandled_expression_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    root_info: &ExportedVariableInfo,
+    root_info: &IdOrName,
     expr: &swc_core::ecma::ast::MemberExpr,
   ) -> Option<bool> {
-    match root_info {
-      ExportedVariableInfo::Name(root) => {
-        if root == expr_name::IMPORT_META {
-          if matches!(self.0, ImportMeta::PreserveUnknown) {
-            return Some(true);
-          }
-          let members = parser
-            .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
-            .and_then(|info| match info {
-              MemberExpressionInfo::Expression(res) => Some(res),
-              _ => None,
-            });
-
-          let dep = if let Some(members) = members {
-            if members.members.get(1).is_some()
-              && members
-                .members_optionals
-                .get(1)
-                .is_some_and(|optional| *optional)
-            {
-              ConstDependency::new(expr.span().into(), "undefined".into())
-            } else {
-              ConstDependency::new(
-                expr.span().into(),
-                self
-                  .import_meta_unknown_property(
-                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
-                  )
-                  .into(),
-              )
-            }
-          } else {
-            ConstDependency::new(expr.span().into(), "undefined".into())
-          };
-
-          parser.add_presentational_dependency(Box::new(dep));
-          return Some(true);
-        }
+    if let IdOrName::Name(root_name) = root_info
+      && root_name == expr_name::IMPORT_META
+    {
+      if matches!(self.0, ImportMeta::PreserveUnknown) {
+        return Some(true);
       }
-      ExportedVariableInfo::VariableInfo(_) => (),
+      let members = parser
+        .get_member_expression_info(ExprRef::Member(expr), AllowedMemberTypes::Expression)
+        .and_then(|info| match info {
+          MemberExpressionInfo::Expression(res) => Some(res),
+          _ => None,
+        });
+
+      let dep = if let Some(members) = members {
+        if members.members.get(1).is_some()
+          && members
+            .members_optionals
+            .get(1)
+            .is_some_and(|optional| *optional)
+        {
+          ConstDependency::new(expr.span().into(), "undefined".into())
+        } else {
+          ConstDependency::new(
+            expr.span().into(),
+            self
+              .import_meta_unknown_property(
+                &members.members.iter().map(|x| x.to_string()).collect_vec(),
+              )
+              .into(),
+          )
+        }
+      } else {
+        ConstDependency::new(expr.span().into(), "undefined".into())
+      };
+
+      parser.add_presentational_dependency(Box::new(dep));
+      return Some(true);
     }
     None
   }
@@ -566,7 +563,7 @@ impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();

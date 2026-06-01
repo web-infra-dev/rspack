@@ -7,7 +7,7 @@ use swc_core::{
   ecma::ast::{
     BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
     DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
-    ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function,
+    ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function, Id,
     Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt,
     TryStmt, UsingDecl, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
   },

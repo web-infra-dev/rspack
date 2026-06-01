@@ -41,14 +41,14 @@ impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
       .map(|(name, _)| Atom::new(name))
       .collect();
     for name in variables {
-      if parser.is_variable_defined(&name) {
-        parser
-          .build_info
-          .top_level_declarations
-          .as_mut()
-          .expect("must have value")
-          .insert(name);
-      }
+      // if parser.is_defined_var(&name) {
+      //   parser
+      //     .build_info
+      //     .top_level_declarations
+      //     .as_mut()
+      //     .expect("must have value")
+      //     .insert(name);
+      // }
     }
     None
   }

@@ -4,7 +4,7 @@ use swc_core::ecma::ast::MemberExpr;
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier},
-  visitors::{JavascriptParser, expr_name},
+  visitors::{JavascriptParser, expr_name, to_unresolved_id, var_info::IdOrName},
 };
 
 pub struct CommonJsPlugin;
@@ -13,15 +13,15 @@ pub struct CommonJsPlugin;
 impl JavascriptParserPlugin for CommonJsPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::MODULE_HOT {
       Some(evaluate_to_identifier(
-        expr_name::MODULE_HOT.into(),
-        expr_name::MODULE.into(),
+        IdOrName::Name(expr_name::MODULE_HOT.into()),
+        to_unresolved_id(expr_name::MODULE.into(), parser.unresolved_mark).into(),
         None,
         start,
         end,

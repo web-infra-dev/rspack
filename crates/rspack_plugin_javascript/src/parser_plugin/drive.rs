@@ -2,7 +2,7 @@ use swc_core::{
   atoms::Atom,
   common::Span,
   ecma::ast::{
-    AssignExpr, BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr,
+    AssignExpr, BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, Id, IfStmt, MemberExpr,
     OptChainExpr, UnaryExpr, UnaryOp, VarDeclarator,
   },
 };
@@ -13,8 +13,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
-    Statement, VariableDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, JavascriptParser, Statement,
+    VariableDeclaration, var_info::IdOrName,
   },
 };
 
@@ -727,7 +727,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn meta_property(
     &self,
     parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    root_name: &str,
     span: Span,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MetaProperty) {
@@ -743,7 +743,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
   fn unhandled_expression_member_chain(
     &self,
     parser: &mut JavascriptParser,
-    root_info: &ExportedVariableInfo,
+    root_info: &IdOrName,
     expr: &MemberExpr,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::UnhandledExpressionMemberChain) {
@@ -778,10 +778,10 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     statement: &swc_core::ecma::ast::ImportDecl,
     source: &swc_core::atoms::Atom,
     export_name: Option<&Atom>,
-    identifier_name: &Atom,
+    local: &Id,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::ImportSpecifier) {
-      let res = plugin.import_specifier(parser, statement, source, export_name, identifier_name);
+      let res = plugin.import_specifier(parser, statement, source, export_name, local);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -847,7 +847,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     &self,
     parser: &mut JavascriptParser,
     statement: ExportLocal,
-    local_id: &Atom,
+    local_id: &Id,
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {

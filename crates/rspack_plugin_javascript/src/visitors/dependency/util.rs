@@ -5,7 +5,8 @@ use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use swc_core::{
   atoms::Atom,
-  ecma::ast::{Expr, Lit, MemberExpr, OptChainBase},
+  common::{Mark, SyntaxContext},
+  ecma::ast::{Expr, Id, Lit, MemberExpr, OptChainBase},
 };
 
 use super::JavascriptParser;
@@ -35,6 +36,14 @@ pub mod expr_name {
   pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
   pub const IMPORT_META_CONTEXT: &str = "import.meta.webpackContext";
   pub const IMPORT_META_GLOB: &str = "import.meta.glob";
+}
+
+pub fn to_unresolved_id(name: Atom, unresolved_mark: Mark) -> Id {
+  (name, SyntaxContext::empty().apply_mark(unresolved_mark))
+}
+
+pub fn to_custom_id(name: Atom) -> Id {
+  (name, SyntaxContext::empty())
 }
 
 pub fn parse_order_string(x: &str) -> Option<i32> {

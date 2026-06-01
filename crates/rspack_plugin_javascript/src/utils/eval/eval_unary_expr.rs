@@ -7,7 +7,7 @@ use swc_core::{
 use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::JavascriptParserPlugin,
-  visitors::{CallHooksName, JavascriptParser, RootName},
+  visitors::{CallHooks, JavascriptParser, RootName},
 };
 
 #[inline]
@@ -17,7 +17,7 @@ fn eval_typeof<'a>(
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
-    && let Some(res) = ident.sym.call_hooks_name(parser, |parser, for_name| {
+    && let Some(res) = ident.to_id().call_hooks(parser, |parser, for_name| {
       parser
         .plugin_drive
         .clone()
@@ -27,7 +27,7 @@ fn eval_typeof<'a>(
     return Some(res);
   } else if let Some(meta_prop) = expr.arg.as_meta_prop()
     && let Some(res) = meta_prop.get_root_name().and_then(|name| {
-      name.call_hooks_name(parser, |parser, for_name| {
+      name.call_hooks(parser, |parser, for_name| {
         parser
           .plugin_drive
           .clone()
@@ -37,7 +37,7 @@ fn eval_typeof<'a>(
   {
     return Some(res);
   } else if let Some(member_expr) = expr.arg.as_member()
-    && let Some(res) = member_expr.call_hooks_name(parser, |parser, for_name| {
+    && let Some(res) = member_expr.call_hooks(parser, |parser, for_name| {
       parser
         .plugin_drive
         .clone()
@@ -46,7 +46,7 @@ fn eval_typeof<'a>(
   {
     return Some(res);
   } else if let Some(chain_expr) = expr.arg.as_opt_chain()
-    && let Some(res) = chain_expr.call_hooks_name(parser, |parser, for_name| {
+    && let Some(res) = chain_expr.call_hooks(parser, |parser, for_name| {
       parser
         .plugin_drive
         .clone()

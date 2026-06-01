@@ -8,7 +8,7 @@ use swc_core::{
 use crate::{
   JavascriptParserPlugin,
   utils::eval::{BasicEvaluatedExpression, evaluate_to_identifier, evaluate_to_string},
-  visitors::JavascriptParser,
+  visitors::{JavascriptParser, to_unresolved_id, var_info::IdOrName},
 };
 
 pub struct AMDParserPlugin;
@@ -141,15 +141,15 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == DEFINE_AMD {
       return Some(evaluate_to_identifier(
-        for_name.into(),
-        "define".into(),
+        IdOrName::Name(for_name.into()),
+        to_unresolved_id("define".into(), parser.unresolved_mark).into(),
         Some(true),
         start,
         end,
@@ -158,8 +158,8 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
     if for_name == REQUIRE_AMD {
       return Some(evaluate_to_identifier(
-        for_name.into(),
-        "require".into(),
+        IdOrName::Name(for_name.into()),
+        to_unresolved_id("require".into(), parser.unresolved_mark).into(),
         Some(true),
         start,
         end,

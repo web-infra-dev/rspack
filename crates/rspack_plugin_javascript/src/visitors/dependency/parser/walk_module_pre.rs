@@ -47,7 +47,7 @@ impl JavascriptParser<'_> {
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          let identifier_name = &named.local.sym;
+          let local = &named.local.to_id();
           let export_name = named
             .imported
             .as_ref()
@@ -58,30 +58,15 @@ impl JavascriptParser<'_> {
                 .as_atom()
                 .expect("ModuleExportName should be a valid utf8"),
             });
-          if drive
-            .import_specifier(self, decl, source, Some(export_name), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          drive.import_specifier(self, decl, source, Some(export_name), local);
         }
         ImportSpecifier::Default(default) => {
-          let identifier_name = &default.local.sym;
-          if drive
-            .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          let local = &default.local.to_id();
+          drive.import_specifier(self, decl, source, Some(&"default".into()), local);
         }
         ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = &namespace.local.sym;
-          if drive
-            .import_specifier(self, decl, source, None, identifier_name)
-            .unwrap_or_default()
-          {
-            self.define_variable(identifier_name.clone())
-          }
+          let local = &namespace.local.to_id();
+          drive.import_specifier(self, decl, source, None, local);
         }
       }
     }

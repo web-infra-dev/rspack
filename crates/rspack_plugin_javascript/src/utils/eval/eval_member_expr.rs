@@ -19,7 +19,7 @@ pub fn eval_member_expression<'a>(
     drive
       .evaluate_identifier(
         parser,
-        &info.name,
+        &info.name.name(),
         member.span.real_lo(),
         member.span.real_hi(),
       )
@@ -29,7 +29,7 @@ pub fn eval_member_expression<'a>(
         let mut eval =
           BasicEvaluatedExpression::with_range(member.span.real_lo(), member.span.real_hi());
         eval.set_identifier(
-          info.name.into(),
+          info.name.clone(),
           info.root_info,
           Some(info.members.into_vec()),
           Some(info.members_optionals.into_vec()),

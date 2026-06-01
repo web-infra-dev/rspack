@@ -13,7 +13,7 @@ use crate::{
   },
   parser_plugin::JavascriptParserPlugin,
   utils::eval,
-  visitors::{JavascriptParser, expr_name},
+  visitors::{JavascriptParser, expr_name, to_unresolved_id, var_info::IdOrName},
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
@@ -136,15 +136,15 @@ impl ModuleHotReplacementParserPlugin {
 impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::MODULE_HOT.into(),
-        expr_name::MODULE.into(),
+        IdOrName::Name(expr_name::MODULE_HOT.into()),
+        to_unresolved_id(expr_name::MODULE.into(), parser.unresolved_mark).into(),
         Some(true),
         start,
         end,
@@ -211,8 +211,8 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::IMPORT_META_HOT {
       Some(eval::evaluate_to_identifier(
-        expr_name::IMPORT_META_HOT.into(),
-        expr_name::IMPORT_META.into(),
+        IdOrName::Name(expr_name::IMPORT_META_HOT.into()),
+        IdOrName::Name(expr_name::IMPORT_META.into()),
         Some(true),
         start,
         end,

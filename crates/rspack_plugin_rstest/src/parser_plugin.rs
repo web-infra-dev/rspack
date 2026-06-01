@@ -298,11 +298,11 @@ impl RstestParserPlugin {
       && let Some(import_call) = first_arg.expr.as_call()
       && import_call.callee.as_import().is_some()
     {
-      parser.tag_variable::<bool>(
-        self.compose_rstest_import_call_key(import_call).into(),
-        RSTEST_MOCK_FIRST_ARG_TAG,
-        Some(true),
-      );
+      // parser.tag_variable::<bool>(
+      //   self.compose_rstest_import_call_key(import_call).into(),
+      //   RSTEST_MOCK_FIRST_ARG_TAG,
+      //   Some(true),
+      // );
       is_import_call = true;
     }
 
@@ -642,7 +642,7 @@ impl RstestParserPlugin {
     statement_span: Option<Span>,
   ) -> Option<bool> {
     // Check if this is a global variable (free variable) or an ESM import
-    let is_global = !parser.is_variable_defined(&ident.sym);
+    let is_global = !parser.is_defined_var(&ident.to_id());
 
     // Skip global variables if globals option is disabled
     if is_global && !self.options.globals {
@@ -804,14 +804,14 @@ impl JavascriptParserPlugin for RstestParserPlugin {
   ) -> Option<bool> {
     let first_arg = self.handle_mock_first_arg(parser, call_expr);
     if first_arg.is_some() {
-      let tag_data = parser.get_tag_data::<bool>(
-        &self.compose_rstest_import_call_key(call_expr).into(),
-        RSTEST_MOCK_FIRST_ARG_TAG,
-      );
+      // let tag_data = parser.get_tag_data(
+      //   &self.compose_rstest_import_call_key(call_expr).into(),
+      //   RSTEST_MOCK_FIRST_ARG_TAG,
+      // );
 
-      if tag_data.is_some() {
-        return Some(true);
-      }
+      // if tag_data.is_some() {
+      //   return Some(true);
+      // }
     }
 
     if self.options.inject_dynamic_import_origin {
