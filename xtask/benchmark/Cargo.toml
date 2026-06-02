@@ -49,6 +49,10 @@ name    = "benches"
 harness = false
 name    = "rspack_sources"
 
+[[bench]]
+harness = false
+name    = "walltime"
+
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]
 

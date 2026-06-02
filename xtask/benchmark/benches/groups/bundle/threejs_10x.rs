@@ -4,9 +4,9 @@ use crate::groups::bundle::util::{BuilderOptions, basic_compiler_builder};
 
 pub fn compiler() -> CompilerBuilder {
   basic_compiler_builder(BuilderOptions {
-    project: "basic-react",
-    entry: "./src/index.jsx",
-    swc_loader: true,
-    native_output_filesystem: false,
+    project: "threejs-10x",
+    entry: "./src/index.js",
+    swc_loader: false,
+    native_output_filesystem: true,
   })
 }
