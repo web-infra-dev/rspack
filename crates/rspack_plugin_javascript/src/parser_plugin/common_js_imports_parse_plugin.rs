@@ -1054,34 +1054,27 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     declarator: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
-    if let Some(init) = &declarator.init
-      && let Some(call) = init.as_call()
-      && let Some(callee) = call.callee.as_expr().and_then(|callee| callee.as_ident())
-      && parser
-        .get_tag_data::<CreateRequireSpecifierTagData>(&callee.sym, CREATE_REQUIRE_SPECIFIER_TAG)
-        .is_some()
-      && let Some(binding) = declarator.name.as_ident()
-      && let Some(argument) = parse_create_require_argument(parser, call, false)
-    {
+    let init = declarator.init.as_ref()?;
+    let call = init.as_call()?;
+    let callee = call.callee.as_expr().and_then(|callee| callee.as_ident())?;
+    parser
+      .get_tag_data::<CreateRequireSpecifierTagData>(&callee.sym, CREATE_REQUIRE_SPECIFIER_TAG)?;
+    let binding = declarator.name.as_ident()?;
+
+    if let Some(argument) = parse_create_require_argument(parser, call, false) {
       tag_created_require_declarator(parser, call, &binding.id, argument);
       return Some(true);
     }
 
-    if let Some(init) = &declarator.init
-      && let Some(call) = init.as_call()
-      && let Some(callee) = call.callee.as_expr().and_then(|callee| callee.as_ident())
-      && parser
-        .get_tag_data::<CreateRequireSpecifierTagData>(&callee.sym, CREATE_REQUIRE_SPECIFIER_TAG)
-        .is_some()
-      && let Some(binding) = declarator.name.as_ident()
-      && parser
-        .get_tag_data::<CreatedRequireTagData>(&binding.id.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
-        .is_some()
+    if parser
+      .get_tag_data::<CreatedRequireTagData>(&binding.id.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
+      .is_some()
     {
       parser.define_variable(binding.id.sym.clone());
       parser.walk_expression(init);
       return Some(true);
     }
+
     None
   }
 
