@@ -504,7 +504,11 @@ impl CopyRspackPlugin {
             &entries.iter().map(|it| it.as_path()).collect::<Vec<_>>(),
           )
         {
-          context_dependencies.insert(common_dir.into_std_path_buf());
+          // The glob common dir is derived from glob-matched entries, which keep
+          // the pattern's raw shape (e.g. a leading `./`, and `/` separators on
+          // Windows). Normalize it so the registered context dependency matches
+          // the native, normalized paths used everywhere else in the dep graph.
+          context_dependencies.insert(common_dir.into_std_path_buf().normalize().into_owned());
         }
 
         if entries.is_empty() {
