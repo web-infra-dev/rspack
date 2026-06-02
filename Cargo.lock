@@ -4195,6 +4195,8 @@ dependencies = [
  "rspack_cacheable",
  "rspack_resolver",
  "rustc-hash",
+ "smol_str",
+ "url",
  "ustr-fxhash",
 ]
 

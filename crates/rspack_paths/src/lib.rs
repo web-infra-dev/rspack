@@ -19,11 +19,212 @@ use rspack_cacheable::{
 };
 pub use rspack_resolver::ResolverPath;
 use rustc_hash::FxHasher;
+use smol_str::SmolStr;
+use url::Url;
 pub use ustr::IdentityHasher;
 
 pub trait AssertUtf8 {
   type Output;
   fn assert_utf8(self) -> Self::Output;
+}
+
+#[cacheable(with=Custom)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum RspackPath {
+  Absolute(Url),
+  Relative(SmolStr),
+}
+
+impl RspackPath {
+  pub fn from_utf8_path(path: &Utf8Path) -> Result<Self, String> {
+    Url::from_file_path(path.as_std_path())
+      .map(Self::Absolute)
+      .map_err(|_| format!("failed to convert path to file URL: {path}"))
+  }
+
+  pub fn from_request(input: &str, base: Option<&RspackPath>) -> Result<Self, String> {
+    let resource = RspackResource::from_request(input, base)?;
+    Ok(resource.path)
+  }
+
+  pub fn as_file_path(&self) -> Option<Utf8PathBuf> {
+    let Self::Absolute(url) = self else {
+      return None;
+    };
+    if url.scheme() != "file" {
+      return None;
+    }
+    let path = url.to_file_path().ok()?;
+    Utf8PathBuf::from_path_buf(path).ok()
+  }
+
+  pub fn as_url(&self) -> Option<&Url> {
+    match self {
+      Self::Absolute(url) => Some(url),
+      Self::Relative(_) => None,
+    }
+  }
+
+  pub fn to_request_string(&self) -> String {
+    match self {
+      Self::Absolute(url) => url.to_string(),
+      Self::Relative(path) => path.to_string(),
+    }
+  }
+
+  pub fn to_display_path(&self, context: Option<&Utf8Path>) -> String {
+    if let Some(path) = self.as_file_path() {
+      if let Some(context) = context
+        && let Ok(relative) = path.strip_prefix(context)
+      {
+        return relative.to_string();
+      }
+      return path.to_string();
+    }
+    self.to_request_string()
+  }
+
+  pub fn to_cache_key(&self) -> String {
+    self.to_request_string()
+  }
+}
+
+impl CustomConverter for RspackPath {
+  type Target = String;
+
+  fn serialize(&self, _guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
+    Ok(self.to_request_string())
+  }
+
+  fn deserialize(data: Self::Target, _guard: &ContextGuard) -> Result<Self, CacheableError> {
+    Ok(RspackPath::from_request(&data, None).unwrap_or_else(|_| RspackPath::Relative(data.into())))
+  }
+}
+
+#[cacheable(with=Custom)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct RspackResource {
+  pub path: RspackPath,
+  pub query: Option<SmolStr>,
+  pub fragment: Option<SmolStr>,
+}
+
+impl RspackResource {
+  pub fn from_request(input: &str, base: Option<&RspackPath>) -> Result<Self, String> {
+    let (path, query, fragment) = split_resource(input);
+    let parsed_path = parse_path(path, base)?;
+    Ok(Self {
+      path: parsed_path,
+      query: query.map(Into::into),
+      fragment: fragment.map(Into::into),
+    })
+  }
+
+  pub fn from_parts(
+    path: RspackPath,
+    query: Option<impl Into<SmolStr>>,
+    fragment: Option<impl Into<SmolStr>>,
+  ) -> Self {
+    Self {
+      path,
+      query: query.map(Into::into),
+      fragment: fragment.map(Into::into),
+    }
+  }
+
+  pub fn as_file_path(&self) -> Option<Utf8PathBuf> {
+    self.path.as_file_path()
+  }
+
+  pub fn as_url(&self) -> Option<&Url> {
+    self.path.as_url()
+  }
+
+  pub fn to_request_string(&self) -> String {
+    let mut resource = self.path.to_request_string();
+    if let Some(query) = &self.query {
+      resource.push_str(query);
+    }
+    if let Some(fragment) = &self.fragment {
+      resource.push_str(fragment);
+    }
+    resource
+  }
+
+  pub fn to_cache_key(&self) -> String {
+    self.to_request_string()
+  }
+}
+
+impl CustomConverter for RspackResource {
+  type Target = String;
+
+  fn serialize(&self, _guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
+    Ok(self.to_request_string())
+  }
+
+  fn deserialize(data: Self::Target, _guard: &ContextGuard) -> Result<Self, CacheableError> {
+    RspackResource::from_request(&data, None)
+      .map_err(|_| CacheableError::MessageError("failed to deserialize RspackResource"))
+  }
+}
+
+fn parse_path(input: &str, base: Option<&RspackPath>) -> Result<RspackPath, String> {
+  if let Some(url) = windows_file_url(input) {
+    return Ok(RspackPath::Absolute(url));
+  }
+
+  if let Ok(url) = Url::parse(input) {
+    return Ok(RspackPath::Absolute(url));
+  }
+
+  if let Some(base) = base.and_then(RspackPath::as_url)
+    && let Ok(url) = base.join(input)
+  {
+    return Ok(RspackPath::Absolute(url));
+  }
+
+  let path = Utf8Path::new(input);
+  if path.is_absolute() {
+    return RspackPath::from_utf8_path(path);
+  }
+
+  Ok(RspackPath::Relative(input.into()))
+}
+
+fn windows_file_url(input: &str) -> Option<Url> {
+  let normalized = input.replace('\\', "/");
+  if normalized.starts_with("//") {
+    let mut parts = normalized.trim_start_matches('/').splitn(3, '/');
+    let host = parts.next()?;
+    let share = parts.next()?;
+    let rest = parts.next().unwrap_or_default();
+    return Url::parse(&format!("file://{host}/{share}/{rest}")).ok();
+  }
+
+  let bytes = normalized.as_bytes();
+  if bytes.len() >= 3 && bytes[1] == b':' && bytes[2] == b'/' && bytes[0].is_ascii_alphabetic() {
+    return Url::parse(&format!("file:///{}", normalized)).ok();
+  }
+
+  None
+}
+
+fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  let path_end = input.find(['?', '#']).unwrap_or(input.len());
+  let path = &input[..path_end];
+  let rest = &input[path_end..];
+
+  match rest.as_bytes().first() {
+    Some(b'?') => {
+      let fragment_start = rest.find('#').unwrap_or(rest.len());
+      let query = &rest[..fragment_start];
+      let fragment = (fragment_start < rest.len()).then_some(&rest[fragment_start..]);
+      (path, Some(query), fragment)
+    }
+    Some(b'#') => (path, None, Some(rest)),
+    _ => (path, None, None),
+  }
 }
 
 impl AssertUtf8 for PathBuf {

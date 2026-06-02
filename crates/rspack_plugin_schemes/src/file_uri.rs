@@ -4,13 +4,12 @@ use rspack_core::{
   Content, ModuleFactoryCreateData, NormalModuleFactoryResolveForScheme, NormalModuleReadResource,
   Plugin, ResourceData, Scheme,
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_error::{Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::AssertUtf8;
+use rspack_paths::RspackResource;
 #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
 use tokio::task::spawn_blocking;
-use url::Url;
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -24,20 +23,30 @@ async fn normal_module_factory_resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_file() {
-    let url = Url::parse(resource_data.resource()).to_rspack_result()?;
-    let path = url
-      .to_file_path()
-      .map_err(|_| error!("Failed to get file path of {url}"))?
-      .assert_utf8();
-    let query = url.query().map(|q| format!("?{q}"));
-    let fragment = url.fragment().map(|f| format!("#{f}"));
+    let typed_resource = RspackResource::from_request(resource_data.resource(), None)
+      .map_err(|err| error!("{err}"))?;
+    let url = typed_resource
+      .as_url()
+      .ok_or_else(|| error!("Expected file URL resource {}", resource_data.resource()))?;
+    let path = typed_resource
+      .as_file_path()
+      .ok_or_else(|| error!("Failed to get file path of {url}"))?
+      .to_owned();
+    let query = typed_resource.query.as_ref().map(ToString::to_string);
+    let fragment = typed_resource.fragment.as_ref().map(ToString::to_string);
     let resource = format!(
       "{}{}{}",
       path,
       query.as_deref().unwrap_or(""),
       fragment.as_deref().unwrap_or("")
     );
-    *resource_data = ResourceData::new_with_path(resource, path, query, fragment);
+    *resource_data = ResourceData::new_with_path_and_typed_resource(
+      resource,
+      path,
+      query,
+      fragment,
+      Some(typed_resource),
+    );
     return Ok(Some(true));
   }
   Ok(None)
