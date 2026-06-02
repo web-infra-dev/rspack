@@ -131,14 +131,14 @@ fn module_namespace_promise_rstest(
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
-  // Only an externalized specifier exhibits the two-id split: rspack mints a
-  // distinct id for the dynamic import (`external import "X"`) than the one the
-  // hoisted `rs.mock` patches (`external module "X"`). Internal modules resolve
-  // both the static/mock dependency and the dynamic import to the SAME id, so a
-  // hoisted `rs.mock` already covers their dynamic import — leave that codegen
-  // byte-identical to upstream. importActual keeps its dedicated
-  // `rstest_import_actual` path regardless, so `&&` short-circuits the
-  // module-graph lookup for it.
+  // Externalized specifiers exhibit a two-id split: rspack mints a distinct id
+  // for the dynamic import (`external import "X"`) vs the one `rs.mock` patches
+  // (`external module "X"`). Internal modules share one id, so a hoisted
+  // `rs.mock` already covers their dynamic import — leave that byte-identical.
+  // Only the Namespace arm below needs the shim: a split always resolves to
+  // `import`/`module` (= Namespace) for rstest's plain-string externals (a
+  // `has_rest()` property-access external would resolve to Dynamic and miss it,
+  // but rstest never emits those).
   let use_dynamic_shim = !is_import_actual && {
     compilation
       .get_module_graph()
@@ -165,18 +165,13 @@ fn module_namespace_promise_rstest(
           runtime_template.module_raw(compilation, dep_id, request, weak)
         )
       } else if use_dynamic_shim {
-        // External dynamic `import(request)`: route through `rstest_dynamic_require`
-        // with the clean request literal so the hoisted `rs.mock` (installed under
-        // the different static id) is found by request. `final_require` is the
-        // REQUIRE global here (use_dynamic_shim implies !is_import_actual).
-        // See packages/core/src/core/plugins/mockRuntimeCode.js.
+        // Route the external dynamic import through the request-keyed
+        // `rstest_dynamic_require` (in the @rstest/core runtime, a separate repo:
+        // .../plugins/mockRuntimeCode.js) so the hoisted `rs.mock` is found.
         //
-        // TODO(compat): the `rstest_dynamic_require ? … : <plain require>` guard is
-        // a fallback for an OLDER @rstest/core runtime that predates the helper
-        // (`undefined` → degrade to the plain `__webpack_require__(id)` form instead
-        // of throwing `undefined.bind(...)`). Drop the guard, leaving the
-        // unconditional `.bind` shim, once the minimum supported @rstest/core always
-        // ships `rstest_dynamic_require`.
+        // TODO(compat): the `rstest_dynamic_require ? … : <plain require>` guard
+        // falls back to plain require for an older @rstest/core lacking the helper;
+        // drop it once the minimum @rstest/core always ships it.
         appending = format!(
           ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
           json_stringify_str(request)

@@ -363,11 +363,9 @@ impl RstestParserPlugin {
               hoist,
               method,
             )
-            // 1-arg unmock (`rs.unmock('X')`, has_b=false): append the request
-            // after the single id argument. 1-arg auto-mock (`rs.mock('X')`,
-            // has_b=true): the request is carried by the synthetic-target
-            // dependency's suffix below instead, so skip here to avoid two
-            // inserts colliding at the same byte offset.
+            // has_b=false (1-arg `rs.unmock('X')`): append request after the id.
+            // has_b=true (1-arg auto-mock): request rides the synthetic-target
+            // suffix below instead — skip here to avoid a same-offset collision.
             .with_request_arg_end(if has_b {
               None
             } else {
@@ -430,8 +428,7 @@ impl RstestParserPlugin {
               hoist,
               method,
             )
-            // 2-arg form (`rs.mock('X', factory)`): append the request after
-            // the factory argument -> `rstest_mock(id, factory, "X")`.
+            // 2-arg `rs.mock('X', factory)`: append request after the factory.
             .with_request_arg_end(Some(second_arg.span().real_hi())),
           ));
           parser.add_dependency(Box::new(module_dep));
