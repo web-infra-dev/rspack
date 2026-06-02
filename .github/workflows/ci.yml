@@ -100,7 +100,7 @@ jobs:
       measurement: walltime
       bench_target: benches
       bench_filter: bundle@threejs
-      runner: '["self-hosted", "Linux", "X64"]'
+      runner: '"physical-1-exclusive"'
 
   test-windows:
     name: Test Windows
