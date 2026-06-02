@@ -1,0 +1,445 @@
+```mjs title=a.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules/a.js"
+/*!**********************!*\
+  !*** ./modules/a.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* export default */ const __rspack_default_export = ("a");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=b.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules/b.js"
+/*!**********************!*\
+  !*** ./modules/b.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+import("./c.mjs").then(__webpack_require__.bind(__webpack_require__, /*! ./c */ "./modules/c.js"));
+
+/* export default */ const __rspack_default_export = ("b");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=c.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules/c.js"
+/*!**********************!*\
+  !*** ./modules/c.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* export default */ const __rspack_default_export = ("c");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc"
+/*!*******************************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {prefetchOrder: 0,}|namespace object|importPhase: evaluation ***!
+  \*******************************************************************************************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "a"
+    ]
+  ],
+  "./c.js": [
+    "./modules/c.js",
+    [
+      "c"
+    ]
+  ],
+  "./b.js": [
+    "./modules/b.js",
+    [
+      "b"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa"
+/*!******************************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {preloadOrder: 0,}|namespace object|importPhase: evaluation ***!
+  \******************************************************************************************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "a"
+    ]
+  ],
+  "./c.js": [
+    "./modules/c.js",
+    [
+      "c"
+    ]
+  ],
+  "./b.js": [
+    "./modules/b.js",
+    [
+      "b"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1][0]).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy ./modules/*.js"
+/*!*******************************************************************!*\
+  !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
+  \*******************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+
+module.exports = {
+
+  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
+
+  "./modules/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); },
+
+  "./modules/c.js": function() { return __webpack_require__.e(/*! esm */ "c").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/c.js */ "./modules/c.js")); }
+};
+
+
+},
+});
+// ./index.js
+it("should keep prefetch and preload handlers for context chunks", async () => {
+	const modules = __webpack_require__(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const prefetchName = "a";
+	const preloadName = "b";
+	const prefetchValue = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?32bc")(`./${prefetchName}.js`);
+	const preloadValue = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default?bdfa")(`./${preloadName}.js`);
+
+	expect(Object.keys(modules).sort()).toEqual([
+		"./modules/a.js",
+		"./modules/b.js",
+		"./modules/c.js",
+	]);
+	expect(prefetchValue.default).toBe("a");
+	expect(preloadValue.default).toBe("b");
+});
+
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
+})();
+// webpack/runtime/global
+(() => {
+__webpack_require__.g = (() => {
+	if (typeof globalThis === 'object') return globalThis;
+	try {
+		return this || new Function('return this')();
+	} catch (e) {
+		if (typeof window === 'object') return window;
+	}
+})();
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/on_chunk_loaded
+(() => {
+var deferred = [];
+__webpack_require__.O = (result, chunkIds, fn, priority) => {
+	if (chunkIds) {
+		priority = priority || 0;
+		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
+			deferred[i] = deferred[i - 1];
+		deferred[i] = [chunkIds, fn, priority];
+		return;
+	}
+	var notFulfilled = Infinity;
+	for (var i = 0; i < deferred.length; i++) {
+		var [chunkIds, fn, priority] = deferred[i];
+		var fulfilled = true;
+		for (var j = 0; j < chunkIds.length; j++) {
+			if (
+				(priority & (1 === 0) || notFulfilled >= priority) &&
+				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
+			) {
+				chunkIds.splice(j--, 1);
+			} else {
+				fulfilled = false;
+				if (priority < notFulfilled) notFulfilled = priority;
+			}
+		}
+		if (fulfilled) {
+			deferred.splice(i--, 1);
+			var r = fn();
+			if (r !== undefined) result = r;
+		}
+	}
+	return result;
+};
+
+})();
+// webpack/runtime/prefetch
+(() => {
+__webpack_require__.F = {};
+__webpack_require__.E = (chunkId) => {
+  Object.keys(__webpack_require__.F).map((key) => {
+    __webpack_require__.F[key](chunkId);
+  });
+}
+})();
+// webpack/runtime/preload
+(() => {
+__webpack_require__.H = {};
+__webpack_require__.G = (chunkId) => {
+  Object.keys(__webpack_require__.H).map((key) => {
+    __webpack_require__.H[key](chunkId);
+  });
+}
+})();
+// webpack/runtime/auto_public_path
+(() => {
+var scriptUrl;
+
+if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+
+// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
+// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
+if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+
+__webpack_require__.p = scriptUrl;
+
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); },
+"b": function() { return import("./b.mjs"); },
+"c": function() { return import("./c.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+// webpack/runtime/module_chunk_loading
+(() => {
+// no BaseURI
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var installedChunks = {"runtime": 0,};
+      // no install chunk// no chunk on demand loading
+__webpack_require__.F.j = (chunkId) => {
+
+    if((!__webpack_require__.o(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && "runtime" != chunkId) {
+        installedChunks[chunkId] = null;
+        var link = document.createElement('link');
+
+if (__webpack_require__.nc) {
+  link.setAttribute('nonce', __webpack_require__.nc);
+}
+link.rel = 'prefetch';
+link.as = 'script';
+link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
+        document.head.appendChild(link);
+    }
+};
+__webpack_require__.H.j = (chunkId) => {
+
+    if((!__webpack_require__.o(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && "runtime" != chunkId) {
+        installedChunks[chunkId] = null;
+        var link = document.createElement('link');
+if (__webpack_require__.nc) {
+  link.setAttribute("nonce", __webpack_require__.nc);
+}
+link.rel = 'modulepreload';
+link.href = __webpack_require__.p + __webpack_require__.u(chunkId);
+
+        document.head.appendChild(link);
+    }
+};
+// no external install chunk
+
+        __webpack_require__.O.j = function(chunkId) {
+            return installedChunks[chunkId] === 0;
+        }
+        // no HMR
+// no HMR manifest
+
+})();
+// webpack/runtime/chunk_preload_trigger
+(() => {
+var chunkToChildrenMap = {"b":["c","c","c"]};
+__webpack_require__.f.preload =  (chunkId) => {
+  var chunks = chunkToChildrenMap[chunkId];
+  Array.isArray(chunks) && chunks.map(__webpack_require__.G);
+};
+})();
+
+export { __webpack_require__ };
+
+```
