@@ -19,9 +19,9 @@ rspack_fs          = { workspace = true }
 rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_paths       = { workspace = true }
-serde_json         = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
+serde_json         = { workspace = true }
 tracing            = { workspace = true }
 
 [lints]
