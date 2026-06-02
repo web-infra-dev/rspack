@@ -134,14 +134,14 @@ pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
 pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone)]
 pub enum CssLayer {
   Anonymous,
   Named(#[cacheable(with=AsPreset)] SmolStr),
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default)]
 pub struct CssModuleRenderCondition {
   #[cacheable(with=AsOption<AsPreset>)]
   pub media: Option<SmolStr>,
