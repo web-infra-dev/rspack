@@ -3,6 +3,14 @@
 const path = require('path');
 const { rspack } = require('@rspack/core');
 
+// Match webpack's built-in CSS rules: CSS imports are resolved as fully
+// specified, so extension-less requests like "./no-extension-in-request" do not
+// fall back to "./no-extension-in-request.css".
+const cssResolve = {
+  fullySpecified: true,
+  preferRelative: true,
+};
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   target: 'web',
@@ -15,7 +23,7 @@ module.exports = {
     },
     byDependency: {
       'css-import': {
-        conditionNames: ['webpack', 'custom-name', '...'],
+        conditionNames: ['custom-name', '...'],
         extensions: ['.mycss', '...'],
       },
     },
@@ -29,16 +37,18 @@ module.exports = {
       },
       {
         test: /\.less$/,
-        loader: 'less-loader',
+        use: ['./remove-source-map-url-loader', 'less-loader'],
         type: 'css/global',
       },
       {
         test: /\.css$/,
         type: 'css/auto',
+        resolve: cssResolve,
       },
       {
         mimetype: 'text/css',
         type: 'css/auto',
+        resolve: cssResolve,
       },
     ],
   },

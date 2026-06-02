@@ -102,7 +102,6 @@ p {
 
 
 
-
 /* Technically, this is not entirely true, but we allow it because the final file can be processed by the loader and return the CSS code */
 
 
@@ -1417,7 +1416,6 @@ p {
 .default {
 	color: steelblue;
 }
-
 
 
 
