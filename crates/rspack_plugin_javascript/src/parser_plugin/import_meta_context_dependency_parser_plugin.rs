@@ -1,13 +1,11 @@
 use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
-  ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
-  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
+  ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context, unescape_glob_path,
 };
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
-use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
-use sugar_path::SugarPath;
+use rspack_util::SpanExt;
 use swc_core::{
   atoms::Atom,
   common::Spanned,
@@ -118,21 +116,18 @@ fn import_meta_glob_path_parts<'a>(
 }
 
 fn join_import_meta_glob_path(base: &str, path: &str) -> String {
-  normalize_path_separators(
-    Utf8Path::new(base)
-      .node_join_posix(path)
-      .node_normalize_posix()
-      .as_ref(),
-  )
+  RspackPath::from_glob_pattern(base)
+    .join_glob_pattern(&RspackPath::from_glob_pattern(path))
+    .to_request_string()
 }
 
 fn join_import_meta_glob_fs_path(base: &str, path: &str) -> String {
-  normalize_path_separators_for_path(
-    Utf8Path::new(base)
-      .node_join_posix(path)
-      .node_normalize_posix()
-      .as_ref(),
-  )
+  RspackPath::from_path_str(base)
+    .unwrap_or_else(|_| RspackPath::from_glob_pattern(base))
+    .join_glob_pattern(
+      &RspackPath::from_path_str(path).unwrap_or_else(|_| RspackPath::from_glob_pattern(path)),
+    )
+    .to_request_path_string()
 }
 
 struct ResolvedContextModuleGlobPattern {
@@ -151,10 +146,12 @@ fn resolve_glob_pattern(
   } else {
     (pattern, false)
   };
-  let pattern = normalize_path_separators(pattern);
+  let pattern = RspackPath::from_glob_pattern(pattern).to_request_string();
   let (base, pattern_to_join) =
     import_meta_glob_path_parts(context, compiler_context, pattern.as_str());
-  let base = normalize_path_separators_for_path(base);
+  let base = RspackPath::from_path_str(base)
+    .unwrap_or_else(|_| RspackPath::from_glob_pattern(base))
+    .to_request_path_string();
   let escaped_base = escape_glob_pattern(&base);
   let absolute_pattern = join_import_meta_glob_path(&escaped_base, pattern_to_join);
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
@@ -200,17 +197,24 @@ fn resolve_import_meta_glob_context(
     return context.to_string();
   };
 
-  let base = normalize_path_separators_for_path(base);
+  let base = RspackPath::from_path_str(base)
+    .unwrap_or_else(|_| RspackPath::from_glob_pattern(base))
+    .to_request_path_string();
   let (base_context, path_to_join) =
     import_meta_glob_path_parts(context, compiler_context, base.as_str());
   join_import_meta_glob_fs_path(base_context, path_to_join)
 }
 
 fn absolute_path_to_glob_request(context: &str, absolute_path: &str) -> String {
-  let relative_path = absolute_path.as_path().relative(context);
-  let relative_path = relative_path.to_string_lossy();
-  let relative_path = normalize_path_separators_for_path(&relative_path);
-  relative_path_to_request(&relative_path).into_owned()
+  let Ok(context) = RspackPath::from_path_str(context) else {
+    return absolute_path.to_string();
+  };
+  let Ok(path) = RspackPath::from_path_str(absolute_path) else {
+    return absolute_path.to_string();
+  };
+  path
+    .to_request_relative_to_context(&context)
+    .unwrap_or_else(|| absolute_path.to_string())
 }
 
 fn normalize_base_glob_pattern(
@@ -224,7 +228,7 @@ fn normalize_base_glob_pattern(
     (false, pattern.as_str())
   };
 
-  let pattern = normalize_path_separators(pattern);
+  let pattern = RspackPath::from_glob_pattern(pattern).to_request_string();
   let Some(pattern) = pattern.strip_prefix('/') else {
     return if negative {
       concat_string!("!", pattern)
@@ -233,7 +237,9 @@ fn normalize_base_glob_pattern(
     };
   };
 
-  let compiler_context = normalize_path_separators_for_path(compiler_context);
+  let compiler_context = RspackPath::from_path_str(compiler_context)
+    .unwrap_or_else(|_| RspackPath::from_glob_pattern(compiler_context))
+    .to_request_path_string();
   let absolute_pattern = join_import_meta_glob_path(&compiler_context, pattern);
   let relative_pattern = absolute_path_to_glob_request(base_context, &absolute_pattern);
 

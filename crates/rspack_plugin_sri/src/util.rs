@@ -1,6 +1,5 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::sync::LazyLock;
 
-use cow_utils::CowUtils;
 use rspack_core::{
   AssetInfo, ChunkGroupUkey, ChunkUkey, Compilation, ManifestAssetType, ModuleCodeTemplate,
   RuntimeGlobals, SourceType,
@@ -98,10 +97,6 @@ pub fn make_placeholder(
     PLACEHOLDER_PREFIX,
     &filler[PLACEHOLDER_PREFIX.len()..]
   )
-}
-
-pub fn normalize_path(path: &str) -> Cow<'_, str> {
-  path.split('?').next().unwrap_or("").cow_replace('\\', "/")
 }
 
 pub fn use_any_hash(info: &AssetInfo) -> bool {

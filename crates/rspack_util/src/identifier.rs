@@ -4,25 +4,12 @@ use std::{
   sync::LazyLock,
 };
 
-use concat_string::concat_string;
 use cow_utils::CowUtils;
 use regex::Regex;
-use rspack_paths::{RspackPath, is_path_separator, is_windows_absolute_path};
-use sugar_path::SugarPath;
+use rspack_paths::{RspackPath, RspackResource};
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
-/// # Example
-///  ```ignore
-/// assert_eq!(
-///   split_at_query_mark("/hello?world=1"),
-///   ("/hello", Some("?world=1"))
-/// )
-/// ```
-fn split_at_query_mark(path: &str) -> (&str, Option<&str>) {
-  let query_mark_pos = path.find('?');
-  query_mark_pos.map_or((path, None), |pos| (&path[..pos], Some(&path[pos..])))
-}
 
 // Port from https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/util/identifier.js#L30
 pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> Cow<'b, str> {
@@ -35,7 +22,7 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
     return Cow::Borrowed(maybe_absolute_path);
   }
 
-  if !maybe_absolute_path.starts_with('/') && !is_windows_absolute_path(maybe_absolute_path) {
+  if !RspackPath::is_absolute_request(maybe_absolute_path) {
     // not an absolute path
     return Cow::Borrowed(maybe_absolute_path);
   }
@@ -43,93 +30,6 @@ pub fn absolute_to_request<'b>(context: &str, maybe_absolute_path: &'b str) -> C
   let mut result = String::with_capacity(maybe_absolute_path.len());
   push_absolute_to_request(context, maybe_absolute_path, &mut result);
   Cow::Owned(result)
-}
-
-/// # Context
-/// First introduced at https://github.com/webpack/webpack/commit/5563ee9e583602eb38ab21219a327d346cd16218#r120784061
-/// Introduced at https://github.com/webpack/webpack/commit/c76be4d7383f35b3260dafefbcd24cac245d9e42
-/// Fix https://github.com/webpack/webpack/issues/14014
-pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
-  if rel.is_empty() {
-    Cow::Borrowed("./.")
-  } else if rel == ".." {
-    Cow::Borrowed("../.")
-  } else if rel.starts_with("../") {
-    Cow::Borrowed(rel)
-  } else {
-    Cow::Owned(concat_string!("./", rel))
-  }
-}
-
-#[inline]
-fn push_relative_path_to_request(rel: &str, out: &mut String) {
-  if rel.is_empty() {
-    out.push_str("./.");
-  } else if rel == ".." {
-    out.push_str("../.");
-  } else if rel.starts_with("../") {
-    out.push_str(rel);
-  } else {
-    out.push_str("./");
-    out.push_str(rel);
-  }
-}
-
-fn windows_drive(path: &str) -> Option<(u8, &str)> {
-  let bytes = path.as_bytes();
-  if bytes.len() >= 3
-    && bytes[0].is_ascii_alphabetic()
-    && bytes[1] == b':'
-    && is_path_separator(bytes[2])
-  {
-    Some((bytes[0].to_ascii_lowercase(), &path[3..]))
-  } else {
-    None
-  }
-}
-
-fn relative_windows_path(context: &str, resource: &str) -> Option<String> {
-  let context = RspackPath::from_path_str(context)
-    .ok()?
-    .to_request_path_string();
-  let resource = RspackPath::from_path_str(resource)
-    .ok()?
-    .to_request_path_string();
-  let (context_drive, context_path) = windows_drive(&context)?;
-  let (resource_drive, resource_path) = windows_drive(&resource)?;
-
-  if context_drive != resource_drive {
-    return None;
-  }
-
-  let context_parts = context_path
-    .trim_matches('/')
-    .split('/')
-    .filter(|part| !part.is_empty())
-    .collect::<Vec<_>>();
-  let resource_parts = resource_path
-    .trim_matches('/')
-    .split('/')
-    .filter(|part| !part.is_empty())
-    .collect::<Vec<_>>();
-
-  let mut common = 0;
-  while common < context_parts.len()
-    && common < resource_parts.len()
-    && context_parts[common].eq_ignore_ascii_case(resource_parts[common])
-  {
-    common += 1;
-  }
-
-  let mut relative_parts = Vec::with_capacity(context_parts.len() + resource_parts.len() - common);
-  relative_parts.extend(std::iter::repeat_n("..", context_parts.len() - common));
-  relative_parts.extend(resource_parts[common..].iter().copied());
-
-  if relative_parts.is_empty() {
-    Some(".".to_string())
-  } else {
-    Some(relative_parts.join("/"))
-  }
 }
 
 /// Appends a request-form path for `maybe_absolute_path` into `out`.
@@ -151,29 +51,19 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
     return;
   }
 
-  if maybe_absolute_path.starts_with('/') {
-    let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
-    let tmp = Path::new(maybe_absolute_resource).relative(context);
-    let tmp_path = tmp.to_string_lossy();
-    push_relative_path_to_request(&tmp_path, out);
-    if let Some(query_part) = query_part {
-      out.push_str(query_part);
-    }
-    return;
-  }
-
-  if is_windows_absolute_path(maybe_absolute_path) {
-    let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
-    if let Some(resource) = relative_windows_path(context, maybe_absolute_resource) {
-      push_relative_path_to_request(resource.as_ref(), out);
+  if RspackPath::is_absolute_request(maybe_absolute_path) {
+    let Ok(context) = RspackPath::from_path_str(context) else {
+      out.push_str(maybe_absolute_path);
+      return;
+    };
+    let Ok(resource) = RspackResource::from_request(maybe_absolute_path, None) else {
+      out.push_str(maybe_absolute_path);
+      return;
+    };
+    if let Some(request) = resource.to_request_relative_to_context(&context) {
+      out.push_str(&request);
     } else {
-      // Different Windows drives or roots cannot be represented as a relative
-      // webpack request without changing meaning.
-      out.push_str(maybe_absolute_resource);
-    }
-
-    if let Some(query_part) = query_part {
-      out.push_str(query_part);
+      out.push_str(maybe_absolute_path);
     }
     return;
   }

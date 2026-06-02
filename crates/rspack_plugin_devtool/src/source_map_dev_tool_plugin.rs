@@ -20,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
@@ -48,23 +48,6 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
-fn starts_with_url_scheme(s: &str) -> bool {
-  let Some((scheme, _)) = s.split_once(':') else {
-    return false;
-  };
-  let mut chars = scheme.chars();
-  matches!(chars.next(), Some(c) if c.is_ascii_alphabetic())
-    && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
-}
-
-fn starts_with_windows_drive_letter(s: &str) -> bool {
-  let bytes = s.as_bytes();
-  bytes.len() >= 2
-    && bytes[0].is_ascii_alphabetic()
-    && matches!(bytes[1], b':' | b'|')
-    && (bytes.len() == 2 || matches!(bytes[2], b'/' | b'\\' | b'?' | b'#'))
-}
-
 fn is_relative_source_name(s: &str) -> bool {
   // Source map `sources` entries are URL references. Per ECMA-426
   // "9 Source map format", each source is a potentially relative URL; per
@@ -85,10 +68,7 @@ fn is_relative_source_name(s: &str) -> bool {
   // "normalized Windows drive letter", and "starts with a Windows drive
   // letter"; keep those Windows absolute paths (`C:/...`, `C:\...`, `C|/...`)
   // and backslash-rooted Windows paths (`\\server\share`) verbatim.
-  !s.is_empty()
-    && !s.starts_with(['/', '\\'])
-    && !starts_with_url_scheme(s)
-    && !starts_with_windows_drive_letter(s)
+  RspackPath::is_source_map_relative_url_reference(s)
 }
 
 fn normalize_relative_source_name_url(

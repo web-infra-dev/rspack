@@ -1,11 +1,9 @@
 use std::borrow::Cow;
 
-use rspack_paths::{
-  Utf8Path, Utf8PathBuf, is_path_separator as is_rspack_path_separator, is_windows_drive_letter,
-};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 
 fn is_path_separator(byte: &u8) -> bool {
-  is_rspack_path_separator(*byte)
+  RspackPath::is_path_separator_byte(*byte)
 }
 
 fn is_posix_path_separator(byte: &u8) -> bool {
@@ -13,7 +11,7 @@ fn is_posix_path_separator(byte: &u8) -> bool {
 }
 
 fn is_windows_device_root(byte: &u8) -> bool {
-  is_windows_drive_letter(*byte)
+  RspackPath::is_windows_drive_letter_byte(*byte)
 }
 
 // Resolves . and .. elements in a path with directory names

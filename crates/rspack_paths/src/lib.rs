@@ -30,17 +30,17 @@ pub trait AssertUtf8 {
 }
 
 #[inline]
-pub fn is_path_separator(byte: u8) -> bool {
+fn is_path_separator(byte: u8) -> bool {
   byte == b'/' || byte == b'\\'
 }
 
 #[inline]
-pub fn is_windows_drive_letter(byte: u8) -> bool {
+fn is_windows_drive_letter(byte: u8) -> bool {
   byte.is_ascii_alphabetic()
 }
 
 #[inline]
-pub fn is_windows_drive_absolute_path(input: &str) -> bool {
+fn is_windows_drive_absolute_path(input: &str) -> bool {
   let bytes = input.as_bytes();
   bytes.len() >= 3
     && is_windows_drive_letter(bytes[0])
@@ -49,19 +49,36 @@ pub fn is_windows_drive_absolute_path(input: &str) -> bool {
 }
 
 #[inline]
-pub fn is_windows_unc_path(input: &str) -> bool {
+fn is_windows_unc_path(input: &str) -> bool {
   let bytes = input.as_bytes();
   bytes.len() >= 2 && is_path_separator(bytes[0]) && is_path_separator(bytes[1])
 }
 
 #[inline]
-pub fn is_windows_absolute_path(input: &str) -> bool {
+fn is_windows_absolute_path(input: &str) -> bool {
   is_windows_drive_absolute_path(input) || is_windows_unc_path(input)
 }
 
 #[inline]
-pub fn is_absolute_path(input: &str) -> bool {
+fn is_absolute_path(input: &str) -> bool {
   input.as_bytes().first() == Some(&b'/') || is_windows_absolute_path(input)
+}
+
+fn starts_with_url_scheme(input: &str) -> bool {
+  let Some((scheme, _)) = input.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  matches!(chars.next(), Some(c) if c.is_ascii_alphabetic())
+    && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+}
+
+fn starts_with_windows_drive_source_reference(input: &str) -> bool {
+  let bytes = input.as_bytes();
+  bytes.len() >= 2
+    && is_windows_drive_letter(bytes[0])
+    && matches!(bytes[1], b':' | b'|')
+    && (bytes.len() == 2 || matches!(bytes[2], b'/' | b'\\' | b'?' | b'#'))
 }
 
 #[cacheable(with=Custom)]
@@ -72,6 +89,39 @@ pub enum RspackPath {
 }
 
 impl RspackPath {
+  #[inline]
+  pub fn is_absolute_request(input: &str) -> bool {
+    is_absolute_path(input)
+  }
+
+  #[inline]
+  pub fn is_path_separator_byte(byte: u8) -> bool {
+    is_path_separator(byte)
+  }
+
+  #[inline]
+  pub fn is_windows_drive_letter_byte(byte: u8) -> bool {
+    is_windows_drive_letter(byte)
+  }
+
+  #[inline]
+  pub fn is_windows_drive_scheme_guard(input: &str, colon_index: usize) -> bool {
+    if colon_index != 1 {
+      return false;
+    }
+    let Some(next) = input[colon_index + 1..].chars().next() else {
+      return true;
+    };
+    next.is_ascii() && is_path_separator(next as u8) || matches!(next, '#' | '?')
+  }
+
+  pub fn is_source_map_relative_url_reference(input: &str) -> bool {
+    !input.is_empty()
+      && !input.starts_with(['/', '\\'])
+      && !starts_with_url_scheme(input)
+      && !starts_with_windows_drive_source_reference(input)
+  }
+
   pub fn from_path_str(path: &str) -> Result<Self, String> {
     if is_absolute_path(path) {
       RspackPath::from_request(path, None)
@@ -113,6 +163,38 @@ impl RspackPath {
       format!("{base}/{child}")
     };
     Self::Relative(normalize_posix_path(&joined, joined.starts_with('/')).into())
+  }
+
+  pub fn join_request(&self, child: &str) -> Result<Self, String> {
+    let child_path = RspackPath::from_request(child, None)?;
+    if matches!(child_path, RspackPath::Absolute(_)) {
+      return Ok(child_path);
+    }
+
+    if let RspackPath::Absolute(base) = self {
+      let mut base = base.clone();
+      if !base.path().ends_with('/') {
+        let path = format!("{}/", base.path());
+        base.set_path(&path);
+      }
+      return base
+        .join(child)
+        .map(RspackPath::Absolute)
+        .map_err(|err| format!("failed to join request: {err}"));
+    }
+
+    let base = self.to_request_path_string();
+    let child = child_path.to_request_path_string();
+    let joined = if base.is_empty() {
+      child
+    } else if child.is_empty() {
+      base
+    } else if base.ends_with('/') || child.starts_with('/') {
+      format!("{base}{child}")
+    } else {
+      format!("{base}/{child}")
+    };
+    RspackPath::from_path_str(&normalize_request_path_string(&joined))
   }
 
   pub fn from_utf8_path(path: &Utf8Path) -> Result<Self, String> {
@@ -174,6 +256,13 @@ impl RspackPath {
       Self::Relative(path) if path.as_bytes().contains(&b'\\') => path.replace('\\', "/"),
       Self::Relative(path) => path.to_string(),
     }
+  }
+
+  pub fn to_request_relative_to_context(&self, context: &RspackPath) -> Option<String> {
+    let resource = self.to_request_path_string();
+    let context = context.to_request_path_string();
+    let relative = relative_request_path(&context, &resource)?;
+    Some(relative_path_to_request(&relative))
   }
 }
 
@@ -241,6 +330,17 @@ impl RspackResource {
 
   pub fn to_cache_key(&self) -> String {
     self.to_request_string()
+  }
+
+  pub fn to_request_relative_to_context(&self, context: &RspackPath) -> Option<String> {
+    let mut request = self.path.to_request_relative_to_context(context)?;
+    if let Some(query) = &self.query {
+      request.push_str(query);
+    }
+    if let Some(fragment) = &self.fragment {
+      request.push_str(fragment);
+    }
+    Some(request)
   }
 }
 
@@ -331,6 +431,93 @@ fn normalize_posix_path(path: &str, is_absolute: bool) -> String {
   }
 }
 
+fn normalize_request_path_string(path: &str) -> String {
+  if let Some((root, tail)) = split_request_root(path) {
+    let tail = normalize_posix_path(tail, false);
+    if tail == "." {
+      root
+    } else if root.ends_with('/') {
+      format!("{root}{tail}")
+    } else {
+      format!("{root}/{tail}")
+    }
+  } else {
+    normalize_posix_path(path, false)
+  }
+}
+
+fn relative_path_to_request(relative: &str) -> String {
+  if relative.is_empty() {
+    "./.".to_string()
+  } else if relative == ".." {
+    "../.".to_string()
+  } else if relative.starts_with("../") {
+    relative.to_string()
+  } else {
+    format!("./{relative}")
+  }
+}
+
+fn relative_request_path(context: &str, resource: &str) -> Option<String> {
+  let (context_root, context_tail) = split_request_root(context)?;
+  let (resource_root, resource_tail) = split_request_root(resource)?;
+  if !context_root.eq_ignore_ascii_case(&resource_root) {
+    return None;
+  }
+
+  let context_parts = path_parts(context_tail);
+  let resource_parts = path_parts(resource_tail);
+  let mut common = 0;
+  while common < context_parts.len()
+    && common < resource_parts.len()
+    && context_parts[common].eq_ignore_ascii_case(resource_parts[common])
+  {
+    common += 1;
+  }
+
+  let mut relative_parts = Vec::with_capacity(context_parts.len() + resource_parts.len() - common);
+  relative_parts.extend(std::iter::repeat_n("..", context_parts.len() - common));
+  relative_parts.extend(resource_parts[common..].iter().copied());
+
+  Some(if relative_parts.is_empty() {
+    ".".to_string()
+  } else {
+    relative_parts.join("/")
+  })
+}
+
+fn split_request_root(path: &str) -> Option<(String, &str)> {
+  if let Some((drive, rest)) = windows_drive(path) {
+    return Some((format!("{}:", drive as char), rest));
+  }
+  if path.starts_with("//") {
+    let without_prefix = path.trim_start_matches('/');
+    let mut parts = without_prefix.splitn(3, '/');
+    let host = parts.next()?;
+    let share = parts.next()?;
+    let rest = parts.next().unwrap_or_default();
+    return Some((format!("//{host}/{share}"), rest));
+  }
+  path.strip_prefix('/').map(|rest| ("/".to_string(), rest))
+}
+
+fn windows_drive(path: &str) -> Option<(u8, &str)> {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 3 && is_windows_drive_letter(bytes[0]) && bytes[1] == b':' && bytes[2] == b'/' {
+    Some((bytes[0], &path[3..]))
+  } else {
+    None
+  }
+}
+
+fn path_parts(path: &str) -> Vec<&str> {
+  path
+    .trim_matches('/')
+    .split('/')
+    .filter(|part| !part.is_empty())
+    .collect()
+}
+
 fn file_url_to_request_path(url: &Url) -> String {
   if let Ok(path) = url.to_file_path() {
     let path = path.to_string_lossy();
@@ -344,14 +531,26 @@ fn file_url_to_request_path(url: &Url) -> String {
     } else {
       Cow::Borrowed(path.as_ref())
     };
-    return if path.as_bytes().contains(&b'\\') {
+    let path = if path.as_bytes().contains(&b'\\') {
       path.replace('\\', "/")
     } else {
       path.into_owned()
     };
+    return normalize_request_path_string(&path);
   }
 
   let path = url.path();
+  let path = if path.len() >= 4
+    && path.as_bytes()[0] == b'/'
+    && path.as_bytes()[1].is_ascii_alphabetic()
+    && path.as_bytes()[2] == b':'
+    && path.as_bytes()[3] == b'/'
+  {
+    &path[1..]
+  } else {
+    path
+  };
+  let path = normalize_request_path_string(path);
   if path.len() >= 4
     && path.as_bytes()[0] == b'/'
     && path.as_bytes()[1].is_ascii_alphabetic()

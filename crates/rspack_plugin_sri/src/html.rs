@@ -5,7 +5,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
-use rspack_paths::Utf8Path;
+use rspack_paths::{RspackResource, Utf8Path};
 use rspack_plugin_html::{
   AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlPluginAlterAssetTagGroups,
   HtmlPluginBeforeAssetTagGeneration,
@@ -21,7 +21,6 @@ static HTTP_PROTOCOL_REGEX: Lazy<Regex> =
 use crate::{
   SRICompilationContext, SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
   SubresourceIntegrityPluginInner, config::ArcFs, integrity::compute_integrity,
-  util::normalize_path,
 };
 
 async fn handle_html_plugin_assets(
@@ -252,7 +251,9 @@ async fn get_integrity_checksum_for_asset(
     return Some(integrity.clone());
   }
 
-  let normalized_src = normalize_path(src).into_owned();
+  let normalized_src = RspackResource::from_request(src, None)
+    .map(|resource| resource.path.to_request_path_string())
+    .unwrap_or_else(|_| src.to_string());
   normalized_integrities.get(&normalized_src).cloned()
 }
 
@@ -263,7 +264,14 @@ async fn get_normalized_integrities(
     .read()
     .await
     .iter()
-    .map(|(key, value)| (normalize_path(key).into_owned(), value.clone()))
+    .map(|(key, value)| {
+      (
+        RspackResource::from_request(key, None)
+          .map(|resource| resource.path.to_request_path_string())
+          .unwrap_or_else(|_| key.clone()),
+        value.clone(),
+      )
+    })
     .collect::<HashMap<_, _>>()
 }
 

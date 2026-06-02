@@ -1,7 +1,7 @@
 use std::fmt;
 
 use rspack_cacheable::cacheable;
-use rspack_paths::is_path_separator;
+use rspack_paths::RspackPath;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -82,8 +82,6 @@ const NINE: char = '9';
 const PLUS: char = '+';
 const HYPHEN: char = '-';
 const COLON: char = ':';
-const HASH: char = '#';
-const QUERY: char = '?';
 
 pub fn get_scheme(specifier: &str) -> Scheme {
   // Fast path: most modules don't have a scheme
@@ -125,13 +123,8 @@ pub fn get_scheme(specifier: &str) -> Scheme {
   // Check for Windows absolute path
   // https://url.spec.whatwg.org/#url-miscellaneous
   let (i, _) = maybe_colon.expect("should not be None");
-  if i == 1 {
-    let next_ch = chars.next();
-    if next_ch.is_none()
-      || matches!(next_ch, Some((_, ch)) if ch.is_ascii() && is_path_separator(ch as u8) || ch == HASH || ch == QUERY)
-    {
-      return Scheme::None;
-    }
+  if RspackPath::is_windows_drive_scheme_guard(specifier, i) {
+    return Scheme::None;
   }
 
   Scheme::from(&specifier[..i])
