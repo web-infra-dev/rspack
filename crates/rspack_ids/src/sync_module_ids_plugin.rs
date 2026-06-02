@@ -29,11 +29,6 @@ pub struct SyncModuleIdsPluginOptions {
   pub mode: SyncModuleIdsPluginMode,
 }
 
-#[derive(Debug, Default)]
-struct SyncModuleIdsPluginState {
-  data: Option<BTreeMap<String, ModuleId>>,
-}
-
 fn parse_module_ids(buffer: &[u8]) -> Result<BTreeMap<String, ModuleId>> {
   let json: BTreeMap<String, Value> = serde_json::from_slice(buffer).to_rspack_result()?;
   let mut data = BTreeMap::new();
@@ -65,7 +60,7 @@ pub struct SyncModuleIdsPlugin {
   test: Option<ModuleFilterFn>,
   mode: SyncModuleIdsPluginMode,
   #[debug(skip)]
-  state: Mutex<SyncModuleIdsPluginState>,
+  state: Mutex<Option<BTreeMap<String, ModuleId>>>,
 }
 
 impl SyncModuleIdsPlugin {
@@ -114,28 +109,16 @@ async fn revive_modules(
   }
 
   let path = rspack_paths::Utf8Path::new(&self.path);
-  let data = match compilation.intermediate_filesystem.read_file(path).await {
+  let Some(data) = (match compilation.intermediate_filesystem.read_file(path).await {
     Ok(buffer) => Some(parse_module_ids(&buffer)?),
     Err(rspack_fs::Error::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => None,
     Err(err) => return Err(err.into()),
-  };
-
-  {
+  }) else {
     let mut state = self
       .state
       .lock()
       .expect("SyncModuleIdsPlugin state should not be poisoned");
-    state.data = data;
-  }
-
-  let data = {
-    let state = self
-      .state
-      .lock()
-      .expect("SyncModuleIdsPlugin state should not be poisoned");
-    state.data.clone()
-  };
-  let Some(data) = data else {
+    *state = None;
     return Ok(());
   };
 
@@ -179,6 +162,12 @@ async fn revive_modules(
     used_ids.insert(id, module.identifier());
   }
 
+  let mut state = self
+    .state
+    .lock()
+    .expect("SyncModuleIdsPlugin state should not be poisoned");
+  *state = Some(data);
+
   Ok(())
 }
 
@@ -193,7 +182,7 @@ async fn record_modules(
       .state
       .lock()
       .expect("SyncModuleIdsPlugin state should not be poisoned");
-    state.data.take().unwrap_or_default()
+    state.take().unwrap_or_default()
   };
   let mut data = if self.need_prune() {
     BTreeMap::default()
@@ -233,7 +222,7 @@ async fn record_modules(
       .state
       .lock()
       .expect("SyncModuleIdsPlugin state should not be poisoned");
-    state.data = Some(data);
+    *state = Some(data);
   }
 
   if let Some(json) = json {
