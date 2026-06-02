@@ -78,10 +78,6 @@ p {
 	color: steelblue;
 }
 
-.webpack {
-	color: steelblue;
-}
-
 .default {
 	color: steelblue;
 }
@@ -1406,10 +1402,6 @@ p {
 }
 
 .style {
-	color: steelblue;
-}
-
-.webpack {
 	color: steelblue;
 }
 

@@ -493,7 +493,6 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],
@@ -509,7 +508,6 @@ module.exports = {
 			      },
 			      css-import-global-module: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],
@@ -525,7 +523,6 @@ module.exports = {
 			      },
 			      css-import-local-module: Object {
 			        conditionNames: Array [
-			          webpack,
 			          production,
 			          style,
 			        ],
