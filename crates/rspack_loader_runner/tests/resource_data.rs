@@ -1,9 +1,9 @@
 use rspack_loader_runner::ResourceData;
 
 #[test]
-fn resource_data_populates_typed_resource_for_absolute_path() {
+fn resource_data_populates_typed_path_for_absolute_path() {
   let resource = ResourceData::new_with_resource("/tmp/rspack path/a.js?raw#frag".to_string());
-  let typed = resource.typed_resource().expect("typed resource");
+  let typed = resource.typed_path().expect("typed path");
 
   assert_eq!(
     typed.to_request_string(),
@@ -15,10 +15,10 @@ fn resource_data_populates_typed_resource_for_absolute_path() {
 }
 
 #[test]
-fn resource_data_populates_typed_resource_for_http_url() {
+fn resource_data_populates_typed_path_for_http_url() {
   let resource =
     ResourceData::new_with_resource("https://example.com/pkg/a.js?raw#frag".to_string());
-  let typed = resource.typed_resource().expect("typed resource");
+  let typed = resource.typed_path().expect("typed path");
 
   assert_eq!(
     typed.to_request_string(),

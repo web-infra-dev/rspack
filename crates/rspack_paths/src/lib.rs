@@ -205,8 +205,7 @@ impl RspackPath {
   }
 
   pub fn from_request(input: &str, base: Option<&RspackPath>) -> Result<Self, String> {
-    let resource = RspackResource::from_request(input, base)?;
-    Ok(resource.path)
+    parse_path(input, base)
   }
 
   pub fn as_file_path(&self) -> Option<Utf8PathBuf> {
@@ -253,7 +252,7 @@ impl RspackPath {
   pub fn to_request_path_string(&self) -> String {
     match self {
       Self::Absolute(url) if url.scheme() == "file" => file_url_to_request_path(url),
-      Self::Absolute(url) => url.to_string(),
+      Self::Absolute(url) => url_to_request_path(url),
       Self::Relative(path) if path.as_bytes().contains(&b'\\') => path.replace('\\', "/"),
       Self::Relative(path) => path.to_string(),
     }
@@ -279,85 +278,6 @@ impl CustomConverter for RspackPath {
   }
 }
 
-#[cacheable(with=Custom)]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct RspackResource {
-  pub path: RspackPath,
-  pub query: Option<SmolStr>,
-  pub fragment: Option<SmolStr>,
-}
-
-impl RspackResource {
-  pub fn from_request(input: &str, base: Option<&RspackPath>) -> Result<Self, String> {
-    let (path, query, fragment) = split_resource(input);
-    let parsed_path = parse_path(path, base)?;
-    Ok(Self {
-      path: parsed_path,
-      query: query.map(Into::into),
-      fragment: fragment.map(Into::into),
-    })
-  }
-
-  pub fn from_parts(
-    path: RspackPath,
-    query: Option<impl Into<SmolStr>>,
-    fragment: Option<impl Into<SmolStr>>,
-  ) -> Self {
-    Self {
-      path,
-      query: query.map(Into::into),
-      fragment: fragment.map(Into::into),
-    }
-  }
-
-  pub fn as_file_path(&self) -> Option<Utf8PathBuf> {
-    self.path.as_file_path()
-  }
-
-  pub fn as_url(&self) -> Option<&Url> {
-    self.path.as_url()
-  }
-
-  pub fn to_request_string(&self) -> String {
-    let mut resource = self.path.to_request_string();
-    if let Some(query) = &self.query {
-      resource.push_str(query);
-    }
-    if let Some(fragment) = &self.fragment {
-      resource.push_str(fragment);
-    }
-    resource
-  }
-
-  pub fn to_cache_key(&self) -> String {
-    self.to_request_string()
-  }
-
-  pub fn to_request_relative_to_context(&self, context: &RspackPath) -> Option<String> {
-    let mut request = self.path.to_request_relative_to_context(context)?;
-    if let Some(query) = &self.query {
-      request.push_str(query);
-    }
-    if let Some(fragment) = &self.fragment {
-      request.push_str(fragment);
-    }
-    Some(request)
-  }
-}
-
-impl CustomConverter for RspackResource {
-  type Target = String;
-
-  fn serialize(&self, _guard: &ContextGuard) -> Result<Self::Target, CacheableError> {
-    Ok(self.to_request_string())
-  }
-
-  fn deserialize(data: Self::Target, _guard: &ContextGuard) -> Result<Self, CacheableError> {
-    RspackResource::from_request(&data, None)
-      .map_err(|_| CacheableError::MessageError("failed to deserialize RspackResource"))
-  }
-}
-
 fn parse_path(input: &str, base: Option<&RspackPath>) -> Result<RspackPath, String> {
   if let Some(url) = windows_file_url(input) {
     return Ok(RspackPath::Absolute(Arc::new(url)));
@@ -373,9 +293,18 @@ fn parse_path(input: &str, base: Option<&RspackPath>) -> Result<RspackPath, Stri
     return Ok(RspackPath::Absolute(Arc::new(url)));
   }
 
-  let path = Utf8Path::new(input);
+  let (path, query, fragment) = split_resource(input);
+  let path = Utf8Path::new(path);
   if path.is_absolute() {
-    return RspackPath::from_utf8_path(path);
+    let mut url = Url::from_file_path(path.as_std_path())
+      .map_err(|_| format!("failed to convert path to file URL: {path}"))?;
+    if let Some(query) = query {
+      url.set_query(Some(query.trim_start_matches('?')));
+    }
+    if let Some(fragment) = fragment {
+      url.set_fragment(Some(fragment.trim_start_matches('#')));
+    }
+    return Ok(RspackPath::Absolute(Arc::new(url)));
   }
 
   Ok(RspackPath::Relative(input.into()))
@@ -517,6 +446,13 @@ fn path_parts(path: &str) -> Vec<&str> {
     .split('/')
     .filter(|part| !part.is_empty())
     .collect()
+}
+
+fn url_to_request_path(url: &Url) -> String {
+  let mut url = url.clone();
+  url.set_query(None);
+  url.set_fragment(None);
+  url.to_string()
 }
 
 fn file_url_to_request_path(url: &Url) -> String {

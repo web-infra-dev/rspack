@@ -6,7 +6,7 @@ use std::{
 
 use cow_utils::CowUtils;
 use regex::Regex;
-use rspack_paths::{RspackPath, RspackResource};
+use rspack_paths::RspackPath;
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
@@ -56,11 +56,21 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
       out.push_str(maybe_absolute_path);
       return;
     };
-    let Ok(resource) = RspackResource::from_request(maybe_absolute_path, None) else {
+    let Ok(resource) = RspackPath::from_request(maybe_absolute_path, None) else {
       out.push_str(maybe_absolute_path);
       return;
     };
-    if let Some(request) = resource.to_request_relative_to_context(&context) {
+    if let Some(mut request) = resource.to_request_relative_to_context(&context) {
+      if let Some(url) = resource.as_url() {
+        if let Some(query) = url.query() {
+          request.push('?');
+          request.push_str(query);
+        }
+        if let Some(fragment) = url.fragment() {
+          request.push('#');
+          request.push_str(fragment);
+        }
+      }
       out.push_str(&request);
     } else {
       out.push_str(maybe_absolute_path);

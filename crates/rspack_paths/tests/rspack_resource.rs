@@ -1,4 +1,4 @@
-use rspack_paths::{RspackPath, RspackResource, Utf8Path};
+use rspack_paths::{RspackPath, Utf8Path};
 
 #[test]
 fn parses_posix_absolute_path_as_file_url() {
@@ -9,6 +9,17 @@ fn parses_posix_absolute_path_as_file_url() {
     path.as_file_path().expect("file path").as_str(),
     "/tmp/rspack path/a.js"
   );
+}
+
+#[test]
+fn preserves_query_and_fragment_in_absolute_file_url() {
+  let path = RspackPath::from_request("/tmp/rspack path/a.js?raw#frag", None).expect("file URL");
+
+  assert_eq!(
+    path.to_request_string(),
+    "file:///tmp/rspack%20path/a.js?raw#frag"
+  );
+  assert_eq!(path.to_request_path_string(), "/tmp/rspack path/a.js");
 }
 
 #[test]
@@ -26,16 +37,18 @@ fn parses_unc_path_as_file_url() {
 }
 
 #[test]
-fn preserves_query_and_fragment_as_resource_parts() {
+fn preserves_query_and_fragment_in_absolute_url() {
   let resource =
-    RspackResource::from_request("https://example.com/a%20b.js?raw#frag", None).expect("resource");
+    RspackPath::from_request("https://example.com/a%20b.js?raw#frag", None).expect("resource");
 
   assert_eq!(
-    resource.path.as_url().expect("url").as_str(),
+    resource.as_url().expect("url").as_str(),
+    "https://example.com/a%20b.js?raw#frag"
+  );
+  assert_eq!(
+    resource.to_request_path_string(),
     "https://example.com/a%20b.js"
   );
-  assert_eq!(resource.query.as_deref(), Some("?raw"));
-  assert_eq!(resource.fragment.as_deref(), Some("#frag"));
   assert_eq!(
     resource.to_request_string(),
     "https://example.com/a%20b.js?raw#frag"
@@ -52,9 +65,9 @@ fn joins_relative_request_against_absolute_url_base() {
 
 #[test]
 fn keeps_relative_requests_compact() {
-  let resource = RspackResource::from_request("./style.css?module#layer", None).expect("resource");
+  let resource = RspackPath::from_request("./style.css?module#layer", None).expect("resource");
 
-  assert_eq!(resource.path.to_request_string(), "./style.css");
+  assert_eq!(resource.to_request_string(), "./style.css?module#layer");
   assert_eq!(resource.to_cache_key(), "./style.css?module#layer");
 }
 

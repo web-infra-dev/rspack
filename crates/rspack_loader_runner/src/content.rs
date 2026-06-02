@@ -12,7 +12,7 @@ use rspack_cacheable::{
   with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
-use rspack_paths::{RspackResource, Utf8Path, Utf8PathBuf};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
 
 use crate::{Scheme, get_scheme, parse_resource};
@@ -137,7 +137,7 @@ pub struct ResourceData {
   resource_query: Option<String>,
   /// Resource fragment with `#` prefix
   resource_fragment: Option<String>,
-  typed_resource: Option<RspackResource>,
+  typed_path: Option<RspackPath>,
   resource_description: Option<DescriptionData>,
   mimetype: Option<String>,
   parameters: Option<String>,
@@ -151,22 +151,22 @@ pub struct ResourceData {
 impl ResourceData {
   pub fn new_with_resource(resource: String) -> Self {
     if let Some(parsed) = parse_resource(&resource) {
-      let typed_resource = RspackResource::from_request(&resource, None).ok();
-      return Self::new_with_path_and_typed_resource(
+      let typed_path = RspackPath::from_request(&resource, None).ok();
+      return Self::new_with_path_and_typed_path(
         resource,
         parsed.path,
         parsed.query,
         parsed.fragment,
-        typed_resource,
+        typed_path,
       );
     };
-    let typed_resource = RspackResource::from_request(&resource, None).ok();
+    let typed_path = RspackPath::from_request(&resource, None).ok();
     Self {
       resource,
       resource_path: None,
       resource_query: None,
       resource_fragment: None,
-      typed_resource,
+      typed_path,
       resource_description: None,
       mimetype: None,
       parameters: None,
@@ -183,13 +183,13 @@ impl ResourceData {
     query: Option<String>,
     fragment: Option<String>,
   ) -> Self {
-    let typed_resource = build_typed_resource(&path, query.as_deref(), fragment.as_deref());
+    let typed_path = RspackPath::from_path_str(path.as_str()).ok();
     Self {
       resource,
       resource_path: Some(path),
       resource_query: query,
       resource_fragment: fragment,
-      typed_resource,
+      typed_path,
       resource_description: None,
       mimetype: None,
       parameters: None,
@@ -200,19 +200,19 @@ impl ResourceData {
     }
   }
 
-  pub fn new_with_path_and_typed_resource(
+  pub fn new_with_path_and_typed_path(
     resource: String,
     path: Utf8PathBuf,
     query: Option<String>,
     fragment: Option<String>,
-    typed_resource: Option<RspackResource>,
+    typed_path: Option<RspackPath>,
   ) -> Self {
     Self {
       resource,
       resource_path: Some(path),
       resource_query: query,
       resource_fragment: fragment,
-      typed_resource,
+      typed_path,
       resource_description: None,
       mimetype: None,
       parameters: None,
@@ -246,7 +246,7 @@ impl ResourceData {
   }
 
   pub fn set_resource(&mut self, v: String) {
-    self.typed_resource = RspackResource::from_request(&v, None).ok();
+    self.typed_path = RspackPath::from_request(&v, None).ok();
     self.resource = v;
   }
 
@@ -261,7 +261,7 @@ impl ResourceData {
     {
       self.scheme.take();
       self.resource_path = Some(new_path);
-      self.update_typed_resource_from_parts();
+      self.update_typed_path_from_path();
     }
   }
 
@@ -277,12 +277,10 @@ impl ResourceData {
 
   pub fn set_query(&mut self, v: String) {
     self.resource_query = Some(v);
-    self.update_typed_resource_from_parts();
   }
 
   pub fn set_query_optional(&mut self, v: Option<String>) {
     self.resource_query = v;
-    self.update_typed_resource_from_parts();
   }
 
   pub fn fragment(&self) -> Option<&str> {
@@ -291,25 +289,19 @@ impl ResourceData {
 
   pub fn set_fragment(&mut self, v: String) {
     self.resource_fragment = Some(v);
-    self.update_typed_resource_from_parts();
   }
 
   pub fn set_fragment_optional(&mut self, v: Option<String>) {
     self.resource_fragment = v;
-    self.update_typed_resource_from_parts();
   }
 
-  pub fn typed_resource(&self) -> Option<&RspackResource> {
-    self.typed_resource.as_ref()
+  pub fn typed_path(&self) -> Option<&RspackPath> {
+    self.typed_path.as_ref()
   }
 
-  fn update_typed_resource_from_parts(&mut self) {
+  fn update_typed_path_from_path(&mut self) {
     if let Some(path) = &self.resource_path {
-      self.typed_resource = build_typed_resource(
-        path,
-        self.resource_query.as_deref(),
-        self.resource_fragment.as_deref(),
-      );
+      self.typed_path = RspackPath::from_path_str(path.as_str()).ok();
     }
   }
 
@@ -363,21 +355,6 @@ impl ResourceData {
     }
     self.set_resource(new_resource);
   }
-}
-
-fn build_typed_resource(
-  path: &Utf8Path,
-  query: Option<&str>,
-  fragment: Option<&str>,
-) -> Option<RspackResource> {
-  let mut resource = path.to_string();
-  if let Some(query) = query {
-    resource.push_str(query);
-  }
-  if let Some(fragment) = fragment {
-    resource.push_str(fragment);
-  }
-  RspackResource::from_request(&resource, None).ok()
 }
 
 /// Used for [Rule.descriptionData](https://rspack.rs/config/module.html#ruledescriptiondata) and

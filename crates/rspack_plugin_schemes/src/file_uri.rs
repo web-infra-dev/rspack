@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_error::{Result, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::RspackResource;
+use rspack_paths::RspackPath;
 #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
 use tokio::task::spawn_blocking;
 
@@ -23,30 +23,25 @@ async fn normal_module_factory_resolve_for_scheme(
   scheme: &Scheme,
 ) -> Result<Option<bool>> {
   if scheme.is_file() {
-    let typed_resource = RspackResource::from_request(resource_data.resource(), None)
-      .map_err(|err| error!("{err}"))?;
-    let url = typed_resource
+    let typed_path =
+      RspackPath::from_request(resource_data.resource(), None).map_err(|err| error!("{err}"))?;
+    let url = typed_path
       .as_url()
       .ok_or_else(|| error!("Expected file URL resource {}", resource_data.resource()))?;
-    let path = typed_resource
+    let path = typed_path
       .as_file_path()
       .ok_or_else(|| error!("Failed to get file path of {url}"))?
       .to_owned();
-    let query = typed_resource.query.as_ref().map(ToString::to_string);
-    let fragment = typed_resource.fragment.as_ref().map(ToString::to_string);
+    let query = url.query().map(|query| format!("?{query}"));
+    let fragment = url.fragment().map(|fragment| format!("#{fragment}"));
     let resource = format!(
       "{}{}{}",
       path,
       query.as_deref().unwrap_or(""),
       fragment.as_deref().unwrap_or("")
     );
-    *resource_data = ResourceData::new_with_path_and_typed_resource(
-      resource,
-      path,
-      query,
-      fragment,
-      Some(typed_resource),
-    );
+    *resource_data =
+      ResourceData::new_with_path_and_typed_path(resource, path, query, fragment, Some(typed_path));
     return Ok(Some(true));
   }
   Ok(None)
