@@ -1244,7 +1244,6 @@ const getResolveDefaults = ({
 
   const styleConditions = [];
 
-  styleConditions.push('webpack');
   styleConditions.push(mode === 'development' ? 'development' : 'production');
   styleConditions.push('style');
 
