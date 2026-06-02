@@ -2,6 +2,10 @@ import { createRequire as _createRequire } from "module";
 import { createRequire as __createRequire, builtinModules } from "module";
 import { createRequire as nodeCreateRequire } from "node:module";
 import * as esm from "./esm.mjs";
+import { unusedBranchEnabled } from "./flag.js";
+
+const fs = __non_webpack_require__("fs");
+const path = __non_webpack_require__("path");
 
 it("should evaluate require/createRequire", () => {
 	expect(
@@ -22,9 +26,11 @@ it("should evaluate require/createRequire", () => {
 it("should create require", () => {
 	const require = _createRequire(import.meta.url);
 	expect(require("./a")).toBe(1);
+	expect(new require("./a")).toEqual({});
 	expect(_createRequire(import.meta.url)("./c")).toBe(3);
 	var varRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(varRequire("./a")).toBe(4);
+	expect(new varRequire("./a")).toEqual({});
 });
 
 it("should resolve using created require", () => {
@@ -56,6 +62,22 @@ it("should provide dependency context", () => {
 	expect(_createRequire(new URL("./foo/c.js", import.meta.url))("./a")).toBe(4);
 	const nodeRequire = nodeCreateRequire(new URL("./foo/c.js", import.meta.url));
 	expect(nodeRequire("./a")).toBe(4);
+});
+
+it("should drop inactive branch dependencies of created require", () => {
+	const require = _createRequire(import.meta.url);
+	if (unusedBranchEnabled) {
+		require("./guarded-unused.js");
+	}
+
+	const unusedMarker = "__rspackCreateRequire" + "GuardedUnused";
+	const emittedSource = fs
+		.readdirSync(path.dirname(__filename))
+		.filter(file => file.endsWith(".js"))
+		.map(file => fs.readFileSync(path.join(path.dirname(__filename), file), "utf-8"))
+		.join("\n");
+	expect(globalThis[unusedMarker]).toBe(undefined);
+	expect(emittedSource.includes(unusedMarker)).toBe(false);
 });
 
 it("should not parse relative createRequire filename", () => {

@@ -2,6 +2,7 @@
 module.exports = {
   target: 'node',
   optimization: {
+    inlineExports: true,
     moduleIds: 'named',
   },
 };

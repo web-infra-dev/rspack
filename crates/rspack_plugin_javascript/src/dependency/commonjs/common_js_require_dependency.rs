@@ -190,6 +190,10 @@ impl ContextualCommonJsRequireDependency {
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.inner.set_referenced_specifiers(referenced_specifiers);
   }
+
+  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
+    self.inner.add_branch_guards(guards);
+  }
 }
 
 #[cacheable_dyn]

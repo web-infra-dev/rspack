@@ -1360,6 +1360,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_parse_commonjs_require(parser)
     {
       self.require_handler(parser, CallOrNewExpr::New(new_expr), None)
+    } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      self.require_handler(
+        parser,
+        CallOrNewExpr::New(new_expr),
+        current_created_require_context(parser),
+      )
     } else {
       None
     }
