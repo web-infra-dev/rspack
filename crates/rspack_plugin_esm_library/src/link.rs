@@ -272,6 +272,8 @@ impl EsmLibraryPlugin {
     Self::add_chunk_export_alias(chunk, local, exported, chunk_exports, strict_exports)
   }
 
+  #[cold]
+  #[inline(never)]
   fn add_chunk_export_alias(
     chunk: ChunkUkey,
     local: Atom,
@@ -1880,6 +1882,8 @@ var {} = {{}};
     }
   }
 
+  #[cold]
+  #[inline(never)]
   fn get_same_chunk_inlined_export_binding(
     module_graph: &ModuleGraph,
     exports_info_artifact: &ExportsInfoArtifact,
