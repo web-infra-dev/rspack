@@ -131,6 +131,15 @@ it("should not tag lexical createRequire bindings before initialization", () => 
 	expect(after).toBe(4);
 });
 
+it("should clear shadowed created require bindings with unsupported initializers", () => {
+	const req = _createRequire(new URL("./foo/c.js", import.meta.url));
+	expect(req("./a")).toBe(4);
+	expect(() => {
+		const req = _createRequire("./foo/c.js");
+		return req("./a");
+	}).toThrow(/absolute path|file URL/);
+});
+
 it("should stop parsing reassigned created require bindings", () => {
 	let mutableRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	mutableRequire = request => request;

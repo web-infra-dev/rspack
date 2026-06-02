@@ -1062,6 +1062,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         .get_tag_data::<CreatedRequireTagData>(&binding.id.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
         .is_some()
     {
+      parser.define_variable(binding.id.sym.clone());
+      parser.walk_expression(init);
       return Some(true);
     }
     None
