@@ -181,9 +181,14 @@ fn hex_value(byte: u8) -> Option<u8> {
 }
 
 #[inline(never)]
-fn file_url_to_path(value: &str) -> Option<String> {
+fn file_url_path(value: &str) -> Option<&str> {
   let path = value.strip_prefix("file://")?;
-  let path = path.split(['?', '#']).next()?;
+  path.split(['?', '#']).next()
+}
+
+#[inline(never)]
+fn file_url_to_path(value: &str) -> Option<String> {
+  let path = file_url_path(value)?;
   let path = path
     .strip_prefix("localhost")
     .filter(|path| path.starts_with('/'))
@@ -218,7 +223,7 @@ fn file_url_to_path(value: &str) -> Option<String> {
 #[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
   let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-    let is_directory_request = path.ends_with('/');
+    let is_directory_request = file_url_path(value).is_some_and(|path| path.ends_with('/'));
     (path, is_directory_request)
   } else {
     if !Path::new(value).is_absolute() {
