@@ -13,6 +13,6 @@ it("should preserve created require resolve when requireResolve is disabled", ()
 	const directResolvedWithUrl = _createRequire(
 		new URL("./foo/c.js", import.meta.url)
 	).resolve("./a");
-	expect(directResolvedWithUrl.endsWith("foo/a.js")).toBe(true);
+	expect(directResolvedWithUrl).toMatch(/[\\/]foo[\\/]a\.js$/);
 	expect(directResolvedWithUrl).not.toBe("./a.js");
 });

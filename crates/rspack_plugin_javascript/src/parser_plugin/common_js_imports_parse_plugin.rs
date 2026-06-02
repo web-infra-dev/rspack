@@ -264,6 +264,22 @@ fn parse_create_require_arguments(
 }
 
 #[inline(never)]
+fn replace_create_require_argument(parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  let Some(arg) = call_expr.args.first() else {
+    return;
+  };
+  if call_expr.args.len() != 1 || arg.spread.is_some() {
+    return;
+  }
+  if let Some(value) = evaluate_create_require_argument(parser, &arg.expr) {
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      arg.expr.span().into(),
+      json_stringify_str(&value).into(),
+    )));
+  }
+}
+
+#[inline(never)]
 fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   if let Callee::Expr(callee) = &call_expr.callee {
     parser.walk_expression(callee);
@@ -1435,12 +1451,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         || call_expr.args[0].spread.is_some()
       {
         walk_create_require_callee(parser, inner_call_expr);
-        if let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false) {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            inner_call_expr.args[0].expr.span().into(),
-            json_stringify_str(&argument.value).into(),
-          )));
-        }
+        replace_create_require_argument(parser, inner_call_expr);
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
       }
