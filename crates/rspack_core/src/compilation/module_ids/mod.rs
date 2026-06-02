@@ -50,15 +50,22 @@ impl PassExt for ModuleIdsPass {
     let mut module_ids_artifact = compilation.module_ids_artifact.steal();
 
     // Call reviveModules hook - allows plugins to restore IDs from records
-    let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
-    compilation
+    if !compilation
       .plugin_driver
-      .clone()
       .compilation_hooks
       .revive_modules
-      .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.reviveModules"))?;
+      .is_empty()
+    {
+      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .revive_modules
+        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.reviveModules"))?;
+    }
 
     // Call beforeModuleIds hook - allows plugins to assign custom IDs
     let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
@@ -85,14 +92,21 @@ impl PassExt for ModuleIdsPass {
       .call(compilation, &mut module_ids_artifact, &mut diagnostics)
       .await
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
-    compilation
+    if !compilation
       .plugin_driver
-      .clone()
       .compilation_hooks
       .record_modules
-      .call(compilation, &module_ids_artifact)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.recordModules"))?;
+      .is_empty()
+    {
+      compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .record_modules
+        .call(compilation, &module_ids_artifact)
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.recordModules"))?;
+    }
     compilation.module_ids_artifact = module_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
     Ok(())
