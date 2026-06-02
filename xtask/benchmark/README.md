@@ -15,7 +15,7 @@ Some benchmark cases use fixtures from `.bench/rspack-benchcases`. Prepare them 
 pnpm run bench:prepare
 ```
 
-The prepare step also creates a local `threejs-10x` fixture by copying the
+The benchcases repository includes a `threejs-10x` fixture that copies the
 upstream `threejs/src` input ten times. This larger input is registered only by
 the isolated `walltime` benchmark target, so regular simulation runs keep using
 the smaller default benchmark set. The `threejs-10x` walltime benchmark writes

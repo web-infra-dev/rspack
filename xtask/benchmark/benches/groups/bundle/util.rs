@@ -2,8 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
-  Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Optimization, Resolve, RuleSetCondition,
+  CleanOptions, Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleUse, ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
@@ -47,6 +47,14 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(output_filesystem);
+
+  if options.native_output_filesystem {
+    builder.output(
+      OutputOptions::builder()
+        .clean(CleanOptions::CleanAll(true))
+        .compare_before_emit(false),
+    );
+  }
 
   if options.swc_loader {
     builder
