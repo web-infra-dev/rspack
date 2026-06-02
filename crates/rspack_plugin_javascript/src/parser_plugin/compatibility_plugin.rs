@@ -9,9 +9,7 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::CommonJsRequireContextDependency,
-  visitors::{
-    JavascriptParser, Statement, TagInfoData, TopLevelScope, VariableDeclaration, expr_name,
-  },
+  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
