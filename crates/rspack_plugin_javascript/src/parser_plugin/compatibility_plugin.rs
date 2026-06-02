@@ -9,7 +9,9 @@ use swc_core::{
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::CommonJsRequireContextDependency,
-  visitors::{JavascriptParser, Statement, TagInfoData, VariableDeclaration, expr_name},
+  visitors::{
+    JavascriptParser, Statement, TagInfoData, TopLevelScope, VariableDeclaration, expr_name,
+  },
 };
 
 pub const NESTED_IDENTIFIER_TAG: &str = "_identifier__nested_rspack_identifier__";
@@ -168,7 +170,9 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
         start,
         end,
       );
-      return Some(true);
+      if !parser.is_top_level_scope() {
+        return Some(true);
+      }
     }
     None
   }
@@ -194,6 +198,26 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       );
       Some(true)
     }
+  }
+
+  fn declarator(
+    &self,
+    parser: &mut JavascriptParser,
+    declarator: &VarDeclarator,
+    _stmt: VariableDeclaration<'_>,
+  ) -> Option<bool> {
+    if let Some(ident) = declarator.name.as_ident()
+      && (ident.sym == parser.parser_runtime_requirements.exports
+        || ident.sym == parser.parser_runtime_requirements.require)
+    {
+      let data = parser.get_tag_data_mut::<NestedRequireData>(&ident.sym, NESTED_IDENTIFIER_TAG)?;
+      if !data.update {
+        let dep = Box::new(ConstDependency::new(data.loc, data.name.clone().into()));
+        data.update = true;
+        parser.add_presentational_dependency(dep);
+      }
+    }
+    None
   }
 
   fn identifier(
