@@ -37,6 +37,7 @@ use crate::{
 const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
+const SYNTHETIC_CREATED_REQUIRE_NAME: &str = "__rspack_create_require";
 
 #[derive(Debug, Clone)]
 pub struct CreateRequireSpecifierTagData;
@@ -1263,11 +1264,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let context = parse_create_require_arguments(parser, expr, false)?;
-    let evaluated_name = Atom::from(format!(
-      "__rspack_create_require_{}_{}",
-      expr.span.real_lo(),
-      expr.span.real_hi()
-    ));
+    let evaluated_name = Atom::from(SYNTHETIC_CREATED_REQUIRE_NAME);
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,
