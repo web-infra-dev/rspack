@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use std::sync::Arc;
+use std::{fs, io::ErrorKind, path::PathBuf, sync::Arc};
 
 use criterion::{Criterion, criterion_group, criterion_main};
 use rspack_core::configure_rayon_current_thread_for_codspeed;
@@ -41,23 +41,51 @@ fn walltime_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
     b.iter_batched(
       || {
         let compiler_context = Arc::new(CompilerContext::new());
-        (
-          compiler_context.clone(),
-          within_compiler_context_sync(compiler_context, || get_compiler().build().unwrap()),
-        )
+        let compiler = within_compiler_context_sync(compiler_context.clone(), || {
+          get_compiler().build().unwrap()
+        });
+        let output_path = compiler.options.output.path.as_std_path().to_path_buf();
+        (compiler_context, compiler, output_path)
       },
-      |(compiler_context, mut compiler)| {
+      |(compiler_context, mut compiler, output_path)| {
+        // `iter_batched` drops the routine output after stopping the timer, so
+        // returning this guard cleans native output after each measured build.
+        let output_cleanup = NativeOutputCleanup::new(output_path);
         let context = format!("bundle@{id} walltime benchmark build");
-        rt.block_on(within_compiler_context(compiler_context, async move {
+        rt.block_on(within_compiler_context(compiler_context, async {
           compiler.run().await.unwrap();
           assert_no_compilation_errors(&compiler.compilation, &context);
-        }))
+        }));
+        output_cleanup
       },
       criterion::BatchSize::PerIteration,
     );
   });
 
   group.finish();
+}
+
+struct NativeOutputCleanup {
+  output_path: PathBuf,
+}
+
+impl NativeOutputCleanup {
+  fn new(output_path: PathBuf) -> Self {
+    Self { output_path }
+  }
+}
+
+impl Drop for NativeOutputCleanup {
+  fn drop(&mut self) {
+    match fs::remove_dir_all(&self.output_path) {
+      Ok(()) => {}
+      Err(error) if error.kind() == ErrorKind::NotFound => {}
+      Err(error) => panic!(
+        "failed to clean walltime benchmark output directory {}: {error}",
+        self.output_path.display()
+      ),
+    }
+  }
 }
 
 criterion_group!(codspeed_setup, configure_rayon_for_codspeed);
