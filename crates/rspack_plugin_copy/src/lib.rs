@@ -451,7 +451,7 @@ impl CopyRspackPlugin {
         } else {
           context.join(orig_from).as_str().to_string()
         };
-        glob_query = RspackPath::from_glob_pattern(&glob_query).to_glob_pattern_string();
+        glob_query = RspackPath::from_glob_pattern(&glob_query).to_request_string();
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
         if glob_query.ends_with("/**") {

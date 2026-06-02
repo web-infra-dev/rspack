@@ -7,7 +7,6 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
-use rspack_util::node_path::NodePath;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
@@ -567,7 +566,7 @@ fn resolve_context_module_glob_pattern(
   } else {
     (pattern, false)
   };
-  let pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
+  let pattern = RspackPath::from_glob_pattern(pattern).to_request_string();
   let (base, pattern_to_join) = if let Some(pattern_to_join) = pattern.strip_prefix('/') {
     (
       infer_glob_root_context(common_base, extract_glob_base_dir(&pattern)),
@@ -586,12 +585,9 @@ fn resolve_context_module_glob_pattern(
   let base = RspackPath::from_path_str(&base)
     .expect("glob base should be representable as RspackPath")
     .to_request_path_string();
-  let escaped_base = escape_glob_pattern(&base);
-  let absolute_pattern = Utf8Path::new(&escaped_base)
-    .node_join_posix(pattern_to_join)
-    .node_normalize_posix()
-    .to_string();
-  let absolute_pattern = RspackPath::from_glob_pattern(&absolute_pattern).to_glob_pattern_string();
+  let absolute_pattern = RspackPath::from_glob_pattern(&escape_glob_pattern(&base))
+    .join_glob_pattern(&RspackPath::from_glob_pattern(pattern_to_join))
+    .to_request_string();
   let base = extract_glob_base_dir(&pattern).to_string();
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
@@ -658,9 +654,9 @@ fn glob_user_request(
     .unwrap_or(normalized_path.as_str())
     .trim_start_matches('/');
   Some(
-    Utf8Path::new(&matched.base)
-      .node_join_posix(suffix)
-      .to_string(),
+    RspackPath::from_glob_pattern(&matched.base)
+      .join_glob_pattern(&RspackPath::from_glob_pattern(suffix))
+      .to_request_string(),
   )
 }
 

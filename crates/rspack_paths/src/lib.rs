@@ -60,26 +60,8 @@ pub fn is_windows_absolute_path(input: &str) -> bool {
 }
 
 #[inline]
-pub fn is_posix_absolute_path(input: &str) -> bool {
-  input.as_bytes().first() == Some(&b'/')
-}
-
-#[inline]
 pub fn is_absolute_path(input: &str) -> bool {
-  is_posix_absolute_path(input) || is_windows_absolute_path(input)
-}
-
-#[inline]
-pub fn is_url_like_absolute(input: &str) -> bool {
-  Url::parse(input).is_ok()
-}
-
-fn to_slash_path(input: &str) -> Cow<'_, str> {
-  if input.as_bytes().contains(&b'\\') {
-    Cow::Owned(input.replace('\\', "/"))
-  } else {
-    Cow::Borrowed(input)
-  }
+  input.as_bytes().first() == Some(&b'/') || is_windows_absolute_path(input)
 }
 
 #[cacheable(with=Custom)]
@@ -116,6 +98,21 @@ impl RspackPath {
       }
     }
     Self::Relative(result.into())
+  }
+
+  pub fn join_glob_pattern(&self, child: &RspackPath) -> Self {
+    let base = self.to_request_string();
+    let child = child.to_request_string();
+    let joined = if base.is_empty() {
+      child
+    } else if child.is_empty() {
+      base
+    } else if base.ends_with('/') || child.starts_with('/') {
+      format!("{base}{child}")
+    } else {
+      format!("{base}/{child}")
+    };
+    Self::Relative(normalize_posix_path(&joined, joined.starts_with('/')).into())
   }
 
   pub fn from_utf8_path(path: &Utf8Path) -> Result<Self, String> {
@@ -172,16 +169,10 @@ impl RspackPath {
 
   pub fn to_request_path_string(&self) -> String {
     match self {
-      Self::Absolute(url) if url.scheme() == "file" => file_url_to_slash_path(url),
+      Self::Absolute(url) if url.scheme() == "file" => file_url_to_request_path(url),
       Self::Absolute(url) => url.to_string(),
-      Self::Relative(path) => to_slash_path(path.as_str()).into_owned(),
-    }
-  }
-
-  pub fn to_glob_pattern_string(&self) -> String {
-    match self {
-      Self::Relative(pattern) => pattern.to_string(),
-      _ => self.to_request_path_string(),
+      Self::Relative(path) if path.as_bytes().contains(&b'\\') => path.replace('\\', "/"),
+      Self::Relative(path) => path.to_string(),
     }
   }
 }
@@ -306,7 +297,41 @@ fn windows_file_url(input: &str) -> Option<Url> {
   None
 }
 
-fn file_url_to_slash_path(url: &Url) -> String {
+fn normalize_posix_path(path: &str, is_absolute: bool) -> String {
+  let trailing_slash = path.ends_with('/');
+  let mut parts = Vec::new();
+
+  for part in path.split('/') {
+    match part {
+      "" | "." => {}
+      ".." if parts.last().is_some_and(|last| *last != "..") => {
+        parts.pop();
+      }
+      ".." if !is_absolute => parts.push(part),
+      ".." => {}
+      _ => parts.push(part),
+    }
+  }
+
+  let mut normalized = parts.join("/");
+  if is_absolute {
+    normalized.insert(0, '/');
+  }
+  if trailing_slash && !normalized.ends_with('/') {
+    normalized.push('/');
+  }
+  if normalized.is_empty() {
+    if is_absolute {
+      "/".to_string()
+    } else {
+      ".".to_string()
+    }
+  } else {
+    normalized
+  }
+}
+
+fn file_url_to_request_path(url: &Url) -> String {
   if let Ok(path) = url.to_file_path() {
     let path = path.to_string_lossy();
     let path = if path.len() >= 4
@@ -319,7 +344,11 @@ fn file_url_to_slash_path(url: &Url) -> String {
     } else {
       Cow::Borrowed(path.as_ref())
     };
-    return to_slash_path(path.as_ref()).into_owned();
+    return if path.as_bytes().contains(&b'\\') {
+      path.replace('\\', "/")
+    } else {
+      path.into_owned()
+    };
   }
 
   let path = url.path();

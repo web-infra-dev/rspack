@@ -67,7 +67,7 @@ pub fn glob_match_with_explicit_dot(
   base_dir: &str,
   options: &GlobMatchOptions,
 ) -> bool {
-  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
+  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_request_string();
   let normalized_path = RspackPath::from_path_str(path)
     .expect("path should be representable as RspackPath")
     .to_request_path_string();
@@ -213,7 +213,7 @@ pub async fn find_files_by_glob(
   options: &GlobMatchOptions,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<Vec<Utf8PathBuf>> {
-  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
+  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_request_string();
   let base_dir = extract_glob_base_dir(&normalized_pattern);
   let unescaped_base_dir = unescape_glob_path(base_dir);
   let base_dir_path = Utf8Path::new(&unescaped_base_dir);
@@ -330,23 +330,23 @@ mod tests {
   #[test]
   fn rspack_path_glob_pattern_preserves_glob_escapes() {
     assert_eq!(
-      RspackPath::from_glob_pattern("./fixtures/a\\[b\\]/**/*.js").to_glob_pattern_string(),
+      RspackPath::from_glob_pattern("./fixtures/a\\[b\\]/**/*.js").to_request_string(),
       "./fixtures/a\\[b\\]/**/*.js"
     );
     assert_eq!(
-      RspackPath::from_glob_pattern("./fixtures/file\\*.js").to_glob_pattern_string(),
+      RspackPath::from_glob_pattern("./fixtures/file\\*.js").to_request_string(),
       "./fixtures/file\\*.js"
     );
     assert_eq!(
-      RspackPath::from_glob_pattern("./fixtures/file\\?.js").to_glob_pattern_string(),
+      RspackPath::from_glob_pattern("./fixtures/file\\?.js").to_request_string(),
       "./fixtures/file\\?.js"
     );
     assert_eq!(
-      RspackPath::from_glob_pattern("C:\\fixtures\\a\\[b\\]\\file.js").to_glob_pattern_string(),
+      RspackPath::from_glob_pattern("C:\\fixtures\\a\\[b\\]\\file.js").to_request_string(),
       "C:/fixtures/a\\[b\\]/file.js"
     );
     assert_eq!(
-      RspackPath::from_glob_pattern("C:\\repo\\src/*.js").to_glob_pattern_string(),
+      RspackPath::from_glob_pattern("C:\\repo\\src/*.js").to_request_string(),
       "C:/repo/src/*.js"
     );
   }
