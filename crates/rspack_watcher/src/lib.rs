@@ -195,10 +195,20 @@ impl FsWatcher {
     //     in flight for that write would then be suppressed as a duplicate.
     self.record_initial_file_mtimes();
 
-    self.scanner.scan(start_time);
-
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     self.disk_watcher.watch(watch_patterns.into_iter())?;
+
+    // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
+    // registers the underlying inotify/FSEvents watch synchronously, so once it
+    // returns every later change is delivered as a live event. Scanning here
+    // closes a startup race: previously the scan ran (in spawned tasks) before
+    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
+    // watch was active. A change landing in that gap was seen by neither path —
+    // the scan read the pre-change mtime, and the watch was not yet active to
+    // deliver the event — so no rebuild was triggered. With this order, a change
+    // before the watch is active is on disk by scan time (caught by
+    // `mtime > start_time`), and a change after it is active is delivered live.
+    self.scanner.scan(start_time);
 
     Ok(())
   }

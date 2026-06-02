@@ -1,0 +1,24 @@
+```mjs title=main.mjs
+// ./foo.js
+const call = value => {
+	globalThis.__inlineExportLocalConflict = value;
+};
+
+const foo = 'foo';
+
+call(foo);
+
+
+
+// ./index.js
+
+
+it('should not collide inline re-export with live local binding', async () => {
+	const mod = await import(/* webpackIgnore: true */ './main.mjs');
+	expect(mod.foo).toBe('foo');
+	expect(globalThis.__inlineExportLocalConflict).toBe('foo');
+})
+
+export { foo };
+
+```
