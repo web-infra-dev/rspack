@@ -1,6 +1,7 @@
 use std::fmt;
 
 use rspack_cacheable::cacheable;
+use rspack_paths::is_path_separator;
 
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,8 +73,6 @@ impl fmt::Display for Scheme {
   }
 }
 
-const BACK_SLASH: char = '\\';
-const SLASH: char = '/';
 const A_LOWER_CASE: char = 'a';
 const Z_LOWER_CASE: char = 'z';
 const A_UPPER_CASE: char = 'A';
@@ -129,7 +128,7 @@ pub fn get_scheme(specifier: &str) -> Scheme {
   if i == 1 {
     let next_ch = chars.next();
     if next_ch.is_none()
-      || matches!(next_ch, Some((_, ch)) if ch == BACK_SLASH || ch == SLASH || ch == HASH || ch == QUERY)
+      || matches!(next_ch, Some((_, ch)) if ch.is_ascii() && is_path_separator(ch as u8) || ch == HASH || ch == QUERY)
     {
       return Scheme::None;
     }
@@ -145,6 +144,9 @@ mod tests {
   #[test]
   fn none_for_windows_path() {
     assert_eq!(get_scheme("D:\\a\\rspack\\index.js"), Scheme::None);
+    assert_eq!(get_scheme("D:/a/rspack/index.js"), Scheme::None);
+    assert_eq!(get_scheme("D:?query"), Scheme::None);
+    assert_eq!(get_scheme("D:#fragment"), Scheme::None);
   }
 
   #[test]

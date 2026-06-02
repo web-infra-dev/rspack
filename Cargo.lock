@@ -4267,7 +4267,6 @@ dependencies = [
 name = "rspack_plugin_copy"
 version = "0.100.5"
 dependencies = [
- "cow-utils",
  "derive_more",
  "fast-glob",
  "futures",

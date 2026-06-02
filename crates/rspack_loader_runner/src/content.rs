@@ -160,12 +160,13 @@ impl ResourceData {
         typed_resource,
       );
     };
+    let typed_resource = RspackResource::from_request(&resource, None).ok();
     Self {
       resource,
       resource_path: None,
       resource_query: None,
       resource_fragment: None,
-      typed_resource: RspackResource::from_request(&resource, None).ok(),
+      typed_resource,
       resource_description: None,
       mimetype: None,
       parameters: None,

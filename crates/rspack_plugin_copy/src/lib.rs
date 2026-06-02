@@ -7,7 +7,6 @@ use std::{
   sync::{Arc, LazyLock, Mutex},
 };
 
-use cow_utils::CowUtils;
 use derive_more::Debug;
 use fast_glob::glob_match;
 use futures::future::{BoxFuture, join_all};
@@ -21,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, to_slash_path};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -133,11 +132,7 @@ static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
 
 fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
-  if cfg!(windows) {
-    path.cow_replace('\\', "/")
-  } else {
-    Cow::Borrowed(path)
-  }
+  to_slash_path(path)
 }
 
 impl CopyRspackPlugin {
@@ -456,9 +451,7 @@ impl CopyRspackPlugin {
         } else {
           context.join(orig_from).as_str().to_string()
         };
-        if cfg!(windows) {
-          glob_query = glob_query.cow_replace('\\', "/").into_owned();
-        }
+        glob_query = to_slash_path(&glob_query).into_owned();
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
         if glob_query.ends_with("/**") {

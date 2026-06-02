@@ -10,7 +10,7 @@ use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf, is_absolute_path, is_windows_absolute_path};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
@@ -72,11 +72,7 @@ pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
 
 /// Check if value is a URL
 fn is_url(value: &str) -> bool {
-  VALID_PROTOCOL_PATTERN.is_match(value) && !Utf8Path::new(value).node_is_absolute_win32()
-}
-
-fn is_absolute(path: &Utf8Path) -> bool {
-  path.node_is_absolute_posix() || path.node_is_absolute_win32()
+  VALID_PROTOCOL_PATTERN.is_match(value) && !is_windows_absolute_path(value)
 }
 
 /// Decode data URI
@@ -116,7 +112,7 @@ fn fetch_from_data_url(source_url: &str) -> Result<String, String> {
 fn get_absolute_path(context: &Utf8Path, request: &str, source_root: Option<&str>) -> Utf8PathBuf {
   let path = if let Some(source_root) = source_root {
     let source_root_path = Utf8Path::new(source_root);
-    if is_absolute(source_root_path) {
+    if is_absolute_path(source_root_path.as_str()) {
       source_root_path.join(request)
     } else {
       context.join(source_root).join(request)
@@ -212,7 +208,7 @@ async fn fetch_from_url(
   }
 
   // 3. Absolute path
-  if is_absolute(Utf8Path::new(url)) {
+  if is_absolute_path(url) {
     let source_url = Utf8Path::new(url).node_normalize().to_string();
 
     if !skip_reading {

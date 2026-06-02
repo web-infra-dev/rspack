@@ -6,7 +6,7 @@ use cow_utils::CowUtils;
 use fast_glob::glob_match;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{Utf8Path, Utf8PathBuf, to_slash_path};
 
 #[derive(Debug, Clone)]
 pub struct GlobMatchOptions {
@@ -164,7 +164,7 @@ pub fn normalize_path_separators(s: &str) -> String {
 
 /// Normalize backslashes to forward slashes in a literal filesystem path.
 pub fn normalize_path_separators_for_path(s: &str) -> String {
-  s.cow_replace('\\', "/").into_owned()
+  to_slash_path(s).into_owned()
 }
 
 pub fn unescape_glob_path(s: &str) -> String {

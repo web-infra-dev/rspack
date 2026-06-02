@@ -1,4 +1,6 @@
-use rspack_paths::{RspackPath, RspackResource, Utf8Path};
+use rspack_paths::{
+  RspackPath, RspackResource, Utf8Path, is_absolute_path, is_windows_absolute_path, to_slash_path,
+};
 
 #[test]
 fn parses_posix_absolute_path_as_file_url() {
@@ -56,4 +58,17 @@ fn keeps_relative_requests_compact() {
 
   assert_eq!(resource.path.to_request_string(), "./style.css");
   assert_eq!(resource.to_cache_key(), "./style.css?module#layer");
+}
+
+#[test]
+fn shared_absolute_path_helpers_cover_posix_drive_and_unc() {
+  assert!(is_absolute_path("/repo/src/index.js"));
+  assert!(is_absolute_path(r"C:\repo\src\index.js"));
+  assert!(is_absolute_path(r"\\server\share\index.js"));
+  assert!(is_windows_absolute_path(r"\\server\share\index.js"));
+  assert!(!is_absolute_path("C:drive-relative.js"));
+  assert_eq!(
+    to_slash_path(r"C:\repo\src\index.js"),
+    "C:/repo/src/index.js"
+  );
 }

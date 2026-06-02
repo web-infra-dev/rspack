@@ -4,7 +4,6 @@
 
 import path from 'node:path';
 
-const WINDOWS_ABS_PATH_REGEXP = /^[a-zA-Z]:[\\/]/;
 const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
@@ -23,6 +22,8 @@ const relativePathToRequest = (relativePath: string) => {
   if (relativePath.startsWith('../')) return relativePath;
   return `./${relativePath}`;
 };
+
+const isWindowsAbsolutePath = (value: string) => path.win32.isAbsolute(value);
 
 /**
  * @param {string} context context for relative path
@@ -54,14 +55,14 @@ const absoluteToRequest = (
       : resource + maybeAbsolutePath.slice(querySplitPos);
   }
 
-  if (WINDOWS_ABS_PATH_REGEXP.test(maybeAbsolutePath)) {
+  if (isWindowsAbsolutePath(maybeAbsolutePath)) {
     const querySplitPos = maybeAbsolutePath.indexOf('?');
     let resource =
       querySplitPos === -1
         ? maybeAbsolutePath
         : maybeAbsolutePath.slice(0, querySplitPos);
     resource = path.win32.relative(context, resource);
-    if (!WINDOWS_ABS_PATH_REGEXP.test(resource)) {
+    if (!isWindowsAbsolutePath(resource)) {
       resource = relativePathToRequest(
         resource.replace(WINDOWS_PATH_SEPARATOR_REGEXP, '/'),
       );

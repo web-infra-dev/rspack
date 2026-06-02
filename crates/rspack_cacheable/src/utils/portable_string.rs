@@ -6,16 +6,8 @@ use sugar_path::SugarPath;
 use crate::{ContextGuard, Result, cacheable, with::AsConverter};
 
 static PATH_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-  #[cfg(windows)]
-  {
-    Regex::new(r"(^|[^a-zA-Z0-9./\\])([a-zA-Z]:\\([^/\\ \t\n\r?=,;:#&|!]+\\)*)")
-      .expect("Invalid regex pattern")
-  }
-  #[cfg(not(windows))]
-  {
-    Regex::new(r"(^|[^a-zA-Z0-9./\\])(/([^/\\ \t\n\r?=,;:#&|!]+/)*)")
-      .expect("Invalid regex pattern")
-  }
+  Regex::new(r"(^|[^a-zA-Z0-9./\\])((?:[a-zA-Z]:[\\/]|/)(?:[^/\\ \t\n\r?=,;:#&|!]+[\\/])*)")
+    .expect("Invalid regex pattern")
 });
 
 const PROJECT_ROOT_PLACEHOLDER: &str = "<project_root>";

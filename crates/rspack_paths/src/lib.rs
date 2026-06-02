@@ -1,6 +1,7 @@
 #[cfg(unix)]
 use std::os::unix::ffi::OsStrExt;
 use std::{
+  borrow::Cow,
   collections::{HashMap, HashSet},
   fmt::Debug,
   hash::{BuildHasherDefault, Hash, Hasher},
@@ -26,6 +27,59 @@ pub use ustr::IdentityHasher;
 pub trait AssertUtf8 {
   type Output;
   fn assert_utf8(self) -> Self::Output;
+}
+
+#[inline]
+pub fn is_path_separator(byte: u8) -> bool {
+  byte == b'/' || byte == b'\\'
+}
+
+#[inline]
+pub fn is_windows_drive_letter(byte: u8) -> bool {
+  byte.is_ascii_alphabetic()
+}
+
+#[inline]
+pub fn is_windows_drive_absolute_path(input: &str) -> bool {
+  let bytes = input.as_bytes();
+  bytes.len() >= 3
+    && is_windows_drive_letter(bytes[0])
+    && bytes[1] == b':'
+    && is_path_separator(bytes[2])
+}
+
+#[inline]
+pub fn is_windows_unc_path(input: &str) -> bool {
+  let bytes = input.as_bytes();
+  bytes.len() >= 2 && is_path_separator(bytes[0]) && is_path_separator(bytes[1])
+}
+
+#[inline]
+pub fn is_windows_absolute_path(input: &str) -> bool {
+  is_windows_drive_absolute_path(input) || is_windows_unc_path(input)
+}
+
+#[inline]
+pub fn is_posix_absolute_path(input: &str) -> bool {
+  input.as_bytes().first() == Some(&b'/')
+}
+
+#[inline]
+pub fn is_absolute_path(input: &str) -> bool {
+  is_posix_absolute_path(input) || is_windows_absolute_path(input)
+}
+
+#[inline]
+pub fn is_url_like_absolute(input: &str) -> bool {
+  Url::parse(input).is_ok()
+}
+
+pub fn to_slash_path(input: &str) -> Cow<'_, str> {
+  if input.as_bytes().contains(&b'\\') {
+    Cow::Owned(input.replace('\\', "/"))
+  } else {
+    Cow::Borrowed(input)
+  }
 }
 
 #[cacheable(with=Custom)]
@@ -194,7 +248,7 @@ fn parse_path(input: &str, base: Option<&RspackPath>) -> Result<RspackPath, Stri
 
 fn windows_file_url(input: &str) -> Option<Url> {
   let normalized = input.replace('\\', "/");
-  if normalized.starts_with("//") {
+  if is_windows_unc_path(input) {
     let mut parts = normalized.trim_start_matches('/').splitn(3, '/');
     let host = parts.next()?;
     let share = parts.next()?;
@@ -202,8 +256,7 @@ fn windows_file_url(input: &str) -> Option<Url> {
     return Url::parse(&format!("file://{host}/{share}/{rest}")).ok();
   }
 
-  let bytes = normalized.as_bytes();
-  if bytes.len() >= 3 && bytes[1] == b':' && bytes[2] == b'/' && bytes[0].is_ascii_alphabetic() {
+  if is_windows_drive_absolute_path(input) {
     return Url::parse(&format!("file:///{}", normalized)).ok();
   }
 

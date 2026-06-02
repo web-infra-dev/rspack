@@ -1,7 +1,7 @@
 use std::{borrow::Cow, fmt::Debug};
 
-use cow_utils::CowUtils;
 use fast_glob::glob_match;
+use rspack_paths::to_slash_path;
 use rspack_regex::RspackRegex;
 
 #[derive(Default)]
@@ -27,7 +27,7 @@ impl Debug for FsWatcherIgnored {
 /// Normalize the path by replacing backslashes with forward slashes.
 /// Smooth out the differences in the system, specifically for Windows
 fn normalize_path<'a>(path: &'a str) -> Cow<'a, str> {
-  path.cow_replace("\\", "/")
+  to_slash_path(path)
 }
 
 impl FsWatcherIgnored {

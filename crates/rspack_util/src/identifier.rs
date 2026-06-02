@@ -7,12 +7,11 @@ use std::{
 use concat_string::concat_string;
 use cow_utils::CowUtils;
 use regex::Regex;
+use rspack_paths::{is_path_separator, is_windows_absolute_path, to_slash_path};
 use sugar_path::SugarPath;
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"([|!])").expect("should be a valid regex"));
-static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
-
 /// # Example
 ///  ```ignore
 /// assert_eq!(
@@ -63,15 +62,6 @@ pub fn relative_path_to_request(rel: &str) -> Cow<'_, str> {
 }
 
 #[inline]
-fn is_windows_absolute_path(path: &str) -> bool {
-  let bytes = path.as_bytes();
-  bytes.len() >= 3
-    && bytes[0].is_ascii_alphabetic()
-    && bytes[1] == b':'
-    && matches!(bytes[2], b'/' | b'\\')
-}
-
-#[inline]
 fn push_relative_path_to_request(rel: &str, out: &mut String) {
   if rel.is_empty() {
     out.push_str("./.");
@@ -82,6 +72,59 @@ fn push_relative_path_to_request(rel: &str, out: &mut String) {
   } else {
     out.push_str("./");
     out.push_str(rel);
+  }
+}
+
+fn windows_drive(path: &str) -> Option<(u8, &str)> {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && is_path_separator(bytes[2])
+  {
+    Some((bytes[0].to_ascii_lowercase(), &path[3..]))
+  } else {
+    None
+  }
+}
+
+fn relative_windows_path(context: &str, resource: &str) -> Option<String> {
+  let context = to_slash_path(context);
+  let resource = to_slash_path(resource);
+  let (context_drive, context_path) = windows_drive(&context)?;
+  let (resource_drive, resource_path) = windows_drive(&resource)?;
+
+  if context_drive != resource_drive {
+    return None;
+  }
+
+  let context_parts = context_path
+    .trim_matches('/')
+    .split('/')
+    .filter(|part| !part.is_empty())
+    .collect::<Vec<_>>();
+  let resource_parts = resource_path
+    .trim_matches('/')
+    .split('/')
+    .filter(|part| !part.is_empty())
+    .collect::<Vec<_>>();
+
+  let mut common = 0;
+  while common < context_parts.len()
+    && common < resource_parts.len()
+    && context_parts[common].eq_ignore_ascii_case(resource_parts[common])
+  {
+    common += 1;
+  }
+
+  let mut relative_parts = Vec::with_capacity(context_parts.len() + resource_parts.len() - common);
+  relative_parts.extend(std::iter::repeat_n("..", context_parts.len() - common));
+  relative_parts.extend(resource_parts[common..].iter().copied());
+
+  if relative_parts.is_empty() {
+    Some(".".to_string())
+  } else {
+    Some(relative_parts.join("/"))
   }
 }
 
@@ -117,16 +160,12 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
 
   if is_windows_absolute_path(maybe_absolute_path) {
     let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
-    let relative_resource = maybe_absolute_resource.as_path().relative(context);
-    let resource = relative_resource.to_string_lossy();
-
-    // In windows, A path that relative to a another path could still be absolute.
-    // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
-    if is_windows_absolute_path(resource.as_ref()) {
-      out.push_str(resource.as_ref());
-    } else {
-      let resource = resource.cow_replace(WINDOWS_PATH_SEPARATOR, "/");
+    if let Some(resource) = relative_windows_path(context, maybe_absolute_resource) {
       push_relative_path_to_request(resource.as_ref(), out);
+    } else {
+      // Different Windows drives or roots cannot be represented as a relative
+      // webpack request without changing meaning.
+      out.push_str(maybe_absolute_resource);
     }
 
     if let Some(query_part) = query_part {
@@ -238,4 +277,22 @@ fn test_push_absolute_to_request() {
   let mut out = String::new();
   push_absolute_to_request("/workspace/app", "loader", &mut out);
   assert_eq!(out, "loader");
+}
+
+#[test]
+fn test_push_absolute_to_request_preserves_different_windows_drive() {
+  let mut out = String::new();
+  push_absolute_to_request(r"C:\workspace\app", r"D:\shared\index.js?raw", &mut out);
+  assert_eq!(out, r"D:\shared\index.js?raw");
+}
+
+#[test]
+fn test_push_absolute_to_request_windows_same_drive_uses_slash_request() {
+  let mut out = String::new();
+  push_absolute_to_request(
+    r"C:\workspace\app",
+    r"C:\workspace\app\src\index.js?raw",
+    &mut out,
+  );
+  assert_eq!(out, "./src/index.js?raw");
 }
