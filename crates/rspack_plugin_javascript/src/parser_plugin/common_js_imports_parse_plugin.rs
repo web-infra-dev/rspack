@@ -37,7 +37,6 @@ use crate::{
 const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
-const SYNTHETIC_CREATED_REQUIRE_NAME: &str = "__rspack_create_require";
 
 #[derive(Debug, Clone)]
 pub struct CreateRequireSpecifierTagData;
@@ -261,22 +260,6 @@ fn parse_create_require_arguments(
   emit_warning: bool,
 ) -> Option<Context> {
   parse_create_require_argument(parser, call_expr, emit_warning).map(|argument| argument.context)
-}
-
-#[inline(never)]
-fn replace_create_require_argument(parser: &mut JavascriptParser, call_expr: &CallExpr) {
-  let Some(arg) = call_expr.args.first() else {
-    return;
-  };
-  if call_expr.args.len() != 1 || arg.spread.is_some() {
-    return;
-  }
-  if let Some(value) = evaluate_create_require_argument(parser, &arg.expr) {
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      arg.expr.span().into(),
-      json_stringify_str(&value).into(),
-    )));
-  }
 }
 
 #[inline(never)]
@@ -1280,7 +1263,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let context = parse_create_require_arguments(parser, expr, false)?;
-    let evaluated_name = Atom::from(SYNTHETIC_CREATED_REQUIRE_NAME);
+    let evaluated_name = Atom::from(CREATED_REQUIRE_IDENTIFIER_TAG);
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -1451,7 +1434,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         || call_expr.args[0].spread.is_some()
       {
         walk_create_require_callee(parser, inner_call_expr);
-        replace_create_require_argument(parser, inner_call_expr);
+        if inner_call_expr.args.len() == 1
+          && inner_call_expr.args[0].spread.is_none()
+          && let Some(value) =
+            evaluate_create_require_argument(parser, &inner_call_expr.args[0].expr)
+        {
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            inner_call_expr.args[0].expr.span().into(),
+            json_stringify_str(&value).into(),
+          )));
+        }
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
       }

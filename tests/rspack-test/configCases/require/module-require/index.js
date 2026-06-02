@@ -28,6 +28,9 @@ it("should create require", () => {
 	expect(require("./a")).toBe(1);
 	expect(new require("./a")).toEqual({});
 	expect(_createRequire(import.meta.url)("./c")).toBe(3);
+	_createRequire(import.meta.url)("./c");
+	const __rspack_create_require = request => request;
+	expect(__rspack_create_require("./a")).toBe("./a");
 	var varRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(varRequire("./a")).toBe(4);
 	expect(new varRequire("./a")).toEqual({});
