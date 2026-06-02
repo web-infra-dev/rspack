@@ -209,7 +209,10 @@ fn file_url_to_path(value: &str) -> Option<String> {
       }
     });
 
-  decode_percent_encoded_path(&path)
+  #[cfg(windows)]
+  let path = path.as_str();
+
+  decode_percent_encoded_path(path)
 }
 
 #[inline(never)]
