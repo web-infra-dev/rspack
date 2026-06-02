@@ -987,23 +987,6 @@ impl JavascriptParser<'_> {
         return;
       }
     }
-    let evaluated_callee = self.evaluate_expression(&expr.callee);
-    if evaluated_callee.is_identifier()
-      && evaluated_callee
-        .members()
-        .is_none_or(|members| members.is_empty())
-    {
-      let drive = self.plugin_drive.clone();
-      if evaluated_callee
-        .root_info()
-        .call_hooks_name(self, |parser, for_name| {
-          drive.new_expression(parser, expr, for_name)
-        })
-        .unwrap_or_default()
-      {
-        return;
-      }
-    }
     self.walk_expression(&expr.callee);
     if let Some(args) = &expr.args {
       self.walk_expr_or_spread(args);
