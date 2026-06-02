@@ -15,7 +15,9 @@ module.exports = {
 		);
 		expect(entry).toContain('import { __webpack_require__ } from "./runtime.mjs";');
 		expect(entry).toContain("Promise.all");
-		expect(entry).toContain('import("node:stream")');
+		expect(entry).toContain(
+			'__webpack_require__.t(module.createRequire(import.meta.url)("node:stream"), 22)'
+		);
 		expect(entry).toContain('import("./dynamic.mjs")');
 		expect(runtime).toContain("export { __webpack_require__");
 		expect(entry).not.toContain("export { __webpack_require__");

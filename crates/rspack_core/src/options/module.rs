@@ -9,12 +9,13 @@ use bitflags::bitflags;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
-use rspack_error::Result;
+use rspack_error::{Result, error};
 use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
+use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
@@ -537,22 +538,6 @@ impl GeneratorOptions {
       .get_asset()
       .and_then(|x| x.filename.as_ref())
       .or_else(|| self.get_asset_resource().and_then(|x| x.filename.as_ref()))
-  }
-
-  /// Sets the asset filename on `Asset` / `AssetResource` variants. Returns
-  /// `true` if the variant supports a per-module filename and it was set.
-  pub fn set_asset_filename(&mut self, filename: Filename) -> bool {
-    match self {
-      Self::Asset(opts) => {
-        opts.filename = Some(filename);
-        true
-      }
-      Self::AssetResource(opts) => {
-        opts.filename = Some(filename);
-        true
-      }
-      _ => false,
-    }
   }
 
   pub fn asset_output_path(&self) -> Option<&Filename> {
@@ -1354,8 +1339,13 @@ pub struct ModuleRule {
   pub extract_source_map: Option<bool>,
 }
 
-#[derive(Debug, Default)]
+pub type ModuleRuleId = u16;
+pub const MODULE_RULE_ID_UNASSIGNED: ModuleRuleId = ModuleRuleId::MAX;
+pub type ModuleRuleIds = SmallVec<[ModuleRuleId; 4]>;
+
+#[derive(Debug)]
 pub struct ModuleRuleEffect {
+  pub id: ModuleRuleId,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -1366,6 +1356,23 @@ pub struct ModuleRuleEffect {
   pub resolve: Option<Resolve>,
   pub enforce: ModuleRuleEnforce,
   pub extract_source_map: Option<bool>,
+}
+
+impl Default for ModuleRuleEffect {
+  fn default() -> Self {
+    Self {
+      id: MODULE_RULE_ID_UNASSIGNED,
+      side_effects: None,
+      r#type: None,
+      layer: None,
+      r#use: ModuleRuleUse::default(),
+      parser: None,
+      generator: None,
+      resolve: None,
+      enforce: ModuleRuleEnforce::default(),
+      extract_source_map: None,
+    }
+  }
 }
 
 pub enum ModuleRuleUse {
@@ -1457,4 +1464,83 @@ pub struct ModuleOptions {
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
+}
+
+impl ModuleOptions {
+  pub fn assign_rule_ids(&mut self) -> Result<()> {
+    let mut next_id = 0usize;
+    for rule in &mut self.rules {
+      assign_rule_id(rule, &mut next_id)?;
+    }
+    Ok(())
+  }
+}
+
+fn assign_rule_id(rule: &mut ModuleRule, next_id: &mut usize) -> Result<()> {
+  if *next_id >= MODULE_RULE_ID_UNASSIGNED as usize {
+    return Err(error!(
+      "module.rules exceeds the maximum supported rule count of {}",
+      MODULE_RULE_ID_UNASSIGNED as usize
+    ));
+  }
+
+  rule.effect.id = *next_id as ModuleRuleId;
+  *next_id += 1;
+
+  if let Some(rules) = &mut rule.rules {
+    for rule in rules {
+      assign_rule_id(rule, next_id)?;
+    }
+  }
+
+  if let Some(one_of) = &mut rule.one_of {
+    for rule in one_of {
+      assign_rule_id(rule, next_id)?;
+    }
+  }
+
+  Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn assign_rule_ids_in_stable_depth_first_order() {
+    let mut options = ModuleOptions {
+      rules: vec![
+        ModuleRule {
+          rules: Some(vec![ModuleRule::default()]),
+          ..Default::default()
+        },
+        ModuleRule {
+          one_of: Some(vec![ModuleRule::default(), ModuleRule::default()]),
+          ..Default::default()
+        },
+      ],
+      ..Default::default()
+    };
+
+    options.assign_rule_ids().expect("should assign rule ids");
+
+    assert_eq!(options.rules[0].effect.id, 0);
+    assert_eq!(options.rules[0].rules.as_ref().unwrap()[0].effect.id, 1);
+    assert_eq!(options.rules[1].effect.id, 2);
+    assert_eq!(options.rules[1].one_of.as_ref().unwrap()[0].effect.id, 3);
+    assert_eq!(options.rules[1].one_of.as_ref().unwrap()[1].effect.id, 4);
+  }
+
+  #[test]
+  fn assign_rule_ids_can_be_called_twice() {
+    let mut options = ModuleOptions {
+      rules: vec![ModuleRule::default()],
+      ..Default::default()
+    };
+
+    options.assign_rule_ids().expect("should assign rule ids");
+    options.assign_rule_ids().expect("should reassign rule ids");
+
+    assert_eq!(options.rules[0].effect.id, 0);
+  }
 }

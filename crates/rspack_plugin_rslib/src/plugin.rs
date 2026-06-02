@@ -314,7 +314,11 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
-  cutout_dyn_import_externals(build_module_graph_artifact);
+  cutout_dyn_import_externals(
+    true,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
   cutout_star_re_export_externals(
     compilation,
     build_module_graph_artifact,

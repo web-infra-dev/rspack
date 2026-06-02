@@ -132,7 +132,11 @@ pub fn cutout_star_re_export_externals(
   }
 }
 
-pub fn cutout_dyn_import_externals(build_module_graph_artifact: &mut BuildModuleGraphArtifact) {
+pub fn cutout_dyn_import_externals(
+  cutout_all_externals: bool,
+  output_module: bool,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) {
   let mg = build_module_graph_artifact.get_module_graph();
   let mut connections_to_disable = Vec::new();
   for (_, module) in mg.modules() {
@@ -152,7 +156,24 @@ pub fn cutout_dyn_import_externals(build_module_graph_artifact: &mut BuildModule
               continue;
             };
 
-            if import_module.as_external_module().is_some() {
+            if import_module.as_external_module().is_some_and(|external| {
+              if cutout_all_externals {
+                return true;
+              }
+              if !output_module {
+                return true;
+              }
+              matches!(
+                external.resolve_external_type(),
+                "import"
+                  | "module"
+                  | "commonjs"
+                  | "commonjs2"
+                  | "commonjs-module"
+                  | "commonjs-static"
+                  | "node-commonjs"
+              )
+            }) {
               // remove connection of dyn-import external module
               connections_to_disable.push(*block_dep_id);
             }

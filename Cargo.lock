@@ -3459,6 +3459,7 @@ dependencies = [
  "rancor",
  "rend 0.5.2",
  "rkyv_derive 0.8.16",
+ "smallvec",
  "tinyvec",
  "uuid",
 ]
@@ -3873,6 +3874,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simdutf8",
+ "smallvec",
  "smol_str",
  "sugar_path",
  "swc_core",
@@ -3956,6 +3958,8 @@ dependencies = [
 name = "rspack_ids"
 version = "0.100.5"
 dependencies = [
+ "derive_more",
+ "futures",
  "itertools 0.14.0",
  "rayon",
  "rspack_collections",

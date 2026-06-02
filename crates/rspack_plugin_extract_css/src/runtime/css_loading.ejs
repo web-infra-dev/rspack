@@ -1,6 +1,6 @@
 if (typeof document === "undefined") return;
 var createStylesheet = function (
-	chunkId, fullhref, oldTag, resolve, reject
+	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
 ) {
 	<%- _create_link %>
 	var onLinkComplete = function (event) {
@@ -42,11 +42,11 @@ var findStylesheet = function (href, fullhref) {
 	}
 }
 
-var loadStylesheet = function (chunkId) {
+var loadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
 		var href = <%- REQUIRE %>.miniCssF(chunkId);
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (findStylesheet(href, fullhref)) return resolve();
-		createStylesheet(chunkId, fullhref, null, resolve, reject);
+		createStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
 	})
 }

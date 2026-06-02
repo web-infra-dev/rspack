@@ -34,7 +34,7 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
+  ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
   RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
   SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
@@ -162,6 +162,13 @@ pub struct IsolatedDts {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub struct AssetBuildInfo {
+  pub data_url: CanonicalizedDataUrlOption,
+  pub filename: Option<Filename>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
   pub cacheable: bool,
@@ -180,7 +187,7 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
-  pub asset_data_url: Option<CanonicalizedDataUrlOption>,
+  pub asset: Option<Box<AssetBuildInfo>>,
   pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
@@ -218,7 +225,7 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
-      asset_data_url: None,
+      asset: None,
       css: None,
       side_effects_free: None,
       top_level_declarations: None,

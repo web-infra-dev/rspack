@@ -690,6 +690,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 1,
                                 side_effects: None,
                                 type: Some(
                                     JsAuto,
@@ -727,6 +728,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 2,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -766,6 +768,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 3,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -803,6 +806,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 4,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -907,6 +911,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 5,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -1002,6 +1007,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 6,
                                 side_effects: None,
                                 type: Some(
                                     JsDynamic,
@@ -1048,6 +1054,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 7,
                                 side_effects: None,
                                 type: Some(
                                     JsDynamic,
@@ -1096,6 +1103,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 8,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -1218,6 +1226,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 10,
                                             side_effects: None,
                                             type: None,
                                             layer: None,
@@ -1261,6 +1270,7 @@ CompilerOptions {
                                 ],
                             ),
                             effect: ModuleRuleEffect {
+                                id: 9,
                                 side_effects: None,
                                 type: Some(
                                     WasmAsync,
@@ -1327,6 +1337,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 12,
                                             side_effects: None,
                                             type: None,
                                             layer: None,
@@ -1370,6 +1381,7 @@ CompilerOptions {
                                 ],
                             ),
                             effect: ModuleRuleEffect {
+                                id: 11,
                                 side_effects: None,
                                 type: Some(
                                     WasmAsync,
@@ -1428,6 +1440,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 14,
                                             side_effects: None,
                                             type: Some(
                                                 AssetInline,
@@ -1460,6 +1473,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 15,
                                             side_effects: None,
                                             type: Some(
                                                 AssetResource,
@@ -1478,6 +1492,7 @@ CompilerOptions {
                             ),
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 13,
                                 side_effects: None,
                                 type: None,
                                 layer: None,
@@ -1517,6 +1532,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 16,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -1534,6 +1550,7 @@ CompilerOptions {
                     ],
                 ),
                 effect: ModuleRuleEffect {
+                    id: 0,
                     side_effects: None,
                     type: None,
                     layer: None,
@@ -1566,6 +1583,7 @@ CompilerOptions {
                     [],
                 ),
                 effect: ModuleRuleEffect {
+                    id: 17,
                     side_effects: None,
                     type: None,
                     layer: None,

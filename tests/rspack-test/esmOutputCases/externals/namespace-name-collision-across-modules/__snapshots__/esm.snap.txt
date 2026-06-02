@@ -1,22 +1,12 @@
-```mjs title=fs.mjs
-// fs?78e7
-const external_fs_namespaceObject = import("fs").then(function(module) { return module; });
-var readFile = external_fs_namespaceObject.readFile;
-var readFileSync = external_fs_namespaceObject.readFileSync;
-export { readFile, readFileSync };
-export * from "fs";
-
-```
-
 ```mjs title=main.mjs
 import * as __rspack_external_path from "path";
 
-// fs?bba3
+// fs
 
 // ./named.js
 
 
-// path?6f35
+// path
 
 // ./path-ns.js
 
@@ -43,15 +33,5 @@ it("should deconflict concatenated namespace imports that match generated module
 
 export { __rspack_external_path as pathNs, joinFn };
 export { readFile, readFileSync } from "fs";
-
-```
-
-```mjs title=path.mjs
-// path?5fdd
-const external_path_namespaceObject = import("path").then(function(module) { return module; });
-var join = external_path_namespaceObject.join;
-var sep = external_path_namespaceObject.sep;
-export { join, sep };
-export * from "path";
 
 ```
