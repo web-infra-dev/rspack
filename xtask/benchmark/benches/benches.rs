@@ -29,6 +29,8 @@ criterion_main!(
   cases::bundle_basic_react_production_sourcemap::case,
   cases::bundle_threejs_development::case,
   cases::bundle_threejs_production_sourcemap::case,
+  cases::bundle_threejs_10x_development::case,
+  cases::bundle_threejs_10x_production_sourcemap::case,
   stages::flag_dependency_exports::stage,
   stages::flag_dependency_usage::stage,
   stages::create_module_ids::stage,

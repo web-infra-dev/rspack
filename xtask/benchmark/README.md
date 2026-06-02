@@ -13,6 +13,11 @@ Some benchmark cases use fixtures from `.bench/rspack-benchcases`. Prepare them 
 pnpm run bench:prepare
 ```
 
+The prepare step also creates a local `threejs-10x` fixture by copying the
+upstream `threejs/src` input ten times. This larger input is registered only
+when `RSPACK_BENCH_ENABLE_THREEJS_10X=1`, so regular simulation runs keep using
+the smaller default benchmark set.
+
 ## Run in CI mode
 
 The CI command runs `cargo codspeed run` directly:

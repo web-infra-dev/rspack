@@ -99,7 +99,8 @@ jobs:
       target: x86_64-unknown-linux-gnu
       measurement: walltime
       bench_target: benches
-      bench_filter: bundle@threejs
+      bench_filter: bundle@threejs-10x
+      enable_threejs_10x: true
       runner: '"physical-1-exclusive"'
 
   test-windows:
