@@ -15,7 +15,6 @@ use swc_core::{
     VarDeclarator,
   },
 };
-use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -150,11 +149,54 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
 }
 
 #[inline(never)]
+fn decode_percent_encoded_path(value: &str) -> Option<String> {
+  if !value.as_bytes().contains(&b'%') {
+    return Some(value.to_string());
+  }
+  let mut decoded = Vec::with_capacity(value.len());
+  let mut bytes = value.as_bytes().iter().copied();
+  while let Some(byte) = bytes.next() {
+    if byte != b'%' {
+      decoded.push(byte);
+      continue;
+    }
+    let high = bytes.next()?;
+    let low = bytes.next()?;
+    decoded.push(hex_value(high)? << 4 | hex_value(low)?);
+  }
+  String::from_utf8(decoded).ok()
+}
+
+#[inline(always)]
+fn hex_value(byte: u8) -> Option<u8> {
+  match byte {
+    b'0'..=b'9' => Some(byte - b'0'),
+    b'a'..=b'f' => Some(byte - b'a' + 10),
+    b'A'..=b'F' => Some(byte - b'A' + 10),
+    _ => None,
+  }
+}
+
+#[inline(never)]
+fn file_url_to_path(value: &str) -> Option<String> {
+  let path = value.strip_prefix("file://")?;
+  let path = path.split(['?', '#']).next()?;
+  let path = path
+    .strip_prefix("localhost")
+    .filter(|path| path.starts_with('/'))
+    .unwrap_or(path);
+  #[cfg(windows)]
+  let path = path
+    .strip_prefix('/')
+    .filter(|path| path.as_bytes().get(1).is_some_and(|b| *b == b':'))
+    .unwrap_or(path);
+  decode_percent_encoded_path(path)
+}
+
+#[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
-  let (path, is_directory_request) = if value.starts_with("file://") {
-    let url = Url::parse(value).ok()?;
-    let is_directory_request = url.path().ends_with('/');
-    let path = url.to_file_path().ok()?.to_string_lossy().to_string();
+  let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
+    let is_directory_request = path.ends_with('/');
     (path, is_directory_request)
   } else {
     if !Path::new(value).is_absolute() {
@@ -196,8 +238,19 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
-  let base = Url::from_file_path(parser.resource_data.resource()).ok()?;
-  Some(base.join(&request).ok()?.to_string())
+  if request.starts_with("file://") {
+    return file_url_to_path(&request);
+  }
+  let request_path = request.split(['?', '#']).next()?;
+  let mut path = Path::new(parser.resource_data.resource())
+    .parent()?
+    .join(request_path)
+    .to_string_lossy()
+    .to_string();
+  if request_path.ends_with('/') && !path.ends_with(['/', '\\']) {
+    path.push(std::path::MAIN_SEPARATOR);
+  }
+  Some(path)
 }
 
 #[inline(never)]
