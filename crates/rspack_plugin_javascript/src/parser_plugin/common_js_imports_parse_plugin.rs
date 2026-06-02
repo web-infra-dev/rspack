@@ -1435,7 +1435,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         || call_expr.args[0].spread.is_some()
       {
         walk_create_require_callee(parser, inner_call_expr);
-        parser.walk_expr_or_spread(&inner_call_expr.args);
+        if let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false) {
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            inner_call_expr.args[0].expr.span().into(),
+            json_stringify_str(&argument.value).into(),
+          )));
+        }
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
       }
