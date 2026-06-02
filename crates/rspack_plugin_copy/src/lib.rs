@@ -20,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::{Utf8Path, Utf8PathBuf, to_slash_path};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
@@ -130,10 +130,6 @@ pub struct CopyRspackPlugin {
 
 static TEMPLATE_RE: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\[\\*([\w:]+)\\*\]").expect("This never fail"));
-
-fn normalize_glob_path_separators(path: &str) -> Cow<'_, str> {
-  to_slash_path(path)
-}
 
 impl CopyRspackPlugin {
   pub fn new(patterns: Vec<CopyPattern>) -> Self {
@@ -422,7 +418,9 @@ impl CopyRspackPlugin {
         if dot_enable.is_none() {
           dot_enable = Some(true);
         }
-        let from = normalize_glob_path_separators(abs_from.as_str());
+        let from = RspackPath::from_path_str(abs_from.as_str())
+          .expect("copy source directory should be representable as RspackPath")
+          .to_request_path_string();
         let escaped = escape_glob_pattern(&from);
         format!("{}/**/*", escaped.trim_end_matches('/'))
       }
@@ -441,7 +439,9 @@ impl CopyRspackPlugin {
           dot_enable = Some(true);
         }
 
-        let from = normalize_glob_path_separators(abs_from.as_str());
+        let from = RspackPath::from_path_str(abs_from.as_str())
+          .expect("copy source file should be representable as RspackPath")
+          .to_request_path_string();
         escape_glob_pattern(&from)
       }
       FromType::Glob => {
@@ -451,7 +451,7 @@ impl CopyRspackPlugin {
         } else {
           context.join(orig_from).as_str().to_string()
         };
-        glob_query = to_slash_path(&glob_query).into_owned();
+        glob_query = RspackPath::from_glob_pattern(&glob_query).to_glob_pattern_string();
         // A glob pattern ending with /** should match all files within a directory, not just the directory itself.
         // Since the standard glob only matches directories, we append /* to align with webpack's behavior.
         if glob_query.ends_with("/**") {

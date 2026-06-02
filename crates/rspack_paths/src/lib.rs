@@ -74,7 +74,7 @@ pub fn is_url_like_absolute(input: &str) -> bool {
   Url::parse(input).is_ok()
 }
 
-pub fn to_slash_path(input: &str) -> Cow<'_, str> {
+fn to_slash_path(input: &str) -> Cow<'_, str> {
   if input.as_bytes().contains(&b'\\') {
     Cow::Owned(input.replace('\\', "/"))
   } else {
@@ -90,6 +90,34 @@ pub enum RspackPath {
 }
 
 impl RspackPath {
+  pub fn from_path_str(path: &str) -> Result<Self, String> {
+    if is_absolute_path(path) {
+      RspackPath::from_request(path, None)
+    } else {
+      Ok(RspackPath::Relative(path.into()))
+    }
+  }
+
+  pub fn from_glob_pattern(pattern: &str) -> Self {
+    let mut result = String::with_capacity(pattern.len());
+    let mut chars = pattern.chars().peekable();
+    while let Some(c) = chars.next() {
+      if c == '\\' {
+        if chars
+          .peek()
+          .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
+        {
+          result.push(c);
+        } else {
+          result.push('/');
+        }
+      } else {
+        result.push(c);
+      }
+    }
+    Self::Relative(result.into())
+  }
+
   pub fn from_utf8_path(path: &Utf8Path) -> Result<Self, String> {
     Url::from_file_path(path.as_std_path())
       .map(Self::Absolute)
@@ -140,6 +168,21 @@ impl RspackPath {
 
   pub fn to_cache_key(&self) -> String {
     self.to_request_string()
+  }
+
+  pub fn to_request_path_string(&self) -> String {
+    match self {
+      Self::Absolute(url) if url.scheme() == "file" => file_url_to_slash_path(url),
+      Self::Absolute(url) => url.to_string(),
+      Self::Relative(path) => to_slash_path(path.as_str()).into_owned(),
+    }
+  }
+
+  pub fn to_glob_pattern_string(&self) -> String {
+    match self {
+      Self::Relative(pattern) => pattern.to_string(),
+      _ => self.to_request_path_string(),
+    }
   }
 }
 
@@ -261,6 +304,40 @@ fn windows_file_url(input: &str) -> Option<Url> {
   }
 
   None
+}
+
+fn file_url_to_slash_path(url: &Url) -> String {
+  if let Ok(path) = url.to_file_path() {
+    let path = path.to_string_lossy();
+    let path = if path.len() >= 4
+      && path.as_bytes()[0] == b'/'
+      && path.as_bytes()[1].is_ascii_alphabetic()
+      && path.as_bytes()[2] == b':'
+      && path.as_bytes()[3] == b'/'
+    {
+      Cow::Borrowed(&path[1..])
+    } else {
+      Cow::Borrowed(path.as_ref())
+    };
+    return to_slash_path(path.as_ref()).into_owned();
+  }
+
+  let path = url.path();
+  if path.len() >= 4
+    && path.as_bytes()[0] == b'/'
+    && path.as_bytes()[1].is_ascii_alphabetic()
+    && path.as_bytes()[2] == b':'
+    && path.as_bytes()[3] == b'/'
+  {
+    path[1..].to_string()
+  } else if let Some(host) = url.host_str()
+    && !host.is_empty()
+    && host != "localhost"
+  {
+    format!("//{host}{path}")
+  } else {
+    path.to_string()
+  }
 }
 
 fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {

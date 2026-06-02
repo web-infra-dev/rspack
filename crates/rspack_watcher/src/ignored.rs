@@ -1,7 +1,7 @@
-use std::{borrow::Cow, fmt::Debug};
+use std::fmt::Debug;
 
 use fast_glob::glob_match;
-use rspack_paths::to_slash_path;
+use rspack_paths::RspackPath;
 use rspack_regex::RspackRegex;
 
 #[derive(Default)]
@@ -24,22 +24,19 @@ impl Debug for FsWatcherIgnored {
   }
 }
 
-/// Normalize the path by replacing backslashes with forward slashes.
-/// Smooth out the differences in the system, specifically for Windows
-fn normalize_path<'a>(path: &'a str) -> Cow<'a, str> {
-  to_slash_path(path)
-}
-
 impl FsWatcherIgnored {
   pub fn should_be_ignored(&self, p: &str) -> bool {
+    let path = RspackPath::from_path_str(p)
+      .expect("watch path should be representable as RspackPath")
+      .to_request_path_string();
     match self {
       FsWatcherIgnored::None => false,
-      FsWatcherIgnored::Path(path) => glob_match(path, normalize_path(p).as_bytes()),
+      FsWatcherIgnored::Path(pattern) => glob_match(pattern, path.as_bytes()),
       FsWatcherIgnored::Paths(paths) => paths
         .iter()
-        .any(|path| glob_match(path, normalize_path(p).as_bytes())),
+        .any(|pattern| glob_match(pattern, path.as_bytes())),
 
-      FsWatcherIgnored::Regex(reg) => reg.test(&normalize_path(p)),
+      FsWatcherIgnored::Regex(reg) => reg.test(&path),
     }
   }
 }

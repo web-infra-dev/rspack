@@ -7,7 +7,7 @@ use std::{
 use concat_string::concat_string;
 use cow_utils::CowUtils;
 use regex::Regex;
-use rspack_paths::{is_path_separator, is_windows_absolute_path, to_slash_path};
+use rspack_paths::{RspackPath, is_path_separator, is_windows_absolute_path};
 use sugar_path::SugarPath;
 
 static SEGMENTS_SPLIT_REGEXP: LazyLock<Regex> =
@@ -89,8 +89,12 @@ fn windows_drive(path: &str) -> Option<(u8, &str)> {
 }
 
 fn relative_windows_path(context: &str, resource: &str) -> Option<String> {
-  let context = to_slash_path(context);
-  let resource = to_slash_path(resource);
+  let context = RspackPath::from_path_str(context)
+    .ok()?
+    .to_request_path_string();
+  let resource = RspackPath::from_path_str(resource)
+    .ok()?
+    .to_request_path_string();
   let (context_drive, context_path) = windows_drive(&context)?;
   let (resource_drive, resource_path) = windows_drive(&resource)?;
 

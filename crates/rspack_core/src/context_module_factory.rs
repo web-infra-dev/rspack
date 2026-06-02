@@ -6,7 +6,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_fs::ReadableFileSystem;
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 use rspack_util::node_path::NodePath;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
@@ -17,8 +17,8 @@ use crate::{
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, escape_glob_pattern,
-  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
-  normalize_path_separators_for_path, resolve, unescape_glob_path, walk_dir,
+  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, resolve, unescape_glob_path,
+  walk_dir,
 };
 
 #[derive(Debug)]
@@ -567,7 +567,7 @@ fn resolve_context_module_glob_pattern(
   } else {
     (pattern, false)
   };
-  let pattern = normalize_path_separators(pattern);
+  let pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
   let (base, pattern_to_join) = if let Some(pattern_to_join) = pattern.strip_prefix('/') {
     (
       infer_glob_root_context(common_base, extract_glob_base_dir(&pattern)),
@@ -583,13 +583,15 @@ fn resolve_context_module_glob_pattern(
       pattern.as_str(),
     )
   };
-  let base = normalize_path_separators_for_path(&base);
+  let base = RspackPath::from_path_str(&base)
+    .expect("glob base should be representable as RspackPath")
+    .to_request_path_string();
   let escaped_base = escape_glob_pattern(&base);
   let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
     .node_normalize_posix()
     .to_string();
-  let absolute_pattern = normalize_path_separators(&absolute_pattern);
+  let absolute_pattern = RspackPath::from_glob_pattern(&absolute_pattern).to_glob_pattern_string();
   let base = extract_glob_base_dir(&pattern).to_string();
   let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
@@ -602,7 +604,9 @@ fn resolve_context_module_glob_pattern(
 }
 
 fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
-  let mut common_base = normalize_path_separators_for_path(common_base);
+  let mut common_base = RspackPath::from_path_str(common_base)
+    .expect("common_base should be representable as RspackPath")
+    .to_request_path_string();
   if !common_base.ends_with('/') {
     common_base.push('/');
   }
@@ -633,7 +637,9 @@ fn glob_user_request(
   path: &str,
   exhaustive: bool,
 ) -> Option<String> {
-  let normalized_path = normalize_path_separators_for_path(path);
+  let normalized_path = RspackPath::from_path_str(path)
+    .expect("context module path should be representable as RspackPath")
+    .to_request_path_string();
   let matched = patterns
     .iter()
     .filter(|pattern| !pattern.negative)

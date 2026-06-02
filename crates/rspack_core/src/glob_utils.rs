@@ -6,7 +6,7 @@ use cow_utils::CowUtils;
 use fast_glob::glob_match;
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
-use rspack_paths::{Utf8Path, Utf8PathBuf, to_slash_path};
+use rspack_paths::{RspackPath, Utf8Path, Utf8PathBuf};
 
 #[derive(Debug, Clone)]
 pub struct GlobMatchOptions {
@@ -67,9 +67,13 @@ pub fn glob_match_with_explicit_dot(
   base_dir: &str,
   options: &GlobMatchOptions,
 ) -> bool {
-  let normalized_pattern = normalize_path_separators(pattern);
-  let normalized_path = normalize_path_separators_for_path(path);
-  let normalized_base_dir = normalize_path_separators_for_path(base_dir);
+  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
+  let normalized_path = RspackPath::from_path_str(path)
+    .expect("path should be representable as RspackPath")
+    .to_request_path_string();
+  let normalized_base_dir = RspackPath::from_path_str(base_dir)
+    .expect("base_dir should be representable as RspackPath")
+    .to_request_path_string();
 
   glob_match_normalized_with_explicit_dot(
     &normalized_pattern,
@@ -141,32 +145,6 @@ pub fn extract_glob_base_dir(pattern: &str) -> &str {
   }
 }
 
-/// Normalize backslashes to forward slashes in a path string.
-pub fn normalize_path_separators(s: &str) -> String {
-  let mut result = String::with_capacity(s.len());
-  let mut chars = s.chars().peekable();
-  while let Some(c) = chars.next() {
-    if c == '\\' {
-      if chars
-        .peek()
-        .is_some_and(|next| matches!(next, '*' | '?' | '[' | ']' | '{' | '}'))
-      {
-        result.push(c);
-      } else {
-        result.push('/');
-      }
-    } else {
-      result.push(c);
-    }
-  }
-  result
-}
-
-/// Normalize backslashes to forward slashes in a literal filesystem path.
-pub fn normalize_path_separators_for_path(s: &str) -> String {
-  to_slash_path(s).into_owned()
-}
-
 pub fn unescape_glob_path(s: &str) -> String {
   let mut result = String::with_capacity(s.len());
   let mut chars = s.chars().peekable();
@@ -235,7 +213,7 @@ pub async fn find_files_by_glob(
   options: &GlobMatchOptions,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<Vec<Utf8PathBuf>> {
-  let normalized_pattern = normalize_path_separators(pattern);
+  let normalized_pattern = RspackPath::from_glob_pattern(pattern).to_glob_pattern_string();
   let base_dir = extract_glob_base_dir(&normalized_pattern);
   let unescaped_base_dir = unescape_glob_path(base_dir);
   let base_dir_path = Utf8Path::new(&unescaped_base_dir);
@@ -350,37 +328,41 @@ mod tests {
   }
 
   #[test]
-  fn normalize_path_separators_preserves_glob_escapes() {
+  fn rspack_path_glob_pattern_preserves_glob_escapes() {
     assert_eq!(
-      normalize_path_separators("./fixtures/a\\[b\\]/**/*.js"),
+      RspackPath::from_glob_pattern("./fixtures/a\\[b\\]/**/*.js").to_glob_pattern_string(),
       "./fixtures/a\\[b\\]/**/*.js"
     );
     assert_eq!(
-      normalize_path_separators("./fixtures/file\\*.js"),
+      RspackPath::from_glob_pattern("./fixtures/file\\*.js").to_glob_pattern_string(),
       "./fixtures/file\\*.js"
     );
     assert_eq!(
-      normalize_path_separators("./fixtures/file\\?.js"),
+      RspackPath::from_glob_pattern("./fixtures/file\\?.js").to_glob_pattern_string(),
       "./fixtures/file\\?.js"
     );
     assert_eq!(
-      normalize_path_separators("C:\\fixtures\\a\\[b\\]\\file.js"),
+      RspackPath::from_glob_pattern("C:\\fixtures\\a\\[b\\]\\file.js").to_glob_pattern_string(),
       "C:/fixtures/a\\[b\\]/file.js"
     );
     assert_eq!(
-      normalize_path_separators("C:\\repo\\src/*.js"),
+      RspackPath::from_glob_pattern("C:\\repo\\src/*.js").to_glob_pattern_string(),
       "C:/repo/src/*.js"
     );
   }
 
   #[test]
-  fn normalize_path_separators_for_path_treats_glob_chars_as_literals() {
+  fn rspack_path_for_literal_path_treats_glob_chars_as_literals() {
     assert_eq!(
-      normalize_path_separators_for_path("C:\\fixtures\\a\\[b]\\file.js"),
+      RspackPath::from_path_str("C:\\fixtures\\a\\[b]\\file.js")
+        .expect("path")
+        .to_request_path_string(),
       "C:/fixtures/a/[b]/file.js"
     );
     assert_eq!(
-      normalize_path_separators_for_path("C:\\fixtures\\a\\{b}\\file.js"),
+      RspackPath::from_path_str("C:\\fixtures\\a\\{b}\\file.js")
+        .expect("path")
+        .to_request_path_string(),
       "C:/fixtures/a/{b}/file.js"
     );
   }

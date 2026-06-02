@@ -1,5 +1,5 @@
 use rspack_paths::{
-  RspackPath, RspackResource, Utf8Path, is_absolute_path, is_windows_absolute_path, to_slash_path,
+  RspackPath, RspackResource, Utf8Path, is_absolute_path, is_windows_absolute_path,
 };
 
 #[test]
@@ -68,7 +68,9 @@ fn shared_absolute_path_helpers_cover_posix_drive_and_unc() {
   assert!(is_windows_absolute_path(r"\\server\share\index.js"));
   assert!(!is_absolute_path("C:drive-relative.js"));
   assert_eq!(
-    to_slash_path(r"C:\repo\src\index.js"),
+    RspackPath::from_path_str(r"C:\repo\src\index.js")
+      .expect("path")
+      .to_request_path_string(),
     "C:/repo/src/index.js"
   );
 }
