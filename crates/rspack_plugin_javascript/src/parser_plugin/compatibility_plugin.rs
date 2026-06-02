@@ -229,9 +229,11 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
     }
     let tag_info = parser
       .definitions_db
-      .expect_get_mut_tag_info(parser.current_tag_info?);
+      .expect_get_mut_tag_info(parser.current_tag_info?)
+      .data
+      .as_deref_mut()?;
 
-    let mut nested_require_data = NestedRequireData::downcast(tag_info.data.take()?);
+    let nested_require_data = NestedRequireData::downcast_mut(tag_info);
     let mut deps: Vec<BoxDependencyTemplate> = Vec::with_capacity(2);
     let name = nested_require_data.name.clone();
     if !nested_require_data.update {
@@ -246,7 +248,6 @@ impl JavascriptParserPlugin for CompatibilityPlugin {
       )));
       nested_require_data.update = true;
     }
-    tag_info.data = Some(NestedRequireData::into_any(nested_require_data));
 
     deps.push(Box::new(ConstDependency::new(
       ident.span.into(),
