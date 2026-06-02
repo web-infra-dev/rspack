@@ -165,19 +165,18 @@ fn module_namespace_promise_rstest(
           runtime_template.module_raw(compilation, dep_id, request, weak)
         )
       } else if use_dynamic_shim {
-        // External dynamic `import(request)`: route through
-        // `rstest_dynamic_require` with the clean request literal, so the hoisted
-        // `rs.mock` (installed under the different static id) is found by request.
-        // `final_require` is the REQUIRE global here (use_dynamic_shim implies
-        // !is_import_actual). See packages/core/src/core/plugins/mockRuntimeCode.js.
+        // External dynamic `import(request)`: route through `rstest_dynamic_require`
+        // with the clean request literal so the hoisted `rs.mock` (installed under
+        // the different static id) is found by request. `final_require` is the
+        // REQUIRE global here (use_dynamic_shim implies !is_import_actual).
+        // See packages/core/src/core/plugins/mockRuntimeCode.js.
         //
-        // Guarded by `rstest_dynamic_require ? … : …` so this codegen stays safe
-        // when a NEWER @rspack/core runs against an OLDER @rstest/core runtime
-        // that predates `rstest_dynamic_require`: the helper is then `undefined`,
-        // and we fall back to the plain `__webpack_require__(id)` form (identical
-        // to the non-shim branch below), degrading to pre-fix behavior instead of
-        // throwing `undefined.bind(...)`. Without this guard, any external dynamic
-        // `import()` — even unmocked — would crash under a stale runtime.
+        // TODO(compat): the `rstest_dynamic_require ? … : <plain require>` guard is
+        // a fallback for an OLDER @rstest/core runtime that predates the helper
+        // (`undefined` → degrade to the plain `__webpack_require__(id)` form instead
+        // of throwing `undefined.bind(...)`). Drop the guard, leaving the
+        // unconditional `.bind` shim, once the minimum supported @rstest/core always
+        // ships `rstest_dynamic_require`.
         appending = format!(
           ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
           json_stringify_str(request)

@@ -79,8 +79,7 @@ impl MockMethodDependency {
     }
   }
 
-  /// Set the byte offset at which to inject the clean `request` literal as the
-  /// trailing argument of the emitted `rstest_*` call. See [`Self::args_request_end`].
+  /// Set the request-injection offset. See [`Self::args_request_end`].
   pub fn with_request_arg_end(mut self, end: Option<u32>) -> Self {
     self.args_request_end = end;
     self
@@ -150,12 +149,11 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       request,
     );
 
-    // Step 4: Inject the clean request as the trailing argument of the call,
-    // e.g. `rstest_mock(id, factory)` -> `rstest_mock(id, factory, "request")`,
-    // so a dynamic `import(request)` (a different external module id) can be
-    // intercepted by request via rstest_dynamic_require. Inserted at the end of
-    // the last argument expression (before any trailing comma) to stay valid
-    // for `rs.mock('x', f,)`. `None` for rs.hoisted and the 1-arg auto-mock form.
+    // Step 4: Inject the clean request as the call's trailing argument so a
+    // dynamic `import(request)` (a different external module id) can be
+    // intercepted by request via rstest_dynamic_require. Inserted before any
+    // trailing comma to stay valid for `rs.mock('x', f,)`. See `args_request_end`
+    // for the `None` cases.
     if let Some(end) = dep.args_request_end {
       source.replace(end, end, format!(", {}", json_stringify_str(request)), None);
     }
