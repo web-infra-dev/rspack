@@ -3,7 +3,7 @@ use rspack_core::{
   AsContextDependency, CssModuleRenderCondition, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource,
+  TemplateReplaceSource, iter_css_module_render_conditions,
 };
 
 #[cacheable]
@@ -16,13 +16,6 @@ pub struct CssImportDependency {
   inherited_render_conditions: Vec<CssModuleRenderCondition>,
   render_condition: CssModuleRenderCondition,
   factorize_info: FactorizeInfo,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub enum CssLayer {
-  Anonymous,
-  Named(String),
 }
 
 impl CssImportDependency {
@@ -52,11 +45,11 @@ impl CssImportDependency {
   }
 
   pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
-    self
-      .inherited_render_conditions
-      .iter()
-      .chain(std::iter::once(&self.render_condition))
-      .filter(|condition| !condition.is_empty())
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
+  }
+
+  pub fn has_render_conditions(&self) -> bool {
+    self.render_conditions().next().is_some()
   }
 }
 

@@ -3,9 +3,9 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssExport, CssExports,
-  CssExportsConvention, CssLayer as CssModuleRenderLayer, CssLocalNames, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
-  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
+  CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
+  DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -15,9 +15,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
 use crate::{
   dependency::{
-    CssComposeDependency, CssExportDependency, CssImportDependency, CssLayer,
-    CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
-    CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
+    CssSelfReferenceLocalIdentDependency, CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
   },
   parser_and_generator::generator::update_css_exports,
   utils::{
@@ -541,11 +540,16 @@ impl<'context> CssModuleParser<'context> {
       if s.is_empty() {
         CssLayer::Anonymous
       } else {
-        CssLayer::Named(s.to_string())
+        CssLayer::Named(s.into())
       }
     });
     let inherited_render_conditions = self.css_import_inherited_render_conditions();
-    let render_condition = Self::css_import_render_condition(media, supports, layer.as_ref());
+    let render_condition = CssModuleRenderCondition::new(
+      media.map(|media| media.trim().into()),
+      supports.map(|supports| supports.trim().into()),
+      layer,
+    );
+
     self.dependencies.push(Box::new(CssImportDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
@@ -565,21 +569,6 @@ impl<'context> CssModuleParser<'context> {
     inherited_render_conditions.extend(self.inherited_render_conditions.iter().cloned());
     inherited_render_conditions.push(self.render_condition.clone());
     inherited_render_conditions
-  }
-
-  fn css_import_render_condition(
-    media: Option<&str>,
-    supports: Option<&str>,
-    layer: Option<&CssLayer>,
-  ) -> CssModuleRenderCondition {
-    CssModuleRenderCondition::new(
-      media.map(|media| media.trim().into()),
-      supports.map(|supports| supports.trim().into()),
-      layer.map(|layer| match layer {
-        CssLayer::Anonymous => CssModuleRenderLayer::Anonymous,
-        CssLayer::Named(layer) => CssModuleRenderLayer::Named(layer.as_str().into()),
-      }),
-    )
   }
 
   async fn should_import(

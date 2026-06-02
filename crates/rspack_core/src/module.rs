@@ -164,6 +164,16 @@ impl CssModuleRenderCondition {
   }
 }
 
+pub fn iter_css_module_render_conditions<'a>(
+  inherited_render_conditions: &'a [CssModuleRenderCondition],
+  render_condition: &'a CssModuleRenderCondition,
+) -> impl Iterator<Item = &'a CssModuleRenderCondition> {
+  inherited_render_conditions
+    .iter()
+    .chain(std::iter::once(render_condition))
+    .filter(|condition| !condition.is_empty())
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
@@ -186,6 +196,10 @@ impl CssBuildInfo {
 
   pub fn local_names(&self) -> Option<&CssLocalNames> {
     (!self.local_names.is_empty()).then_some(&self.local_names)
+  }
+
+  pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
   }
 }
 

@@ -225,13 +225,7 @@ fn css_render_conditions_from_module(
     .css
     .as_deref()
     .into_iter()
-    .flat_map(|css| {
-      css
-        .inherited_render_conditions
-        .iter()
-        .chain(std::iter::once(&css.render_condition))
-        .filter(|condition| !condition.is_empty())
-    })
+    .flat_map(|css| css.render_conditions())
 }
 
 #[plugin_hook(NormalModuleFactoryAfterResolve for CssPlugin)]
@@ -272,9 +266,7 @@ async fn normal_module_factory_module(
     return Ok(());
   };
 
-  if css_import_dep.inherited_render_conditions().is_empty()
-    && css_import_dep.render_condition().is_empty()
-  {
+  if !css_import_dep.has_render_conditions() {
     return Ok(());
   }
 
