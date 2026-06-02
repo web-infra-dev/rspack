@@ -84,7 +84,7 @@ fn starts_with_windows_drive_source_reference(input: &str) -> bool {
 #[cacheable(with=Custom)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum RspackPath {
-  Absolute(Url),
+  Absolute(Arc<Url>),
   Relative(SmolStr),
 }
 
@@ -172,14 +172,14 @@ impl RspackPath {
     }
 
     if let RspackPath::Absolute(base) = self {
-      let mut base = base.clone();
+      let mut base = Url::clone(base);
       if !base.path().ends_with('/') {
         let path = format!("{}/", base.path());
         base.set_path(&path);
       }
       return base
         .join(child)
-        .map(RspackPath::Absolute)
+        .map(|url| RspackPath::Absolute(Arc::new(url)))
         .map_err(|err| format!("failed to join request: {err}"));
     }
 
@@ -199,6 +199,7 @@ impl RspackPath {
 
   pub fn from_utf8_path(path: &Utf8Path) -> Result<Self, String> {
     Url::from_file_path(path.as_std_path())
+      .map(Arc::new)
       .map(Self::Absolute)
       .map_err(|_| format!("failed to convert path to file URL: {path}"))
   }
@@ -221,7 +222,7 @@ impl RspackPath {
 
   pub fn as_url(&self) -> Option<&Url> {
     match self {
-      Self::Absolute(url) => Some(url),
+      Self::Absolute(url) => Some(url.as_ref()),
       Self::Relative(_) => None,
     }
   }
@@ -359,17 +360,17 @@ impl CustomConverter for RspackResource {
 
 fn parse_path(input: &str, base: Option<&RspackPath>) -> Result<RspackPath, String> {
   if let Some(url) = windows_file_url(input) {
-    return Ok(RspackPath::Absolute(url));
+    return Ok(RspackPath::Absolute(Arc::new(url)));
   }
 
   if let Ok(url) = Url::parse(input) {
-    return Ok(RspackPath::Absolute(url));
+    return Ok(RspackPath::Absolute(Arc::new(url)));
   }
 
   if let Some(base) = base.and_then(RspackPath::as_url)
     && let Ok(url) = base.join(input)
   {
-    return Ok(RspackPath::Absolute(url));
+    return Ok(RspackPath::Absolute(Arc::new(url)));
   }
 
   let path = Utf8Path::new(input);
