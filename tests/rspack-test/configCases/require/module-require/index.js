@@ -88,6 +88,11 @@ it("should not parse relative createRequire filename", () => {
 	expect(() => _createRequire("./foo/c.js").resolve("./a")).toThrow(/absolute path|file URL/);
 });
 
+it("should not decode encoded separators in createRequire file URLs", () => {
+	expect(() => _createRequire("file:///project/foo%2Fbar.js")("./a")).toThrow();
+	expect(() => _createRequire("file:///project/foo%5Cbar.js")("./a")).toThrow();
+});
+
 it("should preserve createRequire binding for unsupported uses", () => {
 	const createRequire = _createRequire;
 	const require = _createRequire(import.meta.url);

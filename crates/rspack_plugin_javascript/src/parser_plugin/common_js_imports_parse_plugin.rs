@@ -161,7 +161,11 @@ fn decode_percent_encoded_path(value: &str) -> Option<String> {
     }
     let high = bytes.next()?;
     let low = bytes.next()?;
-    decoded.push(hex_value(high)? << 4 | hex_value(low)?);
+    let decoded_byte = hex_value(high)? << 4 | hex_value(low)?;
+    if matches!(decoded_byte, b'/' | b'\\') {
+      return None;
+    }
+    decoded.push(decoded_byte);
   }
   String::from_utf8(decoded).ok()
 }
