@@ -28,7 +28,7 @@ module.exports = (env, { testPath }) => {
           failOnConflict: true,
         }),
         new rspack.experiments.ids.SyncModuleIdsPlugin({
-          path: idsPath,
+          path: readIdsPath,
           mode: 'create',
         }),
       ],
