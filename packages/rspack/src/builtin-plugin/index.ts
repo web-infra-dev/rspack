@@ -84,5 +84,6 @@ export * from './SourceMapDevToolPlugin';
 export * from './SplitChunksPlugin';
 export * from './SubresourceIntegrityPlugin';
 export * from './SwcJsMinimizerPlugin';
+export * from './SyncModuleIdsPlugin';
 export * from './URLPlugin';
 export * from './WorkerPlugin';

@@ -8,6 +8,9 @@ module.exports = (env, { testPath }) => ({
   output: {
     uniqueName: 'my-app',
   },
+  node: {
+    __dirname: false,
+  },
   module: {
     rules: [
       {

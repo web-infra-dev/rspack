@@ -6,7 +6,7 @@ use rspack_core::{CompilerId, Module};
 use rspack_hash::{HashDigest, HashFunction};
 use rspack_ids::{
   DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions, ModuleFilterFn,
-  OccurrenceChunkIdsPluginOptions,
+  OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode, SyncModuleIdsPluginOptions,
 };
 
 use crate::{
@@ -93,6 +93,47 @@ impl From<RawDeterministicModuleIdsPluginOptions> for DeterministicModuleIdsPlug
       salt: value.salt.map(|n| n as usize),
       fixed_length: value.fixed_length,
       fail_on_conflict: value.fail_on_conflict,
+    }
+  }
+}
+
+#[derive(Debug)]
+#[napi(string_enum)]
+pub enum RawSyncModuleIdsPluginMode {
+  #[napi(value = "read")]
+  Read,
+  #[napi(value = "create")]
+  Create,
+  #[napi(value = "merge")]
+  Merge,
+  #[napi(value = "update")]
+  Update,
+}
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawSyncModuleIdsPluginOptions {
+  pub path: String,
+  pub context: Option<String>,
+  #[napi(ts_type = "(module: Module) => boolean")]
+  pub test: Option<RawModuleFilter>,
+  #[napi(ts_type = "'read' | 'create' | 'merge' | 'update'")]
+  pub mode: Option<RawSyncModuleIdsPluginMode>,
+}
+
+impl From<RawSyncModuleIdsPluginOptions> for SyncModuleIdsPluginOptions {
+  fn from(value: RawSyncModuleIdsPluginOptions) -> Self {
+    let mode = match value.mode {
+      Some(RawSyncModuleIdsPluginMode::Read) => SyncModuleIdsPluginMode::Read,
+      Some(RawSyncModuleIdsPluginMode::Create) => SyncModuleIdsPluginMode::Create,
+      Some(RawSyncModuleIdsPluginMode::Merge) | None => SyncModuleIdsPluginMode::Merge,
+      Some(RawSyncModuleIdsPluginMode::Update) => SyncModuleIdsPluginMode::Update,
+    };
+    Self {
+      path: value.path,
+      context: value.context,
+      test: value.test.map(into_module_filter),
+      mode,
     }
   }
 }
