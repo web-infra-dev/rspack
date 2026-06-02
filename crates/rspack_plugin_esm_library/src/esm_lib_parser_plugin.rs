@@ -5,8 +5,8 @@ use rspack_plugin_javascript::{
 pub struct EsmLibParserPlugin;
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for EsmLibParserPlugin {
-  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     if parser.module_type.is_js_auto()
       && matches!(
         parser.build_meta.exports_type,

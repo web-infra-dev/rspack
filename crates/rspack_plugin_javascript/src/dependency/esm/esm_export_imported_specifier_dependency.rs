@@ -28,7 +28,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_util::{ext::DynHash, json_stringify};
 use rustc_hash::{FxHashSet as HashSet, FxHasher};
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,

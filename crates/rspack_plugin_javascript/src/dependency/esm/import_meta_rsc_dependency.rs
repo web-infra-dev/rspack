@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateReplaceSource, create_exports_object_referenced,
 };
 use rspack_util::{ext::DynHash, json_stringify_str};
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 

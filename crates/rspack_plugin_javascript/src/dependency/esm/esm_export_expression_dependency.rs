@@ -9,7 +9,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 

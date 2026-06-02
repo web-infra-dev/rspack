@@ -133,6 +133,7 @@ rkyv      = { version = "=0.8.16", default-features = false, features = ["std", 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.9", default-features = false }
 swc                 = { version = "66.0.0", default-features = false }
+swc_atoms           = { version = "9.0.3", default-features = false }
 swc_config          = { version = "5.0.0", default-features = false }
 swc_core            = { version = "68.0.3", default-features = false, features = ["parallel_rayon"] }
 swc_ecma_minifier   = { version = "55.0.0", default-features = false }
@@ -142,9 +143,12 @@ swc_html_minifier   = { version = "55.0.0", default-features = false }
 swc_plugin_runner   = { version = "29.0.0", default-features = false }
 swc_typescript      = { version = "30.0.0", default-features = false }
 
-swc_experimental_ecma_ast      = { version = "0.7.2", default-features = false }
-swc_experimental_ecma_parser   = { version = "0.7.2", default-features = false }
-swc_experimental_ecma_semantic = { version = "0.7.2", default-features = false }
+swc_experimental_allocator            = { version = "0.9.2", default-features = false }
+swc_experimental_ecma_ast             = { version = "0.9.2", default-features = false }
+swc_experimental_ecma_parser          = { version = "0.9.2", default-features = false }
+swc_experimental_ecma_semantic        = { version = "0.9.2", default-features = false }
+swc_experimental_ecma_transforms_base = { version = "0.9.2", default-features = false }
+swc_experimental_ecma_utils           = { version = "0.9.2", default-features = false }
 
 rspack_dojang = { version = "0.1.11", default-features = false }
 tracy-client  = { version = "=0.18.4", default-features = false, features = ["enable", "sampling", "demangle", "system-tracing"] }

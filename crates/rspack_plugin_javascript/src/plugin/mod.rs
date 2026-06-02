@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  collections::{HashMap, hash_map::Entry},
+  collections::hash_map::Entry,
   hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
@@ -30,9 +30,8 @@ use rspack_collections::{Identifier, IdentifierDashMap, IdentifierLinkedMap, Ide
 use rspack_core::{
   ChunkGraph, ChunkGroupUkey, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation, CompilationId, ConcatenatedModuleIdent,
-  ExportsArgument, IdentCollector, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
-  SourceType,
-  concatenated_module::find_new_name,
+  ExportsArgument, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType,
+  concatenated_module::{collect_ident, find_new_name},
   render_init_fragments,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
@@ -41,16 +40,15 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_hook::plugin;
-use rspack_javascript_compiler::ast::Ast;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
 use rspack_util::allocative;
 pub use side_effects_flag_plugin::*;
-use swc_core::{
-  atoms::Atom,
-  common::{FileName, Spanned, SyntaxContext, comments::SingleThreadedComments},
-  ecma::transforms::base::resolver,
-};
+use swc_atoms::Atom;
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::EsVersion;
+use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
+use swc_experimental_ecma_semantic::resolver::resolver;
 use tokio::sync::RwLock;
 
 use crate::runtime::{
@@ -1128,54 +1126,38 @@ var {} = {{}};
             }
 
             if !use_cache {
-              let cm: Arc<swc_core::common::SourceMap> = Default::default();
-              let fm = cm.new_source_file(
-                Arc::new(FileName::Custom(m.identifier().to_string())),
-                code.source().into_string_lossy().into_owned(),
+              let code_string = code.source().into_string_lossy();
+              let allocator = Allocator::new();
+              let lexer = Lexer::new(
+                &allocator,
+                Syntax::Es(EsSyntax::default()),
+                EsVersion::EsNext,
+                StringSource::new(code_string.as_ref()),
+                None,
               );
-              let comments = SingleThreadedComments::default();
-              let mut errors = vec![];
+              let mut parser = Parser::new_from(&allocator, lexer);
 
-              if let Ok(program) = swc_core::ecma::parser::parse_file_as_program(
-                &fm,
-                swc_core::ecma::parser::Syntax::default(),
-                swc_core::ecma::ast::EsVersion::EsNext,
-                Some(&comments),
-                &mut errors,
-              ) {
-                let mut ast: Ast = Ast::new(program, cm, Some(comments));
-                let mut global_ctxt = SyntaxContext::empty();
-                let mut module_ctxt = SyntaxContext::empty();
-
-                ast.transform(|program, context| {
-                  global_ctxt = global_ctxt.apply_mark(context.unresolved_mark);
-                  module_ctxt = module_ctxt.apply_mark(context.top_level_mark);
-                  program.visit_mut_with(&mut resolver(
-                    context.unresolved_mark,
-                    context.top_level_mark,
-                    false,
-                  ));
-                });
-
-                let mut collector = IdentCollector::default();
-                ast.visit(|program, _ctxt| {
-                  program.visit_with(&mut collector);
-                });
+              if let Ok(program) = parser.parse_program() {
+                let semantic = resolver(&program);
+                let global_scope_id = semantic.unresolved_scope_id();
+                let module_scope_id = semantic.top_level_scope_id();
+                let collector_ids = collect_ident(&allocator, &program);
 
                 if is_inlined_module {
                   let mut module_scope_idents = Vec::new();
 
-                  for ident in collector.ids {
-                    if ident.id.ctxt == global_ctxt
-                      || ident.id.ctxt != module_ctxt
+                  for ident in collector_ids {
+                    let scope_id = semantic.node_scope(&ident.id);
+                    if scope_id == global_scope_id
+                      || scope_id != module_scope_id
                       || ident.is_class_expr_with_ident
                     {
-                      acc.all_used_names.insert(ident.id.sym.clone());
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                     }
 
-                    if ident.id.ctxt == module_ctxt {
-                      acc.all_used_names.insert(ident.id.sym.clone());
-                      module_scope_idents.push(Arc::new(ident));
+                    if scope_id == module_scope_id {
+                      acc.all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+                      module_scope_idents.push(Arc::new(ident.to_legacy(&semantic)));
                     }
                   }
 
@@ -1210,9 +1192,10 @@ var {} = {{}};
                     .expect_get(chunk_ukey)
                     .runtime();
 
-                  for ident in collector.ids {
-                    if ident.id.ctxt == global_ctxt {
-                      acc.all_used_names.insert(ident.clone().id.sym.clone());
+                  for ident in collector_ids {
+                    if semantic.node_scope(&ident.id) == global_scope_id {
+                      let ident = ident.to_legacy(&semantic);
+                      acc.all_used_names.insert(ident.id.sym.clone());
                       idents_vec.push(ident.clone());
                       acc.non_inlined_module_through_idents.push(ident);
                     }
@@ -1306,8 +1289,7 @@ var {} = {{}};
         continue;
       }
 
-      let mut binding_to_ref: FxHashMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-        HashMap::default();
+      let mut binding_to_ref = FxHashMap::<_, Vec<ConcatenatedModuleIdent>>::default();
 
       for module_scope_ident in module_scope_idents.iter() {
         match binding_to_ref.entry((
@@ -1338,7 +1320,7 @@ var {} = {{}};
           let new_name = find_new_name(name, &all_used_names, &splitted_readable_identifier);
 
           for identifier in refs.iter() {
-            let span = identifier.id.span();
+            let span = identifier.id.span;
             let low = span.real_lo();
             let high = span.real_hi();
 
