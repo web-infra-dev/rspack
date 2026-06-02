@@ -1,8 +1,5 @@
 module.exports = [
-	[/export 'global' \(imported as 'style'\) was not found/],
-	[/export 'nested2' \(imported as 'style'\) was not found/],
-	[/export 'global-color' \(imported as 'style'\) was not found/],
-	[/export 'global' \(imported as 'style'\) was not found/],
-	[/export 'nested2' \(imported as 'style'\) was not found/],
-	[/export 'global-color' \(imported as 'style'\) was not found/]
+	[/Inconsistent rule global\/local/],
+	[/A ':global\(' is not allowed inside of a ':local\(\)' or ':global\(\)'/],
+	[/A ':local\(' is not allowed inside of a ':local\(\)' or ':global\(\)'/]
 ];

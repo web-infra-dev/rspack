@@ -185,6 +185,7 @@ export const electron: Electron = { ElectronTargetPlugin };
 import {
   DeterministicModuleIdsPlugin,
   HashedModuleIdsPlugin,
+  SyncModuleIdsPlugin,
 } from './builtin-plugin';
 
 interface Ids {
@@ -192,7 +193,10 @@ interface Ids {
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
-export const ids: Ids = { DeterministicModuleIdsPlugin, HashedModuleIdsPlugin };
+export const ids: Ids = {
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+};
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 
@@ -413,6 +417,9 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
+  ids: {
+    SyncModuleIdsPlugin: typeof SyncModuleIdsPlugin;
+  };
   rsc: typeof rsc;
 }
 
@@ -464,5 +471,8 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
+  ids: {
+    SyncModuleIdsPlugin,
+  },
   rsc,
 };

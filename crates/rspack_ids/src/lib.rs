@@ -16,3 +16,5 @@ mod natural_chunk_ids_plugin;
 pub use natural_chunk_ids_plugin::NaturalChunkIdsPlugin;
 mod occurrence_chunk_ids_plugin;
 pub use occurrence_chunk_ids_plugin::*;
+mod sync_module_ids_plugin;
+pub use sync_module_ids_plugin::*;
