@@ -100,6 +100,11 @@ it("should preserve createRequire binding for unsupported uses", () => {
 	expect(() => _createRequire(...import.meta.url)("./a")).toThrow(/absolute path|file URL/);
 	expect(() => _createRequire(import.meta.url)(..."./a")).toThrow();
 	expect(() => _createRequire(import.meta.url).resolve()).toThrow();
+	const URLCtor = globalThis["URL"];
+	const httpsUrl = new URLCtor("https:" + "//example.com/foo/c.js", import.meta.url);
+	const dataUrl = new URLCtor("data:" + "text/javascript,export default 1", import.meta.url);
+	expect(() => _createRequire(httpsUrl)("./a")).toThrow();
+	expect(() => _createRequire(dataUrl)("./a")).toThrow();
 	expect(
 		(function () { return require.resolve(..."./b"); }).toString()
 	).toContain("...");

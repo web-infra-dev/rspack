@@ -181,14 +181,9 @@ fn hex_value(byte: u8) -> Option<u8> {
 }
 
 #[inline(never)]
-fn file_url_path(value: &str) -> Option<&str> {
-  let path = value.strip_prefix("file://")?;
-  path.split(['?', '#']).next()
-}
-
-#[inline(never)]
 fn file_url_to_path(value: &str) -> Option<String> {
-  let path = file_url_path(value)?;
+  let path = value.strip_prefix("file://")?;
+  let path = path.split(['?', '#']).next()?;
   let path = path
     .strip_prefix("localhost")
     .filter(|path| path.starts_with('/'))
@@ -223,7 +218,10 @@ fn file_url_to_path(value: &str) -> Option<String> {
 #[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
   let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-    let is_directory_request = file_url_path(value).is_some_and(|path| path.ends_with('/'));
+    let is_directory_request = value
+      .strip_prefix("file://")
+      .and_then(|path| path.split(['?', '#']).next())
+      .is_some_and(|path| path.ends_with('/'));
     (path, is_directory_request)
   } else {
     if !Path::new(value).is_absolute() {
@@ -267,6 +265,18 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("file://") {
     return file_url_to_path(&request);
+  }
+  if let Some(scheme_end) = request.find(':')
+    && request[..scheme_end]
+      .bytes()
+      .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'.' | b'-'))
+    && request
+      .as_bytes()
+      .first()
+      .is_some_and(u8::is_ascii_alphabetic)
+    && request[..scheme_end].find(['/', '?', '#']).is_none()
+  {
+    return None;
   }
   let request_path = request.split(['?', '#']).next()?;
   let mut path = Path::new(parser.resource_data.resource())
