@@ -10,14 +10,12 @@ use crate::groups::{
 
 pub mod basic_react;
 pub mod threejs;
-pub mod threejs_10x;
 pub mod util;
 
 pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("threejs", Arc::new(threejs::compiler)),
-    ("threejs-10x", Arc::new(threejs_10x::compiler)),
   ];
   let (id, get_compiler) = derive_projects(projects)
     .into_iter()

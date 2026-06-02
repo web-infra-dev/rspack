@@ -21,10 +21,6 @@ on:
         required: false
         type: string
         default: ''
-      enable_threejs_10x: # Register the scaled threejs 10x benchmark cases
-        required: false
-        type: boolean
-        default: false
       ref: # Git reference to checkout
         required: false
         type: string
@@ -96,7 +92,6 @@ jobs:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           RAYON_NUM_THREADS: 1
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
-          RSPACK_BENCH_ENABLE_THREEJS_10X: ${{ inputs.enable_threejs_10x && '1' || '0' }}
         with:
           mode: simulation
           run: |
@@ -118,7 +113,6 @@ jobs:
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
-          RSPACK_BENCH_ENABLE_THREEJS_10X: ${{ inputs.enable_threejs_10x && '1' || '0' }}
         with:
           mode: walltime
           run: |
