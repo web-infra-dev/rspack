@@ -20,9 +20,8 @@ use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-    ContextualCommonJsRequireDependency, RequireHeaderDependency, RequireResolveContextDependency,
-    RequireResolveDependency, RequireResolveHeaderDependency,
-    local_module_dependency::LocalModuleDependency,
+    RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
+    RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
   },
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -761,7 +760,7 @@ impl CommonJsImportsParserPlugin {
             refs
           });
       let dep: Box<dyn rspack_core::Dependency> = if let Some(context) = request_context {
-        Box::new(ContextualCommonJsRequireDependency::new(
+        Box::new(CommonJsRequireDependency::new_contextual(
           param.string().clone(),
           range_expr,
           Some(span.into()),
@@ -1568,14 +1567,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       };
       match locator.dep_type {
         DependencyType::CjsRequire => {
-          if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
-            dep.set_referenced_specifiers(references);
-          } else {
-            dep
-              .downcast_mut::<ContextualCommonJsRequireDependency>()
-              .expect("Failed to downcast to CommonJsRequireDependency")
-              .set_referenced_specifiers(references);
-          }
+          dep
+            .downcast_mut::<CommonJsRequireDependency>()
+            .expect("Failed to downcast to CommonJsRequireDependency")
+            .set_referenced_specifiers(references);
         }
         DependencyType::CommonJSRequireContext => {
           let dep = dep

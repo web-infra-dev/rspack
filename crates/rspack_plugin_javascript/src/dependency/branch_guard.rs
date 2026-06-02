@@ -8,10 +8,7 @@ use rspack_core::{
   ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
 };
 
-use super::{
-  CommonJsRequireDependency, ContextualCommonJsRequireDependency, ESMImportSpecifierDependency,
-  ImportDependency,
-};
+use super::{CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -74,8 +71,6 @@ pub fn set_dependency_branch_guards(dep: &mut dyn Dependency, guards: &[Dependen
   }
 
   if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
-    dep.add_branch_guards(guards.iter().cloned());
-  } else if let Some(dep) = dep.downcast_mut::<ContextualCommonJsRequireDependency>() {
     dep.add_branch_guards(guards.iter().cloned());
   } else if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
     dep.add_branch_guards(guards.iter().cloned());
