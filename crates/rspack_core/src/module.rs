@@ -174,9 +174,7 @@ pub struct CssBuildInfo {
   /// Conditions inherited from parent CSS modules.
   ///
   /// Webpack stores the current module condition before inherited conditions.
-  /// Rspack stores inherited conditions from outermost to innermost, so render
-  /// can append the current condition and emit wrappers in source order without
-  /// prepending or reversing.
+  /// Rspack stores inherited conditions from outermost to innermost
   pub inherited_render_conditions: Vec<CssModuleRenderCondition>,
   pub render_condition: CssModuleRenderCondition,
 }

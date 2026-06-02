@@ -493,6 +493,39 @@ module.exports = {
 			      },
 			      css-import: Object {
 			        conditionNames: Array [
+			          webpack,
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
+			      css-import-global-module: Object {
+			        conditionNames: Array [
+			          webpack,
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
+			      css-import-local-module: Object {
+			        conditionNames: Array [
+			          webpack,
 			          production,
 			          style,
 			        ],
