@@ -188,6 +188,9 @@ fn file_url_to_path(value: &str) -> Option<String> {
     .strip_prefix("localhost")
     .filter(|path| path.starts_with('/'))
     .unwrap_or(path);
+  if !path.starts_with('/') {
+    return None;
+  }
   #[cfg(windows)]
   let path = path
     .strip_prefix('/')
