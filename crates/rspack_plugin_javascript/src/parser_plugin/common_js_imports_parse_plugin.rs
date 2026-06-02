@@ -188,15 +188,28 @@ fn file_url_to_path(value: &str) -> Option<String> {
     .strip_prefix("localhost")
     .filter(|path| path.starts_with('/'))
     .unwrap_or(path);
+
+  #[cfg(not(windows))]
   if !path.starts_with('/') {
     return None;
   }
+
   #[cfg(windows)]
   let path = path
     .strip_prefix('/')
     .filter(|path| path.as_bytes().get(1).is_some_and(|b| *b == b':'))
-    .unwrap_or(path);
-  decode_percent_encoded_path(path)
+    .map(str::to_string)
+    .unwrap_or_else(|| {
+      if path.starts_with('/') {
+        path.to_string()
+      } else {
+        let mut path = path.replace('/', "\\");
+        path.insert_str(0, "\\\\");
+        path
+      }
+    });
+
+  decode_percent_encoded_path(&path)
 }
 
 #[inline(never)]
