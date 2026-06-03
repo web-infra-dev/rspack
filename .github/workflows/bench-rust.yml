@@ -37,6 +37,8 @@ jobs:
   bench-rust:
     name: 'Bench Rust ${{ inputs.measurement }}'
     runs-on: ${{ fromJSON(inputs.runner) }}
+    env:
+      BENCH_MODE: ${{ inputs.measurement }}
     defaults:
       run:
         shell: bash
@@ -90,7 +92,6 @@ jobs:
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
-          RAYON_NUM_THREADS: 1
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
         with:
           mode: simulation
