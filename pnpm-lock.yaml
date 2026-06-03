@@ -16,8 +16,8 @@ importers:
         specifier: 0.5.3
         version: 0.5.3(jiti@2.7.0)
       '@rstest/core':
-        specifier: ^0.9.10
-        version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
+        specifier: ^0.10.3
+        version: 0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@taplo/cli':
         specifier: ^0.7.0
         version: 0.7.0
@@ -275,8 +275,8 @@ importers:
         specifier: ^4.0.2
         version: 4.0.2
       enhanced-resolve:
-        specifier: 5.21.3
-        version: 5.21.3
+        specifier: 5.22.1
+        version: 5.22.1
       http-proxy-middleware:
         specifier: ^4.0.0
         version: 4.0.0
@@ -592,8 +592,8 @@ importers:
         specifier: ^3.5.35
         version: 3.5.35(typescript@6.0.3)
       ws:
-        specifier: ^8.20.1
-        version: 8.20.1
+        specifier: ^8.21.0
+        version: 8.21.0
 
   tests/e2e-browser:
     devDependencies:
@@ -646,8 +646,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack-test-tools
       '@rstest/core':
-        specifier: ^0.9.10
-        version: 0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
+        specifier: ^0.10.3
+        version: 0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)
       '@swc/helpers':
         specifier: 0.5.23
         version: 0.5.23
@@ -674,7 +674,7 @@ importers:
         version: 19.2.3(@types/react@19.2.15)
       '@webdiscus/pug-loader':
         specifier: ^2.11.1
-        version: 2.11.1(enhanced-resolve@5.21.3)
+        version: 2.11.1(enhanced-resolve@5.22.1)
       acorn:
         specifier: ^8.16.0
         version: 8.16.0
@@ -793,8 +793,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       terser:
-        specifier: 5.46.2
-        version: 5.46.2
+        specifier: 5.48.0
+        version: 5.48.0
       terser-webpack-plugin:
         specifier: ^5.5.0
         version: 5.5.0
@@ -3259,8 +3259,8 @@ packages:
       '@rspress/core':
         optional: true
 
-  '@rstest/core@0.9.10':
-    resolution: {integrity: sha512-JUSUYYXWIHEBUn193u2RglZujvGPv46Blxpl17QFwc0y9vEXe2y/IfGwGrVsJfZz7PaWZ5NnbFf0J55YIIns+g==}
+  '@rstest/core@0.10.3':
+    resolution: {integrity: sha512-UiJ1td7KszgAfPVroNKnQQ60S0EeyHdPZArng08ffMMCmwo/6aeLmjk4s+W/ojR5iredelM9Z0Yc01vN3kSaeA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -4705,6 +4705,10 @@ packages:
 
   enhanced-resolve@5.21.3:
     resolution: {integrity: sha512-QyL119InA+XXEkNLNTPCXPugSvOfhwv0JOlGNzvxs0hZaiHLNvXSpudUWsOlsXGWJh8G6ckCScEkVHfX3kw/2Q==}
+    engines: {node: '>=10.13.0'}
+
+  enhanced-resolve@5.22.1:
+    resolution: {integrity: sha512-6QEuw3zoX1SJQc7b87aBXke/no+mG2bTBgw29gWMQonLmpEkWoCAVkl+M49e48AZlWzxiDzDZzYdp6kobcyLww==}
     engines: {node: '>=10.13.0'}
 
   entities@4.5.0:
@@ -7676,6 +7680,18 @@ packages:
       utf-8-validate:
         optional: true
 
+  ws@8.21.0:
+    resolution: {integrity: sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+
   wsl-utils@0.3.1:
     resolution: {integrity: sha512-g/eziiSUNBSsdDJtCLB8bdYEUMj4jR7AGeUo96p/3dTafgjHhpF4RiCFPiRILwjQoDXx5MqkBr4fwWtR3Ky4Wg==}
     engines: {node: '>=20'}
@@ -9822,11 +9838,10 @@ snapshots:
     optionalDependencies:
       '@rspress/core': 2.0.13(@module-federation/runtime-tools@2.5.0)(@rspack/core@2.0.5)(@types/mdast@4.0.4)(@types/react@19.2.15)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
 
-  '@rstest/core@0.9.10(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)':
+  '@rstest/core@0.10.3(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)(jsdom@26.1.0)':
     dependencies:
-      '@rsbuild/core': 2.0.7(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)
+      '@rsbuild/core': 2.0.8(@module-federation/runtime-tools@2.5.0)(core-js@3.49.0)
       '@types/chai': 5.2.3
-      tinypool: 2.1.0
     optionalDependencies:
       jsdom: 26.1.0
     transitivePeerDependencies:
@@ -10361,10 +10376,10 @@ snapshots:
 
   '@vue/shared@3.5.35': {}
 
-  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.21.3)':
+  '@webdiscus/pug-loader@2.11.1(enhanced-resolve@5.22.1)':
     dependencies:
       ansis: 3.10.0
-      enhanced-resolve: 5.21.3
+      enhanced-resolve: 5.22.1
       parse5: 7.3.0
       pug: 3.0.3
       webpack-merge: 6.0.1
@@ -11381,6 +11396,11 @@ snapshots:
       graceful-fs: 4.2.11
       tapable: 2.3.3
 
+  enhanced-resolve@5.22.1:
+    dependencies:
+      graceful-fs: 4.2.11
+      tapable: 2.3.3
+
   entities@4.5.0: {}
 
   entities@6.0.1: {}
@@ -11954,7 +11974,7 @@ snapshots:
       entities: 4.5.0
       param-case: 3.0.4
       relateurl: 0.2.7
-      terser: 5.46.2
+      terser: 5.48.0
 
   html-rspack-plugin@6.1.9(@rspack/core@packages+rspack):
     dependencies:
@@ -14792,6 +14812,8 @@ snapshots:
   wrappy@1.0.2: {}
 
   ws@8.20.1: {}
+
+  ws@8.21.0: {}
 
   wsl-utils@0.3.1:
     dependencies:
