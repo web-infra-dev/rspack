@@ -3,6 +3,7 @@ import { createRequire as __createRequire, builtinModules } from "module";
 import { createRequire as nodeCreateRequire } from "node:module";
 import * as esm from "./esm.mjs";
 import { unusedBranchEnabled } from "./flag.js";
+import "./posix-backslash.generated.js";
 
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
@@ -21,6 +22,13 @@ it("should evaluate require/createRequire", () => {
 	expect(
 		(function () { if (typeof require); }).toString()
 	).toBe("function () { if (true); }");
+});
+
+it("should not parse unbound createRequire identifiers", () => {
+	expect(
+		(function () { return typeof createRequire; }).toString()
+	).toBe("function () { return typeof createRequire; }");
+	expect(() => createRequire(import.meta.url)("./a")).toThrow(ReferenceError);
 });
 
 it("should create require", () => {
@@ -118,14 +126,6 @@ it("should not decode encoded separators in createRequire file URLs", () => {
 it("should decode normal file URL escapes in createRequire paths", () => {
 	const escapedRequire = _createRequire(new URL("./foo%20bar/a.js", import.meta.url));
 	expect(escapedRequire("./a")).toBe("space");
-});
-
-it("should treat POSIX absolute paths ending in backslash as files", () => {
-	if (process.platform !== "win32") {
-		expect(_createRequire(__dirname + "/foo\\")("./posix-backslash")).toBe(
-			"posix-backslash"
-		);
-	}
 });
 
 it("should preserve createRequire binding for unsupported uses", () => {
