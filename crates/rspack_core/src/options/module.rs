@@ -55,6 +55,7 @@ pub enum ParserOptions {
   Asset(AssetParserOptions),
   Css(CssParserOptions),
   CssModule(CssModuleParserOptions),
+  CssAutoOrModule(CssAutoOrModuleParserOptions),
   Javascript(JavascriptParserOptions),
   JavascriptAuto(JavascriptParserOptions),
   JavascriptEsm(JavascriptParserOptions),
@@ -77,9 +78,13 @@ macro_rules! get_variant {
 impl ParserOptions {
   get_variant!(get_asset, Asset, AssetParserOptions);
   get_variant!(get_css, Css, CssParserOptions);
-  get_variant!(get_css_auto, CssModule, CssModuleParserOptions);
+  get_variant!(get_css_auto, CssAutoOrModule, CssAutoOrModuleParserOptions);
   get_variant!(get_css_global, CssModule, CssModuleParserOptions);
-  get_variant!(get_css_module, CssModule, CssModuleParserOptions);
+  get_variant!(
+    get_css_module,
+    CssAutoOrModule,
+    CssAutoOrModuleParserOptions
+  );
   get_variant!(get_javascript, Javascript, JavascriptParserOptions);
   get_variant!(get_javascript_auto, JavascriptAuto, JavascriptParserOptions);
   get_variant!(get_javascript_esm, JavascriptEsm, JavascriptParserOptions);
@@ -408,9 +413,17 @@ pub struct CssParserOptions {
   pub url: Option<bool>,
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
-  pub animation: Option<bool>,
-  pub custom_idents: Option<bool>,
-  pub dashed_idents: Option<bool>,
+}
+
+impl Default for CssParserOptions {
+  fn default() -> Self {
+    Self {
+      named_exports: Some(true),
+      url: Some(true),
+      r#import: Some(true),
+      resolve_import: Some(CssParserImport::Bool(true)),
+    }
+  }
 }
 
 #[cacheable]
@@ -421,8 +434,44 @@ pub struct CssModuleParserOptions {
   pub r#import: Option<bool>,
   pub resolve_import: Option<CssParserImport>,
   pub animation: Option<bool>,
+  pub container: Option<bool>,
   pub custom_idents: Option<bool>,
   pub dashed_idents: Option<bool>,
+  pub r#function: Option<bool>,
+  pub grid: Option<bool>,
+}
+
+impl Default for CssModuleParserOptions {
+  fn default() -> Self {
+    Self {
+      named_exports: Some(true),
+      url: Some(true),
+      r#import: Some(true),
+      resolve_import: Some(CssParserImport::Bool(true)),
+      animation: Some(true),
+      container: Some(true),
+      custom_idents: Some(true),
+      dashed_idents: None,
+      r#function: Some(true),
+      grid: Some(true),
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom)]
+pub struct CssAutoOrModuleParserOptions {
+  pub named_exports: Option<bool>,
+  pub url: Option<bool>,
+  pub r#import: Option<bool>,
+  pub resolve_import: Option<CssParserImport>,
+  pub animation: Option<bool>,
+  pub container: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
+  pub r#function: Option<bool>,
+  pub grid: Option<bool>,
+  pub pure: Option<bool>,
 }
 
 impl From<&CssParserOptions> for CssModuleParserOptions {
@@ -432,9 +481,46 @@ impl From<&CssParserOptions> for CssModuleParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
+      ..Default::default()
+    }
+  }
+}
+
+impl Default for CssAutoOrModuleParserOptions {
+  fn default() -> Self {
+    Self {
+      pure: Some(false),
+      ..CssModuleParserOptions::default().into()
+    }
+  }
+}
+
+impl From<CssModuleParserOptions> for CssAutoOrModuleParserOptions {
+  fn from(value: CssModuleParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+      url: value.url,
+      r#import: value.r#import,
+      resolve_import: value.resolve_import,
       animation: value.animation,
+      container: value.container,
       custom_idents: value.custom_idents,
       dashed_idents: value.dashed_idents,
+      r#function: value.r#function,
+      grid: value.grid,
+      pure: Some(false),
+    }
+  }
+}
+
+impl From<&CssParserOptions> for CssAutoOrModuleParserOptions {
+  fn from(value: &CssParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+      url: value.url,
+      r#import: value.r#import,
+      resolve_import: value.resolve_import.clone(),
+      ..Default::default()
     }
   }
 }

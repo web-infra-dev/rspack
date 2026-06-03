@@ -134,12 +134,59 @@ pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
 pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
 
 #[cacheable]
+#[derive(Debug, Clone)]
+pub enum CssLayer {
+  Anonymous,
+  Named(#[cacheable(with=AsPreset)] SmolStr),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssModuleRenderCondition {
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub media: Option<SmolStr>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub supports: Option<SmolStr>,
+  pub layer: Option<CssLayer>,
+}
+
+impl CssModuleRenderCondition {
+  pub fn new(media: Option<SmolStr>, supports: Option<SmolStr>, layer: Option<CssLayer>) -> Self {
+    Self {
+      media,
+      supports,
+      layer,
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.media.is_none() && self.supports.is_none() && self.layer.is_none()
+  }
+}
+
+pub fn iter_css_module_render_conditions<'a>(
+  inherited_render_conditions: &'a [CssModuleRenderCondition],
+  render_condition: &'a CssModuleRenderCondition,
+) -> impl Iterator<Item = &'a CssModuleRenderCondition> {
+  inherited_render_conditions
+    .iter()
+    .chain(std::iter::once(render_condition))
+    .filter(|condition| !condition.is_empty())
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
   #[cacheable(with=AsMap<AsPreset, AsVec>)]
   pub exports: CssExports,
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   pub local_names: CssLocalNames,
+  /// Conditions inherited from parent CSS modules.
+  ///
+  /// Webpack stores the current module condition before inherited conditions.
+  /// Rspack stores inherited conditions from outermost to innermost
+  pub inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  pub render_condition: CssModuleRenderCondition,
 }
 
 impl CssBuildInfo {
@@ -149,6 +196,10 @@ impl CssBuildInfo {
 
   pub fn local_names(&self) -> Option<&CssLocalNames> {
     (!self.local_names.is_empty()).then_some(&self.local_names)
+  }
+
+  pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
   }
 }
 

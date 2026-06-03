@@ -5,6 +5,7 @@ import {
   type RawAssetParserDataUrl,
   type RawAssetParserOptions,
   type RawAssetResourceGeneratorOptions,
+  type RawCssAutoOrModuleParserOptions,
   type RawCssGeneratorOptions,
   type RawCssModuleGeneratorOptions,
   type RawCssModuleParserOptions,
@@ -52,6 +53,7 @@ import type {
   AssetParserOptions,
   AssetResourceGeneratorOptions,
   CssGeneratorOptions,
+  CssAutoOrModuleParserOptions,
   CssModuleGeneratorOptions,
   CssModuleParserOptions,
   CssParserOptions,
@@ -533,19 +535,19 @@ function getRawParserOptions(
   if (type === 'css/auto') {
     return {
       type: 'css/auto',
-      cssAuto: getRawCssParserOptions(parser),
+      cssAuto: getRawCssAutoOrModuleParserOptions(parser),
     };
   }
   if (type === 'css/global') {
     return {
       type: 'css/global',
-      cssGlobal: getRawCssParserOptions(parser),
+      cssGlobal: getRawCssModuleParserOptions(parser),
     };
   }
   if (type === 'css/module') {
     return {
       type: 'css/module',
-      cssModule: getRawCssParserOptions(parser),
+      cssModule: getRawCssAutoOrModuleParserOptions(parser),
     };
   }
 
@@ -636,7 +638,7 @@ function getRawAssetParserDataUrl(
   );
 }
 
-function getRawCssParserOptions(
+function getRawCssModuleParserOptions(
   parser: CssModuleParserOptions,
 ): RawCssModuleParserOptions {
   return {
@@ -645,8 +647,20 @@ function getRawCssParserOptions(
     import: parser.import,
     resolveImport: parser.resolveImport as any,
     animation: parser.animation,
+    container: parser.container,
     customIdents: parser.customIdents,
     dashedIdents: parser.dashedIdents,
+    function: parser.function,
+    grid: parser.grid,
+  };
+}
+
+function getRawCssAutoOrModuleParserOptions(
+  parser: CssAutoOrModuleParserOptions,
+): RawCssAutoOrModuleParserOptions {
+  return {
+    ...getRawCssModuleParserOptions(parser),
+    pure: parser.pure,
   };
 }
 
@@ -658,9 +672,6 @@ function getRawCssParserOptionsForCss(
     url: parser.url,
     import: parser.import,
     resolveImport: parser.resolveImport as any,
-    animation: parser.animation,
-    customIdents: parser.customIdents,
-    dashedIdents: parser.dashedIdents,
   };
 }
 

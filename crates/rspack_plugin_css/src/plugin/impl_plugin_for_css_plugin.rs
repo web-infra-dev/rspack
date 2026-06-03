@@ -1,22 +1,22 @@
 #![allow(clippy::comparison_chain)]
 
 use std::{
-  borrow::Cow,
+  fmt::Write,
   hash::Hash,
   sync::{Arc, LazyLock},
 };
 
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
-  AssetInfo, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation,
-  CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyType, ManifestAssetType,
-  Module, ModuleGraph, ModuleType, ParserAndGenerator, PathData, Plugin, PublicPath,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory,
-  SourceType, get_css_chunk_filename_template,
-  rspack_sources::{
-    BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-  },
+  AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
+  Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo,
+  CssLayer as CssModuleRenderLayer, CssModuleRenderCondition, DependencyType, ManifestAssetType,
+  Module, ModuleFactoryCreateData, ModuleGraph, ModuleType, NormalModuleCreateData,
+  NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
+  PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
+  SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -29,10 +29,12 @@ use smol_str::SmolStr;
 use crate::{
   CssPlugin,
   dependency::{
-    CssImportDependencyTemplate, CssLayer, CssLocalIdentDependencyTemplate, CssMedia,
-    CssSelfReferenceLocalIdentDependencyTemplate, CssSupports, CssUrlDependencyTemplate,
+    CssImportDependency, CssImportDependencyTemplate, CssLocalIdentDependencyTemplate,
+    CssSelfReferenceLocalIdentDependencyTemplate, CssUrlDependencyTemplate,
   },
-  parser_and_generator::{CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator},
+  parser_and_generator::{
+    CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
+  },
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
   utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
@@ -45,10 +47,6 @@ type ArcCssModulesPluginHooks = Arc<AtomicRefCell<CssModulesPluginHooks>>;
 
 static COMPILATION_HOOKS_MAP: LazyLock<FxDashMap<CompilationId, ArcCssModulesPluginHooks>> =
   LazyLock::new(Default::default);
-
-struct CssModuleDebugInfo<'a> {
-  pub module: &'a dyn Module,
-}
 
 impl CssPlugin {
   pub fn get_compilation_hooks(id: CompilationId) -> ArcCssModulesPluginHooks {
@@ -166,13 +164,11 @@ impl CssPlugin {
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
 
-        Ok(code_gen_result.get(&SourceType::Css).map(|source| {
-          (
-            CssModuleDebugInfo { module: *module },
-            &code_gen_result.data,
-            source,
-          )
-        }))
+        Ok(
+          code_gen_result
+            .get(&SourceType::Css)
+            .map(|source| (*module, source)),
+        )
       })
       .collect::<Result<Vec<_>>>()?;
 
@@ -180,69 +176,25 @@ impl CssPlugin {
       module_sources
         .into_iter()
         .flatten()
-        .for_each(|(debug_info, data, cur_source)| {
-          let s = unsafe {
-            token.used((
-              compilation,
-              chunk.ukey(),
-              debug_info,
-              data,
-              cur_source,
-              hooks,
-            ))
-          };
+        .for_each(|(module, cur_source)| {
+          let s = unsafe { token.used((compilation, chunk.ukey(), module, cur_source, hooks)) };
           s.spawn(
-            |(compilation, chunk, debug_info, data, cur_source, hooks)| async move {
+            |(compilation, chunk, module, cur_source, hooks)| async move {
               let mut post_module_container = {
-                let mut container_source = ConcatSource::default();
-
-                let mut num_close_bracket = 0;
-
-                // TODO: use PrefixSource to create indent
-                if let Some(media) = data.get::<CssMedia>() {
-                  num_close_bracket += 1;
-                  container_source.add(RawStringSource::from(format!("@media {media}{{\n")));
+                let render_conditions = css_render_conditions_from_module(module);
+                let mut builder = CssSourceBuilder::new(false);
+                if builder.push_css_source(cur_source.clone(), render_conditions, false) {
+                  builder.push_line();
                 }
-
-                if let Some(supports) = data.get::<CssSupports>() {
-                  num_close_bracket += 1;
-                  container_source.add(RawStringSource::from(format!(
-                    "@supports ({supports}) {{\n"
-                  )));
-                }
-
-                if let Some(layer) = data.get::<CssLayer>() {
-                  num_close_bracket += 1;
-                  container_source.add(RawStringSource::from(format!(
-                    "@layer{} {{\n",
-                    if let CssLayer::Named(layer) = &layer {
-                      Cow::Owned(format!(" {layer}"))
-                    } else {
-                      Cow::Borrowed("")
-                    }
-                  )));
-                }
-
-                container_source.add(cur_source.clone());
-
-                for _ in 0..num_close_bracket {
-                  container_source.add(RawStringSource::from_static("\n}"));
-                }
-                container_source.add(RawStringSource::from_static("\n"));
                 CssModulesRenderSource {
-                  source: container_source.boxed(),
+                  source: builder.into_source(),
                 }
               };
 
               let chunk_ukey = chunk.as_u32().into();
               hooks
                 .render_module_package
-                .call(
-                  compilation,
-                  &chunk_ukey,
-                  debug_info.module,
-                  &mut post_module_container,
-                )
+                .call(compilation, &chunk_ukey, module, &mut post_module_container)
                 .await?;
 
               Ok(post_module_container.source)
@@ -263,6 +215,93 @@ impl CssPlugin {
 
     Ok(source)
   }
+}
+
+fn css_render_conditions_from_module(
+  module: &dyn Module,
+) -> impl Iterator<Item = &CssModuleRenderCondition> {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .into_iter()
+    .flat_map(|css| css.render_conditions())
+}
+
+#[plugin_hook(NormalModuleFactoryAfterResolve for CssPlugin)]
+async fn normal_module_factory_after_resolve(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  create_data: &mut NormalModuleCreateData,
+) -> Result<Option<bool>> {
+  let Some(css_import_dep) = data
+    .dependencies
+    .first()
+    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>())
+  else {
+    return Ok(None);
+  };
+
+  let conditions_key = css_render_conditions_key(css_import_dep.render_conditions());
+  if !conditions_key.is_empty() {
+    create_data.request.push_str("|css-render-conditions|");
+    create_data.request.push_str(&conditions_key);
+  }
+
+  Ok(None)
+}
+
+#[plugin_hook(NormalModuleFactoryModule for CssPlugin)]
+async fn normal_module_factory_module(
+  &self,
+  data: &mut ModuleFactoryCreateData,
+  _create_data: &NormalModuleCreateData,
+  module: &mut BoxModule,
+) -> Result<()> {
+  let Some(css_import_dep) = data
+    .dependencies
+    .first()
+    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>())
+  else {
+    return Ok(());
+  };
+
+  if !css_import_dep.has_render_conditions() {
+    return Ok(());
+  }
+
+  let css_build_info = module
+    .build_info_mut()
+    .css
+    .get_or_insert_with(|| Box::new(CssBuildInfo::default()));
+  css_build_info.inherited_render_conditions =
+    css_import_dep.inherited_render_conditions().to_vec();
+  css_build_info.render_condition = css_import_dep.render_condition().clone();
+
+  Ok(())
+}
+
+fn css_render_conditions_key<'a>(
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> String {
+  let mut key = String::new();
+  for (index, condition) in conditions.into_iter().enumerate() {
+    if index > 0 {
+      key.push('|');
+    }
+    let layer = match &condition.layer {
+      Some(CssModuleRenderLayer::Anonymous) => "<anonymous>",
+      Some(CssModuleRenderLayer::Named(layer)) => layer.as_str(),
+      None => "",
+    };
+    let supports = condition.supports.as_deref().unwrap_or_default();
+    let media = condition.media.as_deref().unwrap_or_default();
+    let _ = write!(
+      key,
+      "condition_{index}|layer:{layer}|supports:{supports}|media:{media}"
+    );
+  }
+  key
 }
 
 #[plugin_hook(CompilerCompilation for CssPlugin)]
@@ -516,6 +555,14 @@ impl Plugin for CssPlugin {
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .after_resolve
+      .tap(normal_module_factory_after_resolve::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
 
     ctx.register_parser_and_generator_builder(
       ModuleType::Css,

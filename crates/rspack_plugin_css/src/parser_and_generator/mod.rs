@@ -1,16 +1,17 @@
 pub mod generator;
 mod parser;
+mod source_builder;
 
 use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, CssBuildInfo,
-  CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType, ExportsInfoArtifact,
-  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeGlobals,
-  RuntimeSpec, SourceType, TemplateContext, UsageState,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation,
+  CssAutoOrModuleParserOptions, CssBuildInfo, CssModuleGeneratorOptions, DependencyType,
+  ExportsInfoArtifact, GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier,
+  ModuleInitFragments, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -23,11 +24,9 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
+pub(crate) use source_builder::CssSourceBuilder;
 
-use crate::{
-  dependency::{CssImportDependency, CssMedia, CssSupports},
-  parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
-};
+use crate::parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser};
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -75,10 +74,13 @@ fn css_generator_options(
     .expect("should have CssModuleGeneratorOptions")
 }
 
-fn css_parser_options(parser_options: Option<&ParserOptions>) -> &CssModuleParserOptions {
-  parser_options
-    .and_then(ParserOptions::get_css_module)
-    .expect("should have CssModuleParserOptions")
+fn css_parser_options(parser_options: Option<&ParserOptions>) -> CssAutoOrModuleParserOptions {
+  match parser_options.expect("should have CssParserOptions") {
+    ParserOptions::CssAutoOrModule(options) => options.clone(),
+    ParserOptions::CssModule(options) => options.clone().into(),
+    ParserOptions::Css(options) => options.into(),
+    _ => panic!("should have CssParserOptions"),
+  }
 }
 
 pub fn get_used_exports<'a>(
@@ -240,7 +242,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
     CssModuleParser::new(
       generator_options,
-      parser_options,
+      &parser_options,
       exports_only,
       parse_context,
     )
@@ -293,30 +295,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
             }
           }
         });
-
-        for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-          if matches!(dep.dependency_type(), DependencyType::CssImport) {
-            let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
-              panic!(
-                "dependency with type DependencyType::CssImport should only be CssImportDependency"
-              );
-            };
-
-            if let Some(media) = css_import_dep.media() {
-              context.data.insert(CssMedia(media.to_string()));
-            }
-
-            if let Some(supports) = css_import_dep.supports() {
-              context.data.insert(CssSupports(supports.to_string()));
-            }
-
-            if let Some(layer) = css_import_dep.layer() {
-              context.data.insert(layer.clone());
-            }
-          }
-        }
 
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies.iter().for_each(|dependency| {

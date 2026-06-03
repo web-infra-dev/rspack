@@ -2094,6 +2094,20 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
+export interface RawCssAutoOrModuleParserOptions {
+  namedExports?: boolean
+  url?: boolean
+  import?: boolean
+  resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  container?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
+  function?: boolean
+  grid?: boolean
+  pure?: boolean
+}
+
 export interface RawCssChunkingPluginOptions {
   strict?: boolean
   minSize?: number
@@ -2143,8 +2157,11 @@ export interface RawCssModuleParserOptions {
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
   animation?: boolean
+  container?: boolean
   customIdents?: boolean
   dashedIdents?: boolean
+  function?: boolean
+  grid?: boolean
 }
 
 export interface RawCssParserOptions {
@@ -2152,9 +2169,6 @@ export interface RawCssParserOptions {
   url?: boolean
   import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
-  animation?: boolean
-  customIdents?: boolean
-  dashedIdents?: boolean
 }
 
 export interface RawDeterministicModuleIdsPluginOptions {
@@ -2794,9 +2808,9 @@ export interface RawParserOptions {
   type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
-  cssAuto?: RawCssModuleParserOptions
+  cssAuto?: RawCssAutoOrModuleParserOptions
   cssGlobal?: RawCssModuleParserOptions
-  cssModule?: RawCssModuleParserOptions
+  cssModule?: RawCssAutoOrModuleParserOptions
   javascript?: RawJavascriptParserOptions
   json?: RawJsonParserOptions
 }

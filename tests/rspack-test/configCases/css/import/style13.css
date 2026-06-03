@@ -1,5 +1,1 @@
-@import url(https://test.cases/root/configCases/css/import/external2.css);
-
-div {
-  color: red;
-}
+@import url(https://test.cases/path/../../../../configCases/css/import/external2.css);div{color: red;}
