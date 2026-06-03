@@ -3,9 +3,9 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssAutoOrModuleParserOptions,
-  CssExport, CssExports, CssExportsConvention, CssLocalNames, CssModuleGeneratorOptions,
-  CssParserImport, CssParserImportContext, Dependency, DependencyId, DependencyRange, ModuleType,
-  ParseContext, ParseResult, ResourceData,
+  CssExport, CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
+  DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
