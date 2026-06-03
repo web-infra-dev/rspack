@@ -26,7 +26,10 @@ use super::{
 };
 use crate::{
   dependency::{DependencyBranchGuard, ESMImportSpecifierDependency, ESMImportedBooleanGuardNode},
-  parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, JavascriptParserPlugin, is_logic_op},
+  parser_plugin::{
+    CREATE_REQUIRE_EVALUATED_TAG, CREATED_REQUIRE_IDENTIFIER_TAG, JavascriptParserPlugin,
+    is_logic_op,
+  },
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
     dependency::parser::ExtractedMemberExpressionChainData, get_non_optional_part,
@@ -1610,24 +1613,33 @@ impl JavascriptParser<'_> {
       {
         return;
       }
-      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
-        && rename_identifier
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
+        if rename_identifier == CREATE_REQUIRE_EVALUATED_TAG {
+          self.set_variable(
+            ident.sym.clone(),
+            ExportedVariableInfo::Name(rename_identifier),
+          );
+          self.walk_expression(&expr.right);
+          return;
+        }
+        if rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
-      {
-        if !rename_identifier
-          .call_hooks_name(self, |this, for_name| {
-            drive.rename(this, &expr.right, for_name)
-          })
-          .unwrap_or_default()
         {
-          let variable = self
-            .get_variable_info(&rename_identifier)
-            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-          self.set_variable(ident.sym.clone(), variable);
+          if !rename_identifier
+            .call_hooks_name(self, |this, for_name| {
+              drive.rename(this, &expr.right, for_name)
+            })
+            .unwrap_or_default()
+          {
+            let variable = self
+              .get_variable_info(&rename_identifier)
+              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+              .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+            self.set_variable(ident.sym.clone(), variable);
+          }
+          return;
         }
-        return;
       }
       self.walk_expression(&expr.right);
       self.enter_pattern(

@@ -72,6 +72,14 @@ it("should provide dependency context", () => {
 	const createRequireAlias = _createRequire;
 	const aliasRequire = createRequireAlias(new URL("./foo/c.js", import.meta.url));
 	expect(aliasRequire("./aliased-only")).toBe("__rspackAliasedCreateRequire");
+	let assignedCreateRequireAlias;
+	assignedCreateRequireAlias = _createRequire;
+	const assignedAliasRequire = assignedCreateRequireAlias(
+		new URL("./foo/c.js", import.meta.url)
+	);
+	expect(assignedAliasRequire("./aliased-only")).toBe(
+		"__rspackAliasedCreateRequire"
+	);
 	const _require1 = _createRequire(new URL("./foo/", import.meta.url));
 	expect(_require1("./c")).toBe(5);
 	expect(

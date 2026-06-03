@@ -34,7 +34,7 @@ use crate::{
 
 const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
-const CREATE_REQUIRE_EVALUATED_TAG: &str = "__rspack_createRequire";
+pub const CREATE_REQUIRE_EVALUATED_TAG: &str = "__rspack_createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
 #[derive(Clone)]
@@ -150,6 +150,11 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
 fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &str) -> bool {
   for_name == CREATE_REQUIRE_EVALUATED_TAG
     || (for_name == CREATE_REQUIRE_SPECIFIER_TAG && is_current_create_require_tag(parser))
+}
+
+fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  let evaluated = parser.evaluate_expression(expr);
+  evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
 }
 
 #[cold]
@@ -1151,9 +1156,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     let call = init.as_call()?;
-    let callee = call.callee.as_expr().and_then(|callee| callee.as_ident())?;
-    parser
-      .get_tag_data::<CreateRequireSpecifierTagData>(&callee.sym, CREATE_REQUIRE_SPECIFIER_TAG)?;
+    let callee = call.callee.as_expr()?;
+    if !is_evaluated_create_require(parser, callee) {
+      return None;
+    }
     let binding = declarator.name.as_ident()?;
 
     if let Some(argument) = parse_create_require_argument(parser, call, false) {
