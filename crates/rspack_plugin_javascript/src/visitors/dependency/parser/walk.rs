@@ -26,7 +26,7 @@ use super::{
 };
 use crate::{
   dependency::{DependencyBranchGuard, ESMImportSpecifierDependency, ESMImportedBooleanGuardNode},
-  parser_plugin::{JavascriptParserPlugin, is_logic_op},
+  parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, JavascriptParserPlugin, is_logic_op},
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
     dependency::parser::ExtractedMemberExpressionChainData, get_non_optional_part,
@@ -704,10 +704,22 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
-    let old_in_update_expression = self.in_update_expression;
-    self.in_update_expression = true;
+    if let Expr::Ident(ident) = &*expr.arg
+      && let Some(variable_info) = self.get_variable_info(&ident.sym)
+      && let Some(tag_info_id) = variable_info.tag_info
+    {
+      let declared_scope = variable_info.declared_scope;
+      let mut tag_info_id = Some(tag_info_id);
+      while let Some(id) = tag_info_id {
+        let tag_info = self.definitions_db.expect_get_tag_info(id);
+        if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
+          self.definitions_db.delete(declared_scope, &ident.sym);
+          break;
+        }
+        tag_info_id = tag_info.next;
+      }
+    }
     self.walk_expression(&expr.arg);
-    self.in_update_expression = old_in_update_expression;
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {

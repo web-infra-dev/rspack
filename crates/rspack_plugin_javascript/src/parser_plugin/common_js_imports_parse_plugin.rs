@@ -16,6 +16,7 @@ use swc_core::{
     VarDeclarator,
   },
 };
+use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -188,8 +189,18 @@ fn file_url_to_path(value: &str) -> Option<String> {
 
   #[cfg(windows)]
   let path = path.as_str();
+  if has_encoded_separator(path) {
+    return None;
+  }
 
-  (!has_encoded_separator(path)).then(|| path.to_string())
+  Some(
+    Url::parse(value)
+      .ok()?
+      .to_file_path()
+      .ok()?
+      .to_string_lossy()
+      .to_string(),
+  )
 }
 
 #[inline(never)]
@@ -267,39 +278,6 @@ fn dirname(path: &str) -> Option<&str> {
   })
 }
 
-#[cfg(not(windows))]
-fn join_url_request(resource: &str, request: &str) -> Option<String> {
-  if request.starts_with("//") {
-    return None;
-  }
-  if request.starts_with('/') {
-    return Some(request.to_string());
-  }
-  let dirname = dirname(resource)?;
-  let mut path = if dirname == "/" {
-    format!("/{request}")
-  } else {
-    format!("{dirname}/{request}")
-  };
-  if request.ends_with('/') && !path.ends_with('/') {
-    path.push('/');
-  }
-  Some(path)
-}
-
-#[cfg(windows)]
-fn join_url_request(resource: &str, request: &str) -> Option<String> {
-  let mut path = Path::new(resource)
-    .parent()?
-    .join(request)
-    .to_string_lossy()
-    .to_string();
-  if request.ends_with('/') && !path.ends_with(['/', '\\']) {
-    path.push(std::path::MAIN_SEPARATOR);
-  }
-  Some(path)
-}
-
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
   if arg
@@ -334,7 +312,19 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let request_path = request.split(['?', '#']).next()?;
-  join_url_request(parser.resource_data.resource(), request_path)
+  if has_encoded_separator(request_path) {
+    return None;
+  }
+  Some(
+    Url::from_file_path(parser.resource_data.resource())
+      .ok()?
+      .join(request_path)
+      .ok()?
+      .to_file_path()
+      .ok()?
+      .to_string_lossy()
+      .to_string(),
+  )
 }
 
 #[inline(never)]
@@ -392,15 +382,6 @@ fn parse_create_require_argument(
     value,
     context: context?,
   })
-}
-
-#[inline(never)]
-fn parse_create_require_arguments(
-  parser: &mut JavascriptParser,
-  call_expr: &CallExpr,
-  emit_warning: bool,
-) -> Option<Context> {
-  parse_create_require_argument(parser, call_expr, emit_warning).map(|argument| argument.context)
 }
 
 #[inline(never)]
@@ -1181,9 +1162,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if parser.in_update_expression {
-        clear_created_require_tag(parser, &ident.sym);
-      }
       return Some(true);
     }
 
@@ -1407,7 +1385,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if for_name != CREATE_REQUIRE_SPECIFIER_TAG {
       return None;
     }
-    let context = parse_create_require_arguments(parser, expr, false)?;
+    let context = parse_create_require_argument(parser, expr, false)?.context;
     let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
@@ -1530,7 +1508,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && members
         .first()
         .is_some_and(|member| member.as_ref() == "cache")
-      && parse_create_require_arguments(parser, call_expr, false).is_some()
+      && parse_create_require_argument(parser, call_expr, false).is_some()
     {
       add_require_cache_dependency(
         parser,
@@ -1541,7 +1519,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
     if callee_members.is_empty()
       && for_name == CREATE_REQUIRE_SPECIFIER_TAG
-      && parse_create_require_arguments(parser, call_expr, false).is_some()
+      && parse_create_require_argument(parser, call_expr, false).is_some()
     {
       add_unsupported_create_require_member_warning(parser, member_expr.span());
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -1612,7 +1590,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
       }
-      let context = parse_create_require_arguments(parser, inner_call_expr, false)?;
+      let context = parse_create_require_argument(parser, inner_call_expr, false)?.context;
       self.process_resolve(parser, call_expr, false, Some(context));
       return Some(true);
     }

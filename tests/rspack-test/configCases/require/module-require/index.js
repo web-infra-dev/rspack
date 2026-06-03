@@ -97,6 +97,11 @@ it("should not decode encoded separators in createRequire file URLs", () => {
 	expect(() => _createRequire("file:///project/foo%5Cbar.js")("./a")).toThrow();
 });
 
+it("should decode normal file URL escapes in createRequire paths", () => {
+	const escapedRequire = _createRequire(new URL("./foo%20bar/a.js", import.meta.url));
+	expect(escapedRequire("./a")).toBe("space");
+});
+
 it("should preserve createRequire binding for unsupported uses", () => {
 	const createRequire = _createRequire;
 	const require = _createRequire(import.meta.url);
