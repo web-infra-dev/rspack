@@ -115,15 +115,6 @@ struct RequireTagData {
   require_span: Span,
 }
 
-fn parse_create_require_option(option: &str) -> Option<(&str, &str)> {
-  let (specifier, module) = option.split_once(" from ")?;
-  (!specifier.is_empty() && !module.is_empty()).then_some((specifier, module))
-}
-
-fn is_create_require_module_source(source: &str, module: &str) -> bool {
-  source == module || (module == "module" && source == "node:module")
-}
-
 pub fn is_create_require_import(
   parser: &JavascriptParser,
   source: &Atom,
@@ -132,10 +123,12 @@ pub fn is_create_require_import(
   let Some(option) = parser.javascript_options.create_require_option() else {
     return false;
   };
-  let Some((specifier, module)) = parse_create_require_option(option) else {
+  let Some((specifier, module)) = option.split_once(" from ") else {
     return false;
   };
-  is_create_require_module_source(source.as_ref(), module)
+  !specifier.is_empty()
+    && !module.is_empty()
+    && (source.as_ref() == module || (module == "module" && source.as_ref() == "node:module"))
     && export_name.is_some_and(|export_name| export_name.as_ref() == specifier)
 }
 
@@ -150,11 +143,44 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
 #[cold]
 fn has_encoded_separator(value: &str) -> bool {
   value.as_bytes().windows(3).any(|bytes| {
-    bytes[0] == b'%'
-      && matches!(bytes[1], b'2' | b'5')
-      && (bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
-        || bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C'))
+    bytes[0] == b'%' && bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
+      || cfg!(windows) && bytes[0] == b'%' && bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C')
   })
+}
+
+#[cold]
+fn hex_value(byte: u8) -> Option<u8> {
+  match byte {
+    b'0'..=b'9' => Some(byte - b'0'),
+    b'a'..=b'f' => Some(byte - b'a' + 10),
+    b'A'..=b'F' => Some(byte - b'A' + 10),
+    _ => None,
+  }
+}
+
+#[cold]
+#[inline(never)]
+fn decode_file_path(value: &str) -> Option<String> {
+  if !value.as_bytes().contains(&b'%') {
+    return Some(value.to_string());
+  }
+
+  let bytes = value.as_bytes();
+  let mut decoded = Vec::with_capacity(bytes.len());
+  let mut index = 0;
+  while index < bytes.len() {
+    if bytes[index] == b'%' {
+      let hi = hex_value(*bytes.get(index + 1)?)?;
+      let lo = hex_value(*bytes.get(index + 2)?)?;
+      decoded.push((hi << 4) | lo);
+      index += 3;
+    } else {
+      decoded.push(bytes[index]);
+      index += 1;
+    }
+  }
+
+  String::from_utf8(decoded).ok()
 }
 
 #[cold]
@@ -195,16 +221,14 @@ fn file_url_to_path(value: &str) -> Option<String> {
     return None;
   }
 
-  urlencoding::decode(raw_path).ok().map(|path| {
-    #[cfg(windows)]
-    {
-      path.replace('/', "\\")
-    }
-    #[cfg(not(windows))]
-    {
-      path.into_owned()
-    }
-  })
+  #[cfg(windows)]
+  {
+    decode_file_path(raw_path).map(|path| path.replace('/', "\\"))
+  }
+  #[cfg(not(windows))]
+  {
+    decode_file_path(raw_path)
+  }
 }
 
 #[cold]
@@ -322,11 +346,11 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   if has_encoded_separator(request_path) {
     return None;
   }
-  let request_path = urlencoding::decode(request_path).ok()?;
+  let request_path = decode_file_path(request_path)?;
   Some(
     Path::new(parser.resource_data.resource())
       .parent()?
-      .join(request_path.as_ref())
+      .join(&request_path)
       .to_string_lossy()
       .to_string(),
   )

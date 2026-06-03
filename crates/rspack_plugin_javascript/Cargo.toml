@@ -45,7 +45,6 @@ swc_core                   = { workspace = true, features = ["__parser", "__util
 tokio                      = { workspace = true, features = ["sync"] }
 tracing                    = { workspace = true }
 url                        = { workspace = true }
-urlencoding                = { workspace = true }
 winnow                     = { workspace = true }
 
 [lints]

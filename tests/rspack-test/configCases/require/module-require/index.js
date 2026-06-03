@@ -94,7 +94,25 @@ it("should not parse relative createRequire filename", () => {
 
 it("should not decode encoded separators in createRequire file URLs", () => {
 	expect(() => _createRequire("file:///project/foo%2Fbar.js")("./a")).toThrow();
-	expect(() => _createRequire("file:///project/foo%5Cbar.js")("./a")).toThrow();
+	if (process.platform === "win32") {
+		expect(() =>
+			_createRequire(
+				new URL(
+					/* webpackIgnore: true */ "./foo%5Cbar/a.js",
+					import.meta.url
+				)
+			)("./a")
+		).toThrow();
+	} else {
+		expect(
+			_createRequire(
+				new URL(
+					/* webpackIgnore: true */ "./foo%5Cbar/a.js",
+					import.meta.url
+				)
+			)("./a")
+		).toBe("backslash");
+	}
 });
 
 it("should decode normal file URL escapes in createRequire paths", () => {
