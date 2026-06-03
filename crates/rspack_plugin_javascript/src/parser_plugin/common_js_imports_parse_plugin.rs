@@ -148,37 +148,13 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
-#[inline(never)]
-fn decode_file_url_path(value: &str) -> Option<String> {
-  if !value.as_bytes().contains(&b'%') {
-    return Some(value.to_string());
-  }
-  let mut decoded = Vec::with_capacity(value.len());
-  let mut bytes = value.as_bytes().iter().copied();
-  while let Some(byte) = bytes.next() {
-    if byte != b'%' {
-      decoded.push(byte);
-      continue;
-    }
-    let high = bytes.next()?;
-    let low = bytes.next()?;
-    let byte = hex_value(high)? << 4 | hex_value(low)?;
-    if matches!(byte, b'/' | b'\\') {
-      return None;
-    }
-    decoded.push(byte);
-  }
-  String::from_utf8(decoded).ok()
-}
-
-#[inline(always)]
-fn hex_value(byte: u8) -> Option<u8> {
-  match byte {
-    b'0'..=b'9' => Some(byte - b'0'),
-    b'a'..=b'f' => Some(byte - b'a' + 10),
-    b'A'..=b'F' => Some(byte - b'A' + 10),
-    _ => None,
-  }
+fn has_encoded_separator(value: &str) -> bool {
+  value.as_bytes().windows(3).any(|bytes| {
+    bytes[0] == b'%'
+      && matches!(bytes[1], b'2' | b'5')
+      && (bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
+        || bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C'))
+  })
 }
 
 #[inline(never)]
@@ -213,7 +189,7 @@ fn file_url_to_path(value: &str) -> Option<String> {
   #[cfg(windows)]
   let path = path.as_str();
 
-  decode_file_url_path(path)
+  (!has_encoded_separator(path)).then(|| path.to_string())
 }
 
 #[inline(never)]
@@ -477,6 +453,15 @@ fn tag_created_require_declarator(
     json_stringify_str(&value).into(),
   )));
   walk_create_require_callee(parser, call);
+}
+
+fn clear_created_require_tag(parser: &mut JavascriptParser, name: &Atom) {
+  if let Some(declared_scope) = parser
+    .get_variable_info(name)
+    .map(|info| info.declared_scope)
+  {
+    parser.definitions_db.delete(declared_scope, name);
+  }
 }
 
 #[inline(never)]
@@ -1196,6 +1181,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      if parser.in_update_expression {
+        clear_created_require_tag(parser, &ident.sym);
+      }
       return Some(true);
     }
 
@@ -1659,12 +1647,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if let Some(declared_scope) = parser
-        .get_variable_info(&ident.sym)
-        .map(|info| info.declared_scope)
-      {
-        parser.definitions_db.delete(declared_scope, &ident.sym);
-      }
+      clear_created_require_tag(parser, &ident.sym);
       return Some(true);
     }
 

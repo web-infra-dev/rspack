@@ -704,7 +704,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
-    self.walk_expression(&expr.arg)
+    let old_in_update_expression = self.in_update_expression;
+    self.in_update_expression = true;
+    self.walk_expression(&expr.arg);
+    self.in_update_expression = old_in_update_expression;
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {

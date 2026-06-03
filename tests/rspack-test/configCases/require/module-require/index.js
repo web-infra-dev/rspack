@@ -172,6 +172,10 @@ it("should stop parsing reassigned created require bindings", () => {
 	let destructuredRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	({ destructuredRequire } = { destructuredRequire: request => request });
 	expect(destructuredRequire("./a")).toBe("./a");
+
+	let updatedRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	updatedRequire++;
+	expect(() => updatedRequire("./a")).toThrow();
 });
 
 it("should preserve createRequire results used as values", () => {
