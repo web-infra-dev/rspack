@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use itertools::Itertools;
 use rspack_core::DependencyRange;
@@ -44,8 +44,8 @@ impl RspackCommentMap {
     Self(Default::default())
   }
 
-  fn insert(&mut self, key: RspackComment, value: String) {
-    self.0.insert(key, value);
+  fn insert(&mut self, key: RspackComment, value: impl Into<String>) {
+    self.0.insert(key, value.into());
   }
 
   pub fn get_mode(&self) -> Option<&String> {
@@ -232,19 +232,19 @@ fn parse_magic_comment_object(comment_text: &str) -> Option<Box<Expr>> {
   Some(expr)
 }
 
-fn prop_name_to_string(name: &PropName) -> Option<String> {
+fn prop_name_to_str(name: &PropName) -> Option<Cow<'_, str>> {
   match name {
-    PropName::Ident(ident) => Some(ident.sym.to_string()),
-    PropName::Str(str) => Some(str.value.to_string_lossy().to_string()),
+    PropName::Ident(ident) => Some(Cow::Borrowed(ident.sym.as_str())),
+    PropName::Str(str) => Some(str.value.to_string_lossy()),
     _ => None,
   }
 }
 
-fn expr_to_string(expr: &Expr) -> Option<String> {
+fn expr_to_str(expr: &Expr) -> Option<Cow<'_, str>> {
   match expr {
-    Expr::Lit(Lit::Str(str)) => Some(str.value.to_string_lossy().to_string()),
+    Expr::Lit(Lit::Str(str)) => Some(str.value.to_string_lossy()),
     Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
-      tpl.quasis.first().map(|el| el.raw.to_string())
+      tpl.quasis.first().map(|el| Cow::Borrowed(el.raw.as_ref()))
     }
     _ => None,
   }
@@ -267,40 +267,47 @@ fn is_number_expr(expr: &Expr) -> bool {
   }
 }
 
-fn expr_to_order_string(comment_text: &str, expr: &Expr) -> Option<String> {
+fn expr_to_order_str<'a>(comment_text: &'a str, expr: &Expr) -> Option<&'a str> {
   if expr_to_bool(expr).is_some() || is_number_expr(expr) {
-    raw_value(comment_text, expr).map(str::to_string)
+    raw_value(comment_text, expr)
   } else {
     None
   }
 }
 
-fn expr_to_regexp(expr: &Expr) -> Option<(String, String)> {
+fn expr_to_regexp(expr: &Expr) -> Option<(&str, &str)> {
   match expr {
-    Expr::Lit(Lit::Regex(regex)) => Some((regex.exp.to_string(), regex.flags.to_string())),
+    Expr::Lit(Lit::Regex(regex)) => Some((regex.exp.as_str(), regex.flags.as_str())),
     _ => None,
   }
 }
 
-fn expr_to_exports(expr: &Expr) -> Option<String> {
-  if let Some(string) = expr_to_string(expr) {
-    return Some(string.trim().to_string());
+fn expr_to_exports(expr: &Expr) -> Option<Cow<'_, str>> {
+  if let Some(string) = expr_to_str(expr) {
+    let trimmed = string.trim();
+    if trimmed.len() == string.len() {
+      return Some(string);
+    }
+    return Some(Cow::Owned(trimmed.to_string()));
   }
 
   let Expr::Array(array) = expr else {
     return None;
   };
 
-  let mut exports = Vec::with_capacity(array.elems.len());
+  let mut exports = String::new();
   for elem in &array.elems {
     let elem = elem.as_ref()?;
     if elem.spread.is_some() {
       return None;
     }
-    exports.push(expr_to_string(&elem.expr)?);
+    if !exports.is_empty() {
+      exports.push(',');
+    }
+    exports.push_str(&expr_to_str(&elem.expr)?);
   }
 
-  Some(exports.join(","))
+  Some(Cow::Owned(exports))
 }
 
 fn analyze_comments(
@@ -334,20 +341,20 @@ fn analyze_comments(
       let Prop::KeyValue(prop) = &**prop else {
         continue;
       };
-      if let Some(item_name) = prop_name_to_string(&prop.key) {
+      if let Some(item_name) = prop_name_to_str(&prop.key) {
         let value = &*prop.value;
         let received = raw_value(&comment.text, value).unwrap_or_default();
         let error_span =
           || value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
-        match item_name.as_str() {
+        match item_name.as_ref() {
           "webpackChunkName" => {
-            if let Some(value) = expr_to_string(value) {
+            if let Some(value) = expr_to_str(value) {
               result.insert(RspackComment::ChunkName, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               "a string",
               received,
               warning_diagnostics,
@@ -355,13 +362,13 @@ fn analyze_comments(
             );
           }
           "webpackPrefetch" => {
-            if let Some(value) = expr_to_order_string(&comment.text, value) {
+            if let Some(value) = expr_to_order_str(&comment.text, value) {
               result.insert(RspackComment::Prefetch, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               "true or a number",
               received,
               warning_diagnostics,
@@ -369,13 +376,13 @@ fn analyze_comments(
             );
           }
           "webpackPreload" => {
-            if let Some(value) = expr_to_order_string(&comment.text, value) {
+            if let Some(value) = expr_to_order_str(&comment.text, value) {
               result.insert(RspackComment::Preload, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               "true or a number",
               received,
               warning_diagnostics,
@@ -384,12 +391,12 @@ fn analyze_comments(
           }
           "webpackIgnore" => {
             if let Some(value) = expr_to_bool(value) {
-              result.insert(RspackComment::Ignore, value.to_string());
+              result.insert(RspackComment::Ignore, if value { "true" } else { "false" });
               continue;
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               "a boolean",
               received,
               warning_diagnostics,
@@ -397,13 +404,13 @@ fn analyze_comments(
             );
           }
           "webpackMode" => {
-            if let Some(value) = expr_to_string(value) {
+            if let Some(value) = expr_to_str(value) {
               result.insert(RspackComment::Mode, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               "a string",
               received,
               warning_diagnostics,
@@ -411,16 +418,15 @@ fn analyze_comments(
             );
           }
           "webpackFetchPriority" => {
-            if let Some(priority) = expr_to_string(value) {
-              let priority = priority.as_str();
-              if priority == "low" || priority == "high" || priority == "auto" {
-                result.insert(RspackComment::FetchPriority, priority.to_string());
+            if let Some(priority) = expr_to_str(value) {
+              if matches!(priority.as_ref(), "low" | "high" | "auto") {
+                result.insert(RspackComment::FetchPriority, priority);
                 continue;
               }
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               r#""low", "high" or "auto""#,
               received,
               warning_diagnostics,
@@ -429,7 +435,7 @@ fn analyze_comments(
           }
           "webpackInclude" => {
             if let Some((regexp, flags)) = expr_to_regexp(value) {
-              if RspackRegex::with_flags(&regexp, &flags).is_ok() {
+              if RspackRegex::with_flags(regexp, flags).is_ok() {
                 result.insert(RspackComment::IncludeRegexp, regexp);
                 result.insert(RspackComment::IncludeFlags, flags);
                 continue;
@@ -437,7 +443,7 @@ fn analyze_comments(
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               r#"a regular expression"#,
               received,
               warning_diagnostics,
@@ -446,7 +452,7 @@ fn analyze_comments(
           }
           "webpackExclude" => {
             if let Some((regexp, flags)) = expr_to_regexp(value) {
-              if RspackRegex::with_flags(&regexp, &flags).is_ok() {
+              if RspackRegex::with_flags(regexp, flags).is_ok() {
                 result.insert(RspackComment::ExcludeRegexp, regexp);
                 result.insert(RspackComment::ExcludeFlags, flags);
                 continue;
@@ -454,7 +460,7 @@ fn analyze_comments(
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               r#"a regular expression"#,
               received,
               warning_diagnostics,
@@ -468,7 +474,7 @@ fn analyze_comments(
             }
             add_magic_comment_warning(
               source,
-              &item_name,
+              item_name.as_ref(),
               r#"a string or an array of strings"#,
               received,
               warning_diagnostics,
@@ -498,7 +504,7 @@ mod tests_extract_magic_comment_object {
       let Prop::KeyValue(prop) = *prop else {
         continue;
       };
-      if prop_name_to_string(&prop.key).as_deref() == Some(name) {
+      if prop_name_to_str(&prop.key).as_deref() == Some(name) {
         return Some(prop.value);
       }
     }
@@ -508,20 +514,23 @@ mod tests_extract_magic_comment_object {
   fn try_match_string(raw: &str) -> Option<(String, String)> {
     let name = "webpackInclude";
     let value = find_value(raw, name)?;
-    Some((name.to_string(), expr_to_string(&value)?))
+    Some((name.to_string(), expr_to_str(&value)?.into_owned()))
   }
 
   fn try_match_order(raw: &str) -> Option<(String, String)> {
     let name = "webpackInclude";
     let value = find_value(raw, name)?;
-    Some((name.to_string(), expr_to_order_string(raw, &value)?))
+    Some((
+      name.to_string(),
+      expr_to_order_str(raw, &value)?.to_string(),
+    ))
   }
 
   fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
     let name = "webpackInclude";
     let value = find_value(raw, name)?;
     let (regexp, flags) = expr_to_regexp(&value)?;
-    Some((name.to_string(), regexp, flags))
+    Some((name.to_string(), regexp.to_string(), flags.to_string()))
   }
 
   fn test_extract_string() {
@@ -572,7 +581,10 @@ mod tests_extract_magic_comment_object {
   fn test_extract_array() {
     let value = find_value("webpackExports: [\"a\", `b`, 'c']", "webpackExports");
     assert_eq!(
-      value.as_deref().and_then(expr_to_exports),
+      value
+        .as_deref()
+        .and_then(expr_to_exports)
+        .map(Cow::into_owned),
       Some("a,b,c".to_string())
     );
   }
