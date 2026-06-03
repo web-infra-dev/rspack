@@ -359,22 +359,6 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
 }
 
 #[inline(never)]
-fn protocol_relative_file_url(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
-  let new_expr = arg.as_new()?;
-  if new_expr
-    .callee
-    .as_ident()
-    .is_none_or(|ident| ident.sym.as_str() != "URL")
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
-    || new_expr.args.as_ref().is_some_and(|args| args.len() > 2)
-  {
-    return None;
-  }
-  let (request, _, _) = get_url_request(parser, new_expr)?;
-  request.starts_with("//").then(|| format!("file:{request}"))
-}
-
-#[inline(never)]
 fn parse_create_require_argument(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
@@ -1489,22 +1473,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
     } else if for_name == CREATE_REQUIRE_SPECIFIER_TAG {
-      if call_expr.args.len() == 1
-        && call_expr.args[0].spread.is_none()
-        && let Some(value) = protocol_relative_file_url(parser, &call_expr.args[0].expr)
-      {
-        add_create_require_warning(
-          parser,
-          "module.createRequire supports only file URLs and absolute paths.",
-          call_expr.args[0].expr.span(),
-        );
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          call_expr.args[0].expr.span().into(),
-          json_stringify_str(&value).into(),
-        )));
-        walk_create_require_callee(parser, call_expr);
-        Some(true)
-      } else if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
+      if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           call_expr.args[0].expr.span().into(),
           json_stringify_str(&argument.value).into(),
@@ -1644,11 +1613,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
             } else {
               parser.walk_expr_or_spread(args);
             }
-          } else if let Some(value) = protocol_relative_file_url(parser, arg) {
-            parser.add_presentational_dependency(Box::new(ConstDependency::new(
-              arg.span().into(),
-              json_stringify_str(&value).into(),
-            )));
           } else {
             parser.walk_expression(arg);
           }
