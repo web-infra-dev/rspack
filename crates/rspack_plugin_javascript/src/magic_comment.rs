@@ -1,15 +1,22 @@
-use std::sync::LazyLock;
+use std::sync::Arc;
 
 use itertools::Itertools;
-use regex::Captures;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_core::common::{
-  Span,
-  comments::{Comment, CommentKind, Comments},
+use swc_core::{
+  common::{
+    FileName, Span, Spanned,
+    comments::{Comment, CommentKind, Comments},
+  },
+  ecma::{
+    ast::{Expr, Lit, Prop, PropName, PropOrSpread, UnaryOp},
+    parser::{EsSyntax, Syntax, parse_file_as_expr},
+    transforms::base::fixer::paren_remover,
+    visit::VisitMutWith,
+  },
 };
 
 use crate::visitors::{JavascriptParser, create_traceable_error};
@@ -123,16 +130,13 @@ fn add_magic_comment_warning(
   source: &str,
   comment_name: &str,
   comment_type: &str,
-  captures: &Captures,
+  received: &str,
   warning_diagnostics: &mut Vec<Diagnostic>,
   span: DependencyRange,
 ) {
   let mut error: Error = create_traceable_error(
     "Magic comments parse failed".into(),
-    format!(
-      "`{comment_name}` expected {comment_type}, but received: {}.",
-      captures.get(2).map_or("", |m| m.as_str())
-    ),
+    format!("`{comment_name}` expected {comment_type}, but received: {received}."),
     source.to_owned(),
     span,
   );
@@ -140,25 +144,6 @@ fn add_magic_comment_warning(
   error.hide_stack = Some(true);
   warning_diagnostics.push(error.into())
 }
-
-// Using vm.runInNewContext in webpack
-// _0 for name
-// _1 for "xxx"
-// _2 for 'xxx'
-// _3 for `xxx`
-// _4 for number
-// _5 for true/false
-// _6 for regexp
-// _7 for array
-// _8 for identifier
-// _9 for item value as a whole
-static MAGIC_COMMENT_REGEXP: LazyLock<regex::Regex> = LazyLock::new(|| {
-  regex::Regex::new(r#"(?P<_0>webpack[a-zA-Z\d_-]+)\s*:\s*(?P<_9>"(?P<_1>[^"]+)"|'(?P<_2>[^']+)'|`(?P<_3>[^`]+)`|(?P<_4>[\d.-]+)|(?P<_5>true|false)|(?P<_6>/((?:(?:[^\\/\]\[]+)|(?:\[[^\]]+\])|(?:\\/)|(?:\\.))*)/([dgimsuvy]*))|\[(?P<_7>[^\]]*)|(?P<_8>([^,]+)))"#)
-    .expect("invalid regex")
-});
-
-static EXPORT_NAME_REGEXP: LazyLock<regex::Regex> =
-  LazyLock::new(|| regex::Regex::new(r#"^["`'](\w+)["`']$"#).expect("invalid regex"));
 
 pub fn try_extract_magic_comment(
   parser: &mut JavascriptParser,
@@ -189,25 +174,133 @@ pub fn try_extract_magic_comment(
   result
 }
 
-/// Convert match item to error span within the source
+/// Convert a value span from the synthetic object literal into a source span.
 ///
-/// For block comments like `/* webpack... */`, we calculate the absolute position
-/// by adding the comment's start position in source + 2 (for "/*") + match offset in comment text.
-fn match_item_to_error_span(
-  comment_span: Span,
-  match_start: usize,
-  match_end: usize,
-) -> DependencyRange {
+/// Block comment text does not include `/*` and `*/`. We parse it by wrapping
+/// it as `({<comment_text>})`, so synthetic expression spans are offset by the
+/// two-byte `({` prefix.
+fn value_span_to_error_span(comment_span: Span, value_span: Span) -> Option<DependencyRange> {
   // Block comment format: /* comment_text */
   // The comment_text doesn't include the "/*" and "*/" delimiters
   // So we need to add 2 bytes for "/*" to get the actual position in source
   const BLOCK_COMMENT_START_LEN: usize = 2; // Length of "/*"
+  const OBJECT_LITERAL_PREFIX_LEN: usize = 2; // Length of "({"
+
+  let value_start = value_span.real_lo() as usize;
+  let value_end = value_span.real_hi() as usize;
+  if value_start < OBJECT_LITERAL_PREFIX_LEN || value_end < OBJECT_LITERAL_PREFIX_LEN {
+    return None;
+  }
 
   let comment_start = comment_span.real_lo() as usize;
-  let start = comment_start + BLOCK_COMMENT_START_LEN + match_start;
-  let end = comment_start + BLOCK_COMMENT_START_LEN + match_end;
+  let start = comment_start + BLOCK_COMMENT_START_LEN + value_start - OBJECT_LITERAL_PREFIX_LEN;
+  let end = comment_start + BLOCK_COMMENT_START_LEN + value_end - OBJECT_LITERAL_PREFIX_LEN;
 
-  DependencyRange::new(start as u32, end as u32)
+  Some(DependencyRange::new(start as u32, end as u32))
+}
+
+fn value_span_to_comment_offsets(comment_text: &str, value_span: Span) -> Option<(usize, usize)> {
+  const OBJECT_LITERAL_PREFIX_LEN: usize = 2; // Length of "({"
+
+  let start = value_span
+    .real_lo()
+    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+  let end = value_span
+    .real_hi()
+    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+
+  (start <= end && end <= comment_text.len()).then_some((start, end))
+}
+
+fn raw_value<'a>(comment_text: &'a str, value: &Expr) -> Option<&'a str> {
+  let (start, end) = value_span_to_comment_offsets(comment_text, value.span())?;
+  comment_text.get(start..end).map(str::trim)
+}
+
+fn parse_magic_comment_object(comment_text: &str) -> Option<Box<Expr>> {
+  let cm: Arc<swc_core::common::SourceMap> = Default::default();
+  let fm = cm.new_source_file(Arc::new(FileName::Anon), format!("({{{comment_text}}})"));
+  let mut expr = parse_file_as_expr(
+    &fm,
+    Syntax::Es(EsSyntax::default()),
+    swc_core::ecma::ast::EsVersion::EsNext,
+    None,
+    &mut vec![],
+  )
+  .ok()?;
+  expr.visit_mut_with(&mut paren_remover(None));
+  Some(expr)
+}
+
+fn prop_name_to_string(name: &PropName) -> Option<String> {
+  match name {
+    PropName::Ident(ident) => Some(ident.sym.to_string()),
+    PropName::Str(str) => Some(str.value.to_string_lossy().to_string()),
+    _ => None,
+  }
+}
+
+fn expr_to_string(expr: &Expr) -> Option<String> {
+  match expr {
+    Expr::Lit(Lit::Str(str)) => Some(str.value.to_string_lossy().to_string()),
+    Expr::Tpl(tpl) if tpl.exprs.is_empty() && tpl.quasis.len() == 1 => {
+      tpl.quasis.first().map(|el| el.raw.to_string())
+    }
+    _ => None,
+  }
+}
+
+fn expr_to_bool(expr: &Expr) -> Option<bool> {
+  match expr {
+    Expr::Lit(Lit::Bool(bool)) => Some(bool.value),
+    _ => None,
+  }
+}
+
+fn is_number_expr(expr: &Expr) -> bool {
+  match expr {
+    Expr::Lit(Lit::Num(_)) => true,
+    Expr::Unary(unary) if matches!(unary.op, UnaryOp::Minus) => {
+      matches!(&*unary.arg, Expr::Lit(Lit::Num(_)))
+    }
+    _ => false,
+  }
+}
+
+fn expr_to_order_string(comment_text: &str, expr: &Expr) -> Option<String> {
+  if expr_to_bool(expr).is_some() || is_number_expr(expr) {
+    raw_value(comment_text, expr).map(str::to_string)
+  } else {
+    None
+  }
+}
+
+fn expr_to_regexp(expr: &Expr) -> Option<(String, String)> {
+  match expr {
+    Expr::Lit(Lit::Regex(regex)) => Some((regex.exp.to_string(), regex.flags.to_string())),
+    _ => None,
+  }
+}
+
+fn expr_to_exports(expr: &Expr) -> Option<String> {
+  if let Some(string) = expr_to_string(expr) {
+    return Some(string.trim().to_string());
+  }
+
+  let Expr::Array(array) = expr else {
+    return None;
+  };
+
+  let mut exports = Vec::with_capacity(array.elems.len());
+  for elem in &array.elems {
+    let elem = elem.as_ref()?;
+    if elem.spread.is_some() {
+      return None;
+    }
+    exports.push(expr_to_string(&elem.expr)?);
+  }
+
+  Some(exports.join(","))
 }
 
 fn analyze_comments(
@@ -228,109 +321,98 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
-    for captures in MAGIC_COMMENT_REGEXP.captures_iter(&comment.text) {
-      if let Some(item_name_match) = captures.name("_0") {
-        let item_name = item_name_match.as_str();
-        let error_span = || {
-          captures.name("_9").map_or(error_span.into(), |item| {
-            match_item_to_error_span(comment.span, item.start(), item.end())
-          })
-        };
-        match item_name {
+    let Some(expr) = parse_magic_comment_object(&comment.text) else {
+      continue;
+    };
+    let Expr::Object(object) = &*expr else {
+      continue;
+    };
+    for prop in &object.props {
+      let PropOrSpread::Prop(prop) = prop else {
+        continue;
+      };
+      let Prop::KeyValue(prop) = &**prop else {
+        continue;
+      };
+      if let Some(item_name) = prop_name_to_string(&prop.key) {
+        let value = &*prop.value;
+        let received = raw_value(&comment.text, value).unwrap_or_default();
+        let error_span =
+          || value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
+        match item_name.as_str() {
           "webpackChunkName" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(
-                RspackComment::ChunkName,
-                item_value_match.as_str().to_string(),
-              );
+            if let Some(value) = expr_to_string(value) {
+              result.insert(RspackComment::ChunkName, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               "a string",
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackPrefetch" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-              result.insert(
-                RspackComment::Prefetch,
-                item_value_match.as_str().to_string(),
-              );
+            if let Some(value) = expr_to_order_string(&comment.text, value) {
+              result.insert(RspackComment::Prefetch, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               "true or a number",
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackPreload" => {
-            if let Some(item_value_match) = captures.name("_4").or(captures.name("_5")) {
-              result.insert(
-                RspackComment::Preload,
-                item_value_match.as_str().to_string(),
-              );
+            if let Some(value) = expr_to_order_string(&comment.text, value) {
+              result.insert(RspackComment::Preload, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               "true or a number",
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackIgnore" => {
-            if let Some(item_value_match) = captures.name("_5") {
-              result.insert(RspackComment::Ignore, item_value_match.as_str().to_string());
+            if let Some(value) = expr_to_bool(value) {
+              result.insert(RspackComment::Ignore, value.to_string());
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               "a boolean",
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackMode" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(RspackComment::Mode, item_value_match.as_str().to_string());
+            if let Some(value) = expr_to_string(value) {
+              result.insert(RspackComment::Mode, value);
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               "a string",
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackFetchPriority" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              let priority = item_value_match.as_str();
+            if let Some(priority) = expr_to_string(value) {
+              let priority = priority.as_str();
               if priority == "low" || priority == "high" || priority == "auto" {
                 result.insert(RspackComment::FetchPriority, priority.to_string());
                 continue;
@@ -338,85 +420,57 @@ fn analyze_comments(
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               r#""low", "high" or "auto""#,
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackInclude" => {
-            if captures.name("_6").is_some()
-              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
-            {
-              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(RspackComment::IncludeRegexp, regexp.to_string());
-                result.insert(RspackComment::IncludeFlags, flags.to_string());
+            if let Some((regexp, flags)) = expr_to_regexp(value) {
+              if RspackRegex::with_flags(&regexp, &flags).is_ok() {
+                result.insert(RspackComment::IncludeRegexp, regexp);
+                result.insert(RspackComment::IncludeFlags, flags);
                 continue;
               }
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               r#"a regular expression"#,
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackExclude" => {
-            if captures.name("_6").is_some()
-              && let Some(regexp) = captures.get(9).map(|x| x.as_str())
-            {
-              let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(RspackComment::ExcludeRegexp, regexp.to_string());
-                result.insert(RspackComment::ExcludeFlags, flags.to_string());
+            if let Some((regexp, flags)) = expr_to_regexp(value) {
+              if RspackRegex::with_flags(&regexp, &flags).is_ok() {
+                result.insert(RspackComment::ExcludeRegexp, regexp);
+                result.insert(RspackComment::ExcludeFlags, flags);
                 continue;
               }
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               r#"a regular expression"#,
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
           }
           "webpackExports" => {
-            if let Some(item_value_match) = captures
-              .name("_1")
-              .or(captures.name("_2"))
-              .or(captures.name("_3"))
-            {
-              result.insert(
-                RspackComment::Exports,
-                item_value_match.as_str().trim().to_string(),
-              );
-              continue;
-            } else if let Some(item_value_match) = captures.name("_7") {
-              if let Some(exports) =
-                item_value_match
-                  .as_str()
-                  .split(',')
-                  .try_fold(String::new(), |acc, item| {
-                    EXPORT_NAME_REGEXP
-                      .captures(item.trim())
-                      .and_then(|matched| matched.get(1).map(|x| x.as_str()))
-                      .map(|name| format!("{acc},{name}"))
-                  })
-              {
-                result.insert(RspackComment::Exports, exports);
-              }
+            if let Some(exports) = expr_to_exports(value) {
+              result.insert(RspackComment::Exports, exports);
               continue;
             }
             add_magic_comment_warning(
               source,
-              item_name,
+              &item_name,
               r#"a string or an array of strings"#,
-              &captures,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -429,78 +483,97 @@ fn analyze_comments(
 }
 
 #[cfg(test)]
-mod tests_extract_regex {
+mod tests_extract_magic_comment_object {
   use super::*;
 
-  fn try_match(raw: &str, index: usize) -> Option<(String, String)> {
-    let captures = MAGIC_COMMENT_REGEXP.captures(raw)?;
-    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
-    let item_value = captures
-      .name(&format!("_{index}"))
-      .map(|x| x.as_str().to_string())?;
-    Some((item_name, item_value))
+  fn find_value(raw: &str, name: &str) -> Option<Box<Expr>> {
+    let expr = parse_magic_comment_object(raw)?;
+    let Expr::Object(object) = *expr else {
+      return None;
+    };
+    for prop in object.props {
+      let PropOrSpread::Prop(prop) = prop else {
+        continue;
+      };
+      let Prop::KeyValue(prop) = *prop else {
+        continue;
+      };
+      if prop_name_to_string(&prop.key).as_deref() == Some(name) {
+        return Some(prop.value);
+      }
+    }
+    None
+  }
+
+  fn try_match_string(raw: &str) -> Option<(String, String)> {
+    let name = "webpackInclude";
+    let value = find_value(raw, name)?;
+    Some((name.to_string(), expr_to_string(&value)?))
+  }
+
+  fn try_match_order(raw: &str) -> Option<(String, String)> {
+    let name = "webpackInclude";
+    let value = find_value(raw, name)?;
+    Some((name.to_string(), expr_to_order_string(raw, &value)?))
   }
 
   fn try_match_regex(raw: &str) -> Option<(String, String, String)> {
-    let captures = MAGIC_COMMENT_REGEXP.captures(raw)?;
-    let item_name = captures.name("_0").map(|x| x.as_str().to_string())?;
-    if let Some(regexp) = captures.get(9).map(|x| x.as_str()) {
-      let flags = captures.get(10).map(|x| x.as_str()).unwrap_or_default();
-      Some((item_name, regexp.to_string(), flags.to_string()))
-    } else {
-      None
-    }
+    let name = "webpackInclude";
+    let value = find_value(raw, name)?;
+    let (regexp, flags) = expr_to_regexp(&value)?;
+    Some((name.to_string(), regexp, flags))
   }
 
   fn test_extract_string() {
     assert_eq!(
-      try_match("webpackInclude: \"abc\"", 1),
+      try_match_string("webpackInclude: \"abc\""),
       Some(("webpackInclude".to_string(), "abc".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: 'abc'", 2),
+      try_match_string("webpackInclude: 'abc'"),
       Some(("webpackInclude".to_string(), "abc".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: `abc`", 3),
+      try_match_string("webpackInclude: `abc`"),
       Some(("webpackInclude".to_string(), "abc".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: \"abc_-|123\"", 1),
+      try_match_string("webpackInclude: \"abc_-|123\""),
       Some(("webpackInclude".to_string(), "abc_-|123".to_string()))
     );
   }
 
   fn test_extract_number() {
     assert_eq!(
-      try_match("webpackInclude: 123", 4),
+      try_match_order("webpackInclude: 123"),
       Some(("webpackInclude".to_string(), "123".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: 123.456", 4),
+      try_match_order("webpackInclude: 123.456"),
       Some(("webpackInclude".to_string(), "123.456".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: -123.456", 4),
+      try_match_order("webpackInclude: -123.456"),
       Some(("webpackInclude".to_string(), "-123.456".to_string()))
     );
   }
 
   fn test_extract_boolean() {
     assert_eq!(
-      try_match("webpackInclude: true", 5),
+      try_match_order("webpackInclude: true"),
       Some(("webpackInclude".to_string(), "true".to_string()))
     );
     assert_eq!(
-      try_match("webpackInclude: false", 5),
+      try_match_order("webpackInclude: false"),
       Some(("webpackInclude".to_string(), "false".to_string()))
     );
   }
 
   fn test_extract_array() {
+    let value = find_value("webpackExports: [\"a\", `b`, 'c']", "webpackExports");
     assert_eq!(
-      try_match("webpackInclude: [\"a\", `b`, 'c']", 7),
-      Some(("webpackInclude".to_string(), "\"a\", `b`, 'c'".to_string()))
+      value.as_deref().and_then(expr_to_exports),
+      Some("a,b,c".to_string())
     );
   }
 
@@ -546,10 +619,10 @@ mod tests_extract_regex {
       ))
     );
     assert_eq!(
-      try_match_regex("webpackInclude: /components[/\\][^/\\]+\\.vue$/"),
+      try_match_regex(r#"webpackInclude: /components[/\\][^/\\]+\.vue$/"#),
       Some((
         "webpackInclude".to_string(),
-        "components[/\\][^/\\]+\\.vue$".to_string(),
+        r#"components[/\\][^/\\]+\.vue$"#.to_string(),
         String::new()
       ))
     );
@@ -583,7 +656,7 @@ mod tests_extract_regex {
   }
 
   #[test]
-  fn test_extract_regex() {
+  fn test_extract_magic_comment_object() {
     test_extract_string();
     test_extract_number();
     test_extract_boolean();
