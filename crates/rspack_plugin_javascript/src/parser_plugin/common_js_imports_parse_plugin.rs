@@ -1413,12 +1413,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let context = parse_create_require_arguments(parser, expr, false)?;
-    let evaluated_name = Atom::from(format!(
-      "{}:{}-{}",
-      CREATED_REQUIRE_IDENTIFIER_TAG,
-      expr.span.real_lo(),
-      expr.span.real_hi()
-    ));
+    let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,

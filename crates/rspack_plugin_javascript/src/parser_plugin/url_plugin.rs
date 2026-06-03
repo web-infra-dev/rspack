@@ -159,6 +159,9 @@ impl JavascriptParserPlugin for URLPlugin {
     }
 
     if let Some((request, start, end)) = get_url_request(parser, expr) {
+      if request.starts_with("//") {
+        return None;
+      }
       let dep = URLDependency::new(
         request.into(),
         expr.span.into(),
