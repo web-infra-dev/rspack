@@ -473,6 +473,13 @@ export declare class NativeWatcher {
    */
   close(): Promise<void>
   pause(): void
+  /**
+   * Collect the full file/context time tables, mirroring watchpack's
+   * `collectTimeInfoEntries`. Called synchronously from JS after an aggregated
+   * event (or from `getInfo()`) to populate `compiler.fileTimestamps` /
+   * `contextTimestamps`.
+   */
+  getTimeInfo(): NativeTimeInfo
 }
 
 export declare class NativeWatchResult {
@@ -1562,6 +1569,16 @@ export interface JsTap {
   stage: number
 }
 
+/**
+ * watchpack-style time info for a single path, surfaced to webpack as a
+ * `FileSystemInfoEntry`. `timestamp` is absent for directory (context)
+ * entries, whose value is a derived `safe_time` only.
+ */
+export interface JsTimeInfoEntry {
+  safeTime: number
+  timestamp?: number
+}
+
 export interface JsVirtualFile {
   path: string
   content: string
@@ -1780,6 +1797,15 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+}
+
+/**
+ * The full `fileTimeInfoEntries` / `contextTimeInfoEntries` snapshot, mirroring
+ * watchpack's `collectTimeInfoEntries` output.
+ */
+export interface NativeTimeInfo {
+  fileTimeInfoEntries: Record<string, JsTimeInfoEntry>
+  contextTimeInfoEntries: Record<string, JsTimeInfoEntry>
 }
 
 export interface NativeWatcherOptions {
