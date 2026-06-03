@@ -96,7 +96,7 @@ impl CollectSharedEntryPlugin {
   }
 }
 
-#[plugin_hook(CompilerFinishMake for CollectSharedEntryPlugin)]
+#[plugin_hook(CompilerFinishMake for CollectSharedEntryPlugin, stage = 100)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();

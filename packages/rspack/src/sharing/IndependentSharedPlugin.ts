@@ -22,6 +22,7 @@ import { encodeName, isRequiredVersion } from './utils';
 
 const VIRTUAL_ENTRY = './virtual-entry.js';
 const VIRTUAL_ENTRY_NAME = 'virtual-entry';
+const BUILD_SHARED_FALLBACK_STAGE = 102;
 
 export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> &
   Omit<T, K>;
@@ -207,7 +208,10 @@ export class IndependentSharedPlugin {
     collectSharedEntryPlugin.apply(compiler);
 
     compiler.hooks.finishMake.tapPromise(
-      'IndependentSharedPlugin',
+      {
+        name: 'IndependentSharedPlugin',
+        stage: BUILD_SHARED_FALLBACK_STAGE,
+      },
       async () => {
         const shareRequestsMap = collectSharedEntryPlugin.getData();
         this.prepareBuildAssets(shareRequestsMap);

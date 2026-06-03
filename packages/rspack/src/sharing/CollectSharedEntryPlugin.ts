@@ -30,6 +30,8 @@ export type ShareRequestsMap = Record<
 >;
 
 const SHARE_ENTRY_ASSET = 'collect-shared-entries.json';
+const READ_COLLECTED_SHARED_ENTRY_STAGE = 101;
+
 export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.CollectSharedEntryPlugin;
   sharedOptions: NormalizedSharedOptions;
@@ -61,7 +63,13 @@ export class CollectSharedEntryPlugin extends RspackBuiltinPlugin {
       compilation.deleteAsset(asset.name);
     };
 
-    compiler.hooks.finishMake.tap('CollectSharedEntry', readCollectedEntries);
+    compiler.hooks.finishMake.tap(
+      {
+        name: 'CollectSharedEntry',
+        stage: READ_COLLECTED_SHARED_ENTRY_STAGE,
+      },
+      readCollectedEntries,
+    );
   }
 
   raw(): BuiltinPlugin {
