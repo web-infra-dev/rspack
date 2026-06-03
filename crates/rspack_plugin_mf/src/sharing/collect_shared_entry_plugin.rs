@@ -142,6 +142,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           consume.share_scope().clone(),
           consume.get_dependencies(),
           consume.get_blocks(),
+          None,
         )
       }
       rspack_core::ModuleType::ProvideShared => {
@@ -156,12 +157,13 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
           provide.share_scope().clone(),
           provide.get_dependencies(),
           provide.get_blocks(),
+          provide.version().map(str::to_string),
         )
       }
       _ => continue,
     };
 
-    let (key, scope, dependencies, blocks) = share_info;
+    let (key, scope, dependencies, blocks, provided_version) = share_info;
     if key.is_empty() {
       continue;
     }
@@ -190,10 +192,13 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         && let Some(name) = target.name_for_condition()
       {
         let resource: String = name.into();
-        let version = self
-          .infer_version(&resource)
-          .await
-          .unwrap_or_else(String::new);
+        let version = match &provided_version {
+          Some(version) => version.clone(),
+          None => self
+            .infer_version(&resource)
+            .await
+            .unwrap_or_else(String::new),
+        };
         let pair = [resource, version];
         if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
           reqs.push(pair);
