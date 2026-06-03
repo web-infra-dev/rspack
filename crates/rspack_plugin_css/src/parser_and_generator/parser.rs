@@ -3,9 +3,9 @@ use std::sync::Arc;
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssExport, CssExports,
-  CssExportsConvention, CssLocalNames, CssModuleGeneratorOptions, CssModuleParserOptions,
-  CssParserImport, CssParserImportContext, Dependency, DependencyId, DependencyRange, ModuleType,
-  ParseContext, ParseResult, ResourceData,
+  CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions, CssModuleParserOptions,
+  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
+  DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -15,9 +15,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
 use crate::{
   dependency::{
-    CssComposeDependency, CssExportDependency, CssImportDependency, CssLayer,
-    CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
-    CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
+    CssSelfReferenceLocalIdentDependency, CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
   },
   parser_and_generator::generator::update_css_exports,
   utils::{
@@ -40,6 +39,8 @@ pub(super) struct CssModuleParser<'context> {
   code_generation_dependencies: Vec<BoxModuleDependency>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
+  inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  render_condition: CssModuleRenderCondition,
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
 }
@@ -163,6 +164,17 @@ impl<'context> CssModuleParser<'context> {
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
     let source_code: Arc<str> = source.source().into_string_lossy().into();
+    let (inherited_render_conditions, render_condition) = parse_context
+      .build_info
+      .css
+      .as_deref()
+      .map(|css| {
+        (
+          css.inherited_render_conditions.clone(),
+          css.render_condition.clone(),
+        )
+      })
+      .unwrap_or_default();
 
     Self {
       generator_options,
@@ -177,6 +189,8 @@ impl<'context> CssModuleParser<'context> {
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
       css_local_names: Default::default(),
+      inherited_render_conditions,
+      render_condition,
       composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
     }
@@ -499,7 +513,8 @@ impl<'context> CssModuleParser<'context> {
     supports: Option<&str>,
     layer: Option<&str>,
   ) -> Result<()> {
-    if request.is_empty() {
+    let request = normalize_url(request);
+    if request.trim().is_empty() {
       self
         .presentational_dependencies
         .push(Box::new(ConstDependency::new(
@@ -509,31 +524,51 @@ impl<'context> CssModuleParser<'context> {
       return Ok(());
     }
 
-    if !self.import() || !self.should_import(request, media, supports, layer).await {
+    if !self.import() || !self.should_import(&request, media, supports, layer).await {
       return Ok(());
     }
 
     let request = replace_module_request_prefix(
-      request,
+      &request,
       &mut self.diagnostics,
       &self.source_code,
       range.start,
       range.end,
+    )
+    .to_string();
+    let layer = layer.map(str::trim).map(|s| {
+      if s.is_empty() {
+        CssLayer::Anonymous
+      } else {
+        CssLayer::Named(s.into())
+      }
+    });
+    let inherited_render_conditions = self.css_import_inherited_render_conditions();
+    let render_condition = CssModuleRenderCondition::new(
+      media.map(|media| media.trim().into()),
+      supports.map(|supports| supports.trim().into()),
+      layer,
     );
+
     self.dependencies.push(Box::new(CssImportDependency::new(
-      request.to_string(),
+      request,
       DependencyRange::new(range.start, range.end),
-      media.map(|s| s.to_string()),
-      supports.map(|s| s.to_string()),
-      layer.map(|s| {
-        if s.is_empty() {
-          CssLayer::Anonymous
-        } else {
-          CssLayer::Named(s.to_string())
-        }
-      }),
+      inherited_render_conditions,
+      render_condition,
     )));
     Ok(())
+  }
+
+  fn css_import_inherited_render_conditions(&self) -> Vec<CssModuleRenderCondition> {
+    if self.render_condition.is_empty() {
+      return self.inherited_render_conditions.clone();
+    }
+
+    let mut inherited_render_conditions =
+      Vec::with_capacity(self.inherited_render_conditions.len() + 1);
+    inherited_render_conditions.extend(self.inherited_render_conditions.iter().cloned());
+    inherited_render_conditions.push(self.render_condition.clone());
+    inherited_render_conditions
   }
 
   async fn should_import(

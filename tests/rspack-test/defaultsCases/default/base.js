@@ -506,6 +506,36 @@ module.exports = {
 			        mainFiles: Array [],
 			        preferRelative: true,
 			      },
+			      css-import-global-module: Object {
+			        conditionNames: Array [
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
+			      css-import-local-module: Object {
+			        conditionNames: Array [
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
 			      esm: Object {
 			        aliasFields: Array [
 			          browser,

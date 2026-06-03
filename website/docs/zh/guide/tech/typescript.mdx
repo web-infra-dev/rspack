@@ -96,7 +96,7 @@ export default {
 
 ## Client 类型
 
-在 TypeScript 代码中，可以获取到 webpack 或 Rspack 特有的功能，例如 [import.meta.webpackContext](/api/runtime-api/module-variables#importmetawebpackcontext) 的类型。
+在 TypeScript 代码中，可以获取到 Rspack 特有的功能，例如 [import.meta.glob](/api/runtime-api/module-variables#importmetaglob)。
 
 Rspack 通过 `@rspack/core/module` 提供 Client 模块的类型，你可以通过不同方法来声明它们：
 
@@ -111,7 +111,7 @@ Rspack 通过 `@rspack/core/module` 提供 Client 模块的类型，你可以通
    然后便可以在任意 TypeScript 文件中使用：
 
    ```ts title="src/index.ts"
-   console.log(import.meta.webpackContext); // 如果没有上面的引用声明，TypeScript 将会抛出错误
+   const modules = import.meta.glob('./dir/*.js'); // 如果没有上面的引用声明，TypeScript 将会抛出错误
    ```
 
 2. 你也可以将 `@rspack/core/module` 添加到 tsconfig.json 的 `types` 字段中。具体可参考 [tsconfig types 文档](https://www.typescriptlang.org/tsconfig/#types)。

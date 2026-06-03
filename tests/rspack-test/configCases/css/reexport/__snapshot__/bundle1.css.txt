@@ -1,9 +1,3 @@
-@value primary from "./theme.module.css";
-@value error from "./theme.module.css";
-
-@value colors: "./theme.module.css";
-@value danger: error from colors;
-
 .E_OvvY {
 	color: danger
 }
@@ -165,10 +159,10 @@
 	color: blue;
 }
 
-@value composes-test-here: composes-here;
+
 
 .iYZI63 {
-	composes: composes-test-here, __import_f__, global(bar);
+	
 	color: blue;
 }
 
@@ -199,7 +193,7 @@
 	--color: red;
 }
 
-@value --my-custom-property-1: --color;
+
 
 
 
@@ -215,42 +209,42 @@
 	color: var(--my-var-u1 from "./vars.module.css");
 }
 
-@value primary, secondary as my-custom-color from "./colors.module.css";
+
 
 .Mx1drJ {
 	background-color: primary;
 	color: my-custom-color;
 }
 
-@value foo: red;
+
 
 .A62m63 {
 	color: foo;
 }
 
-@value blue: #3498db;
-@value rename: blue;
+
+
 
 .TLOxAV {
 	background-color: rename;
 }
 
-@value danger from "./colors.module.css";
-@value rename-2: danger;
+
+
 
 .J75kHj {
 	background-color: rename-2;
 }
 
-@value danger as danger-alias from "./colors.module.css";
-@value rename-3: danger-alias;
+
+
 
 ._8-YjdR {
 	background-color: rename-3;
 }
 
-@value colors: "./colors.module.css";
-@value third from colors;
+
+
 
 ._0vDmWC {
 	background-color: third;
@@ -260,27 +254,27 @@
 	content: __REEXPORT3__
 }
 
-@value selector: my-selector-value;
+
 .hydESP { value: selector; }
 
-@value other-selector from "./selectors.module.css";
+
 .lwweu5 { value: other-selector; }
 
-@value other-selector as alias-other-selector from "./selectors.module.css";
+
 .z-yLea { value: alias-other-selector; }
 
-@value reexport-selector from "./selectors.module.css";
+
 .K3y_NA { value: reexport-selector; }
 
-@value reexport-selector as reexport-selector-alias from "./selectors.module.css";
+
 ._2jSHbX { value: reexport-selector-alias; }
 
-@value colors: "./colors.module.css";
-@value third from colors;
+
+
 ._61LowY { background-color: third; }
 
-@value danger as danger-alias-selector from "./colors.module.css";
-@value rename-3: danger-alias-selector;
+
+
 .zVEFPg { background-color: rename-3; }
 
 .XuepqC {
@@ -342,7 +336,7 @@
 
 
 
-@value in-composes: abc-from-def_local;
+
 
 .rh1p7E { color: blue; }
 

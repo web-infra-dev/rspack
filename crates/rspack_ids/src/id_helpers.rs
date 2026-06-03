@@ -2,8 +2,10 @@ use std::{
   borrow::Cow,
   cmp::Ordering,
   hash::{Hash, Hasher},
+  sync::Arc,
 };
 
+use futures::future::BoxFuture;
 use itertools::{
   EitherOrBoth::{Both, Left, Right},
   Itertools,
@@ -11,16 +13,20 @@ use itertools::{
 use rspack_collections::Identifier;
 use rspack_core::{
   BoxModule, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey,
-  ChunkNamedIdArtifact, ChunkUkey, Compilation, ExportsInfoArtifact, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, SideEffectsStateArtifact,
-  compare_runtime,
+  ChunkNamedIdArtifact, ChunkUkey, Compilation, CompilerId, ExportsInfoArtifact, Module,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  SideEffectsStateArtifact, compare_runtime,
 };
+use rspack_error::Result;
 use rspack_util::{
   comparators::{compare_ids, compare_numbers},
   identifier::make_paths_relative,
   number_hash::get_number_hash_combined,
 };
 use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
+
+pub type ModuleFilterFn =
+  Arc<dyn for<'a> Fn(CompilerId, &'a dyn Module) -> BoxFuture<'a, Result<bool>> + Send + Sync>;
 
 #[allow(clippy::type_complexity)]
 #[allow(clippy::collapsible_else_if)]
@@ -71,6 +77,37 @@ pub fn get_used_module_ids_and_modules_with_artifact(
       }
     });
   (used_ids, modules)
+}
+
+pub async fn get_used_module_ids_and_modules_with_async_filter(
+  compilation: &Compilation,
+  module_ids_artifact: &ModuleIdsArtifact,
+  filter: Option<&ModuleFilterFn>,
+) -> Result<(FxHashSet<String>, Vec<ModuleIdentifier>)> {
+  let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+  let mut modules = vec![];
+  let mut used_ids = FxHashSet::default();
+
+  for module in compilation
+    .get_module_graph()
+    .modules()
+    .map(|(_, module)| module)
+    .filter(|m| m.need_id())
+  {
+    let module_id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier());
+    if let Some(module_id) = module_id {
+      used_ids.insert(module_id.to_string());
+    } else if chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+      && match filter {
+        Some(filter) => filter(compilation.compiler_id(), module.as_ref()).await?,
+        None => true,
+      }
+    {
+      modules.push(module.identifier());
+    }
+  }
+
+  Ok((used_ids, modules))
 }
 
 pub fn get_short_module_name(module: &BoxModule, context: &str) -> String {

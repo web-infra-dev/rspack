@@ -1,5 +1,6 @@
 pub mod generator;
 mod parser;
+mod source_builder;
 
 use std::{borrow::Cow, sync::LazyLock};
 
@@ -8,9 +9,9 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, Compilation, CssBuildInfo,
   CssModuleGeneratorOptions, CssModuleParserOptions, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, RuntimeSpec, SourceType,
-  TemplateContext, UsageState,
+  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, ModuleInitFragments,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeGlobals,
+  RuntimeSpec, SourceType, TemplateContext, UsageState,
   rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
@@ -23,11 +24,9 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
+pub(crate) use source_builder::CssSourceBuilder;
 
-use crate::{
-  dependency::{CssImportDependency, CssMedia, CssSupports},
-  parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser},
-};
+use crate::parser_and_generator::{generator::CssModuleGenerator, parser::CssModuleParser};
 
 static REGEX_IS_MODULES: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.module(s)?\.[^.]+$").expect("Invalid regex"));
@@ -46,37 +45,39 @@ pub(crate) static CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST: &[SourceType; 1] =
 pub type CssExportsRef<'a> = FxIndexMap<&'a str, &'a FxIndexSet<CssExport>>;
 
 #[cacheable]
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct CssParserAndGenerator {
-  pub generator_options: CssModuleGeneratorOptions,
-  pub parser_options: CssModuleParserOptions,
-  pub exports_only: bool,
   pub hot: bool,
 }
 
 impl CssParserAndGenerator {
-  pub fn new(
-    generator_options: CssModuleGeneratorOptions,
-    parser_options: CssModuleParserOptions,
-  ) -> Self {
-    let exports_only = generator_options
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  fn exports_only(generator_options: &CssModuleGeneratorOptions) -> bool {
+    generator_options
       .exports_only
-      .expect("should have exports_only");
-
-    Self {
-      generator_options,
-      parser_options,
-      exports_only,
-      hot: false,
-    }
+      .expect("should have exports_only")
   }
 
-  pub fn es_module(&self) -> bool {
-    self
-      .generator_options
-      .es_module
-      .expect("should have es_module")
+  fn es_module(generator_options: &CssModuleGeneratorOptions) -> bool {
+    generator_options.es_module.expect("should have es_module")
   }
+}
+
+fn css_generator_options(
+  generator_options: Option<&GeneratorOptions>,
+) -> &CssModuleGeneratorOptions {
+  generator_options
+    .and_then(GeneratorOptions::get_css_module)
+    .expect("should have CssModuleGeneratorOptions")
+}
+
+fn css_parser_options(parser_options: Option<&ParserOptions>) -> &CssModuleParserOptions {
+  parser_options
+    .and_then(ParserOptions::get_css_module)
+    .expect("should have CssModuleParserOptions")
 }
 
 pub fn get_used_exports<'a>(
@@ -172,7 +173,13 @@ static REGEX_CUSTOM_PROPERTY_IDENT: LazyLock<Regex> = LazyLock::new(|| {
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    if self.exports_only {
+    let generator_options = css_generator_options(
+      module
+        .as_normal_module()
+        .expect("CssParserAndGenerator should only be used by NormalModule")
+        .get_generator_options(),
+    );
+    if Self::exports_only(generator_options) {
       return CSS_MODULE_EXPORTS_ONLY_SOURCE_TYPE_LIST;
     }
 
@@ -205,8 +212,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     &mut self,
     parse_context: ParseContext<'a>,
   ) -> Result<TWithDiagnosticArray<ParseResult>> {
-    let named_exports = self
-      .parser_options
+    let generator_options = css_generator_options(parse_context.module_generator_options);
+    let parser_options = css_parser_options(parse_context.module_parser_options);
+    let named_exports = parser_options
       .named_exports
       .expect("should have named_exports");
 
@@ -227,10 +235,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
       };
     }
 
+    let exports_only = Self::exports_only(generator_options);
+
     CssModuleParser::new(
-      &self.generator_options,
-      &self.parser_options,
-      self.exports_only,
+      generator_options,
+      parser_options,
+      exports_only,
       parse_context,
     )
     .parse()
@@ -283,30 +293,6 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
         });
 
-        for conn in module_graph.get_incoming_connections(&module.identifier()) {
-          let dep = module_graph.dependency_by_id(&conn.dependency_id);
-
-          if matches!(dep.dependency_type(), DependencyType::CssImport) {
-            let Some(css_import_dep) = dep.downcast_ref::<CssImportDependency>() else {
-              panic!(
-                "dependency with type DependencyType::CssImport should only be CssImportDependency"
-              );
-            };
-
-            if let Some(media) = css_import_dep.media() {
-              context.data.insert(CssMedia(media.to_string()));
-            }
-
-            if let Some(supports) = css_import_dep.supports() {
-              context.data.insert(CssSupports(supports.to_string()));
-            }
-
-            if let Some(layer) = css_import_dep.layer() {
-              context.data.insert(layer.clone());
-            }
-          }
-        }
-
         if let Some(dependencies) = module.get_presentational_dependencies() {
           dependencies.iter().for_each(|dependency| {
             if let Some(template) = dependency
@@ -328,7 +314,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
         Ok(source.boxed())
       }
       SourceType::JavaScript => {
-        CssModuleGenerator::new(module, generate_context, self.hot, self.es_module())
+        let es_module = Self::es_module(css_generator_options(
+          generate_context.module_generator_options,
+        ));
+        CssModuleGenerator::new(module, generate_context, self.hot, es_module)
           .generate_javascript_source()
       }
       _ => panic!(
@@ -340,11 +329,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   fn get_concatenation_bailout_reason(
     &self,
-    _module: &dyn rspack_core::Module,
+    module: &dyn rspack_core::Module,
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
-    if self.exports_only {
+    let generator_options = css_generator_options(
+      module
+        .as_normal_module()
+        .expect("CssParserAndGenerator should only be used by NormalModule")
+        .get_generator_options(),
+    );
+    if Self::exports_only(generator_options) {
       None
     } else {
       // CSS Module cannot be concatenated as it must appear in css chunk, if it's
@@ -355,12 +350,12 @@ impl ParserAndGenerator for CssParserAndGenerator {
 
   async fn get_runtime_hash(
     &self,
-    _module: &NormalModule,
+    module: &NormalModule,
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.es_module().dyn_hash(&mut hasher);
+    Self::es_module(css_generator_options(module.get_generator_options())).dyn_hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -36,9 +36,9 @@
   "devDependencies": {
     "@discoveryjs/json-ext": "^1.1.0",
     "@microsoft/api-extractor": "^7.58.7",
-    "@rslib/core": "^0.21.5",
+    "@rslib/core": "^0.22.0",
     "@rspack/core": "workspace:*",
-    "@rspack/dev-server": "^2.0.1",
+    "@rspack/dev-server": "^2.0.3",
     "@rspack/test-tools": "workspace:*",
     "cac": "^7.0.0",
     "concat-stream": "^2.0.0",
@@ -46,7 +46,7 @@
     "execa": "^5.1.1",
     "exit-hook": "^5.1.0",
     "jiti": "^2.7.0",
-    "prebundle": "^1.6.4",
+    "prebundle": "^1.6.5",
     "rspack-merge": "0.1.1",
     "typescript": "^6.0.3"
   },

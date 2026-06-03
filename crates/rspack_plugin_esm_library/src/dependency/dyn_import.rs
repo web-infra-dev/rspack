@@ -3,8 +3,9 @@ use std::{borrow::Cow, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, FakeNamespaceObjectMode, ModuleGraph,
-  ModuleReferenceOptions, RuntimeGlobals, TemplateContext, get_exports_type,
+  Dependency, DependencyId, DependencyTemplate, ExportsType, ExternalModule,
+  FakeNamespaceObjectMode, ModuleGraph, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
+  get_exports_type, property_access,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
@@ -95,6 +96,104 @@ fn then_expr(
   appending
 }
 
+fn get_fake_namespace_object_mode(
+  code_generatable_context: &TemplateContext,
+  dep_id: &DependencyId,
+) -> FakeNamespaceObjectMode {
+  let exports_type = get_exports_type(
+    code_generatable_context.compilation.get_module_graph(),
+    &code_generatable_context
+      .compilation
+      .module_graph_cache_artifact,
+    &code_generatable_context.compilation.exports_info_artifact,
+    dep_id,
+    &code_generatable_context.module.identifier(),
+  );
+  let mut fake_type = FakeNamespaceObjectMode::PROMISE_LIKE;
+  if matches!(exports_type, ExportsType::Dynamic) {
+    fake_type |= FakeNamespaceObjectMode::RETURN_VALUE;
+  }
+  if matches!(
+    exports_type,
+    ExportsType::DefaultWithNamed | ExportsType::Dynamic
+  ) {
+    fake_type |= FakeNamespaceObjectMode::MERGE_PROPERTIES;
+  }
+  fake_type
+}
+
+fn render_lazy_require_external_import(
+  create_fake_namespace_object: &str,
+  request_expr: &str,
+  properties: &str,
+  fake_type: FakeNamespaceObjectMode,
+) -> String {
+  format!(
+    "Promise.resolve().then(function() {{ return {create_fake_namespace_object}(require({request_expr}){properties}, {fake_type}) }})"
+  )
+}
+
+fn render_lazy_create_require_external_import(
+  code_generatable_context: &TemplateContext,
+  create_fake_namespace_object: &str,
+  request_expr: &str,
+  properties: &str,
+  fake_type: FakeNamespaceObjectMode,
+) -> String {
+  let need_prefix = code_generatable_context
+    .compilation
+    .options
+    .output
+    .environment
+    .supports_node_prefix_for_core_modules();
+  let import_meta_name = &code_generatable_context
+    .compilation
+    .options
+    .output
+    .import_meta_name;
+  let module_request =
+    rspack_util::json_stringify_str(if need_prefix { "node:module" } else { "module" });
+
+  format!(
+    "import({module_request}).then(function(module) {{ return {create_fake_namespace_object}(module.createRequire({import_meta_name}.url)({request_expr}){properties}, {fake_type}) }})"
+  )
+}
+
+fn render_lazy_commonjs_external_import(
+  code_generatable_context: &mut TemplateContext,
+  external_module: &ExternalModule,
+  fake_type: FakeNamespaceObjectMode,
+) -> Option<String> {
+  let request = external_module.get_request();
+  let request_expr = rspack_util::json_stringify_str(request.primary());
+  let properties = property_access(request.iter(), 1);
+  let create_fake_namespace_object = code_generatable_context
+    .runtime_template
+    .render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+
+  match external_module.resolve_external_type() {
+    "commonjs" | "commonjs2" | "commonjs-module" | "commonjs-static" | "node-commonjs" => {
+      if code_generatable_context.compilation.options.output.module {
+        Some(render_lazy_create_require_external_import(
+          code_generatable_context,
+          &create_fake_namespace_object,
+          &request_expr,
+          &properties,
+          fake_type,
+        ))
+      } else {
+        Some(render_lazy_require_external_import(
+          &create_fake_namespace_object,
+          &request_expr,
+          &properties,
+          fake_type,
+        ))
+      }
+    }
+    _ => None,
+  }
+}
+
 #[derive(Debug)]
 pub struct DynamicImportDependencyTemplate {
   /// module_id → namespace export name in the chunk.
@@ -136,9 +235,25 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       return;
     };
 
-    if let Some(external_module) = ref_module.as_external_module() {
+    if let Some(external_module) = ref_module.as_external_module()
+      && matches!(external_module.resolve_external_type(), "import" | "module")
+    {
       render_dyn_import_external_module(import_dep, external_module, source);
       return;
+    }
+    if let Some(external_module) = ref_module.as_external_module() {
+      let fake_type = get_fake_namespace_object_mode(code_generatable_context, dep_id);
+      if let Some(external_import) =
+        render_lazy_commonjs_external_import(code_generatable_context, external_module, fake_type)
+      {
+        source.replace(
+          import_dep.range.start,
+          import_dep.range.end,
+          external_import,
+          None,
+        );
+        return;
+      }
     }
 
     let ref_chunk_ukey = match EsmLibraryPlugin::get_module_chunk(

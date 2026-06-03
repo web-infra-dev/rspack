@@ -566,6 +566,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
@@ -2156,6 +2157,15 @@ export interface RawCssParserOptions {
   dashedIdents?: boolean
 }
 
+export interface RawDeterministicModuleIdsPluginOptions {
+  context?: string
+  test?: (module: Module) => boolean
+  maxLength?: number
+  salt?: number
+  fixedLength?: boolean
+  failOnConflict?: boolean
+}
+
 export interface RawDllEntryPluginOptions {
   context: string
   entries: Array<string>
@@ -3072,6 +3082,20 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
   extractComments?: RawExtractComments
   minimizerOptions: RawSwcJsMinimizerOptions
+}
+
+export declare enum RawSyncModuleIdsPluginMode {
+  Read = 'read',
+  Create = 'create',
+  Merge = 'merge',
+  Update = 'update'
+}
+
+export interface RawSyncModuleIdsPluginOptions {
+  path: string
+  context?: string
+  test?: (module: Module) => boolean
+  mode?: 'read' | 'create' | 'merge' | 'update'
 }
 
 export interface RawToOptions {

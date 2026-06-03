@@ -1242,19 +1242,25 @@ const getResolveDefaults = ({
     },
   };
 
-  resolveOptions.byDependency!['css-import'] = {
+  const styleConditions = [];
+
+  styleConditions.push(mode === 'development' ? 'development' : 'production');
+  styleConditions.push('style');
+
+  const cssResolveOptions = {
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
     mainFiles: [],
     mainFields: ['style', '...'],
-    conditionNames: [
-      mode === 'development' ? 'development' : 'production',
-      'style',
-    ],
+    conditionNames: styleConditions,
     extensions: ['.css'],
     preferRelative: true,
   };
+
+  resolveOptions.byDependency!['css-import'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-local-module'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-global-module'] = cssResolveOptions;
 
   return resolveOptions;
 };
