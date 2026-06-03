@@ -16,6 +16,7 @@ use swc_core::{
     VarDeclarator,
   },
 };
+use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -148,72 +149,31 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
-#[inline(never)]
-fn decode_percent_encoded_path(value: &str) -> Option<String> {
-  if !value.as_bytes().contains(&b'%') {
-    return Some(value.to_string());
-  }
-  let mut decoded = Vec::with_capacity(value.len());
-  let mut bytes = value.as_bytes().iter().copied();
-  while let Some(byte) = bytes.next() {
-    if byte != b'%' {
-      decoded.push(byte);
-      continue;
-    }
-    let high = bytes.next()?;
-    let low = bytes.next()?;
-    let decoded_byte = hex_value(high)? << 4 | hex_value(low)?;
-    if matches!(decoded_byte, b'/' | b'\\') {
-      return None;
-    }
-    decoded.push(decoded_byte);
-  }
-  String::from_utf8(decoded).ok()
-}
-
-#[inline(always)]
-fn hex_value(byte: u8) -> Option<u8> {
-  match byte {
-    b'0'..=b'9' => Some(byte - b'0'),
-    b'a'..=b'f' => Some(byte - b'a' + 10),
-    b'A'..=b'F' => Some(byte - b'A' + 10),
-    _ => None,
-  }
+fn has_encoded_separator(value: &str) -> bool {
+  value.as_bytes().windows(3).any(|bytes| {
+    bytes[0] == b'%'
+      && matches!(bytes[1], b'2' | b'5')
+      && (bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
+        || bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C'))
+  })
 }
 
 #[inline(never)]
 fn file_url_to_path(value: &str) -> Option<String> {
   let path = value.strip_prefix("file://")?;
   let path = path.split(['?', '#']).next()?;
-  let path = path
-    .strip_prefix("localhost")
-    .filter(|path| path.starts_with('/'))
-    .unwrap_or(path);
-
-  #[cfg(not(windows))]
-  if !path.starts_with('/') {
+  if has_encoded_separator(path) {
     return None;
   }
 
-  #[cfg(windows)]
-  let path = path
-    .strip_prefix('/')
-    .filter(|path| path.as_bytes().get(1).is_some_and(|b| *b == b':'))
-    .map(str::to_string)
-    .unwrap_or_else(|| {
-      if path.starts_with('/') {
-        path.to_string()
-      } else {
-        let mut path = path.replace('/', "\\");
-        path.insert_str(0, "\\\\");
-        path
-      }
-    });
-
-  #[cfg(windows)]
-  let path = path.as_str();
-
-  decode_percent_encoded_path(path)
+  Some(
+    Url::parse(value)
+      .ok()?
+      .to_file_path()
+      .ok()?
+      .to_string_lossy()
+      .to_string(),
+  )
 }
 
 #[inline(never)]
@@ -345,6 +305,9 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
+  if request.starts_with("//") {
+    return Some(format!("file:{request}"));
+  }
   if request.starts_with("file://") {
     return file_url_to_path(&request);
   }
@@ -404,6 +367,10 @@ fn parse_create_require_argument(
       "module.createRequire supports only file URLs and absolute paths.",
       arg.span(),
     );
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      arg.span().into(),
+      json_stringify_str(&value).into(),
+    )));
   }
   Some(CreateRequireArgument {
     value,

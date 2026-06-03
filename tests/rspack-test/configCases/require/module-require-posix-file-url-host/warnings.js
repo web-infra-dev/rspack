@@ -1,4 +1,4 @@
 module.exports = [
 	/module\.createRequire supports only file URLs and absolute paths/,
-	/module\.createRequire failed parsing argument/
+	/module\.createRequire supports only file URLs and absolute paths/
 ];
