@@ -33,9 +33,11 @@ import {
 } from './target';
 import type {
   Context,
+  CssAutoOrModuleParserOptions,
   CssGeneratorOptions,
   CssModuleGeneratorOptions,
   CssModuleParserOptions,
+  CssParserOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
@@ -307,6 +309,12 @@ const applyCssGeneratorOptionsDefaults = (
   D(generatorOptions, 'esModule', true);
 };
 
+const applyCssParserOptionsDefaults = (parserOptions: CssParserOptions) => {
+  D(parserOptions, 'namedExports', true);
+  D(parserOptions, 'url', true);
+  D(parserOptions, 'import', true);
+};
+
 const applyCssModuleGeneratorOptionsDefaults = (
   generatorOptions: CssModuleGeneratorOptions,
   {
@@ -338,9 +346,19 @@ const applyCssModuleGeneratorOptionsDefaults = (
 const applyCssModuleParserOptionsDefaults = (
   parserOptions: CssModuleParserOptions,
 ) => {
-  D(parserOptions, 'namedExports', true);
-  D(parserOptions, 'url', true);
-  D(parserOptions, 'import', true);
+  applyCssParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'animation', true);
+  D(parserOptions, 'container', true);
+  D(parserOptions, 'customIdents', true);
+  D(parserOptions, 'function', true);
+  D(parserOptions, 'grid', true);
+};
+
+const applyCssAutoOrModuleParserOptionsDefaults = (
+  parserOptions: CssAutoOrModuleParserOptions,
+) => {
+  applyCssModuleParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'pure', false);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -401,14 +419,11 @@ const applyModuleDefaults = (
   applyJsonGeneratorOptionsDefaults(module.generator.json);
   F(module.parser, 'css', () => ({}));
   assertNotNill(module.parser.css);
-  D(module.parser.css, 'namedExports', true);
-  D(module.parser.css, 'url', true);
-  D(module.parser.css, 'import', true);
-  D(module.parser.css, 'animation', true);
+  applyCssParserOptionsDefaults(module.parser.css);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);
-  applyCssModuleParserOptionsDefaults(module.parser['css/auto']);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/auto']);
 
   F(module.parser, 'css/global', () => ({}));
   assertNotNill(module.parser['css/global']);
@@ -416,7 +431,7 @@ const applyModuleDefaults = (
 
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
-  applyCssModuleParserOptionsDefaults(module.parser['css/module']);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/module']);
 
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);
@@ -1242,19 +1257,25 @@ const getResolveDefaults = ({
     },
   };
 
-  resolveOptions.byDependency!['css-import'] = {
+  const styleConditions = [];
+
+  styleConditions.push(mode === 'development' ? 'development' : 'production');
+  styleConditions.push('style');
+
+  const cssResolveOptions = {
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
     mainFiles: [],
     mainFields: ['style', '...'],
-    conditionNames: [
-      mode === 'development' ? 'development' : 'production',
-      'style',
-    ],
+    conditionNames: styleConditions,
     extensions: ['.css'],
     preferRelative: true,
   };
+
+  resolveOptions.byDependency!['css-import'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-local-module'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-global-module'] = cssResolveOptions;
 
   return resolveOptions;
 };

@@ -1061,27 +1061,9 @@ export type CssParserOptions = {
    * @default true
    * */
   resolveImport?: CssParserResolveImport;
-
-  /**
-   * Enable/disable renaming of `@keyframes`.
-   * @default true
-   */
-  animation?: boolean;
-
-  /**
-   * Enable/disable renaming of custom identifiers.
-   * @default false
-   */
-  customIdents?: boolean;
-
-  /**
-   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
-   * @default false
-   */
-  dashedIdents?: boolean;
 };
 
-/** Options object for `css/auto`, `css/global` and `css/module` modules. */
+/** Options object for `css/global` modules. */
 export type CssModuleParserOptions = {
   /**
    * Use ES modules named export for CSS exports.
@@ -1114,8 +1096,14 @@ export type CssModuleParserOptions = {
   animation?: boolean;
 
   /**
+   * Enable/disable renaming of container names.
+   * @default true
+   */
+  container?: boolean;
+
+  /**
    * Enable/disable renaming of custom identifiers.
-   * @default false
+   * @default true
    */
   customIdents?: boolean;
 
@@ -1124,6 +1112,27 @@ export type CssModuleParserOptions = {
    * @default false
    */
   dashedIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of CSS function names.
+   * @default true
+   */
+  function?: boolean;
+
+  /**
+   * Enable/disable renaming of grid names.
+   * @default true
+   */
+  grid?: boolean;
+};
+
+/** Options object for `css/auto` and `css/module` modules. */
+export type CssAutoOrModuleParserOptions = CssModuleParserOptions & {
+  /**
+   * Enable strict pure mode: every selector must contain at least one local class or id selector.
+   * @default false
+   */
+  pure?: boolean;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
@@ -1303,13 +1312,13 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssModuleParserOptions;
+  'css/auto'?: CssAutoOrModuleParserOptions;
 
   /** Parser options for `css/global` modules. */
   'css/global'?: CssModuleParserOptions;
 
   /** Parser options for `css/module` modules. */
-  'css/module'?: CssModuleParserOptions;
+  'css/module'?: CssAutoOrModuleParserOptions;
 
   /** Parser options for `javascript` modules. */
   javascript?: JavascriptParserOptions;

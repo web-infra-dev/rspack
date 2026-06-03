@@ -1,0 +1,2656 @@
+Array [
+  @import url("https://test.cases/path/../../../../configCases/css/import/external.css");
+@import url("//example.com/style.css");
+@import url("https://fonts.googleapis.com/css?family=Roboto");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC|Roboto");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC|Roboto?foo=1");
+@import url("https://test.cases/path/../../../../configCases/css/import/external1.css");
+@import url("https://test.cases/path/../../../../configCases/css/import/external2.css");
+@import url("external-1.css");
+@import url("external-2.css");
+@import url("external-3.css");
+@import url("external-4.css");
+@import url("external-5.css");
+@import url("external-6.css");
+@import url("external-7.css");
+@import url("external-8.css");
+@import url("external-9.css");
+@import url("external-10.css");
+@import url("external-11.css");
+@import url("external-12.css");
+@import url("external-13.css");
+@import url("external-14.css");
+p {
+	color: steelblue;
+}
+
+p {
+	color: antiquewhite;
+}
+
+.load-me {
+	color: red;
+}
+
+.custom-extension{
+    color: green;
+}.using-loader { color: red; }
+.link {
+  color: #428bca;
+}
+
+
+
+.foo {
+	color: red;
+}
+
+.relative {
+	color: red;
+}
+
+.default {
+	color: steelblue;
+}
+
+.mode {
+	color: red;
+}
+
+.dist {
+	color: steelblue;
+}
+
+.dist {
+	color: steelblue;
+}
+
+.conditional-names {
+  color: #428bca;
+}
+
+.custom-name {
+	color: steelblue;
+}
+
+.style {
+	color: steelblue;
+}
+
+.default {
+	color: steelblue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Technically, this is not entirely true, but we allow it because the final file can be processed by the loader and return the CSS code */
+
+
+
+
+
+/* Failed */
+
+
+
+
+
+
+body {
+	background: black;
+}
+
+body {
+	background: black;
+}
+
+@layer default {
+body {
+	background: black;
+}
+
+}
+@layer default {
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+@media screen and (min-width: 400px){
+body {
+	background: black;
+}
+
+}
+@media screen and (min-width: 400px){
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (background: url(./img.png)) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (background: url("./img.png")) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+body {
+	background: black;
+}
+
+body {
+	background: green;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+@media screen and (orientation:landscape){
+a {
+	color: red;
+}
+
+}
+.class {
+	content: "test.css";
+}
+
+a {
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style7.css";
+}
+
+.class {
+	content: "style7.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "test.css";
+}
+.using-loader { color: red; }
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+@supports (display: flex) {
+.class {
+	content: "style4.css";
+}
+
+}
+@media screen and (orientation:landscape){
+@supports (display: flex) {
+.class {
+	content: "style4.css";
+}
+
+}
+}
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+a {
+  color: red;
+}
+@media screen and (orientation:landscape){
+a {
+  color: blue;
+}
+}
+a {
+  color: red;
+}
+@supports () {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports () {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (unknown) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex !important) {
+.class {
+	content: "style5.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+}
+@supports (selector(a b)) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer foo.bar.baz {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen     and     (     min-width     :     400px     ){
+@supports (display     :     flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media SCREEN AND (MIN-WIDTH: 400PX){
+@supports (DISPLAY: FLEX) {
+@layer DEFAULT {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media SCREEN AND (MIN-WIDTH: 400PX){
+@supports (DISPLAY: FLEX) {
+@layer {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media /* Comment */ screen/* Comment */ and/* Comment */ (/* Comment */min-width/* Comment */: /* Comment */400px/* Comment */){
+@supports (/* Comment */display/* Comment */:/* Comment */ flex/* Comment */) {
+@layer /* Comment */default/* Comment */ {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+@media /* Comment *//* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment *//* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+@media /* Comment */ print and (orientation:landscape){
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment */print and (orientation:landscape)/* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment */ print and (orientation:landscape){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width: 400px){
+.class {
+	content: "style8.css";
+}
+
+}
+@media unknown(default) unknown(display: flex) unknown{
+.class {
+	content: "style9.css";
+}
+
+}
+.style11 {
+	color: red;
+}
+
+
+
+.style12 {
+	color: red;
+}
+
+div{color: red;}
+
+
+
+
+
+
+
+.style10 {
+	color: red;
+}
+
+@media screen and (min-width: 400px){
+@media screen and (max-width: 500px){
+@media screen and (orientation: portrait){
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@media screen and (max-width: 500px){
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+
+
+.class {
+	nested: 1;
+}
+
+}
+@supports (display: flex) {
+@supports (display: grid) {
+@supports (display: table) {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@supports (display: flex) {
+@supports (display: grid) {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@supports (display: flex) {
+
+
+.class {
+	nested: 1;
+}
+
+}
+@layer foo {
+@layer bar {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer foo {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+@media screen and (min-width: 600px){
+@supports (display: table) {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer bar {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+
+
+.class {
+	nested: 1;
+}
+
+}
+@layer {
+@layer {
+@layer {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer {
+@layer {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer {
+@layer base {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer {
+@layer base {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer {
+
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+@media screen and (orientation: portrait){
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@media screen and (orientation: portrait){
+
+
+
+.class {
+	duplicate-nested: true;
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (unknown: layer(super.foo)) {
+a {
+	color: red;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (url: url("./unknown.css")) {
+a {
+	color: red;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (url: url(./unknown.css)) {
+a {
+	color: red;
+}
+
+}
+}
+@media unknown("foo") screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media unknown(foo) screen and (min-width: 400px){
+@supports (display: url("./unknown.css")) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media "foo" screen and (min-width: 400px){
+@supports (display: url(./unknown.css)) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media "string"{
+a {
+	color: red;
+}
+
+}
+a {
+	color: red;
+}
+
+@media url(./style2.css?multiple=2){
+a {
+	color: red;
+}
+
+}
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+@media (prefers-color-scheme: dark){
+a {
+  color: white;
+}
+
+}
+
+
+a {
+  color: black;
+}
+
+
+
+.circular-nested {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+
+
+
+
+
+.circular {
+	color: red;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Has the same URL */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* anonymous */
+
+
+
+/* All unknown parse as media for compatibility */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Inside support */
+
+
+
+
+
+/** Possible syntax in future */
+
+
+
+
+
+
+/** Unknown */
+
+@import-normalize;
+
+/** Warnings */
+
+@import nourl(test.css);
+@import ;
+@import foo-bar;
+@import layer(super.foo) "./style2.css?warning=1" supports(display: flex) screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) "./style2.css?warning=2" screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) screen and (min-width: 400px) "./style2.css?warning=3";
+@import layer(super.foo) url("./style2.css?warning=4") supports(display: flex) screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) url("./style2.css?warning=5") screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) screen and (min-width: 400px) url("./style2.css?warning=6");
+@import url("/style2.css?wrong-order-but-valid=6") supports(display: flex) layer(super.foo) screen and (min-width: 400px);
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@import supports(background: url("./img.png"));
+@import supports(background: url("./img.png")) screen and (min-width: 400px);
+@import layer(test) supports(background: url("./img.png")) screen and (min-width: 400px);
+@import screen and (min-width: 400px);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* FIXME */
+/*@import url("webpackIgnore-order.css");*/
+
+body {
+	background: red;
+},
+  @import url("https://test.cases/path/../../../../configCases/css/import/external.css");
+@import url("//example.com/style.css");
+@import url("https://fonts.googleapis.com/css?family=Roboto");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC|Roboto");
+@import url("https://fonts.googleapis.com/css?family=Noto+Sans+TC|Roboto?foo=1");
+@import url("https://test.cases/path/../../../../configCases/css/import/external1.css");
+@import url("https://test.cases/path/../../../../configCases/css/import/external2.css");
+@import url("external-1.css");
+@import url("external-2.css");
+@import url("external-3.css");
+@import url("external-4.css");
+@import url("external-5.css");
+@import url("external-6.css");
+@import url("external-7.css");
+@import url("external-8.css");
+@import url("external-9.css");
+@import url("external-10.css");
+@import url("external-11.css");
+@import url("external-12.css");
+@import url("external-13.css");
+@import url("external-14.css");
+p {
+	color: steelblue;
+}
+
+p {
+	color: antiquewhite;
+}
+
+.load-me {
+	color: red;
+}
+
+.custom-extension{
+    color: green;
+}.using-loader { color: red; }
+.link {
+  color: #428bca;
+}
+
+
+
+.foo {
+	color: red;
+}
+
+.relative {
+	color: red;
+}
+
+.default {
+	color: steelblue;
+}
+
+.mode {
+	color: red;
+}
+
+.dist {
+	color: steelblue;
+}
+
+.dist {
+	color: steelblue;
+}
+
+.conditional-names {
+  color: #428bca;
+}
+
+.custom-name {
+	color: steelblue;
+}
+
+.style {
+	color: steelblue;
+}
+
+.default {
+	color: steelblue;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Technically, this is not entirely true, but we allow it because the final file can be processed by the loader and return the CSS code */
+
+
+
+
+
+/* Failed */
+
+
+
+
+
+
+body {
+	background: black;
+}
+
+body {
+	background: black;
+}
+
+@layer default {
+body {
+	background: black;
+}
+
+}
+@layer default {
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+@media screen and (min-width: 400px){
+body {
+	background: black;
+}
+
+}
+@media screen and (min-width: 400px){
+body {
+	background: black;
+}
+
+}
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+body {
+	background: black;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (background: url(./img.png)) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (background: url("./img.png")) {
+@layer default {
+body {
+	background: black;
+}
+
+}
+}
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+@media screen{
+body {
+	background: black;
+}
+
+}
+body {
+	background: black;
+}
+
+body {
+	background: green;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+@media screen and (orientation:landscape){
+a {
+	color: red;
+}
+
+}
+.class {
+	content: "test.css";
+}
+
+a {
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style.css";
+	color: red;
+}
+
+.class {
+	content: "style7.css";
+}
+
+.class {
+	content: "style7.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "test test.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "test.css";
+}
+.using-loader { color: red; }
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+@supports (display: flex) {
+.class {
+	content: "style4.css";
+}
+
+}
+@media screen and (orientation:landscape){
+@supports (display: flex) {
+.class {
+	content: "style4.css";
+}
+
+}
+}
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+.class {
+	content: "style4.css";
+}
+
+a {
+  color: red;
+}
+@media screen and (orientation:landscape){
+a {
+  color: blue;
+}
+}
+a {
+  color: red;
+}
+@supports () {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports () {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (unknown) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex !important) {
+.class {
+	content: "style5.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+}
+@supports (selector(a b)) {
+.class {
+	content: "style5.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style5.css";
+}
+
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer foo.bar.baz {
+.class {
+	content: "layer.css";
+}
+
+}
+@layer {
+.class {
+	content: "layer.css";
+}
+
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media screen and (min-width:400px){
+@supports (display: flex) {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width:400px){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen     and     (     min-width     :     400px     ){
+@supports (display     :     flex) {
+@layer default {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media SCREEN AND (MIN-WIDTH: 400PX){
+@supports (DISPLAY: FLEX) {
+@layer DEFAULT {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media SCREEN AND (MIN-WIDTH: 400PX){
+@supports (DISPLAY: FLEX) {
+@layer {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+@media /* Comment */ screen/* Comment */ and/* Comment */ (/* Comment */min-width/* Comment */: /* Comment */400px/* Comment */){
+@supports (/* Comment */display/* Comment */:/* Comment */ flex/* Comment */) {
+@layer /* Comment */default/* Comment */ {
+.class {
+	content: "style6.css";
+}
+
+}
+}
+}
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+@media /* Comment *//* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment *//* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+.class {
+	content: "style6.css";
+}
+
+.class {
+	content: "style6.css";
+}
+
+@media /* Comment */ print and (orientation:landscape){
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment */print and (orientation:landscape)/* Comment */{
+.class {
+	content: "style6.css";
+}
+
+}
+@media /* Comment */ print and (orientation:landscape){
+.class {
+	content: "style6.css";
+}
+
+}
+@media screen and (min-width: 400px){
+.class {
+	content: "style8.css";
+}
+
+}
+@media unknown(default) unknown(display: flex) unknown{
+.class {
+	content: "style9.css";
+}
+
+}
+.style11 {
+	color: red;
+}
+
+
+
+.style12 {
+	color: red;
+}
+
+div{color: red;}
+
+
+
+
+
+
+
+.style10 {
+	color: red;
+}
+
+@media screen and (min-width: 400px){
+@media screen and (max-width: 500px){
+@media screen and (orientation: portrait){
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@media screen and (max-width: 500px){
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+
+
+.class {
+	nested: 1;
+}
+
+}
+@supports (display: flex) {
+@supports (display: grid) {
+@supports (display: table) {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@supports (display: flex) {
+@supports (display: grid) {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@supports (display: flex) {
+
+
+.class {
+	nested: 1;
+}
+
+}
+@layer foo {
+@layer bar {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer foo {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+@media screen and (min-width: 600px){
+@supports (display: table) {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer bar {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+
+
+.class {
+	nested: 1;
+}
+
+}
+@layer {
+@layer {
+@layer {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer {
+@layer {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer {
+@layer base {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+@layer {
+@layer base {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@layer {
+
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+@media screen and (orientation: portrait){
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@media screen and (orientation: portrait){
+
+
+
+.class {
+	duplicate-nested: true;
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (unknown: layer(super.foo)) {
+a {
+	color: red;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (url: url("./unknown.css")) {
+a {
+	color: red;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (url: url(./unknown.css)) {
+a {
+	color: red;
+}
+
+}
+}
+@media unknown("foo") screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media unknown(foo) screen and (min-width: 400px){
+@supports (display: url("./unknown.css")) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media "foo" screen and (min-width: 400px){
+@supports (display: url(./unknown.css)) {
+@layer super.foo {
+a {
+	color: red;
+}
+
+}
+}
+}
+@media "string"{
+a {
+	color: red;
+}
+
+}
+a {
+	color: red;
+}
+
+@media url(./style2.css?multiple=2){
+a {
+	color: red;
+}
+
+}
+a {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+@media (prefers-color-scheme: dark){
+a {
+  color: white;
+}
+
+}
+
+
+a {
+  color: black;
+}
+
+
+
+.circular-nested {
+	color: red;
+}
+
+a {
+	color: red;
+}
+
+
+
+
+
+
+.circular {
+	color: red;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Has the same URL */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* anonymous */
+
+
+
+/* All unknown parse as media for compatibility */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Inside support */
+
+
+
+
+
+/** Possible syntax in future */
+
+
+
+
+
+
+/** Unknown */
+
+@import-normalize;
+
+/** Warnings */
+
+@import nourl(test.css);
+@import ;
+@import foo-bar;
+@import layer(super.foo) "./style2.css?warning=1" supports(display: flex) screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) "./style2.css?warning=2" screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) screen and (min-width: 400px) "./style2.css?warning=3";
+@import layer(super.foo) url("./style2.css?warning=4") supports(display: flex) screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) url("./style2.css?warning=5") screen and (min-width: 400px);
+@import layer(super.foo) supports(display: flex) screen and (min-width: 400px) url("./style2.css?warning=6");
+@import url("/style2.css?wrong-order-but-valid=6") supports(display: flex) layer(super.foo) screen and (min-width: 400px);
+@namespace url(http://www.w3.org/1999/xhtml);
+
+@import supports(background: url("./img.png"));
+@import supports(background: url("./img.png")) screen and (min-width: 400px);
+@import layer(test) supports(background: url("./img.png")) screen and (min-width: 400px);
+@import screen and (min-width: 400px);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* FIXME */
+/*@import url("webpackIgnore-order.css");*/
+
+body {
+	background: red;
+},
+]

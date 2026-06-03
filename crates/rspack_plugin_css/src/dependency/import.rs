@@ -1,10 +1,9 @@
-use std::fmt::Display;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, FactorizeInfo,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  AsContextDependency, CssModuleRenderCondition, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
+  TemplateReplaceSource, iter_css_module_render_conditions,
 };
 
 #[cacheable]
@@ -13,50 +12,44 @@ pub struct CssImportDependency {
   id: DependencyId,
   request: String,
   range: DependencyRange,
-  media: Option<String>,
-  supports: Option<String>,
-  layer: Option<CssLayer>,
   source_order: i32,
+  inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  render_condition: CssModuleRenderCondition,
   factorize_info: FactorizeInfo,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub enum CssLayer {
-  Anonymous,
-  Named(String),
 }
 
 impl CssImportDependency {
   pub fn new(
     request: String,
     range: DependencyRange,
-    media: Option<String>,
-    supports: Option<String>,
-    layer: Option<CssLayer>,
+    inherited_render_conditions: Vec<CssModuleRenderCondition>,
+    render_condition: CssModuleRenderCondition,
   ) -> Self {
     Self {
       id: DependencyId::new(),
       request,
       range,
-      media,
-      supports,
-      layer,
       source_order: source_order_to_i32(range.start),
+      inherited_render_conditions,
+      render_condition,
       factorize_info: Default::default(),
     }
   }
 
-  pub fn media(&self) -> Option<&str> {
-    self.media.as_deref()
+  pub fn inherited_render_conditions(&self) -> &[CssModuleRenderCondition] {
+    &self.inherited_render_conditions
   }
 
-  pub fn supports(&self) -> Option<&str> {
-    self.supports.as_deref()
+  pub fn render_condition(&self) -> &CssModuleRenderCondition {
+    &self.render_condition
   }
 
-  pub fn layer(&self) -> Option<&CssLayer> {
-    self.layer.as_ref()
+  pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
+  }
+
+  pub fn has_render_conditions(&self) -> bool {
+    self.render_conditions().next().is_some()
   }
 }
 
@@ -103,24 +96,6 @@ impl ModuleDependency for CssImportDependency {
 
   fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
     &mut self.factorize_info
-  }
-}
-
-#[derive(Clone)]
-pub struct CssMedia(pub String);
-
-#[derive(Clone)]
-pub struct CssSupports(pub String);
-
-impl Display for CssMedia {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self.0.fmt(f)
-  }
-}
-
-impl Display for CssSupports {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    self.0.fmt(f)
   }
 }
 

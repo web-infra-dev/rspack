@@ -271,6 +271,10 @@ pub fn replace_css_module_id_placeholder<'a>(
   compilation: &Compilation,
   module: &dyn Module,
 ) -> Cow<'a, str> {
+  if let Some(custom_property_ident) = local_ident.strip_prefix("--") {
+    let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
+    return Cow::Owned(format!("--{local_ident}"));
+  }
   if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
     return Cow::Borrowed(local_ident);
   }

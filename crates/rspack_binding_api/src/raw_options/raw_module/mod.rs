@@ -16,21 +16,24 @@ use rspack_core::{
   AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
   AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
   AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions,
-  CssGeneratorOptions, CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport,
-  CssParserImportContext, CssParserOptions, DescriptionData, DynamicImportFetchPriority,
-  DynamicImportMode, ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap,
-  ImportMeta, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
-  JavascriptParserOptions, JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions,
-  JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
-  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
+  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
+  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
+  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{filename::JsFilename, module::ModuleObject, options::raw_resolve::RawResolveOptions};
+use crate::{
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
+  module::ModuleObject, options::raw_resolve::RawResolveOptions,
+};
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -194,9 +197,9 @@ pub struct RawParserOptions {
   pub r#type: String,
   pub asset: Option<RawAssetParserOptions>,
   pub css: Option<RawCssParserOptions>,
-  pub css_auto: Option<RawCssModuleParserOptions>,
+  pub css_auto: Option<RawCssAutoOrModuleParserOptions>,
   pub css_global: Option<RawCssModuleParserOptions>,
-  pub css_module: Option<RawCssModuleParserOptions>,
+  pub css_module: Option<RawCssAutoOrModuleParserOptions>,
   pub javascript: Option<RawJavascriptParserOptions>,
   pub json: Option<RawJsonParserOptions>,
 }
@@ -242,7 +245,7 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"css\" when RawParserOptions.type is \"css\"")
           .into(),
       ),
-      "css/auto" => Self::CssModule(
+      "css/auto" => Self::CssAutoOrModule(
         value
           .css_auto
           .expect("should have an \"css_auto\" when RawParserOptions.type is \"css/auto\"")
@@ -254,7 +257,7 @@ impl From<RawParserOptions> for ParserOptions {
           .expect("should have an \"css_global\" when RawParserOptions.type is \"css/global\"")
           .into(),
       ),
-      "css/module" => Self::CssModule(
+      "css/module" => Self::CssAutoOrModule(
         value
           .css_module
           .expect("should have an \"css_module\" when RawParserOptions.type is \"css/module\"")
@@ -530,9 +533,6 @@ pub struct RawCssParserOptions {
     ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
-  pub animation: Option<bool>,
-  pub custom_idents: Option<bool>,
-  pub dashed_idents: Option<bool>,
 }
 
 impl From<RawCssParserOptions> for CssParserOptions {
@@ -542,9 +542,6 @@ impl From<RawCssParserOptions> for CssParserOptions {
       url: value.url,
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
-      animation: value.animation,
-      custom_idents: value.custom_idents,
-      dashed_idents: value.dashed_idents,
     }
   }
 }
@@ -561,8 +558,12 @@ pub struct RawCssModuleParserOptions {
   )]
   pub resolve_import: Option<Either<bool, RawCssImportFn>>,
   pub animation: Option<bool>,
+  pub container: Option<bool>,
   pub custom_idents: Option<bool>,
   pub dashed_idents: Option<bool>,
+  #[napi(js_name = "function")]
+  pub r#function: Option<bool>,
+  pub grid: Option<bool>,
 }
 
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
@@ -573,8 +574,50 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
       r#import: value.r#import,
       resolve_import: convert_import_option(value.resolve_import),
       animation: value.animation,
+      container: value.container,
       custom_idents: value.custom_idents,
       dashed_idents: value.dashed_idents,
+      r#function: value.r#function,
+      grid: value.grid,
+    }
+  }
+}
+
+#[derive(Debug, Default)]
+#[napi(object, object_to_js = false)]
+pub struct RawCssAutoOrModuleParserOptions {
+  pub named_exports: Option<bool>,
+  pub url: Option<bool>,
+  #[napi(js_name = "import")]
+  pub r#import: Option<bool>,
+  #[napi(
+    ts_type = "boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)"
+  )]
+  pub resolve_import: Option<Either<bool, RawCssImportFn>>,
+  pub animation: Option<bool>,
+  pub container: Option<bool>,
+  pub custom_idents: Option<bool>,
+  pub dashed_idents: Option<bool>,
+  #[napi(js_name = "function")]
+  pub r#function: Option<bool>,
+  pub grid: Option<bool>,
+  pub pure: Option<bool>,
+}
+
+impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
+  fn from(value: RawCssAutoOrModuleParserOptions) -> Self {
+    Self {
+      named_exports: value.named_exports,
+      url: value.url,
+      r#import: value.r#import,
+      resolve_import: convert_import_option(value.resolve_import),
+      animation: value.animation,
+      container: value.container,
+      custom_idents: value.custom_idents,
+      dashed_idents: value.dashed_idents,
+      r#function: value.r#function,
+      grid: value.grid,
+      pure: value.pure,
     }
   }
 }
@@ -1032,6 +1075,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         side_effects: value.side_effects,
         enforce,
         extract_source_map: value.extract_source_map,
+        ..Default::default()
       },
       extract_source_map: value.extract_source_map,
     })
@@ -1048,7 +1092,7 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       .map(|rule| rule.try_into())
       .collect::<rspack_error::Result<Vec<ModuleRule>>>()?;
 
-    Ok(ModuleOptions {
+    let mut module_options = ModuleOptions {
       rules,
       parser: value
         .parser
@@ -1069,7 +1113,9 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
       no_parse: value
         .no_parse
         .map(|x| RawModuleNoParseRulesWrapper(x).into()),
-    })
+    };
+    module_options.assign_rule_ids()?;
+    Ok(module_options)
   }
 }
 

@@ -253,24 +253,40 @@ module.exports = {
 			        },
 			      },
 			      css: Object {
-			        animation: true,
 			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
 			      css/auto: Object {
+			        animation: true,
+			        container: true,
+			        customIdents: true,
+			        function: true,
+			        grid: true,
 			        import: true,
 			        namedExports: true,
+			        pure: false,
 			        url: true,
 			      },
 			      css/global: Object {
+			        animation: true,
+			        container: true,
+			        customIdents: true,
+			        function: true,
+			        grid: true,
 			        import: true,
 			        namedExports: true,
 			        url: true,
 			      },
 			      css/module: Object {
+			        animation: true,
+			        container: true,
+			        customIdents: true,
+			        function: true,
+			        grid: true,
 			        import: true,
 			        namedExports: true,
+			        pure: false,
 			        url: true,
 			      },
 			      javascript: Object {
@@ -492,6 +508,36 @@ module.exports = {
 			        ],
 			      },
 			      css-import: Object {
+			        conditionNames: Array [
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
+			      css-import-global-module: Object {
+			        conditionNames: Array [
+			          production,
+			          style,
+			        ],
+			        extensions: Array [
+			          .css,
+			        ],
+			        mainFields: Array [
+			          style,
+			          ...,
+			        ],
+			        mainFiles: Array [],
+			        preferRelative: true,
+			      },
+			      css-import-local-module: Object {
 			        conditionNames: Array [
 			          production,
 			          style,

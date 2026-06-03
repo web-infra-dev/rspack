@@ -1118,7 +1118,7 @@ export default {
 ### ["css/auto"].customIdents
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Enable or disable renaming custom identifiers, such as local `@counter-style` and `@font-palette-values` names.
 
@@ -1128,6 +1128,25 @@ export default {
     parser: {
       'css/auto': {
         customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].container
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS container names and their usages, such as `container-name`, `container`, and `@container`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        container: true,
       },
     },
   },
@@ -1147,6 +1166,65 @@ export default {
     parser: {
       'css/auto': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].function
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS function names and their usages, such as `@function --fn` and `--fn()`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].grid
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS grid line and area names and their usages, such as `grid-template-areas`, `grid-area`, and `grid-row`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].pure
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enable strict pure mode for CSS Modules. When enabled, every selector in a CSS Module must contain at least one local class or id selector.
+
+For `css/auto`, this check only applies to files that are treated as CSS Modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        pure: true,
       },
     },
   },
@@ -1229,54 +1307,6 @@ export default {
     parser: {
       css: {
         import: true,
-      },
-    },
-  },
-};
-```
-
-### css.animation
-
-Same as [`module.parser["css/auto"].animation`](#cssautoanimation).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        animation: true,
-      },
-    },
-  },
-};
-```
-
-### css.customIdents
-
-Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        customIdents: true,
-      },
-    },
-  },
-};
-```
-
-### css.dashedIdents
-
-Same as [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        dashedIdents: true,
       },
     },
   },
@@ -1381,6 +1411,22 @@ export default {
 };
 ```
 
+### ["css/global"].container
+
+Same as [`module.parser["css/auto"].container`](#cssautocontainer).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"].customIdents
 
 Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
@@ -1407,6 +1453,38 @@ export default {
     parser: {
       'css/global': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].function
+
+Same as [`module.parser["css/auto"].function`](#cssautofunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].grid
+
+Same as [`module.parser["css/auto"].grid`](#cssautogrid).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        grid: true,
       },
     },
   },
@@ -1511,6 +1589,22 @@ export default {
 };
 ```
 
+### ["css/module"].container
+
+Same as [`module.parser["css/auto"].container`](#cssautocontainer).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/module"].customIdents
 
 Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
@@ -1537,6 +1631,54 @@ export default {
     parser: {
       'css/module': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].function
+
+Same as [`module.parser["css/auto"].function`](#cssautofunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].grid
+
+Same as [`module.parser["css/auto"].grid`](#cssautogrid).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].pure
+
+Same as [`module.parser["css/auto"].pure`](#cssautopure).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        pure: true,
       },
     },
   },

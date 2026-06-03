@@ -4,11 +4,29 @@
   --brand-color: red;
   color: var(--brand-color);
   background: url("./missing.png");
+  background-color: --transparent(var(--brand-color), 0.8);
+  container-name: summary;
+  container: card / inline-size;
+  grid-template-areas:
+    "header header"
+    "sidebar main";
+  grid-area: header;
+  grid-row: sidebar;
   list-style: thumbs;
+}
+
+@container summary (min-width: 400px) {
+  .a {
+    color: green;
+  }
 }
 
 @counter-style thumbs {
   system: cyclic;
   symbols: "\1F44D";
   suffix: " ";
+}
+
+@function --transparent(--color, --alpha) {
+  result: var(--color);
 }

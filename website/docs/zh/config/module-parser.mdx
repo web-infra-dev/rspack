@@ -1118,7 +1118,7 @@ export default {
 ### ["css/auto"].customIdents
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
 启用或禁用对自定义标识符的重命名，例如本地 `@counter-style` 和 `@font-palette-values` 名称。
 
@@ -1128,6 +1128,25 @@ export default {
     parser: {
       'css/auto': {
         customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].container
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS container 名称及其使用处的重命名，例如 `container-name`、`container` 和 `@container`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        container: true,
       },
     },
   },
@@ -1147,6 +1166,65 @@ export default {
     parser: {
       'css/auto': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].function
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS function 名称及其使用处的重命名，例如 `@function --fn` 和 `--fn()`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].grid
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS grid 线名和区域名及其使用处的重命名，例如 `grid-template-areas`、`grid-area` 和 `grid-row`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].pure
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+为 CSS Modules 启用严格 pure 模式。启用后，CSS Module 中的每个选择器都必须至少包含一个本地 class 或 id 选择器。
+
+对于 `css/auto`，该检查只会应用到被识别为 CSS Modules 的文件。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        pure: true,
       },
     },
   },
@@ -1229,54 +1307,6 @@ export default {
     parser: {
       css: {
         import: true,
-      },
-    },
-  },
-};
-```
-
-### css.animation
-
-和 [`module.parser["css/auto"].animation`](#cssautoanimation) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        animation: true,
-      },
-    },
-  },
-};
-```
-
-### css.customIdents
-
-和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        customIdents: true,
-      },
-    },
-  },
-};
-```
-
-### css.dashedIdents
-
-和 [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        dashedIdents: true,
       },
     },
   },
@@ -1381,6 +1411,22 @@ export default {
 };
 ```
 
+### ["css/global"].container
+
+和 [`module.parser["css/auto"].container`](#cssautocontainer) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"].customIdents
 
 和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
@@ -1407,6 +1453,38 @@ export default {
     parser: {
       'css/global': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].function
+
+和 [`module.parser["css/auto"].function`](#cssautofunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].grid
+
+和 [`module.parser["css/auto"].grid`](#cssautogrid) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        grid: true,
       },
     },
   },
@@ -1511,6 +1589,22 @@ export default {
 };
 ```
 
+### ["css/module"].container
+
+和 [`module.parser["css/auto"].container`](#cssautocontainer) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/module"].customIdents
 
 和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
@@ -1537,6 +1631,54 @@ export default {
     parser: {
       'css/module': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].function
+
+和 [`module.parser["css/auto"].function`](#cssautofunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].grid
+
+和 [`module.parser["css/auto"].grid`](#cssautogrid) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].pure
+
+和 [`module.parser["css/auto"].pure`](#cssautopure) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        pure: true,
       },
     },
   },

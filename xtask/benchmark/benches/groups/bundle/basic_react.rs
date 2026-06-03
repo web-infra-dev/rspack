@@ -7,5 +7,6 @@ pub fn compiler() -> CompilerBuilder {
     project: "basic-react",
     entry: "./src/index.jsx",
     swc_loader: true,
+    native_output_filesystem: false,
   })
 }

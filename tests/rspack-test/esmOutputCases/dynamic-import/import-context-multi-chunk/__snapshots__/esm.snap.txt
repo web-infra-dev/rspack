@@ -1,0 +1,261 @@
+```mjs title=a.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./shared-chunk.mjs";
+
+__webpack_require__.add({
+"./modules/a.js"
+/*!**********************!*\
+  !*** ./modules/a.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
+
+
+/* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U);
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=b.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+import "./shared-chunk.mjs";
+
+__webpack_require__.add({
+"./modules/b.js"
+/*!**********************!*\
+  !*** ./modules/b.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
+
+
+/* export default */ const __rspack_default_export = (_shared__rspack_import_0/* .value */.U + 1);
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default"
+/*!**************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {}|namespace object|importPhase: evaluation ***!
+  \**************************************************************************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "shared-chunk",
+      0,
+      "a"
+    ]
+  ],
+  "./b.js": [
+    "./modules/b.js",
+    [
+      "shared-chunk",
+      0,
+      "b"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return Promise.all(ids[1].map(function(chunkId) { return __webpack_require__.e(chunkId); })).then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy ./modules/*.js"
+/*!*******************************************************************!*\
+  !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
+  \*******************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+
+module.exports = {
+
+  "./modules/a.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e(0), __webpack_require__.e("a")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); },
+
+  "./modules/b.js": function() { return Promise.all(/*! esm */ [__webpack_require__.e("shared-chunk"), __webpack_require__.e(0), __webpack_require__.e("b")]).then(__webpack_require__.bind(__webpack_require__, /*! ./modules/b.js */ "./modules/b.js")); }
+};
+
+
+},
+});
+// ./index.js
+it("should wrap multi chunk context ensure calls", async () => {
+	const modules = __webpack_require__(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const value = await modules["./modules/a.js"]();
+	const name = "b";
+	const dynamicValue = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default")(`./${name}.js`);
+
+	expect(value.default).toBe(42);
+	expect(dynamicValue.default).toBe(43);
+	expect(Object.keys(modules).sort()).toEqual([
+		"./modules/a.js",
+		"./modules/b.js",
+	]);
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); },
+"b": function() { return import("./b.mjs"); },
+"shared-chunk": function() { return import("./shared-chunk.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=shared-chunk.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./shared.js"
+/*!*******************!*\
+  !*** ./shared.js ***!
+  \*******************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+const value = globalThis.__rspack_test_value || 42;
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  U: value
+});
+
+
+},
+});
+export {};
+
+```
