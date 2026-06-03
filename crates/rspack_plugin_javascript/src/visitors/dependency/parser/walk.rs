@@ -613,7 +613,10 @@ impl JavascriptParser<'_> {
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
-      ForHead::Pat(pat) => self.walk_pattern(pat),
+      ForHead::Pat(pat) => {
+        self.clear_created_require_tags_in_pattern(pat);
+        self.walk_pattern(pat);
+      }
     }
   }
 
@@ -704,8 +707,14 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
-    if let Expr::Ident(ident) = &*expr.arg
-      && let Some(variable_info) = self.get_variable_info(&ident.sym)
+    if let Expr::Ident(ident) = &*expr.arg {
+      self.clear_created_require_tag(&ident.sym);
+    }
+    self.walk_expression(&expr.arg);
+  }
+
+  fn clear_created_require_tag(&mut self, name: &Atom) {
+    if let Some(variable_info) = self.get_variable_info(name)
       && let Some(tag_info_id) = variable_info.tag_info
     {
       let declared_scope = variable_info.declared_scope;
@@ -713,13 +722,35 @@ impl JavascriptParser<'_> {
       while let Some(id) = tag_info_id {
         let tag_info = self.definitions_db.expect_get_tag_info(id);
         if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
-          self.definitions_db.delete(declared_scope, &ident.sym);
+          self.definitions_db.delete(declared_scope, name);
           break;
         }
         tag_info_id = tag_info.next;
       }
     }
-    self.walk_expression(&expr.arg);
+  }
+
+  fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
+    match pat {
+      Pat::Ident(ident) => self.clear_created_require_tag(&ident.id.sym),
+      Pat::Array(array) => array
+        .elems
+        .iter()
+        .flatten()
+        .for_each(|ele| self.clear_created_require_tags_in_pattern(ele)),
+      Pat::Assign(assign) => self.clear_created_require_tags_in_pattern(&assign.left),
+      Pat::Object(obj) => {
+        for prop in &obj.props {
+          match prop {
+            ObjectPatProp::KeyValue(kv) => self.clear_created_require_tags_in_pattern(&kv.value),
+            ObjectPatProp::Assign(assign) => self.clear_created_require_tag(&assign.key.sym),
+            ObjectPatProp::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
+          }
+        }
+      }
+      Pat::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
+      Pat::Expr(_) | Pat::Invalid(_) => (),
+    }
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {

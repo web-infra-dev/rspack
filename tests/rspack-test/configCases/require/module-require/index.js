@@ -181,6 +181,14 @@ it("should stop parsing reassigned created require bindings", () => {
 	let updatedRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	updatedRequire++;
 	expect(() => updatedRequire("./a")).toThrow();
+
+	let loopRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	for (loopRequire of [request => request]) {}
+	expect(loopRequire("./a")).toBe("./a");
+
+	let loopKeyRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	for (loopKeyRequire in { "./a": true }) {}
+	expect(() => loopKeyRequire("./a")).toThrow();
 });
 
 it("should preserve createRequire results used as values", () => {
