@@ -1199,7 +1199,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       if parser.member_expr_in_optional_chain {
@@ -1209,8 +1209,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       if ids.len() != members.len() {
         return None;
       }
-      if ids.len() == 1 && ids[0].as_ref() == "cache" {
-        add_require_cache_dependency(parser, _expr.span().into());
+      if ids.first().is_some_and(|id| id.as_ref() == "cache") {
+        add_require_cache_dependency(
+          parser,
+          require_cache_range(_expr, member_ranges, members).into(),
+        );
       } else {
         add_unsupported_create_require_member_warning(parser, _expr.span());
         parser.add_presentational_dependency(Box::new(ConstDependency::new(

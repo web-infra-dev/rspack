@@ -52,6 +52,10 @@ it("should provide require.cache", () => {
 	const _require = _createRequire(import.meta.url);
 	expect(require.cache).toBe(_require.cache);
 	expect(require.cache).toBe(_createRequire(import.meta.url).cache);
+	expect(_require.cache.__rspackMissingCreateRequireCacheEntry).toBe(undefined);
+	expect(_require.cache["__rspackMissingCreateRequireCacheEntry"]).toBe(
+		undefined
+	);
 });
 
 it("should provide dependency context", () => {
