@@ -135,11 +135,8 @@ function applyPlugin(
   plugin.apply(compiler);
 }
 
-// Library wrappers like UMD/AMD/System expose externals as closure arguments
-// baked into the entry chunk. Reserving statically-declared external requests up
-// front folds them into that wrapper so a lazily-activated module can resolve
-// them. Externals live on the JS options (not on the Rust `CompilerOptions`), so
-// they are collected here and threaded to the plugin.
+// Statically-declared external requests to reserve in the closure-library wrapper
+// (externals live on the JS options, not Rust's `CompilerOptions`).
 function collectReservedExternals(externals: Externals | undefined): string[] {
   const requests = new Set<string>();
   const visit = (item: ExternalItem) => {
@@ -151,8 +148,7 @@ function collectReservedExternals(externals: Externals | undefined): string[] {
       return;
     }
     for (const [request, value] of Object.entries(item)) {
-      // `false` opts a request out of externalization, so don't reserve it;
-      // every other key mirrors what `ExternalsPlugin` externalizes.
+      // `false` opts out of externalization; every other key mirrors `ExternalsPlugin`.
       if (value === false) {
         continue;
       }

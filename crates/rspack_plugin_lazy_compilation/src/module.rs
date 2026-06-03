@@ -28,18 +28,9 @@ use crate::{
 static MODULE_TYPE: ModuleType = ModuleType::JsAuto;
 static SOURCE_TYPE: [SourceType; 1] = [SourceType::JavaScript];
 
-// Library wrappers of these types pass externals as closure arguments baked into
-// the entry chunk. When `lazyCompilation` activates a proxy for the first time,
-// any external the lazily-built module pulls in lands in a hot update chunk that
-// lives outside the original wrapper closure, so the factory body can't resolve
-// its closure identifier and throws at runtime. Reserving the externals during
-// the inactive build folds them into the initial wrapper, so the identifiers are
-// already defined when the activation update arrives.
+// Library types whose wrappers pass externals as closure arguments baked into the entry chunk.
 const CLOSURE_LIBRARY_TYPES: [&str; 5] = ["umd", "umd2", "amd", "amd-require", "system"];
 
-// `enabled_library_types` is resolved during compilation (it covers the global
-// `output.library.type` and any per-entry library type), so it is only reliable
-// here at build time rather than when the plugin is applied.
 fn has_closure_library(output: &OutputOptions) -> bool {
   if let Some(enabled) = &output.enabled_library_types
     && enabled
