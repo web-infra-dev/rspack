@@ -68,6 +68,7 @@ pub struct LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck> {
   imports: bool, // enable for imports
   test: Option<LazyCompilationTest<F>>,
   client: String,
+  reserved_externals: Arc<[String]>,
   active_modules: RwLock<IdentifierSet>,
 }
 
@@ -78,6 +79,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
     entries: bool,
     imports: bool,
     client: String,
+    reserved_externals: Vec<String>,
   ) -> Self {
     Self::new_inner(
       Mutex::new(backend),
@@ -85,6 +87,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
       imports,
       test,
       client,
+      Arc::from(reserved_externals),
       Default::default(),
     )
   }
@@ -221,6 +224,7 @@ async fn normal_module_factory_module(
     create_data.resource_resolve_data.resource().to_owned(),
     active,
     self.client.clone(),
+    self.reserved_externals.clone(),
   )
   .boxed();
 
