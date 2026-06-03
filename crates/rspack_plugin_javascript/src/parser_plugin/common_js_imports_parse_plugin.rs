@@ -11,8 +11,8 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
-    VarDeclarator,
+    AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr,
+    UnaryExpr, VarDeclarator,
   },
 };
 
@@ -34,6 +34,7 @@ use crate::{
 
 const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
+const CREATE_REQUIRE_EVALUATED_TAG: &str = "__rspack_createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
 #[derive(Clone)]
@@ -146,24 +147,9 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
   })
 }
 
-fn create_require_callee_name(call_expr: &CallExpr) -> Option<&Atom> {
-  call_expr
-    .callee
-    .as_expr()?
-    .as_ident()
-    .map(|ident| &ident.sym)
-}
-
-#[inline(never)]
-fn should_handle_create_require_specifier(
-  parser: &mut JavascriptParser,
-  for_name: &str,
-  root_name: Option<&Atom>,
-) -> bool {
-  for_name == CREATE_REQUIRE_SPECIFIER_TAG
-    && !root_name.is_some_and(|name| {
-      name.as_ref() == CREATE_REQUIRE_SPECIFIER_TAG && parser.get_variable_info(name).is_none()
-    })
+fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &str) -> bool {
+  for_name == CREATE_REQUIRE_EVALUATED_TAG
+    || (for_name == CREATE_REQUIRE_SPECIFIER_TAG && is_current_create_require_tag(parser))
 }
 
 #[cold]
@@ -1383,11 +1369,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && (for_name == expr_name::REQUIRE
         || for_name == expr_name::REQUIRE_RESOLVE
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
-      || should_handle_create_require_specifier(
-        parser,
-        for_name,
-        expr.arg.as_ident().map(|ident| &ident.sym),
-      )
+      || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG)
       .then(|| {
         eval::evaluate_to_string(
@@ -1435,13 +1417,20 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       }
       CREATE_REQUIRE_SPECIFIER_TAG if is_current_create_require_tag(parser) => {
         Some(eval::evaluate_to_identifier(
-          CREATE_REQUIRE_SPECIFIER_TAG.into(),
-          CREATE_REQUIRE_SPECIFIER_TAG.into(),
+          CREATE_REQUIRE_EVALUATED_TAG.into(),
+          CREATE_REQUIRE_EVALUATED_TAG.into(),
           Some(true),
           start,
           end,
         ))
       }
+      CREATE_REQUIRE_EVALUATED_TAG => Some(eval::evaluate_to_identifier(
+        CREATE_REQUIRE_EVALUATED_TAG.into(),
+        CREATE_REQUIRE_EVALUATED_TAG.into(),
+        Some(true),
+        start,
+        end,
+      )),
       _ => None,
     }
   }
@@ -1452,7 +1441,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
     expr: &'a CallExpr,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if !should_handle_create_require_specifier(parser, for_name, create_require_callee_name(expr)) {
+    if !should_handle_create_require_specifier(parser, for_name) {
       return None;
     }
     let context = parse_create_require_argument(parser, expr, false)?.context;
@@ -1487,11 +1476,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && (for_name == expr_name::REQUIRE
         || for_name == expr_name::REQUIRE_RESOLVE
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
-      || should_handle_create_require_specifier(
-        parser,
-        for_name,
-        expr.arg.as_ident().map(|ident| &ident.sym),
-      )
+      || should_handle_create_require_specifier(parser, for_name)
       || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
     {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -1514,11 +1499,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_parse_commonjs_require(parser)
     {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
-    } else if should_handle_create_require_specifier(
-      parser,
-      for_name,
-      create_require_callee_name(call_expr),
-    ) {
+    } else if should_handle_create_require_specifier(parser, for_name) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           call_expr.args[0].expr.span().into(),
@@ -1582,11 +1563,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
-      && should_handle_create_require_specifier(
-        parser,
-        for_name,
-        create_require_callee_name(call_expr),
-      )
+      && should_handle_create_require_specifier(parser, for_name)
       && members
         .first()
         .is_some_and(|member| member.as_ref() == "cache")
@@ -1600,11 +1577,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if callee_members.is_empty()
-      && should_handle_create_require_specifier(
-        parser,
-        for_name,
-        create_require_callee_name(call_expr),
-      )
+      && should_handle_create_require_specifier(parser, for_name)
       && parse_create_require_argument(parser, call_expr, false).is_some()
     {
       add_unsupported_create_require_member_warning(parser, member_expr.span());
@@ -1637,11 +1610,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
-      && should_handle_create_require_specifier(
-        parser,
-        for_name,
-        create_require_callee_name(inner_call_expr),
-      )
+      && should_handle_create_require_specifier(parser, for_name)
       && members.len() == 1
       && members[0].as_ref() == "resolve"
     {
@@ -1702,7 +1671,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser,
-    _expr: &AssignExpr,
+    expr: &AssignExpr,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -1715,6 +1684,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
+        return Some(true);
+      }
       clear_created_require_tag(parser, &ident.sym);
       return Some(true);
     }

@@ -1,4 +1,4 @@
-module.exports = [
+const warnings = [
 	/module\.createRequire supports only file URLs and absolute paths/,
 	/module\.createRequire supports only file URLs and absolute paths/,
 	/module\.createRequire supports only file URLs and absolute paths/,
@@ -13,3 +13,12 @@ module.exports = [
 	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/
 ];
+
+if (process.platform === "win32") {
+	warnings.push(
+		/module\.createRequire failed parsing argument/,
+		/module\.createRequire failed parsing argument/
+	);
+}
+
+module.exports = warnings;
