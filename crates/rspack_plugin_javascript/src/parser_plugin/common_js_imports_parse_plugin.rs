@@ -1568,10 +1568,17 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      parser.set_variable(
-        ident.sym.clone(),
-        ExportedVariableInfo::Name(ident.sym.clone()),
-      );
+      let declared_scope = parser
+        .get_variable_info(&ident.sym)
+        .map(|info| info.declared_scope);
+      if let Some(declared_scope) = declared_scope {
+        parser.definitions_db.delete(declared_scope, &ident.sym);
+      } else {
+        parser.set_variable(
+          ident.sym.clone(),
+          ExportedVariableInfo::Name(ident.sym.clone()),
+        );
+      }
       return Some(true);
     }
 
