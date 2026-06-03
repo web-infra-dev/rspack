@@ -120,6 +120,14 @@ it("should decode normal file URL escapes in createRequire paths", () => {
 	expect(escapedRequire("./a")).toBe("space");
 });
 
+it("should treat POSIX absolute paths ending in backslash as files", () => {
+	if (process.platform !== "win32") {
+		expect(_createRequire(__dirname + "/foo\\")("./posix-backslash")).toBe(
+			"posix-backslash"
+		);
+	}
+});
+
 it("should preserve createRequire binding for unsupported uses", () => {
 	const createRequire = _createRequire;
 	const require = _createRequire(import.meta.url);

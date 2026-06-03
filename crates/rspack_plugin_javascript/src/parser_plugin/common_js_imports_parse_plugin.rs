@@ -141,14 +141,6 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
 }
 
 #[cold]
-fn has_encoded_separator(value: &str) -> bool {
-  value.as_bytes().windows(3).any(|bytes| {
-    bytes[0] == b'%' && bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
-      || cfg!(windows) && bytes[0] == b'%' && bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C')
-  })
-}
-
-#[cold]
 fn hex_value(byte: u8) -> Option<u8> {
   match byte {
     b'0'..=b'9' => Some(byte - b'0'),
@@ -172,7 +164,11 @@ fn decode_file_path(value: &str) -> Option<String> {
     if bytes[index] == b'%' {
       let hi = hex_value(*bytes.get(index + 1)?)?;
       let lo = hex_value(*bytes.get(index + 2)?)?;
-      decoded.push((hi << 4) | lo);
+      let byte = (hi << 4) | lo;
+      if byte == b'/' || cfg!(windows) && byte == b'\\' {
+        return None;
+      }
+      decoded.push(byte);
       index += 3;
     } else {
       decoded.push(bytes[index]);
@@ -217,9 +213,6 @@ fn file_url_to_path(value: &str) -> Option<String> {
   let raw_path = path.as_str();
   #[cfg(not(windows))]
   let raw_path = path;
-  if has_encoded_separator(raw_path) {
-    return None;
-  }
 
   #[cfg(windows)]
   {
@@ -246,13 +239,10 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
       if !value.starts_with('/') {
         return None;
       }
-      (
-        value.to_string(),
-        value.ends_with('/') || value.ends_with('\\'),
-      )
+      (value.to_string(), value.ends_with('/'))
     };
     let context = if is_directory_request {
-      let context = path.trim_end_matches(['/', '\\']);
+      let context = path.trim_end_matches('/');
       if context.is_empty() { "/" } else { context }
     } else {
       dirname(&path)?
@@ -298,14 +288,10 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
 #[cfg(not(windows))]
 #[cold]
 fn dirname(path: &str) -> Option<&str> {
-  let path = path.trim_end_matches(['/', '\\']);
-  path.rfind('/').map(|idx| {
-    if idx == 0 {
-      "/"
-    } else {
-      path[..idx].trim_end_matches('\\')
-    }
-  })
+  let path = path.trim_end_matches('/');
+  path
+    .rfind('/')
+    .map(|idx| if idx == 0 { "/" } else { &path[..idx] })
 }
 
 #[cold]
@@ -343,9 +329,6 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let request_path = request.split(['?', '#']).next()?;
-  if has_encoded_separator(request_path) {
-    return None;
-  }
   let request_path = decode_file_path(request_path)?;
   Some(
     Path::new(parser.resource_data.resource())
