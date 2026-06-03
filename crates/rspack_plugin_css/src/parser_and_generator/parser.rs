@@ -1322,12 +1322,10 @@ impl<'context> CssModuleParser<'context> {
       import_name: value.to_string(),
       request: request.clone(),
     };
-    self.icss_definitions.insert(prop.to_string(), definition);
+    self
+      .icss_definitions
+      .insert(prop.to_string(), definition.clone());
     if let Some(custom_property_name) = prop.strip_prefix("--") {
-      let definition = IcssDefinition::Import {
-        import_name: value.to_string(),
-        request: request.clone(),
-      };
       self
         .icss_definitions
         .insert(custom_property_name.to_string(), definition.clone());

@@ -1,11 +1,10 @@
-use std::fmt::Write;
-
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CssLayer, CssModuleRenderCondition, Dependency, DependencyCategory,
+  AsContextDependency, CssModuleRenderCondition, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, iter_css_module_render_conditions,
+  TemplateContext, TemplateReplaceSource, css_module_render_conditions_identifier,
+  iter_css_module_render_conditions, push_css_module_identifier_part,
 };
 
 #[cacheable]
@@ -130,39 +129,16 @@ fn create_resource_identifier(
   let category = DependencyCategory::CssImport.as_str();
   let mut identifier = String::with_capacity(category.len() + request.len() + 16);
   identifier.push_str(category);
-  push_resource_identifier_part(&mut identifier, request);
+  push_css_module_identifier_part(&mut identifier, request);
 
-  let conditions = iter_css_module_render_conditions(inherited_render_conditions, render_condition)
-    .collect::<Vec<_>>();
-  if !conditions.is_empty() {
-    identifier.push_str("|conditions=");
-    write!(identifier, "{}", conditions.len()).expect("write to String should not fail");
-
-    for condition in conditions {
-      let layer = match &condition.layer {
-        Some(CssLayer::Anonymous) => "<anonymous>",
-        Some(CssLayer::Named(layer)) => layer.as_str(),
-        None => "",
-      };
-      push_resource_identifier_part(&mut identifier, layer);
-      push_resource_identifier_part(
-        &mut identifier,
-        condition.supports.as_deref().unwrap_or_default(),
-      );
-      push_resource_identifier_part(
-        &mut identifier,
-        condition.media.as_deref().unwrap_or_default(),
-      );
-    }
+  if let Some(conditions_identifier) = css_module_render_conditions_identifier(
+    iter_css_module_render_conditions(inherited_render_conditions, render_condition),
+  ) {
+    identifier.push('|');
+    identifier.push_str(&conditions_identifier);
   }
 
   identifier.into()
-}
-
-fn push_resource_identifier_part(identifier: &mut String, value: &str) {
-  identifier.push('|');
-  write!(identifier, "{}:", value.len()).expect("write to String should not fail");
-  identifier.push_str(value);
 }
 
 #[cacheable]
