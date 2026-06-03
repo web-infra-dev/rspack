@@ -376,23 +376,12 @@ fn add_create_require_warning(parser: &mut JavascriptParser, message: &str, span
 
 #[cold]
 #[inline(never)]
-fn add_unsupported_create_require_member_warning(
-  parser: &mut JavascriptParser,
-  members: &[Atom],
-  span: Span,
-) {
-  let mut message = "createRequire()".to_string();
-  if !members.is_empty() {
-    message.push('.');
-    for (i, item) in members.iter().enumerate() {
-      if i > 0 {
-        message.push('.');
-      }
-      message.push_str(item.as_ref());
-    }
-  }
-  message.push_str(" is not supported by Rspack.");
-  add_create_require_warning(parser, &message, span);
+fn add_unsupported_create_require_member_warning(parser: &mut JavascriptParser, span: Span) {
+  add_create_require_warning(
+    parser,
+    "The accessed createRequire() member is not supported by Rspack.",
+    span,
+  );
 }
 
 #[inline(never)]
@@ -1159,7 +1148,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       if ids.len() == 1 && ids[0].as_ref() == "cache" {
         add_require_cache_dependency(parser, _expr.span().into());
       } else {
-        add_unsupported_create_require_member_warning(parser, ids, _expr.span());
+        add_unsupported_create_require_member_warning(parser, _expr.span());
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           _expr.span().into(),
           "undefined".into(),
@@ -1481,7 +1470,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && for_name == CREATE_REQUIRE_SPECIFIER_TAG
       && parse_create_require_arguments(parser, call_expr, false).is_some()
     {
-      add_unsupported_create_require_member_warning(parser, members, member_expr.span());
+      add_unsupported_create_require_member_warning(parser, member_expr.span());
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         member_expr.span().into(),
         "undefined".into(),

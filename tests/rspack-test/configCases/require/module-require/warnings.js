@@ -9,7 +9,7 @@ module.exports = [
 	/module\.createRequire failed parsing argument/,
 	/module\.createRequire does not support spread arguments/,
 	/the request of a dependency is an expression/,
-	/createRequire\(\)\.main is not supported by Rspack/,
-	/createRequire\(\)\.main is not supported by Rspack/,
-	/createRequire\(\)\.resolve is not supported by Rspack/
+	/The accessed createRequire\(\) member is not supported by Rspack/,
+	/The accessed createRequire\(\) member is not supported by Rspack/,
+	/The accessed createRequire\(\) member is not supported by Rspack/
 ];
