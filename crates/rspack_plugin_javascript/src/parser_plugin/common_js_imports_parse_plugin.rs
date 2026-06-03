@@ -273,15 +273,9 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   if request.starts_with("file://") {
     return file_url_to_path(&request);
   }
-  if let Some(scheme_end) = request.find(':')
-    && request[..scheme_end]
-      .bytes()
-      .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'+' | b'.' | b'-'))
-    && request
-      .as_bytes()
-      .first()
-      .is_some_and(u8::is_ascii_alphabetic)
-    && request[..scheme_end].find(['/', '?', '#']).is_none()
+  if request
+    .find([':', '/', '?', '#'])
+    .is_some_and(|idx| request.as_bytes()[idx] == b':')
   {
     return None;
   }
