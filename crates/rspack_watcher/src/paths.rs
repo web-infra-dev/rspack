@@ -671,7 +671,9 @@ mod tests {
     let t2 = SystemTime::now() - Duration::from_secs(10);
     pm.set_event_file_time(&path, t1);
     let s1 = file_safe_time(&pm, &path).expect("entry after first event");
-    sleep(Duration::from_millis(5));
+    // 50ms comfortably exceeds the ~15.6ms SystemTime granularity on Windows
+    // so `now_millis()` reliably advances between the two events.
+    sleep(Duration::from_millis(50));
     pm.set_event_file_time(&path, t2);
     let s2 = file_safe_time(&pm, &path).expect("entry after second event");
 
@@ -739,11 +741,21 @@ mod tests {
   /// descendant file's `safe_time`.
   #[test]
   fn collect_time_info_aggregates_child_safe_times_to_dir() {
-    use std::{path::Path, time::SystemTime};
+    use std::time::SystemTime;
 
     let pm = PathManager::default();
-    let dir = ArcPath::from(Path::new("/project/src"));
-    let file = ArcPath::from(Path::new("/project/src/nested/a.js"));
+    // Build from an absolute temp-dir base: a Unix-style "/project" path is
+    // NOT absolute on Windows, so `update()` would relativize the directory
+    // (join cwd) and the file's parent chain would no longer match it.
+    let base = std::env::temp_dir();
+    let dir = ArcPath::from(base.join("rspack_wt_agg_src").as_path());
+    let file = ArcPath::from(
+      base
+        .join("rspack_wt_agg_src")
+        .join("nested")
+        .join("a.js")
+        .as_path(),
+    );
 
     // Register the directory so it is an aggregation target.
     pm.update(
