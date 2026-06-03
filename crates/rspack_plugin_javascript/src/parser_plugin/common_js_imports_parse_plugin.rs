@@ -251,6 +251,13 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
 
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  if arg
+    .as_new()
+    .is_some_and(|new_expr| new_expr.args.as_ref().is_some_and(|args| args.len() > 2))
+  {
+    return None;
+  }
+
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);

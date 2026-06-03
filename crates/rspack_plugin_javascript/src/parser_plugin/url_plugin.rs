@@ -52,6 +52,9 @@ pub fn get_url_request(
   expr: &NewExpr,
 ) -> Option<(String, u32, u32)> {
   let args = expr.args.as_ref()?;
+  if args.len() > 2 {
+    return None;
+  }
   let ExprOrSpread {
     spread: None,
     expr: arg1,
@@ -119,6 +122,9 @@ impl JavascriptParserPlugin for URLPlugin {
     }
 
     let args = expr.args.as_ref()?;
+    if args.len() > 2 {
+      return None;
+    }
 
     let arg = args.first()?;
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
