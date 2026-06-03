@@ -4,16 +4,17 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "bench": "vitest bench --run"
+    "bench": "tsx ts-react.bench.ts"
   },
   "devDependencies": {
-    "@codspeed/vitest-plugin": "^5.4.0",
+    "@codspeed/tinybench-plugin": "^5.5.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
     "@rspack/plugin-react-refresh": "^2.0.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "vitest": "^3.2.4"
+    "tsx": "^4.22.4",
+    "tinybench": "^6.0.2"
   },
   "dependencies": {
     "react": "^19.2.6",
