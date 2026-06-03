@@ -178,6 +178,14 @@ it("should preserve createRequire results used as values", () => {
 	let assignedRequire;
 	assignedRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(assignedRequire("./a")).toBe(4);
+	expect(assignedRequire("./assigned-only")).toBe("__rspackAssignedCreatedRequire");
+
+	const emittedSource = fs
+		.readdirSync(path.dirname(__filename))
+		.filter(file => file.endsWith(".js"))
+		.map(file => fs.readFileSync(path.join(path.dirname(__filename), file), "utf-8"))
+		.join("\n");
+	expect(emittedSource.includes("__rspackAssignedCreatedRequire")).toBe(true);
 });
 
 it("should not parse URL object as CommonJS require request", () => {

@@ -37,10 +37,10 @@ const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct CreateRequireSpecifierTagData;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct CreatedRequireTagData {
   context: Context,
 }
@@ -111,7 +111,7 @@ struct RequireDependencyLocator {
   dep_type: DependencyType,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 struct RequireTagData {
   require_span: Span,
 }
@@ -1301,7 +1301,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   }
 
   fn can_rename(&self, parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
-    if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
+    if (for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser))
+      || for_name == CREATED_REQUIRE_IDENTIFIER_TAG
+    {
       Some(true)
     } else {
       None
@@ -1309,7 +1311,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   }
 
   fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
-    if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
+    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      parser.walk_expression(expr);
+      Some(false)
+    } else if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
       if parser.javascript_options.require_alias.unwrap_or_default() {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           expr.span().into(),
@@ -1405,7 +1410,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let context = parse_create_require_arguments(parser, expr, false)?;
-    let evaluated_name = Atom::from(CREATED_REQUIRE_IDENTIFIER_TAG);
+    let evaluated_name = Atom::from(format!(
+      "{}:{}-{}",
+      CREATED_REQUIRE_IDENTIFIER_TAG,
+      expr.span.real_lo(),
+      expr.span.real_hi()
+    ));
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -1414,7 +1424,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     let mut evaluated =
       BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
     evaluated.set_identifier(
-      CREATED_REQUIRE_IDENTIFIER_TAG.into(),
+      evaluated_name.clone(),
       ExportedVariableInfo::Name(evaluated_name),
       None,
       None,
