@@ -62,7 +62,6 @@ struct ContextualCommonJsDependencyData {
 }
 
 impl ContextualCommonJsDependencyData {
-  #[inline(never)]
   fn new(dep_type: &str, context: Context, request: &str) -> Self {
     let resource_identifier =
       create_resource_identifier_for_contextual_commonjs_dependency(dep_type, &context, request)

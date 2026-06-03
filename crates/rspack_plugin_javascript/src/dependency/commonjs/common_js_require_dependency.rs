@@ -57,7 +57,6 @@ impl CommonJsRequireDependency {
     }
   }
 
-  #[inline(never)]
   pub fn new_contextual(
     request: String,
     range: DependencyRange,

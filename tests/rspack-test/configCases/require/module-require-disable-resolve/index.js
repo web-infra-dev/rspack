@@ -1,4 +1,6 @@
 import { createRequire as _createRequire } from "module";
+import fs from "fs";
+import path from "path";
 
 it("should preserve created require resolve when requireResolve is disabled", () => {
 	const require = _createRequire(import.meta.url);
@@ -15,4 +17,19 @@ it("should preserve created require resolve when requireResolve is disabled", ()
 	).resolve("./a");
 	expect(directResolvedWithUrl).toMatch(/[\\/]foo[\\/]a\.js$/);
 	expect(directResolvedWithUrl).not.toBe("./a.js");
+});
+
+it("should keep preserved createRequire argument dependencies", () => {
+	try {
+		_createRequire(import("./async-context")).resolve("./a", {});
+	} catch {}
+
+	const emittedSource = fs
+		.readdirSync(path.dirname(__filename))
+		.filter(file => file.endsWith(".js"))
+		.map(file => fs.readFileSync(path.join(path.dirname(__filename), file), "utf-8"))
+		.join("\n");
+	expect(
+		emittedSource.includes("__rspackCreateRequireUnsupportedResolveContextDependency")
+	).toBe(true);
 });

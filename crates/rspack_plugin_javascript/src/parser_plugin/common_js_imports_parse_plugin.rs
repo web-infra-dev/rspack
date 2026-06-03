@@ -1509,15 +1509,28 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         || call_expr.args[0].spread.is_some()
       {
         walk_create_require_callee(parser, inner_call_expr);
-        if inner_call_expr.args.len() == 1
-          && inner_call_expr.args[0].spread.is_none()
-          && let Some(value) =
-            evaluate_create_require_argument(parser, &inner_call_expr.args[0].expr)
-        {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            inner_call_expr.args[0].expr.span().into(),
-            json_stringify_str(&value).into(),
-          )));
+        if inner_call_expr.args.len() == 1 && inner_call_expr.args[0].spread.is_none() {
+          let arg = &inner_call_expr.args[0].expr;
+          if let Some(value) = evaluate_create_require_argument(parser, arg) {
+            parser.add_presentational_dependency(Box::new(ConstDependency::new(
+              arg.span().into(),
+              json_stringify_str(&value).into(),
+            )));
+          } else if let Some(new_expr) = arg.as_new()
+            && new_expr
+              .callee
+              .as_ident()
+              .is_some_and(|ident| ident.sym.as_str() == "URL")
+            && parser.get_variable_info(&Atom::from("URL")).is_none()
+            && let Some(args) = new_expr.args.as_ref()
+            && args.len() > 2
+          {
+            parser.walk_expr_or_spread(&args[2..]);
+          } else {
+            parser.walk_expression(arg);
+          }
+        } else {
+          parser.walk_expr_or_spread(&inner_call_expr.args);
         }
         parser.walk_expr_or_spread(&call_expr.args);
         return Some(true);
