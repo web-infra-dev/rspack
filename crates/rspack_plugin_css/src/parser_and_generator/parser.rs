@@ -16,7 +16,7 @@ use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
-    CssImportDependency, CssLayer, CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
+    CssImportDependency, CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
     CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
   },
   parser_and_generator::generator::update_css_exports,
@@ -477,6 +477,40 @@ impl<'context> CssModuleParser<'context> {
     export_dependency_names.push(name);
   }
 
+  fn presentational_replace_range(
+    &self,
+    content: &str,
+    range: css_module_lexer::Range,
+  ) -> DependencyRange {
+    if !content.is_empty() {
+      return (range.start, range.end).into();
+    }
+
+    let source = self.source_code.as_ref();
+    let mut start = range.start as usize;
+    let mut end = range.end as usize;
+    let bytes = source.as_bytes();
+    let line_start = bytes[..start]
+      .iter()
+      .rposition(|byte| *byte == b'\n')
+      .map_or(0, |pos| pos + 1);
+
+    if bytes[line_start..start]
+      .iter()
+      .all(|byte| *byte == b' ' || *byte == b'\t')
+    {
+      start = line_start;
+      if end < bytes.len() && bytes[end] == b'\r' {
+        end += 1;
+      }
+      if end < bytes.len() && bytes[end] == b'\n' {
+        end += 1;
+      }
+    }
+
+    (start as u32, end as u32).into()
+  }
+
   async fn handle_dependency<'source>(
     &mut self,
     dependency: css_module_lexer::Dependency<'source>,
@@ -500,12 +534,10 @@ impl<'context> CssModuleParser<'context> {
           .await
       }
       css_module_lexer::Dependency::Replace { content, range } => {
+        let range = self.presentational_replace_range(content, range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            (range.start, range.end).into(),
-            content.into(),
-          )));
+          .push(Box::new(ConstDependency::new(range, content.into())));
         Ok(())
       }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
@@ -799,7 +831,10 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn dashed_idents(&self) -> bool {
-    self.parser_options.dashed_idents.unwrap_or(false)
+    self
+      .parser_options
+      .dashed_idents
+      .expect("should have dashed_idents")
   }
 
   fn function(&self) -> bool {

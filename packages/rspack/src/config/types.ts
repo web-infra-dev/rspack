@@ -1109,7 +1109,7 @@ export type CssModuleParserOptions = {
 
   /**
    * Enable/disable renaming of dashed identifiers, e.g. custom properties.
-   * @default false
+   * @default true
    */
   dashedIdents?: boolean;
 

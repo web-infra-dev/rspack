@@ -7,7 +7,7 @@ use rspack_core::{
 };
 use rustc_hash::FxHashSet;
 
-use crate::utils::replace_css_local_ident;
+use crate::utils::replace_css_module_id_placeholder;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -164,7 +164,7 @@ fn resolve_css_export_value(
       };
       resolved.push(value);
     } else {
-      resolved.push(replace_css_local_ident(ident, compilation, module).to_string());
+      resolved.push(replace_css_module_id_placeholder(ident, compilation, module).to_string());
     }
   }
 

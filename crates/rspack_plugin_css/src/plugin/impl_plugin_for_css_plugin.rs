@@ -29,9 +29,9 @@ use smol_str::SmolStr;
 use crate::{
   CssPlugin,
   dependency::{
-    CssIcssSymbolDependencyTemplate, CssImportDependencyTemplate, CssLayer,
-    CssLocalIdentDependencyTemplate, CssMedia, CssSelfReferenceLocalIdentDependencyTemplate,
-    CssSupports, CssUrlDependencyTemplate,
+    CssIcssSymbolDependencyTemplate, CssImportDependency, CssImportDependencyTemplate,
+    CssLocalIdentDependencyTemplate, CssSelfReferenceLocalIdentDependencyTemplate,
+    CssUrlDependencyTemplate,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
