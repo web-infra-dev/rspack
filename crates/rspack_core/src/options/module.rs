@@ -451,7 +451,7 @@ impl Default for CssModuleParserOptions {
       animation: Some(true),
       container: Some(true),
       custom_idents: Some(true),
-      dashed_idents: Some(true),
+      dashed_idents: None,
       r#function: Some(true),
       grid: Some(true),
     }

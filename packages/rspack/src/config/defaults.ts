@@ -350,7 +350,6 @@ const applyCssModuleParserOptionsDefaults = (
   D(parserOptions, 'animation', true);
   D(parserOptions, 'container', true);
   D(parserOptions, 'customIdents', true);
-  D(parserOptions, 'dashedIdents', true);
   D(parserOptions, 'function', true);
   D(parserOptions, 'grid', true);
 };

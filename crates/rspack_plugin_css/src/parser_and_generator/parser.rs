@@ -734,10 +734,7 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn dashed_idents(&self) -> bool {
-    self
-      .parser_options
-      .dashed_idents
-      .expect("should have dashed_idents")
+    self.parser_options.dashed_idents.unwrap_or(false)
   }
 
   fn function(&self) -> bool {

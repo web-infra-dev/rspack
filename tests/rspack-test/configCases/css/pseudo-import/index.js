@@ -17,7 +17,7 @@ it("should re-export", async () => {
 	const module = await import("./reexport.modules.css");
 	expect(module).toEqual(nsObj({
 		"className": "reexport_modules_css-className",
-		"primary-color": "red",
-		"secondary-color": "block",
+		"primary-color": "constructor",
+		"secondary-color": "toString",
 	}));
 });

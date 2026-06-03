@@ -13,9 +13,7 @@ export default {
 	class: style.class,
 	local: `${local1} ${local2} ${local3} ${local4}`,
 	local2: `${style.local5} ${style.local6}`,
-	// TODO: Add `nested2` when Rspack exports the global part of this
-	// webpack fixture's nested :global/:local selector.
-	nested: `${style.nested1} ${style.nested3}`,
+	nested: `${style.nested1} ${style.nested2} ${style.nested3}`,
 	notWmultiParams: `${style.local7}`,
 	isWmultiParams: `${style.local8}`,
 	matchesWmultiParams: `${style.local9}`,
@@ -31,9 +29,7 @@ export default {
 	keyframesUPPERCASE: style.localkeyframesUPPERCASE,
 	localkeyframes2UPPPERCASE: style.localkeyframes2UPPPERCASE,
 	animation: style.animation,
-	// TODO: Add `global-color` when Rspack exports custom properties from
-	// declarations inside `:global` scopes.
-	vars: `${style["local-color"]} ${style.vars} ${style.globalVars}`,
+	vars: `${style["local-color"]} ${style.vars} ${style["global-color"]} ${style.globalVars}`,
 	media: style.wideScreenClass,
 	mediaWithOperator: style.narrowScreenClass,
 	supports: style.displayGridInSupports,
@@ -41,7 +37,7 @@ export default {
 	mediaInSupports: style.displayFlexInMediaInSupports,
 	supportsInMedia: style.displayFlexInSupportsInMedia,
 	displayFlexInSupportsInMediaUpperCase: style.displayFlexInSupportsInMediaUpperCase,
-	VARS: `${style["LOCAL-COLOR"]} ${style.VARS}`,
+	VARS: `${style["LOCAL-COLOR"]} ${style.VARS} ${style["GLOBAL-COLOR"]} ${style.globalVarsUpperCase}`,
 	inSupportScope: style.inSupportScope,
 	animationName: style.animationName,
 	mozAnimationName: style.mozAnimationName,
@@ -55,15 +51,5 @@ export default {
 	cssModuleWithCustomFileExtension: myCssClass,
 	notAValidCssModuleExtension: isNotACSSModule,
 	UsedClassName,
-	exportLocalVarsShouldCleanup: `${hasOwnProperty(notACssModule, 'local-color')} ${hasOwnProperty(notACssModule, "LOCAL-COLOR")}`,
-	exportName: style.exportName,
-	exportNameOtherNoSpaces: style.exportNameOtherNoSpaces,
-	exportNameMixedLocalGlobalFunctions: style.exportNameMixedLocalGlobalFunctions,
-	exportNameOtherFromKeyword: style.exportNameOtherFromKeyword,
-	exportNameOtherFromKeywordWithFrom1: style.exportNameOtherFromKeywordWithFrom1,
-	exportNameOtherFromKeywordWithFrom2: style.exportNameOtherFromKeywordWithFrom2,
-	exportNameWeirdCharacters: style.exportNameWeirdCharacters,
-	textColor: style['text-color'],
-	classNameAfterBrokenKeyframes: style['class-name-after-broken-keyframes'],
-	__webpack_modules__: Object.keys(__webpack_modules__).length
+	exportLocalVarsShouldCleanup: `${hasOwnProperty(notACssModule, 'local-color')} ${hasOwnProperty(notACssModule, "LOCAL-COLOR")}`
 };

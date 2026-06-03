@@ -1,5 +1,4 @@
 const prod = process.env.NODE_ENV === "production";
-const normalizeCss = css => css.replace(/^\t+$/gm, "");
 
 it("should allow to create css modules", async () => {
   const { default: x } = await import("./use-style.js");
@@ -14,5 +13,5 @@ it("should allow to create css modules", async () => {
 		"utf-8"
 	);
 	expect(cssContent).not.toContain(".my-app--");
-	expect(normalizeCss(cssContent)).toMatchSnapshot(prod ? "prod" : "dev");
+	expect(cssContent).toMatchSnapshot(prod ? "prod" : "dev");
 });
