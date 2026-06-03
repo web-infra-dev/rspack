@@ -1,3 +1,4 @@
+#[cfg(windows)]
 use std::path::Path;
 
 use rspack_core::{
@@ -217,36 +218,107 @@ fn file_url_to_path(value: &str) -> Option<String> {
 
 #[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
-  let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-    let is_directory_request = value
-      .strip_prefix("file://")
-      .and_then(|path| path.split(['?', '#']).next())
-      .is_some_and(|path| path.ends_with('/'));
-    (path, is_directory_request)
-  } else {
-    if !Path::new(value).is_absolute() {
-      return None;
+  #[cfg(not(windows))]
+  {
+    let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
+      let is_directory_request = value
+        .strip_prefix("file://")
+        .and_then(|path| path.split(['?', '#']).next())
+        .is_some_and(|path| path.ends_with('/'));
+      (path, is_directory_request)
+    } else {
+      if !value.starts_with('/') {
+        return None;
+      }
+      (
+        value.to_string(),
+        value.ends_with('/') || value.ends_with('\\'),
+      )
+    };
+    let context = if is_directory_request {
+      let context = path.trim_end_matches(['/', '\\']);
+      if context.is_empty() { "/" } else { context }
+    } else {
+      dirname(&path)?
+    };
+    Some(Context::new(context.into()))
+  }
+
+  #[cfg(windows)]
+  {
+    let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
+      let is_directory_request = value
+        .strip_prefix("file://")
+        .and_then(|path| path.split(['?', '#']).next())
+        .is_some_and(|path| path.ends_with('/'));
+      (path, is_directory_request)
+    } else {
+      if !Path::new(value).is_absolute() {
+        return None;
+      }
+      (
+        value.to_string(),
+        value.ends_with('/') || value.ends_with('\\'),
+      )
+    };
+    let path = Path::new(&path);
+    let context = if is_directory_request {
+      path
+    } else {
+      path.parent()?
+    };
+    let context = if context.parent().is_none() {
+      context.to_string_lossy().to_string()
+    } else {
+      context
+        .to_string_lossy()
+        .trim_end_matches(['/', '\\'])
+        .to_string()
+    };
+    Some(Context::new(context.into()))
+  }
+}
+
+#[cfg(not(windows))]
+fn dirname(path: &str) -> Option<&str> {
+  let path = path.trim_end_matches(['/', '\\']);
+  path.rfind('/').map(|idx| {
+    if idx == 0 {
+      "/"
+    } else {
+      path[..idx].trim_end_matches('\\')
     }
-    (
-      value.to_string(),
-      value.ends_with('/') || value.ends_with('\\'),
-    )
-  };
-  let path = Path::new(&path);
-  let context = if is_directory_request {
-    path
+  })
+}
+
+#[cfg(not(windows))]
+fn join_url_request(resource: &str, request: &str) -> Option<String> {
+  if request.starts_with('/') {
+    return Some(request.to_string());
+  }
+  let dirname = dirname(resource)?;
+  let mut path = if dirname == "/" {
+    format!("/{request}")
   } else {
-    path.parent()?
+    format!("{dirname}/{request}")
   };
-  let context = if context.parent().is_none() {
-    context.to_string_lossy().to_string()
-  } else {
-    context
-      .to_string_lossy()
-      .trim_end_matches(['/', '\\'])
-      .to_string()
-  };
-  Some(Context::new(context.into()))
+  if request.ends_with('/') && !path.ends_with('/') {
+    path.push('/');
+  }
+  Some(path)
+}
+
+#[cfg(windows)]
+fn join_url_request(resource: &str, request: &str) -> Option<String> {
+  let mut path = Path::new(resource)
+    .parent()?
+    .join(request)
+    .to_string_lossy()
+    .to_string();
+  if request.ends_with('/') && !path.ends_with(['/', '\\']) {
+    path.push(std::path::MAIN_SEPARATOR);
+  }
+  Some(path)
 }
 
 #[inline(never)]
@@ -280,15 +352,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let request_path = request.split(['?', '#']).next()?;
-  let mut path = Path::new(parser.resource_data.resource())
-    .parent()?
-    .join(request_path)
-    .to_string_lossy()
-    .to_string();
-  if request_path.ends_with('/') && !path.ends_with(['/', '\\']) {
-    path.push(std::path::MAIN_SEPARATOR);
-  }
-  Some(path)
+  join_url_request(parser.resource_data.resource(), request_path)
 }
 
 #[inline(never)]
