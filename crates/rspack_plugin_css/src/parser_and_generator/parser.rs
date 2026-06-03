@@ -1203,15 +1203,11 @@ impl<'context> CssModuleParser<'context> {
   fn add_warnings(&mut self, warnings: Vec<css_module_lexer::Warning>) {
     for warning in warnings {
       let range = warning.range();
-      let message = match warning.kind() {
-        css_module_lexer::WarningKind::NotPure { message } => message.to_string(),
-        _ => warning.to_string(),
-      };
       let error = css_parsing_traceable_error(
         &self.source_code,
         range.start,
         range.end,
-        message,
+        warning.to_string(),
         if matches!(
           warning.kind(),
           css_module_lexer::WarningKind::NotPrecededAtImport
