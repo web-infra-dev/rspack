@@ -190,7 +190,7 @@
 }
 
 :root {
-	--zCGg-b: red;
+	--color: red;
 }
 
 
@@ -198,15 +198,15 @@
 
 
 .lN8cZb {
-	color: var(--zCGg-b);
-	background-color: var(--O2JzVP from "./shared-custom-properties.module.css");
-	border-color: var(--O1laQq from "./shared-custom-properties.module.css");
-	outline-color: var(--r2UEoW);
-	text-decoration-color: var(--_pd6p1);
+	color: var(--color);
+	background-color: var(--shared from "./shared-custom-properties.module.css");
+	border-color: var(--deep-shared from "./shared-custom-properties.module.css");
+	outline-color: var(--my-custom-property-1);
+	text-decoration-color: var(--reexport-my-var-u1);
 }
 
 .Qd9RVw {
-	color: var(--u5xyqD from "./vars.module.css");
+	color: var(--my-var-u1 from "./vars.module.css");
 }
 
 
