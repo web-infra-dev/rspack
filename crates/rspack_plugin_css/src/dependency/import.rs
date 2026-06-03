@@ -1,9 +1,11 @@
+use std::fmt::Write;
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CssModuleRenderCondition, Dependency, DependencyCategory,
+  AsContextDependency, CssLayer, CssModuleRenderCondition, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, TemplateContext,
-  TemplateReplaceSource, iter_css_module_render_conditions,
+  DependencyTemplateType, DependencyType, FactorizeInfo, ModuleDependency, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, iter_css_module_render_conditions,
 };
 
 #[cacheable]
@@ -15,6 +17,7 @@ pub struct CssImportDependency {
   source_order: i32,
   inherited_render_conditions: Vec<CssModuleRenderCondition>,
   render_condition: CssModuleRenderCondition,
+  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
@@ -25,6 +28,8 @@ impl CssImportDependency {
     inherited_render_conditions: Vec<CssModuleRenderCondition>,
     render_condition: CssModuleRenderCondition,
   ) -> Self {
+    let resource_identifier =
+      create_resource_identifier(&request, &inherited_render_conditions, &render_condition);
     Self {
       id: DependencyId::new(),
       request,
@@ -32,6 +37,7 @@ impl CssImportDependency {
       source_order: source_order_to_i32(range.start),
       inherited_render_conditions,
       render_condition,
+      resource_identifier,
       factorize_info: Default::default(),
     }
   }
@@ -75,6 +81,10 @@ impl Dependency for CssImportDependency {
     Some(self.source_order)
   }
 
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(&self.resource_identifier)
+  }
+
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
@@ -112,6 +122,49 @@ fn source_order_to_i32(source_order: u32) -> i32 {
   source_order.try_into().unwrap_or(i32::MAX)
 }
 
+fn create_resource_identifier(
+  request: &str,
+  inherited_render_conditions: &[CssModuleRenderCondition],
+  render_condition: &CssModuleRenderCondition,
+) -> ResourceIdentifier {
+  let category = DependencyCategory::CssImport.as_str();
+  let mut identifier = String::with_capacity(category.len() + request.len() + 16);
+  identifier.push_str(category);
+  push_resource_identifier_part(&mut identifier, request);
+
+  let conditions = iter_css_module_render_conditions(inherited_render_conditions, render_condition)
+    .collect::<Vec<_>>();
+  if !conditions.is_empty() {
+    identifier.push_str("|conditions=");
+    write!(identifier, "{}", conditions.len()).expect("write to String should not fail");
+
+    for condition in conditions {
+      let layer = match &condition.layer {
+        Some(CssLayer::Anonymous) => "<anonymous>",
+        Some(CssLayer::Named(layer)) => layer.as_str(),
+        None => "",
+      };
+      push_resource_identifier_part(&mut identifier, layer);
+      push_resource_identifier_part(
+        &mut identifier,
+        condition.supports.as_deref().unwrap_or_default(),
+      );
+      push_resource_identifier_part(
+        &mut identifier,
+        condition.media.as_deref().unwrap_or_default(),
+      );
+    }
+  }
+
+  identifier.into()
+}
+
+fn push_resource_identifier_part(identifier: &mut String, value: &str) {
+  identifier.push('|');
+  write!(identifier, "{}:", value.len()).expect("write to String should not fail");
+  identifier.push_str(value);
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssImportDependencyTemplate;
@@ -134,5 +187,52 @@ impl DependencyTemplate for CssImportDependencyTemplate {
       .expect("CssImportDependencyTemplate should be used for CssImportDependency");
 
     source.replace_static(dep.range.start, dep.range.end, "", None);
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::{CssLayer, CssModuleRenderCondition};
+
+  use super::create_resource_identifier;
+
+  #[test]
+  fn creates_resource_identifier_with_render_conditions() {
+    let first = create_resource_identifier(
+      "./style.css",
+      &[],
+      &CssModuleRenderCondition::new(
+        Some("screen".into()),
+        Some("display: grid".into()),
+        Some(CssLayer::Named("theme".into())),
+      ),
+    );
+    let second = create_resource_identifier(
+      "./style.css",
+      &[],
+      &CssModuleRenderCondition::new(
+        Some("print".into()),
+        Some("display: grid".into()),
+        Some(CssLayer::Named("theme".into())),
+      ),
+    );
+
+    assert_ne!(first, second);
+  }
+
+  #[test]
+  fn creates_resource_identifier_without_delimiter_collisions() {
+    let first = create_resource_identifier(
+      "a|1:b",
+      &[],
+      &CssModuleRenderCondition::new(None, Some("x|1:y".into()), None),
+    );
+    let second = create_resource_identifier(
+      "a",
+      &[],
+      &CssModuleRenderCondition::new(None, Some("1:b|x|1:y".into()), None),
+    );
+
+    assert_ne!(first, second);
   }
 }
