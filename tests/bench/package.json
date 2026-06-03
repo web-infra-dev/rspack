@@ -4,7 +4,7 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "bench": "tsx ts-react.bench.ts"
+    "bench": "node --expose-gc --hash-seed=1 --random-seed=1 ts-react.bench.ts"
   },
   "devDependencies": {
     "@codspeed/tinybench-plugin": "^5.5.0",
@@ -13,8 +13,7 @@
     "@rspack/plugin-react-refresh": "^2.0.1",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "tsx": "^4.22.4",
-    "tinybench": "^6.0.2"
+    "tinybench": "^5.1.0"
   },
   "dependencies": {
     "react": "^19.2.6",

@@ -4,28 +4,50 @@ import {
   type Chunk,
   type ChunkGroup,
   type Compilation,
-  ExternalItemFunctionData,
-  Module,
-  ModuleGraph,
+  type ExternalItemFunctionData,
   NormalModule,
   rspack,
 } from '@rspack/core';
 import { Bench } from 'tinybench';
-import rspackConfig from './fixtures/ts-react/rspack.config';
+import rspackConfig from './fixtures/ts-react/rspack.config.ts';
 
 const BARREL_OPTIMIZATION_PREFIX = '__barrel_optimize__';
 
 let context: string;
 let theCompilation: Compilation;
 let externalContexts: ExternalItemFunctionData[] = [];
+let benchmarkReady = false;
+const benchmarkWarmups: (() => unknown | Promise<unknown>)[] = [];
 
 const benchmarkSuite = withCodSpeed(
-  new Bench({ name: 'TypeScript React project' }),
+  new Bench({ name: 'TypeScript React project', throws: true }),
 );
 
-function bench(name: string, fn: () => unknown | Promise<unknown>) {
+function bench(name: string, fn: () => unknown) {
+  benchmarkWarmups.push(fn);
+
   // Mark benchmarks on JavaScript files with `js@` prefix.
-  benchmarkSuite.add(`js@${name}`, fn);
+  benchmarkSuite.add(`js@${name}`, () => {
+    // Tinybench probes sync tasks during add(). Keep registration side-effect free.
+    if (!benchmarkReady) return;
+    return fn();
+  });
+}
+
+function benchAsync(name: string, fn: () => Promise<unknown>) {
+  benchmarkWarmups.push(fn);
+
+  // Mark benchmarks on JavaScript files with `js@` prefix.
+  benchmarkSuite.add(`js@${name}`, async () => {
+    if (!benchmarkReady) return;
+    return await fn();
+  });
+}
+
+async function warmupBenchmarks() {
+  for (const warmup of benchmarkWarmups) {
+    await warmup();
+  }
 }
 
 function setupCompilation() {
@@ -64,8 +86,6 @@ function setupCompilation() {
     ),
   );
 }
-
-await setupCompilation();
 
 bench('Traverse module graph by dependencies', () => {
   const entries = theCompilation.entries.values();
@@ -261,7 +281,7 @@ bench('record chunk group', () => {
   }
 });
 
-bench('external getResolve', async () => {
+benchAsync('external getResolve', async () => {
   const values: Promise<string>[] = [];
   for (const { context, request, getResolve } of externalContexts) {
     const resolve = getResolve!() as (
@@ -274,5 +294,8 @@ bench('external getResolve', async () => {
   await Promise.all(values);
 });
 
+await setupCompilation();
+await warmupBenchmarks();
+benchmarkReady = true;
 await benchmarkSuite.run();
 console.table(benchmarkSuite.table());
