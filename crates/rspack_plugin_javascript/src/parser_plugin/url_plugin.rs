@@ -160,7 +160,11 @@ impl JavascriptParserPlugin for URLPlugin {
 
     if let Some((request, start, end)) = get_url_request(parser, expr) {
       if request.starts_with("//") {
-        return (args.len() == 2).then_some(true);
+        if args.len() == 2 {
+          parser.walk_expression(&args[1].expr);
+          return Some(true);
+        }
+        return None;
       }
       let dep = URLDependency::new(
         request.into(),

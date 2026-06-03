@@ -1,4 +1,3 @@
-#[cfg(windows)]
 use std::path::Path;
 
 use rspack_core::{
@@ -16,7 +15,6 @@ use swc_core::{
     VarDeclarator,
   },
 };
-use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -187,20 +185,22 @@ fn file_url_to_path(value: &str) -> Option<String> {
       }
     });
 
-  #[cfg(windows)]
-  let path = path.as_str();
   if has_encoded_separator(path) {
     return None;
   }
 
-  Some(
-    Url::parse(value)
-      .ok()?
-      .to_file_path()
-      .ok()?
-      .to_string_lossy()
-      .to_string(),
-  )
+  #[cfg(windows)]
+  let path = path.as_str();
+  urlencoding::decode(path).ok().map(|path| {
+    #[cfg(windows)]
+    {
+      path.replace('/', "\\")
+    }
+    #[cfg(not(windows))]
+    {
+      path.into_owned()
+    }
+  })
 }
 
 #[inline(never)]
@@ -315,13 +315,11 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   if has_encoded_separator(request_path) {
     return None;
   }
+  let request_path = urlencoding::decode(request_path).ok()?;
   Some(
-    Url::from_file_path(parser.resource_data.resource())
-      .ok()?
-      .join(request_path)
-      .ok()?
-      .to_file_path()
-      .ok()?
+    Path::new(parser.resource_data.resource())
+      .parent()?
+      .join(request_path.as_ref())
       .to_string_lossy()
       .to_string(),
   )
@@ -373,10 +371,6 @@ fn parse_create_require_argument(
       "module.createRequire supports only file URLs and absolute paths.",
       arg.span(),
     );
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      arg.span().into(),
-      json_stringify_str(&value).into(),
-    )));
   }
   Some(CreateRequireArgument {
     value,
