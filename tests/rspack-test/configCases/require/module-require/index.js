@@ -69,6 +69,9 @@ it("should provide require.cache", () => {
 it("should provide dependency context", () => {
 	const _require = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(_require("./a")).toBe(4);
+	const createRequireAlias = _createRequire;
+	const aliasRequire = createRequireAlias(new URL("./foo/c.js", import.meta.url));
+	expect(aliasRequire("./aliased-only")).toBe("__rspackAliasedCreateRequire");
 	const _require1 = _createRequire(new URL("./foo/", import.meta.url));
 	expect(_require1("./c")).toBe(5);
 	expect(

@@ -1154,6 +1154,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return Some(true);
     }
 
+    if let Some(init) = init.as_ident()
+      && parser
+        .get_tag_data::<CreateRequireSpecifierTagData>(&init.sym, CREATE_REQUIRE_SPECIFIER_TAG)
+        .is_some()
+      && let Some(binding) = declarator.name.as_ident()
+    {
+      parser.define_variable(binding.id.sym.clone());
+      tag_create_require(parser, binding.id.sym.clone());
+    }
+
     let call = init.as_call()?;
     let callee = call.callee.as_expr().and_then(|callee| callee.as_ident())?;
     parser
