@@ -46,35 +46,43 @@ pub async fn create_hash(
   // possible to depend on full hash, but for library type commonjs/module, it's possible to
   // have non-runtime chunks depend on full hash, the library format plugin is using
   // dependent_full_hash hook to declare it.
-  let mut full_hash_chunks: FxHashSet<_> = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .keys()
-    .copied()
-    .collect::<Vec<_>>()
-    .into_par_iter()
-    .try_fold(
-      FxHashSet::default,
-      |mut local_set, chunk_ukey| -> Result<FxHashSet<_>> {
-        let mut chunk_dependent_full_hash = false;
-        plugin_driver.compilation_hooks.dependent_full_hash.call(
-          compilation,
-          &chunk_ukey,
-          &mut chunk_dependent_full_hash,
-        )?;
-        if chunk_dependent_full_hash {
-          local_set.insert(chunk_ukey);
-        }
-        Ok(local_set)
-      },
-    )
-    .try_reduce(
-      FxHashSet::default,
-      |mut acc, local_set| -> Result<FxHashSet<_>> {
-        acc.extend(local_set);
-        Ok(acc)
-      },
-    )?;
+  let mut full_hash_chunks: FxHashSet<_> = if plugin_driver
+    .compilation_hooks
+    .dependent_full_hash
+    .is_empty()
+  {
+    FxHashSet::default()
+  } else {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect::<Vec<_>>()
+      .into_par_iter()
+      .try_fold(
+        FxHashSet::default,
+        |mut local_set, chunk_ukey| -> Result<FxHashSet<_>> {
+          let mut chunk_dependent_full_hash = false;
+          plugin_driver.compilation_hooks.dependent_full_hash.call(
+            compilation,
+            &chunk_ukey,
+            &mut chunk_dependent_full_hash,
+          )?;
+          if chunk_dependent_full_hash {
+            local_set.insert(chunk_ukey);
+          }
+          Ok(local_set)
+        },
+      )
+      .try_reduce(
+        FxHashSet::default,
+        |mut acc, local_set| -> Result<FxHashSet<_>> {
+          acc.extend(local_set);
+          Ok(acc)
+        },
+      )?
+  };
   if !full_hash_chunks.is_empty()
     && let Some(diagnostic) = compilation.incremental.disable_passes(
       IncrementalPasses::CHUNKS_HASHES,
@@ -163,28 +171,33 @@ pub async fn create_hash(
 
   // create hash for runtime modules in other chunks
   let compilation_ref = &*compilation;
-  let other_chunk_runtime_module_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
-    other_chunks
+  let other_chunk_runtime_module_hashes = {
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    if other_chunks
       .iter()
-      .flat_map(|chunk| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_chunk_runtime_modules_iterable(chunk)
+      .any(|chunk| chunk_graph.has_chunk_runtime_modules(chunk))
+    {
+      rspack_parallel::scope::<_, Result<_>>(|token| {
+        other_chunks
+          .iter()
+          .flat_map(|chunk| chunk_graph.get_chunk_runtime_modules_iterable(chunk))
+          .for_each(|runtime_module_identifier| {
+            let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
+            s.spawn(|(compilation, runtime_module_identifier)| async {
+              let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+              let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+              Ok((*runtime_module_identifier, digest))
+            });
+          })
       })
-      .for_each(|runtime_module_identifier| {
-        let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
-        s.spawn(|(compilation, runtime_module_identifier)| async {
-          let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-          let digest = runtime_module.get_runtime_hash(compilation, None).await?;
-          Ok((*runtime_module_identifier, digest))
-        });
-      })
-  })
-  .await
-  .into_iter()
-  .map(|res| res.to_rspack_result())
-  .collect::<Result<Vec<_>>>()?;
+      .await
+      .into_iter()
+      .map(|res| res.to_rspack_result())
+      .collect::<Result<Vec<_>>>()?
+    } else {
+      Vec::new()
+    }
+  };
 
   for res in other_chunk_runtime_module_hashes {
     let (runtime_module_identifier, digest) = res?;
@@ -195,11 +208,12 @@ pub async fn create_hash(
 
   // create hash for other chunks
   let compilation_ref = &*compilation;
+  let plugin_driver_ref = &plugin_driver;
   let other_chunks_hash_results = rspack_parallel::scope::<_, Result<_>>(|token| {
     for chunk in other_chunks {
-      let s = unsafe { token.used((compilation_ref, chunk, plugin_driver.clone())) };
+      let s = unsafe { token.used((compilation_ref, chunk, plugin_driver_ref)) };
       s.spawn(|(compilation, chunk, plugin_driver)| async move {
-        let hash_result = process_chunk_hash(compilation, *chunk, &plugin_driver).await?;
+        let hash_result = process_chunk_hash(compilation, *chunk, plugin_driver).await?;
         Ok((*chunk, hash_result))
       });
     }
@@ -270,11 +284,12 @@ pub async fn create_hash(
     if has_full_hash_modules {
       full_hash_chunks.insert(chunk_ukey);
     }
-    let referenced_by = runtime_chunks_map
-      .get(&chunk_ukey)
-      .expect("should in runtime_chunks_map")
-      .0
-      .clone();
+    let referenced_by = std::mem::take(
+      &mut runtime_chunks_map
+        .get_mut(&chunk_ukey)
+        .expect("should in runtime_chunks_map")
+        .0,
+    );
     for other in referenced_by {
       if has_full_hash_modules {
         for runtime_module in compilation
@@ -342,24 +357,27 @@ pub async fn create_hash(
   let start = logger.time("hashing: hash runtime chunks");
   for runtime_chunk_ukey in runtime_chunks {
     let compilation_ref = &*compilation;
-    let runtime_module_hashes = rspack_parallel::scope::<_, Result<_>>(|token| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
-        .for_each(|runtime_module_identifier| {
-          let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
-          s.spawn(|(compilation, runtime_module_identifier)| async {
-            let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-            let digest = runtime_module.get_runtime_hash(compilation, None).await?;
-            Ok((*runtime_module_identifier, digest))
-          });
-        })
-    })
-    .await
-    .into_iter()
-    .map(|res| res.to_rspack_result())
-    .collect::<Result<Vec<_>>>()?;
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let runtime_module_hashes = if chunk_graph.has_chunk_runtime_modules(&runtime_chunk_ukey) {
+      rspack_parallel::scope::<_, Result<_>>(|token| {
+        chunk_graph
+          .get_chunk_runtime_modules_iterable(&runtime_chunk_ukey)
+          .for_each(|runtime_module_identifier| {
+            let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
+            s.spawn(|(compilation, runtime_module_identifier)| async {
+              let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
+              let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+              Ok((*runtime_module_identifier, digest))
+            });
+          })
+      })
+      .await
+      .into_iter()
+      .map(|res| res.to_rspack_result())
+      .collect::<Result<Vec<_>>>()?
+    } else {
+      Vec::new()
+    };
 
     for res in runtime_module_hashes {
       let (mid, digest) = res?;
@@ -389,21 +407,21 @@ pub async fn create_hash(
   compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
-    .values()
-    .sorted_unstable_by_key(|chunk| chunk.ukey())
-    .for_each(|chunk| {
-      if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
-        hash.hash(&mut compilation_hasher);
-      }
-      if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
-        content_hashes
-          .iter()
-          .sorted_unstable_by_key(|(source_type, _)| *source_type)
-          .for_each(|(source_type, content_hash)| {
-            source_type.hash(&mut compilation_hasher);
-            content_hash.hash(&mut compilation_hasher);
-          });
-      }
+    .keys()
+    .sorted_unstable()
+    .for_each(|chunk_ukey| {
+      let Some(chunk_hashes) = compilation.chunk_hashes_artifact.get(chunk_ukey) else {
+        return;
+      };
+      chunk_hashes.hash().hash(&mut compilation_hasher);
+      chunk_hashes
+        .content_hash()
+        .iter()
+        .sorted_unstable_by_key(|(source_type, _)| *source_type)
+        .for_each(|(source_type, content_hash)| {
+          source_type.hash(&mut compilation_hasher);
+          content_hash.hash(&mut compilation_hasher);
+        });
     });
   compilation.hot_index.hash(&mut compilation_hasher);
   compilation.hash = Some(compilation_hasher.digest(&compilation.options.output.hash_digest));
@@ -477,6 +495,11 @@ pub async fn create_hash(
 
 #[instrument(skip_all)]
 pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> Result<()> {
+  if compilation.runtime_modules.is_empty() {
+    compilation.runtime_modules_code_generation_source = Default::default();
+    return Ok(());
+  }
+
   let compilation_ref = &*compilation;
   let results = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
@@ -493,13 +516,14 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
               concatenation_scope: None,
               runtime_template: &mut runtime_template,
             };
-            let result = runtime_module
+            let mut result = runtime_module
               .code_generation(&mut code_generation_context)
               .await?;
             let source = result
-              .get(&SourceType::Runtime)
+              .inner
+              .remove(&SourceType::Runtime)
               .expect("should have source");
-            Ok((*runtime_module_identifier, source.clone()))
+            Ok((*runtime_module_identifier, source))
           },
         )
       })
@@ -510,12 +534,16 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
   .collect::<Result<Vec<_>>>()?;
 
   let mut runtime_module_sources = IdentifierMap::<BoxSource>::default();
+  runtime_module_sources.reserve(results.len());
   for result in results {
     let (runtime_module_identifier, source) = result?;
     runtime_module_sources.insert(runtime_module_identifier, source);
   }
 
   compilation.runtime_modules_code_generation_source = runtime_module_sources;
+  compilation
+    .code_generated_modules
+    .reserve(compilation.runtime_modules.len());
   compilation
     .code_generated_modules
     .extend(compilation.runtime_modules.keys().copied());

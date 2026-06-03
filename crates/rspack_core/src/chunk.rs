@@ -2,7 +2,6 @@ use std::{cmp::Ordering, fmt::Debug, hash::Hash};
 
 use itertools::Itertools;
 use rayon::prelude::*;
-use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
@@ -736,21 +735,26 @@ impl Chunk {
 
   pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
     self.id().hash(hasher);
-    let runtime_modules = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(&self.ukey)
-      .copied()
-      .collect::<IdentifierSet>();
+    let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+    let has_runtime_modules = chunk_graph.has_chunk_runtime_modules(&self.ukey);
+    let module_identifiers = if has_runtime_modules {
+      let mut module_identifiers = chunk_graph
+        .get_chunk_modules_identifier(&self.ukey)
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+      let runtime_modules = chunk_graph
+        .get_chunk_runtime_modules_iterable(&self.ukey)
+        .copied()
+        .collect::<Vec<_>>();
+      module_identifiers.retain(|module_identifier| !runtime_modules.contains(module_identifier));
+      module_identifiers.sort_unstable_by_key(|m| m.as_str());
+      module_identifiers
+    } else {
+      chunk_graph.get_ordered_chunk_modules_identifier(&self.ukey)
+    };
 
-    for module_identifier in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_ordered_chunk_modules_identifier(&self.ukey)
-    {
-      if runtime_modules.contains(&module_identifier) {
-        continue;
-      }
+    for module_identifier in module_identifiers {
       if let Some(hash) = compilation
         .code_generation_results
         .get_hash(&module_identifier, Some(&self.runtime))
@@ -759,27 +763,25 @@ impl Chunk {
       }
     }
 
-    for (runtime_module_identifier, _) in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_runtime_modules_in_order(&self.ukey, compilation)
-    {
-      let hash = compilation
-        .runtime_modules_hash
-        .get(runtime_module_identifier)
-        .unwrap_or_else(|| {
-          panic!(
-            "Runtime module ({runtime_module_identifier}) should have hash result when updating chunk hash."
-          );
-        });
-      hash.hash(hasher);
+    if has_runtime_modules {
+      for (runtime_module_identifier, _) in
+        chunk_graph.get_chunk_runtime_modules_in_order(&self.ukey, compilation)
+      {
+        let hash = compilation
+          .runtime_modules_hash
+          .get(runtime_module_identifier)
+          .unwrap_or_else(|| {
+            panic!(
+              "Runtime module ({runtime_module_identifier}) should have hash result when updating chunk hash."
+            );
+          });
+        hash.hash(hasher);
+      }
     }
 
     "entry".hash(hasher);
-    for (module, chunk_group) in compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
+    for (module, chunk_group) in
+      chunk_graph.get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module).hash(hasher);
       if let Some(chunk_group) = compilation
