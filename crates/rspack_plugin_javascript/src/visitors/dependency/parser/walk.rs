@@ -5,11 +5,11 @@ use swc_core::{
   atoms::Atom,
   common::Spanned,
   ecma::ast::{
-    ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
-    BinExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassExpr,
-    ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr, ExprOrSpread,
-    ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp, Ident,
-    IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild,
+    ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignOp, AssignPat, AssignTarget, AssignTargetPat,
+    AwaitExpr, BinExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class,
+    ClassExpr, ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr,
+    ExprOrSpread, ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetterProp,
+    Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild,
     JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr, JSXNamespacedName,
     JSXObject, KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl,
     ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat,
@@ -728,6 +728,15 @@ impl JavascriptParser<'_> {
         tag_info_id = tag_info.next;
       }
     }
+  }
+
+  fn has_created_require_tag(&mut self, name: &Atom) -> bool {
+    self
+      .get_tag_data::<crate::parser_plugin::CreatedRequireTagData>(
+        name,
+        CREATED_REQUIRE_IDENTIFIER_TAG,
+      )
+      .is_some()
   }
 
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
@@ -1596,6 +1605,11 @@ impl JavascriptParser<'_> {
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
     let drive = self.plugin_drive.clone();
     if let Some(ident) = expr.left.as_ident() {
+      if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
+        && self.has_created_require_tag(&ident.sym)
+      {
+        return;
+      }
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))

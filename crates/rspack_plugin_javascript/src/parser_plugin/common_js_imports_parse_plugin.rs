@@ -11,8 +11,8 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr,
-    UnaryExpr, VarDeclarator,
+    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
+    VarDeclarator,
   },
 };
 
@@ -1671,7 +1671,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   fn assign(
     &self,
     parser: &mut JavascriptParser,
-    expr: &AssignExpr,
+    _expr: &AssignExpr,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -1684,9 +1684,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign) {
-        return Some(true);
-      }
       clear_created_require_tag(parser, &ident.sym);
       return Some(true);
     }

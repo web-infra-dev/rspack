@@ -204,11 +204,11 @@ it("should stop parsing reassigned created require bindings", () => {
 	expect(useBlockReassignedOuterRequire()).toBe("./a");
 
 	let logicalOrRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
-	logicalOrRequire ||= request => request;
+	logicalOrRequire ||= require("./guarded-unused.js");
 	expect(logicalOrRequire("./a")).toBe(4);
 
 	let nullishRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
-	nullishRequire ??= request => request;
+	nullishRequire ??= require("./guarded-unused.js");
 	expect(nullishRequire("./a")).toBe(4);
 
 	let logicalAndRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
