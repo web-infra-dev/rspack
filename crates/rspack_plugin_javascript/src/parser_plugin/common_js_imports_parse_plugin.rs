@@ -147,6 +147,7 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
+#[cold]
 fn has_encoded_separator(value: &str) -> bool {
   value.as_bytes().windows(3).any(|bytes| {
     bytes[0] == b'%'
@@ -156,6 +157,7 @@ fn has_encoded_separator(value: &str) -> bool {
   })
 }
 
+#[cold]
 #[inline(never)]
 fn file_url_to_path(value: &str) -> Option<String> {
   let path = value.strip_prefix("file://")?;
@@ -185,13 +187,15 @@ fn file_url_to_path(value: &str) -> Option<String> {
       }
     });
 
-  if has_encoded_separator(path) {
+  #[cfg(windows)]
+  let raw_path = path.as_str();
+  #[cfg(not(windows))]
+  let raw_path = path;
+  if has_encoded_separator(raw_path) {
     return None;
   }
 
-  #[cfg(windows)]
-  let path = path.as_str();
-  urlencoding::decode(path).ok().map(|path| {
+  urlencoding::decode(raw_path).ok().map(|path| {
     #[cfg(windows)]
     {
       path.replace('/', "\\")
@@ -203,6 +207,7 @@ fn file_url_to_path(value: &str) -> Option<String> {
   })
 }
 
+#[cold]
 #[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
   #[cfg(not(windows))]
@@ -267,6 +272,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
 }
 
 #[cfg(not(windows))]
+#[cold]
 fn dirname(path: &str) -> Option<&str> {
   let path = path.trim_end_matches(['/', '\\']);
   path.rfind('/').map(|idx| {
@@ -278,6 +284,7 @@ fn dirname(path: &str) -> Option<&str> {
   })
 }
 
+#[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
   if arg
@@ -325,6 +332,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   )
 }
 
+#[cold]
 #[inline(never)]
 fn parse_create_require_argument(
   parser: &mut JavascriptParser,
@@ -409,6 +417,7 @@ fn add_unsupported_create_require_member_warning(parser: &mut JavascriptParser, 
   );
 }
 
+#[cold]
 #[inline(never)]
 fn tag_created_require_declarator(
   parser: &mut JavascriptParser,
@@ -1094,6 +1103,21 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     let init = declarator.init.as_ref()?;
+    if let Some(init) = init.as_ident()
+      && let Some(context) = parser
+        .get_tag_data::<CreatedRequireTagData>(&init.sym, CREATED_REQUIRE_IDENTIFIER_TAG)
+        .map(|data| data.context.clone())
+      && let Some(binding) = declarator.name.as_ident()
+    {
+      parser.define_variable(binding.id.sym.clone());
+      parser.tag_variable(
+        binding.id.sym.clone(),
+        CREATED_REQUIRE_IDENTIFIER_TAG,
+        Some(CreatedRequireTagData { context }),
+      );
+      return Some(true);
+    }
+
     let call = init.as_call()?;
     let callee = call.callee.as_expr().and_then(|callee| callee.as_ident())?;
     parser

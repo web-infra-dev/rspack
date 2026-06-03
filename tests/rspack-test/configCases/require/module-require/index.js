@@ -196,6 +196,8 @@ it("should preserve createRequire results used as values", () => {
 	assignedRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(assignedRequire("./a")).toBe(4);
 	expect(assignedRequire("./assigned-only")).toBe("__rspackAssignedCreatedRequire");
+	const aliasedRequire = assignedRequire;
+	expect(aliasedRequire("./a")).toBe(4);
 
 	const emittedSource = fs
 		.readdirSync(path.dirname(__filename))
