@@ -24,6 +24,18 @@ it("should keep preserved createRequire argument dependencies", () => {
 		_createRequire(import("./async-context")).resolve("./a", {});
 	} catch {}
 
+	let dynamicUrlBaseExtraEvaluated = false;
+	try {
+		_createRequire(
+			new URL(
+				"./foo/c.js",
+				import("./async-url-context"),
+				(dynamicUrlBaseExtraEvaluated = true)
+			)
+		).resolve("./a", {});
+	} catch {}
+	expect(dynamicUrlBaseExtraEvaluated).toBe(true);
+
 	const emittedSource = fs
 		.readdirSync(path.dirname(__filename))
 		.filter(file => file.endsWith(".js"))
@@ -31,5 +43,8 @@ it("should keep preserved createRequire argument dependencies", () => {
 		.join("\n");
 	expect(
 		emittedSource.includes("__rspackCreateRequireUnsupportedResolveContextDependency")
+	).toBe(true);
+	expect(
+		emittedSource.includes("__rspackCreateRequireUnsupportedResolveUrlDependency")
 	).toBe(true);
 });

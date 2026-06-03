@@ -1639,7 +1639,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
             && let Some(args) = new_expr.args.as_ref()
             && args.len() > 2
           {
-            parser.walk_expr_or_spread(&args[2..]);
+            if get_url_request(parser, new_expr).is_some() {
+              parser.walk_expr_or_spread(&args[2..]);
+            } else {
+              parser.walk_expr_or_spread(args);
+            }
           } else if let Some(value) = protocol_relative_file_url(parser, arg) {
             parser.add_presentational_dependency(Box::new(ConstDependency::new(
               arg.span().into(),
