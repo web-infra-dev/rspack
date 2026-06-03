@@ -16,7 +16,6 @@ use swc_core::{
     VarDeclarator,
   },
 };
-use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -149,31 +148,72 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
-fn has_encoded_separator(value: &str) -> bool {
-  value.as_bytes().windows(3).any(|bytes| {
-    bytes[0] == b'%'
-      && matches!(bytes[1], b'2' | b'5')
-      && (bytes[1] == b'2' && matches!(bytes[2], b'f' | b'F')
-        || bytes[1] == b'5' && matches!(bytes[2], b'c' | b'C'))
-  })
+#[inline(never)]
+fn decode_file_url_path(value: &str) -> Option<String> {
+  if !value.as_bytes().contains(&b'%') {
+    return Some(value.to_string());
+  }
+  let mut decoded = Vec::with_capacity(value.len());
+  let mut bytes = value.as_bytes().iter().copied();
+  while let Some(byte) = bytes.next() {
+    if byte != b'%' {
+      decoded.push(byte);
+      continue;
+    }
+    let high = bytes.next()?;
+    let low = bytes.next()?;
+    let byte = hex_value(high)? << 4 | hex_value(low)?;
+    if matches!(byte, b'/' | b'\\') {
+      return None;
+    }
+    decoded.push(byte);
+  }
+  String::from_utf8(decoded).ok()
+}
+
+#[inline(always)]
+fn hex_value(byte: u8) -> Option<u8> {
+  match byte {
+    b'0'..=b'9' => Some(byte - b'0'),
+    b'a'..=b'f' => Some(byte - b'a' + 10),
+    b'A'..=b'F' => Some(byte - b'A' + 10),
+    _ => None,
+  }
 }
 
 #[inline(never)]
 fn file_url_to_path(value: &str) -> Option<String> {
   let path = value.strip_prefix("file://")?;
   let path = path.split(['?', '#']).next()?;
-  if has_encoded_separator(path) {
-    return None;
-  }
+  let path = path
+    .strip_prefix("localhost")
+    .filter(|path| path.starts_with('/'))
+    .unwrap_or(path);
 
-  Some(
-    Url::parse(value)
-      .ok()?
-      .to_file_path()
-      .ok()?
-      .to_string_lossy()
-      .to_string(),
-  )
+  #[cfg(not(windows))]
+  if !path.starts_with('/') {
+    return None;
+  };
+
+  #[cfg(windows)]
+  let path = path
+    .strip_prefix('/')
+    .filter(|path| path.as_bytes().get(1).is_some_and(|b| *b == b':'))
+    .map(str::to_string)
+    .unwrap_or_else(|| {
+      if path.starts_with('/') {
+        path.to_string()
+      } else {
+        let mut path = path.replace('/', "\\");
+        path.insert_str(0, "\\\\");
+        path
+      }
+    });
+
+  #[cfg(windows)]
+  let path = path.as_str();
+
+  decode_file_url_path(path)
 }
 
 #[inline(never)]
