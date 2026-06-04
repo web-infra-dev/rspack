@@ -208,6 +208,11 @@ fn decode_file_path(value: &str) -> Option<String> {
 #[cold]
 #[inline(never)]
 fn file_url_to_path(value: &str) -> Option<String> {
+  let parsed = Url::parse(value).ok()?;
+  if parsed.scheme() != "file" {
+    return None;
+  }
+  let value = parsed.as_str();
   let path = value.strip_prefix("file://")?;
   let path = path.split(['?', '#']).next()?;
   let path = path
@@ -252,14 +257,20 @@ fn file_url_to_path(value: &str) -> Option<String> {
 
 #[cold]
 #[inline(never)]
+fn is_directory_file_url(value: &str) -> bool {
+  Url::parse(value)
+    .ok()
+    .filter(|url| url.scheme() == "file")
+    .is_some_and(|url| url.path().ends_with('/'))
+}
+
+#[cold]
+#[inline(never)]
 fn create_require_context_from_path(value: &str) -> Option<Context> {
   #[cfg(not(windows))]
   {
     let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-      let is_directory_request = value
-        .strip_prefix("file://")
-        .and_then(|path| path.split(['?', '#']).next())
-        .is_some_and(|path| path.ends_with('/'));
+      let is_directory_request = is_directory_file_url(value);
       (path, is_directory_request)
     } else {
       if !value.starts_with('/') {
@@ -279,10 +290,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
   #[cfg(windows)]
   {
     let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-      let is_directory_request = value
-        .strip_prefix("file://")
-        .and_then(|path| path.split(['?', '#']).next())
-        .is_some_and(|path| path.ends_with('/'));
+      let is_directory_request = is_directory_file_url(value);
       (path, is_directory_request)
     } else {
       if !Path::new(value).is_absolute() {

@@ -18,6 +18,10 @@ fs.writeFileSync(
 it("should create require from absolute file URL object", () => {
 \texpect(_createRequire(new URL(${JSON.stringify(pathToFileURL(path.join(__dirname, 'foo/c.js')).href)}))("./a")).toBe(4);
 });
+
+it("should normalize direct file URL dot segments", () => {
+\texpect(_createRequire(${JSON.stringify(`${pathToFileURL(`${__dirname}${path.sep}`).href}foo/..`)})("./a")).toBe(1);
+});
 ` +
     (process.platform === 'win32'
       ? '\n'
