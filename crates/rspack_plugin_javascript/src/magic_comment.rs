@@ -217,18 +217,6 @@ fn raw_value<'a>(comment_text: &'a str, value: &Expr) -> Option<&'a str> {
   comment_text.get(start..end).map(str::trim)
 }
 
-fn warning_received_value(comment_text: &str, value: &Expr) -> String {
-  if let Expr::Lit(Lit::Str(str)) = value
-    && let Some(raw) = &str.raw
-  {
-    return raw.to_string();
-  }
-
-  raw_value(comment_text, value)
-    .unwrap_or_default()
-    .to_string()
-}
-
 fn parse_magic_comment_object(comment_text: &str) -> Option<Box<Expr>> {
   let cm: Arc<swc_core::common::SourceMap> = Default::default();
   let fm = cm.new_source_file(Arc::new(FileName::Anon), format!("({{{comment_text}}})"));
@@ -355,7 +343,7 @@ fn analyze_comments(
       };
       if let Some(item_name) = prop_name_to_str(&prop.key) {
         let value = &*prop.value;
-        let received = warning_received_value(&comment.text, value);
+        let received = raw_value(&comment.text, value).unwrap_or_default();
         let error_span =
           || value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
         match item_name.as_ref() {
@@ -368,7 +356,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "a string",
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -382,7 +370,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "true or a number",
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -396,7 +384,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "true or a number",
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -410,7 +398,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "a boolean",
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -424,7 +412,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               "a string",
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -440,7 +428,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               r#""low", "high" or "auto""#,
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -457,7 +445,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               r#"a regular expression"#,
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -474,7 +462,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               r#"a regular expression"#,
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -488,7 +476,7 @@ fn analyze_comments(
               source,
               item_name.as_ref(),
               r#"a string or an array of strings"#,
-              &received,
+              received,
               warning_diagnostics,
               error_span(),
             );
@@ -601,16 +589,6 @@ mod tests_extract_magic_comment_object {
     );
   }
 
-  fn test_warning_received_value() {
-    let value = find_value(r#"webpackIgnore: "test""#, "webpackIgnore");
-    assert_eq!(
-      value
-        .as_deref()
-        .map(|value| warning_received_value(r#"webpackIgnore: "test""#, value)),
-      Some(r#""test""#.to_string())
-    );
-  }
-
   fn test_extract_regexp() {
     assert_eq!(
       try_match_regex("webpackInclude: /abc/"),
@@ -695,7 +673,6 @@ mod tests_extract_magic_comment_object {
     test_extract_number();
     test_extract_boolean();
     test_extract_array();
-    test_warning_received_value();
     test_extract_regexp();
   }
 }
