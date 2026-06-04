@@ -490,14 +490,14 @@ fn analyze_comments(
             );
           }
           "webpackFetchPriority" => {
-            if let Some(priority) = expr_to_str(value) {
-              if matches!(priority.as_ref(), "low" | "high" | "auto") {
-                result.insert(
-                  RspackComment::FetchPriority,
-                  MagicCommentValue::String(priority.into_owned()),
-                );
-                continue;
-              }
+            if let Some(priority) = expr_to_str(value)
+              && matches!(priority.as_ref(), "low" | "high" | "auto")
+            {
+              result.insert(
+                RspackComment::FetchPriority,
+                MagicCommentValue::String(priority.into_owned()),
+              );
+              continue;
             }
             add_magic_comment_warning(
               source,
@@ -509,17 +509,17 @@ fn analyze_comments(
             );
           }
           "webpackInclude" => {
-            if let Some((regexp, flags)) = expr_to_regexp(value) {
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(
-                  RspackComment::IncludeRegexp,
-                  MagicCommentValue::RegExp {
-                    source: regexp.to_string(),
-                    flags: flags.to_string(),
-                  },
-                );
-                continue;
-              }
+            if let Some((regexp, flags)) = expr_to_regexp(value)
+              && RspackRegex::with_flags(regexp, flags).is_ok()
+            {
+              result.insert(
+                RspackComment::IncludeRegexp,
+                MagicCommentValue::RegExp {
+                  source: regexp.to_string(),
+                  flags: flags.to_string(),
+                },
+              );
+              continue;
             }
             add_magic_comment_warning(
               source,
@@ -531,17 +531,17 @@ fn analyze_comments(
             );
           }
           "webpackExclude" => {
-            if let Some((regexp, flags)) = expr_to_regexp(value) {
-              if RspackRegex::with_flags(regexp, flags).is_ok() {
-                result.insert(
-                  RspackComment::ExcludeRegexp,
-                  MagicCommentValue::RegExp {
-                    source: regexp.to_string(),
-                    flags: flags.to_string(),
-                  },
-                );
-                continue;
-              }
+            if let Some((regexp, flags)) = expr_to_regexp(value)
+              && RspackRegex::with_flags(regexp, flags).is_ok()
+            {
+              result.insert(
+                RspackComment::ExcludeRegexp,
+                MagicCommentValue::RegExp {
+                  source: regexp.to_string(),
+                  flags: flags.to_string(),
+                },
+              );
+              continue;
             }
             add_magic_comment_warning(
               source,
