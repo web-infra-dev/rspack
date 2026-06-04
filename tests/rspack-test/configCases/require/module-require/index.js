@@ -140,7 +140,7 @@ it("should decode normal file URL escapes in createRequire paths", () => {
 	expect(escapedRequire("./a")).toBe("space");
 });
 
-it("should preserve createRequire binding for unsupported uses", () => {
+it("should preserve createRequire binding for unsupported uses", async () => {
 	const createRequire = _createRequire;
 	const require = _createRequire(import.meta.url);
 	expect(() => createRequire("./foo/c.js")).toThrow(/absolute path|file URL/);
@@ -160,6 +160,15 @@ it("should preserve createRequire binding for unsupported uses", () => {
 	expect(
 		(function () { return require.resolve(..."./b"); }).toString()
 	).toContain("...");
+	globalThis.unsupportedCreateRequireMemberArg = false;
+	let unsupportedMemberArgPromise;
+	try {
+		_createRequire(import.meta.url).main(
+			(unsupportedMemberArgPromise = import("./unsupported-member-arg"))
+		);
+	} catch {}
+	await unsupportedMemberArgPromise;
+	expect(globalThis.unsupportedCreateRequireMemberArg).toBe(true);
 });
 
 it("should not hoist var createRequire bindings before initialization", () => {

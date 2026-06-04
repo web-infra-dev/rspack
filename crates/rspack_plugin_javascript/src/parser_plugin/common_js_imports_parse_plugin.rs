@@ -1623,7 +1623,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     callee_members: &[Atom],
     inner_call_expr: &CallExpr,
     members: &[Atom],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if callee_members.is_empty()
@@ -1668,6 +1668,34 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       }
       let context = parse_create_require_argument(parser, inner_call_expr, false)?.context;
       self.process_resolve(parser, call_expr, false, Some(context));
+      return Some(true);
+    }
+
+    if callee_members.is_empty()
+      && should_handle_create_require_specifier(parser, for_name)
+      && parse_create_require_argument(parser, inner_call_expr, false).is_some()
+    {
+      if members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
+      {
+        add_require_cache_dependency(
+          parser,
+          require_cache_range(
+            call_expr.callee.as_expr()?.as_member()?,
+            member_ranges,
+            members,
+          )
+          .into(),
+        );
+      } else {
+        add_unsupported_create_require_member_warning(parser, call_expr.callee.span());
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          call_expr.callee.span().into(),
+          "undefined".into(),
+        )));
+      }
+      parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
 
