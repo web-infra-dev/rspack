@@ -67,6 +67,8 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn downcast(any: Box<dyn anymap::CloneAny>) -> Self;
 
   fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self;
+
+  fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self;
 }
 
 impl<T> TagInfoData for T
@@ -87,6 +89,13 @@ where
     let any = any as &dyn std::any::Any;
     any
       .downcast_ref()
+      .expect("TagInfoData should be downcasted from correct tag info")
+  }
+
+  fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self {
+    let any = any as &mut dyn std::any::Any;
+    any
+      .downcast_mut()
       .expect("TagInfoData should be downcasted from correct tag info")
   }
 }
@@ -774,18 +783,40 @@ impl<'parser> JavascriptParser<'parser> {
     tag_info_id: TagInfoId,
     tag: &'static str,
   ) -> Option<&Data> {
-    let mut tag_info = Some(self.definitions_db.expect_get_tag_info(tag_info_id));
+    let mut cur = Some(tag_info_id);
 
-    while let Some(cur_tag_info) = tag_info {
+    while let Some(cur_id) = cur {
+      let cur_tag_info = self.definitions_db.expect_get_tag_info(cur_id);
       if cur_tag_info.tag == tag {
         return cur_tag_info
           .data
           .as_deref()
           .map(|data| TagInfoData::downcast_ref(data));
       }
-      tag_info = cur_tag_info
-        .next
-        .map(|tag_info_id| self.definitions_db.expect_get_tag_info(tag_info_id))
+      cur = cur_tag_info.next;
+    }
+
+    None
+  }
+
+  fn get_tag_data_mut_by_id<Data: TagInfoData>(
+    &mut self,
+    tag_info_id: TagInfoId,
+    tag: &'static str,
+  ) -> Option<&mut Data> {
+    let mut cur = Some(tag_info_id);
+
+    while let Some(cur_id) = cur {
+      let cur_tag_info = self.definitions_db.expect_get_tag_info(cur_id);
+      if cur_tag_info.tag == tag {
+        return self
+          .definitions_db
+          .expect_get_mut_tag_info(cur_id)
+          .data
+          .as_deref_mut()
+          .map(|data| TagInfoData::downcast_mut(data));
+      }
+      cur = cur_tag_info.next;
     }
 
     None
@@ -800,6 +831,17 @@ impl<'parser> JavascriptParser<'parser> {
       .get_variable_info(name)
       .and_then(|variable_info| variable_info.tag_info)
       .and_then(|tag_info_id| self.get_tag_data_by_id(tag_info_id, tag))
+  }
+
+  pub fn get_tag_data_mut<Data: TagInfoData>(
+    &mut self,
+    name: &Atom,
+    tag: &'static str,
+  ) -> Option<&mut Data> {
+    self
+      .get_variable_info(name)
+      .and_then(|variable_info| variable_info.tag_info)
+      .and_then(|tag_info_id| self.get_tag_data_mut_by_id(tag_info_id, tag))
   }
 
   pub fn get_variable_tag_data<Data: TagInfoData>(

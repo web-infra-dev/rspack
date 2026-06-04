@@ -29,7 +29,6 @@ export default function () {
     const early = (obj, key, initial) => {
       obj[key] ??= initial();
     };
-
     const remotesLoadingChunkMapping =
       __webpack_require__.remotesLoadingData?.chunkMapping ?? {};
     const remotesLoadingModuleIdToRemoteDataMapping =

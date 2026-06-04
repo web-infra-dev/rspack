@@ -9,6 +9,7 @@ version.workspace = true
 
 [dependencies]
 criterion = { workspace = true }
+rayon     = { workspace = true }
 tokio     = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
@@ -35,6 +36,7 @@ rspack_javascript_compiler = { workspace = true }
 rspack_plugin_javascript   = { workspace = true }
 rspack_plugin_split_chunks = { workspace = true }
 rspack_regex               = { workspace = true }
+rspack_sources             = { workspace = true }
 rspack_tasks               = { workspace = true }
 rustc-hash                 = { workspace = true }
 serde_json                 = { workspace = true }
@@ -43,6 +45,14 @@ swc_core                   = { workspace = true, features = ["__parser", "base"]
 [[bench]]
 harness = false
 name    = "benches"
+
+[[bench]]
+harness = false
+name    = "rspack_sources"
+
+[[bench]]
+harness = false
+name    = "walltime"
 
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]

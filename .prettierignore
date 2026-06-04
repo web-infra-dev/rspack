@@ -19,6 +19,9 @@ tests/rspack-test/**/*
 packages/**/etc/**/*
 tests/e2e/cases/make/rewrite-factorize-request/file.js
 
+# Ignore benchmark fixtures
+xtask/benchmark/benches/fixtures/rspack_sources/**
+
 # Crates
 crates/**
 !crates/**/

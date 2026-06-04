@@ -1,22 +1,65 @@
 use std::borrow::Cow;
 
+use derive_more::Debug;
 use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::id_helpers::{
-  assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier, get_full_module_name,
-  get_used_module_ids_and_modules_with_artifact,
+  ModuleFilterFn, assign_deterministic_ids, compare_modules_by_pre_order_index_or_identifier,
+  get_full_module_name, get_used_module_ids_and_modules_with_artifact,
+  get_used_module_ids_and_modules_with_async_filter,
 };
 
+#[derive(Debug, Clone, Default)]
+pub struct DeterministicModuleIdsPluginOptions {
+  pub context: Option<String>,
+  #[debug(skip)]
+  pub test: Option<ModuleFilterFn>,
+  pub max_length: Option<usize>,
+  pub salt: Option<usize>,
+  pub fixed_length: Option<bool>,
+  pub fail_on_conflict: Option<bool>,
+}
+
 #[plugin]
-#[derive(Debug, Default)]
-pub struct DeterministicModuleIdsPlugin;
+#[derive(Debug)]
+pub struct DeterministicModuleIdsPlugin {
+  context: Option<String>,
+  #[debug(skip)]
+  test: Option<ModuleFilterFn>,
+  max_length: usize,
+  salt: usize,
+  fixed_length: bool,
+  fail_on_conflict: bool,
+}
+
+impl Default for DeterministicModuleIdsPlugin {
+  fn default() -> Self {
+    Self::new(Default::default())
+  }
+}
+
+impl DeterministicModuleIdsPlugin {
+  pub fn new(options: DeterministicModuleIdsPluginOptions) -> Self {
+    Self::new_inner(
+      options.context,
+      options.test,
+      options
+        .max_length
+        .filter(|max_length| *max_length != 0)
+        .unwrap_or(3),
+      options.salt.unwrap_or_default(),
+      options.fixed_length.unwrap_or_default(),
+      options.fail_on_conflict.unwrap_or_default(),
+    )
+  }
+}
 
 #[plugin_hook(CompilationModuleIds for DeterministicModuleIdsPlugin)]
 async fn module_ids(
@@ -36,15 +79,20 @@ async fn module_ids(
     module_ids.clear();
   }
 
-  let (mut used_ids, modules) =
-    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None);
+  // Use the sync path when no async test filter is provided (the common case),
+  // avoiding unnecessary async overhead on the hot path.
+  let (mut used_ids, modules) = if self.test.is_some() {
+    get_used_module_ids_and_modules_with_async_filter(compilation, module_ids, self.test.as_ref())
+      .await?
+  } else {
+    get_used_module_ids_and_modules_with_artifact(compilation, module_ids, None)
+  };
 
   let mut module_ids_map = std::mem::take(module_ids);
-  let context = compilation.options.context.as_ref();
-  let max_length = 3;
-  let fail_on_conflict = false;
-  let fixed_length = false;
-  let salt = 0;
+  let context = self
+    .context
+    .as_deref()
+    .unwrap_or(compilation.options.context.as_ref());
   let mut conflicts = 0;
 
   let module_graph = compilation.get_module_graph();
@@ -88,15 +136,19 @@ async fn module_ids(
       );
       true
     },
-    &[usize::pow(10, max_length)],
-    if fixed_length { 0 } else { 10 },
+    &[10usize
+      .checked_pow(self.max_length as u32)
+      .unwrap_or(usize::MAX)],
+    if self.fixed_length { 0 } else { 10 },
     used_ids_len,
-    salt,
+    self.salt,
   );
   *module_ids = module_ids_map;
-  if fail_on_conflict && conflicts > 0 {
-    // TODO: better error msg
-    panic!("Assigning deterministic module ids has lead to conflicts {conflicts}");
+  if self.fail_on_conflict && conflicts > 0 {
+    return Err(error!(
+      "Assigning deterministic module ids has lead to {conflicts} conflict{}.\nIncrease the 'maxLength' to increase the id space and make conflicts less likely (recommended when there are many conflicts or application is expected to grow), or add an 'salt' number to try another hash starting value in the same id space (recommended when there is only a single conflict).",
+      if conflicts > 1 { "s" } else { "" }
+    ));
   }
   Ok(())
 }

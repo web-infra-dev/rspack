@@ -78,7 +78,7 @@ async fn additional_tree_runtime_requirements(
   Ok(())
 }
 
-#[plugin_hook(CompilerFinishMake for ModuleFederationRuntimePlugin)]
+#[plugin_hook(CompilerFinishMake for ModuleFederationRuntimePlugin, stage = 1000)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   if let Some(entry_request) = self.options.entry_runtime.clone() {
     let federation_runtime_dep = FederationRuntimeDependency::new(entry_request.clone());

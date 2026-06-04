@@ -179,6 +179,10 @@ impl DefineHookInput {
         pub fn tap(&mut self, tap: impl #trait_name + Send + Sync + 'static) {
           self.taps.push(Box::new(tap));
         }
+
+        pub fn is_empty(&self) -> bool {
+          self.taps.is_empty() && self.interceptors.is_empty()
+        }
       }
     })
   }

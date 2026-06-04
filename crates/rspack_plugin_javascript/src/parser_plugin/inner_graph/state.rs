@@ -57,17 +57,6 @@ pub(super) enum InnerGraphMapSetValue {
   Str(Atom),
 }
 
-impl InnerGraphMapSetValue {
-  pub(super) fn to_atom(&self, symbol_map: &HashMap<TopLevelSymbol, TopLevelSymbolData>) -> Atom {
-    match self {
-      InnerGraphMapSetValue::TopLevel(v) => {
-        symbol_map.get(v).expect("should have symbol").name.clone()
-      }
-      InnerGraphMapSetValue::Str(v) => v.clone(),
-    }
-  }
-}
-
 #[derive(PartialEq, Eq, Debug)]
 pub(crate) enum InnerGraphMapUsage {
   TopLevel(TopLevelSymbol),

@@ -43,14 +43,14 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription,
-  EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoOrModuleParserOptions, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
+  EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
+  ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1090,12 +1090,18 @@ impl CompilerOptionsBuilder {
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
       let externals_type = expect!(self.externals_type.clone());
+      let fallback_type = if target_properties.node_builtins() {
+        "node-commonjs".to_string()
+      } else {
+        "commonjs".to_string()
+      };
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
           externals_type,
           externals,
           false,
+          fallback_type,
         )));
     }
 
@@ -1151,6 +1157,7 @@ impl CompilerOptionsBuilder {
           "node-commonjs".to_string(),
           vec!["nw.gui".to_string().into()],
           false,
+          "commonjs".to_string(),
         )));
     }
 
@@ -1768,48 +1775,18 @@ impl ModuleOptionsBuilder {
     }
 
     if css {
-      let css_parser_options = ParserOptions::Css(CssParserOptions {
-        named_exports: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        r#import: Some(true),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_parser_options = ParserOptions::Css(CssParserOptions::default());
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_auto_parser_options =
+        ParserOptions::CssAutoOrModule(CssAutoOrModuleParserOptions::default());
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
-      let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_module_parser_options =
+        ParserOptions::CssAutoOrModule(CssAutoOrModuleParserOptions::default());
       parser.insert("css/module".to_string(), css_module_parser_options);
 
-      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions::default());
       parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
@@ -1850,7 +1827,7 @@ impl ModuleOptionsBuilder {
 
     let default_rules = default_rules(async_web_assembly, css);
 
-    Ok(ModuleOptions {
+    let mut module_options = ModuleOptions {
       rules: vec![
         ModuleRule {
           rules: Some(default_rules),
@@ -1864,7 +1841,9 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-    })
+    };
+    module_options.assign_rule_ids()?;
+    Ok(module_options)
   }
 }
 
@@ -3108,6 +3087,9 @@ impl OutputOptionsBuilder {
       .map(|t| optimistic!(t.big_int_literal))
       .unwrap_or_default();
     environment.r#const = tp.map(|t| optimistic!(t.r#const)).unwrap_or_default();
+    environment.computed_property = tp
+      .map(|t| optimistic!(t.computed_property))
+      .unwrap_or_default();
     environment.method_shorthand = tp
       .map(|t| optimistic!(t.method_shorthand))
       .unwrap_or_default();

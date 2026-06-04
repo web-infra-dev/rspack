@@ -11,9 +11,9 @@ _foo__rspack_import_1["default"];
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 function Provider() {}
 
 /* export default */ const __rspack_default_export = (Provider);
@@ -21,9 +21,9 @@ function Provider() {}
 
 },
 "./selector.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (useSelector)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (useSelector)
+});
 function useSelector() {
 	return "";
 }

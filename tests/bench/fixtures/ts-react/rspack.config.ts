@@ -8,7 +8,7 @@ const isDev = process.env.NODE_ENV === 'development';
 const targets = ['chrome >= 87', 'edge >= 88', 'firefox >= 78', 'safari >= 14'];
 
 export default defineConfig({
-  context: __dirname,
+  context: import.meta.dirname,
   entry: {
     main: './src/index.tsx',
   },

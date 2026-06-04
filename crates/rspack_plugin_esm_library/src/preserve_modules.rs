@@ -6,10 +6,7 @@ use std::{
 use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::{
-  AssetGeneratorOptions, AssetResourceGeneratorOptions, Compilation, Filename, GeneratorOptions,
-  Module, ModuleType, SourceType,
-};
+use rspack_core::{Compilation, Filename, Module, SourceType};
 use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 
@@ -188,28 +185,12 @@ pub async fn preserve_modules(
       if let Some(module) = module_graph.module_by_identifier_mut(&module_id)
         && let Some(normal_module) = module.as_normal_module_mut()
       {
-        // Try to mutate the existing generator options first — this preserves
-        // any user-provided settings like `output_path` or `publicPath`.
-        if let Some(opts) = normal_module.get_generator_options_mut()
-          && opts.set_asset_filename(filename.clone())
-        {
-          continue;
-        }
-        // Otherwise initialise a minimal generator options whose variant
-        // matches the module type, with just the filename set.
-        let new_opts = match normal_module.module_type() {
-          ModuleType::AssetResource => {
-            GeneratorOptions::AssetResource(AssetResourceGeneratorOptions {
-              filename: Some(filename),
-              ..Default::default()
-            })
-          }
-          _ => GeneratorOptions::Asset(AssetGeneratorOptions {
-            filename: Some(filename),
-            ..Default::default()
-          }),
-        };
-        normal_module.set_generator_options(Some(new_opts));
+        normal_module
+          .build_info_mut()
+          .asset
+          .as_mut()
+          .expect("asset build info should exist for asset module")
+          .filename = Some(filename);
       }
       continue;
     }

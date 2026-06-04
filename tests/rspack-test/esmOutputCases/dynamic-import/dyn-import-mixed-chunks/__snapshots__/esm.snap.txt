@@ -26,18 +26,17 @@ var __webpack_require__ = {};
 
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
 		}
-	}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
-
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -63,19 +62,17 @@ import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./m1.js
 var m1_namespaceObject = {};
 __webpack_require__.r(m1_namespaceObject);
-__webpack_require__.d(m1_namespaceObject, [
-  "default", () => (m1),
-  "value", () => (value)
-]);
+__webpack_require__.d(m1_namespaceObject, { 
+  "default": () => (m1),
+  value: () => (value) });
 
 
 // NAMESPACE OBJECT: ./m2.js
 var m2_namespaceObject = {};
 __webpack_require__.r(m2_namespaceObject);
-__webpack_require__.d(m2_namespaceObject, [
-  "default", () => (m2),
-  "value", () => (m2_value)
-]);
+__webpack_require__.d(m2_namespaceObject, { 
+  "default": () => (m2),
+  value: () => (m2_value) });
 
 
 // ./m1.js

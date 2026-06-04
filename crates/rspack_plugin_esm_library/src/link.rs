@@ -15,7 +15,7 @@ use rspack_core::{
   RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
   UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
   get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
-  get_module_hashbang, property_access, reserved_names::RESERVED_NAMES_ATOM_SET,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
@@ -24,11 +24,10 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
-  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::{SyntaxContext, comments::SingleThreadedComments};
+use swc_core::common::SyntaxContext;
 use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
@@ -269,6 +268,18 @@ impl EsmLibraryPlugin {
           .clone(),
       );
     }
+
+    Self::add_chunk_export_alias(chunk, local, exported, chunk_exports, strict_exports)
+  }
+
+  fn add_chunk_export_alias(
+    chunk: ChunkUkey,
+    local: Atom,
+    exported: Atom,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
+    strict_exports: bool,
+  ) -> Option<Atom> {
+    let ctx = chunk_exports.get_mut_unwrap(&chunk);
 
     // we've not exported this local symbol, check if we've already exported this symbol
     if ctx.exported_symbols.contains(&exported) {
@@ -701,8 +712,7 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
-                    && (ext.get_external_type().as_str().starts_with("module")
-                      || ext.resolve_external_type() == "module")
+                    && ext.resolve_external_type() == "module"
                   {
                     let Some((raw_import_source, import_binding)) = concate_modules_map
                       .get(&symbol_binding.module)
@@ -776,8 +786,8 @@ impl EsmLibraryPlugin {
               }
 
               ns_obj.push(format!(
-                "\n  {}, {}",
-                rspack_util::json_stringify_str(&used_name),
+                "\n  {}: {}",
+                property_name(&used_name).expect("should have property_name"),
                 runtime_template.returning_function(&binding.render(), "")
               ));
             }
@@ -828,7 +838,7 @@ impl EsmLibraryPlugin {
               r#"var {} = {};
 Object.keys({}).forEach(function(key) {{
   if (key !== "default" && key !== "__esModule") {{
-    {}({}, [key, function() {{ return {}[key]; }}]);
+    {}({}, {{ [key]: function() {{ return {}[key]; }} }});
   }}
 }});
 "#,
@@ -844,7 +854,7 @@ Object.keys({}).forEach(function(key) {{
           };
           let define_getters = if !ns_obj.is_empty() {
             format!(
-              "{}({}, [{}\n]);\n",
+              "{}({}, {{ {} }});\n",
               runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
               name,
               ns_obj.join(",")
@@ -1523,7 +1533,6 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let comments = SingleThreadedComments::default();
                 let mut ast = Ast::new(source_str.len(), StringAllocator::default());
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
                   Syntax::Es(EsSyntax {
@@ -1532,7 +1541,7 @@ var {} = {{}};
                   }),
                   EsVersion::EsNext,
                   StringSource::new(&source_str),
-                  Some(&comments),
+                  None,
                   ast.string_allocator(),
                 );
                 let mut parser = Parser::new_from(&mut ast, lexer);
@@ -1541,8 +1550,8 @@ var {} = {{}};
                   Err(err) => {
                     return Err(Error::from_string(
                       Some(source_str.clone()),
-                      err.span().real_lo() as usize,
-                      err.span().real_hi() as usize,
+                      err.span().start.saturating_sub(1) as usize,
+                      err.span().end.saturating_sub(1) as usize,
                       "JavaScript parse error:\n".to_string(),
                       err.kind().msg().to_string(),
                     ));
@@ -1552,8 +1561,8 @@ var {} = {{}};
                 let semantic = resolver(module, ast);
                 let ids = collect_ident(ast, module);
 
-                concate_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
-                concate_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+                concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
 
                 let top_level_scope_id = semantic.top_level_scope_id();
                 let mut all_used_names = FxHashSet::default();
@@ -1568,7 +1577,7 @@ var {} = {{}};
 
                 for ident in ids {
                   let scope = semantic.node_scope(ident.id);
-                  let is_global = scope.to_ctxt() == concate_info.global_ctxt;
+                  let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
                   let legacy = if is_global {
                     let leg = ident.to_legacy(ast, &semantic);
                     concate_info.global_scope_ident.push(leg.clone());
@@ -1871,6 +1880,69 @@ var {} = {{}};
     }
   }
 
+  fn get_same_chunk_inlined_export_binding(
+    module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
+    module_id: &ModuleIdentifier,
+    export_name: Vec<Atom>,
+    chunk_link: &ChunkLinkContext,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    already_visited: &mut FxHashSet<ExportInfo>,
+  ) -> Option<Atom> {
+    if export_name.len() != 1 {
+      return None;
+    }
+
+    if !chunk_link.hoisted_modules.contains(module_id) {
+      return None;
+    }
+
+    let exports_info = exports_info_artifact.get_exports_info_data(module_id);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
+    let export_info_id = export_info.id();
+
+    if !already_visited.insert(export_info_id) {
+      return None;
+    }
+
+    if let Some(ModuleInfo::Concatenated(info)) = concate_modules_map.get(module_id)
+      && let Some(UsedName::Inlined(_)) =
+        exports_info.get_used_name(exports_info_artifact, None, &export_name)
+      && let Some(direct_export) = info
+        .export_map
+        .as_ref()
+        .and_then(|map| map.get(&export_name[0]))
+    {
+      let direct_export = Atom::new(direct_export.clone());
+      return info.get_internal_name(&direct_export).cloned();
+    }
+
+    let target = find_target(
+      &export_info,
+      module_graph,
+      exports_info_artifact,
+      Arc::new(|module: &ModuleIdentifier| chunk_link.hoisted_modules.contains(module)),
+      already_visited,
+    );
+
+    if let FindTargetResult::ValidTarget(target) = target
+      && !target.defer
+      && let Some(target_export) = target.export
+    {
+      return Self::get_same_chunk_inlined_export_binding(
+        module_graph,
+        exports_info_artifact,
+        &target.module,
+        target_export,
+        chunk_link,
+        concate_modules_map,
+        already_visited,
+      );
+    }
+
+    None
+  }
+
   #[allow(clippy::too_many_arguments)]
   fn link_entry_module_exports(
     &self,
@@ -2081,6 +2153,55 @@ var {} = {{}};
             }
           }
           Ref::Inline(inlined_value) => {
+            let current_chunk_link = link
+              .get(&current_chunk)
+              .expect("should have current chunk link");
+            if let Some(local_name) = Self::get_same_chunk_inlined_export_binding(
+              module_graph,
+              &compilation.exports_info_artifact,
+              &entry_module,
+              vec![name.clone()],
+              current_chunk_link,
+              concate_modules_map,
+              &mut Default::default(),
+            ) {
+              let exported = Self::add_chunk_export_alias(
+                current_chunk,
+                local_name,
+                name.clone(),
+                exports,
+                !allow_rename
+                  && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk)),
+              );
+
+              if exported.is_none()
+                && !allow_rename
+                && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk))
+              {
+                errors.push(
+                  rspack_error::error!(
+                    "Entry {entry_module} has conflict exports: {name} has already been exported"
+                  )
+                  .into(),
+                );
+              }
+
+              if current_chunk != entry_chunk
+                && let Some(exported) = exported
+              {
+                Self::add_chunk_re_export(
+                  entry_chunk,
+                  current_chunk,
+                  exported.clone(),
+                  name.clone(),
+                  exports,
+                  !allow_rename,
+                );
+              }
+
+              continue;
+            }
+
             let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
             let new_name = find_new_name(
               &name,
@@ -2133,6 +2254,9 @@ var {} = {{}};
         .expect("should have module")
         .as_external_module()
         .expect("should be external module");
+      if external_module.resolve_external_type() != "module" {
+        continue;
+      }
       entry_chunk_link
         .raw_star_exports
         .entry(external_module.get_request().primary().into())

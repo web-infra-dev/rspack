@@ -29,6 +29,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_externals;
 use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::{
   atom::Atom,
@@ -46,7 +47,9 @@ use crate::{
     extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
-  runtime::EsmRegisterModuleRuntimeModule,
+  runtime::{
+    EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule, EsmRegisterModuleRuntimeModule,
+  },
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -559,11 +562,21 @@ async fn runtime_requirements_in_tree(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+    runtime_requirements.remove(RuntimeGlobals::ENSURE_CHUNK);
+    runtime_modules.push(Box::new(EsmEnsureChunkRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+    runtime_modules.push(Box::new(EsmChunkLoadingRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+  }
+
   // avoid generate startup runtime, eg. entry dependent chunk loading runtime
   runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
 
@@ -756,9 +769,9 @@ async fn after_factorize(
 ) -> Result<()> {
   // Check if this is an external module using the existing downcast helper
   if let Some(external_module) = module.as_external_module_mut()
-    && (external_module.get_external_type().starts_with("module")
-      || (external_module.get_external_type() == "modern-module"
-        && data.dependencies.first().is_some_and(is_esm_dep_like)))
+    && external_module.resolve_external_type() == "module"
+    && (external_module.get_external_type() != "modern-module"
+      || data.dependencies.first().is_some_and(is_esm_dep_like))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {
@@ -874,6 +887,12 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
+  cutout_dyn_import_externals(
+    false,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+
   self
     .mark_modules(
       compilation,

@@ -40,9 +40,9 @@ ConsoleExporterWeb = (function () {
 
 },
 "<PNPM_INNER>/@swc/helpers/esm/_create_class.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "_", () => (_create_class)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  _: () => (_create_class)
+});
 function _defineProperties(target, props) {
     for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];

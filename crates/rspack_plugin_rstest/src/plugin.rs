@@ -4,14 +4,16 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
+use cow_utils::CowUtils;
 use regex::Regex;
-use rspack_collections::IdentifierSet;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  Compilation, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
-  CompilerCompilation, DependencyType, ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData,
-  ModuleType, NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator,
-  ParserOptions, Plugin, ResolveOptionsWithDependencyType, ResolveResult,
-  SideEffectsOptimizeArtifact,
+  BoxPlugin, ChunkUkey, Compilation, CompilationOptimizeDependencies, CompilationParams,
+  CompilationProcessAssets, CompilationRuntimeModule, CompilerCompilation, DependencyType,
+  ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
+  NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
+  Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
+  RuntimeModule, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
@@ -38,6 +40,7 @@ use crate::{
   mock_module_id_dependency::{MockModuleIdDependency, MockModuleIdDependencyTemplate},
   module_path_name_dependency::ModulePathNameDependencyTemplate,
   parser_plugin::{MOCK_TARGET_REQUEST_PREFIX, RstestParserPlugin},
+  require_resolve_origin_dependency::RstestRequireResolveOriginDependencyTemplate,
   url_dependency::RstestUrlDependencyTemplate,
 };
 
@@ -50,12 +53,79 @@ pub struct RstestPluginOptions {
   pub preserve_new_url: Vec<String>,
   pub globals: bool,
   pub inject_dynamic_import_origin: Option<RstestDynamicImportOriginOptions>,
+  pub inject_require_resolve_origin: Option<RstestRequireResolveOriginOptions>,
+}
+
+pub fn builtin_plugins() -> Vec<BoxPlugin> {
+  vec![RstestRuntimePlugin::new().boxed()]
+}
+
+#[plugin]
+#[derive(Debug)]
+struct RstestRuntimePlugin;
+
+impl RstestRuntimePlugin {
+  fn new() -> Self {
+    Self::new_inner()
+  }
+}
+
+#[plugin_hook(CompilationRuntimeModule for RstestRuntimePlugin, stage = i32::MAX)]
+async fn runtime_module(
+  &self,
+  compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
+  _chunk: &ChunkUkey,
+  runtime_modules: &mut IdentifierMap<Box<dyn RuntimeModule>>,
+) -> Result<()> {
+  let Some(runtime_module) = runtime_modules.get_mut(module_identifier) else {
+    return Ok(());
+  };
+
+  let runtime_module_name = runtime_module.name().to_string();
+
+  match runtime_module_name.as_str() {
+    "webpack/runtime/define_property_getters" => {
+      runtime_module.set_custom_source(
+        RstestPlugin::generate_define_property_getters_runtime_source(compilation),
+      );
+    }
+    "webpack/runtime/require_chunk_loading" | "webpack/runtime/module_chunk_loading" => {
+      let source = runtime_module.generate_with_custom(compilation).await?;
+      runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(source));
+    }
+    _ => {}
+  }
+
+  Ok(())
+}
+
+impl Plugin for RstestRuntimePlugin {
+  fn name(&self) -> &'static str {
+    "rstest runtime"
+  }
+
+  fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .compilation_hooks
+      .runtime_module
+      .tap(runtime_module::new(self));
+
+    Ok(())
+  }
 }
 
 #[derive(Debug, Default)]
 pub struct RstestDynamicImportOriginOptions {
   /// Overrides the rewrite callee. When `None`, falls back to
   /// `output.importFunctionName`.
+  pub function_name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+pub struct RstestRequireResolveOriginOptions {
+  /// Overrides the rewrite callee. When `None`, defaults to
+  /// `__rstest_require_resolve__`.
   pub function_name: Option<String>,
 }
 
@@ -74,11 +144,12 @@ pub struct RstestPlugin {
   /// covers both "feature disabled" and "callee resolved to default `import`"
   /// (incompatible with native syntax — rewriting would yield a SyntaxError).
   dynamic_import_origin_callee: OnceLock<Option<Arc<str>>>,
+  require_resolve_origin_callee: OnceLock<Option<Arc<str>>>,
 }
 
 impl RstestPlugin {
   pub fn new(options: RstestPluginOptions) -> Self {
-    Self::new_inner(options, OnceLock::new())
+    Self::new_inner(options, OnceLock::new(), OnceLock::new())
   }
 
   fn calc_default_mocked_target(&self, value: &str) -> Utf8PathBuf {
@@ -187,6 +258,55 @@ impl RstestPlugin {
     data.request = resolved_request;
   }
 
+  fn generate_define_property_getters_runtime_source(compilation: &Compilation) -> String {
+    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let define_property_getters =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    let has_own_property =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HAS_OWN_PROPERTY);
+
+    format!(
+      r#"{define_property_getters} = function(exports, getters, values) {{
+	var define = function(defs, kind) {{
+		if(!defs) return;
+		for(var key in defs) {{
+			if({has_own_property}(defs, key) && !{has_own_property}(exports, key)) {{
+				var descriptor = {{ enumerable: true, configurable: true }};
+				descriptor[kind] = defs[key];
+				Object.defineProperty(exports, key, descriptor);
+			}}
+		}}
+	}};
+	define(getters, "get");
+	define(values, "value");
+}};"#
+    )
+  }
+
+  fn add_rstest_mock_chunk_loading_guard(source: String) -> String {
+    // TODO: Remove this compatibility guard once the minimum supported Rstest version
+    // no longer patches the old runtime template on the JavaScript side.
+    const RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;";
+    const LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;";
+
+    if source.contains(RSTEST_MOCK_CHUNK_LOADING_GUARD)
+      || source.contains(LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD)
+    {
+      return source;
+    }
+
+    source
+      .cow_replace(
+        "for (var moduleId in moreModules) {",
+        &format!("for (var moduleId in moreModules) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+      )
+      .cow_replace(
+        "for (moduleId in __webpack_modules__) {",
+        &format!("for (moduleId in __webpack_modules__) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+      )
+      .into_owned()
+  }
+
   fn update_source(&self, old: BoxSource, replace_map: &HashMap<String, MockFlagPos>) -> BoxSource {
     let old_source = old.clone();
     let mut replace = ReplaceSource::new(old_source);
@@ -240,7 +360,7 @@ async fn nmf_parser(
   &self,
   module_type: &ModuleType,
   parser: &mut Box<dyn ParserAndGenerator>,
-  _parser_options: Option<&ParserOptions>,
+  parser_options: Option<&ParserOptions>,
 ) -> Result<()> {
   if module_type.is_js_like()
     && let Some(parser) = parser.downcast_mut::<JavaScriptParserAndGenerator>()
@@ -249,6 +369,14 @@ async fn nmf_parser(
       .dynamic_import_origin_callee
       .get()
       .is_some_and(|c| c.is_some());
+    let inject_require_resolve_origin = self
+      .require_resolve_origin_callee
+      .get()
+      .is_some_and(|c| c.is_some());
+    let commonjs_magic_comments = parser_options
+      .and_then(|options| options.get_javascript())
+      .and_then(|options| options.commonjs_magic_comments)
+      .unwrap_or(false);
 
     parser.add_parser_plugin(Box::new(RstestParserPlugin::new(
       crate::parser_plugin::RstestParserPluginOptions {
@@ -258,6 +386,8 @@ async fn nmf_parser(
         manual_mock_root: self.options.manual_mock_root.clone(),
         globals: self.options.globals,
         inject_dynamic_import_origin,
+        inject_require_resolve_origin,
+        commonjs_magic_comments,
       },
     )) as BoxJavascriptParserPlugin);
   }
@@ -290,6 +420,15 @@ async fn compilation(
     compilation.set_dependency_template(
       RstestDynamicImportOriginDependencyTemplate::template_type(),
       Arc::new(RstestDynamicImportOriginDependencyTemplate::new(
+        callee.to_string(),
+      )),
+    );
+  }
+
+  if let Some(Some(callee)) = self.require_resolve_origin_callee.get() {
+    compilation.set_dependency_template(
+      RstestRequireResolveOriginDependencyTemplate::template_type(),
+      Arc::new(RstestRequireResolveOriginDependencyTemplate::new(
         callee.to_string(),
       )),
     );
@@ -468,6 +607,23 @@ impl Plugin for RstestPlugin {
       });
     let _ = self.dynamic_import_origin_callee.set(resolved_callee);
 
+    let resolved_require_resolve_callee =
+      self
+        .options
+        .inject_require_resolve_origin
+        .as_ref()
+        .map(|cfg| {
+          Arc::<str>::from(
+            cfg
+              .function_name
+              .as_deref()
+              .unwrap_or("__rstest_require_resolve__"),
+          )
+        });
+    let _ = self
+      .require_resolve_origin_callee
+      .set(resolved_require_resolve_callee);
+
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx
@@ -480,7 +636,10 @@ impl Plugin for RstestPlugin {
       .compilation
       .tap(compilation_stage_9999::new(self));
 
-    if self.options.module_path_name || self.options.inject_dynamic_import_origin.is_some() {
+    if self.options.module_path_name
+      || self.options.inject_dynamic_import_origin.is_some()
+      || self.options.inject_require_resolve_origin.is_some()
+    {
       ctx
         .normal_module_factory_hooks
         .parser

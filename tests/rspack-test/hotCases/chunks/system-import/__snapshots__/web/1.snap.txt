@@ -9,8 +9,8 @@
 - Bundle: chunk2_js.chunk.CURRENT_HASH.js
 - Bundle: chunk_js.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 51
-- Update: chunk2_js.LAST_HASH.hot-update.js, size: 494
-- Update: chunk_js.LAST_HASH.hot-update.js, size: 493
+- Update: chunk2_js.LAST_HASH.hot-update.js, size: 490
+- Update: chunk_js.LAST_HASH.hot-update.js, size: 489
 - Update: main.LAST_HASH.hot-update.js, size: 181
 
 ## Manifest
@@ -40,18 +40,18 @@
 self["rspackHotUpdate"]("chunk2_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 var value = 2;
 
 
 },
 "./file2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 var value = 4;
 
 
@@ -77,18 +77,18 @@ var value = 4;
 self["rspackHotUpdate"]("chunk_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 var value = 2;
 
 
 },
 "./file2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 var value = 4;
 
 

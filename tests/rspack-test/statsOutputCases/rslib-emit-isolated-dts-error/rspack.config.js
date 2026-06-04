@@ -4,7 +4,10 @@ const {
 
 /** @type {import('@rspack/core').Configuration} */
 module.exports = {
-  entry: './index',
+  entry: {
+    index: './index',
+    reference: './reference',
+  },
   stats: 'errors-warnings',
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],

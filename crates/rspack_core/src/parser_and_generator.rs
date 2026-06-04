@@ -17,8 +17,8 @@ use crate::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BoxLoader, BoxModuleDependency,
   BuildInfo, BuildMeta, ChunkGraph, CodeGenerationData, Compilation, CompilerOptions,
   ConcatenationScope, Context, DependencyLocation, DependencyRange, EvaluatedInlinableValue,
-  FactoryMeta, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier, ModuleLayer, ModuleType,
-  NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph, ModuleIdentifier,
+  ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
 };
 
 #[derive(Debug)]
@@ -30,6 +30,7 @@ pub struct ParseContext<'a> {
   pub module_layer: Option<&'a ModuleLayer>,
   pub module_user_request: &'a str,
   pub module_parser_options: Option<&'a ParserOptions>,
+  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub module_source_map_kind: SourceMapKind,
   pub module_match_resource: Option<&'a ResourceData>,
   #[debug(skip)]
@@ -118,6 +119,8 @@ pub struct GenerateContext<'a> {
   pub runtime_template: &'a mut ModuleCodeTemplate,
   pub data: &'a mut CodeGenerationData,
   pub requested_source_type: SourceType,
+  pub module_parser_options: Option<&'a ParserOptions>,
+  pub module_generator_options: Option<&'a GeneratorOptions>,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'a mut ConcatenationScope>,
 }

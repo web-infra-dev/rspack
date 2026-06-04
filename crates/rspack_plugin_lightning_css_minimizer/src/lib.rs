@@ -209,7 +209,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if self.options.remove_unused_local_idents
             && let Some(css_unused_idents) = original.info.css_unused_idents.take()
           {
-            unused_symbols.extend(css_unused_idents);
+            unused_symbols.extend(css_unused_idents.into_iter().map(String::from));
           }
           stylesheet
             .minify(MinifyOptions {

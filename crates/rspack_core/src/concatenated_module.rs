@@ -30,7 +30,7 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
-  common::{Spanned, SyntaxContext, comments::SingleThreadedComments},
+  common::{BytePos, Span, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
 use swc_experimental_ecma_ast::{
@@ -54,7 +54,7 @@ use crate::{
   ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
   SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
   filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access,
+  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -1629,8 +1629,8 @@ impl Module for ConcatenatedModule {
         .iter()
         .map(|(key, value)| {
           format!(
-            "\n  {}, {}",
-            json_stringify_str(key),
+            "\n  {}: {}",
+            property_name(key).expect("should convert to property_name"),
             runtime_template.returning_function(value, "")
           )
         })
@@ -1661,7 +1661,7 @@ impl Module for ConcatenatedModule {
 
         result.add(RawStringSource::from_static("\n// EXPORTS\n"));
         result.add(RawStringSource::from(format!(
-          "{}({}, [{}\n]);\n",
+          "{}({}, {{{}\n}});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           runtime_template.render_exports_argument(exports_argument),
           definitions.join(",")
@@ -1742,8 +1742,8 @@ impl Module for ConcatenatedModule {
           );
 
           ns_obj.push(format!(
-            "\n  {}, {}",
-            json_stringify_str(&used_name),
+            "\n  {}: {}",
+            property_name(&used_name).expect("should have property_name"),
             runtime_template.returning_function(&final_name.name, "")
           ));
         }
@@ -1752,7 +1752,7 @@ impl Module for ConcatenatedModule {
       let name = name_space_name.expect("should have name_space_name");
       let define_getters = if !ns_obj.is_empty() {
         format!(
-          "{}({}, [{}\n]);\n",
+          "{}({}, {{ {} }});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           name,
           ns_obj.join(",")
@@ -2554,7 +2554,6 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().into_string_lossy();
-      let comments = SingleThreadedComments::default();
       let mut module_info = concatenation_scope.current_module;
 
       let jsx = module
@@ -2576,7 +2575,7 @@ impl ConcatenatedModule {
         }),
         EsVersion::EsNext,
         StringSource::new(source_code.as_ref()),
-        Some(&comments),
+        None,
         ast.string_allocator(),
       );
       let mut p = Parser::new_from(&mut ast, lexer);
@@ -2588,8 +2587,8 @@ impl ConcatenatedModule {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
             Some(source_code.into_owned()),
-            err.span().real_lo() as usize,
-            err.span().real_hi() as usize,
+            err.span().start.saturating_sub(1) as usize,
+            err.span().end.saturating_sub(1) as usize,
             "JavaScript parse error:\n".to_string(),
             err.kind().msg().to_string(),
           ));
@@ -2599,8 +2598,8 @@ impl ConcatenatedModule {
       let semantic = resolver(module, ast);
       let ids = collect_ident(ast, module);
 
-      module_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
-      module_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+      module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+      module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
 
       let top_level_scope_id = semantic.top_level_scope_id();
       let mut all_used_names = HashSet::default();
@@ -2613,7 +2612,7 @@ impl ConcatenatedModule {
 
       for ident in ids {
         let scope = semantic.node_scope(ident.id);
-        let is_global = scope.to_ctxt() == module_info.global_ctxt;
+        let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
         let legacy = if is_global {
           let leg = ident.to_legacy(ast, &semantic);
           module_info.global_scope_ident.push(leg.clone());
@@ -3498,8 +3497,9 @@ pub struct NewConcatenatedModuleIdent {
 impl NewConcatenatedModuleIdent {
   pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
     let span = self.id.span(ast);
+    let span = Span::new_with_checked(BytePos(span.start), BytePos(span.end));
     let sym = ast.get_atom(self.id.sym(ast));
-    let ctxt = semantic.node_scope(self.id).to_ctxt();
+    let ctxt = SyntaxContext::from_u32(semantic.node_scope(self.id).raw());
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),
       is_class_expr_with_ident: self.is_class_expr_with_ident,

@@ -30,7 +30,10 @@ use napi::{
 };
 use napi_derive::napi;
 use raw_dll::{RawDllReferenceAgencyPluginOptions, RawFlagAllModulesAsUsedPluginOptions};
-use raw_ids::{RawHashedModuleIdsPluginOptions, RawOccurrenceChunkIdsPluginOptions};
+use raw_ids::{
+  RawDeterministicModuleIdsPluginOptions, RawHashedModuleIdsPluginOptions,
+  RawOccurrenceChunkIdsPluginOptions, RawSyncModuleIdsPluginOptions,
+};
 use raw_lightning_css_minimizer::RawLightningCssMinimizerRspackPluginOptions;
 use raw_mf::{
   RawCollectShareEntryPluginOptions, RawModuleFederationManifestPluginOptions,
@@ -43,7 +46,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_ids::{
   DeterministicChunkIdsPlugin, DeterministicModuleIdsPlugin, HashedModuleIdsPlugin,
   NamedChunkIdsPlugin, NamedModuleIdsPlugin, NaturalChunkIdsPlugin, NaturalModuleIdsPlugin,
-  OccurrenceChunkIdsPlugin,
+  OccurrenceChunkIdsPlugin, SyncModuleIdsPlugin,
 };
 use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
@@ -192,6 +195,7 @@ pub enum BuiltinPluginName {
   NamedModuleIdsPlugin,
   NaturalModuleIdsPlugin,
   DeterministicModuleIdsPlugin,
+  SyncModuleIdsPlugin,
   HashedModuleIdsPlugin,
   NaturalChunkIdsPlugin,
   NamedChunkIdsPlugin,
@@ -396,10 +400,13 @@ impl<'a> BuiltinPlugin<'a> {
           .map(|e| RawExternalItemWrapper(e).try_into())
           .collect::<Result<Vec<_>>>()
           .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        let plugin = ExternalsPlugin::new(
+        let plugin = ExternalsPlugin::new_with_options(
           plugin_options.r#type,
           externals,
           plugin_options.place_in_initial,
+          plugin_options
+            .fallback_type
+            .unwrap_or_else(|| "commonjs".to_string()),
         )
         .boxed();
         plugins.push(plugin);
@@ -567,9 +574,22 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::NaturalModuleIdsPlugin => {
         plugins.push(NaturalModuleIdsPlugin::default().boxed())
       }
-      BuiltinPluginName::DeterministicModuleIdsPlugin => {
-        plugins.push(DeterministicModuleIdsPlugin::default().boxed())
-      }
+      BuiltinPluginName::DeterministicModuleIdsPlugin => plugins.push(
+        DeterministicModuleIdsPlugin::new(
+          downcast_into::<RawDeterministicModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::SyncModuleIdsPlugin => plugins.push(
+        SyncModuleIdsPlugin::new(
+          downcast_into::<RawSyncModuleIdsPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
       BuiltinPluginName::HashedModuleIdsPlugin => plugins.push(
         HashedModuleIdsPlugin::new(
           downcast_into::<RawHashedModuleIdsPluginOptions>(self.options)
@@ -814,6 +834,7 @@ impl<'a> BuiltinPlugin<'a> {
             options.entries,
             options.imports,
             options.client,
+            options.reserved_externals,
           )) as Box<dyn Plugin>,
         )
       }
@@ -880,6 +901,7 @@ impl<'a> BuiltinPlugin<'a> {
             .map_err(|report| napi::Error::from_reason(report.to_string()))?;
           let options = raw_options.into();
           plugins.push(RstestPlugin::new(options).boxed());
+          plugins.extend(rspack_plugin_rstest::builtin_plugins());
         }
       }
       BuiltinPluginName::RslibPlugin => {

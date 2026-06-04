@@ -87,18 +87,18 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 self["rspackHotUpdate"]("shared", {
 "./moduleAs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (6);
 
 
 },
 "./moduleBs.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (6);
 if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
 
@@ -124,9 +124,9 @@ if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__
 self["rspackHotUpdate"]("workerA_js", {
 "./moduleA.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (6);
 
 
@@ -158,9 +158,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 self["rspackHotUpdate"]("workerB_js", {
 "./moduleB.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (6);
 if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
 

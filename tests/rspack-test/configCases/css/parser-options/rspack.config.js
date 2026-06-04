@@ -11,7 +11,7 @@ module.exports = {
   },
   module: {
     parser: {
-      css: {
+      'css/module': {
         animation: false,
       },
     },
@@ -29,8 +29,11 @@ module.exports = {
         test: /options\.module\.css$/,
         type: 'css/module',
         parser: {
+          container: false,
           customIdents: false,
           dashedIdents: false,
+          function: false,
+          grid: false,
           import: false,
           url: false,
         },

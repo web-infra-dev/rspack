@@ -40,6 +40,12 @@ module.exports = {
 			-           "production",
 			+           "development",
 			@@ ... @@
+			-           "production",
+			+           "development",
+			@@ ... @@
+			-           "production",
+			+           "development",
+			@@ ... @@
 			-       "production",
 			+       "development",
 		`)

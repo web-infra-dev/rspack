@@ -1,0 +1,31 @@
+```mjs title=foo.mjs
+// ./foo.js
+
+
+const call = value => {
+	globalThis.__inlineExportImportBinding = value;
+};
+
+call((/* inlined export .value */1));
+
+
+
+var foo_a = (/* inlined export .value */1);
+var foo_b = (/* inlined export .value */1);
+export { foo_a as a, foo_b as b };
+
+```
+
+```mjs title=main.mjs
+// ./index.js
+it('should preserve aliases for imported inline export bindings', async () => {
+	const mod = await import("./foo.mjs");
+
+	expect(mod.a).toBe(1);
+	expect(mod.b).toBe(1);
+	expect(globalThis.__inlineExportImportBinding).toBe(1);
+});
+
+export {};
+
+```

@@ -125,15 +125,23 @@ function setBuiltinEnvArg(
   value: unknown,
 ) {
   const envName = `RSPACK_${envNameSuffix}`;
-  if (!(envName in env)) {
+  // `hasOwnProperty.call` so a polluted prototype can't mask the write.
+  if (!Object.prototype.hasOwnProperty.call(env, envName)) {
     env[envName] = value;
   }
 }
+
+// Reject these segments in dotted `--env` paths to avoid prototype pollution.
+const DANGEROUS_ENV_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function normalizeEnvToObject(options: CommonOptions) {
   function parseValue(previous: Record<string, unknown>, value: string) {
     const [allKeys, val] = value.split(/=(.+)/, 2);
     const splitKeys = allKeys.split(/\.(?!$)/);
+
+    if (splitKeys.some((k) => DANGEROUS_ENV_KEYS.has(k.replace(/=$/, '')))) {
+      return previous;
+    }
 
     let prevRef = previous;
 

@@ -6,13 +6,6 @@ module.exports = {
     __filename: false,
   },
   module: {
-    parser: {
-      'css/module': {
-        animation: true,
-        customIdents: true,
-        dashedIdents: true,
-      },
-    },
     generator: {
       'css/module': {
         localIdentName: '[local]--local',

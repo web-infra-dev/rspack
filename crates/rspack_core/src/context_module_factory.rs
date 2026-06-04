@@ -16,8 +16,9 @@ use crate::{
   ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
   ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, extract_glob_base_dir,
-  glob_match_normalized_with_explicit_dot, normalize_path_separators, resolve, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, escape_glob_pattern,
+  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
+  normalize_path_separators_for_path, resolve, unescape_glob_path, walk_dir,
 };
 
 #[derive(Debug)]
@@ -435,13 +436,21 @@ async fn visit_dirs(
     } else {
       None
     };
+  let is_import_meta_glob = resolved_glob_patterns.is_some();
+  let glob_exhaustive = options.context_options.glob_exhaustive;
 
   walk_dir(
     dir,
     fs,
     options.context_options.recursive,
     skip_dotfiles,
-    &mut |path| {
+    &mut |path, dirname| {
+      if is_import_meta_glob
+        && !glob_exhaustive
+        && is_non_exhaustive_import_meta_glob_skipped_dir(dirname)
+      {
+        return false;
+      }
       exclude
         .as_ref()
         .is_none_or(|exclude| !exclude.test(path.as_str()))
@@ -476,7 +485,7 @@ async fn visit_dirs(
         // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
         // paths, not resolver alternative requests like extensionless aliases.
         // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = glob_user_request(patterns, path_str)
+        if let Some(user_request) = glob_user_request(patterns, path_str, glob_exhaustive)
           && !dependencies.iter().any(|d| d.user_request == user_request)
         {
           push_context_element_dependency(dependencies, options, &relative_path, &user_request);
@@ -574,13 +583,15 @@ fn resolve_context_module_glob_pattern(
       pattern.as_str(),
     )
   };
-  let absolute_pattern = Utf8Path::new(&base)
+  let base = normalize_path_separators_for_path(&base);
+  let escaped_base = escape_glob_pattern(&base);
+  let absolute_pattern = Utf8Path::new(&escaped_base)
     .node_join_posix(pattern_to_join)
     .node_normalize_posix()
     .to_string();
   let absolute_pattern = normalize_path_separators(&absolute_pattern);
   let base = extract_glob_base_dir(&pattern).to_string();
-  let absolute_base = extract_glob_base_dir(&absolute_pattern).to_string();
+  let absolute_base = unescape_glob_path(extract_glob_base_dir(&absolute_pattern));
 
   ResolvedContextModuleGlobPattern {
     absolute_pattern,
@@ -591,7 +602,7 @@ fn resolve_context_module_glob_pattern(
 }
 
 fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
-  let mut common_base = normalize_path_separators(common_base);
+  let mut common_base = normalize_path_separators_for_path(common_base);
   if !common_base.ends_with('/') {
     common_base.push('/');
   }
@@ -613,17 +624,25 @@ fn infer_glob_root_context(common_base: &str, pattern_base: &str) -> String {
   common_base[..common_base.len() - matched_len].to_string()
 }
 
-fn glob_user_request(patterns: &[ResolvedContextModuleGlobPattern], path: &str) -> Option<String> {
-  let normalized_path = normalize_path_separators(path);
+fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
+  dirname == "node_modules" || dirname.starts_with('.')
+}
+
+fn glob_user_request(
+  patterns: &[ResolvedContextModuleGlobPattern],
+  path: &str,
+  exhaustive: bool,
+) -> Option<String> {
+  let normalized_path = normalize_path_separators_for_path(path);
   let matched = patterns
     .iter()
     .filter(|pattern| !pattern.negative)
-    .find(|pattern| glob_pattern_matches(pattern, &normalized_path))?;
+    .find(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))?;
 
   if patterns
     .iter()
     .filter(|pattern| pattern.negative)
-    .any(|pattern| glob_pattern_matches(pattern, &normalized_path))
+    .any(|pattern| glob_pattern_matches(pattern, &normalized_path, exhaustive))
   {
     return None;
   }
@@ -639,12 +658,19 @@ fn glob_user_request(patterns: &[ResolvedContextModuleGlobPattern], path: &str) 
   )
 }
 
-fn glob_pattern_matches(pattern: &ResolvedContextModuleGlobPattern, normalized_path: &str) -> bool {
+fn glob_pattern_matches(
+  pattern: &ResolvedContextModuleGlobPattern,
+  normalized_path: &str,
+  exhaustive: bool,
+) -> bool {
   glob_match_normalized_with_explicit_dot(
     &pattern.absolute_pattern,
     normalized_path,
     &pattern.absolute_base,
-    &GlobMatchOptions::default(),
+    &GlobMatchOptions {
+      require_literal_leading_dot: !exhaustive,
+      ..Default::default()
+    },
   )
 }
 

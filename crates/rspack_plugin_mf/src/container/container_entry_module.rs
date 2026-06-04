@@ -316,10 +316,10 @@ impl Module for ContainerEntryModule {
           {require_name}.federation = {{ instance: undefined,bundlerRuntime: undefined }}
           var factory = ()=>{factory};
           var initShareContainer = {init_share_container_fn};
-    {runtime}({exports}, [
-        "get", function() {{ return factory;}},
-        "init", function() {{ return initShareContainer;}}
-    ]);
+    {runtime}({exports}, {{ 
+        get: function() {{ return factory;}},
+        init: function() {{ return initShareContainer;}}
+    }});
     "#,
         require_name = require_name,
         runtime = runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
@@ -356,10 +356,10 @@ impl Module for ContainerEntryModule {
 
       format!(
         r#"
-{}({}, [
-	"get", {},
-	"init", {}
-]);"#,
+{}({}, {{
+	get: {},
+	init: {}
+}});"#,
         define_property_getters,
         runtime_template.render_exports_argument(ExportsArgument::Exports),
         runtime_template.returning_function(&get_container, ""),
@@ -387,10 +387,10 @@ var init = function(shareScope, initScope) {{
   {share_scope_map}[name] = shareScope;
   return {initialize_sharing}(name, initScope);
 }}
-{define_property_getters}({exports}, [
-	"get", {export_get},
-	"init", {export_init}
-]);"#,
+{define_property_getters}({exports}, {{
+	get: {export_get},
+	init: {export_init}
+}});"#,
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
         current_remote_get_scope =
           runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),

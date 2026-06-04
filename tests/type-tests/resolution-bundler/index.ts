@@ -53,6 +53,11 @@ const multiGlobModules = import.meta.glob<GlobModule>(
   ['./dir/*.js', '!**/bar.js'] as const,
   {
     eager: true,
+    query: {
+      raw: true,
+    },
+    base: './base',
+    exhaustive: true,
   },
 );
 multiGlobModules['./dir/foo.js'].default.toUpperCase();

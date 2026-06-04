@@ -48,9 +48,9 @@
 self["rspackHotUpdate"]("dep1_js-dep2_js-worker_js", {
 "./dep1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (43);
 
 
@@ -82,9 +82,9 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 self["rspackHotUpdate"]("dep1_js-module_js", {
 "./dep1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (43);
 
 

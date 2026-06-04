@@ -238,7 +238,7 @@ fn render_module_external_remapping(
   create_namespace_object_name: &str,
   wrap_namespace_getter_name: &str,
 ) -> String {
-  let definitions = remapping
+  let properties = remapping
     .iter()
     .map(|remapping| {
       let access = format!(
@@ -260,12 +260,19 @@ fn render_module_external_remapping(
         runtime_template.returning_function(&access, "")
       };
 
-      format!("{}, {getter}", json_stringify_str(&remapping.exposed_name))
+      format!(
+        "{}: {getter}",
+        module_external_remapping_property_key(&remapping.exposed_name)
+      )
     })
     .collect::<Vec<_>>()
     .join(", ");
 
-  format!("{create_namespace_object_name}([{definitions}])")
+  format!("{create_namespace_object_name}({{{properties}}})")
+}
+
+fn module_external_remapping_property_key(exposed_name: &str) -> String {
+  format!("[{}]", json_stringify_str(exposed_name))
 }
 
 fn get_source_for_module_external(
@@ -371,12 +378,7 @@ fn resolve_external_type<'a>(
         match external_type {
           ExternalTypeEnum::Import => "import",
           ExternalTypeEnum::Module => "module",
-          // `modern-module` currently collapses require-style CommonJS
-          // externals to node-commonjs in ESM output. This preserves a
-          // distinct identity from plain commonjs externals, but it also means
-          // we don't yet support selecting other CJS render variants such as
-          // preserving a bare require(...).
-          ExternalTypeEnum::CommonJs => "node-commonjs",
+          ExternalTypeEnum::CommonJs(external_type) => external_type.as_str(),
         }
       } else {
         "module"
@@ -410,7 +412,7 @@ pub struct ExternalModule {
 pub enum ExternalTypeEnum {
   Import,
   Module,
-  CommonJs,
+  CommonJs(ExternalType),
 }
 
 pub type MetaExternalType = Option<ExternalTypeEnum>;

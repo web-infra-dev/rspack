@@ -1,0 +1,37 @@
+.foo {
+	color: red;
+}
+
+.bar,
+.baz {
+	color: blue;
+}
+
+.qux:hover {
+	color: green;
+}
+
+:global(.outer) :local(.inner) {
+	color: orange;
+}
+
+/* cssmodules-pure-ignore */
+:global(.ignored) {
+	color: pink;
+}
+
+.normal {
+	color: black;
+}
+
+/* cssmodules-pure-ignore */
+:global(.outer-ignored) {
+	:global(.nested-also-ignored) {
+		color: cyan;
+	}
+}
+
+/* cssmodules-pure-ignore - needed for third party integration */
+:global(#ignored-id) {
+	color: purple;
+}

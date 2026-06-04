@@ -31,6 +31,8 @@ module.exports = {
         },
       },
     },
+    // Avoid the default export of lib-*.js is inlined, which causes the splitChunks lib* cache group disappear.
+    inlineExports: false,
   },
   target: 'node',
 };

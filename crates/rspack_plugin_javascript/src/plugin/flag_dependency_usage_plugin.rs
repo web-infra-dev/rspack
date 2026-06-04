@@ -208,17 +208,31 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
         }
       }
 
-      // we can ensure that only the module's exports info data will be modified
-      // so we can process these non-nested tasks parallelly by cloning the exports info data
+      // We can ensure that only the module's exports info data will be modified,
+      // so we can process these non-nested tasks parallelly by moving the exports info data out
+      // and setting it back after processing. This avoids cloning large exports info maps while
+      // preserving the original rayon work shape.
       let non_nested_res = {
         let mg = self.build_module_graph_artifact.get_module_graph();
         non_nested_tasks
-          .into_par_iter()
+          .into_iter()
           .map(|(module_id, tasks)| {
-            let mut exports_info: ExportsInfoData = self
-              .exports_info_artifact
-              .get_exports_info_data(&module_id)
-              .clone();
+            let exports_info_id = self.exports_info_artifact.get_exports_info(&module_id);
+
+            // Move the data out at the call site instead of adding an artifact helper.
+            // Here each `module_id` owns a distinct exports info id, so two module
+            // ids won't take the same exports info data. The temporary default value is
+            // not read before the processed data is set back below.
+            let exports_info = std::mem::take(
+              self
+                .exports_info_artifact
+                .get_exports_info_mut_by_id(&exports_info_id),
+            );
+            (module_id, (tasks, exports_info))
+          })
+          .collect::<IdentifierMap<_>>()
+          .into_par_iter()
+          .map(|(module_id, (tasks, mut exports_info))| {
             let module = mg
               .module_by_identifier(&module_id)
               .expect("should have module");

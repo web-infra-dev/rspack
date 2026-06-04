@@ -1,0 +1,22 @@
+.seen {
+  composes: cycle-q from "./cycle-q.module.css";
+}
+
+.cycleOne {
+  composes: cycle-x from "./cycle-x.module.css";
+  composes: cycle-y from "./cycle-y.module.css";
+}
+
+.cycleTwo {
+  composes: cycle-y from "./cycle-y.module.css";
+  composes: cycle-x from "./cycle-x.module.css";
+}
+
+.later {
+  composes: cycle-p from "./cycle-p.module.css";
+  composes: cycle-q from "./cycle-q.module.css";
+}
+
+.independent {
+  composes: cycle-z from "./cycle-z.module.css";
+}

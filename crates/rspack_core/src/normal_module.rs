@@ -10,7 +10,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsOption, AsPreset},
+  with::{As, AsInner, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -36,8 +36,8 @@ use crate::{
   FactoryMeta, GenerateContext, GeneratorOptions, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
-  ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
+  RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -130,10 +130,9 @@ pub struct NormalModule {
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
-  /// Parser options derived from [Rule.parser]
-  parser_options: Option<Arc<ParserOptions>>,
-  /// Generator options derived from [Rule.generator]
-  generator_options: Option<GeneratorOptions>,
+  /// Parser and generator options derived from [Rule.parser] and [Rule.generator]
+  #[cacheable(with=AsInner)]
+  parser_and_generator_options: Arc<ResolvedModuleOptions>,
   /// enable/disable extracting source map
   extract_source_map: Option<bool>,
 
@@ -179,8 +178,7 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_options: Option<Arc<ParserOptions>>,
-    generator_options: Option<GeneratorOptions>,
+    parser_and_generator_options: Arc<ResolvedModuleOptions>,
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
@@ -201,8 +199,7 @@ impl NormalModule {
       module_type,
       layer,
       parser_and_generator,
-      parser_options,
-      generator_options,
+      parser_and_generator_options,
       match_resource,
       resource_data,
       resolve_options,
@@ -298,19 +295,11 @@ impl NormalModule {
   }
 
   pub fn get_parser_options(&self) -> Option<&ParserOptions> {
-    self.parser_options.as_deref()
+    self.parser_and_generator_options.parser_options()
   }
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
-    self.generator_options.as_ref()
-  }
-
-  pub fn get_generator_options_mut(&mut self) -> Option<&mut GeneratorOptions> {
-    self.generator_options.as_mut()
-  }
-
-  pub fn set_generator_options(&mut self, generator_options: Option<GeneratorOptions>) {
-    self.generator_options = generator_options;
+    self.parser_and_generator_options.generator_options()
   }
 }
 
@@ -488,8 +477,7 @@ impl Module for NormalModule {
     self.add_diagnostics(loader_result.diagnostics);
 
     let is_binary = self
-      .generator_options
-      .as_ref()
+      .get_generator_options()
       .and_then(|g| match g {
         GeneratorOptions::Asset(g) => g.binary,
         GeneratorOptions::AssetInline(g) => g.binary,
@@ -560,7 +548,8 @@ impl Module for NormalModule {
         source: source.clone(),
         module_context: &self.context,
         module_identifier: self.id,
-        module_parser_options: self.parser_options.as_deref(),
+        module_parser_options: self.parser_and_generator_options.parser_options(),
+        module_generator_options: self.parser_and_generator_options.generator_options(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
         module_user_request: &self.user_request,
@@ -668,6 +657,8 @@ impl Module for NormalModule {
             runtime_template,
             data: &mut code_generation_result.data,
             requested_source_type: *source_type,
+            module_parser_options: self.parser_and_generator_options.parser_options(),
+            module_generator_options: self.parser_and_generator_options.generator_options(),
             runtime: *runtime,
             concatenation_scope: concatenation_scope.as_mut(),
           },

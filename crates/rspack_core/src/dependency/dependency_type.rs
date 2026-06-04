@@ -67,6 +67,8 @@ pub enum DependencyType {
   CssCompose,
   // css :export
   CssExport,
+  // css icss symbol
+  CssIcssSymbol,
   // css modules local ident
   CssLocalIdent,
   // css modules self reference
@@ -136,6 +138,7 @@ pub enum DependencyType {
   RstestMockModuleId,
   RstestHoistMock,
   RstestDynamicImportOrigin,
+  RstestRequireResolveOrigin,
   /// RSC entry that aggregates all "use client" and CSS modules for one Rspack entry
   RscEntry,
   /// RSC client reference to an individual "use client" or CSS module, not subject to lazy compilation
@@ -181,6 +184,7 @@ impl DependencyType {
       DependencyType::CssImport => "css import",
       DependencyType::CssCompose => "css compose",
       DependencyType::CssExport => "css export",
+      DependencyType::CssIcssSymbol => "css icss symbol",
       DependencyType::CssLocalIdent => "css local ident",
       DependencyType::CssSelfReferenceLocalIdent => "css self reference local ident",
       DependencyType::ContextElement(type_prefix) => match type_prefix {
@@ -227,6 +231,7 @@ impl DependencyType {
       DependencyType::RstestMockModuleId => "rstest mock module id",
       DependencyType::RstestHoistMock => "rstest hoist mock",
       DependencyType::RstestDynamicImportOrigin => "rstest dynamic import origin",
+      DependencyType::RstestRequireResolveOrigin => "rstest require.resolve origin",
       DependencyType::RscEntry => "rsc entry",
       DependencyType::RscClientReference => "rsc client reference",
       DependencyType::ImportMetaRsc => "import.meta.rspackRsc",

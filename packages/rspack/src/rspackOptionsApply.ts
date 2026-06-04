@@ -71,6 +71,7 @@ import {
   URLPlugin,
   WorkerPlugin,
 } from './builtin-plugin';
+import { getTargetProperties, getTargetsProperties } from './config/target';
 import MemoryCachePlugin from './lib/cache/MemoryCachePlugin';
 import EntryOptionPlugin from './lib/EntryOptionPlugin';
 import IgnoreWarningsPlugin from './lib/IgnoreWarningsPlugin';
@@ -102,6 +103,7 @@ export class RspackOptionsApply {
         options.externalsType,
         options.externals,
         false,
+        getModernModuleCjsExternalType(options),
       ).apply(compiler);
     }
 
@@ -436,4 +438,22 @@ export class RspackOptionsApply {
 
     compiler.hooks.afterResolvers.call(compiler);
   }
+}
+
+function getModernModuleCjsExternalType(
+  options: RspackOptionsNormalized,
+): 'commonjs' | 'node-commonjs' {
+  const { context, target } = options;
+  assertNotNill(context);
+
+  if (target == null || target === false) {
+    return 'commonjs';
+  }
+
+  const targetProperties =
+    typeof target === 'string'
+      ? getTargetProperties(target, context)
+      : getTargetsProperties(target, context);
+
+  return targetProperties.nodeBuiltins ? 'node-commonjs' : 'commonjs';
 }

@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{ArcPathSet, AssertUtf8};
+use rspack_paths::{ArcResolverPathSet, AssertUtf8};
 use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -17,10 +17,12 @@ use crate::{
 
 #[derive(Debug, Default, Clone)]
 pub struct ResolveDependencies {
-  /// Files that was found on file system
-  pub file_dependencies: ArcPathSet,
-  /// Dependencies that was not found on file system
-  pub missing_dependencies: ArcPathSet,
+  /// Files that were found on file system; entries carry the precomputed
+  /// `FxHash` from `rspack_resolver`.
+  pub file_dependencies: ArcResolverPathSet,
+  /// Dependencies that were not found on file system; entries carry the
+  /// precomputed `FxHash` from `rspack_resolver`.
+  pub missing_dependencies: ArcResolverPathSet,
 }
 
 pub type ResolveContext = ResolveDependencies;
@@ -171,17 +173,13 @@ impl Resolver {
     let result = resolver
       .resolve_with_context(path, request, &mut context)
       .await;
+    // `context.{file,missing}_dependencies` is `FxHashSet<ResolverPath>`. We
+    // re-bucket into the `IdentityHasher`-keyed `ArcResolverPathSet` so future
+    // lookups become a single `write_u64`. No path rehashing or `Arc<Path>`
+    // re-allocation happens here.
     let dependencies = ResolveDependencies {
-      file_dependencies: context
-        .file_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect(),
-      missing_dependencies: context
-        .missing_dependencies
-        .into_iter()
-        .map(Into::into)
-        .collect(),
+      file_dependencies: context.file_dependencies.into_iter().collect(),
+      missing_dependencies: context.missing_dependencies.into_iter().collect(),
     };
     let result = match result {
       Ok(r) => Ok(ResolveResult::Resource(Resource {

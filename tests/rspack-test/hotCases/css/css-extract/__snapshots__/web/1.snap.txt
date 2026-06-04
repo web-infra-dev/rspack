@@ -35,9 +35,9 @@
 self["rspackHotUpdate"]("main", {
 "./entry.js"(module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _index_module_css__rspack_import_0 = __webpack_require__("./index.module.css");
 
 module.hot.accept();
@@ -48,9 +48,9 @@ module.hot.accept();
 },
 "./index.module.css"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 // extracted by css-extract-rspack-plugin
 /* export default */ const __rspack_default_export = ({"bar":"gVlquue4Gts5AqVo"});
 

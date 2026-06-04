@@ -9,6 +9,7 @@ module.exports = {
 					  arrowFunction: true,
 					  asyncFunction: true,
 					  bigIntLiteral: true,
+					  computedProperty: true,
 					  const: true,
 					  destructuring: true,
 					  document: false,
