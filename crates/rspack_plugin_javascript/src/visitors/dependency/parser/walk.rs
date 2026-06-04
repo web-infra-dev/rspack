@@ -578,6 +578,7 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
+      this.clear_created_require_tags_in_for_head(&stmt.left);
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -593,6 +594,7 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
+      this.clear_created_require_tags_in_for_head(&stmt.left);
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -617,9 +619,14 @@ impl JavascriptParser<'_> {
         self.walk_variable_declaration(decl);
       }
       ForHead::Pat(pat) => {
-        self.clear_created_require_tags_in_pattern(pat);
         self.walk_pattern(pat);
       }
+    }
+  }
+
+  fn clear_created_require_tags_in_for_head(&mut self, for_head: &ForHead) {
+    if let ForHead::Pat(pat) = for_head {
+      self.clear_created_require_tags_in_pattern(pat);
     }
   }
 

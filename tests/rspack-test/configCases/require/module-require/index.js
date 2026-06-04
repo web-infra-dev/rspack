@@ -236,9 +236,19 @@ it("should stop parsing reassigned created require bindings", () => {
 	for (loopRequire of [request => request]) {}
 	expect(loopRequire("./a")).toBe("./a");
 
+	let loopRhsRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	for (loopRhsRequire of [loopRhsRequire("./loop-rhs-only")]) {}
+	expect(loopRhsRequire).toBe("__rspackLoopRhsCreatedRequire");
+
 	let loopKeyRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	for (loopKeyRequire in { "./a": true }) {}
 	expect(() => loopKeyRequire("./a")).toThrow();
+
+	let loopKeyRhsRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
+	for (loopKeyRhsRequire in {
+		[loopKeyRhsRequire("./loop-key-rhs-only")]: true
+	}) {}
+	expect(loopKeyRhsRequire).toBe("__rspackLoopKeyRhsCreatedRequire");
 });
 
 it("should preserve createRequire results used as values", () => {
