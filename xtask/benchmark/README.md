@@ -20,7 +20,11 @@ upstream `threejs/src` input ten times. This larger input is registered only by
 the isolated `walltime` benchmark target, so regular simulation runs keep using
 the smaller default benchmark set. The `threejs-10x` walltime benchmark writes
 outputs through the native filesystem instead of the in-memory filesystem used
-by the regular bundle benchmarks.
+by the regular bundle benchmarks. Rust benchmark concurrency is selected with
+`BENCH_MODE=simulation|walltime` (default: `simulation`). Walltime bundle
+benchmarks use `BENCH_MODE=walltime`, which caps machine-size-dependent
+parallelism at up to 16 threads for each of Tokio workers, Tokio blocking tasks,
+and Rayon.
 
 ## Run in CI mode
 
@@ -77,14 +81,14 @@ pnpm run bench:rust:local -- --bench rspack_sources
 The script expands to:
 
 ```bash
-mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp RAYON_NUM_THREADS=1 RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation
+mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation
 ```
 
 This command:
 
 - Creates a stable temporary directory for CodSpeed and Valgrind files
 - Sets `TMPDIR` so the temporary files are written to that directory
-- Sets `RAYON_NUM_THREADS=1` to match the single-threaded CI simulation environment
+- Sets `BENCH_MODE=simulation` to match the single-threaded CI simulation environment
 - Sets `RSPACK_BENCHCASES_DIR` to the prepared benchmark fixtures
 - Wraps `cargo codspeed run -m simulation` in `codspeed run -m simulation` so local runs use the CodSpeed runner environment instead of only checking benchmarks
 

@@ -3,7 +3,6 @@
 use std::{fs, io::ErrorKind, path::PathBuf, sync::Arc};
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use rspack_core::configure_rayon_current_thread_for_codspeed;
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use crate::groups::{
@@ -17,8 +16,8 @@ use crate::groups::{
 #[path = "walltime_groups/mod.rs"]
 mod groups;
 
-fn configure_rayon_for_codspeed(_: &mut Criterion) {
-  configure_rayon_current_thread_for_codspeed();
+fn configure_rayon_for_benchmark(_: &mut Criterion) {
+  rspack_benchmark::configure_rayon_for_benchmark();
 }
 
 fn threejs_10x_bundle_benchmark(c: &mut Criterion) {
@@ -88,6 +87,6 @@ impl Drop for NativeOutputCleanup {
   }
 }
 
-criterion_group!(codspeed_setup, configure_rayon_for_codspeed);
+criterion_group!(benchmark_setup, configure_rayon_for_benchmark);
 criterion_group!(walltime_benches, threejs_10x_bundle_benchmark);
-criterion_main!(codspeed_setup, walltime_benches);
+criterion_main!(benchmark_setup, walltime_benches);
