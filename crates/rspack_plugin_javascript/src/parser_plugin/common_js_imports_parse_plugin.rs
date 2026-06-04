@@ -504,6 +504,27 @@ fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members
 }
 
 #[inline(never)]
+fn handle_created_require_member(
+  parser: &mut JavascriptParser,
+  member_span: Span,
+  cache_range: Span,
+  members: &[Atom],
+) {
+  if members
+    .first()
+    .is_some_and(|member| member.as_ref() == "cache")
+  {
+    add_require_cache_dependency(parser, cache_range.into());
+  } else {
+    add_unsupported_create_require_member_warning(parser, member_span);
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      member_span.into(),
+      "undefined".into(),
+    )));
+  }
+}
+
+#[inline(never)]
 fn current_created_require_context(parser: &JavascriptParser) -> Option<Context> {
   parser
     .current_tag_info
@@ -516,6 +537,44 @@ fn current_created_require_context(parser: &JavascriptParser) -> Option<Context>
     })
     .map(CreatedRequireTagData::downcast)
     .map(|data| data.context)
+}
+
+#[cold]
+#[inline(never)]
+fn walk_unsupported_create_require_resolve(
+  parser: &mut JavascriptParser,
+  inner_call_expr: &CallExpr,
+  call_expr: &CallExpr,
+) {
+  walk_create_require_callee(parser, inner_call_expr);
+  if inner_call_expr.args.len() == 1 && inner_call_expr.args[0].spread.is_none() {
+    let arg = &inner_call_expr.args[0].expr;
+    if let Some(value) = evaluate_create_require_argument(parser, arg) {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        arg.span().into(),
+        json_stringify_str(&value).into(),
+      )));
+    } else if let Some(new_expr) = arg.as_new()
+      && new_expr
+        .callee
+        .as_ident()
+        .is_some_and(|ident| ident.sym.as_str() == "URL")
+      && parser.get_variable_info(&Atom::from("URL")).is_none()
+      && let Some(args) = new_expr.args.as_ref()
+      && args.len() > 2
+    {
+      if get_url_request(parser, new_expr).is_some() {
+        parser.walk_expr_or_spread(&args[2..]);
+      } else {
+        parser.walk_expr_or_spread(args);
+      }
+    } else {
+      parser.walk_expression(arg);
+    }
+  } else {
+    parser.walk_expr_or_spread(&inner_call_expr.args);
+  }
+  parser.walk_expr_or_spread(&call_expr.args);
 }
 
 fn tag_commonjs_require_referenced(
@@ -1252,18 +1311,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       if ids.len() != members.len() {
         return None;
       }
-      if ids.first().is_some_and(|id| id.as_ref() == "cache") {
-        add_require_cache_dependency(
-          parser,
-          require_cache_range(_expr, member_ranges, members).into(),
-        );
-      } else {
-        add_unsupported_create_require_member_warning(parser, _expr.span());
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          _expr.span().into(),
-          "undefined".into(),
-        )));
-      }
+      handle_created_require_member(
+        parser,
+        _expr.span(),
+        require_cache_range(_expr, member_ranges, members),
+        members,
+      );
       return Some(true);
     }
 
@@ -1581,27 +1634,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
       && parse_create_require_argument(parser, call_expr, false).is_some()
     {
-      add_require_cache_dependency(
+      handle_created_require_member(
         parser,
-        require_cache_range(member_expr, member_ranges, members).into(),
+        member_expr.span(),
+        require_cache_range(member_expr, member_ranges, members),
+        members,
       );
-      return Some(true);
-    }
-
-    if callee_members.is_empty()
-      && should_handle_create_require_specifier(parser, for_name)
-      && parse_create_require_argument(parser, call_expr, false).is_some()
-    {
-      add_unsupported_create_require_member_warning(parser, member_expr.span());
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        member_expr.span().into(),
-        "undefined".into(),
-      )));
       return Some(true);
     }
 
@@ -1635,35 +1675,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         || call_expr.args.len() != 1
         || call_expr.args[0].spread.is_some()
       {
-        walk_create_require_callee(parser, inner_call_expr);
-        if inner_call_expr.args.len() == 1 && inner_call_expr.args[0].spread.is_none() {
-          let arg = &inner_call_expr.args[0].expr;
-          if let Some(value) = evaluate_create_require_argument(parser, arg) {
-            parser.add_presentational_dependency(Box::new(ConstDependency::new(
-              arg.span().into(),
-              json_stringify_str(&value).into(),
-            )));
-          } else if let Some(new_expr) = arg.as_new()
-            && new_expr
-              .callee
-              .as_ident()
-              .is_some_and(|ident| ident.sym.as_str() == "URL")
-            && parser.get_variable_info(&Atom::from("URL")).is_none()
-            && let Some(args) = new_expr.args.as_ref()
-            && args.len() > 2
-          {
-            if get_url_request(parser, new_expr).is_some() {
-              parser.walk_expr_or_spread(&args[2..]);
-            } else {
-              parser.walk_expr_or_spread(args);
-            }
-          } else {
-            parser.walk_expression(arg);
-          }
-        } else {
-          parser.walk_expr_or_spread(&inner_call_expr.args);
-        }
-        parser.walk_expr_or_spread(&call_expr.args);
+        walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
         return Some(true);
       }
       let context = parse_create_require_argument(parser, inner_call_expr, false)?.context;
@@ -1675,26 +1687,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_handle_create_require_specifier(parser, for_name)
       && parse_create_require_argument(parser, inner_call_expr, false).is_some()
     {
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
-        add_require_cache_dependency(
-          parser,
-          require_cache_range(
-            call_expr.callee.as_expr()?.as_member()?,
-            member_ranges,
-            members,
-          )
-          .into(),
-        );
-      } else {
-        add_unsupported_create_require_member_warning(parser, call_expr.callee.span());
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          call_expr.callee.span().into(),
-          "undefined".into(),
-        )));
-      }
+      handle_created_require_member(
+        parser,
+        call_expr.callee.span(),
+        require_cache_range(
+          call_expr.callee.as_expr()?.as_member()?,
+          member_ranges,
+          members,
+        ),
+        members,
+      );
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
