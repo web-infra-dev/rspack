@@ -16,7 +16,7 @@ use super::{JavascriptParserPlugin, inner_graph::state::InnerGraphUsageOperation
 use crate::{
   InnerGraphParserPlugin,
   dependency::{URLContextDependency, URLDependency},
-  magic_comment::try_extract_magic_comment,
+  magic_comment::{MagicCommentValue, try_extract_magic_comment},
   visitors::{ExprRef, JavascriptParser, context_reg_exp, create_context_dependency},
 };
 
@@ -122,25 +122,29 @@ impl JavascriptParserPlugin for URLPlugin {
 
     let arg = args.first()?;
     let magic_comment_options = try_extract_magic_comment(parser, expr.span, arg.span());
-    if magic_comment_options.get_ignore().unwrap_or_default() {
-      if args.len() != 2 {
-        return None;
+    match magic_comment_options.get_ignore_value() {
+      Some(MagicCommentValue::Bool(true)) => {
+        if args.len() != 2 {
+          return None;
+        }
+        let arg2 = args.get(1)?;
+        if let ExprOrSpread {
+          spread: None,
+          expr: arg2_expr,
+        } = arg2
+          && let Expr::Member(arg2) = &**arg2_expr
+          && !is_meta_url(parser, arg2)
+        {
+          return None;
+        }
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+          arg2.span().into(),
+          RuntimeGlobals::BASE_URI,
+        )));
+        return Some(true);
       }
-      let arg2 = args.get(1)?;
-      if let ExprOrSpread {
-        spread: None,
-        expr: arg2_expr,
-      } = arg2
-        && let Expr::Member(arg2) = &**arg2_expr
-        && !is_meta_url(parser, arg2)
-      {
-        return None;
-      }
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-        arg2.span().into(),
-        RuntimeGlobals::BASE_URI,
-      )));
-      return Some(true);
+      Some(MagicCommentValue::Bool(false)) | None => {}
+      Some(_) => return None,
     }
 
     // should not parse new URL(import.meta.url)

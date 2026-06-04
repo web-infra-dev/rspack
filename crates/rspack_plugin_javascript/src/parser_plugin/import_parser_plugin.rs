@@ -305,11 +305,11 @@ impl JavascriptParserPlugin for ImportParserPlugin {
     let chunk_name = magic_comment_options.get_chunk_name().map(|x| x.to_owned());
     let chunk_prefetch = magic_comment_options
       .get_prefetch()
-      .and_then(|x| parse_order_string(x.as_str()))
+      .and_then(|x| parse_order_string(x.as_ref()))
       .or(dynamic_import_prefetch);
     let chunk_preload = magic_comment_options
       .get_preload()
-      .and_then(|x| parse_order_string(x.as_str()))
+      .and_then(|x| parse_order_string(x.as_ref()))
       .or(dynamic_import_preload);
     let fetch_priority = magic_comment_options
       .get_fetch_priority()
