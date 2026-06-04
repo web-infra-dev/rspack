@@ -3,7 +3,7 @@ it("should wrap output in jsonp callback", function () {
 	var source = fs.readFileSync(__filename, "utf-8");
 
 	expect(source.startsWith("MyJsonpCallback(")).toBe(true);
-	expect(source).toMatch("return __webpack_exports__");
+	expect(source).toContain("return __webpack_exports__");
 });
 
 it("should pass exports to jsonp callback", function () {

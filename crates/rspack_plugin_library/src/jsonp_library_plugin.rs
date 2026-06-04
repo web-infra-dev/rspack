@@ -104,7 +104,7 @@ async fn render(
   let mut source = ConcatSource::default();
   source.add(RawStringSource::from(format!("{name}(")));
   source.add(render_source.source.clone());
-  source.add(RawStringSource::from_static(")"));
+  source.add(RawStringSource::from_static("\n)"));
   render_source.source = source.boxed();
   Ok(())
 }
