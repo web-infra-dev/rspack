@@ -789,6 +789,42 @@ impl JavascriptParser<'_> {
     }
   }
 
+  #[cold]
+  #[inline(never)]
+  fn try_walk_created_require_assignment(
+    &mut self,
+    expr: &AssignExpr,
+    ident: &Ident,
+  ) -> Option<bool> {
+    if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
+      && self.has_created_require_tag(&ident.sym)
+    {
+      return Some(true);
+    }
+    if let Some(rhs) = expr.right.as_ident()
+      && self.has_created_require_tag(&rhs.sym)
+      && let Some(variable) = self.get_variable_info(&rhs.sym).map(|info| info.id())
+    {
+      self.set_variable(
+        ident.sym.clone(),
+        ExportedVariableInfo::VariableInfo(variable),
+      );
+      self.walk_expression(&expr.right);
+      return Some(true);
+    }
+    if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+      && rename_identifier == CREATE_REQUIRE_EVALUATED_TAG
+    {
+      self.set_variable(
+        ident.sym.clone(),
+        ExportedVariableInfo::Name(rename_identifier),
+      );
+      self.walk_expression(&expr.right);
+      return Some(true);
+    }
+    None
+  }
+
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
     let drive = self.plugin_drive.clone();
     if expr.op == UnaryOp::TypeOf
@@ -1632,49 +1668,30 @@ impl JavascriptParser<'_> {
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
     let drive = self.plugin_drive.clone();
     if let Some(ident) = expr.left.as_ident() {
-      if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
-        && self.has_created_require_tag(&ident.sym)
+      if self
+        .try_walk_created_require_assignment(expr, ident)
+        .unwrap_or_default()
       {
         return;
       }
-      if let Some(rhs) = expr.right.as_ident()
-        && self.has_created_require_tag(&rhs.sym)
-        && let Some(variable) = self.get_variable_info(&rhs.sym).map(|info| info.id())
-      {
-        self.set_variable(
-          ident.sym.clone(),
-          ExportedVariableInfo::VariableInfo(variable),
-        );
-        self.walk_expression(&expr.right);
-        return;
-      }
-      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
-        if rename_identifier == CREATE_REQUIRE_EVALUATED_TAG {
-          self.set_variable(
-            ident.sym.clone(),
-            ExportedVariableInfo::Name(rename_identifier),
-          );
-          self.walk_expression(&expr.right);
-          return;
-        }
-        if rename_identifier
+      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+        && rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
+      {
+        if !rename_identifier
+          .call_hooks_name(self, |this, for_name| {
+            drive.rename(this, &expr.right, for_name)
+          })
+          .unwrap_or_default()
         {
-          if !rename_identifier
-            .call_hooks_name(self, |this, for_name| {
-              drive.rename(this, &expr.right, for_name)
-            })
-            .unwrap_or_default()
-          {
-            let variable = self
-              .get_variable_info(&rename_identifier)
-              .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
-              .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
-            self.set_variable(ident.sym.clone(), variable);
-          }
-          return;
+          let variable = self
+            .get_variable_info(&rename_identifier)
+            .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
+            .unwrap_or(ExportedVariableInfo::Name(rename_identifier));
+          self.set_variable(ident.sym.clone(), variable);
         }
+        return;
       }
       self.walk_expression(&expr.right);
       self.enter_pattern(

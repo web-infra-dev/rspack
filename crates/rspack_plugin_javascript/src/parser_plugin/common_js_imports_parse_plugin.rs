@@ -40,9 +40,6 @@ pub const CREATE_REQUIRE_EVALUATED_TAG: &str = "\0createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
 #[derive(Clone)]
-pub struct CreateRequireSpecifierTagData;
-
-#[derive(Clone)]
 pub struct CreatedRequireTagData {
   context: Context,
 }
@@ -138,11 +135,7 @@ pub fn is_create_require_import(
 
 #[inline(never)]
 pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
-  parser.tag_variable(
-    name,
-    CREATE_REQUIRE_SPECIFIER_TAG,
-    Some(CreateRequireSpecifierTagData),
-  );
+  parser.tag_variable_without_data(name, CREATE_REQUIRE_SPECIFIER_TAG);
 }
 
 #[inline(never)]
@@ -150,6 +143,22 @@ fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
   parser.current_tag_info.is_some_and(|tag_info| {
     parser.definitions_db.expect_get_tag_info(tag_info).tag == CREATE_REQUIRE_SPECIFIER_TAG
   })
+}
+
+#[inline(never)]
+pub fn is_create_require_specifier(parser: &mut JavascriptParser, name: &Atom) -> bool {
+  let Some(variable_info) = parser.get_variable_info(name) else {
+    return false;
+  };
+  let mut tag_info_id = variable_info.tag_info;
+  while let Some(id) = tag_info_id {
+    let tag_info = parser.definitions_db.expect_get_tag_info(id);
+    if tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG {
+      return true;
+    }
+    tag_info_id = tag_info.next;
+  }
+  false
 }
 
 #[cold]
@@ -384,7 +393,8 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   file_url_to_path(url.as_str())
 }
 
-#[inline]
+#[cold]
+#[inline(never)]
 fn ignored_url_args_are_side_effect_free(
   parser: &mut JavascriptParser,
   new_expr: &NewExpr,
@@ -398,7 +408,8 @@ fn ignored_url_args_are_side_effect_free(
     .all(|arg| arg.spread.is_none() && is_side_effect_free_ignored_url_arg(parser, &arg.expr))
 }
 
-#[inline]
+#[cold]
+#[inline(never)]
 fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   match expr {
     Expr::Lit(_) => true,
@@ -1276,9 +1287,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     if let Some(init) = init.as_ident()
-      && parser
-        .get_tag_data::<CreateRequireSpecifierTagData>(&init.sym, CREATE_REQUIRE_SPECIFIER_TAG)
-        .is_some()
+      && is_create_require_specifier(parser, &init.sym)
       && let Some(binding) = declarator.name.as_ident()
     {
       parser.define_variable(binding.id.sym.clone());
