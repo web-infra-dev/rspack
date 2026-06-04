@@ -510,8 +510,38 @@ export class NodeRunner implements ITestRunner {
           importModuleDynamically: async (
             specifier: any,
             module: { context: any },
+            importAttributes?: { type?: string },
           ) => {
             this.log(`import: ${specifier} from ${file?.path}`);
+            if (importAttributes?.type === 'bytes') {
+              const request = String(specifier).split('?')[0]!;
+              const importedFile = this.getFile(
+                request,
+                path.dirname(file!.path),
+              );
+              if (!importedFile) {
+                throw new Error(`Bytes import not found: ${request}`);
+              }
+              const Uint8ArrayInContext = vm.runInContext(
+                'Uint8Array',
+                module.context,
+              ) as Uint8ArrayConstructor;
+              const bytes = new Uint8ArrayInContext(
+                fs.readFileSync(importedFile.path),
+              );
+              const bytesModule = new vm.SyntheticModule(
+                ['default'],
+                function () {
+                  this.setExport('default', bytes);
+                },
+                { context: module.context },
+              );
+              await bytesModule.link(() => {
+                throw new Error('Unexpected import in bytes module');
+              });
+              await bytesModule.evaluate();
+              return bytesModule;
+            }
             const result = await _require(path.dirname(file!.path), specifier, {
               esmMode: EEsmMode.Evaluated,
             });
