@@ -13,7 +13,7 @@ use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{
     AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
-    VarDeclarator,
+    UnaryOp, VarDeclarator,
   },
 };
 use url::Url;
@@ -332,13 +332,6 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
-  if arg
-    .as_new()
-    .is_some_and(|new_expr| new_expr.args.as_ref().is_some_and(|args| args.len() > 2))
-  {
-    return None;
-  }
-
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
@@ -348,6 +341,9 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   if new_expr.callee.as_ident()?.sym.as_str() != "URL"
     || parser.get_variable_info(&Atom::from("URL")).is_some()
   {
+    return None;
+  }
+  if !ignored_url_args_are_side_effect_free(parser, new_expr) {
     return None;
   }
   if let Some(args) = &new_expr.args
@@ -386,6 +382,35 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   file_url_to_path(url.as_str())
+}
+
+#[inline]
+fn ignored_url_args_are_side_effect_free(
+  parser: &mut JavascriptParser,
+  new_expr: &NewExpr,
+) -> bool {
+  let Some(args) = &new_expr.args else {
+    return true;
+  };
+  args
+    .iter()
+    .skip(2)
+    .all(|arg| arg.spread.is_none() && is_side_effect_free_ignored_url_arg(parser, &arg.expr))
+}
+
+#[inline]
+fn is_side_effect_free_ignored_url_arg(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  match expr {
+    Expr::Lit(_) => true,
+    Expr::Ident(ident) => {
+      ident.sym.as_str() == "undefined"
+        && parser.get_variable_info(&Atom::from("undefined")).is_none()
+    }
+    Expr::Unary(unary) if unary.op == UnaryOp::Void => {
+      is_side_effect_free_ignored_url_arg(parser, &unary.arg)
+    }
+    _ => false,
+  }
 }
 
 #[cold]
