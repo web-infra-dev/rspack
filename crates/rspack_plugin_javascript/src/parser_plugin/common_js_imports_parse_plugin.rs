@@ -1,3 +1,4 @@
+#[cfg(windows)]
 use std::path::Path;
 
 use rspack_core::{
@@ -15,6 +16,7 @@ use swc_core::{
     VarDeclarator,
   },
 };
+use url::Url;
 
 use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
@@ -348,7 +350,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return Some(value);
   }
   if request.starts_with("file://") {
-    return file_url_to_path(&request);
+    return file_url_to_path(Url::parse(&request).ok()?.as_str());
   }
   if request
     .find([':', '/', '?', '#'])
@@ -357,14 +359,15 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let request_path = request.split(['?', '#']).next()?;
-  let request_path = decode_file_path(request_path)?;
-  Some(
-    Path::new(parser.resource_data.resource())
-      .parent()?
-      .join(&request_path)
-      .to_string_lossy()
-      .to_string(),
-  )
+  decode_file_path(request_path)?;
+  let url = Url::from_file_path(parser.resource_data.resource())
+    .ok()?
+    .join(&request)
+    .ok()?;
+  if url.scheme() != "file" {
+    return None;
+  }
+  file_url_to_path(url.as_str())
 }
 
 #[cold]
