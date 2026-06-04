@@ -3,7 +3,8 @@ use swc_core::ecma::ast::{CallExpr, Callee, MemberProp};
 use super::BasicEvaluatedExpression;
 use crate::{
   parser_plugin::{
-    CREATE_REQUIRE_SPECIFIER_TAG, CreateRequireSpecifierTagData, JavascriptParserPlugin,
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CreateRequireSpecifierTagData,
+    JavascriptParserPlugin,
   },
   visitors::{CallHooksName, JavascriptParser},
 };
@@ -25,6 +26,13 @@ pub fn eval_call_expression<'a>(
           ident.sym.call_hooks_name(parser, |parser, for_name| {
             drive.evaluate_call_expression(parser, for_name, expr)
           })
+        } else if parser.javascript_options.is_create_require_enabled() {
+          let evaluated = parser.evaluate_expression(callee_expr);
+          if evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG {
+            drive.evaluate_call_expression(parser, CREATE_REQUIRE_EVALUATED_TAG, expr)
+          } else {
+            drive.evaluate_call_expression(parser, ident.sym.as_str(), expr)
+          }
         } else {
           drive.evaluate_call_expression(parser, ident.sym.as_str(), expr)
         };
