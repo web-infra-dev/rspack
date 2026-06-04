@@ -342,6 +342,16 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   {
     return None;
   }
+  if let Some(args) = &new_expr.args
+    && args.len() == 1
+    && args[0].spread.is_none()
+    && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
+  {
+    return value
+      .starts_with("file:")
+      .then(|| file_url_to_path(Url::parse(&value).ok()?.as_str()))
+      .flatten();
+  }
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("//") {
     let mut value = String::with_capacity("file:".len() + request.len());
@@ -812,6 +822,23 @@ impl CommonJsImportsParserPlugin {
       }
       parser.add_dependency(require_resolve_header_dependency);
     }
+  }
+
+  fn process_created_require_resolve_call(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &CallExpr,
+  ) -> Option<bool> {
+    if expr.args.len() != 1 || expr.args[0].spread.is_some() {
+      parser.walk_expr_or_spread(&expr.args);
+      return Some(true);
+    }
+    if matches!(parser.javascript_options.require_resolve, Some(false)) {
+      parser.walk_expr_or_spread(&expr.args);
+      return Some(true);
+    }
+    self.process_resolve(parser, expr, false, current_created_require_context(parser));
+    Some(true)
   }
 
   fn process_resolve_item(
@@ -1353,20 +1380,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           current_created_require_context(parser),
         );
       }
+      if members.len() == 1 && members[0].as_ref() == "resolve" {
+        return self.process_created_require_resolve_call(parser, expr);
+      }
       if ids.len() != members.len() {
         parser.walk_expr_or_spread(&expr.args);
-        return Some(true);
-      }
-      if ids.len() == 1 && ids[0].as_ref() == "resolve" {
-        if expr.args.len() != 1 || expr.args[0].spread.is_some() {
-          parser.walk_expr_or_spread(&expr.args);
-          return Some(true);
-        }
-        if matches!(parser.javascript_options.require_resolve, Some(false)) {
-          parser.walk_expr_or_spread(&expr.args);
-          return Some(true);
-        }
-        self.process_resolve(parser, expr, false, current_created_require_context(parser));
         return Some(true);
       }
       return None;
