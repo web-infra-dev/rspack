@@ -277,6 +277,11 @@ it("should preserve createRequire results used as values", () => {
 	expect(assignedRequire("./assigned-only")).toBe("__rspackAssignedCreatedRequire");
 	const aliasedRequire = assignedRequire;
 	expect(aliasedRequire("./a")).toBe(4);
+	let assignedAliasRequire;
+	assignedAliasRequire = assignedRequire;
+	expect(assignedAliasRequire("./assigned-alias-only")).toBe(
+		"__rspackAssignedAliasCreatedRequire"
+	);
 	let assignedCallCreateRequireAlias;
 	assignedCallCreateRequireAlias = _createRequire;
 	const copiedAssignedCallCreateRequireAlias = assignedCallCreateRequireAlias;
@@ -299,6 +304,9 @@ it("should preserve createRequire results used as values", () => {
 		.map(file => fs.readFileSync(path.join(path.dirname(__filename), file), "utf-8"))
 		.join("\n");
 	expect(emittedSource.includes("__rspackAssignedCreatedRequire")).toBe(true);
+	expect(emittedSource.includes("__rspackAssignedAliasCreatedRequire")).toBe(
+		true
+	);
 });
 
 it("should not parse URL object as CommonJS require request", () => {

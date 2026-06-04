@@ -1637,6 +1637,17 @@ impl JavascriptParser<'_> {
       {
         return;
       }
+      if let Some(rhs) = expr.right.as_ident()
+        && self.has_created_require_tag(&rhs.sym)
+        && let Some(variable) = self.get_variable_info(&rhs.sym).map(|info| info.id())
+      {
+        self.set_variable(
+          ident.sym.clone(),
+          ExportedVariableInfo::VariableInfo(variable),
+        );
+        self.walk_expression(&expr.right);
+        return;
+      }
       if let Some(rename_identifier) = self.get_rename_identifier(&expr.right) {
         if rename_identifier == CREATE_REQUIRE_EVALUATED_TAG {
           self.set_variable(
