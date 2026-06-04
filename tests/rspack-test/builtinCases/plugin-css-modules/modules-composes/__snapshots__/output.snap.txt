@@ -3,7 +3,6 @@
     color: black;
 }
 .\.\/_f\.module_\.\/_f--\/__4abe9cc818c5f8e5\<4ab {
-    
 }
 
 .\.\/_d\.module_\.\/_d-1--\/__88281ab83c534746\<882 {
@@ -11,32 +10,22 @@
 }
 
 .\.\/_d\.module_\.\/_d--\/__88281ab83c534746\<882 {
-    
 }
 
 .\.\/_b\.module_\.\/_b-1--\/__770815d283e5419e\<770 {
     color: red;
 }
 .\.\/_b\.module_\.\/_b--\/__770815d283e5419e\<770 {
-    
 }
 .\.\/_style\.module_\.\/_chain2--\/__2f98424dcb9d6a7c\<2f9 {
-  
-  
   background: blue;
 }
 
 .\.\/_style\.module_\.\/_chain1--\/__2f98424dcb9d6a7c\<2f9 {
-  
-  
-  
   background: green;
 }
 
 .\.\/_style\.module_\.\/_root-class--\/__2f98424dcb9d6a7c\<2f9 {
-  
-  
-  
   background: red;
 }
 

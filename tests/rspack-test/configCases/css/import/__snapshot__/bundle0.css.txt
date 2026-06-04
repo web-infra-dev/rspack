@@ -265,6 +265,24 @@ body {
 	background: green;
 }
 
+@layer base {
+body {
+	background: green;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: green;
+}
+
+}
+@media screen, print{
+body {
+	background: green;
+}
+
+}
 a {
 	color: red;
 }
@@ -307,6 +325,18 @@ a {
 }
 
 }
+@media SCREEN AND (ORIENTATION: LANDSCAPE){
+a {
+	color: red;
+}
+
+}
+@media (min-width: 100px){
+a {
+	color: red;
+}
+
+}
 .class {
 	content: "test.css";
 }
@@ -315,6 +345,12 @@ a {
 	color: red;
 }
 
+@media screen and (orientation:landscape){
+a {
+	color: red;
+}
+
+}
 .class {
 	content: "style.css";
 	color: red;
@@ -453,6 +489,12 @@ a {
 	content: "style4.css";
 }
 
+@media screen and (orientation: landscape){
+.class {
+	content: "test.css";
+}
+.using-loader { color: red; }
+}
 a {
   color: red;
 }
@@ -529,6 +571,16 @@ a {
 @media screen and (min-width: 400px){
 @supports (display: flex) {
 @layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer {
 .class {
 	content: "layer.css";
 }
@@ -702,7 +754,95 @@ a {
 }
 
 }
+@media (prefers-color-scheme: dark){
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (((display: flex))) {
+.class {
+	content: "style8.css";
+}
+
+}
+@media screen and (((min-width: 400px))){
+@supports (((display: inline-grid))) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@supports (display: grid) {
+.class {
+	content: "style8.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@layer framework {
+.class {
+	content: "style8.css";
+}
+
+}
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+@layer base {
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+}
+@layer {
+a {
+	color: red;
+}
+
+}
 @media unknown(default) unknown(display: flex) unknown{
+.class {
+	content: "style9.css";
+}
+
+}
+@media unknown(default){
 .class {
 	content: "style9.css";
 }
@@ -965,6 +1105,117 @@ div{color: red;}
 	duplicate-nested: true;
 }
 
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer {
+@layer {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer base {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer base {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+@media screen and (min-width: 600px){
+@supports (display: table) {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+}
 }
 @media screen and (min-width: 400px){
 @supports (unknown: layer(super.foo)) {
@@ -1592,6 +1843,24 @@ body {
 	background: green;
 }
 
+@layer base {
+body {
+	background: green;
+}
+
+}
+@supports (display: flex) {
+body {
+	background: green;
+}
+
+}
+@media screen, print{
+body {
+	background: green;
+}
+
+}
 a {
 	color: red;
 }
@@ -1634,6 +1903,18 @@ a {
 }
 
 }
+@media SCREEN AND (ORIENTATION: LANDSCAPE){
+a {
+	color: red;
+}
+
+}
+@media (min-width: 100px){
+a {
+	color: red;
+}
+
+}
 .class {
 	content: "test.css";
 }
@@ -1642,6 +1923,12 @@ a {
 	color: red;
 }
 
+@media screen and (orientation:landscape){
+a {
+	color: red;
+}
+
+}
 .class {
 	content: "style.css";
 	color: red;
@@ -1780,6 +2067,12 @@ a {
 	content: "style4.css";
 }
 
+@media screen and (orientation: landscape){
+.class {
+	content: "test.css";
+}
+.using-loader { color: red; }
+}
 a {
   color: red;
 }
@@ -1856,6 +2149,16 @@ a {
 @media screen and (min-width: 400px){
 @supports (display: flex) {
 @layer default {
+.class {
+	content: "layer.css";
+}
+
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer {
 .class {
 	content: "layer.css";
 }
@@ -2029,7 +2332,95 @@ a {
 }
 
 }
+@media (prefers-color-scheme: dark){
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (((display: flex))) {
+.class {
+	content: "style8.css";
+}
+
+}
+@media screen and (((min-width: 400px))){
+@supports (((display: inline-grid))) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@supports (display: grid) {
+.class {
+	content: "style8.css";
+}
+
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@layer framework {
+.class {
+	content: "style8.css";
+}
+
+}
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+@layer base {
+.class {
+	content: "style8.css";
+}
+
+}
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer default {
+.class {
+	content: "style8.css";
+}
+
+}
+}
+}
+@layer {
+a {
+	color: red;
+}
+
+}
 @media unknown(default) unknown(display: flex) unknown{
+.class {
+	content: "style9.css";
+}
+
+}
+@media unknown(default){
 .class {
 	content: "style9.css";
 }
@@ -2292,6 +2683,117 @@ div{color: red;}
 	duplicate-nested: true;
 }
 
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer {
+@layer {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer base {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+@layer base {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+@media screen and (orientation: portrait){
+@supports (display: flex) {
+
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+@media screen and (min-width: 600px){
+@supports (display: table) {
+@layer baz {
+.class {
+	deep-deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+@media screen and (min-width: 500px){
+@supports (display: grid) {
+@layer bar {
+
+
+.class {
+	deep-nested: 1;
+}
+
+}
+}
+}
+}
+}
+}
+@media screen and (min-width: 400px){
+@supports (display: flex) {
+@layer super.foo {
+
+
+.class {
+	nested: 1;
+}
+
+}
+}
 }
 @media screen and (min-width: 400px){
 @supports (unknown: layer(super.foo)) {

@@ -174,6 +174,40 @@ pub fn iter_css_module_render_conditions<'a>(
     .filter(|condition| !condition.is_empty())
 }
 
+pub fn css_module_render_conditions_identifier<'a>(
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> Option<String> {
+  let mut key = String::new();
+  let mut count = 0;
+  for condition in conditions
+    .into_iter()
+    .filter(|condition| !condition.is_empty())
+  {
+    count += 1;
+    let layer = match &condition.layer {
+      Some(CssLayer::Anonymous) => "<anonymous>",
+      Some(CssLayer::Named(layer)) => layer.as_str(),
+      None => "",
+    };
+    push_css_module_identifier_part(&mut key, layer);
+    push_css_module_identifier_part(&mut key, condition.supports.as_deref().unwrap_or_default());
+    push_css_module_identifier_part(&mut key, condition.media.as_deref().unwrap_or_default());
+  }
+
+  if count == 0 {
+    None
+  } else {
+    Some(format!("conditions={count}{key}"))
+  }
+}
+
+pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
+  identifier.push('|');
+  identifier.push_str(&value.len().to_string());
+  identifier.push(':');
+  identifier.push_str(value);
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {

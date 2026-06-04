@@ -1,17 +1,16 @@
 .E_OvvY {
-	color: danger
+	color: #e74c3c
 }
 
 .Q-49ks {
-	background-color: primary;
+	background-color: #3498db;
 	color: white;
 }
 
 .UILpUa {
-	background-color: error;
+	background-color: #e74c3c;
 	border: 2px solid darkred;
 }
-
 
 
 .UU_tpl {
@@ -19,9 +18,7 @@
 }
 
 .txv8eJ {
-	
 }
-
 
 
 .BRXavc {
@@ -29,7 +26,6 @@
 }
 
 .FHXYtO {
-	
 	transition: transform Xs ease;
 }
 
@@ -50,7 +46,6 @@
 }
 
 .xYqD9j {
-	
 	will-change: transform;
 }
 
@@ -58,24 +53,32 @@
 	transform: scale(1.02);
 }
 
-._8aNfK_ {
-	
-	
-	border: 1px solid #ccc;
-	border-radius: 8px;
-}
-
-
-
-
-
 .qdzzZe {
-	
-	
 	border: 1px solid #ccc;
 	border-radius: 8px;
 }
 
+._8aNfK_ {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+.j2PdtE {
+	color: red;
+}
+
+.Ro5Pxh {
+	color: red;
+}
+
+.Ro5Pxh {
+}
+
+.P1ehFp {
+	color: red;
+}
 
 
 .GB2FOr {
@@ -87,13 +90,7 @@
 }
 
 .JXn9Xg {
-	
 }
-
-
-
-
-
 
 
 
@@ -103,6 +100,43 @@
 .furHaz {
 	background: blue;
 }
+
+
+
+
+
+
+.xJ2SpX {
+	color: a;
+}
+
+.mmNM9- {
+	color: b;
+}
+
+.R4nl9c {
+	color: c;
+}
+
+.RSkK1x {
+	color: d;
+}
+
+.Dckb98 {
+	color: d;
+}
+
+.izFRDC {
+}
+
+:root {
+	--jfhoh6: red;
+}
+
+.jfhoh6 {
+	color: red;
+}
+
 
 
 
@@ -130,39 +164,30 @@
 }
 
 .zH1PuB {
-	
 	background: blue;
 }
 
 .nUmUBn {
-	
 }
 
 .A0m68u {
-	
 }
 
 .I62MUF {
-	
 	color: blue;
 }
 
 .I62MUF {
-	
 	color: blue;
 }
-
 
 
 .TU_6N_ {
-	
 	color: blue;
 }
 
 
-
 .iYZI63 {
-	
 	color: blue;
 }
 
@@ -173,109 +198,82 @@
 .w5QDWv {  color: black; }
 
 .GUOebj {
-	
-	
 	color: red;
 }
 
 .zB2SIO {
-	
-	
 	color: blue;
 }
 
 .Kv804y {
-	
-	
 }
 
 :root {
-	--color: red;
+	--zCGg-b: red;
 }
-
-
 
 
 
 .lN8cZb {
-	color: var(--color);
-	background-color: var(--shared from "./shared-custom-properties.module.css");
-	border-color: var(--deep-shared from "./shared-custom-properties.module.css");
-	outline-color: var(--my-custom-property-1);
-	text-decoration-color: var(--reexport-my-var-u1);
+	color: var(--zCGg-b);
+	background-color: var(--O2JzVP from "./shared-custom-properties.module.css");
+	border-color: var(--O1laQq from "./shared-custom-properties.module.css");
+	outline-color: var(--r2UEoW);
+	text-decoration-color: var(--_pd6p1);
 }
 
 .Qd9RVw {
-	color: var(--my-var-u1 from "./vars.module.css");
+	color: var(--u5xyqD from "./vars.module.css");
 }
-
 
 
 .Mx1drJ {
-	background-color: primary;
-	color: my-custom-color;
+	background-color: #3498db;
+	color: #2ecc71;
 }
-
 
 
 .A62m63 {
-	color: foo;
+	color: red;
 }
-
-
 
 
 .TLOxAV {
-	background-color: rename;
+	background-color: #3498db;
 }
-
-
 
 
 .J75kHj {
-	background-color: rename-2;
+	background-color: #e74c3c;
 }
-
-
 
 
 ._8-YjdR {
-	background-color: rename-3;
+	background-color: #e74c3c;
 }
-
-
 
 
 ._0vDmWC {
-	background-color: third;
+	background-color: #c1c2c3;
 }
 
 .trrWBd {
-	content: __REEXPORT3__
+	content: "export3-value"
 }
 
+.hydESP { value: my-selector-value; }
 
-.hydESP { value: selector; }
+.lwweu5 { value: other-selector-value; }
 
+.z-yLea { value: other-selector-value; }
 
-.lwweu5 { value: other-selector; }
+.K3y_NA { value: reexport-selector-value; }
 
+._2jSHbX { value: reexport-selector-value; }
 
-.z-yLea { value: alias-other-selector; }
+._61LowY { background-color: #c1c2c3; }
 
-
-.K3y_NA { value: reexport-selector; }
-
-
-._2jSHbX { value: reexport-selector-alias; }
-
-
-
-._61LowY { background-color: third; }
-
-
-
-.zVEFPg { background-color: rename-3; }
+.zVEFPg { background-color: #e74c3c; }
 
 .XuepqC {
 	color: white;
@@ -286,45 +284,33 @@
 }
 
 .LzSpqq {
-	
 }
-
 
 
 .MEIRRY { color: red }
 
 .WnmXrp {
-	
 	color: red;
 }
 
 
-
-.rh1p7E { color: blue; }
+.rh1p7E { color: #3498db; }
 
 .OBvJMj {
-	
 }
-
 
 
 .GuBn9B {
-	
 }
-
 
 
 .GZUeRs {
-	
 }
-
 
 
 .MTGbMU {
-	color: __import_localName__;
+	color: GB2FOr;
 }
-
-
 
 
 
@@ -335,11 +321,7 @@
 
 
 
-
-
-
-.rh1p7E { color: blue; }
+.rh1p7E { color: #3498db; }
 
 ._3M386q {
-	
 }

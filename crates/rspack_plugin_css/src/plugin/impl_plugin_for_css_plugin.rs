@@ -1,7 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
 use std::{
-  fmt::Write,
   hash::Hash,
   sync::{Arc, LazyLock},
 };
@@ -10,12 +9,12 @@ use atomic_refcell::AtomicRefCell;
 use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
-  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo,
-  CssLayer as CssModuleRenderLayer, CssModuleRenderCondition, DependencyType, ManifestAssetType,
-  Module, ModuleFactoryCreateData, ModuleGraph, ModuleType, NormalModuleCreateData,
-  NormalModuleFactoryAfterResolve, NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin,
-  PublicPath, RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeModuleExt,
-  SelfModuleFactory, SourceType, get_css_chunk_filename_template,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleType,
+  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
+  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -29,8 +28,9 @@ use smol_str::SmolStr;
 use crate::{
   CssPlugin,
   dependency::{
-    CssImportDependency, CssImportDependencyTemplate, CssLocalIdentDependencyTemplate,
-    CssSelfReferenceLocalIdentDependencyTemplate, CssUrlDependencyTemplate,
+    CssIcssSymbolDependencyTemplate, CssImportDependency, CssImportDependencyTemplate,
+    CssLocalIdentDependencyTemplate, CssSelfReferenceLocalIdentDependencyTemplate,
+    CssUrlDependencyTemplate,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssParserAndGenerator, CssSourceBuilder,
@@ -242,8 +242,9 @@ async fn normal_module_factory_after_resolve(
     return Ok(None);
   };
 
-  let conditions_key = css_render_conditions_key(css_import_dep.render_conditions());
-  if !conditions_key.is_empty() {
+  if let Some(conditions_key) =
+    css_module_render_conditions_identifier(css_import_dep.render_conditions())
+  {
     create_data.request.push_str("|css-render-conditions|");
     create_data.request.push_str(&conditions_key);
   }
@@ -281,29 +282,6 @@ async fn normal_module_factory_module(
   Ok(())
 }
 
-fn css_render_conditions_key<'a>(
-  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
-) -> String {
-  let mut key = String::new();
-  for (index, condition) in conditions.into_iter().enumerate() {
-    if index > 0 {
-      key.push('|');
-    }
-    let layer = match &condition.layer {
-      Some(CssModuleRenderLayer::Anonymous) => "<anonymous>",
-      Some(CssModuleRenderLayer::Named(layer)) => layer.as_str(),
-      None => "",
-    };
-    let supports = condition.supports.as_deref().unwrap_or_default();
-    let media = condition.media.as_deref().unwrap_or_default();
-    let _ = write!(
-      key,
-      "condition_{index}|layer:{layer}|supports:{supports}|media:{media}"
-    );
-  }
-  key
-}
-
 #[plugin_hook(CompilerCompilation for CssPlugin)]
 async fn compilation(
   &self,
@@ -330,6 +308,10 @@ async fn compilation(
   compilation.set_dependency_template(
     CssLocalIdentDependencyTemplate::template_type(),
     Arc::new(CssLocalIdentDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    CssIcssSymbolDependencyTemplate::template_type(),
+    Arc::new(CssIcssSymbolDependencyTemplate),
   );
   compilation.set_dependency_template(
     CssSelfReferenceLocalIdentDependencyTemplate::template_type(),

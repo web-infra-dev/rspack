@@ -18,12 +18,9 @@
  */
 
 .entry_modules_css-first {
-	
 	color: green;
 }
 
 .entry_modules_css-second {
-	
-	
 	color: orange;
 }

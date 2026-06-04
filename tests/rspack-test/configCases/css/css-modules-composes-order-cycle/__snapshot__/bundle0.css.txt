@@ -19,24 +19,16 @@
 }
 
 .seen {
-  
 }
 
 .cycleOne {
-  
-  
 }
 
 .cycleTwo {
-  
-  
 }
 
 .later {
-  
-  
 }
 
 .independent {
-  
 }
