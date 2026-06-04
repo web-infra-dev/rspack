@@ -372,7 +372,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     value.push_str(&request);
     return Some(value);
   }
-  if request.starts_with("file://") {
+  if request.starts_with("file:") {
     return file_url_to_path(Url::parse(&request).ok()?.as_str());
   }
   if request
