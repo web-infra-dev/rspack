@@ -458,9 +458,11 @@ fn analyze_comments(
               result.insert(RspackComment::Ignore, MagicCommentValue::Bool(value));
               continue;
             }
-            if let Some(value) = expr_to_magic_comment_value(&comment.text, value) {
-              result.insert(RspackComment::Ignore, value);
-            }
+            result.insert(
+              RspackComment::Ignore,
+              expr_to_magic_comment_value(&comment.text, value)
+                .unwrap_or(MagicCommentValue::Unknown),
+            );
             add_magic_comment_warning(
               source,
               item_name.as_ref(),

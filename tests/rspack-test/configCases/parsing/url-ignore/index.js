@@ -10,6 +10,10 @@ it('should ignore', function() {
   expect(/\/public\/.+\.css/.test(url4.pathname)).toBe(true);
   const url5 = new URL(/* webpackIgnore: "test" */ 'file5.css', import.meta.url);
   expect(url5.pathname.endsWith('file5.css')).toBe(true);
+  const url5Ident = new URL(/* webpackIgnore: unknown */ 'missing-ident.css', import.meta.url);
+  expect(url5Ident.pathname.endsWith('missing-ident.css')).toBe(true);
+  const url5Object = new URL(/* webpackIgnore: { foo: true } */ 'missing-object.css', import.meta.url);
+  expect(url5Object.pathname.endsWith('missing-object.css')).toBe(true);
   const value = 'file5.css';
   const url6 = new URL(/* webpackIgnore: true */ '/dir/' + value, import.meta.url);
   expect(url6.pathname.endsWith('file5.css')).toBe(true);
