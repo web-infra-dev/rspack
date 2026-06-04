@@ -34,7 +34,7 @@ use crate::{
 
 const COMMONJS_REQUIRE_TAG: &str = "commonjs require";
 pub const CREATE_REQUIRE_SPECIFIER_TAG: &str = "createRequire";
-pub const CREATE_REQUIRE_EVALUATED_TAG: &str = "__rspack_createRequire";
+pub const CREATE_REQUIRE_EVALUATED_TAG: &str = "\0createRequire";
 pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 
 #[derive(Clone)]
@@ -116,6 +116,7 @@ struct RequireTagData {
   require_span: Span,
 }
 
+#[inline(never)]
 pub fn is_create_require_import(
   parser: &JavascriptParser,
   source: &Atom,
@@ -133,6 +134,7 @@ pub fn is_create_require_import(
     && export_name.is_some_and(|export_name| export_name.as_ref() == specifier)
 }
 
+#[inline(never)]
 pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   parser.tag_variable(
     name,
@@ -141,17 +143,22 @@ pub fn tag_create_require(parser: &mut JavascriptParser, name: Atom) {
   );
 }
 
+#[inline(never)]
 fn is_current_create_require_tag(parser: &JavascriptParser) -> bool {
   parser.current_tag_info.is_some_and(|tag_info| {
     parser.definitions_db.expect_get_tag_info(tag_info).tag == CREATE_REQUIRE_SPECIFIER_TAG
   })
 }
 
+#[cold]
+#[inline(never)]
 fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &str) -> bool {
   for_name == CREATE_REQUIRE_EVALUATED_TAG
     || (for_name == CREATE_REQUIRE_SPECIFIER_TAG && is_current_create_require_tag(parser))
 }
 
+#[cold]
+#[inline(never)]
 fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   let evaluated = parser.evaluate_expression(expr);
   evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
@@ -304,6 +311,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
 
 #[cfg(not(windows))]
 #[cold]
+#[inline(never)]
 fn dirname(path: &str) -> Option<&str> {
   let path = path.trim_end_matches('/');
   path

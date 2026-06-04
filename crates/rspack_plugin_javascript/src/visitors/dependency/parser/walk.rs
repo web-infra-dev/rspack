@@ -733,13 +733,20 @@ impl JavascriptParser<'_> {
     }
   }
 
+  #[inline(never)]
   fn has_created_require_tag(&mut self, name: &Atom) -> bool {
-    self
-      .get_tag_data::<crate::parser_plugin::CreatedRequireTagData>(
-        name,
-        CREATED_REQUIRE_IDENTIFIER_TAG,
-      )
-      .is_some()
+    let Some(variable_info) = self.get_variable_info(name) else {
+      return false;
+    };
+    let mut tag_info_id = variable_info.tag_info;
+    while let Some(id) = tag_info_id {
+      let tag_info = self.definitions_db.expect_get_tag_info(id);
+      if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
+        return true;
+      }
+      tag_info_id = tag_info.next;
+    }
+    false
   }
 
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
