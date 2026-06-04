@@ -636,20 +636,30 @@ impl JavascriptParser<'_> {
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
-        && drive
-          .can_rename(self, &renamed_identifier)
-          .unwrap_or_default()
       {
-        if !drive
-          .rename(self, init, &renamed_identifier)
-          .unwrap_or_default()
-        {
+        if renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG {
           self.set_variable(
             ident.sym.clone(),
-            ExportedVariableInfo::Name(renamed_identifier.clone()),
+            ExportedVariableInfo::Name(renamed_identifier),
           );
+          self.walk_expression(init);
+          continue;
         }
-        continue;
+        if drive
+          .can_rename(self, &renamed_identifier)
+          .unwrap_or_default()
+        {
+          if !drive
+            .rename(self, init, &renamed_identifier)
+            .unwrap_or_default()
+          {
+            self.set_variable(
+              ident.sym.clone(),
+              ExportedVariableInfo::Name(renamed_identifier.clone()),
+            );
+          }
+          continue;
+        }
       }
       if !drive.declarator(self, declarator, decl).unwrap_or_default() {
         self.walk_pattern(&declarator.name);

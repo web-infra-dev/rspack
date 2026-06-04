@@ -279,6 +279,12 @@ it("should preserve createRequire results used as values", () => {
 	expect(aliasedRequire("./a")).toBe(4);
 	let assignedCallCreateRequireAlias;
 	assignedCallCreateRequireAlias = _createRequire;
+	const copiedAssignedCallCreateRequireAlias = assignedCallCreateRequireAlias;
+	expect(
+		copiedAssignedCallCreateRequireAlias(
+			new URL("./foo/c.js", import.meta.url)
+		)("./aliased-only")
+	).toBe("__rspackAliasedCreateRequire");
 	let assignedCallRequire;
 	assignedCallRequire = assignedCallCreateRequireAlias(
 		new URL("./foo/c.js", import.meta.url)
