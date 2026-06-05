@@ -33,6 +33,7 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        maxVersions?: number;
       };
     };
 ```
@@ -222,7 +223,7 @@ export default {
 
 ### cache.storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string; maxVersions?: number }`
 
 - **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 
@@ -244,6 +245,34 @@ export default {
 Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/config/mode#mode)、[buildDependencies](#cachebuilddependencies) 中的文件内容和 [version](#cacheversion) 在 `storage.directory` 中生成缓存文件夹。
 
 Rspack 会在启动时自动清理长时间（7 天）未访问的缓存文件夹。
+:::
+
+#### cache.storage.maxVersions
+
+- **类型：** `number`（`1` 到 `4294967295` 之间的整数）
+
+- **默认值：** 无限制
+
+每个编译器最多保留的缓存版本数。超过限制时，Rspack 会删除该编译器最久未访问的版本。使用同一存储目录的其他编译器不会计入此限制。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxVersions: 1,
+    },
+  },
+};
+```
+
+编译器保留分组由编译器上下文、编译器树中的位置和 [config.name](/config/other-options#name) 标识。这样，共享 `storage.directory` 的编译器不会互相计入缓存版本数量。
+
+在 `maxVersions` 引入之前的 Rspack 版本所创建的缓存不包含编译器标识元数据。这些旧版本缓存不会计入此限制，而是继续使用原有的 7 天过期清理机制。
+
+:::warning
+对于编译器名称和存储目录相同的并发构建，较小的限制可能会在旧构建仍在运行时删除其缓存。同时访问的版本会被保留，并可能暂时超过限制，直到后续构建执行清理。
 :::
 
 ### 查看持久化缓存日志

@@ -3084,6 +3084,7 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  maxVersions?: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

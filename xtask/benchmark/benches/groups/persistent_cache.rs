@@ -200,6 +200,7 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       snapshot: SnapshotOptions::default(),
       storage: StorageOptions::FileSystem {
         directory: cache_dir.to_string_lossy().to_string().into(),
+        max_versions: None,
       },
       portable: false,
       readonly: false,

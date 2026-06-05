@@ -149,7 +149,10 @@ impl MemoryFileSystem {
 impl WritableFileSystem for MemoryFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
     if self.contains_dir(dir)? {
-      return Ok(());
+      return Err(Error::new(
+        std::io::ErrorKind::AlreadyExists,
+        "directory already exists",
+      ));
     }
 
     if let Some(p) = dir.parent()
@@ -407,6 +410,11 @@ mod tests {
       WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d"))
         .await
         .is_ok()
+    );
+    assert!(
+      WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d"))
+        .await
+        .is_err()
     );
     assert!(
       WritableFileSystem::create_dir(&fs, Utf8Path::new("/a/b/c/d/e"))

@@ -14,6 +14,7 @@ use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
 
+pub(crate) use self::transaction::StateLock;
 use self::{bucket::Bucket, task_queue::TaskQueue, transaction::Transaction};
 use super::ScopeFileSystem;
 use crate::{Error, Result};
@@ -97,8 +98,18 @@ impl DB {
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
+  /// `before_save` acquires any external coordination needed for the write.
+  /// Returning `false` skips persistence; the completion hooks release it.
+  ///
   /// No-op when the DB is in readonly mode.
-  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) {
+  pub fn save(
+    &self,
+    changes: BucketChanges,
+    max_pack_size: usize,
+    before_save: impl Future<Output = bool> + Send + 'static,
+    on_success: impl Future<Output = ()> + Send + 'static,
+    on_failure: impl Future<Output = ()> + Send + 'static,
+  ) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
     let readonly = self.readonly.clone();
@@ -108,7 +119,12 @@ impl DB {
         return;
       }
 
+      if !before_save.await {
+        return;
+      }
+
       if changes.is_empty() {
+        on_success.await;
         return;
       }
 
@@ -170,16 +186,20 @@ impl DB {
         Ok(())
       };
 
-      if let Err(err) = task_fn().await {
-        // The cache may be in an indeterminate state. Switch to readonly so no
-        // further writes can make things worse. Restart the process to recover.
-        // The current build is not affected.
-        readonly.store(true, Ordering::Relaxed);
-        println!(
-          "Rspack persistent cache save failed: {err}\n  \
-           Persistent cache has been disabled for this session. \
-           Restart the process to re-enable it."
-        );
+      match task_fn().await {
+        Ok(()) => on_success.await,
+        Err(err) => {
+          on_failure.await;
+          // The cache may be in an indeterminate state. Switch to readonly so no
+          // further writes can make things worse. Restart the process to recover.
+          // The current build is not affected.
+          readonly.store(true, Ordering::Relaxed);
+          println!(
+            "Rspack persistent cache save failed: {err}\n  \
+             Persistent cache has been disabled for this session. \
+             Restart the process to re-enable it."
+          );
+        }
       }
     });
   }
@@ -227,6 +247,11 @@ impl DB {
 
 #[cfg(test)]
 mod test {
+  use std::sync::{
+    Arc,
+    atomic::{AtomicBool, Ordering},
+  };
+
   use super::{DB, HashMap, Result, ScopeFileSystem};
 
   #[tokio::test]
@@ -238,6 +263,20 @@ mod test {
     let name_2 = "name2";
     assert!(db.bucket_names().await?.is_empty());
     assert!(db.load(name_1).await?.is_empty());
+
+    let no_op_completed = Arc::new(AtomicBool::new(false));
+    let no_op_completed_in_task = no_op_completed.clone();
+    db.save(
+      HashMap::default(),
+      25,
+      async { true },
+      async move {
+        no_op_completed_in_task.store(true, Ordering::Relaxed);
+      },
+      async {},
+    );
+    db.flush().await;
+    assert!(no_op_completed.load(Ordering::Relaxed));
 
     let bucket_data: Vec<_> = (0..9)
       .map(|num| {
@@ -252,8 +291,19 @@ mod test {
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    db.save(data, 25);
+    let save_completed = Arc::new(AtomicBool::new(false));
+    let save_completed_in_task = save_completed.clone();
+    db.save(
+      data,
+      25,
+      async { true },
+      async move {
+        save_completed_in_task.store(true, Ordering::Relaxed);
+      },
+      async {},
+    );
     db.flush().await;
+    assert!(save_completed.load(Ordering::Relaxed));
 
     let mut data1 = db.load(name_1).await?;
     data1.sort();

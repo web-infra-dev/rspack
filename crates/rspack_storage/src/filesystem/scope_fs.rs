@@ -47,6 +47,13 @@ impl ScopeFileSystem {
     Ok(())
   }
 
+  /// Atomically creates one child directory.
+  pub async fn create_dir(&self, relative_path: impl AsRef<Utf8Path>) -> Result<()> {
+    let path = self.workspace.join(relative_path);
+    self.fs.create_dir(&path).await?;
+    Ok(())
+  }
+
   /// Removes the entire workspace directory and its contents
   pub async fn remove(&self) -> Result<()> {
     if let Err(e) = self.fs.remove_dir_all(&self.workspace).await {
@@ -114,7 +121,6 @@ impl ScopeFileSystem {
   }
 
   /// Writes file content
-  #[cfg(test)]
   pub async fn write(&self, relative_path: impl AsRef<Utf8Path>, bytes: &[u8]) -> Result<()> {
     let path = self.workspace.join(relative_path);
     self

@@ -26,6 +26,24 @@ const validateSplitChunks = ({ optimization }: Configuration) => {
   }
 };
 
+const validatePersistentCache = ({ cache }: Configuration) => {
+  if (typeof cache !== 'object' || cache.type !== 'persistent') {
+    return;
+  }
+
+  const maxVersions = cache.storage?.maxVersions;
+  if (
+    maxVersions !== undefined &&
+    (!Number.isSafeInteger(maxVersions) ||
+      maxVersions < 1 ||
+      maxVersions > 0xffffffff)
+  ) {
+    throw new Error(
+      `${ERROR_PREFIX} "cache.storage.maxVersions" must be an integer between 1 and 4294967295, get \`${maxVersions}\`.`,
+    );
+  }
+};
+
 const validateExternalUmd = ({
   output,
   externals,
@@ -85,5 +103,6 @@ const validateExternalUmd = ({
 export function validateRspackConfig(config: Configuration) {
   validateContext(config);
   validateSplitChunks(config);
+  validatePersistentCache(config);
   validateExternalUmd(config);
 }
