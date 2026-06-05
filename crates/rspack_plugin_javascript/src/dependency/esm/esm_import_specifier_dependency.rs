@@ -175,6 +175,10 @@ impl ESMImportSpecifierDependency {
     self.used_by_exports = used_by_exports;
   }
 
+  pub fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
+  }
+
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
     self.branch_guard = Some(match self.branch_guard.take() {
       Some(old_guard) => old_guard.and(guard),

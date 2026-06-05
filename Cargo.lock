@@ -5065,6 +5065,7 @@ dependencies = [
  "rspack_hook",
  "rspack_paths",
  "rspack_plugin_devtool",
+ "rspack_plugin_javascript",
  "rspack_plugin_json",
  "rspack_util",
  "rustc-hash",

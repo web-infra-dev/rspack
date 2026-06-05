@@ -34,10 +34,6 @@ pub mod hot_module_replacement_plugin;
 pub mod provide_plugin;
 pub mod side_effects_parser_plugin;
 
-pub use self::r#trait::{
-  BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
-  JavascriptParserPluginHooks,
-};
 pub(crate) use self::{
   amd::{
     AMDDefineDependencyParserPlugin, AMDParserPlugin, AMDRequireDependenciesBlockParserPlugin,
@@ -64,10 +60,7 @@ pub(crate) use self::{
   import_parser_plugin::{ImportParserPlugin, ImportsReferencesState},
   initialize_evaluating::InitializeEvaluating,
   inline_const::{ConstValue, ConstValuePlugin},
-  inner_graph::{
-    connection_active_used_by_exports, deferred_pure_check_is_impure,
-    has_impure_deferred_pure_checks, plugin::*, runtime_condition_used_by_exports,
-  },
+  inner_graph::{connection_active_used_by_exports, plugin::*, runtime_condition_used_by_exports},
   is_included_plugin::IsIncludedPlugin,
   javascript_meta_info_plugin::JavascriptMetaInfoPlugin,
   node_stuff_plugin::NodeStuffPlugin,
@@ -78,6 +71,13 @@ pub(crate) use self::{
   url_plugin::{URLPlugin, get_url_request},
   use_strict_plugin::UseStrictPlugin,
   worker_plugin::WorkerPlugin,
+};
+pub use self::{
+  inner_graph::{deferred_pure_check_is_impure, has_impure_deferred_pure_checks},
+  r#trait::{
+    BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook,
+    JavascriptParserPluginHooks,
+  },
 };
 
 pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_atoms::Atom> =
