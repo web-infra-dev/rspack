@@ -1933,6 +1933,12 @@ export type CacheStorageOptions = {
    * @default 'node_modules/.cache/rspack'
    */
   directory?: string;
+  /**
+   * Maximum number of cache versions to retain for each compiler. Must be an
+   * integer between 1 and 4294967295.
+   * @default No limit
+   */
+  maxVersions?: number;
 };
 
 /**

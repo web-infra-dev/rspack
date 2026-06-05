@@ -31,6 +31,7 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        maxVersions?: number;
       };
     };
 ```
@@ -214,7 +215,7 @@ Specifies paths within `snapshot.managedPaths` that should not be treated as man
 
 ### cache.storage
 
-- **Type:** `{ type: 'filesystem'; directory?: string }`
+- **Type:** `{ type: 'filesystem'; directory?: string; maxVersions?: number }`
 
 - **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 
@@ -236,6 +237,34 @@ export default {
 Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
 
 Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+:::
+
+#### cache.storage.maxVersions
+
+- **Type:** `number` (integer from `1` to `4294967295`)
+
+- **Default:** No limit
+
+The maximum number of cache versions retained for each compiler. When the limit is exceeded, Rspack removes the least recently accessed versions for that compiler. Other compilers using the same storage directory are not counted toward the limit.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxVersions: 1,
+    },
+  },
+};
+```
+
+Compiler retention groups are identified by the compiler context, its position in the compiler tree, and [config.name](/config/other-options#name). This keeps compilers that share `storage.directory` from counting each other's cache versions.
+
+Cache versions created by Rspack releases that predate `maxVersions` do not contain compiler identity metadata. Those legacy versions continue to use the existing 7-day age cleanup instead of being counted toward this limit.
+
+:::warning
+Using a low limit for concurrently running builds with the same compiler name and storage directory can remove an older build's cache while that build is still running. Versions accessed at the same time are preserved and can temporarily exceed the limit until a later build performs cleanup.
 :::
 
 ### Inspect persistent cache logs
