@@ -218,6 +218,11 @@ it("should clear shadowed created require bindings with unsupported initializers
 });
 
 it("should stop parsing reassigned created require bindings", () => {
+	let mutableCreateRequire = _createRequire;
+	mutableCreateRequire = () => request => request;
+	const mutableCreateRequireResult = mutableCreateRequire(import.meta.url);
+	expect(mutableCreateRequireResult("./a")).toBe("./a");
+
 	let mutableRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	mutableRequire = request => request;
 	expect(mutableRequire("./a")).toBe("./a");

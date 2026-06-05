@@ -532,7 +532,7 @@ fn tag_created_require_declarator(
   walk_create_require_callee(parser, call);
 }
 
-fn clear_created_require_tag(parser: &mut JavascriptParser, name: &Atom) {
+fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
   if let Some(declared_scope) = parser
     .get_variable_info(name)
     .map(|info| info.declared_scope)
@@ -1791,8 +1791,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return Some(true);
     }
 
-    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      clear_created_require_tag(parser, &ident.sym);
+    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG
+      || for_name == CREATE_REQUIRE_SPECIFIER_TAG
+      || for_name == CREATE_REQUIRE_EVALUATED_TAG
+    {
+      clear_create_require_tag(parser, &ident.sym);
       return Some(true);
     }
 
