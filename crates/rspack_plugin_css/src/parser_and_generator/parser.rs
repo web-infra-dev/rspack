@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use once_cell::sync::OnceCell;
 use rspack_core::{
@@ -15,8 +15,9 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
 use crate::{
   dependency::{
-    CssComposeDependency, CssExportDependency, CssImportDependency, CssLocalIdentDependency,
-    CssSelfReferenceLocalIdentDependency, CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
+    CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
+    CssImportDependency, CssLocalIdentDependency, CssSelfReferenceLocalIdentDependency,
+    CssSelfReferenceLocalIdentReplacement, CssUrlDependency,
   },
   parser_and_generator::generator::update_css_exports,
   utils::{
@@ -41,8 +42,19 @@ pub(super) struct CssModuleParser<'context> {
   css_local_names: CssLocalNames,
   inherited_render_conditions: Vec<CssModuleRenderCondition>,
   render_condition: CssModuleRenderCondition,
+  icss_definitions: FxHashMap<String, IcssDefinition>,
+  current_icss_import_from: Option<String>,
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
+}
+
+#[derive(Debug, Clone)]
+enum IcssDefinition {
+  Value(String),
+  Import {
+    import_name: String,
+    request: String,
+  },
 }
 
 #[derive(Default)]
@@ -198,6 +210,8 @@ impl<'context> CssModuleParser<'context> {
       css_local_names: Default::default(),
       inherited_render_conditions,
       render_condition,
+      icss_definitions: Default::default(),
+      current_icss_import_from: None,
       composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
     }
@@ -352,6 +366,45 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
+        css_module_lexer::Dependency::LocalContainer { name, .. }
+        | css_module_lexer::Dependency::LocalContainerDecl { name, .. }
+          if self.container() =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalFunction { name, .. }
+        | css_module_lexer::Dependency::LocalFunctionDecl { name, .. }
+          if self.function() =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalGrid { name, .. }
+        | css_module_lexer::Dependency::LocalGridDecl { name, .. }
+          if self.grid() =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
         css_module_lexer::Dependency::LocalVar { name, .. }
         | css_module_lexer::Dependency::LocalVarDecl { name, .. }
         | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
@@ -424,6 +477,40 @@ impl<'context> CssModuleParser<'context> {
     export_dependency_names.push(name);
   }
 
+  fn presentational_replace_range(
+    &self,
+    content: &str,
+    range: css_module_lexer::Range,
+  ) -> DependencyRange {
+    if !content.is_empty() {
+      return (range.start, range.end).into();
+    }
+
+    let source = self.source_code.as_ref();
+    let mut start = range.start as usize;
+    let mut end = range.end as usize;
+    let bytes = source.as_bytes();
+    let line_start = bytes[..start]
+      .iter()
+      .rposition(|byte| *byte == b'\n')
+      .map_or(0, |pos| pos + 1);
+
+    if bytes[line_start..start]
+      .iter()
+      .all(|byte| *byte == b' ' || *byte == b'\t')
+    {
+      start = line_start;
+      if end < bytes.len() && bytes[end] == b'\r' {
+        end += 1;
+      }
+      if end < bytes.len() && bytes[end] == b'\n' {
+        end += 1;
+      }
+    }
+
+    (start as u32, end as u32).into()
+  }
+
   async fn handle_dependency<'source>(
     &mut self,
     dependency: css_module_lexer::Dependency<'source>,
@@ -447,12 +534,10 @@ impl<'context> CssModuleParser<'context> {
           .await
       }
       css_module_lexer::Dependency::Replace { content, range } => {
+        let range = self.presentational_replace_range(content, range);
         self
           .presentational_dependencies
-          .push(Box::new(ConstDependency::new(
-            (range.start, range.end).into(),
-            content.into(),
-          )));
+          .push(Box::new(ConstDependency::new(range, content.into())));
         Ok(())
       }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
@@ -489,6 +574,18 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::ICSSExportValue { prop, value } => {
         self.handle_icss_export_value(prop, value);
+        Ok(())
+      }
+      css_module_lexer::Dependency::ICSSImportFrom { path } => {
+        self.handle_icss_import_from(path);
+        Ok(())
+      }
+      css_module_lexer::Dependency::ICSSImportValue { prop, value } => {
+        self.handle_icss_import_value(prop, value);
+        Ok(())
+      }
+      css_module_lexer::Dependency::ICSSSymbol { name, range } => {
+        self.handle_icss_symbol(name, range);
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
@@ -734,7 +831,10 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn dashed_idents(&self) -> bool {
-    self.parser_options.dashed_idents.unwrap_or(false)
+    self
+      .parser_options
+      .dashed_idents
+      .expect("should have dashed_idents")
   }
 
   fn function(&self) -> bool {
@@ -1122,6 +1222,15 @@ impl<'context> CssModuleParser<'context> {
           convention_names.into_iter().zip(convention_local_class)
         {
           if from.is_none() {
+            if let Some(existing) = self.get_icss_composes_exports(name.as_str()) {
+              self
+                .css_exports
+                .get_mut(local_class.as_str())
+                .expect("composes local class must already added to exports")
+                .extend(existing);
+              continue;
+            }
+
             let existing = self.css_exports.get(name.as_str()).cloned();
             if let Some(existing) = existing {
               self
@@ -1180,21 +1289,190 @@ impl<'context> CssModuleParser<'context> {
     let convention = self.convention();
     let convention_names = export_locals_convention(prop, convention);
     let value = REGEX_IS_COMMENTS.replace_all(value, "");
+    let definition = self.resolve_icss_definition(value.as_ref());
+    self
+      .icss_definitions
+      .insert(prop.to_string(), definition.clone());
     for name in convention_names.iter() {
-      update_css_exports(
-        &mut self.css_exports,
-        name,
-        CssExport {
-          ident: value.as_ref().into(),
-          from: None,
-          id: None,
-          orig_name: prop.into(),
-        },
-      );
+      self.update_css_exports_from_icss_definition(name, prop, &definition);
+    }
+    if let Some(custom_property_name) = prop.strip_prefix("--") {
+      self
+        .icss_definitions
+        .insert(custom_property_name.to_string(), definition.clone());
+      for name in export_locals_convention(custom_property_name, convention).iter() {
+        self.update_css_exports_from_custom_property_definition(name, prop, &definition);
+      }
     }
     self
       .dependencies
       .push(Box::new(CssExportDependency::new(convention_names)));
+  }
+
+  fn handle_icss_import_from(&mut self, path: &str) {
+    let path = self.resolve_icss_import_request(path);
+    self.current_icss_import_from = Some(path);
+  }
+
+  fn handle_icss_import_value(&mut self, prop: &str, value: &str) {
+    let Some(request) = self.current_icss_import_from.clone() else {
+      return;
+    };
+    let definition = IcssDefinition::Import {
+      import_name: value.to_string(),
+      request: request.clone(),
+    };
+    self
+      .icss_definitions
+      .insert(prop.to_string(), definition.clone());
+    if let Some(custom_property_name) = prop.strip_prefix("--") {
+      self
+        .icss_definitions
+        .insert(custom_property_name.to_string(), definition.clone());
+      for name in export_locals_convention(custom_property_name, self.convention()).iter() {
+        self.update_css_exports_from_custom_property_definition(name, prop, &definition);
+      }
+    }
+    self.dependencies.push(Box::new(CssComposeDependency::new(
+      request,
+      vec![value.to_owned().into()],
+      DependencyRange::new(0, 0),
+    )));
+  }
+
+  fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
+    let Some(definition) = self.icss_definitions.get(name).cloned() else {
+      return;
+    };
+    self
+      .dependencies
+      .push(Box::new(CssIcssSymbolDependency::new(
+        self.icss_symbol_value_from_definition(name, &definition),
+        (range.start, range.end).into(),
+      )));
+  }
+
+  fn resolve_icss_definition(&self, value: &str) -> IcssDefinition {
+    self
+      .icss_definitions
+      .get(value)
+      .cloned()
+      .unwrap_or_else(|| IcssDefinition::Value(value.to_string()))
+  }
+
+  fn resolve_icss_import_request(&self, path: &str) -> String {
+    let path = path.trim_matches(|c| c == '\'' || c == '"');
+    if let Some(IcssDefinition::Value(value)) = self.icss_definitions.get(path) {
+      value.trim_matches(|c| c == '\'' || c == '"').to_string()
+    } else if !path.starts_with('.')
+      && !path.starts_with('/')
+      && let Some(resource_path) = self.resource_data().path()
+      && let Some(parent) = Path::new(resource_path.as_str()).parent()
+      && parent.join(path).exists()
+    {
+      format!("./{path}")
+    } else {
+      path.to_string()
+    }
+  }
+
+  fn update_css_exports_from_icss_definition(
+    &mut self,
+    name: &str,
+    prop: &str,
+    definition: &IcssDefinition,
+  ) {
+    let (ident, from) = match definition {
+      IcssDefinition::Value(value) => (value.as_str(), None),
+      IcssDefinition::Import {
+        import_name,
+        request,
+      } => (import_name.as_str(), Some(request.as_str())),
+    };
+    update_css_exports(
+      &mut self.css_exports,
+      name,
+      CssExport {
+        ident: ident.into(),
+        from: from.map(Into::into),
+        id: None,
+        orig_name: prop.into(),
+      },
+    );
+  }
+
+  fn update_css_exports_from_custom_property_definition(
+    &mut self,
+    name: &str,
+    prop: &str,
+    definition: &IcssDefinition,
+  ) {
+    if let IcssDefinition::Value(value) = definition
+      && let Some(custom_property_name) = value.trim().strip_prefix("--")
+      && is_custom_property_name(custom_property_name)
+      && let Some(exports) = self.css_exports.get(custom_property_name).cloned()
+    {
+      for export in exports.iter() {
+        update_css_exports(
+          &mut self.css_exports,
+          name,
+          CssExport {
+            ident: export.ident.clone(),
+            from: export.from.clone(),
+            id: export.id,
+            orig_name: prop.into(),
+          },
+        );
+      }
+      return;
+    }
+
+    self.update_css_exports_from_icss_definition(name, prop, definition);
+  }
+
+  fn icss_symbol_value_from_definition(
+    &self,
+    name: &str,
+    definition: &IcssDefinition,
+  ) -> CssIcssSymbolValue {
+    match definition {
+      IcssDefinition::Value(value) => CssIcssSymbolValue::Literal(value.clone()),
+      IcssDefinition::Import {
+        import_name,
+        request,
+      } => CssIcssSymbolValue::Import {
+        local_name: name.to_string(),
+        import_name: import_name.clone(),
+        request: request.clone(),
+      },
+    }
+  }
+
+  fn get_icss_composes_exports(&self, name: &str) -> Option<Vec<CssExport>> {
+    let definition = self.icss_definitions.get(name)?;
+    match definition {
+      IcssDefinition::Value(value) => self
+        .css_exports
+        .get(value.as_str())
+        .map(|exports| exports.iter().cloned().collect())
+        .or_else(|| {
+          Some(vec![CssExport {
+            ident: value.as_str().into(),
+            orig_name: name.into(),
+            from: None,
+            id: None,
+          }])
+        }),
+      IcssDefinition::Import {
+        import_name,
+        request,
+      } => Some(vec![CssExport {
+        ident: import_name.as_str().into(),
+        orig_name: name.into(),
+        from: Some(request.as_str().into()),
+        id: None,
+      }]),
+    }
   }
 
   fn add_warnings(&mut self, warnings: Vec<css_module_lexer::Warning>) {

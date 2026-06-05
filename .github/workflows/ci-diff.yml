@@ -96,8 +96,11 @@ jobs:
         run: RSDOCTOR=true CI=true pnpm run build:cases
 
       - name: Report Compressed Size
-        uses: web-infra-dev/rsdoctor-action@d3a7ae073bc63dcc4a16fba339414cbf4f9c476c
+        uses: web-infra-dev/rsdoctor-action@1fde8519f7fe0db592ffc56a47344fb428450f19 # v1.1.0
+        env:
+          AI_TOKEN: ${{ secrets.AI_TOKEN }}
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           file_path: '../build-tools-performance/**/dist/rsdoctor-data.json'
           target_branch: ${{ inputs.target_branch || 'main' }}
+          ai_model: qwen3.5-plus

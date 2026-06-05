@@ -1,17 +1,16 @@
 .value-at-rule_module_css-color {
-	color: danger
+	color: #e74c3c
 }
 
 .value-at-rule_module_css-button {
-	background-color: primary;
+	background-color: #3498db;
 	color: white;
 }
 
 .value-at-rule_module_css-button-error {
-	background-color: error;
+	background-color: #e74c3c;
 	border: 2px solid darkred;
 }
-
 
 
 .cyclical_module_css-class {
@@ -19,9 +18,7 @@
 }
 
 .cyclical_module_css-class-with-composes-nested {
-	
 }
-
 
 
 .reset_module_css-reset-display {
@@ -29,7 +26,6 @@
 }
 
 .atoms-extra_module_css-transition {
-	
 	transition: transform Xs ease;
 }
 
@@ -50,7 +46,6 @@
 }
 
 .atoms_module_css-interactive {
-	
 	will-change: transform;
 }
 
@@ -58,24 +53,32 @@
 	transform: scale(1.02);
 }
 
-.button_module_css-base {
-	
-	
-	border: 1px solid #ccc;
-	border-radius: 8px;
-}
-
-
-
-
-
 .button-reexport_module_css-base-reexport {
-	
-	
 	border: 1px solid #ccc;
 	border-radius: 8px;
 }
 
+.button_module_css-base {
+	border: 1px solid #ccc;
+	border-radius: 8px;
+}
+
+
+
+.classes-deep_module_css-deep-selector {
+	color: red;
+}
+
+.classes-deep_module_css-deep-selector-with-composes {
+	color: red;
+}
+
+.classes-deep_module_css-deep-selector-with-composes {
+}
+
+.classes-deep_module_css-deep-nested-c {
+	color: red;
+}
 
 
 .classes_module_css-localName {
@@ -87,13 +90,7 @@
 }
 
 .classes_module_css-bar {
-	
 }
-
-
-
-
-
 
 
 
@@ -103,6 +100,43 @@
 .classes-the-same_module_css-localName {
 	background: blue;
 }
+
+
+
+
+
+
+.abcd_modules_css-a {
+	color: a;
+}
+
+.abcd_modules_css-b {
+	color: b;
+}
+
+.abcd_modules_css-c {
+	color: c;
+}
+
+.abcd_modules_css-d {
+	color: d;
+}
+
+.abcd_modules_css-e {
+	color: d;
+}
+
+.abcd_modules_css-f {
+}
+
+:root {
+	--vars_module_css-my-var-u1: red;
+}
+
+.vars_module_css-my-var-u1 {
+	color: red;
+}
+
 
 
 
@@ -130,39 +164,30 @@
 }
 
 .styles_module_css-button-complex {
-	
 	background: blue;
 }
 
 .styles_module_css-button-complex-1 {
-	
 }
 
 .styles_module_css-button-complex-2 {
-	
 }
 
 .styles_module_css-local-composes {
-	
 	color: blue;
 }
 
 .styles_module_css-local-composes {
-	
 	color: blue;
 }
-
 
 
 .styles_module_css-local-composes-with-reexport {
-	
 	color: blue;
 }
 
 
-
 .styles_module_css-local-composes-with-reexport-and-value {
-	
 	color: blue;
 }
 
@@ -173,109 +198,82 @@
 .styles_module_css-exportName74 {  color: black; }
 
 .styles_module_css-multiple-composes-with-simple {
-	
-	
 	color: red;
 }
 
 .styles_module_css-multiple-composes-with-composes {
-	
-	
 	color: blue;
 }
 
 .styles_module_css-the-same-classes-in-composes-but-different-modules {
-	
-	
 }
 
 :root {
-	--color: red;
+	--styles_module_css-color: red;
 }
-
-
 
 
 
 .styles_module_css-custom-properties {
-	color: var(--color);
-	background-color: var(--shared from "./shared-custom-properties.module.css");
-	border-color: var(--deep-shared from "./shared-custom-properties.module.css");
-	outline-color: var(--my-custom-property-1);
-	text-decoration-color: var(--reexport-my-var-u1);
+	color: var(--styles_module_css-color);
+	background-color: var(--styles_module_css-shared from "./shared-custom-properties.module.css");
+	border-color: var(--styles_module_css-deep-shared from "./shared-custom-properties.module.css");
+	outline-color: var(--styles_module_css-my-custom-property-1);
+	text-decoration-color: var(--styles_module_css-reexport-my-var-u1);
 }
 
 .styles_module_css-from {
-	color: var(--my-var-u1 from "./vars.module.css");
+	color: var(--styles_module_css-my-var-u1 from "./vars.module.css");
 }
-
 
 
 .styles_module_css-button-with-color {
-	background-color: primary;
-	color: my-custom-color;
+	background-color: #3498db;
+	color: #2ecc71;
 }
-
 
 
 .styles_module_css-button-with-color-too {
-	color: foo;
+	color: red;
 }
-
-
 
 
 .styles_module_css-button-rename-1 {
-	background-color: rename;
+	background-color: #3498db;
 }
-
-
 
 
 .styles_module_css-button-rename-2 {
-	background-color: rename-2;
+	background-color: #e74c3c;
 }
-
-
 
 
 .styles_module_css-button-rename-3 {
-	background-color: rename-3;
+	background-color: #e74c3c;
 }
-
-
 
 
 .styles_module_css-button-rename-4 {
-	background-color: third;
+	background-color: #c1c2c3;
 }
 
 .styles_module_css-button-export-5 {
-	content: __REEXPORT3__
+	content: "export3-value"
 }
 
+.styles_module_css-selector { value: my-selector-value; }
 
-.styles_module_css-selector { value: selector; }
+.styles_module_css-other-selector { value: other-selector-value; }
 
+.styles_module_css-alias-other-selector { value: other-selector-value; }
 
-.styles_module_css-other-selector { value: other-selector; }
+.styles_module_css-reexport-selector { value: reexport-selector-value; }
 
+.styles_module_css-reexport-selector-alias { value: reexport-selector-value; }
 
-.styles_module_css-alias-other-selector { value: alias-other-selector; }
+.styles_module_css-third { background-color: #c1c2c3; }
 
-
-.styles_module_css-reexport-selector { value: reexport-selector; }
-
-
-.styles_module_css-reexport-selector-alias { value: reexport-selector-alias; }
-
-
-
-.styles_module_css-third { background-color: third; }
-
-
-
-.styles_module_css-rename-3 { background-color: rename-3; }
+.styles_module_css-rename-3 { background-color: #e74c3c; }
 
 .styles_module_css-local-class {
 	color: white;
@@ -286,45 +284,33 @@
 }
 
 .styles_module_css-class-with-composes {
-	
 }
-
 
 
 .styles_module_css-class-local-my { color: red }
 
 .styles_module_css-composes-from-import {
-	
 	color: red;
 }
 
 
-
-.styles_module_css-local-for-reexport { color: blue; }
+.styles_module_css-local-for-reexport { color: #3498db; }
 
 .styles_module_css-deep-reexport-in-composes {
-	
 }
-
 
 
 .styles_module_css-deep-reexport-in-composes-other {
-	
 }
-
 
 
 .styles_module_css-only-reexport {
-	
 }
-
 
 
 .styles_module_css-class-from-pseudo-import {
-	color: __import_localName__;
+	color: classes_module_css-localName;
 }
-
-
 
 
 
@@ -335,11 +321,7 @@
 
 
 
-
-
-
-.styles_module_css-local-for-reexport { color: blue; }
+.styles_module_css-local-for-reexport { color: #3498db; }
 
 .styles_module_css-deep-reexport-in-composes-other-other {
-	
 }

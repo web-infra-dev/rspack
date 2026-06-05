@@ -3579,6 +3579,7 @@ dependencies = [
  "async-trait",
  "codspeed-criterion-compat",
  "mimalloc",
+ "rayon",
  "rspack",
  "rspack_cacheable",
  "rspack_collections",

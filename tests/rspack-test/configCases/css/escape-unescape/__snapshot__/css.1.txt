@@ -123,13 +123,13 @@ Array [
 }
 
 :root {
-	--main-bg-color: red;
-	--main-bg-color-\@2: blue;
+	--style_modules_css-main-bg-color: red;
+	--style_modules_css-main-bg-color-\@2: blue;
 }
 
 details {
-	background-color: var(--main-bg-color);
-	background-color: var(--main-bg-color-\@2);
+	background-color: var(--style_modules_css-main-bg-color);
+	background-color: var(--style_modules_css-main-bg-color-\@2);
 }
 
 @keyframes style_modules_css-f\@oo { from { color: red; } to { color: blue; } },
