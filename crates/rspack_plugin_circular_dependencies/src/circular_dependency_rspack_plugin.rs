@@ -2,9 +2,10 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier, Plugin,
+  CircularModulesInfo, Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier,
+  Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -362,7 +363,7 @@ impl CircularDependencyRspackPlugin {
 async fn optimize_modules(
   &self,
   compilation: &Compilation,
-  _circular_modules: &mut Option<IdentifierSet>,
+  _circular_modules: &mut CircularModulesInfo,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {

@@ -839,8 +839,7 @@ impl ESMExportImportedSpecifierDependency {
     } = ctxt;
     let is_circular_module = compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&module.identifier()));
+      .is_circular_module(&module.identifier());
     let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module);
     let mode = render_make_deferred_namespace_mode_from_exports_type(exports_type);
     let value = format!(
@@ -880,8 +879,7 @@ impl ESMExportImportedSpecifierDependency {
     let is_circular_module = ctxt
       .compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&ctxt.module.identifier()));
+      .is_circular_module(&ctxt.module.identifier());
     let export_map = vec![(
       key.into(),
       ESMExportBinding::Getter(format!("/* {comment} */ {return_value}").into()),
@@ -908,8 +906,7 @@ impl ESMExportImportedSpecifierDependency {
     } = ctxt;
     let is_circular_module = compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&module.identifier()));
+      .is_circular_module(&module.identifier());
     let value = format!(
       r"/* reexport fake namespace object from non-ESM */ {name}_namespace_cache || ({name}_namespace_cache = {}({name}{}))",
       runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
