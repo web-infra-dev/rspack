@@ -7,7 +7,7 @@ use rspack_cacheable::{
 };
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
-pub use rspack_storage::{BoxStorage, MemoryStorage, Storage, VersionRetention};
+pub use rspack_storage::{BoxStorage, MemoryStorage, Storage};
 use rspack_storage::{FileSystemOptions, FileSystemStorage};
 
 /// Storage Options
@@ -27,15 +27,17 @@ pub enum StorageOptions {
 pub fn create_storage(
   options: StorageOptions,
   version: String,
-  retention: Option<VersionRetention>,
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
-    StorageOptions::FileSystem { directory, .. } => {
+    StorageOptions::FileSystem {
+      directory,
+      max_versions,
+    } => {
       let option = FileSystemOptions {
         directory,
         version,
-        retention,
+        max_versions,
         max_pack_size: 500 * 1024,
         expire: 7 * 24 * 60 * 60,
         fs,

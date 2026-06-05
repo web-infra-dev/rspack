@@ -1,14 +1,14 @@
 mod db;
-mod maintenance;
 mod meta;
 mod options;
-mod retention;
 mod scope_fs;
+
+use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
 
-use self::{db::DB, maintenance::Maintenance, meta::Meta, scope_fs::ScopeFileSystem};
-pub use self::{options::FileSystemOptions, retention::VersionRetention};
+pub use self::options::FileSystemOptions;
+use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem};
 use crate::{Result, Storage};
 
 /// Type alias for in-memory update changes: key -> optional_value
@@ -17,6 +17,8 @@ type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 /// File system-based persistent storage implementation
 #[derive(Debug)]
 pub struct FileSystemStorage {
+  /// Root filesystem for metadata operations
+  fs: ScopeFileSystem,
   /// Underlying database responsible for pack file read/write
   db: DB,
   /// In-memory staged update operations, grouped by scope
@@ -24,8 +26,8 @@ pub struct FileSystemStorage {
   updates: HashMap<String, BucketChangesMap>,
   /// Storage options
   options: FileSystemOptions,
-  /// Version metadata refresh and cleanup, run after a successful DB save
-  maintenance: Maintenance,
+  /// Next scheduled time for metadata refresh (cleanup + access time update)
+  next_meta_refresh_time: Arc<Mutex<u64>>,
 }
 
 impl FileSystemStorage {
@@ -36,12 +38,8 @@ impl FileSystemStorage {
     Self {
       db: DB::new(fs.child_fs(&options.version)),
       updates: Default::default(),
-      maintenance: Maintenance::new(
-        fs,
-        options.version.clone(),
-        options.expire,
-        options.retention.clone(),
-      ),
+      next_meta_refresh_time: Default::default(),
+      fs,
       options,
     }
   }
@@ -70,18 +68,48 @@ impl Storage for FileSystemStorage {
 
     // Enqueue the write to the background task queue; errors are reported internally.
     // Call flush() to wait until the write has fully completed.
-    let before_save = self.maintenance.clone();
-    let on_success = self.maintenance.clone();
-    let on_failure = self.maintenance.clone();
+    let fs = self.fs.clone();
+    let version = self.options.version.clone();
+    let expire = self.options.expire;
+    let max_versions = self.options.max_versions;
+    let next_meta_refresh_time = self.next_meta_refresh_time.clone();
     self.db.save(
       updates
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().collect()))
         .collect(),
       self.options.max_pack_size,
-      async move { before_save.prepare().await },
-      async move { on_success.run().await },
-      async move { on_failure.cancel().await },
+      async move {
+        let now = Meta::current_timestamp();
+        if *next_meta_refresh_time.lock().expect("should get lock") > now {
+          return;
+        }
+
+        let mut meta = match Meta::load(&fs).await {
+          Ok(meta) => meta,
+          Err(error) if error.is_not_found() => Meta::default(),
+          Err(_) => return,
+        };
+        let versions = if max_versions.is_some() {
+          fs.list_child().await.unwrap_or_default()
+        } else {
+          Vec::new()
+        };
+        let Ok((removed_versions, next_refresh_time)) = meta
+          .refresh(&version, expire, max_versions, &versions)
+          .await
+        else {
+          return;
+        };
+        if meta.save(&fs).await.is_err() {
+          return;
+        }
+
+        for version in removed_versions {
+          let _ = fs.child_fs(&version).remove().await;
+        }
+        *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
+      },
     );
   }
 
@@ -104,24 +132,21 @@ impl Storage for FileSystemStorage {
 
 #[cfg(test)]
 mod tests {
-  use std::{num::NonZeroUsize, sync::Arc};
+  use std::{num::NonZeroU32, sync::Arc};
 
   use futures::future::join_all;
   use rspack_fs::MemoryFileSystem;
 
-  use super::{FileSystemOptions, FileSystemStorage, ScopeFileSystem, VersionRetention};
+  use super::{FileSystemOptions, FileSystemStorage, ScopeFileSystem};
   use crate::Storage;
 
-  async fn save_version(fs: Arc<MemoryFileSystem>, version: &str, retention_scope: &str) {
+  async fn save_version(fs: Arc<MemoryFileSystem>, version: &str) {
     let mut storage = FileSystemStorage::new(FileSystemOptions {
       directory: "/cache".into(),
       version: version.into(),
       max_pack_size: 500 * 1024,
       expire: 0,
-      retention: Some(VersionRetention::new(
-        retention_scope.into(),
-        NonZeroUsize::new(2).expect("non-zero retention limit"),
-      )),
+      max_versions: NonZeroU32::new(2),
       fs,
     });
     storage.set("scope", b"key".to_vec(), b"value".to_vec());
@@ -134,10 +159,10 @@ mod tests {
   async fn should_remove_old_versions_for_the_same_compiler() {
     let fs = Arc::new(MemoryFileSystem::default());
 
-    save_version(fs.clone(), "a-v1", "compiler-a").await;
-    save_version(fs.clone(), "b-v1", "compiler-b").await;
-    save_version(fs.clone(), "a-v2", "compiler-a").await;
-    save_version(fs.clone(), "a-v3", "compiler-a").await;
+    save_version(fs.clone(), "a-v1").await;
+    save_version(fs.clone(), "b-v1").await;
+    save_version(fs.clone(), "a-v2").await;
+    save_version(fs.clone(), "a-v3").await;
 
     let root = ScopeFileSystem::new("/cache".into(), fs);
     let mut versions = root.list_child().await.expect("cache root should exist");
@@ -148,34 +173,18 @@ mod tests {
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
   #[cfg_attr(miri, ignore)]
-  async fn should_preserve_metadata_from_concurrent_compilers() {
+  async fn should_recover_from_concurrent_metadata_updates() {
     let fs = Arc::new(MemoryFileSystem::default());
 
-    join_all((0..16).map(|index| {
+    join_all((0..8).map(|index| {
       let fs = fs.clone();
-      async move {
-        save_version(
-          fs,
-          &format!("compiler-{index}-v1"),
-          &format!("compiler-{index}"),
-        )
-        .await;
-      }
+      async move { save_version(fs, &format!("scope{index}-v1")).await }
     }))
     .await;
-    for index in 0..16 {
-      save_version(
-        fs.clone(),
-        &format!("compiler-{index}-v2"),
-        &format!("compiler-{index}"),
-      )
-      .await;
-      save_version(
-        fs.clone(),
-        &format!("compiler-{index}-v3"),
-        &format!("compiler-{index}"),
-      )
-      .await;
+
+    for index in 0..8 {
+      save_version(fs.clone(), &format!("scope{index}-v2")).await;
+      save_version(fs.clone(), &format!("scope{index}-v3")).await;
     }
 
     let root = ScopeFileSystem::new("/cache".into(), fs);
@@ -185,29 +194,7 @@ mod tests {
         .iter()
         .filter(|version| !version.starts_with(['_', '.']))
         .count(),
-      16 * 2
+      8 * 2
     );
-  }
-
-  #[tokio::test]
-  #[cfg_attr(miri, ignore)]
-  async fn should_not_create_retention_metadata_when_disabled() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    let mut storage = FileSystemStorage::new(FileSystemOptions {
-      directory: "/cache".into(),
-      version: "v1".into(),
-      max_pack_size: 500 * 1024,
-      expire: 0,
-      retention: None,
-      fs: fs.clone(),
-    });
-    storage.set("scope", b"key".to_vec(), b"value".to_vec());
-    storage.save();
-    storage.flush().await;
-
-    let root = ScopeFileSystem::new("/cache".into(), fs);
-    let entries = root.list_child().await.expect("cache root should exist");
-    assert!(!entries.iter().any(|entry| entry == ".retention"));
-    assert!(!entries.iter().any(|entry| entry == ".maintenance.lock"));
   }
 }

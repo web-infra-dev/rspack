@@ -1,7 +1,6 @@
 mod lock;
 
-use self::lock::CommitLock;
-pub(crate) use self::lock::StateLock;
+use self::lock::{CommitLock, StateLock};
 use super::ScopeFileSystem;
 use crate::Result;
 

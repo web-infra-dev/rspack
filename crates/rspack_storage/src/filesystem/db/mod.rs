@@ -14,7 +14,6 @@ use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
 
-pub(crate) use self::transaction::StateLock;
 use self::{bucket::Bucket, task_queue::TaskQueue, transaction::Transaction};
 use super::ScopeFileSystem;
 use crate::{Error, Result};
@@ -98,17 +97,15 @@ impl DB {
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
-  /// `before_save` acquires any external coordination needed for the write.
-  /// Returning `false` skips persistence; the completion hooks release it.
+  /// `after_save` runs after the transaction commits. It also runs for an empty
+  /// change set so callers can refresh access metadata on cache hits.
   ///
   /// No-op when the DB is in readonly mode.
   pub fn save(
     &self,
     changes: BucketChanges,
     max_pack_size: usize,
-    before_save: impl Future<Output = bool> + Send + 'static,
-    on_success: impl Future<Output = ()> + Send + 'static,
-    on_failure: impl Future<Output = ()> + Send + 'static,
+    after_save: impl Future<Output = ()> + Send + 'static,
   ) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
@@ -119,12 +116,8 @@ impl DB {
         return;
       }
 
-      if !before_save.await {
-        return;
-      }
-
       if changes.is_empty() {
-        on_success.await;
+        after_save.await;
         return;
       }
 
@@ -187,9 +180,8 @@ impl DB {
       };
 
       match task_fn().await {
-        Ok(()) => on_success.await,
+        Ok(()) => after_save.await,
         Err(err) => {
-          on_failure.await;
           // The cache may be in an indeterminate state. Switch to readonly so no
           // further writes can make things worse. Restart the process to recover.
           // The current build is not affected.
@@ -266,15 +258,9 @@ mod test {
 
     let no_op_completed = Arc::new(AtomicBool::new(false));
     let no_op_completed_in_task = no_op_completed.clone();
-    db.save(
-      HashMap::default(),
-      25,
-      async { true },
-      async move {
-        no_op_completed_in_task.store(true, Ordering::Relaxed);
-      },
-      async {},
-    );
+    db.save(HashMap::default(), 25, async move {
+      no_op_completed_in_task.store(true, Ordering::Relaxed);
+    });
     db.flush().await;
     assert!(no_op_completed.load(Ordering::Relaxed));
 
@@ -293,15 +279,9 @@ mod test {
     // save data and wait finish
     let save_completed = Arc::new(AtomicBool::new(false));
     let save_completed_in_task = save_completed.clone();
-    db.save(
-      data,
-      25,
-      async { true },
-      async move {
-        save_completed_in_task.store(true, Ordering::Relaxed);
-      },
-      async {},
-    );
+    db.save(data, 25, async move {
+      save_completed_in_task.store(true, Ordering::Relaxed);
+    });
     db.flush().await;
     assert!(save_completed.load(Ordering::Relaxed));
 

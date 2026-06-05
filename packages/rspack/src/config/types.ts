@@ -1952,7 +1952,7 @@ export type CacheStorageOptions = {
   /**
    * Maximum number of cache versions to retain for each compiler. Must be an
    * integer between 1 and 4294967295.
-   * @default No limit
+   * @default No count limit; age-based cleanup still applies
    */
   maxVersions?: number;
 };

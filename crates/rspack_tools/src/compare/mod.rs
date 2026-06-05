@@ -62,7 +62,6 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
         max_versions: None,
       },
       v.clone(),
-      None,
       fs.clone(),
     );
 
