@@ -63,7 +63,7 @@ jobs:
           key: rust-bench-${{ inputs.target }}
 
       - name: Install cargo-codspeed binary
-        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2
+        uses: taiki-e/install-action@59012be0884e296ca2da49b530610e72c49039ad # v2
         with:
           tool: cargo-codspeed@4.4.1
 
