@@ -856,8 +856,8 @@ importers:
         specifier: ^1.16.1
         version: 1.16.1
       markdown-to-jsx:
-        specifier: ^9.7.16
-        version: 9.7.16(react@19.2.6)(vue@3.5.35)
+        specifier: ^9.8.1
+        version: 9.8.1(react@19.2.6)(vue@3.5.35)
       mermaid:
         specifier: ^11.15.0
         version: 11.15.0
@@ -5433,8 +5433,8 @@ packages:
   markdown-table@3.0.4:
     resolution: {integrity: sha512-wiYz4+JrLyb/DqW2hkFJxP7Vd7JuTDm77fvbM8VfEQdmSMqcImWeeRbHwZjBjIFki/VaMK2BhFi7oUUZeM5bqw==}
 
-  markdown-to-jsx@9.7.16:
-    resolution: {integrity: sha512-+LEgOlYfUEB9i2Oaxasec9H2HytB1+SQcgwFmQiNTKwe8cQ2E9bDNgePGq6ChIycMxtpcEY0g44aQ3uJoMw8eg==}
+  markdown-to-jsx@9.8.1:
+    resolution: {integrity: sha512-yq70dLPkBnE2LYFtGTLfRes4qyBDS+a4wDttAA/b/BzVGrbs2e0TfCeSFrMkapCg1lsxYi+42BowuBDxLP9k4Q==}
     engines: {node: '>= 18'}
     peerDependencies:
       react: '>= 16.0.0'
@@ -11871,7 +11871,7 @@ snapshots:
 
   markdown-table@3.0.4: {}
 
-  markdown-to-jsx@9.7.16(react@19.2.6)(vue@3.5.35):
+  markdown-to-jsx@9.8.1(react@19.2.6)(vue@3.5.35):
     optionalDependencies:
       react: 19.2.6
       vue: 3.5.35(typescript@6.0.3)
