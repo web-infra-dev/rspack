@@ -45,8 +45,9 @@ pub(crate) use self::{
   api_plugin::APIPlugin,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
   common_js_imports_parse_plugin::{
-    CREATE_REQUIRE_EVALUATED_TAG, CREATED_REQUIRE_IDENTIFIER_TAG, CommonJsImportsParserPlugin,
-    CreatedRequireTagData, RequireReferencesState, is_create_require_specifier,
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
+    CommonJsImportsParserPlugin, CreatedRequireTagData, RequireReferencesState,
+    is_create_require_specifier,
   },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,

@@ -27,8 +27,8 @@ use super::{
 use crate::{
   dependency::{DependencyBranchGuard, ESMImportSpecifierDependency, ESMImportedBooleanGuardNode},
   parser_plugin::{
-    CREATE_REQUIRE_EVALUATED_TAG, CREATED_REQUIRE_IDENTIFIER_TAG, JavascriptParserPlugin,
-    is_logic_op,
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
+    JavascriptParserPlugin, is_logic_op,
   },
   visitors::{
     AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
@@ -727,25 +727,38 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
-    if let Expr::Ident(ident) = &*expr.arg {
-      self.clear_created_require_tag(&ident.sym);
+    let updated_ident = expr.arg.as_ident().map(|ident| ident.sym.clone());
+    if let Some(name) = &updated_ident {
+      self.clear_create_require_tag(name);
     }
     self.walk_expression(&expr.arg);
+    if let Some(name) = &updated_ident {
+      self.clear_create_require_tag(name);
+    }
   }
 
-  fn clear_created_require_tag(&mut self, name: &Atom) {
-    if let Some(variable_info) = self.get_variable_info(name)
-      && let Some(tag_info_id) = variable_info.tag_info
-    {
+  fn clear_create_require_tag(&mut self, name: &Atom) {
+    if let Some(variable_info) = self.get_variable_info(name) {
       let declared_scope = variable_info.declared_scope;
-      let mut tag_info_id = Some(tag_info_id);
+      let should_clear_name = variable_info.name.as_ref().is_some_and(|name| {
+        name == CREATED_REQUIRE_IDENTIFIER_TAG
+          || name == CREATE_REQUIRE_SPECIFIER_TAG
+          || name == CREATE_REQUIRE_EVALUATED_TAG
+      });
+      let mut tag_info_id = variable_info.tag_info;
       while let Some(id) = tag_info_id {
         let tag_info = self.definitions_db.expect_get_tag_info(id);
-        if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
+        if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG
+          || tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
+          || tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG
+        {
           self.definitions_db.delete(declared_scope, name);
           break;
         }
         tag_info_id = tag_info.next;
+      }
+      if should_clear_name {
+        self.definitions_db.delete(declared_scope, name);
       }
     }
   }
@@ -768,7 +781,7 @@ impl JavascriptParser<'_> {
 
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
     match pat {
-      Pat::Ident(ident) => self.clear_created_require_tag(&ident.id.sym),
+      Pat::Ident(ident) => self.clear_create_require_tag(&ident.id.sym),
       Pat::Array(array) => array
         .elems
         .iter()
@@ -779,7 +792,7 @@ impl JavascriptParser<'_> {
         for prop in &obj.props {
           match prop {
             ObjectPatProp::KeyValue(kv) => self.clear_created_require_tags_in_pattern(&kv.value),
-            ObjectPatProp::Assign(assign) => self.clear_created_require_tag(&assign.key.sym),
+            ObjectPatProp::Assign(assign) => self.clear_create_require_tag(&assign.key.sym),
             ObjectPatProp::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
           }
         }
