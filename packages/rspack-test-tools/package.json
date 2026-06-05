@@ -47,7 +47,7 @@
     "fs-extra": "^11.3.5",
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
-    "jest-diff": "^30.3.0",
+    "jest-diff": "^30.4.1",
     "jsdom": "^26.1.0",
     "memfs": "4.57.3",
     "path-serializer": "0.6.0",
