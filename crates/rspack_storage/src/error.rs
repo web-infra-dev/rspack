@@ -60,21 +60,6 @@ impl Error {
       _ => false,
     }
   }
-
-  /// Returns true if the error is caused by creating an existing path.
-  pub fn is_already_exists(&self) -> bool {
-    match self {
-      Error::FS(FSError::Io(e)) => {
-        if matches!(e.kind(), ErrorKind::AlreadyExists) {
-          return true;
-        }
-        e.to_string()
-          .cow_to_ascii_lowercase()
-          .contains("already exist")
-      }
-      _ => false,
-    }
-  }
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

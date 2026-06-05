@@ -7,7 +7,6 @@ pub mod storage;
 
 use std::{
   hash::{DefaultHasher, Hash, Hasher},
-  num::NonZeroUsize,
   sync::Arc,
 };
 
@@ -26,7 +25,7 @@ use self::{
   context::CacheContext,
   occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{StorageOptions, VersionRetention, create_storage},
+  storage::{StorageOptions, create_storage},
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
@@ -82,25 +81,6 @@ impl PersistentCache {
       } => Some(*max_versions),
       _ => None,
     };
-    let retention_scope = max_versions.map(|_| {
-      retention_scope(
-        compiler_options.context.as_str(),
-        compiler_path,
-        compiler_options.name.as_deref(),
-      )
-    });
-    let retention = retention_scope
-      .as_ref()
-      .zip(max_versions)
-      .map(|(scope, max_versions)| {
-        VersionRetention::new(
-          scope.clone(),
-          NonZeroUsize::new(
-            usize::try_from(max_versions.get()).expect("u32 fits in supported target usize"),
-          )
-          .expect("non-zero u32 remains non-zero as usize"),
-        )
-      });
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec
@@ -113,19 +93,19 @@ impl PersistentCache {
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      // Count retention is compiler-scoped, so its physical version directory
-      // must use the same scope to prevent one compiler from deleting another's cache.
-      if let Some(retention_scope) = &retention_scope {
-        retention_scope.hash(&mut hasher);
-      }
       hex::encode(hasher.finish().to_ne_bytes())
     };
-    let storage = create_storage(
-      option.storage.clone(),
-      version,
-      retention,
-      intermediate_filesystem,
-    );
+    let version = if max_versions.is_some() {
+      let scope = retention_scope(
+        (!option.portable).then_some(compiler_options.context.as_str()),
+        compiler_path,
+        compiler_options.name.as_deref(),
+      );
+      format!("{scope}-{version}")
+    } else {
+      version
+    };
+    let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
     let snapshot = Arc::new(Snapshot::new(
       option.snapshot.clone(),
       input_filesystem.clone(),
@@ -167,22 +147,14 @@ impl PersistentCache {
   }
 }
 
-fn retention_scope(context: &str, compiler_path: &str, compiler_name: Option<&str>) -> String {
+fn retention_scope(
+  context: Option<&str>,
+  compiler_path: &str,
+  compiler_name: Option<&str>,
+) -> String {
   let mut hasher = RspackHash::new(&HashFunction::Xxhash64);
-  write_length_framed(&mut hasher, context);
-  write_length_framed(&mut hasher, compiler_path);
-  if let Some(compiler_name) = compiler_name {
-    hasher.write(&[1]);
-    write_length_framed(&mut hasher, compiler_name);
-  } else {
-    hasher.write(&[0]);
-  }
+  (context, compiler_path, compiler_name).hash(&mut hasher);
   hasher.digest(&HashDigest::Hex).encoded().into()
-}
-
-fn write_length_framed(hasher: &mut RspackHash, value: &str) {
-  hasher.write(&(value.len() as u64).to_be_bytes());
-  hasher.write(value.as_bytes());
 }
 
 #[async_trait::async_trait]
@@ -299,14 +271,18 @@ mod tests {
   use super::retention_scope;
 
   #[test]
-  fn retention_scope_frames_each_identity_component() {
+  fn retention_scope_uses_typed_compiler_identity() {
     assert_ne!(
-      retention_scope("ab", "c", Some("d")),
-      retention_scope("a", "bc", Some("d"))
+      retention_scope(Some("ab"), "c", Some("d")),
+      retention_scope(Some("a"), "bc", Some("d"))
     );
     assert_ne!(
-      retention_scope("context", "compiler", None),
-      retention_scope("context", "compiler", Some(""))
+      retention_scope(Some("context"), "compiler", None),
+      retention_scope(Some("context"), "compiler", Some(""))
+    );
+    assert_ne!(
+      retention_scope(Some("/project-a"), "compiler", Some("app")),
+      retention_scope(Some("/project-b"), "compiler", Some("app"))
     );
   }
 }

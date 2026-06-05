@@ -243,7 +243,7 @@ Rspack will automatically clean up cache folders that have not been accessed for
 
 - **Type:** `number` (integer from `1` to `4294967295`)
 
-- **Default:** No limit
+- **Default:** No count limit; the existing 7-day age-based cleanup still applies
 
 The maximum number of cache versions retained for each compiler. When the limit is exceeded, Rspack removes the least recently accessed versions for that compiler. Other compilers using the same storage directory are not counted toward the limit.
 
@@ -259,12 +259,12 @@ export default {
 };
 ```
 
-Compiler retention groups are identified by the compiler context, its position in the compiler tree, and [config.name](/config/other-options#name). This keeps compilers that share `storage.directory` from counting each other's cache versions.
+Each compiler is counted independently, so compilers that share `storage.directory` do not consume each other's limit.
 
-Cache versions created by Rspack releases that predate `maxVersions` do not contain compiler identity metadata. Those legacy versions continue to use the existing 7-day age cleanup instead of being counted toward this limit.
+Enabling `maxVersions` uses compiler-scoped cache version directories. Existing unscoped versions continue to use the 7-day age cleanup and are not counted toward the limit.
 
 :::warning
-Using a low limit for concurrently running builds with the same compiler name and storage directory can remove an older build's cache while that build is still running. Versions accessed at the same time are preserved and can temporarily exceed the limit until a later build performs cleanup.
+Concurrent builds of the same compiler share this limit and may remove one another's older cache versions.
 :::
 
 ### Inspect persistent cache logs

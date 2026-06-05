@@ -1,9 +1,7 @@
-use std::sync::Arc;
+use std::{num::NonZeroU32, sync::Arc};
 
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
-
-use super::VersionRetention;
 
 /// File system storage configuration options
 #[derive(Debug)]
@@ -16,8 +14,8 @@ pub struct FileSystemOptions {
   pub max_pack_size: usize,
   /// Data expiration time (seconds), 0 means never expire
   pub expire: u64,
-  /// Optional version-count retention policy
-  pub retention: Option<VersionRetention>,
+  /// Maximum number of versions retained for the active compiler scope
+  pub max_versions: Option<NonZeroU32>,
   /// File system implementation
   pub fs: Arc<dyn IntermediateFileSystem>,
 }
