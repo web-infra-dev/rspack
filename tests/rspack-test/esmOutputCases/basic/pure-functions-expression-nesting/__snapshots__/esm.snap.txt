@@ -1,0 +1,13 @@
+```mjs title=main.mjs
+// ./index.js
+
+
+
+
+
+
+
+
+export {};
+
+```

@@ -8,10 +8,11 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind, Comments, Decl,
-  DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName, ScopeId, Span,
-  Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
+  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ImportSpecifier, Lit, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptCall,
+  OptChainBase, Pat, Program, Prop, PropName, PropOrSpread, ScopeId, Span, Span as AstSpan, Stmt,
+  UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -922,6 +923,41 @@ fn is_pure_call_args(
   true
 }
 
+fn array_may_have_side_effects_with_pure_calls<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  array_expr: &'a ArrayLit,
+  unresolved_ctxt: ScopeId,
+  comments: &'a Comments<'a>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  for elem in array_expr.elems.iter().flatten() {
+    if elem.spread.is_some() {
+      return true;
+    }
+    if !is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      &elem.expr,
+      unresolved_ctxt,
+      comments,
+      callees.as_deref_mut(),
+    ) {
+      return true;
+    }
+  }
+  false
+}
+
+fn is_pure_without_composite_call_inspection(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  if !expr.may_have_side_effects(expr_ctx(parser, true)) {
+    return true;
+  }
+  // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
+  let evaluated = parser.evaluate_expression(expr);
+  !evaluated.could_have_side_effects()
+}
+
 enum ExplicitSideEffectsFreeCallee {
   Direct,
   Deferred,
@@ -1063,6 +1099,149 @@ fn are_pure_args<'a>(
       )
     }
   })
+}
+
+fn is_pure_prop_name<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  name: &'a PropName,
+  unresolved_ctxt: ScopeId,
+  comments: &'a Comments<'a>,
+  callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  match name {
+    PropName::Computed(computed) => is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      &computed.expr,
+      unresolved_ctxt,
+      comments,
+      callees,
+    ),
+    PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
+  }
+}
+
+fn is_pure_object_prop<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  prop: &'a Prop,
+  unresolved_ctxt: ScopeId,
+  comments: &'a Comments<'a>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  match prop {
+    Prop::Shorthand(_) => true,
+    Prop::KeyValue(key_value) => {
+      is_pure_prop_name(
+        parser,
+        analyze_side_effects_free,
+        &key_value.key,
+        unresolved_ctxt,
+        comments,
+        callees.as_deref_mut(),
+      ) && is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        &key_value.value,
+        unresolved_ctxt,
+        comments,
+        callees,
+      )
+    }
+    Prop::Assign(_) => false,
+    Prop::Getter(getter) => is_pure_prop_name(
+      parser,
+      analyze_side_effects_free,
+      &getter.key,
+      unresolved_ctxt,
+      comments,
+      callees,
+    ),
+    Prop::Setter(setter) => is_pure_prop_name(
+      parser,
+      analyze_side_effects_free,
+      &setter.key,
+      unresolved_ctxt,
+      comments,
+      callees,
+    ),
+    Prop::Method(method) => is_pure_prop_name(
+      parser,
+      analyze_side_effects_free,
+      &method.key,
+      unresolved_ctxt,
+      comments,
+      callees,
+    ),
+  }
+}
+
+fn is_pure_optional_call_expr<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  call_expr: &'a OptCall,
+  unresolved_ctxt: ScopeId,
+  comments: &'a Comments<'a>,
+  callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  if !analyze_side_effects_free {
+    return false;
+  }
+
+  let Expr::Ident(ident) = &call_expr.callee else {
+    return false;
+  };
+
+  match resolve_explicit_side_effects_free_callee(
+    parser,
+    &compat_atom(&ident.sym),
+    call_expr.callee.span(),
+    callees.is_none(),
+  ) {
+    ExplicitSideEffectsFreeCallee::Direct => {
+      let mut callees = callees;
+      for arg in &call_expr.args {
+        if arg.spread.is_some() {
+          return false;
+        }
+        if !is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &arg.expr,
+          unresolved_ctxt,
+          comments,
+          callees.as_deref_mut(),
+        ) {
+          return false;
+        }
+      }
+      true
+    }
+    ExplicitSideEffectsFreeCallee::Deferred | ExplicitSideEffectsFreeCallee::NotMarked => {
+      let Some(callees) = callees else {
+        return false;
+      };
+      callees.push((compat_atom(&ident.sym), call_expr.callee.span()));
+      for arg in &call_expr.args {
+        if arg.spread.is_some() {
+          return false;
+        }
+        if !is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &arg.expr,
+          unresolved_ctxt,
+          comments,
+          Some(callees),
+        ) {
+          return false;
+        }
+      }
+      true
+    }
+    ExplicitSideEffectsFreeCallee::Invalid => false,
+  }
 }
 
 impl SideEffectsParserPlugin {
@@ -1590,7 +1769,105 @@ pub fn is_pure_expression<'a>(
       return res;
     }
 
+    let should_inspect_composite_call = callees.is_some()
+      || (analyze_side_effects_free
+        && parser
+          .build_info
+          .side_effects_free
+          .as_ref()
+          .is_some_and(|side_effects_free| !side_effects_free.is_empty()));
+
+    if !should_inspect_composite_call
+      && matches!(
+        expr,
+        Expr::Array(_)
+          | Expr::Object(_)
+          | Expr::Unary(_)
+          | Expr::Bin(_)
+          | Expr::Cond(_)
+          | Expr::Seq(_)
+          | Expr::OptChain(_)
+      )
+    {
+      return is_pure_without_composite_call_inspection(parser, expr);
+    }
+
     match expr {
+      Expr::Array(array_expr) => !array_may_have_side_effects_with_pure_calls(
+        parser,
+        analyze_side_effects_free,
+        array_expr,
+        unresolved_ctxt,
+        comments,
+        callees.as_deref_mut(),
+      ),
+      Expr::Object(object_expr) => {
+        for prop in &object_expr.props {
+          let PropOrSpread::Prop(prop) = prop else {
+            return false;
+          };
+          if !is_pure_object_prop(
+            parser,
+            analyze_side_effects_free,
+            prop,
+            unresolved_ctxt,
+            comments,
+            callees.as_deref_mut(),
+          ) {
+            return false;
+          }
+        }
+        true
+      }
+      Expr::Unary(unary_expr) => is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        &unary_expr.arg,
+        unresolved_ctxt,
+        comments,
+        callees,
+      ),
+      Expr::Bin(bin_expr) => {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &bin_expr.left,
+          unresolved_ctxt,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &bin_expr.right,
+          unresolved_ctxt,
+          comments,
+          callees,
+        )
+      }
+      Expr::Cond(cond_expr) => {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &cond_expr.test,
+          unresolved_ctxt,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &cond_expr.cons,
+          unresolved_ctxt,
+          comments,
+          callees.as_deref_mut(),
+        ) && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &cond_expr.alt,
+          unresolved_ctxt,
+          comments,
+          callees,
+        )
+      }
       Expr::Call(_) => is_pure_call_expr(
         parser,
         analyze_side_effects_free,
@@ -1622,14 +1899,18 @@ pub fn is_pure_expression<'a>(
         }
         true
       }
-      _ => {
-        if !expr.may_have_side_effects(expr_ctx(parser, true)) {
-          return true;
-        }
-        // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
-        let evaluated = parser.evaluate_expression(expr);
-        !evaluated.could_have_side_effects()
-      }
+      Expr::OptChain(opt_chain_expr) => match &opt_chain_expr.base {
+        OptChainBase::Call(call_expr) => is_pure_optional_call_expr(
+          parser,
+          analyze_side_effects_free,
+          call_expr,
+          unresolved_ctxt,
+          comments,
+          callees,
+        ),
+        OptChainBase::Member(_) => false,
+      },
+      _ => is_pure_without_composite_call_inspection(parser, expr),
     }
   }
   _is_pure_expression(
