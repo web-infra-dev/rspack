@@ -134,10 +134,11 @@ export default {
 };
 ```
 
-目前仅支持 `webpackIgnore` 注释：
+目前仅支持 `webpackIgnore` 和 `rspackIgnore` 注释：
 
 ```js
 const x = require(/* webpackIgnore: true */ 'x');
+const y = require(/* rspackIgnore: true */ 'y');
 ```
 
 ### javascript.dynamicImportMode
