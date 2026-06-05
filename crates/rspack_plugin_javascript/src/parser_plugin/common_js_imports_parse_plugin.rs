@@ -22,8 +22,9 @@ use super::{JavascriptParserPlugin, get_url_request};
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-    RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
-    RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
+    ContextualCommonJsRequireDependency, RequireHeaderDependency, RequireResolveContextDependency,
+    RequireResolveDependency, RequireResolveHeaderDependency,
+    local_module_dependency::LocalModuleDependency,
   },
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -1821,10 +1822,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       };
       match locator.dep_type {
         DependencyType::CjsRequire => {
-          dep
-            .downcast_mut::<CommonJsRequireDependency>()
-            .expect("Failed to downcast to CommonJsRequireDependency")
-            .set_referenced_specifiers(references);
+          if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
+            dep.set_referenced_specifiers(references);
+          } else {
+            dep
+              .downcast_mut::<ContextualCommonJsRequireDependency>()
+              .expect("Failed to downcast to CommonJsRequireDependency")
+              .set_referenced_specifiers(references);
+          }
         }
         DependencyType::CommonJSRequireContext => {
           let dep = dep

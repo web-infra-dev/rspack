@@ -21,7 +21,7 @@ pub use common_js_full_require_dependency::{
   CommonJsFullRequireDependency, CommonJsFullRequireDependencyTemplate,
 };
 pub use common_js_require_dependency::{
-  CommonJsRequireDependency, CommonJsRequireDependencyTemplate,
+  CommonJsRequireDependency, CommonJsRequireDependencyTemplate, ContextualCommonJsRequireDependency,
 };
 pub use common_js_self_reference_dependency::{
   CommonJsSelfReferenceDependency, CommonJsSelfReferenceDependencyTemplate,

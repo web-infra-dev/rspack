@@ -16,8 +16,6 @@ pub struct RequireResolveDependency {
   pub weak: bool,
   range: DependencyRange,
   optional: bool,
-  #[cacheable(with=AsCacheable)]
-  contextual: Option<Box<ContextualCommonJsDependencyData>>,
   factorize_info: FactorizeInfo,
 }
 
@@ -29,7 +27,6 @@ impl RequireResolveDependency {
       weak,
       optional,
       id: DependencyId::new(),
-      contextual: None,
       factorize_info: Default::default(),
     }
   }
@@ -40,20 +37,15 @@ impl RequireResolveDependency {
     weak: bool,
     optional: bool,
     context: Context,
-  ) -> Self {
+  ) -> ContextualRequireResolveDependency {
     let contextual = Box::new(ContextualCommonJsDependencyData::new(
       "require.resolve",
       context,
       &request,
     ));
-    Self {
-      range,
-      request,
-      weak,
-      optional,
-      id: DependencyId::new(),
-      contextual: Some(contextual),
-      factorize_info: Default::default(),
+    ContextualRequireResolveDependency {
+      inner: Self::new(request, range, weak, optional),
+      contextual,
     }
   }
 }
@@ -70,17 +62,6 @@ impl Dependency for RequireResolveDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireResolve
-  }
-
-  fn get_context(&self) -> Option<&Context> {
-    self.contextual.as_ref().map(|data| data.context())
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    self
-      .contextual
-      .as_ref()
-      .map(|data| data.resource_identifier())
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -139,6 +120,97 @@ impl DependencyCodeGeneration for RequireResolveDependency {
 impl AsContextDependency for RequireResolveDependency {}
 
 #[cacheable]
+#[derive(Debug, Clone)]
+pub struct ContextualRequireResolveDependency {
+  #[cacheable(with=AsCacheable)]
+  inner: RequireResolveDependency,
+  #[cacheable(with=AsCacheable)]
+  contextual: Box<ContextualCommonJsDependencyData>,
+}
+
+#[cacheable_dyn]
+impl Dependency for ContextualRequireResolveDependency {
+  fn id(&self) -> &DependencyId {
+    self.inner.id()
+  }
+
+  fn category(&self) -> &DependencyCategory {
+    self.inner.category()
+  }
+
+  fn dependency_type(&self) -> &DependencyType {
+    self.inner.dependency_type()
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    Some(self.contextual.context())
+  }
+
+  fn resource_identifier(&self) -> Option<&str> {
+    Some(self.contextual.resource_identifier())
+  }
+
+  fn range(&self) -> Option<DependencyRange> {
+    self.inner.range()
+  }
+
+  fn get_referenced_exports(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+    runtime: Option<&RuntimeSpec>,
+  ) -> Vec<ExtendedReferencedExport> {
+    self.inner.get_referenced_exports(
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      runtime,
+    )
+  }
+
+  fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
+    self.inner.could_affect_referencing_module()
+  }
+}
+
+#[cacheable_dyn]
+impl ModuleDependency for ContextualRequireResolveDependency {
+  fn request(&self) -> &str {
+    self.inner.request()
+  }
+
+  fn user_request(&self) -> &str {
+    self.inner.user_request()
+  }
+
+  fn weak(&self) -> bool {
+    self.inner.weak()
+  }
+
+  fn get_optional(&self) -> bool {
+    self.inner.get_optional()
+  }
+
+  fn factorize_info(&self) -> &FactorizeInfo {
+    self.inner.factorize_info()
+  }
+
+  fn factorize_info_mut(&mut self) -> &mut FactorizeInfo {
+    self.inner.factorize_info_mut()
+  }
+}
+
+#[cacheable_dyn]
+impl DependencyCodeGeneration for ContextualRequireResolveDependency {
+  fn dependency_template(&self) -> Option<DependencyTemplateType> {
+    self.inner.dependency_template()
+  }
+}
+
+impl AsContextDependency for ContextualRequireResolveDependency {}
+
+#[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct RequireResolveDependencyTemplate;
 
@@ -155,10 +227,15 @@ impl DependencyTemplate for RequireResolveDependencyTemplate {
     source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
-    let dep = dep
-      .as_any()
-      .downcast_ref::<RequireResolveDependency>()
-      .expect("RequireResolveDependencyTemplate should only be used for RequireResolveDependency");
+    let dep = if let Some(dep) = dep.as_any().downcast_ref::<RequireResolveDependency>() {
+      dep
+    } else {
+      dep
+        .as_any()
+        .downcast_ref::<ContextualRequireResolveDependency>()
+        .map(|dep| &dep.inner)
+        .expect("RequireResolveDependencyTemplate should only be used for RequireResolveDependency")
+    };
 
     source.replace(
       dep.range.start,
