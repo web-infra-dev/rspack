@@ -63,11 +63,7 @@ impl CommonJsRequireDependency {
     loc: Option<DependencyLocation>,
     referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> ContextualCommonJsRequireDependency {
-    let contextual = Box::new(ContextualCommonJsDependencyData::new(
-      "cjs require",
-      context,
-      &request,
-    ));
+    let contextual = ContextualCommonJsDependencyData::new("cjs require", context, &request);
     ContextualCommonJsRequireDependency {
       inner: Self::new(
         request,
@@ -185,8 +181,7 @@ impl AsContextDependency for CommonJsRequireDependency {}
 pub struct ContextualCommonJsRequireDependency {
   #[cacheable(with=AsCacheable)]
   inner: CommonJsRequireDependency,
-  #[cacheable(with=AsCacheable)]
-  contextual: Box<ContextualCommonJsDependencyData>,
+  contextual: ContextualCommonJsDependencyData,
 }
 
 impl ContextualCommonJsRequireDependency {
