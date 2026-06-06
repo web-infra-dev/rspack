@@ -229,13 +229,13 @@ it("should stop parsing reassigned created require bindings", () => {
 	for (loopCreateRequire of [() => request => request]) {}
 	expect(loopCreateRequire(import.meta.url)("./a")).toBe("./a");
 	let logicalCreateRequire = _createRequire;
-	logicalCreateRequire ||= () => request => request;
+	logicalCreateRequire ||= require("./guarded-unused.js");
 	const logicalCreatedRequire = logicalCreateRequire(
 		new URL("./foo/c.js", import.meta.url)
 	);
 	expect(logicalCreatedRequire("./a")).toBe(4);
 	let nullishCreateRequire = _createRequire;
-	nullishCreateRequire ??= () => request => request;
+	nullishCreateRequire ??= require("./guarded-unused.js");
 	const nullishCreatedRequire = nullishCreateRequire(
 		new URL("./foo/c.js", import.meta.url)
 	);

@@ -779,6 +779,32 @@ impl JavascriptParser<'_> {
     false
   }
 
+  #[inline(never)]
+  fn has_create_require_tag(&mut self, name: &Atom) -> bool {
+    let Some(variable_info) = self.get_variable_info(name) else {
+      return false;
+    };
+    if variable_info.name.as_ref().is_some_and(|name| {
+      name == CREATED_REQUIRE_IDENTIFIER_TAG
+        || name == CREATE_REQUIRE_SPECIFIER_TAG
+        || name == CREATE_REQUIRE_EVALUATED_TAG
+    }) {
+      return true;
+    }
+    let mut tag_info_id = variable_info.tag_info;
+    while let Some(id) = tag_info_id {
+      let tag_info = self.definitions_db.expect_get_tag_info(id);
+      if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG
+        || tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
+        || tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG
+      {
+        return true;
+      }
+      tag_info_id = tag_info.next;
+    }
+    false
+  }
+
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
     match pat {
       Pat::Ident(ident) => self.clear_create_require_tag(&ident.id.sym),
@@ -810,7 +836,7 @@ impl JavascriptParser<'_> {
     ident: &Ident,
   ) -> Option<bool> {
     if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
-      && self.has_created_require_tag(&ident.sym)
+      && self.has_create_require_tag(&ident.sym)
     {
       return Some(true);
     }
