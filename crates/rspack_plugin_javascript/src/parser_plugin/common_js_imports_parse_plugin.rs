@@ -357,8 +357,9 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   if let Some(args) = &new_expr.args
-    && args.len() == 1
+    && !args.is_empty()
     && args[0].spread.is_none()
+    && ignored_url_args_are_side_effect_free_from(parser, args, 1)
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
   {
     return value
@@ -403,9 +404,19 @@ fn ignored_url_args_are_side_effect_free(
   let Some(args) = &new_expr.args else {
     return true;
   };
+  ignored_url_args_are_side_effect_free_from(parser, args, 2)
+}
+
+#[cold]
+#[inline(never)]
+fn ignored_url_args_are_side_effect_free_from(
+  parser: &mut JavascriptParser,
+  args: &[ExprOrSpread],
+  start: usize,
+) -> bool {
   args
     .iter()
-    .skip(2)
+    .skip(start)
     .all(|arg| arg.spread.is_none() && is_side_effect_free_ignored_url_arg(parser, &arg.expr))
 }
 
