@@ -228,6 +228,18 @@ it("should stop parsing reassigned created require bindings", () => {
 	let loopCreateRequire = _createRequire;
 	for (loopCreateRequire of [() => request => request]) {}
 	expect(loopCreateRequire(import.meta.url)("./a")).toBe("./a");
+	let logicalCreateRequire = _createRequire;
+	logicalCreateRequire ||= () => request => request;
+	const logicalCreatedRequire = logicalCreateRequire(
+		new URL("./foo/c.js", import.meta.url)
+	);
+	expect(logicalCreatedRequire("./a")).toBe(4);
+	let nullishCreateRequire = _createRequire;
+	nullishCreateRequire ??= () => request => request;
+	const nullishCreatedRequire = nullishCreateRequire(
+		new URL("./foo/c.js", import.meta.url)
+	);
+	expect(nullishCreatedRequire("./a")).toBe(4);
 
 	let mutableRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	mutableRequire = request => request;
