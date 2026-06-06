@@ -1,10 +1,14 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
+use std::{collections::HashMap, fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
 use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
 use super::FsWatcherIgnored;
+use crate::time_info::{
+  TimeInfoEntry, TimeInfoTables, ensure_fs_accuracy, fixup_entry_accuracy, fs_accuracy,
+  initial_entry, now_millis, system_time_to_millis,
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -190,6 +194,14 @@ pub(crate) struct PathManager {
   /// Used to filter stale FSEvents that arrive for files not actually modified.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
   file_mtimes: ArcPathDashMap<SystemTime>,
+  /// watchpack-style `{ safe_time, timestamp, accuracy }` time info per file,
+  /// surfaced to webpack as `fileTimeInfoEntries`. See [`crate::time_info`].
+  file_entries: ArcPathDashMap<TimeInfoEntry>,
+  /// Directory-level time info, surfaced as `contextTimeInfoEntries`. Holds the
+  /// directory's own change time; the value exposed to webpack additionally
+  /// aggregates the `safe_time` of every registered child file (see
+  /// [`PathManager::collect_time_info`]).
+  dir_entries: ArcPathDashMap<TimeInfoEntry>,
 }
 
 impl PathManager {
@@ -201,6 +213,8 @@ impl PathManager {
       missing: PathTracker::default(),
       ignored,
       file_mtimes: ArcPathDashMap::default(),
+      file_entries: ArcPathDashMap::default(),
+      dir_entries: ArcPathDashMap::default(),
     }
   }
 
@@ -241,6 +255,165 @@ impl PathManager {
     self.file_mtimes.remove(path);
   }
 
+  /// Record an initial-scan time entry for a file, mirroring watchpack
+  /// `setFileTime(initial=true)`. Only set if absent: a live event may have
+  /// already advanced the entry across watch cycles and must not be clobbered
+  /// by a re-stat (same reasoning as [`Self::set_file_mtime_if_absent`]).
+  pub fn set_initial_file_time(&self, path: ArcPath, mtime: SystemTime) {
+    self
+      .file_entries
+      .entry(path)
+      .or_insert_with(|| initial_entry(system_time_to_millis(mtime)));
+  }
+
+  /// Record an initial-scan time entry for a directory (using its mtime as the
+  /// birthtime), mirroring watchpack `setDirectory(initial=true)`.
+  pub fn set_initial_dir_time(&self, path: ArcPath, mtime: SystemTime) {
+    self
+      .dir_entries
+      .entry(path)
+      .or_insert_with(|| initial_entry(system_time_to_millis(mtime)));
+  }
+
+  /// Record a real-time change for a file, mirroring watchpack
+  /// `setFileTime(initial=false)`: `safe_time = now`, `accuracy = 0`. Skips the
+  /// update for an attribute-only change — the same mtime already sitting
+  /// outside the accuracy window, which cannot hide a content change.
+  pub fn set_event_file_time(&self, path: &ArcPath, mtime: SystemTime) {
+    let mtime_ms = system_time_to_millis(mtime);
+    ensure_fs_accuracy(mtime_ms);
+    let now = now_millis();
+    // Read-and-drop the guard before inserting: DashMap would deadlock if a
+    // read ref into the same shard were held across a write.
+    let skip = {
+      if let Some(old) = self.file_entries.get(path) {
+        old.timestamp == mtime_ms && mtime_ms + fs_accuracy() < now
+      } else {
+        false
+      }
+    };
+    if skip {
+      return;
+    }
+    self.file_entries.insert(
+      path.clone(),
+      TimeInfoEntry {
+        safe_time: now,
+        timestamp: mtime_ms,
+        accuracy: 0,
+      },
+    );
+  }
+
+  /// Bump a directory's change time to now when an event is associated with it,
+  /// but only for registered directories. Captures directory-level changes
+  /// (a child added/removed) that a remaining child file's entry can't reflect.
+  pub fn touch_dir_if_registered(&self, path: &ArcPath) {
+    if !self.directories.all.contains(path) {
+      return;
+    }
+    let now = now_millis();
+    self.dir_entries.insert(
+      path.clone(),
+      TimeInfoEntry {
+        safe_time: now,
+        timestamp: now,
+        accuracy: 0,
+      },
+    );
+  }
+
+  /// Collect the full webpack-shaped time tables, mirroring watchpack's
+  /// `collectTimeInfoEntries`. Returns `(file_entries, context_entries)` where
+  /// each entry's accuracy is tightened on read ([`fixup_entry_accuracy`]) and a
+  /// directory's `safe_time` is the max of its own change time and the
+  /// `safe_time` of every registered descendant file.
+  pub fn collect_time_info(&self) -> TimeInfoTables {
+    let accuracy = fs_accuracy();
+
+    // Seed directory aggregates with each directory's own change time.
+    let mut dir_times: HashMap<ArcPath, u64> = HashMap::new();
+    for dir in self.dir_entries.iter() {
+      let mut entry = *dir.value();
+      fixup_entry_accuracy(&mut entry, accuracy);
+      dir_times.insert(dir.key().clone(), entry.safe_time);
+    }
+
+    let mut files = Vec::with_capacity(self.file_entries.len());
+    for file in self.file_entries.iter() {
+      let mut entry = *file.value();
+      fixup_entry_accuracy(&mut entry, accuracy);
+      let path = file.key();
+      files.push((path.to_string_lossy().to_string(), entry));
+
+      // Bubble this file's safe_time up to every registered ancestor directory.
+      let mut current = path.parent();
+      while let Some(parent) = current {
+        let parent_arc = ArcPath::from(parent);
+        if self.directories.all.contains(&parent_arc) {
+          let slot = dir_times.entry(parent_arc).or_insert(0);
+          *slot = (*slot).max(entry.safe_time);
+        }
+        current = parent.parent();
+      }
+    }
+
+    let contexts = dir_times
+      .into_iter()
+      .map(|(dir, safe_time)| (dir.to_string_lossy().to_string(), safe_time))
+      .collect();
+
+    (files, contexts)
+  }
+
+  /// Whether `path`'s recorded file `safe_time` is at or after `start_time`,
+  /// mirroring watchpack's `checkStartTime`. Reads the (accuracy-tightened)
+  /// entry and returns `false` when the path has no recorded entry. This is the
+  /// granularity-safe replacement for a raw `mtime > start_time` scan: the
+  /// `accuracy` padding baked into `safe_time` absorbs the filesystem's mtime
+  /// quantization, and a live event's `safe_time = now` surfaces a change whose
+  /// disk mtime has not advanced past `start_time`.
+  pub fn file_changed_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
+    Self::entry_changed_since(&self.file_entries, path, system_time_to_millis(start_time))
+  }
+
+  /// Directory counterpart of [`Self::file_changed_since`].
+  pub fn dir_changed_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
+    Self::entry_changed_since(&self.dir_entries, path, system_time_to_millis(start_time))
+  }
+
+  /// Whether a registered-missing dependency has been created at or after
+  /// `start_time`. The path carries no recorded entry (it was watched as
+  /// missing), so its `safe_time` is computed fresh from disk via
+  /// [`initial_entry`] — the same granularity-safe padding used for newly
+  /// scanned files. A failed stat means the path is still missing, so it is not
+  /// reported. Backfills a creation that landed in the gap between the
+  /// consumer's `start_time` and the next `watch()` registration.
+  pub fn missing_created_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
+    let Ok(mtime) = path
+      .metadata()
+      .and_then(|m| m.modified().or_else(|_| m.created()))
+    else {
+      return false;
+    };
+    initial_entry(system_time_to_millis(mtime)).safe_time >= system_time_to_millis(start_time)
+  }
+
+  fn entry_changed_since(
+    map: &ArcPathDashMap<TimeInfoEntry>,
+    path: &ArcPath,
+    start_ms: u64,
+  ) -> bool {
+    match map.get(path) {
+      Some(entry) => {
+        let mut entry = *entry;
+        fixup_entry_accuracy(&mut entry, fs_accuracy());
+        entry.safe_time >= start_ms
+      }
+      None => false,
+    }
+  }
+
   /// Check if a file's mtime has changed from the stored baseline.
   /// Returns `true` if the event should pass through (mtime changed or no baseline).
   /// Returns `false` if the event should be suppressed (mtime unchanged = stale).
@@ -262,6 +435,7 @@ impl PathManager {
         if current_mtime != *baseline {
           drop(baseline);
           self.file_mtimes.insert(path.clone(), current_mtime);
+          self.set_event_file_time(path, current_mtime);
           true
         } else {
           false
@@ -269,6 +443,7 @@ impl PathManager {
       }
       None => {
         self.file_mtimes.insert(path.clone(), current_mtime);
+        self.set_event_file_time(path, current_mtime);
         true
       }
     }
@@ -292,6 +467,11 @@ impl PathManager {
     let removed_files: Vec<ArcPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
       self.remove_file_mtime(path);
+      self.file_entries.remove(path);
+    }
+    let removed_dirs: Vec<ArcPath> = self.directories.removed.iter().map(|p| p.clone()).collect();
+    for path in &removed_dirs {
+      self.dir_entries.remove(path);
     }
 
     Ok(())
@@ -503,5 +683,208 @@ mod tests {
       Some(post_write_mtime),
       "has_mtime_changed should advance the baseline on a real change",
     );
+  }
+
+  /// Read a file's collected `safe_time`, or `None` if it has no entry.
+  fn file_safe_time(pm: &PathManager, path: &ArcPath) -> Option<u64> {
+    let key = path.to_string_lossy().to_string();
+    let (files, _) = pm.collect_time_info();
+    files
+      .into_iter()
+      .find(|(p, _)| *p == key)
+      .map(|(_, e)| e.safe_time)
+  }
+
+  /// Read a directory's collected `safe_time`, or `None` if it has no entry.
+  fn dir_safe_time(pm: &PathManager, path: &ArcPath) -> Option<u64> {
+    let key = path.to_string_lossy().to_string();
+    let (_, dirs) = pm.collect_time_info();
+    dirs.into_iter().find(|(p, _)| *p == key).map(|(_, t)| t)
+  }
+
+  /// Ports watchpack "setFileTime without initial triggers change": a real-time
+  /// event with a different mtime must advance `safe_time` to ~now.
+  #[test]
+  fn set_event_advances_safe_time_on_real_change() {
+    use std::{
+      path::Path,
+      thread::sleep,
+      time::{Duration, SystemTime},
+    };
+
+    let pm = PathManager::default();
+    let path = ArcPath::from(Path::new("/x/file.js"));
+
+    let t1 = SystemTime::now() - Duration::from_secs(20);
+    let t2 = SystemTime::now() - Duration::from_secs(10);
+    pm.set_event_file_time(&path, t1);
+    let s1 = file_safe_time(&pm, &path).expect("entry after first event");
+    // 50ms comfortably exceeds the ~15.6ms SystemTime granularity on Windows
+    // so `now_millis()` reliably advances between the two events.
+    sleep(Duration::from_millis(50));
+    pm.set_event_file_time(&path, t2);
+    let s2 = file_safe_time(&pm, &path).expect("entry after second event");
+
+    assert!(
+      s2 > s1,
+      "a real change must advance safe_time ({s1} -> {s2})"
+    );
+  }
+
+  /// Ports watchpack "setFileTime skips when timestamp is unchanged and old is
+  /// stable": a repeated event carrying the same, already-stable mtime is an
+  /// attribute-only change and must not advance `safe_time`.
+  #[test]
+  fn set_event_skips_attribute_only_change() {
+    use std::{
+      path::Path,
+      thread::sleep,
+      time::{Duration, SystemTime},
+    };
+
+    let pm = PathManager::default();
+    let path = ArcPath::from(Path::new("/x/stable.js"));
+
+    // An mtime well outside any plausible accuracy window (<= 2000ms).
+    let stable = SystemTime::now() - Duration::from_secs(10);
+    pm.set_event_file_time(&path, stable);
+    let s1 = file_safe_time(&pm, &path).expect("entry after first event");
+    sleep(Duration::from_millis(5));
+    pm.set_event_file_time(&path, stable);
+    let s2 = file_safe_time(&pm, &path).expect("entry after second event");
+
+    assert_eq!(
+      s1, s2,
+      "attribute-only change (same stable mtime) must not advance safe_time",
+    );
+  }
+
+  /// `set_initial_file_time` must not clobber an entry a live event already
+  /// advanced — mirrors the if-absent contract of the mtime baseline.
+  #[test]
+  fn set_initial_does_not_overwrite_event_entry() {
+    use std::{
+      path::Path,
+      time::{Duration, SystemTime},
+    };
+
+    let pm = PathManager::default();
+    let path = ArcPath::from(Path::new("/x/live.js"));
+
+    pm.set_event_file_time(&path, SystemTime::now() - Duration::from_secs(1));
+    let after_event = file_safe_time(&pm, &path).expect("entry after event");
+
+    // A later initial re-scan with an ancient mtime must be a no-op.
+    pm.set_initial_file_time(path.clone(), SystemTime::now() - Duration::from_secs(100));
+    let after_initial = file_safe_time(&pm, &path).expect("entry still present");
+
+    assert_eq!(
+      after_event, after_initial,
+      "initial scan must not overwrite a live event entry",
+    );
+  }
+
+  /// Ports watchpack's directory aggregation in `collectTimeInfoEntries`: a
+  /// registered directory's `safe_time` is the max of every registered
+  /// descendant file's `safe_time`.
+  #[test]
+  fn collect_time_info_aggregates_child_safe_times_to_dir() {
+    use std::time::SystemTime;
+
+    let pm = PathManager::default();
+    // Build from an absolute temp-dir base: a Unix-style "/project" path is
+    // NOT absolute on Windows, so `update()` would relativize the directory
+    // (join cwd) and the file's parent chain would no longer match it.
+    let base = std::env::temp_dir();
+    let dir = ArcPath::from(base.join("rspack_wt_agg_src").as_path());
+    let file = ArcPath::from(
+      base
+        .join("rspack_wt_agg_src")
+        .join("nested")
+        .join("a.js")
+        .as_path(),
+    );
+
+    // Register the directory so it is an aggregation target.
+    pm.update(
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::once(dir.clone()), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("register dir");
+
+    pm.set_event_file_time(&file, SystemTime::now());
+    let file_st = file_safe_time(&pm, &file).expect("file entry");
+    let dir_st = dir_safe_time(&pm, &dir).expect("dir entry aggregated from child");
+
+    assert!(
+      dir_st >= file_st,
+      "dir safe_time ({dir_st}) must be >= descendant file safe_time ({file_st})",
+    );
+  }
+
+  /// Unregistering a file in `update()` must prune its time entry, so the table
+  /// cannot grow unboundedly across watch cycles (mirrors the `file_mtimes`
+  /// pruning that already runs for removed files).
+  #[test]
+  fn update_prunes_time_entry_for_removed_file() {
+    use std::time::SystemTime;
+
+    let pm = PathManager::default();
+    let base = std::env::temp_dir();
+    let file = ArcPath::from(base.join("rspack_wt_prune_a.js").as_path());
+
+    pm.update(
+      (std::iter::once(file.clone()), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("register file");
+    pm.set_event_file_time(&file, SystemTime::now());
+    assert!(
+      file_safe_time(&pm, &file).is_some(),
+      "entry present after event",
+    );
+
+    pm.reset();
+    pm.update(
+      (std::iter::empty(), std::iter::once(file.clone())),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("unregister file");
+
+    assert!(
+      file_safe_time(&pm, &file).is_none(),
+      "time entry must be pruned when the file is unregistered",
+    );
+  }
+
+  /// A live change event passing `has_mtime_changed` must also record a
+  /// watchpack-style time entry, so `getTimeInfo` reflects the change.
+  #[test]
+  fn has_mtime_changed_records_event_time_entry() {
+    use tempfile::NamedTempFile;
+
+    let tempfile = NamedTempFile::new().expect("create temp file");
+    let path = ArcPath::from(tempfile.path());
+    let pm = PathManager::default();
+    pm.update(
+      (std::iter::once(path.clone()), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("register file");
+
+    assert!(
+      file_safe_time(&pm, &path).is_none(),
+      "no time entry before any event",
+    );
+
+    // First event has no baseline -> passes the gate and records the baseline;
+    // it must also stamp a time entry for reporting.
+    assert!(pm.has_mtime_changed(&path), "first event must pass");
+    let st = file_safe_time(&pm, &path).expect("event must record a time entry");
+    assert!(st > 0, "recorded safe_time must be set");
   }
 }

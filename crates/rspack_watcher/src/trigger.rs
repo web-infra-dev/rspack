@@ -128,6 +128,12 @@ impl Trigger {
 
     let finder = self.finder();
     let associated_event = finder.find_associated_event(path, kind);
+    // Record directory-level change times for any registered directory touched
+    // by this event (parent directories included), so `contextTimeInfoEntries`
+    // reflects directory-level changes such as a child being added or removed.
+    for (associated_path, _) in &associated_event {
+      self.path_manager.touch_dir_if_registered(associated_path);
+    }
     self.trigger_events(associated_event);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.

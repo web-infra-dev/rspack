@@ -36,6 +36,26 @@ const toJsWatcherIgnored = (
   return undefined;
 };
 
+/**
+ * Convert the native `{ safeTime, timestamp }` snapshot into the
+ * `Map<string, FileSystemInfoEntry>` webpack expects. The native layer leaves
+ * `timestamp` absent for directory (context) entries; normalize null to
+ * undefined so the value matches `FileSystemInfoEntry`.
+ */
+const toTimeInfoMap = (
+  entries: Record<string, { safeTime: number; timestamp?: number | null }>,
+): Map<string, FileSystemInfoEntry> => {
+  const map = new Map<string, FileSystemInfoEntry>();
+  for (const path in entries) {
+    const entry = entries[path];
+    map.set(path, {
+      safeTime: entry.safeTime,
+      timestamp: entry.timestamp ?? undefined,
+    });
+  }
+  return map;
+};
+
 export default class NativeWatchFileSystem implements WatchFileSystem {
   #inner: binding.NativeWatcher | undefined;
   #isFirstWatch = true;
@@ -120,11 +140,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
             fs.purge?.(item);
           }
         }
-        // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
+        const timeInfo = nativeWatcher.getTimeInfo();
         callback(
           err,
-          new Map(),
-          new Map(),
+          toTimeInfoMap(timeInfo.fileTimeInfoEntries),
+          toTimeInfoMap(timeInfo.contextTimeInfoEntries),
           new Set(changedFiles),
           new Set(removedFiles),
         );
@@ -155,13 +175,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       getInfo() {
-        // This is a placeholder implementation.
-        // TODO: The actual implementation should return the current state of the watcher.
+        // changes/removals are only known at aggregate time (via the callback);
+        // on this non-event-driven query path we surface the full time tables
+        // (what compiler.fileTimestamps/contextTimestamps need) and leave the
+        // change/removal sets empty.
+        const timeInfo = nativeWatcher.getTimeInfo();
         return {
-          changes: new Set(),
-          removals: new Set(),
-          fileTimeInfoEntries: new Map(),
-          contextTimeInfoEntries: new Map(),
+          changes: new Set<string>(),
+          removals: new Set<string>(),
+          fileTimeInfoEntries: toTimeInfoMap(timeInfo.fileTimeInfoEntries),
+          contextTimeInfoEntries: toTimeInfoMap(
+            timeInfo.contextTimeInfoEntries,
+          ),
         };
       },
     };

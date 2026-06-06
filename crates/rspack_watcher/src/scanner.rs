@@ -35,9 +35,15 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let _tx = tx.clone();
+      let pm = self.path_manager.clone();
       tokio::spawn(async move {
         _ = scan_path_missing(&files, &missing, &_tx);
-        _ = scan_path_changed(&files, &start_time, &_tx);
+        _ = scan_path_events(
+          &files,
+          |p| pm.file_changed_since(p, start_time),
+          FsEventKind::Change,
+          &_tx,
+        );
       });
 
       let directories = accessor
@@ -47,10 +53,36 @@ impl Scanner {
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
-      let _tx = self.tx.clone();
+      let _tx = tx.clone();
+      let pm = self.path_manager.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&directories, &missing, &tx);
-        _ = scan_path_changed(&directories, &start_time, &tx);
+        _ = scan_path_missing(&directories, &missing, &_tx);
+        _ = scan_path_events(
+          &directories,
+          |p| pm.dir_changed_since(p, start_time),
+          FsEventKind::Change,
+          &_tx,
+        );
+      });
+
+      // Backfill registered-missing dependencies that were created in the gap
+      // before this `watch()` registration — a `Create` whose disk mtime
+      // (padded by `accuracy`) lands at or after `start_time`. Absorbs
+      // for_rstest B4 over `missing.added`.
+      let missing_added = accessor
+        .missing()
+        .1
+        .iter()
+        .map(|p| p.deref().clone())
+        .collect::<Vec<_>>();
+      let pm = self.path_manager.clone();
+      tokio::spawn(async move {
+        _ = scan_path_events(
+          &missing_added,
+          |p| pm.missing_created_since(p, start_time),
+          FsEventKind::Create,
+          &tx,
+        );
       });
     }
   }
@@ -81,36 +113,23 @@ fn scan_path_missing(
   tx.send(remove_event).is_ok()
 }
 
-fn scan_path_changed(
+fn scan_path_events(
   paths: &[ArcPath],
-  start_time: &SystemTime,
+  selected: impl Fn(&ArcPath) -> bool,
+  kind: FsEventKind,
   tx: &UnboundedSender<EventBatch>,
 ) -> bool {
-  let changed_event = paths
+  let events = paths
     .iter()
-    .filter(|path| check_path_metadata(path, start_time))
+    .filter(|path| selected(path))
     .cloned()
-    .map(|path| FsEvent {
-      path,
-      kind: FsEventKind::Change,
-    })
+    .map(|path| FsEvent { path, kind })
     .collect::<Vec<_>>();
 
-  if changed_event.is_empty() {
+  if events.is_empty() {
     return true;
   }
-  tx.send(changed_event).is_ok()
-}
-
-fn check_path_metadata(filepath: &ArcPath, start_time: &SystemTime) -> bool {
-  if let Ok(m_time) = filepath
-    .metadata()
-    .and_then(|metadata| metadata.modified().or_else(|_| metadata.created()))
-  {
-    *start_time < m_time
-  } else {
-    false
-  }
+  tx.send(events).is_ok()
 }
 
 #[cfg(test)]
@@ -167,5 +186,116 @@ mod tests {
       path: ArcPath::from(current_dir.join("___test_dir/a/b/c")),
       kind: FsEventKind::Remove,
     }]));
+  }
+
+  /// The scan must report a file as changed from its watchpack-style
+  /// `safe_time`, not from a fresh disk-mtime read. Both files have a disk
+  /// mtime *older* than `start_time` (so a raw-mtime scan reports neither), yet
+  /// only `changed` recorded a live event after `start_time` — its `safe_time`
+  /// crosses `start_time` and it alone must be reported. This is the
+  /// granularity-safe behavior raw mtime misses.
+  #[tokio::test]
+  async fn scan_reports_change_from_safe_time_not_disk_mtime() {
+    use std::{collections::HashSet, thread::sleep, time::Duration};
+
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let changed = ArcPath::from(dir.path().join("changed.js").as_path());
+    let unchanged = ArcPath::from(dir.path().join("unchanged.js").as_path());
+    std::fs::write(changed.as_ref(), b"a").expect("write changed");
+    std::fs::write(unchanged.as_ref(), b"b").expect("write unchanged");
+
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (
+          vec![changed.clone(), unchanged.clone()].into_iter(),
+          std::iter::empty(),
+        ),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .expect("register files");
+
+    // start_time sits *after* both files were created on disk, so their disk
+    // mtimes are already < start_time.
+    sleep(Duration::from_millis(20));
+    let start_time = SystemTime::now();
+    sleep(Duration::from_millis(20));
+
+    // Only `changed` records a live event after start_time.
+    path_manager.set_event_file_time(&changed, SystemTime::now());
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut scanner = Scanner::new(tx, path_manager.clone());
+    scanner.scan(start_time);
+    scanner.close();
+
+    let mut changed_paths = HashSet::new();
+    while let Some(batch) = rx.recv().await {
+      for ev in batch {
+        if ev.kind == FsEventKind::Change {
+          changed_paths.insert(ev.path);
+        }
+      }
+    }
+
+    assert!(
+      changed_paths.contains(&changed),
+      "file whose safe_time >= start_time must be reported changed",
+    );
+    assert!(
+      !changed_paths.contains(&unchanged),
+      "file with no post-start activity must not be reported changed",
+    );
+  }
+
+  /// A missing dependency created in the gap after `start_time` must be
+  /// backfilled (absorbs for_rstest B4 over `missing.added`); one that never
+  /// appears must not be reported.
+  #[tokio::test]
+  async fn scan_backfills_missing_path_created_after_start() {
+    use std::{collections::HashSet, thread::sleep, time::Duration};
+
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let created = ArcPath::from(dir.path().join("created.js").as_path());
+    let still_missing = ArcPath::from(dir.path().join("still_missing.js").as_path());
+
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        (
+          vec![created.clone(), still_missing.clone()].into_iter(),
+          std::iter::empty(),
+        ),
+      )
+      .expect("register missing deps");
+
+    let start_time = SystemTime::now();
+    sleep(Duration::from_millis(20));
+    // The missing dependency is created after start_time.
+    std::fs::write(created.as_ref(), b"new").expect("create file");
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut scanner = Scanner::new(tx, path_manager.clone());
+    scanner.scan(start_time);
+    scanner.close();
+
+    let mut event_paths = HashSet::new();
+    while let Some(batch) = rx.recv().await {
+      for ev in batch {
+        event_paths.insert(ev.path);
+      }
+    }
+
+    assert!(
+      event_paths.contains(&created),
+      "a missing dependency created after start_time must be backfilled",
+    );
+    assert!(
+      !event_paths.contains(&still_missing),
+      "a dependency that never appears must not be reported",
+    );
   }
 }
