@@ -52,6 +52,7 @@ impl JsPathData {
       runtime: self.runtime.as_deref(),
       url: self.url.as_deref(),
       id: self.id.as_deref(),
+      real_content_hash: false,
     }
   }
 }
