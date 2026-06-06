@@ -142,6 +142,7 @@ impl Task<TaskContext> for BuildResultTask {
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
+    let mut module_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
@@ -155,6 +156,11 @@ impl Task<TaskContext> for BuildResultTask {
           module.add_dependency_id(dependency_id);
         }
         all_dependencies.push(dependency_id);
+        if dependency.as_module_dependency().is_some()
+          || dependency.as_context_dependency().is_some()
+        {
+          module_dependencies.push(dependency_id);
+        }
         module_graph.set_parents(
           dependency_id,
           DependencyParents {
@@ -183,6 +189,21 @@ impl Task<TaskContext> for BuildResultTask {
     {
       let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
       mgm.all_dependencies_mut().clone_from(&all_dependencies);
+      mgm
+        .module_dependencies_mut()
+        .clone_from(&module_dependencies);
+      mgm.set_code_generation_dependencies(
+        module
+          .get_code_generation_dependencies()
+          .map(|deps| deps.to_vec())
+          .unwrap_or_default(),
+      );
+      mgm.set_presentational_dependencies(
+        module
+          .get_presentational_dependencies()
+          .map(|deps| deps.to_vec())
+          .unwrap_or_default(),
+      );
     }
 
     let module_identifier = module.identifier();
@@ -195,7 +216,7 @@ impl Task<TaskContext> for BuildResultTask {
       let lazy_dependency_ids = lazy_dependencies
         .all_lazy_dependencies()
         .collect::<FxHashSet<_>>();
-      all_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
+      module_dependencies.retain(|dep| !lazy_dependency_ids.contains(dep));
 
       if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
         .artifact
@@ -213,13 +234,13 @@ impl Task<TaskContext> for BuildResultTask {
         tasks.push(Box::new(task));
       }
 
-      all_dependencies
+      module_dependencies
     } else {
       context
         .artifact
         .module_to_lazy_make
         .update_module_lazy_dependencies(module_identifier, None);
-      all_dependencies
+      module_dependencies
     };
 
     tasks.push(Box::new(ProcessDependenciesTask {

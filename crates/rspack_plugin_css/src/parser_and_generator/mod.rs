@@ -296,7 +296,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
           }
         });
 
-        if let Some(dependencies) = module.get_presentational_dependencies() {
+        if let Some(dependencies) = module_graph
+          .get_presentational_dependencies(&module.identifier())
+          .or_else(|| module.get_presentational_dependencies())
+        {
           dependencies.iter().for_each(|dependency| {
             if let Some(template) = dependency
               .dependency_template()

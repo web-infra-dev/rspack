@@ -23,8 +23,8 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
-  ModuleIdentifier,
+  BoxDependency, BoxDependencyTemplate, BoxModule, BoxModuleDependency, DependencyCondition,
+  DependencyId, ExportsInfoArtifact, ModuleIdentifier,
 };
 
 // TODO Here request can be used Atom
@@ -327,6 +327,7 @@ impl ModuleGraph {
       mgm.remove_outgoing_connection(dep_id);
       if force {
         mgm.all_dependencies_mut().retain(|id| id != dep_id);
+        mgm.module_dependencies_mut().retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
@@ -614,6 +615,36 @@ impl ModuleGraph {
     self.inner.dependencies.iter()
   }
 
+  pub fn get_module_dependencies(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&[DependencyId]> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.module_dependencies())
+      .filter(|deps| !deps.is_empty())
+  }
+
+  pub fn get_code_generation_dependencies(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&[BoxModuleDependency]> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.code_generation_dependencies())
+      .filter(|deps| !deps.is_empty())
+  }
+
+  pub fn get_presentational_dependencies(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<&[BoxDependencyTemplate]> {
+    self
+      .module_graph_module_by_identifier(module_identifier)
+      .map(|mgm| mgm.presentational_dependencies())
+      .filter(|deps| !deps.is_empty())
+  }
+
   pub fn add_dependency(&mut self, dependency: BoxDependency) {
     self.inner.dependencies.insert(*dependency.id(), dependency);
   }
@@ -797,7 +828,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies()
+        m.module_dependencies()
           .iter()
           .filter_map(|dep_id| self.connection_by_dependency_id(dep_id))
       })
@@ -812,7 +843,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies()
+        m.module_dependencies()
           .iter()
           .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
       })

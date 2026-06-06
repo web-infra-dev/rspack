@@ -116,12 +116,12 @@ impl BuildModuleGraphArtifact {
       .remove_files(&resource_id, &build_info.build_dependencies);
     self.make_failed_module.remove(module_identifier);
 
-    // clean incoming & all_dependencies(outgoing) factorize info
+    // clean incoming & module_dependencies(outgoing) factorize info
     let mgm = mg
       .module_graph_module_by_identifier(module_identifier)
       .expect("should have mgm");
     let dep_ids = mgm
-      .all_dependencies()
+      .module_dependencies()
       .iter()
       .copied()
       .chain(mgm.incoming_connections().clone())

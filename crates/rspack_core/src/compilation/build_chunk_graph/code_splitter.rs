@@ -2349,21 +2349,17 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     self.prepared_connection_map = all_modules
       .par_iter()
       .map(|module| {
-        let all_dependencies = mg
+        let module_dependencies = mg
           .module_graph_module_by_identifier(module)
-          .map(|mgm| mgm.all_dependencies())
+          .map(|mgm| mgm.module_dependencies())
           .unwrap_or_default();
-        let dependency_count = all_dependencies.len();
+        let dependency_count = module_dependencies.len();
 
         let mut ordered_deps = Vec::new();
         let mut unordered_deps = Vec::with_capacity(dependency_count);
-        for dep_id in all_dependencies {
+        for dep_id in module_dependencies {
           let dep = mg.dependency_by_id(dep_id);
-          let module_dep = dep.as_module_dependency();
-          if module_dep.is_none() && dep.as_context_dependency().is_none() {
-            continue;
-          }
-          if matches!(module_dep.map(|d| d.weak()), Some(true)) {
+          if matches!(dep.as_module_dependency().map(|d| d.weak()), Some(true)) {
             continue;
           }
           let Some(connection) = mg.connection_by_dependency_id(dep_id) else {

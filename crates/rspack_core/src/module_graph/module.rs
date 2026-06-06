@@ -3,7 +3,9 @@ use std::fmt;
 use rspack_cacheable::{cacheable, with::Skip};
 use rustc_hash::FxHashSet;
 
-use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
+use crate::{
+  BoxDependencyTemplate, BoxModuleDependency, DependencyId, ModuleIdentifier, ModuleIssuer,
+};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -50,6 +52,14 @@ pub struct ModuleGraphModule {
   // an quick way to get a module's all dependencies (including its blocks' dependencies)
   // and it is ordered by dependency creation order
   all_dependencies: Vec<DependencyId>,
+  // dependency ids that participate in module graph edges / factorization.
+  // Kept separately from presentational/code-generation-only dependencies to avoid
+  // repeatedly downcasting every dependency in graph traversals.
+  module_dependencies: Vec<DependencyId>,
+  #[cacheable(with=Skip)]
+  presentational_dependencies: Vec<BoxDependencyTemplate>,
+  #[cacheable(with=Skip)]
+  code_generation_dependencies: Vec<BoxModuleDependency>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
@@ -65,6 +75,9 @@ impl ModuleGraphModule {
       // exec_order: usize::MAX,
       module_identifier,
       all_dependencies: Default::default(),
+      module_dependencies: Default::default(),
+      presentational_dependencies: Default::default(),
+      code_generation_dependencies: Default::default(),
       pre_order_index: None,
       post_order_index: None,
       depth: None,
@@ -102,6 +115,30 @@ impl ModuleGraphModule {
 
   pub(crate) fn all_dependencies_mut(&mut self) -> &mut Vec<DependencyId> {
     &mut self.all_dependencies
+  }
+
+  pub fn module_dependencies(&self) -> &[DependencyId] {
+    &self.module_dependencies
+  }
+
+  pub(crate) fn module_dependencies_mut(&mut self) -> &mut Vec<DependencyId> {
+    &mut self.module_dependencies
+  }
+
+  pub fn presentational_dependencies(&self) -> &[BoxDependencyTemplate] {
+    &self.presentational_dependencies
+  }
+
+  pub fn set_presentational_dependencies(&mut self, deps: Vec<BoxDependencyTemplate>) {
+    self.presentational_dependencies = deps;
+  }
+
+  pub fn code_generation_dependencies(&self) -> &[BoxModuleDependency] {
+    &self.code_generation_dependencies
+  }
+
+  pub fn set_code_generation_dependencies(&mut self, deps: Vec<BoxModuleDependency>) {
+    self.code_generation_dependencies = deps;
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {

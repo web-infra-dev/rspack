@@ -734,7 +734,13 @@ pub fn module_update_hash(
   chunk_graph
     .get_module_graph_hash(module, compilation, runtime)
     .dyn_hash(hasher);
-  if let Some(deps) = module.get_presentational_dependencies() {
+  let module_graph = compilation.get_module_graph();
+  if let Some(deps) = module_graph.get_presentational_dependencies(&module.identifier()) {
+    for dep in deps {
+      dep.update_hash(hasher, compilation, runtime);
+    }
+  } else if let Some(deps) = module.get_presentational_dependencies() {
+    // Fallback for modules constructed outside the make module graph path.
     for dep in deps {
       dep.update_hash(hasher, compilation, runtime);
     }

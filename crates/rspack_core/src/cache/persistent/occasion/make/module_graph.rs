@@ -140,7 +140,7 @@ pub async fn recovery_module_graph(
     })
     .with_max_len(1)
     .consume(|node| {
-      let mgm = node.mgm.into_owned();
+      let mut mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
       for (index_in_block, (dep, parent_block)) in node.dependencies.into_iter().enumerate() {
         let dep = dep.into_owned();
@@ -167,6 +167,18 @@ pub async fn recovery_module_graph(
         module_to_lazy_make
           .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
       }
+      mgm.set_code_generation_dependencies(
+        module
+          .get_code_generation_dependencies()
+          .map(|deps| deps.to_vec())
+          .unwrap_or_default(),
+      );
+      mgm.set_presentational_dependencies(
+        module
+          .get_presentational_dependencies()
+          .map(|deps| deps.to_vec())
+          .unwrap_or_default(),
+      );
       mg.add_module_graph_module(mgm);
       mg.add_module(module);
     });

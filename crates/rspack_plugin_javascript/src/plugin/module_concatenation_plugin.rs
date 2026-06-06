@@ -1376,11 +1376,13 @@ async fn create_concatenated_module(
       .map(|id| id.to_string()),
     layer: root_module.get_layer().cloned(),
     resolve_options: root_module.get_resolve_options(),
-    code_generation_dependencies: root_module
-      .get_code_generation_dependencies()
+    code_generation_dependencies: module_graph
+      .get_code_generation_dependencies(&root_module_id)
+      .or_else(|| root_module.get_code_generation_dependencies())
       .map(|deps| deps.to_vec()),
-    presentational_dependencies: root_module
-      .get_presentational_dependencies()
+    presentational_dependencies: module_graph
+      .get_presentational_dependencies(&root_module_id)
+      .or_else(|| root_module.get_presentational_dependencies())
       .map(|deps| deps.to_vec()),
     context: Some(compilation.options.context.clone()),
     side_effect_connection_state: root_module.get_side_effects_connection_state(
@@ -1551,7 +1553,19 @@ fn add_concatenated_module(
   let mut chunk_graph = std::mem::take(&mut compilation.build_chunk_graph_artifact.chunk_graph);
   let module_graph = compilation.get_module_graph_mut();
 
-  let module_graph_module = ModuleGraphModule::new(new_module.identifier());
+  let mut module_graph_module = ModuleGraphModule::new(new_module.identifier());
+  module_graph_module.set_code_generation_dependencies(
+    new_module
+      .get_code_generation_dependencies()
+      .map(|deps| deps.to_vec())
+      .unwrap_or_default(),
+  );
+  module_graph_module.set_presentational_dependencies(
+    new_module
+      .get_presentational_dependencies()
+      .map(|deps| deps.to_vec())
+      .unwrap_or_default(),
+  );
   module_graph.add_module_graph_module(module_graph_module);
   ModuleGraph::clone_module_attributes(compilation, &root_module_id, &new_module.identifier());
   // integrate

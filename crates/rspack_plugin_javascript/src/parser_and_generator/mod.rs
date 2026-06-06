@@ -374,7 +374,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         self.source_dependency(compilation, dependency_id, &mut source, &mut context)
       });
 
-      if let Some(dependencies) = module.get_presentational_dependencies() {
+      if let Some(dependencies) = compilation
+        .get_module_graph()
+        .get_presentational_dependencies(&module.identifier())
+        .or_else(|| module.get_presentational_dependencies())
+      {
         dependencies.iter().for_each(|dependency| {
           if let Some(template) = dependency
             .dependency_template()
@@ -415,7 +419,10 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       return Some("Module is not an ECMAScript module".into());
     }
 
-    if let Some(deps) = module.get_presentational_dependencies() {
+    if let Some(deps) = _mg
+      .get_presentational_dependencies(&module.identifier())
+      .or_else(|| module.get_presentational_dependencies())
+    {
       if !deps.iter().any(|dep| {
         // https://github.com/webpack/webpack/blob/b9fb99c63ca433b24233e0bbc9ce336b47872c08/lib/javascript/JavascriptGenerator.js#L65-L74
         dep

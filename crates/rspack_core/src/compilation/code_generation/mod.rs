@@ -94,10 +94,13 @@ pub async fn code_generation(compilation: &mut Compilation, modules: IdentifierS
   let mut no_codegen_dependencies_modules = IdentifierSet::default();
   let mut has_codegen_dependencies_modules = IdentifierSet::default();
   for module_identifier in modules {
-    let module = module_graph
+    module_graph
       .module_by_identifier(&module_identifier)
       .expect("should have module");
-    if module.get_code_generation_dependencies().is_none() {
+    if module_graph
+      .get_code_generation_dependencies(&module_identifier)
+      .is_none()
+    {
       no_codegen_dependencies_modules.insert(module_identifier);
     } else {
       has_codegen_dependencies_modules.insert(module_identifier);
