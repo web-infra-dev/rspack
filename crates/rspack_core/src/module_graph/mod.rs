@@ -112,7 +112,7 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
@@ -610,7 +610,7 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
     self.inner.dependencies.iter()
   }
 
