@@ -835,6 +835,9 @@ impl JavascriptParser<'_> {
     {
       return Some(true);
     }
+    if expr.op != AssignOp::Assign {
+      return None;
+    }
     if let Some(rhs) = expr.right.as_ident()
       && self.has_create_require_tag(&rhs.sym, false)
       && let Some(variable) = self.get_variable_info(&rhs.sym).map(|info| info.id())
@@ -1708,7 +1711,8 @@ impl JavascriptParser<'_> {
       {
         return;
       }
-      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+      if expr.op == AssignOp::Assign
+        && let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()

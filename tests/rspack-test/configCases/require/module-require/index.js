@@ -353,6 +353,9 @@ it("should preserve createRequire results used as values", () => {
 	expect(assignedAliasRequire("./assigned-alias-only")).toBe(
 		"__rspackAssignedAliasCreatedRequire"
 	);
+	let compoundAliasRequire = request => request;
+	compoundAliasRequire += assignedRequire;
+	expect(() => compoundAliasRequire("./a")).toThrow();
 	let assignedCallCreateRequireAlias;
 	assignedCallCreateRequireAlias = _createRequire;
 	const copiedAssignedCallCreateRequireAlias = assignedCallCreateRequireAlias;
