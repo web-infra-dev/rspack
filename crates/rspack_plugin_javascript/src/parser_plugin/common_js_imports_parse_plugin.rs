@@ -48,6 +48,7 @@ pub struct CreatedRequireTagData {
 struct CreateRequireArgument {
   value: String,
   context: Context,
+  replace_argument: bool,
 }
 
 #[derive(Debug, Default)]
@@ -342,15 +343,6 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
-  if let Some(new_expr) = arg.as_new()
-    && let Some(ident) = new_expr.callee.as_ident()
-    && ident.sym.as_str() == "URL"
-    && parser.get_variable_info(&Atom::from("URL")).is_none()
-    && !ignored_url_args_are_side_effect_free(parser, new_expr)
-  {
-    return None;
-  }
-
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
@@ -362,19 +354,13 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   {
     return None;
   }
-  if !ignored_url_args_are_side_effect_free(parser, new_expr) {
-    return None;
-  }
   if let Some(args) = &new_expr.args
     && !args.is_empty()
     && args[0].spread.is_none()
-    && ignored_url_args_are_side_effect_free_from(parser, args, 1)
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
+    && value.starts_with("file:/")
   {
-    return value
-      .starts_with("file:/")
-      .then(|| file_url_to_path(Url::parse(&value).ok()?.as_str()))
-      .flatten();
+    return file_url_to_path(Url::parse(&value).ok()?.as_str());
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("//") {
@@ -497,7 +483,48 @@ fn parse_create_require_argument(
   Some(CreateRequireArgument {
     value,
     context: context?,
+    replace_argument: should_replace_create_require_argument(parser, arg),
   })
+}
+
+#[inline(never)]
+fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> bool {
+  let Some(new_expr) = arg.as_new() else {
+    return true;
+  };
+  if new_expr
+    .callee
+    .as_ident()
+    .is_some_and(|ident| ident.sym.as_str() == "URL")
+    && parser.get_variable_info(&Atom::from("URL")).is_none()
+  {
+    ignored_url_args_are_side_effect_free(parser, new_expr)
+  } else {
+    true
+  }
+}
+
+#[inline(never)]
+fn is_absolute_file_url_constructor_arg(parser: &mut JavascriptParser, arg: &Expr) -> bool {
+  let Some(new_expr) = arg.as_new() else {
+    return false;
+  };
+  if new_expr
+    .callee
+    .as_ident()
+    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    || parser.get_variable_info(&Atom::from("URL")).is_some()
+  {
+    return false;
+  };
+  let Some(args) = &new_expr.args else {
+    return false;
+  };
+  args
+    .first()
+    .filter(|arg| arg.spread.is_none())
+    .and_then(|arg| parser.evaluate_expression(&arg.expr).as_string())
+    .is_some_and(|value| value.starts_with("file:/"))
 }
 
 #[inline(never)]
@@ -510,6 +537,27 @@ fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExp
 fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   if call_expr.args.len() > 1 {
     parser.walk_expr_or_spread(&call_expr.args[1..]);
+  }
+}
+
+#[inline(never)]
+fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg: &Expr) {
+  let Some(new_expr) = arg.as_new() else {
+    return;
+  };
+  if new_expr
+    .callee
+    .as_ident()
+    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    || parser.get_variable_info(&Atom::from("URL")).is_some()
+  {
+    return;
+  };
+  let Some(args) = &new_expr.args else {
+    return;
+  };
+  if args.len() > 1 {
+    parser.walk_expr_or_spread(&args[1..]);
   }
 }
 
@@ -545,17 +593,25 @@ fn tag_created_require_declarator(
   binding: &Ident,
   argument: CreateRequireArgument,
 ) {
-  let CreateRequireArgument { value, context } = argument;
+  let CreateRequireArgument {
+    value,
+    context,
+    replace_argument,
+  } = argument;
   parser.define_variable(binding.sym.clone());
   parser.tag_variable(
     binding.sym.clone(),
     CREATED_REQUIRE_IDENTIFIER_TAG,
     Some(CreatedRequireTagData { context }),
   );
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    call.args[0].expr.span().into(),
-    json_stringify_str(&value).into(),
-  )));
+  if replace_argument {
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      call.args[0].expr.span().into(),
+      json_stringify_str(&value).into(),
+    )));
+  } else {
+    walk_create_require_argument_side_effects(parser, &call.args[0].expr);
+  }
   walk_create_require_callee(parser, call);
   walk_create_require_ignored_args(parser, call);
 }
@@ -1619,12 +1675,19 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if !ignored_url_args_are_side_effect_free_from(parser, &expr.args, 1) {
       return None;
     }
-    let context = parse_create_require_argument(parser, expr, false)?.context;
+    let argument = parse_create_require_argument(parser, expr, false)?;
+    if !argument.replace_argument
+      && !is_absolute_file_url_constructor_arg(parser, &expr.args[0].expr)
+    {
+      return None;
+    }
     let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,
-      Some(CreatedRequireTagData { context }),
+      Some(CreatedRequireTagData {
+        context: argument.context,
+      }),
     );
     let mut evaluated =
       BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
@@ -1676,10 +1739,14 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
     } else if should_handle_create_require_specifier(parser, for_name) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          call_expr.args[0].expr.span().into(),
-          json_stringify_str(&argument.value).into(),
-        )));
+        if argument.replace_argument {
+          parser.add_presentational_dependency(Box::new(ConstDependency::new(
+            call_expr.args[0].expr.span().into(),
+            json_stringify_str(&argument.value).into(),
+          )));
+        } else {
+          walk_create_require_argument_side_effects(parser, &call_expr.args[0].expr);
+        }
         walk_create_require_callee(parser, call_expr);
         walk_create_require_ignored_args(parser, call_expr);
         Some(true)
