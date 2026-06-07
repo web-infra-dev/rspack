@@ -501,13 +501,6 @@ fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExp
   }
 }
 
-#[inline(never)]
-fn walk_create_require_call_side_effects(parser: &mut JavascriptParser, call_expr: &CallExpr) {
-  walk_create_require_callee(parser, call_expr);
-  walk_create_require_ignored_args(parser, call_expr);
-}
-
-#[inline(never)]
 fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   if call_expr.args.len() > 1 {
     parser.walk_expr_or_spread(&call_expr.args[1..]);
@@ -557,7 +550,8 @@ fn tag_created_require_declarator(
     call.args[0].expr.span().into(),
     json_stringify_str(&value).into(),
   )));
-  walk_create_require_call_side_effects(parser, call);
+  walk_create_require_callee(parser, call);
+  walk_create_require_ignored_args(parser, call);
 }
 
 fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
@@ -1415,11 +1409,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      let ids = get_non_optional_part(members, members_optionals);
-      let is_require_cache_access = members
+      if members
         .first()
-        .is_some_and(|member| member.as_ref() == "cache");
-      if ids.len() != members.len() && !is_require_cache_access {
+        .is_none_or(|member| member.as_ref() != "cache")
+        && get_non_optional_part(members, members_optionals).len() != members.len()
+      {
         return None;
       }
       handle_created_require_member(
@@ -1677,7 +1671,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           call_expr.args[0].expr.span().into(),
           json_stringify_str(&argument.value).into(),
         )));
-        walk_create_require_call_side_effects(parser, call_expr);
+        walk_create_require_callee(parser, call_expr);
+        walk_create_require_ignored_args(parser, call_expr);
         Some(true)
       } else {
         None
