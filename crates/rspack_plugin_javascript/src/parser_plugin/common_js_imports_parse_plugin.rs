@@ -393,18 +393,6 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
 
 #[cold]
 #[inline(never)]
-fn ignored_url_args_are_side_effect_free(
-  parser: &mut JavascriptParser,
-  new_expr: &NewExpr,
-) -> bool {
-  let Some(args) = &new_expr.args else {
-    return true;
-  };
-  ignored_url_args_are_side_effect_free_from(parser, args, 2)
-}
-
-#[cold]
-#[inline(never)]
 fn ignored_url_args_are_side_effect_free_from(
   parser: &mut JavascriptParser,
   args: &[ExprOrSpread],
@@ -498,7 +486,15 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
     .is_some_and(|ident| ident.sym.as_str() == "URL")
     && parser.get_variable_info(&Atom::from("URL")).is_none()
   {
-    ignored_url_args_are_side_effect_free(parser, new_expr)
+    let start = if is_absolute_file_url_constructor_arg(parser, arg) {
+      1
+    } else {
+      2
+    };
+    let Some(args) = &new_expr.args else {
+      return true;
+    };
+    ignored_url_args_are_side_effect_free_from(parser, args, start)
   } else {
     true
   }

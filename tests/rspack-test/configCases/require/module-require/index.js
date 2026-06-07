@@ -130,6 +130,18 @@ it("should provide dependency context", () => {
 		"__rspackIgnoredExtraCreateRequire"
 	);
 	expect(ignoredUrlExtraEffects).toEqual(["url-extra"]);
+	if (process.platform !== "win32") {
+		const ignoredAbsoluteUrlBaseEffects = [];
+		const absoluteUrlBaseRequire = _createRequire(
+			new URL(
+				"file:///tmp/rspack-create-require.js",
+				(ignoredAbsoluteUrlBaseEffects.push("absolute-url-base"),
+				"file:///tmp/base.js")
+			)
+		);
+		expect(typeof absoluteUrlBaseRequire).toBe("function");
+		expect(ignoredAbsoluteUrlBaseEffects).toEqual(["absolute-url-base"]);
+	}
 	const nodeRequire = nodeCreateRequire(new URL("./foo/c.js", import.meta.url));
 	expect(nodeRequire("./a")).toBe(4);
 });
