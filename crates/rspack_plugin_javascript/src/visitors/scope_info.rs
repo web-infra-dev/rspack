@@ -67,16 +67,26 @@ impl ScopeInfoDB {
   }
 
   fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
-    let is_strict = match parent {
-      Some(parent) => self.expect_get_scope(parent).is_strict,
-      None => false,
+    let (is_strict, flattened_map) = match parent {
+      Some(parent) => {
+        let parent_scope = self.expect_get_scope(parent);
+        (parent_scope.is_strict, parent_scope.flattened_map.clone())
+      }
+      None => (false, Default::default()),
     };
     let info = ScopeInfo {
       is_strict,
       parent,
-      map: Default::default(),
+      flattened_map,
+      children: Default::default(),
+      local_overrides: Default::default(),
+      declared_variables: Default::default(),
     };
-    self.map.insert(info)
+    let id = self.map.insert(info);
+    if let Some(parent) = parent {
+      self.expect_get_mut_scope(parent).children.push(id);
+    }
+    id
   }
 
   pub fn create(&mut self) -> ScopeInfoId {
@@ -125,48 +135,65 @@ impl ScopeInfoDB {
       .unwrap_or_else(|| panic!("{id:#?} should exist"))
   }
 
-  pub fn get(&mut self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
-    let definitions = self.expect_get_scope(id);
-    if let Some(&top_value) = definitions.map.get(key) {
-      if top_value == VariableInfoId::tombstone() || top_value == VariableInfoId::undefined() {
-        None
-      } else {
-        Some(top_value)
-      }
-    } else if let Some(parent) = definitions.parent {
-      let mut current = Some(parent);
-      while let Some(current_id) = current {
-        let scope = self.expect_get_scope(current_id);
-        if let Some(&value) = scope.map.get(key) {
-          if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
-            return None;
-          } else {
-            return Some(value);
-          }
-        }
-        current = scope.parent;
-      }
-      let definitions = self.expect_get_mut_scope(id);
-      definitions
-        .map
-        .insert(key.clone(), VariableInfoId::tombstone());
+  pub fn get(&self, id: ScopeInfoId, key: &Atom) -> Option<VariableInfoId> {
+    let value = self.expect_get_scope(id).flattened_map.get(key).copied()?;
+    if value == VariableInfoId::tombstone() || value == VariableInfoId::undefined() {
       None
     } else {
-      None
+      Some(value)
     }
   }
 
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
     let scope = self.expect_get_mut_scope(id);
-    scope.map.insert(key, variable_info_id);
+    let propagate_key = key.clone();
+    scope.flattened_map.insert(key.clone(), variable_info_id);
+    scope.local_overrides.insert(key.clone(), variable_info_id);
+    scope.declared_variables.insert(key, variable_info_id);
+    self.propagate_to_children(id, &propagate_key, Some(variable_info_id));
   }
 
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     let scope = self.expect_get_mut_scope(id);
+    scope.declared_variables.remove(key);
     if scope.parent.is_some() {
-      scope.map.insert(key.clone(), VariableInfoId::tombstone());
+      scope
+        .flattened_map
+        .insert(key.clone(), VariableInfoId::tombstone());
+      scope
+        .local_overrides
+        .insert(key.clone(), VariableInfoId::tombstone());
+      self.propagate_to_children(id, key, Some(VariableInfoId::tombstone()));
     } else {
-      scope.map.remove(key);
+      scope.flattened_map.remove(key);
+      scope.local_overrides.remove(key);
+      self.propagate_to_children(id, key, None);
+    }
+  }
+
+  fn propagate_to_children(
+    &mut self,
+    id: ScopeInfoId,
+    key: &Atom,
+    variable_info_id: Option<VariableInfoId>,
+  ) {
+    let children = self.expect_get_scope(id).children.clone();
+    for child in children {
+      let child_scope = self.expect_get_mut_scope(child);
+      if child_scope.local_overrides.contains_key(key) {
+        continue;
+      }
+      match variable_info_id {
+        Some(variable_info_id) => {
+          child_scope
+            .flattened_map
+            .insert(key.clone(), variable_info_id);
+        }
+        None => {
+          child_scope.flattened_map.remove(key);
+        }
+      }
+      self.propagate_to_children(child, key, variable_info_id);
     }
   }
 }
@@ -300,16 +327,104 @@ impl VariableInfo {
 #[derive(Debug)]
 pub struct ScopeInfo {
   parent: Option<ScopeInfoId>,
-  map: FxHashMap<Atom, VariableInfoId>,
+  flattened_map: FxHashMap<Atom, VariableInfoId>,
+  children: Vec<ScopeInfoId>,
+  local_overrides: FxHashMap<Atom, VariableInfoId>,
+  declared_variables: FxHashMap<Atom, VariableInfoId>,
   pub is_strict: bool,
 }
 
 impl ScopeInfo {
   pub fn variables(&self) -> impl Iterator<Item = (&str, &VariableInfoId)> {
     self
-      .map
+      .declared_variables
       .iter()
       .filter(|&(_, &info_id)| info_id != VariableInfoId::tombstone())
       .map(|(name, info_id)| (name.as_str(), info_id))
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  fn variable(db: &mut ScopeInfoDB, scope: ScopeInfoId) -> VariableInfoId {
+    VariableInfo::create(db, scope, None, VariableInfoFlags::NORMAL, None)
+  }
+
+  #[test]
+  fn child_scope_reads_parent_binding_without_recursive_lookup() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let root_value = variable(&mut db, root);
+    db.set(root, "require".into(), root_value);
+
+    let child = db.create_child(root);
+
+    assert_eq!(db.get(child, &"require".into()), Some(root_value));
+  }
+
+  #[test]
+  fn child_delete_shadows_parent_binding() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let root_value = variable(&mut db, root);
+    let name = Atom::from("require");
+    db.set(root, name.clone(), root_value);
+
+    let child = db.create_child(root);
+    db.delete(child, &name);
+
+    assert_eq!(db.get(child, &name), None);
+    assert_eq!(db.get(root, &name), Some(root_value));
+  }
+
+  #[test]
+  fn parent_mutation_after_child_creation_updates_child_flattened_scope() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let child = db.create_child(root);
+    let grand_child = db.create_child(child);
+    let root_value = variable(&mut db, root);
+    let name = Atom::from("require");
+
+    db.set(root, name.clone(), root_value);
+
+    assert_eq!(db.get(child, &name), Some(root_value));
+    assert_eq!(db.get(grand_child, &name), Some(root_value));
+  }
+
+  #[test]
+  fn child_override_blocks_parent_mutation_propagation() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let child = db.create_child(root);
+    let grand_child = db.create_child(child);
+    let child_value = variable(&mut db, child);
+    let root_value = variable(&mut db, root);
+    let name = Atom::from("require");
+
+    db.set(child, name.clone(), child_value);
+    db.set(root, name.clone(), root_value);
+
+    assert_eq!(db.get(child, &name), Some(child_value));
+    assert_eq!(db.get(grand_child, &name), Some(child_value));
+  }
+
+  #[test]
+  fn variables_only_returns_declarations_from_current_scope() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let root_value = variable(&mut db, root);
+    db.set(root, "parent".into(), root_value);
+
+    let child = db.create_child(root);
+    let child_value = variable(&mut db, child);
+    db.set(child, "child".into(), child_value);
+
+    let scope = db.expect_get_scope(child);
+    let variables = scope.variables().collect::<Vec<_>>();
+
+    assert_eq!(variables, vec![("child", &child_value)]);
   }
 }
