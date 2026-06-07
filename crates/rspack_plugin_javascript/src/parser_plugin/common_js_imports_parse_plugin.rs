@@ -299,6 +299,11 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
     && value.starts_with("file:/")
   {
+    if let Some(base) = args.get(1)
+      && !is_valid_ignored_url_base_arg(parser, base)
+    {
+      return None;
+    }
     return file_url_to_path(&value).map(|(path, _)| path);
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
@@ -427,18 +432,44 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
     .is_some_and(|ident| ident.sym.as_str() == "URL")
     && parser.get_variable_info(&Atom::from("URL")).is_none()
   {
-    let start = if is_absolute_file_url_constructor_arg(parser, arg) {
-      1
-    } else {
-      2
-    };
+    let is_absolute_file_url = is_absolute_file_url_constructor_arg(parser, arg);
+    let start = if is_absolute_file_url { 1 } else { 2 };
     let Some(args) = &new_expr.args else {
       return true;
     };
+    if is_absolute_file_url
+      && let Some(base) = args.get(1)
+      && !is_valid_ignored_url_base_arg(parser, base)
+    {
+      return false;
+    }
     ignored_url_args_are_side_effect_free_from(parser, args, start)
   } else {
     true
   }
+}
+
+#[inline(never)]
+fn is_valid_ignored_url_base_arg(parser: &mut JavascriptParser, base: &ExprOrSpread) -> bool {
+  if base.spread.is_some() {
+    return false;
+  }
+  if let Expr::Ident(ident) = base.expr.as_ref()
+    && ident.sym.as_str() == "undefined"
+    && parser.get_variable_info(&Atom::from("undefined")).is_none()
+  {
+    return true;
+  }
+  if let Expr::Unary(unary) = base.expr.as_ref()
+    && unary.op == UnaryOp::Void
+    && is_side_effect_free_ignored_url_arg(parser, &unary.arg)
+  {
+    return true;
+  }
+  parser
+    .evaluate_expression(&base.expr)
+    .as_string()
+    .is_some_and(|base| Url::parse(&base).is_ok())
 }
 
 #[inline(never)]

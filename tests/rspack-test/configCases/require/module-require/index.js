@@ -212,6 +212,9 @@ it("should preserve createRequire binding for unsupported uses", async () => {
 		_createRequire(new URL("./foo/c.js", import.meta.url, (extraUrlArgEvaluated = true)))("./a");
 	} catch {}
 	expect(extraUrlArgEvaluated).toBe(true);
+	expect(() =>
+		_createRequire(new URL("file:///tmp/rspack-create-require.js", null))("./a")
+	).toThrow();
 	expect(
 		(function () { return require.resolve(..."./b"); }).toString()
 	).toContain("...");
