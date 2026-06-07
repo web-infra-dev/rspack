@@ -1415,11 +1415,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if parser.member_expr_in_optional_chain {
-        return None;
-      }
       let ids = get_non_optional_part(members, members_optionals);
-      if ids.len() != members.len() {
+      let is_require_cache_access = members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache");
+      if ids.len() != members.len() && !is_require_cache_access {
         return None;
       }
       handle_created_require_member(

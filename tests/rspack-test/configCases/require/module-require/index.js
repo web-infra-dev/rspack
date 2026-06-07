@@ -54,6 +54,8 @@ it("should preserve optional created require members", () => {
 	const require = _createRequire(import.meta.url);
 	expect(require?.resolve("./b")).toMatch(/[\\/]b\.js$/);
 	expect(require?.cache).toBe(_createRequire(import.meta.url).cache);
+	const cacheRequire = _createRequire(import.meta.url);
+	expect(cacheRequire?.cache).toBe(_createRequire(import.meta.url).cache);
 	const fooRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(fooRequire?.resolve("./optional-resolve-only")).toMatch(
 		/[\\/]optional-resolve-only\.js$/
