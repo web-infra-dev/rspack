@@ -363,7 +363,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
   {
     return value
-      .starts_with("file:")
+      .starts_with("file:/")
       .then(|| file_url_to_path(Url::parse(&value).ok()?.as_str()))
       .flatten();
   }
@@ -374,12 +374,13 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     value.push_str(&request);
     return Some(value);
   }
-  if request.starts_with("file:") {
+  if request.starts_with("file:/") {
     return file_url_to_path(Url::parse(&request).ok()?.as_str());
   }
-  if request
-    .find([':', '/', '?', '#'])
-    .is_some_and(|idx| request.as_bytes()[idx] == b':')
+  if !request.starts_with("file:")
+    && request
+      .find([':', '/', '?', '#'])
+      .is_some_and(|idx| request.as_bytes()[idx] == b':')
   {
     return None;
   }
