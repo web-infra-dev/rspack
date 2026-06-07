@@ -36,6 +36,12 @@ use crate::{
   },
 };
 
+fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
+  tag == CREATED_REQUIRE_IDENTIFIER_TAG
+    || (include_create_require_fn
+      && (tag == CREATE_REQUIRE_SPECIFIER_TAG || tag == CREATE_REQUIRE_EVALUATED_TAG))
+}
+
 fn warp_ident_to_pat(ident: Ident) -> Pat {
   Pat::Ident(ident.into())
 }
@@ -763,41 +769,21 @@ impl JavascriptParser<'_> {
     }
   }
 
-  #[inline(never)]
-  fn has_created_require_tag(&mut self, name: &Atom) -> bool {
+  fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
     let Some(variable_info) = self.get_variable_info(name) else {
       return false;
     };
-    let mut tag_info_id = variable_info.tag_info;
-    while let Some(id) = tag_info_id {
-      let tag_info = self.definitions_db.expect_get_tag_info(id);
-      if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG {
-        return true;
-      }
-      tag_info_id = tag_info.next;
-    }
-    false
-  }
-
-  #[inline(never)]
-  fn has_create_require_tag(&mut self, name: &Atom) -> bool {
-    let Some(variable_info) = self.get_variable_info(name) else {
-      return false;
-    };
-    if variable_info.name.as_ref().is_some_and(|name| {
-      name == CREATED_REQUIRE_IDENTIFIER_TAG
-        || name == CREATE_REQUIRE_SPECIFIER_TAG
-        || name == CREATE_REQUIRE_EVALUATED_TAG
-    }) {
+    if variable_info
+      .name
+      .as_ref()
+      .is_some_and(|name| is_create_require_tag(name, include_create_require_fn))
+    {
       return true;
     }
     let mut tag_info_id = variable_info.tag_info;
     while let Some(id) = tag_info_id {
       let tag_info = self.definitions_db.expect_get_tag_info(id);
-      if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG
-        || tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
-        || tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG
-      {
+      if is_create_require_tag(tag_info.tag, include_create_require_fn) {
         return true;
       }
       tag_info_id = tag_info.next;
@@ -836,12 +822,12 @@ impl JavascriptParser<'_> {
     ident: &Ident,
   ) -> Option<bool> {
     if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
-      && self.has_create_require_tag(&ident.sym)
+      && self.has_create_require_tag(&ident.sym, true)
     {
       return Some(true);
     }
     if let Some(rhs) = expr.right.as_ident()
-      && self.has_created_require_tag(&rhs.sym)
+      && self.has_create_require_tag(&rhs.sym, false)
       && let Some(variable) = self.get_variable_info(&rhs.sym).map(|info| info.id())
     {
       self.set_variable(

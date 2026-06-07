@@ -1282,6 +1282,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     declarator: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
+    if !parser.javascript_options.is_create_require_enabled() {
+      return None;
+    }
+
     let init = declarator.init.as_ref()?;
     if let Some(init) = init.as_ident()
       && let Some(context) = parser
