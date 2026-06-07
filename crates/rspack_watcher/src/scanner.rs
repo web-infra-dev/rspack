@@ -188,21 +188,34 @@ mod tests {
     }]));
   }
 
-  /// The scan must report a file as changed from its watchpack-style
-  /// `safe_time`, not from a fresh disk-mtime read. Both files have a disk
-  /// mtime *older* than `start_time` (so a raw-mtime scan reports neither), yet
-  /// only `changed` recorded a live event after `start_time` — its `safe_time`
-  /// crosses `start_time` and it alone must be reported. This is the
-  /// granularity-safe behavior raw mtime misses.
+  /// Park a file's mtime in the past so a scan-time stat sees it as unchanged
+  /// regardless of the process-global `FS_ACCURACY`.
+  fn set_mtime_in_past(path: impl AsRef<std::path::Path>, ago: std::time::Duration) {
+    let file = std::fs::File::options()
+      .write(true)
+      .open(path)
+      .expect("open for set_modified");
+    file
+      .set_modified(SystemTime::now() - ago)
+      .expect("set_modified");
+  }
+
+  /// The scan reports a file changed from a live event's `safe_time`, not disk
+  /// mtime alone: both files' mtimes are parked before `start_time`, but only
+  /// `changed` has a live event, so it alone is reported.
   #[tokio::test]
   async fn scan_reports_change_from_safe_time_not_disk_mtime() {
-    use std::{collections::HashSet, thread::sleep, time::Duration};
+    use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
     let changed = ArcPath::from(dir.path().join("changed.js").as_path());
     let unchanged = ArcPath::from(dir.path().join("unchanged.js").as_path());
     std::fs::write(changed.as_ref(), b"a").expect("write changed");
     std::fs::write(unchanged.as_ref(), b"b").expect("write unchanged");
+    // Parked before start_time so a fresh stat reports neither; the live event
+    // is the only discriminator.
+    set_mtime_in_past(changed.as_ref(), Duration::from_secs(3600));
+    set_mtime_in_past(unchanged.as_ref(), Duration::from_secs(3600));
 
     let path_manager = Arc::new(PathManager::default());
     path_manager
@@ -216,13 +229,9 @@ mod tests {
       )
       .expect("register files");
 
-    // start_time sits *after* both files were created on disk, so their disk
-    // mtimes are already < start_time.
-    sleep(Duration::from_millis(20));
     let start_time = SystemTime::now();
-    sleep(Duration::from_millis(20));
 
-    // Only `changed` records a live event after start_time.
+    // Only `changed` records a live event after start_time -> safe_time = now.
     path_manager.set_event_file_time(&changed, SystemTime::now());
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -296,6 +305,54 @@ mod tests {
     assert!(
       !event_paths.contains(&still_missing),
       "a dependency that never appears must not be reported",
+    );
+  }
+
+  /// Regression guard for #14210: a file whose pre-watch seed recorded an older
+  /// mtime but whose disk mtime is now newer than start_time must still be
+  /// reported — the scan must fall back to a fresh stat, not trust the seed.
+  #[tokio::test]
+  async fn scan_uses_fresh_stat_when_seed_predates_change() {
+    use std::{
+      collections::HashSet,
+      time::{Duration, SystemTime},
+    };
+
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let file = ArcPath::from(dir.path().join("late.js").as_path());
+    std::fs::write(file.as_ref(), b"v1").expect("write file");
+
+    let path_manager = Arc::new(PathManager::default());
+    path_manager
+      .update(
+        (std::iter::once(file.clone()), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+      )
+      .expect("register file");
+
+    // Stale seed (older than start_time), but the file is newer on disk and
+    // start_time sits between the two.
+    path_manager.set_initial_file_time(file.clone(), SystemTime::now() - Duration::from_secs(10));
+    let start_time = SystemTime::now() - Duration::from_secs(5);
+
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+    let mut scanner = Scanner::new(tx, path_manager.clone());
+    scanner.scan(start_time);
+    scanner.close();
+
+    let mut changed = HashSet::new();
+    while let Some(batch) = rx.recv().await {
+      for ev in batch {
+        if ev.kind == FsEventKind::Change {
+          changed.insert(ev.path);
+        }
+      }
+    }
+
+    assert!(
+      changed.contains(&file),
+      "a file newer on disk than start_time must be reported from a fresh scan-time stat, not the stale pre-watch seed (#14210 regression)",
     );
   }
 }

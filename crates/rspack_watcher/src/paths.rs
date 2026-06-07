@@ -366,37 +366,39 @@ impl PathManager {
     (files, contexts)
   }
 
-  /// Whether `path`'s recorded file `safe_time` is at or after `start_time`,
-  /// mirroring watchpack's `checkStartTime`. Reads the (accuracy-tightened)
-  /// entry and returns `false` when the path has no recorded entry. This is the
-  /// granularity-safe replacement for a raw `mtime > start_time` scan: the
-  /// `accuracy` padding baked into `safe_time` absorbs the filesystem's mtime
-  /// quantization, and a live event's `safe_time = now` surfaces a change whose
-  /// disk mtime has not advanced past `start_time`.
+  /// Whether `path` changed at or after `start_time` (watchpack's
+  /// `checkStartTime`). The recorded entry is seeded before the watch is active,
+  /// so it can miss a change landing in the startup gap; fall back to a fresh
+  /// stat to keep #14210's "scan reads the current disk mtime" guarantee.
   pub fn file_changed_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
-    Self::entry_changed_since(&self.file_entries, path, system_time_to_millis(start_time))
+    let start_ms = system_time_to_millis(start_time);
+    Self::entry_changed_since(&self.file_entries, path, start_ms)
+      || Self::stat_changed_since(path, start_ms)
   }
 
   /// Directory counterpart of [`Self::file_changed_since`].
   pub fn dir_changed_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
-    Self::entry_changed_since(&self.dir_entries, path, system_time_to_millis(start_time))
+    let start_ms = system_time_to_millis(start_time);
+    Self::entry_changed_since(&self.dir_entries, path, start_ms)
+      || Self::stat_changed_since(path, start_ms)
   }
 
-  /// Whether a registered-missing dependency has been created at or after
-  /// `start_time`. The path carries no recorded entry (it was watched as
-  /// missing), so its `safe_time` is computed fresh from disk via
-  /// [`initial_entry`] — the same granularity-safe padding used for newly
-  /// scanned files. A failed stat means the path is still missing, so it is not
-  /// reported. Backfills a creation that landed in the gap between the
-  /// consumer's `start_time` and the next `watch()` registration.
+  /// Whether a registered-missing dependency has appeared at or after
+  /// `start_time` — judged from a fresh stat, since it has no recorded entry.
   pub fn missing_created_since(&self, path: &ArcPath, start_time: SystemTime) -> bool {
+    Self::stat_changed_since(path, system_time_to_millis(start_time))
+  }
+
+  /// Whether `path`'s current on-disk mtime (accuracy-padded via [`initial_entry`])
+  /// is at or after `start_ms`. A failed stat counts as unchanged.
+  fn stat_changed_since(path: &ArcPath, start_ms: u64) -> bool {
     let Ok(mtime) = path
       .metadata()
       .and_then(|m| m.modified().or_else(|_| m.created()))
     else {
       return false;
     };
-    initial_entry(system_time_to_millis(mtime)).safe_time >= system_time_to_millis(start_time)
+    initial_entry(system_time_to_millis(mtime)).safe_time >= start_ms
   }
 
   fn entry_changed_since(
