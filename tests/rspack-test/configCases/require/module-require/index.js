@@ -274,12 +274,26 @@ it("should stop parsing reassigned created require bindings", () => {
 		new URL("./foo/c.js", import.meta.url)
 	);
 	expect(logicalCreatedRequire("./a")).toBe(4);
+	let logicalCreateRequireWithMissingRhs = _createRequire;
+	logicalCreateRequireWithMissingRhs ||= require("./missing-logical-create-require-alias.js");
+	expect(
+		logicalCreateRequireWithMissingRhs(
+			new URL("./foo/c.js", import.meta.url)
+		)("./a")
+	).toBe(4);
 	let nullishCreateRequire = _createRequire;
 	nullishCreateRequire ??= require("./guarded-unused.js");
 	const nullishCreatedRequire = nullishCreateRequire(
 		new URL("./foo/c.js", import.meta.url)
 	);
 	expect(nullishCreatedRequire("./a")).toBe(4);
+	let nullishCreateRequireWithMissingRhs = _createRequire;
+	nullishCreateRequireWithMissingRhs ??= require("./missing-nullish-create-require-alias.js");
+	expect(
+		nullishCreateRequireWithMissingRhs(
+			new URL("./foo/c.js", import.meta.url)
+		)("./a")
+	).toBe(4);
 
 	let mutableRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	mutableRequire = request => request;
