@@ -443,11 +443,11 @@ fn parse_create_require_argument(
   call_expr: &CallExpr,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
-  if call_expr.args.len() != 1 {
+  if call_expr.args.is_empty() {
     if emit_warning {
       add_create_require_warning(
         parser,
-        "module.createRequire supports only one argument.",
+        "module.createRequire requires one argument.",
         call_expr.span,
       );
     }
@@ -462,6 +462,10 @@ fn parse_create_require_argument(
         spread,
       );
     }
+    return None;
+  }
+
+  if !ignored_url_args_are_side_effect_free_from(parser, &call_expr.args, 1) {
     return None;
   }
 
@@ -494,6 +498,19 @@ fn parse_create_require_argument(
 fn walk_create_require_callee(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   if let Callee::Expr(callee) = &call_expr.callee {
     parser.walk_expression(callee);
+  }
+}
+
+#[inline(never)]
+fn walk_create_require_call_side_effects(parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  walk_create_require_callee(parser, call_expr);
+  walk_create_require_ignored_args(parser, call_expr);
+}
+
+#[inline(never)]
+fn walk_create_require_ignored_args(parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  if call_expr.args.len() > 1 {
+    parser.walk_expr_or_spread(&call_expr.args[1..]);
   }
 }
 
@@ -540,7 +557,7 @@ fn tag_created_require_declarator(
     call.args[0].expr.span().into(),
     json_stringify_str(&value).into(),
   )));
-  walk_create_require_callee(parser, call);
+  walk_create_require_call_side_effects(parser, call);
 }
 
 fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
@@ -1660,7 +1677,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           call_expr.args[0].expr.span().into(),
           json_stringify_str(&argument.value).into(),
         )));
-        walk_create_require_callee(parser, call_expr);
+        walk_create_require_call_side_effects(parser, call_expr);
         Some(true)
       } else {
         None
@@ -1727,6 +1744,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         require_cache_range(member_expr, member_ranges, members),
         members,
       );
+      walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
     }
 
@@ -1764,6 +1782,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         return Some(true);
       }
       let context = parse_create_require_argument(parser, inner_call_expr, false)?.context;
+      walk_create_require_ignored_args(parser, inner_call_expr);
       self.process_resolve(parser, call_expr, false, Some(context));
       return Some(true);
     }
@@ -1782,6 +1801,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         ),
         members,
       );
+      walk_create_require_ignored_args(parser, inner_call_expr);
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }

@@ -98,6 +98,11 @@ it("should provide dependency context", () => {
 	expect(_createRequire(new URL("./foo/..", import.meta.url))("./a")).toBe(1);
 	expect(_createRequire(new URL("./foo/c.js", import.meta.url))("./a")).toBe(4);
 	expect(
+		_createRequire(new URL("./foo/c.js", import.meta.url), undefined)(
+			"./ignored-extra-only"
+		)
+	).toBe("__rspackIgnoredExtraCreateRequire");
+	expect(
 		_createRequire(new URL("./foo/c.js", import.meta.url, undefined))(
 			"./ignored-extra-only"
 		)
