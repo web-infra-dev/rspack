@@ -244,6 +244,9 @@ it("should stop parsing reassigned created require bindings", () => {
 	let mutableRequire = _createRequire(new URL("./foo/c.js", import.meta.url));
 	mutableRequire = request => request;
 	expect(mutableRequire("./a")).toBe("./a");
+	let require = _createRequire(new URL("./foo/c.js", import.meta.url));
+	require = request => request;
+	expect(require("./a")).toBe("./a");
 	let outerRequire = _createRequire(import.meta.url);
 	function useReassignedOuterRequire() {
 		outerRequire = request => request;

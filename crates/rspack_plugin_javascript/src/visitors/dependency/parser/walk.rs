@@ -31,8 +31,9 @@ use crate::{
     JavascriptParserPlugin, is_logic_op,
   },
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
-    dependency::parser::ExtractedMemberExpressionChainData, get_non_optional_part,
+    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableInfo,
+    VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
+    get_non_optional_part,
   },
 };
 
@@ -751,6 +752,7 @@ impl JavascriptParser<'_> {
           || name == CREATE_REQUIRE_SPECIFIER_TAG
           || name == CREATE_REQUIRE_EVALUATED_TAG
       });
+      let mut should_clear = should_clear_name;
       let mut tag_info_id = variable_info.tag_info;
       while let Some(id) = tag_info_id {
         let tag_info = self.definitions_db.expect_get_tag_info(id);
@@ -758,13 +760,20 @@ impl JavascriptParser<'_> {
           || tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
           || tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG
         {
-          self.definitions_db.delete(declared_scope, name);
+          should_clear = true;
           break;
         }
         tag_info_id = tag_info.next;
       }
-      if should_clear_name {
-        self.definitions_db.delete(declared_scope, name);
+      if should_clear {
+        let info = VariableInfo::create(
+          &mut self.definitions_db,
+          declared_scope,
+          None,
+          VariableInfoFlags::NORMAL,
+          None,
+        );
+        self.definitions_db.set(declared_scope, name.clone(), info);
       }
     }
   }

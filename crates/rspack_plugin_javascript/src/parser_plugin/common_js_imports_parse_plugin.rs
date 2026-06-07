@@ -30,8 +30,8 @@ use crate::{
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
     CallHooksName, ExportedVariableInfo, JavascriptParser, TagInfoData, VariableDeclaration,
-    VariableDeclarationKind, context_reg_exp, create_context_dependency, create_traceable_error,
-    expr_name, get_non_optional_part,
+    VariableDeclarationKind, VariableInfo, VariableInfoFlags, context_reg_exp,
+    create_context_dependency, create_traceable_error, expr_name, get_non_optional_part,
   },
 };
 
@@ -548,7 +548,16 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
     .get_variable_info(name)
     .map(|info| info.declared_scope)
   {
-    parser.definitions_db.delete(declared_scope, name);
+    let info = VariableInfo::create(
+      &mut parser.definitions_db,
+      declared_scope,
+      None,
+      VariableInfoFlags::NORMAL,
+      None,
+    );
+    parser
+      .definitions_db
+      .set(declared_scope, name.clone(), info);
   }
 }
 
