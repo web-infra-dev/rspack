@@ -585,7 +585,9 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
-      this.clear_created_require_tags_in_for_head(&stmt.left);
+      if this.javascript_options.is_create_require_enabled() {
+        this.clear_created_require_tags_in_for_head(&stmt.left);
+      }
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -601,7 +603,9 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
-      this.clear_created_require_tags_in_for_head(&stmt.left);
+      if this.javascript_options.is_create_require_enabled() {
+        this.clear_created_require_tags_in_for_head(&stmt.left);
+      }
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -644,7 +648,9 @@ impl JavascriptParser<'_> {
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
       {
-        if renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG {
+        if self.javascript_options.is_create_require_enabled()
+          && renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG
+        {
           self.set_variable(
             ident.sym.clone(),
             ExportedVariableInfo::Name(renamed_identifier),
@@ -734,6 +740,10 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
+    if !self.javascript_options.is_create_require_enabled() {
+      self.walk_expression(&expr.arg);
+      return;
+    }
     let updated_ident = expr.arg.as_ident().map(|ident| ident.sym.clone());
     if let Some(name) = &updated_ident {
       self.clear_create_require_tag(name);
@@ -1705,9 +1715,10 @@ impl JavascriptParser<'_> {
   fn walk_assignment_expression(&mut self, expr: &AssignExpr) {
     let drive = self.plugin_drive.clone();
     if let Some(ident) = expr.left.as_ident() {
-      if self
-        .try_walk_created_require_assignment(expr, ident)
-        .unwrap_or_default()
+      if self.javascript_options.is_create_require_enabled()
+        && self
+          .try_walk_created_require_assignment(expr, ident)
+          .unwrap_or_default()
       {
         return;
       }

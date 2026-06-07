@@ -18,6 +18,7 @@ if (process.platform === "win32") {
 	warnings.push(
 		/module\.createRequire supports only file URLs and absolute paths/,
 		/module\.createRequire failed parsing argument/,
+		/module\.createRequire failed parsing argument/,
 		/module\.createRequire failed parsing argument/
 	);
 }
