@@ -7,6 +7,7 @@ const warnings = [
 	/module\.createRequire failed parsing argument/,
 	/module\.createRequire failed parsing argument/,
 	/module\.createRequire failed parsing argument/,
+	/module\.createRequire failed parsing argument/,
 	/module\.createRequire does not support spread arguments/,
 	/the request of a dependency is an expression/,
 	/The accessed createRequire\(\) member is not supported by Rspack/,

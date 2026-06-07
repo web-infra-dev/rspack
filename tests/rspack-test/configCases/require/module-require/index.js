@@ -188,6 +188,18 @@ it("should preserve createRequire binding for unsupported uses", async () => {
 		_createRequire(new URL("./foo/c.js", import.meta.url, (extraUrlArgEvaluated = true)))("./a");
 	} catch {}
 	expect(extraUrlArgEvaluated).toBe(true);
+	const ignoredUrlExtraEffects = [];
+	try {
+		const requireWithUrlExtra = _createRequire(
+			new URL(
+				"./foo/c.js",
+				import.meta.url,
+				ignoredUrlExtraEffects.push("url-extra")
+			)
+		);
+		requireWithUrlExtra("./ignored-extra-only");
+	} catch {}
+	expect(ignoredUrlExtraEffects).toEqual(["url-extra"]);
 	expect(
 		(function () { return require.resolve(..."./b"); }).toString()
 	).toContain("...");

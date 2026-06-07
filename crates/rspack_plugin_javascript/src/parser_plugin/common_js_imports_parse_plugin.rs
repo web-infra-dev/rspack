@@ -342,6 +342,15 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  if let Some(new_expr) = arg.as_new()
+    && let Some(ident) = new_expr.callee.as_ident()
+    && ident.sym.as_str() == "URL"
+    && parser.get_variable_info(&Atom::from("URL")).is_none()
+    && !ignored_url_args_are_side_effect_free(parser, new_expr)
+  {
+    return None;
+  }
+
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
