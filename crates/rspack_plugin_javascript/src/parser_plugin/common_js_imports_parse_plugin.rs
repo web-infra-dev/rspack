@@ -466,10 +466,6 @@ fn parse_create_require_argument(
     return None;
   }
 
-  if !ignored_url_args_are_side_effect_free_from(parser, &call_expr.args, 1) {
-    return None;
-  }
-
   let arg = &call_expr.args[0].expr;
   let Some(value) = evaluate_create_require_argument(parser, arg) else {
     if emit_warning {
@@ -1609,6 +1605,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     expr: &'a CallExpr,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if !should_handle_create_require_specifier(parser, for_name) {
+      return None;
+    }
+    if !ignored_url_args_are_side_effect_free_from(parser, &expr.args, 1) {
       return None;
     }
     let context = parse_create_require_argument(parser, expr, false)?.context;

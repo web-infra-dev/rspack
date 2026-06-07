@@ -105,6 +105,14 @@ it("should provide dependency context", () => {
 			"./ignored-extra-only"
 		)
 	).toBe("__rspackIgnoredExtraCreateRequire");
+	const ignoredExtraEffects = [];
+	expect(
+		_createRequire(
+			new URL("./foo/c.js", import.meta.url),
+			ignoredExtraEffects.push("extra")
+		)("./ignored-extra-only")
+	).toBe("__rspackIgnoredExtraCreateRequire");
+	expect(ignoredExtraEffects).toEqual(["extra"]);
 	expect(
 		_createRequire(new URL("./foo/c.js", import.meta.url, undefined))(
 			"./ignored-extra-only"
