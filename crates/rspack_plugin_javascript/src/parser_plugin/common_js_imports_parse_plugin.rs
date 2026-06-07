@@ -178,101 +178,42 @@ fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bo
 }
 
 #[cold]
-fn hex_value(byte: u8) -> Option<u8> {
-  match byte {
-    b'0'..=b'9' => Some(byte - b'0'),
-    b'a'..=b'f' => Some(byte - b'a' + 10),
-    b'A'..=b'F' => Some(byte - b'A' + 10),
-    _ => None,
-  }
-}
-
-#[cold]
 #[inline(never)]
-fn decode_file_path(value: &str) -> Option<String> {
-  if !value.as_bytes().contains(&b'%') {
-    return Some(value.to_string());
-  }
-
+fn has_invalid_or_encoded_separator(value: &str) -> bool {
   let bytes = value.as_bytes();
-  let mut decoded = Vec::with_capacity(bytes.len());
   let mut index = 0;
-  while index < bytes.len() {
+  while index + 2 < bytes.len() {
     if bytes[index] == b'%' {
-      let hi = hex_value(*bytes.get(index + 1)?)?;
-      let lo = hex_value(*bytes.get(index + 2)?)?;
-      let byte = (hi << 4) | lo;
-      if byte == b'/' || cfg!(windows) && byte == b'\\' {
-        return None;
+      let hi = bytes[index + 1].to_ascii_lowercase();
+      let lo = bytes[index + 2].to_ascii_lowercase();
+      if !hi.is_ascii_hexdigit() || !lo.is_ascii_hexdigit() {
+        return true;
       }
-      decoded.push(byte);
+      if hi == b'2' && lo == b'f' || cfg!(windows) && hi == b'5' && lo == b'c' {
+        return true;
+      }
       index += 3;
     } else {
-      decoded.push(bytes[index]);
       index += 1;
     }
   }
-
-  String::from_utf8(decoded).ok()
+  (bytes.len().saturating_sub(index) == 1 || bytes.len().saturating_sub(index) == 2)
+    && bytes[index] == b'%'
 }
 
 #[cold]
 #[inline(never)]
-fn file_url_to_path(value: &str) -> Option<String> {
+fn file_url_to_path(value: &str) -> Option<(String, bool)> {
   let parsed = Url::parse(value).ok()?;
-  if parsed.scheme() != "file" {
+  if parsed.scheme() != "file" || has_invalid_or_encoded_separator(parsed.path()) {
     return None;
   }
-  let value = parsed.as_str();
-  let path = value.strip_prefix("file://")?;
-  let path = path.split(['?', '#']).next()?;
-  let path = path
-    .strip_prefix("localhost")
-    .filter(|path| path.starts_with('/'))
-    .unwrap_or(path);
-
-  #[cfg(not(windows))]
-  if !path.starts_with('/') {
-    return None;
-  };
-
-  #[cfg(windows)]
-  let path = path
-    .strip_prefix('/')
-    .filter(|path| path.as_bytes().get(1).is_some_and(|b| *b == b':'))
-    .map(str::to_string)
-    .unwrap_or_else(|| {
-      if path.starts_with('/') {
-        path.to_string()
-      } else {
-        let mut path = path.replace('/', "\\");
-        path.insert_str(0, "\\\\");
-        path
-      }
-    });
-
-  #[cfg(windows)]
-  let raw_path = path.as_str();
-  #[cfg(not(windows))]
-  let raw_path = path;
-
-  #[cfg(windows)]
-  {
-    decode_file_path(raw_path).map(|path| path.replace('/', "\\"))
-  }
-  #[cfg(not(windows))]
-  {
-    decode_file_path(raw_path)
-  }
-}
-
-#[cold]
-#[inline(never)]
-fn is_directory_file_url(value: &str) -> bool {
-  Url::parse(value)
+  let is_directory_request = parsed.path().ends_with('/');
+  let path = parsed
+    .to_file_path()
     .ok()
-    .filter(|url| url.scheme() == "file")
-    .is_some_and(|url| url.path().ends_with('/'))
+    .and_then(|path| path.into_os_string().into_string().ok())?;
+  Some((path, is_directory_request))
 }
 
 #[cold]
@@ -281,8 +222,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
   #[cfg(not(windows))]
   {
     let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-      let is_directory_request = is_directory_file_url(value);
-      (path, is_directory_request)
+      path
     } else {
       if !value.starts_with('/') {
         return None;
@@ -301,8 +241,7 @@ fn create_require_context_from_path(value: &str) -> Option<Context> {
   #[cfg(windows)]
   {
     let (path, is_directory_request) = if let Some(path) = file_url_to_path(value) {
-      let is_directory_request = is_directory_file_url(value);
-      (path, is_directory_request)
+      path
     } else {
       if !Path::new(value).is_absolute() {
         return None;
@@ -360,7 +299,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
     && value.starts_with("file:/")
   {
-    return file_url_to_path(Url::parse(&value).ok()?.as_str());
+    return file_url_to_path(&value).map(|(path, _)| path);
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("//") {
@@ -370,7 +309,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return Some(value);
   }
   if request.starts_with("file:/") {
-    return file_url_to_path(Url::parse(&request).ok()?.as_str());
+    return file_url_to_path(&request).map(|(path, _)| path);
   }
   if !request.starts_with("file:")
     && request
@@ -380,7 +319,9 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     return None;
   }
   let request_path = request.split(['?', '#']).next()?;
-  decode_file_path(request_path)?;
+  if has_invalid_or_encoded_separator(request_path) {
+    return None;
+  }
   let url = Url::from_file_path(parser.resource_data.resource())
     .ok()?
     .join(&request)
@@ -388,7 +329,7 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
   if url.scheme() != "file" {
     return None;
   }
-  file_url_to_path(url.as_str())
+  file_url_to_path(url.as_str()).map(|(path, _)| path)
 }
 
 #[cold]
