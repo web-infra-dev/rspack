@@ -1,6 +1,5 @@
 use std::{
   boxed::Box,
-  collections::HashMap,
   path::{Path, PathBuf},
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -43,23 +42,6 @@ pub struct NativeWatcherOptions {
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
-}
-
-/// watchpack-style time info for a single path, surfaced to webpack as a
-/// `FileSystemInfoEntry`. `timestamp` is absent for directory (context)
-/// entries, whose value is a derived `safe_time` only.
-#[napi(object)]
-pub struct JsTimeInfoEntry {
-  pub safe_time: f64,
-  pub timestamp: Option<f64>,
-}
-
-/// The full `fileTimeInfoEntries` / `contextTimeInfoEntries` snapshot, mirroring
-/// watchpack's `collectTimeInfoEntries` output.
-#[napi(object)]
-pub struct NativeTimeInfo {
-  pub file_time_info_entries: HashMap<String, JsTimeInfoEntry>,
-  pub context_time_info_entries: HashMap<String, JsTimeInfoEntry>,
 }
 
 #[napi]
@@ -174,43 +156,6 @@ impl NativeWatcher {
       .map_err(|e| napi::Error::from_reason(e.to_string()))?;
 
     Ok(())
-  }
-
-  /// Collect the full file/context time tables, mirroring watchpack's
-  /// `collectTimeInfoEntries`. Called synchronously from JS after an aggregated
-  /// event (or from `getInfo()`) to populate `compiler.fileTimestamps` /
-  /// `contextTimestamps`.
-  #[napi]
-  pub fn get_time_info(&self) -> NativeTimeInfo {
-    let (files, contexts) = self.watcher.collect_time_info();
-    let file_time_info_entries = files
-      .into_iter()
-      .map(|(path, entry)| {
-        (
-          path,
-          JsTimeInfoEntry {
-            safe_time: entry.safe_time as f64,
-            timestamp: Some(entry.timestamp as f64),
-          },
-        )
-      })
-      .collect();
-    let context_time_info_entries = contexts
-      .into_iter()
-      .map(|(path, safe_time)| {
-        (
-          path,
-          JsTimeInfoEntry {
-            safe_time: safe_time as f64,
-            timestamp: None,
-          },
-        )
-      })
-      .collect();
-    NativeTimeInfo {
-      file_time_info_entries,
-      context_time_info_entries,
-    }
   }
 }
 

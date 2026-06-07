@@ -4,7 +4,7 @@ use rspack_paths::{ArcPath, ArcPathDashSet};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
-use crate::EventBatch;
+use crate::{EventBatch, time_info};
 
 // Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
@@ -21,7 +21,12 @@ impl Scanner {
     }
   }
 
-  /// Scans the registered paths and sends delete events for any files or directories that no longer exist.
+  /// Synthesizes the events the live watch could not deliver yet: a `Remove` for
+  /// a registered path gone from disk, a `Change` for a file/directory changed
+  /// since `start_time`, and a `Create` for a registered-missing dependency that
+  /// has appeared. Change is judged from a fresh, accuracy-padded mtime read
+  /// ([`changed_since`]) — the scan runs after the OS watch is active (#14210),
+  /// so a change landing before the watch is on disk and caught here.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
     if let Some(tx) = self.tx.clone() {
@@ -34,15 +39,14 @@ impl Scanner {
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
-      let _tx = tx.clone();
-      let pm = self.path_manager.clone();
+      let files_tx = tx.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&files, &missing, &_tx);
+        _ = scan_path_missing(&files, &missing, &files_tx);
         _ = scan_path_events(
           &files,
-          |p| pm.file_changed_since(p, start_time),
+          |p| changed_since(p, start_time),
           FsEventKind::Change,
-          &_tx,
+          &files_tx,
         );
       });
 
@@ -53,33 +57,29 @@ impl Scanner {
         .map(|file| file.deref().clone())
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
-      let _tx = tx.clone();
-      let pm = self.path_manager.clone();
+      let dirs_tx = tx.clone();
       tokio::spawn(async move {
-        _ = scan_path_missing(&directories, &missing, &_tx);
+        _ = scan_path_missing(&directories, &missing, &dirs_tx);
         _ = scan_path_events(
           &directories,
-          |p| pm.dir_changed_since(p, start_time),
+          |p| changed_since(p, start_time),
           FsEventKind::Change,
-          &_tx,
+          &dirs_tx,
         );
       });
 
-      // Backfill registered-missing dependencies that were created in the gap
-      // before this `watch()` registration — a `Create` whose disk mtime
-      // (padded by `accuracy`) lands at or after `start_time`. Absorbs
-      // for_rstest B4 over `missing.added`.
+      // Backfill registered-missing dependencies created in the gap before this
+      // `watch()` registration: a `Create` once the file appears on disk.
       let missing_added = accessor
         .missing()
         .1
         .iter()
         .map(|p| p.deref().clone())
         .collect::<Vec<_>>();
-      let pm = self.path_manager.clone();
       tokio::spawn(async move {
         _ = scan_path_events(
           &missing_added,
-          |p| pm.missing_created_since(p, start_time),
+          |p| changed_since(p, start_time),
           FsEventKind::Create,
           &tx,
         );
@@ -130,6 +130,21 @@ fn scan_path_events(
     return true;
   }
   tx.send(events).is_ok()
+}
+
+/// Whether `path`'s current on-disk mtime is at or after `start_time`, using
+/// watchpack's accuracy padding ([`time_info::safe_time`]) so a change hidden by
+/// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
+/// counts as unchanged.
+fn changed_since(path: &ArcPath, start_time: SystemTime) -> bool {
+  let Ok(mtime) = path
+    .metadata()
+    .and_then(|m| m.modified().or_else(|_| m.created()))
+  else {
+    return false;
+  };
+  time_info::safe_time(time_info::system_time_to_millis(mtime))
+    >= time_info::system_time_to_millis(start_time)
 }
 
 #[cfg(test)]
@@ -200,11 +215,10 @@ mod tests {
       .expect("set_modified");
   }
 
-  /// The scan reports a file changed from a live event's `safe_time`, not disk
-  /// mtime alone: both files' mtimes are parked before `start_time`, but only
-  /// `changed` has a live event, so it alone is reported.
+  /// The scan reports a registered file changed at or after `start_time` from a
+  /// fresh disk stat, and leaves an unchanged (old-mtime) file alone.
   #[tokio::test]
-  async fn scan_reports_change_from_safe_time_not_disk_mtime() {
+  async fn scan_reports_file_changed_since_start_time() {
     use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
@@ -212,9 +226,7 @@ mod tests {
     let unchanged = ArcPath::from(dir.path().join("unchanged.js").as_path());
     std::fs::write(changed.as_ref(), b"a").expect("write changed");
     std::fs::write(unchanged.as_ref(), b"b").expect("write unchanged");
-    // Parked before start_time so a fresh stat reports neither; the live event
-    // is the only discriminator.
-    set_mtime_in_past(changed.as_ref(), Duration::from_secs(3600));
+    // `unchanged` is parked well before start_time; `changed` keeps its ~now mtime.
     set_mtime_in_past(unchanged.as_ref(), Duration::from_secs(3600));
 
     let path_manager = Arc::new(PathManager::default());
@@ -229,10 +241,8 @@ mod tests {
       )
       .expect("register files");
 
-    let start_time = SystemTime::now();
-
-    // Only `changed` records a live event after start_time -> safe_time = now.
-    path_manager.set_event_file_time(&changed, SystemTime::now());
+    // start_time sits before `changed`'s mtime but after `unchanged`'s.
+    let start_time = SystemTime::now() - Duration::from_secs(5);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, path_manager.clone());
@@ -250,20 +260,19 @@ mod tests {
 
     assert!(
       changed_paths.contains(&changed),
-      "file whose safe_time >= start_time must be reported changed",
+      "a file changed at/after start_time must be reported",
     );
     assert!(
       !changed_paths.contains(&unchanged),
-      "file with no post-start activity must not be reported changed",
+      "a file unchanged before start_time must not be reported",
     );
   }
 
-  /// A missing dependency created in the gap after `start_time` must be
-  /// backfilled (absorbs for_rstest B4 over `missing.added`); one that never
-  /// appears must not be reported.
+  /// A registered-missing dependency created after `start_time` must be
+  /// backfilled as a `Create`; one that never appears must not be reported.
   #[tokio::test]
   async fn scan_backfills_missing_path_created_after_start() {
-    use std::{collections::HashSet, thread::sleep, time::Duration};
+    use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
     let created = ArcPath::from(dir.path().join("created.js").as_path());
@@ -281,9 +290,8 @@ mod tests {
       )
       .expect("register missing deps");
 
-    let start_time = SystemTime::now();
-    sleep(Duration::from_millis(20));
-    // The missing dependency is created after start_time.
+    // start_time is in the past; the missing dep is created "now", after it.
+    let start_time = SystemTime::now() - Duration::from_secs(5);
     std::fs::write(created.as_ref(), b"new").expect("create file");
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -305,54 +313,6 @@ mod tests {
     assert!(
       !event_paths.contains(&still_missing),
       "a dependency that never appears must not be reported",
-    );
-  }
-
-  /// Regression guard for #14210: a file whose pre-watch seed recorded an older
-  /// mtime but whose disk mtime is now newer than start_time must still be
-  /// reported — the scan must fall back to a fresh stat, not trust the seed.
-  #[tokio::test]
-  async fn scan_uses_fresh_stat_when_seed_predates_change() {
-    use std::{
-      collections::HashSet,
-      time::{Duration, SystemTime},
-    };
-
-    let dir = tempfile::tempdir().expect("create temp dir");
-    let file = ArcPath::from(dir.path().join("late.js").as_path());
-    std::fs::write(file.as_ref(), b"v1").expect("write file");
-
-    let path_manager = Arc::new(PathManager::default());
-    path_manager
-      .update(
-        (std::iter::once(file.clone()), std::iter::empty()),
-        (std::iter::empty(), std::iter::empty()),
-        (std::iter::empty(), std::iter::empty()),
-      )
-      .expect("register file");
-
-    // Stale seed (older than start_time), but the file is newer on disk and
-    // start_time sits between the two.
-    path_manager.set_initial_file_time(file.clone(), SystemTime::now() - Duration::from_secs(10));
-    let start_time = SystemTime::now() - Duration::from_secs(5);
-
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-    let mut scanner = Scanner::new(tx, path_manager.clone());
-    scanner.scan(start_time);
-    scanner.close();
-
-    let mut changed = HashSet::new();
-    while let Some(batch) = rx.recv().await {
-      for ev in batch {
-        if ev.kind == FsEventKind::Change {
-          changed.insert(ev.path);
-        }
-      }
-    }
-
-    assert!(
-      changed.contains(&file),
-      "a file newer on disk than start_time must be reported from a fresh scan-time stat, not the stale pre-watch seed (#14210 regression)",
     );
   }
 }

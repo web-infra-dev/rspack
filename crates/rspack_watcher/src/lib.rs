@@ -18,7 +18,6 @@ use rspack_error::Result;
 use rspack_paths::ArcPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
-pub use time_info::{TimeInfoEntry, TimeInfoTables};
 use tokio::sync::mpsc;
 use trigger::Trigger;
 
@@ -166,14 +165,6 @@ impl FsWatcher {
     }
   }
 
-  /// Collect the full webpack-shaped time tables for all watched files and
-  /// directories. Mirrors watchpack's `collectTimeInfoEntries`; consumed via
-  /// the napi `getTimeInfo()` to populate `fileTimeInfoEntries` /
-  /// `contextTimeInfoEntries`.
-  pub fn collect_time_info(&self) -> TimeInfoTables {
-    self.path_manager.collect_time_info()
-  }
-
   /// Pauses the file system watcher, stopping the execution of the event loop.
   pub fn pause(&self) -> Result<()> {
     self.executor.pause();
@@ -234,23 +225,7 @@ impl FsWatcher {
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self
-          .path_manager
-          .set_file_mtime_if_absent(path.clone(), mtime);
-        // Seed the watchpack-style time entry for newly-added files so the
-        // scan and the first `getTimeInfo()` already carry their conservative
-        // `safe_time`.
-        self.path_manager.set_initial_file_time(path, mtime);
-      }
-    }
-
-    let dirs: Vec<_> = accessor.directories().1.iter().map(|p| p.clone()).collect();
-    for path in dirs {
-      if let Ok(mtime) = path
-        .metadata()
-        .and_then(|m| m.modified().or_else(|_| m.created()))
-      {
-        self.path_manager.set_initial_dir_time(path, mtime);
+        self.path_manager.set_file_mtime_if_absent(path, mtime);
       }
     }
   }
