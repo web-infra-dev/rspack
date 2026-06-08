@@ -666,10 +666,14 @@ fn walk_unsupported_create_require_resolve(
   if inner_call_expr.args.len() == 1 && inner_call_expr.args[0].spread.is_none() {
     let arg = &inner_call_expr.args[0].expr;
     if let Some(value) = evaluate_create_require_argument(parser, arg) {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        arg.span().into(),
-        json_stringify_str(&value).into(),
-      )));
+      if should_replace_create_require_argument(parser, arg) {
+        parser.add_presentational_dependency(Box::new(ConstDependency::new(
+          arg.span().into(),
+          json_stringify_str(&value).into(),
+        )));
+      } else {
+        walk_create_require_argument_side_effects(parser, arg);
+      }
     } else if let Some(new_expr) = arg.as_new()
       && new_expr
         .callee
