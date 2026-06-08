@@ -18,7 +18,7 @@ use swc_core::{
 };
 use url::Url;
 
-use super::{JavascriptParserPlugin, get_url_request};
+use super::{JavascriptParserPlugin, get_url_request, url_plugin::is_meta_url};
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
@@ -43,6 +43,7 @@ pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 #[derive(Clone)]
 pub struct CreatedRequireTagData {
   context: Context,
+  side_effects: Vec<String>,
 }
 
 struct CreateRequireArgument {
@@ -538,6 +539,47 @@ fn source_for_span(parser: &JavascriptParser, span: Span) -> Option<String> {
 }
 
 #[inline(never)]
+fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr) -> Vec<String> {
+  let Some(new_expr) = arg.as_new() else {
+    return Vec::new();
+  };
+  if new_expr
+    .callee
+    .as_ident()
+    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    || parser.get_variable_info(&Atom::from("URL")).is_some()
+  {
+    return Vec::new();
+  };
+  let Some(args) = &new_expr.args else {
+    return Vec::new();
+  };
+  let start = if is_absolute_file_url_constructor_arg(parser, arg) {
+    1
+  } else {
+    2
+  };
+  args
+    .iter()
+    .skip(start)
+    .filter_map(|arg| {
+      if arg.spread.is_some() {
+        return None;
+      }
+      if is_side_effect_free_ignored_url_arg(parser, &arg.expr)
+        || arg
+          .expr
+          .as_member()
+          .is_some_and(|expr| is_meta_url(parser, expr))
+      {
+        return None;
+      }
+      source_for_span(parser, arg.expr.span())
+    })
+    .collect::<Vec<_>>()
+}
+
+#[inline(never)]
 fn create_require_unsupported_member_replacement(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
@@ -546,36 +588,7 @@ fn create_require_unsupported_member_replacement(
   if argument.replace_argument {
     return "undefined".into();
   }
-  let arg = &call_expr.args[0].expr;
-  let Some(new_expr) = arg.as_new() else {
-    return "undefined".into();
-  };
-  if new_expr
-    .callee
-    .as_ident()
-    .is_none_or(|ident| ident.sym.as_str() != "URL")
-    || parser.get_variable_info(&Atom::from("URL")).is_some()
-  {
-    return "undefined".into();
-  };
-  let Some(args) = &new_expr.args else {
-    return "undefined".into();
-  };
-  let start = if is_absolute_file_url_constructor_arg(parser, arg) {
-    1
-  } else {
-    2
-  };
-  let side_effects = args
-    .iter()
-    .skip(start)
-    .filter_map(|arg| {
-      if arg.spread.is_some() {
-        return None;
-      }
-      source_for_span(parser, arg.expr.span())
-    })
-    .collect::<Vec<_>>();
+  let side_effects = create_require_url_arg_side_effects(parser, &call_expr.args[0].expr);
   if side_effects.is_empty() {
     "undefined".into()
   } else {
@@ -605,17 +618,44 @@ fn create_require_extra_arg_side_effects(
 fn wrap_create_require_call_with_extra_arg_side_effects(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
+  argument: &CreateRequireArgument,
+) -> Vec<String> {
+  let mut side_effects = if argument.replace_argument {
+    Vec::new()
+  } else {
+    create_require_url_arg_side_effects(parser, &call_expr.args[0].expr)
+  };
+  side_effects.extend(create_require_extra_arg_side_effects(parser, call_expr));
+  side_effects
+}
+
+#[inline(never)]
+fn wrap_created_require_call_with_side_effects(
+  parser: &mut JavascriptParser,
+  call_expr: &CallExpr,
 ) {
-  let side_effects = create_require_extra_arg_side_effects(parser, call_expr);
+  let side_effects = parser
+    .current_tag_info
+    .and_then(|tag_info| {
+      parser
+        .definitions_db
+        .expect_get_tag_info(tag_info)
+        .data
+        .clone()
+    })
+    .map(CreatedRequireTagData::downcast)
+    .map(|data| data.side_effects)
+    .unwrap_or_default();
   if side_effects.is_empty() {
     return;
   }
+  let call_span = call_expr.span();
   parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    (call_expr.span.real_lo(), call_expr.span.real_lo()).into(),
+    (call_span.real_lo(), call_span.real_lo()).into(),
     format!("({}, ", side_effects.join(", ")).into(),
   )));
   parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    (call_expr.span.real_hi(), call_expr.span.real_hi()).into(),
+    (call_span.real_hi(), call_span.real_hi()).into(),
     ")".into(),
   )));
 }
@@ -661,7 +701,10 @@ fn tag_created_require_declarator(
   parser.tag_variable(
     binding.sym.clone(),
     CREATED_REQUIRE_IDENTIFIER_TAG,
-    Some(CreatedRequireTagData { context }),
+    Some(CreatedRequireTagData {
+      context,
+      side_effects: Vec::new(),
+    }),
   );
   if replace_argument {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -1443,7 +1486,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       parser.tag_variable(
         binding.id.sym.clone(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
-        Some(CreatedRequireTagData { context }),
+        Some(CreatedRequireTagData {
+          context,
+          side_effects: Vec::new(),
+        }),
       );
       return Some(true);
     }
@@ -1572,6 +1618,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
       let ids = get_non_optional_part(members, members_optionals);
       if members.is_empty() {
+        wrap_created_require_call_with_side_effects(parser, expr);
         return self.require_handler(
           parser,
           CallOrNewExpr::Call(expr),
@@ -1731,18 +1778,15 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return None;
     }
     let argument = parse_create_require_argument(parser, expr, false)?;
-    if !argument.replace_argument
-      && !is_absolute_file_url_constructor_arg(parser, &expr.args[0].expr)
-    {
-      return None;
-    }
-    wrap_create_require_call_with_extra_arg_side_effects(parser, expr);
+    let side_effects =
+      wrap_create_require_call_with_extra_arg_side_effects(parser, expr, &argument);
     let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
       CREATED_REQUIRE_IDENTIFIER_TAG,
       Some(CreatedRequireTagData {
         context: argument.context,
+        side_effects,
       }),
     );
     let mut evaluated =
@@ -1825,6 +1869,13 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
       self.process_resolve(parser, call_expr, true, None);
       Some(true)
+    } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      wrap_created_require_call_with_side_effects(parser, call_expr);
+      self.require_handler(
+        parser,
+        CallOrNewExpr::Call(call_expr),
+        current_created_require_context(parser),
+      )
     } else {
       None
     }
