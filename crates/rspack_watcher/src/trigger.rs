@@ -113,6 +113,17 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    // Drop events for paths the consumer asked to ignore — including files
+    // inside an ignored directory. On macOS/Windows the watcher subscribes to
+    // a single recursive root, so the OS delivers events for ignored subtrees
+    // (e.g. the consumer's build output dir) too. Without this gate
+    // `find_associated_event` would surface the nearest registered ancestor
+    // directory via `recurse_parent_directories`, producing a `[dir](Change)`
+    // batch indistinguishable from a real source-tree change in the consumer.
+    if self.path_manager.is_ignored_path(path.as_ref()) {
+      return;
+    }
+
     let is_registered_file = self.path_manager.access().files().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
@@ -218,5 +229,42 @@ mod tests {
     assert_eq!(associated_events.len(), 2);
     assert!(associated_events.contains(&(dir_0, FsEventKind::Change)));
     assert!(associated_events.contains(&(dir_1, FsEventKind::Change)));
+  }
+
+  #[test]
+  fn on_event_drops_events_inside_ignored_subtree() {
+    use tokio::sync::mpsc;
+
+    use crate::FsWatcherIgnored;
+
+    let ignored = FsWatcherIgnored::Paths(vec!["**/dist/.rstest-temp".to_owned()]);
+    let path_manager = Arc::new(PathManager::new(ignored));
+
+    // Register the project root as a watched directory. Without the ignored
+    // gate, an event for a file inside the ignored subtree would bubble up to
+    // it via `recurse_parent_directories` and emit a `[/proj](Change)` batch.
+    path_manager
+      .update(
+        (std::iter::empty::<ArcPath>(), std::iter::empty::<ArcPath>()),
+        (
+          vec![ArcPath::from(Path::new("/proj"))].into_iter(),
+          std::iter::empty::<ArcPath>(),
+        ),
+        (std::iter::empty::<ArcPath>(), std::iter::empty::<ArcPath>()),
+      )
+      .unwrap();
+
+    let (tx, mut rx) = mpsc::unbounded_channel();
+    let trigger = Trigger::new(path_manager, tx);
+
+    trigger.on_event(
+      &ArcPath::from(Path::new("/proj/dist/.rstest-temp/foo.mjs")),
+      FsEventKind::Change,
+    );
+
+    assert!(
+      rx.try_recv().is_err(),
+      "an event inside an ignored subtree must not be dispatched"
+    );
   }
 }

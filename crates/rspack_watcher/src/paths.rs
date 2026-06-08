@@ -1,4 +1,9 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
+use std::{
+  fmt::Debug,
+  ops::Deref,
+  path::{Path, PathBuf},
+  time::SystemTime,
+};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
@@ -116,8 +121,11 @@ impl PathUpdater {
     let removed_paths = self.removed;
 
     for added in added_paths {
-      if ignored.should_be_ignored(added.to_str().expect("Path should be valid UTF-8")) {
-        continue; // Skip ignored paths
+      // Skip ignored paths AND anything living inside an ignored directory —
+      // see `FsWatcherIgnored::matches_with_ancestors` for why the bare
+      // `should_be_ignored` is not enough for directory-style patterns.
+      if ignored.matches_with_ancestors(added.as_ref()) {
+        continue;
       }
 
       if added.is_absolute() {
@@ -300,6 +308,14 @@ impl PathManager {
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
   pub fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(self)
+  }
+
+  /// Whether `path` is excluded from watching by the configured ignored
+  /// patterns — directly, or by living inside an ignored directory. Single
+  /// source of truth shared by registration (`PathUpdater::update`) and the
+  /// event ingress (`Trigger::on_event`).
+  pub fn is_ignored_path(&self, path: &Path) -> bool {
+    self.ignored.matches_with_ancestors(path)
   }
 }
 
