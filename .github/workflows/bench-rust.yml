@@ -93,6 +93,7 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
+          MIMALLOC_PURGE_DELAY: '-1'
         with:
           mode: simulation
           run: |
