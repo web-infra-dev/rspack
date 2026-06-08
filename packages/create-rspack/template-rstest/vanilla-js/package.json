@@ -8,6 +8,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@rstest/adapter-rspack": "^0.10.3",
     "@rstest/core": "^0.10.3",
-    "happy-dom": "^20.9.0"
+    "happy-dom": "^20.10.1"
   }
 }
