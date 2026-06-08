@@ -121,6 +121,19 @@ impl PathUpdater {
     let removed_paths = self.removed;
 
     for added in added_paths {
+      // Absolutize BEFORE the ignored check so registration sees the exact
+      // same absolute path that `notify` will later report to
+      // `Trigger::on_event`. Checking the relative form here would let
+      // registration and the event ingress disagree for unanchored patterns
+      // (e.g. `dist`): the relative ancestor `dist` matches, but the absolute
+      // `/cwd/dist/...` does not, so the event would slip through ingress and
+      // bubble up to a registered parent directory.
+      let added = if added.is_absolute() {
+        added
+      } else {
+        ArcPath::from(self.base_dir.join(added.as_ref()))
+      };
+
       // Skip ignored paths AND anything living inside an ignored directory —
       // see `FsWatcherIgnored::matches_with_ancestors` for why the bare
       // `should_be_ignored` is not enough for directory-style patterns.
@@ -128,14 +141,7 @@ impl PathUpdater {
         continue;
       }
 
-      if added.is_absolute() {
-        watch_tracker.add(added);
-        continue;
-      }
-
-      let added_absolute_path = self.base_dir.join(added.as_ref());
-
-      watch_tracker.add(ArcPath::from(added_absolute_path));
+      watch_tracker.add(added);
     }
 
     for removed in removed_paths {
@@ -433,6 +439,44 @@ mod tests {
     for path in should_exist_paths {
       assert!(all_paths.iter().any(|p| p.ends_with(path)));
     }
+  }
+
+  /// Regression for PR #14311 review: `notify` reports absolute paths to
+  /// `Trigger::on_event`, so registration must filter on the same absolute
+  /// representation. Otherwise the two disagree for unanchored patterns — a
+  /// file skipped at registration (relative ancestor matched) whose absolute
+  /// event still slips through ingress and bubbles to a registered parent.
+  #[test]
+  fn registration_filter_agrees_with_ingress_on_absolute_paths() {
+    fn assert_consistent(pattern: &str, relative_file: &str) {
+      let path_manager = PathManager::new(FsWatcherIgnored::Path(pattern.to_owned()));
+      path_manager
+        .update(
+          (
+            vec![ArcPath::from(Utf8Path::new(relative_file))].into_iter(),
+            vec![].into_iter(),
+          ),
+          (vec![].into_iter(), vec![].into_iter()),
+          (vec![].into_iter(), vec![].into_iter()),
+        )
+        .unwrap();
+
+      let was_registered = path_manager.access().all().next().is_some();
+      // The ingress sees the absolutized form of the registered path.
+      let absolute = std::env::current_dir().unwrap().join(relative_file);
+      let ingress_ignored = path_manager.is_ignored_path(&absolute);
+
+      assert_eq!(
+        was_registered, !ingress_ignored,
+        "pattern {pattern:?} file {relative_file:?}: registered={was_registered} ingress_ignored={ingress_ignored}"
+      );
+    }
+
+    // Anchored: filtered at BOTH registration and ingress.
+    assert_consistent("**/dist/.rstest-temp", "dist/.rstest-temp/foo.mjs");
+    // Unanchored: kept at BOTH — the relative ancestor `dist` no longer fools
+    // registration into a decision the absolute-path ingress can't reproduce.
+    assert_consistent("dist", "dist/file.js");
   }
 
   /// Regression for the FSEvents stale-event race: simulate two consecutive
