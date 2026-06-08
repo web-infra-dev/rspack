@@ -3874,6 +3874,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
+ "simd-json",
  "simdutf8",
  "smallvec",
  "smol_str",
