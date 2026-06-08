@@ -529,6 +529,60 @@ fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg:
   }
 }
 
+#[inline(never)]
+fn source_for_span(parser: &JavascriptParser, span: Span) -> Option<String> {
+  parser
+    .source()
+    .get(span.real_lo() as usize..span.real_hi() as usize)
+    .map(str::to_string)
+}
+
+#[inline(never)]
+fn create_require_unsupported_member_replacement(
+  parser: &mut JavascriptParser,
+  call_expr: &CallExpr,
+  argument: &CreateRequireArgument,
+) -> Box<str> {
+  if argument.replace_argument {
+    return "undefined".into();
+  }
+  let arg = &call_expr.args[0].expr;
+  let Some(new_expr) = arg.as_new() else {
+    return "undefined".into();
+  };
+  if new_expr
+    .callee
+    .as_ident()
+    .is_none_or(|ident| ident.sym.as_str() != "URL")
+    || parser.get_variable_info(&Atom::from("URL")).is_some()
+  {
+    return "undefined".into();
+  };
+  let Some(args) = &new_expr.args else {
+    return "undefined".into();
+  };
+  let start = if is_absolute_file_url_constructor_arg(parser, arg) {
+    1
+  } else {
+    2
+  };
+  let side_effects = args
+    .iter()
+    .skip(start)
+    .filter_map(|arg| {
+      if arg.spread.is_some() {
+        return None;
+      }
+      source_for_span(parser, arg.expr.span())
+    })
+    .collect::<Vec<_>>();
+  if side_effects.is_empty() {
+    "undefined".into()
+  } else {
+    format!("({}, undefined)", side_effects.join(", ")).into()
+  }
+}
+
 #[cold]
 #[inline(never)]
 fn add_create_require_warning(parser: &mut JavascriptParser, message: &str, span: Span) {
@@ -625,6 +679,7 @@ fn handle_created_require_member(
   member_span: Span,
   cache_range: Span,
   members: &[Atom],
+  unsupported_replacement: Box<str>,
 ) {
   if members
     .first()
@@ -635,7 +690,7 @@ fn handle_created_require_member(
     add_unsupported_create_require_member_warning(parser, member_span);
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       member_span.into(),
-      "undefined".into(),
+      unsupported_replacement,
     )));
   }
 }
@@ -1455,6 +1510,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         _expr.span(),
         require_cache_range(_expr, member_ranges, members),
         members,
+        "undefined".into(),
       );
       return Some(true);
     }
@@ -1779,13 +1835,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && parse_create_require_argument(parser, call_expr, false).is_some()
+      && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
+      let unsupported_replacement =
+        create_require_unsupported_member_replacement(parser, call_expr, &argument);
       handle_created_require_member(
         parser,
         member_expr.span(),
         require_cache_range(member_expr, member_ranges, members),
         members,
+        unsupported_replacement,
       );
       walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
@@ -1832,8 +1891,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && parse_create_require_argument(parser, inner_call_expr, false).is_some()
+      && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
+      let unsupported_replacement =
+        create_require_unsupported_member_replacement(parser, inner_call_expr, &argument);
       handle_created_require_member(
         parser,
         call_expr.callee.span(),
@@ -1843,6 +1904,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
           members,
         ),
         members,
+        unsupported_replacement,
       );
       walk_create_require_ignored_args(parser, inner_call_expr);
       parser.walk_expr_or_spread(&call_expr.args);

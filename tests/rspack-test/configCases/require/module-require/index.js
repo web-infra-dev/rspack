@@ -226,12 +226,14 @@ it("should preserve createRequire binding for unsupported uses", async () => {
 		(function () { return require.resolve(..."./b"); }).toString()
 	).toContain("...");
 	globalThis.unsupportedCreateRequireMemberArg = false;
+	let unsupportedMemberUrlArgEvaluated = false;
 	let unsupportedMemberArgPromise;
 	try {
-		_createRequire(import.meta.url).main(
-			(unsupportedMemberArgPromise = import("./unsupported-member-arg"))
-		);
+		_createRequire(
+			new URL("./foo/c.js", import.meta.url, (unsupportedMemberUrlArgEvaluated = true))
+		).main(unsupportedMemberArgPromise = import("./unsupported-member-arg"));
 	} catch {}
+	expect(unsupportedMemberUrlArgEvaluated).toBe(true);
 	await unsupportedMemberArgPromise;
 	expect(globalThis.unsupportedCreateRequireMemberArg).toBe(true);
 });
