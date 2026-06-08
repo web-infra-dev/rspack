@@ -606,10 +606,12 @@ fn create_require_extra_arg_side_effects(
     .iter()
     .skip(1)
     .filter_map(|arg| {
-      if arg.spread.is_some() {
-        return None;
+      let source = source_for_span(parser, arg.expr.span())?;
+      if arg.spread.is_none() {
+        Some(source)
+      } else {
+        Some(format!("[...({source})]"))
       }
-      source_for_span(parser, arg.expr.span())
     })
     .collect::<Vec<_>>()
 }

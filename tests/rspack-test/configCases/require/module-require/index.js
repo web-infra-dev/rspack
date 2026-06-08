@@ -122,6 +122,14 @@ it("should provide dependency context", () => {
 	).toBe("__rspackDirectExtraCreateRequire");
 	expect(directExtraEffects).toEqual(["direct-extra"]);
 	expect(globalThis.__rspackDirectExtraCreateRequire).toBe(true);
+	const directSpreadExtraEffects = [];
+	expect(
+		_createRequire(
+			new URL("./foo/c.js", import.meta.url),
+			...[directSpreadExtraEffects.push("direct-spread-extra")]
+		)("./direct-extra-only")
+	).toBe("__rspackDirectExtraCreateRequire");
+	expect(directSpreadExtraEffects).toEqual(["direct-spread-extra"]);
 	const directUrlExtraEffects = [];
 	expect(
 		_createRequire(
