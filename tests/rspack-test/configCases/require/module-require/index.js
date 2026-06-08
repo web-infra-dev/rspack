@@ -1,6 +1,7 @@
 import { createRequire as _createRequire } from "module";
 import { createRequire as __createRequire, builtinModules } from "module";
 import { createRequire as nodeCreateRequire } from "node:module";
+import * as moduleNs from "module";
 import * as esm from "./esm.mjs";
 import { unusedBranchEnabled } from "./flag.js";
 import "./posix-backslash.generated.js";
@@ -99,6 +100,12 @@ it("should provide dependency context", () => {
 	);
 	expect(assignedAliasRequire("./aliased-only")).toBe(
 		"__rspackAliasedCreateRequire"
+	);
+	const namespaceRequire = moduleNs.createRequire(
+		new URL("./foo/c.js", import.meta.url)
+	);
+	expect(namespaceRequire("./namespace-only")).toBe(
+		"__rspackNamespaceCreateRequire"
 	);
 	const _require1 = _createRequire(new URL("./foo/", import.meta.url));
 	expect(_require1("./c")).toBe(5);

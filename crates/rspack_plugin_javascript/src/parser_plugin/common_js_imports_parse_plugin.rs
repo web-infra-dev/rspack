@@ -12,13 +12,18 @@ use swc_core::{
   atoms::Atom,
   common::{Span, Spanned},
   ecma::ast::{
-    AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr,
-    UnaryExpr, UnaryOp, VarDeclarator,
+    AssignExpr, AssignOp, CallExpr, Callee, Expr, ExprOrSpread, Ident, Lit, MemberExpr, MemberProp,
+    NewExpr, UnaryExpr, UnaryOp, VarDeclarator,
   },
 };
 use url::Url;
 
-use super::{JavascriptParserPlugin, get_url_request, url_plugin::is_meta_url};
+use super::{
+  JavascriptParserPlugin,
+  esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
+  get_url_request,
+  url_plugin::is_meta_url,
+};
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
@@ -124,16 +129,20 @@ pub fn is_create_require_import(
   source: &Atom,
   export_name: Option<&Atom>,
 ) -> bool {
-  let Some(option) = parser.javascript_options.create_require_option() else {
+  let Some(specifier) = create_require_import_specifier(parser, source) else {
     return false;
   };
-  let Some((specifier, module)) = option.split_once(" from ") else {
-    return false;
-  };
-  !specifier.is_empty()
+  export_name.is_some_and(|export_name| export_name == &specifier)
+}
+
+#[inline(never)]
+fn create_require_import_specifier(parser: &JavascriptParser, source: &Atom) -> Option<Atom> {
+  let option = parser.javascript_options.create_require_option()?;
+  let (specifier, module) = option.split_once(" from ")?;
+  (!specifier.is_empty()
     && !module.is_empty()
-    && (source.as_ref() == module || (module == "module" && source.as_ref() == "node:module"))
-    && export_name.is_some_and(|export_name| export_name.as_ref() == specifier)
+    && (source.as_ref() == module || (module == "module" && source.as_ref() == "node:module")))
+    .then(|| specifier.into())
 }
 
 #[inline(never)]
@@ -176,6 +185,41 @@ fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &
 fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   let evaluated = parser.evaluate_expression(expr);
   evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
+}
+
+#[cold]
+#[inline(never)]
+fn is_create_require_namespace_member(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  let Some(member_expr) = expr.as_member() else {
+    return false;
+  };
+  let Some(namespace) = member_expr.obj.as_ident() else {
+    return false;
+  };
+  let Some(settings) = parser.get_tag_data::<ESMSpecifierData>(&namespace.sym, ESM_SPECIFIER_TAG)
+  else {
+    return false;
+  };
+  let namespace_import = settings.namespace_import;
+  let source = settings.source.clone();
+  let Some(member) = static_member_name(member_expr) else {
+    return false;
+  };
+  namespace_import
+    && create_require_import_specifier(parser, &source).is_some_and(|specifier| member == specifier)
+}
+
+#[cold]
+#[inline(never)]
+fn static_member_name(member_expr: &MemberExpr) -> Option<Atom> {
+  match &member_expr.prop {
+    MemberProp::Ident(ident) => Some(ident.sym.clone()),
+    MemberProp::Computed(computed) => match &*computed.expr {
+      Expr::Lit(Lit::Str(str)) => Some(str.value.to_atom_lossy().into_owned()),
+      _ => None,
+    },
+    MemberProp::PrivateName(_) => None,
+  }
 }
 
 #[cold]
@@ -1628,12 +1672,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
     if let Some(call) = init.as_call()
       && let Some(callee) = call.callee.as_expr()
-      && is_evaluated_create_require(parser, callee)
+      && (is_evaluated_create_require(parser, callee)
+        || is_create_require_namespace_member(parser, callee))
+      && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      if let Some(argument) = parse_create_require_argument(parser, call, false) {
-        tag_created_require_declarator(parser, call, &binding.id, argument);
-        return Some(true);
-      }
+      tag_created_require_declarator(parser, call, &binding.id, argument);
+      return Some(true);
     }
 
     if let Some(init) = init.as_new()
