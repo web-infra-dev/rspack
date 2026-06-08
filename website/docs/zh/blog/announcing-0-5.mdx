@@ -190,7 +190,7 @@ export default {
 
 ### 废弃入口配置惰性生效这一行为
 
-该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](https://v0.rspack.rs/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
+该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](https://v0.rspack.rs/zh/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
 
 当 `experiments.rspackFuture.disableApplyEntryLazily` 为 `false`，`options.entry` 仍然可以进行有效的修改在 `rspack(options)` 调用之后，但设置为 `true` 时将不能，并且该行为和 Webpack5 保持一致。
 
