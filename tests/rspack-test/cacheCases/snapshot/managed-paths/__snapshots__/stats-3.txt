@@ -1,0 +1,6 @@
+LOG from rspack.persistentCache
+<i> wrote make persistent cache to persistent cache in xx ms
+<i> wrote meta persistent cache to persistent cache in xx ms
+<i> wrote snapshot to persistent cache in xx ms
+<i> wrote build dependencies to persistent cache in xx ms
+<i> staged persistent cache in xx ms

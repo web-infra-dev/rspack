@@ -1,7 +1,13 @@
 LOG from rspack.persistentCache
 <i> persistent cache enabled
-<i> build dependencies are valid (4 tracked)
-<i> meta persistent cache recovery succeeded
-<i> snapshot restored with no changed dependencies
-<i> make persistent cache recovery succeeded
-<i> minimize persistent cache recovery succeeded
+<i> build dependencies are valid (4 tracked) in xx ms
+<i> meta persistent cache recovery succeeded in xx ms
+<i> snapshot restored with no changed dependencies in xx ms
+<i> make persistent cache recovery succeeded in xx ms
+<i> wrote make persistent cache to persistent cache in xx ms
+<i> minimize persistent cache recovery succeeded in xx ms
+<i> wrote minimize persistent cache to persistent cache in xx ms
+<i> wrote meta persistent cache to persistent cache in xx ms
+<i> wrote snapshot to persistent cache in xx ms
+<i> wrote build dependencies to persistent cache in xx ms
+<i> staged persistent cache in xx ms

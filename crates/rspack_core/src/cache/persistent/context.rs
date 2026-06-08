@@ -1,4 +1,7 @@
-use std::fmt::Write as _;
+use std::{
+  fmt::Write as _,
+  time::{Duration, Instant},
+};
 
 use rspack_paths::{ArcPath, ArcPathSet};
 
@@ -62,11 +65,13 @@ impl CacheContext {
   /// `initialized` flag in `PersistentCache::initialize`.
   #[tracing::instrument("Cache::Context::load_build_deps", skip_all)]
   pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
+    let start = Instant::now();
     match build_deps.validate(&*self.storage).await {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
         self.invalid = false;
         self.logger().info(format!(
-          "build dependencies are valid ({tracked_files} tracked)"
+          "build dependencies are valid ({tracked_files} tracked) in {}",
+          format_duration(start.elapsed())
         ));
       }
       Ok(BuildDepsValidationResult::Invalid {
@@ -108,8 +113,10 @@ impl CacheContext {
       return;
     }
 
+    let start = Instant::now();
     let logger = self.logger().clone();
     build_deps.add(&mut *self.storage, added, logger).await;
+    log_write_timing(self.logger(), "build dependencies", start);
   }
 
   /// Computes modified/removed paths from all snapshot scopes.
@@ -122,6 +129,8 @@ impl CacheContext {
     &mut self,
     snapshot: &Snapshot,
   ) -> Option<(bool, ArcPathSet, ArcPathSet)> {
+    let start = Instant::now();
+
     if !self.load_failed {
       let mut is_hot_start = false;
       let mut modified_paths = ArcPathSet::default();
@@ -155,15 +164,19 @@ impl CacheContext {
       if !self.load_failed {
         if is_hot_start {
           if modified_paths.is_empty() && removed_paths.is_empty() {
-            self
-              .logger()
-              .info("snapshot restored with no changed dependencies");
+            self.logger().info(format!(
+              "snapshot restored with no changed dependencies in {}",
+              format_duration(start.elapsed())
+            ));
           } else {
             self.logger().info(format!(
-              "snapshot restored with detected changed dependencies:\n{}",
+              "snapshot restored with detected changed dependencies in {}:\n{}",
+              format_duration(start.elapsed()),
               format_path_changes(&modified_paths, &removed_paths)
             ));
           }
+        } else {
+          log_read_timing(self.logger(), "snapshot", start);
         }
         return Some((is_hot_start, modified_paths, removed_paths));
       }
@@ -173,6 +186,7 @@ impl CacheContext {
     if !self.readonly {
       snapshot.reset(&mut *self.storage);
     }
+    log_read_timing(self.logger(), "snapshot", start);
     None
   }
 
@@ -189,6 +203,7 @@ impl CacheContext {
       return;
     }
 
+    let start = Instant::now();
     let (file_added, file_removed) = file_deps;
     let (context_added, context_removed) = context_deps;
     let (missing_added, missing_removed) = missing_deps;
@@ -204,6 +219,7 @@ impl CacheContext {
     snapshot
       .add(&mut *self.storage, SnapshotScope::MISSING, missing_added)
       .await;
+    log_write_timing(self.logger(), "snapshot", start);
   }
 
   /// Loads an occasion's artifact from storage.
@@ -212,12 +228,14 @@ impl CacheContext {
   /// invalid or recovery fails.
   #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
   pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::Artifact> {
+    let start = Instant::now();
     if !self.load_failed {
       match occasion.recovery(&*self.storage).await {
         Ok(artifact) => {
           self.logger().info(format!(
-            "{} persistent cache recovery succeeded",
-            occasion.name()
+            "{} persistent cache recovery succeeded in {}",
+            occasion.name(),
+            format_duration(start.elapsed())
           ));
           return Some(artifact);
         }
@@ -233,6 +251,7 @@ impl CacheContext {
     if !self.readonly {
       occasion.reset(&mut *self.storage);
     }
+    log_read_timing(self.logger(), occasion.name(), start);
     None
   }
 
@@ -243,7 +262,13 @@ impl CacheContext {
       return;
     }
 
+    let start = Instant::now();
     occasion.save(&mut *self.storage, artifact);
+    log_write_timing(
+      self.logger(),
+      &format!("{} persistent cache", occasion.name()),
+      start,
+    );
   }
 
   /// Enqueues a background persistence flush. No-op in readonly mode.
@@ -255,14 +280,24 @@ impl CacheContext {
       return;
     }
 
+    let start = Instant::now();
     self.storage.save();
+    self.logger().info(format!(
+      "staged persistent cache in {}",
+      format_duration(start.elapsed())
+    ));
   }
 
   /// Waits for all background storage writes to complete.
   ///
   /// Must be called before process exit to avoid losing buffered data.
   pub async fn flush_storage(&self) {
-    self.storage.flush().await
+    let start = Instant::now();
+    self.storage.flush().await;
+    self.logger().info(format!(
+      "flushed persistent cache to disk in {}",
+      format_duration(start.elapsed())
+    ));
   }
 
   /// Resets per-build state.
@@ -282,6 +317,24 @@ impl CacheContext {
       self.load_failed = self.invalid;
     }
   }
+}
+
+fn format_duration(duration: Duration) -> String {
+  format!("{:.3} ms", duration.as_secs_f64() * 1000.0)
+}
+
+fn log_read_timing(logger: &CompilationLogger, label: &str, start: Instant) {
+  logger.info(format!(
+    "read {label} from persistent cache in {}",
+    format_duration(start.elapsed())
+  ));
+}
+
+fn log_write_timing(logger: &CompilationLogger, label: &str, start: Instant) {
+  logger.info(format!(
+    "wrote {label} to persistent cache in {}",
+    format_duration(start.elapsed())
+  ));
 }
 
 fn format_path_changes(modified_paths: &ArcPathSet, removed_paths: &ArcPathSet) -> String {

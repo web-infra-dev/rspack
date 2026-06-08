@@ -6,3 +6,13 @@ LOG from rspack.persistentCache
 <w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-dir/test/test1.log
 <w>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-dir/test/test2
 <w>   - ...
+<i> read meta from persistent cache in xx ms
+<i> read snapshot from persistent cache in xx ms
+<i> read make from persistent cache in xx ms
+<i> wrote make persistent cache to persistent cache in xx ms
+<i> read minimize from persistent cache in xx ms
+<i> wrote minimize persistent cache to persistent cache in xx ms
+<i> wrote meta persistent cache to persistent cache in xx ms
+<i> wrote snapshot to persistent cache in xx ms
+<i> wrote build dependencies to persistent cache in xx ms
+<i> staged persistent cache in xx ms

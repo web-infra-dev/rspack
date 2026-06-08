@@ -253,7 +253,7 @@ export default {
 };
 ```
 
-The logs include key persistent cache events, such as whether persistent cache is enabled, whether build dependencies are valid, whether cache recovery succeeded, and why the persistent cache was invalidated. They may also include logs from other loggers.
+The logs include key persistent cache events, such as whether persistent cache is enabled, whether build dependencies are valid, whether cache recovery succeeded, and why the persistent cache was invalidated. They also include read and write timings for each cache phase (for example, build dependency validation, snapshot restore, occasion recovery, staging, and flushing to disk). They may also include logs from other loggers.
 
 If you only want to print logs from `rspack.persistentCache`, set `stats.logging` to `false` to disable logs from other loggers, and use `stats.loggingDebug` to include this logger:
 
