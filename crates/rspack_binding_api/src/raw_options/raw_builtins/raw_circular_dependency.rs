@@ -129,6 +129,8 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
   }
 }
 
+type OnDetectedArgs = FnArgs<(ModuleObject, Vec<String>)>;
+
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawCircularCheckRspackPluginOptions {
@@ -139,7 +141,7 @@ pub struct RawCircularCheckRspackPluginOptions {
   pub include: Option<RspackRegex>,
   #[debug(skip)]
   #[napi(ts_type = "(module: Module, paths: string[]) => void")]
-  pub on_detected: Option<ThreadsafeFunction<FnArgs<(ModuleObject, Vec<String>)>, ()>>,
+  pub on_detected: Option<ThreadsafeFunction<OnDetectedArgs, ()>>,
 }
 
 impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOptions {

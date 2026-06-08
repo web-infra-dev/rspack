@@ -317,7 +317,7 @@ impl<'a> CycleDetector<'a> {
     }
 
     let module_index = component[0];
-    if let Some(path) = find_cycle_path(&self.graph, module_index, &in_component) {
+    if let Some(path) = find_cycle_path(self.graph, module_index, &in_component) {
       cycle_paths.push(path);
     }
   }
@@ -431,7 +431,6 @@ fn should_ignore_dependency_type(ty: DependencyType) -> bool {
     | DependencyType::ExportInfoApi
     | DependencyType::StaticExports
     | DependencyType::LoaderImport
-    | DependencyType::ModuleDecorator
     | DependencyType::RstestModulePath
     | DependencyType::RstestMockModuleId
     | DependencyType::RstestHoistMock
