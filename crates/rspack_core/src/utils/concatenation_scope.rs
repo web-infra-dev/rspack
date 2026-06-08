@@ -307,6 +307,53 @@ mod tests {
   }
 
   #[test]
+  fn create_module_reference_preserves_option_branches() {
+    let (mut scope, referenced_module_id) = create_test_scope(7);
+    let options_cases = vec![
+      ModuleReferenceOptions::default(),
+      ModuleReferenceOptions {
+        ids: vec![Atom::from("named")],
+        direct_import: true,
+        asi_safe: Some(true),
+        ..Default::default()
+      },
+      ModuleReferenceOptions {
+        ids: vec![Atom::from("default"), Atom::from("named")],
+        call: true,
+        deferred_import: true,
+        asi_safe: Some(false),
+        ..Default::default()
+      },
+    ];
+
+    for options in options_cases {
+      let module_ref = scope.create_module_reference(&referenced_module_id, options.clone());
+      let module_ref_identifier = module_ref
+        .strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
+        .expect("should include module reference property access suffix");
+      let expected = ModuleReferenceOptions {
+        index: 7,
+        ..options
+      };
+
+      let stored = scope
+        .refs
+        .get(&referenced_module_id)
+        .and_then(|refs| refs.get(&module_ref))
+        .expect("should store created module reference");
+      assert_module_reference_options_eq(stored, &expected);
+
+      let lookup_key = Atom::from(module_ref_identifier);
+      let lookup = scope
+        .current_module
+        .module_references
+        .get(&lookup_key)
+        .expect("should store created module reference lookup");
+      assert_module_reference_options_eq(lookup, &expected);
+    }
+  }
+
+  #[test]
   fn match_module_reference_accepts_identifier_without_property_access_suffix() {
     let parsed = ConcatenationScope::match_module_reference(
       "__rspack_module_ref3_ns_call_directImport_deferredImport_asiSafe1__",
