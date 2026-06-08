@@ -72,6 +72,14 @@ it("should provide require.cache", () => {
 	const _require = _createRequire(import.meta.url);
 	expect(require.cache).toBe(_require.cache);
 	expect(require.cache).toBe(_createRequire(import.meta.url).cache);
+	const cacheMemberExtraEffects = [];
+	expect(
+		_createRequire(
+			import.meta.url,
+			cacheMemberExtraEffects.push("cache-member-extra")
+		).cache
+	).toBe(require.cache);
+	expect(cacheMemberExtraEffects).toEqual(["cache-member-extra"]);
 	expect(_require.cache.__rspackMissingCreateRequireCacheEntry).toBe(undefined);
 	expect(_require.cache["__rspackMissingCreateRequireCacheEntry"]).toBe(
 		undefined
@@ -477,7 +485,14 @@ it("should add warning on using require.main", () => {
 	let _require = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(_require.main).toBe(undefined);
 	expect(_require?.main).toBe(undefined);
-	expect(_createRequire(import.meta.url).main).toBe(undefined);
+	const unsupportedMemberExtraEffects = [];
+	expect(
+		_createRequire(
+			import.meta.url,
+			unsupportedMemberExtraEffects.push("unsupported-member-extra")
+		).main
+	).toBe(undefined);
+	expect(unsupportedMemberExtraEffects).toEqual(["unsupported-member-extra"]);
 	expect(_createRequire(import.meta.url).resolve).toBe(undefined);
 });
 

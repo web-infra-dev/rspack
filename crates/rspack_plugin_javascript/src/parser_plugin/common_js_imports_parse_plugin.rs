@@ -599,20 +599,31 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr
 }
 
 #[inline(never)]
-fn create_require_unsupported_member_replacement(
-  parser: &mut JavascriptParser,
-  call_expr: &CallExpr,
-  argument: &CreateRequireArgument,
-) -> Box<str> {
-  if argument.replace_argument {
-    return "undefined".into();
-  }
-  let side_effects = create_require_url_arg_side_effects(parser, &call_expr.args[0].expr);
+fn create_require_unsupported_member_replacement(side_effects: &[String]) -> Box<str> {
   if side_effects.is_empty() {
     "undefined".into()
   } else {
     format!("({}, undefined)", side_effects.join(", ")).into()
   }
+}
+
+#[inline(never)]
+fn wrap_created_require_member_with_side_effects(
+  parser: &mut JavascriptParser,
+  span: Span,
+  side_effects: &[String],
+) {
+  if side_effects.is_empty() {
+    return;
+  }
+  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    (span.real_lo(), span.real_lo()).into(),
+    format!("({}, ", side_effects.join(", ")).into(),
+  )));
+  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    (span.real_hi(), span.real_hi()).into(),
+    ")".into(),
+  )));
 }
 
 #[inline(never)]
@@ -2035,8 +2046,9 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_handle_create_require_specifier(parser, for_name)
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
-      let unsupported_replacement =
-        create_require_unsupported_member_replacement(parser, call_expr, &argument);
+      let side_effects =
+        wrap_create_require_call_with_extra_arg_side_effects(parser, call_expr, &argument);
+      let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       handle_created_require_member(
         parser,
         member_expr.span(),
@@ -2044,6 +2056,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         members,
         unsupported_replacement,
       );
+      if members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
+      {
+        wrap_created_require_member_with_side_effects(parser, member_expr.span(), &side_effects);
+      }
       walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
     }
@@ -2091,11 +2109,13 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_handle_create_require_specifier(parser, for_name)
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
-      let unsupported_replacement =
-        create_require_unsupported_member_replacement(parser, inner_call_expr, &argument);
+      let side_effects =
+        wrap_create_require_call_with_extra_arg_side_effects(parser, inner_call_expr, &argument);
+      let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
+      let member_span = call_expr.callee.span();
       handle_created_require_member(
         parser,
-        call_expr.callee.span(),
+        member_span,
         require_cache_range(
           call_expr.callee.as_expr()?.as_member()?,
           member_ranges,
@@ -2104,6 +2124,12 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         members,
         unsupported_replacement,
       );
+      if members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
+      {
+        wrap_created_require_member_with_side_effects(parser, member_span, &side_effects);
+      }
       walk_create_require_ignored_args(parser, inner_call_expr);
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
