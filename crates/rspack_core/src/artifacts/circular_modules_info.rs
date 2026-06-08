@@ -388,50 +388,53 @@ fn find_cycle_path(
 fn should_ignore_dependency_type(ty: DependencyType) -> bool {
   matches!(
     ty,
+    // Self references
+    DependencyType::CjsSelfReference
+    | DependencyType::ModuleDecorator
     // Async boundaries. These edges do not synchronously evaluate the target
     // module while the current module is initializing.
-    DependencyType::DynamicImport
-      | DependencyType::DynamicImportEager
-      | DependencyType::DynamicImportWeak
-      | DependencyType::ImportContext
-      | DependencyType::LazyImport
-      | DependencyType::ContextElement(ContextTypePrefix::Import)
-      | DependencyType::RequireEnsure
-      | DependencyType::RequireEnsureItem
-      // Resolve/id-only references. They need a target module for resolution or
-      // ID generation, but do not evaluate the target module.
-      | DependencyType::ImportMetaResolve
-      | DependencyType::ImportMetaResolveContext
-      | DependencyType::RequireResolve
-      | DependencyType::RequireResolveContext
-      | DependencyType::IsIncluded
-      // HMR accept/decline references are invoked by the hot runtime later, not
-      // by normal module initialization.
-      | DependencyType::ImportMetaHotAccept
-      | DependencyType::ImportMetaHotDecline
-      | DependencyType::ModuleHotAccept
-      | DependencyType::ModuleHotDecline
-      // URL, worker, asset, and CSS resource references do not synchronously
-      // execute the referenced module in the current JavaScript module graph.
-      | DependencyType::NewUrl
-      | DependencyType::NewUrlContext
-      | DependencyType::NewWorker
-      | DependencyType::CreateScriptUrl
-      | DependencyType::CssUrl
-      | DependencyType::CssImport
-      | DependencyType::CssCompose
-      | DependencyType::CssExport
-      | DependencyType::CssLocalIdent
-      | DependencyType::CssSelfReferenceLocalIdent
-      | DependencyType::ExtractCSS
-      // Build-time or metadata-only dependencies.
-      | DependencyType::ExportInfoApi
-      | DependencyType::StaticExports
-      | DependencyType::LoaderImport
-      | DependencyType::ModuleDecorator
-      | DependencyType::RstestModulePath
-      | DependencyType::RstestMockModuleId
-      | DependencyType::RstestHoistMock
-      | DependencyType::RstestDynamicImportOrigin
+    | DependencyType::DynamicImport
+    | DependencyType::DynamicImportEager
+    | DependencyType::DynamicImportWeak
+    | DependencyType::ImportContext
+    | DependencyType::LazyImport
+    | DependencyType::ContextElement(ContextTypePrefix::Import)
+    | DependencyType::RequireEnsure
+    | DependencyType::RequireEnsureItem
+    // Resolve/id-only references. They need a target module for resolution or
+    // ID generation, but do not evaluate the target module.
+    | DependencyType::ImportMetaResolve
+    | DependencyType::ImportMetaResolveContext
+    | DependencyType::RequireResolve
+    | DependencyType::RequireResolveContext
+    | DependencyType::IsIncluded
+    // HMR accept/decline references are invoked by the hot runtime later, not
+    // by normal module initialization.
+    | DependencyType::ImportMetaHotAccept
+    | DependencyType::ImportMetaHotDecline
+    | DependencyType::ModuleHotAccept
+    | DependencyType::ModuleHotDecline
+    // URL, worker, asset, and CSS resource references do not synchronously
+    // execute the referenced module in the current JavaScript module graph.
+    | DependencyType::NewUrl
+    | DependencyType::NewUrlContext
+    | DependencyType::NewWorker
+    | DependencyType::CreateScriptUrl
+    | DependencyType::CssUrl
+    | DependencyType::CssImport
+    | DependencyType::CssCompose
+    | DependencyType::CssExport
+    | DependencyType::CssLocalIdent
+    | DependencyType::CssSelfReferenceLocalIdent
+    | DependencyType::ExtractCSS
+    // Build-time or metadata-only dependencies.
+    | DependencyType::ExportInfoApi
+    | DependencyType::StaticExports
+    | DependencyType::LoaderImport
+    | DependencyType::ModuleDecorator
+    | DependencyType::RstestModulePath
+    | DependencyType::RstestMockModuleId
+    | DependencyType::RstestHoistMock
+    | DependencyType::RstestDynamicImportOrigin
   )
 }

@@ -1,4 +1,3 @@
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   CircularModulesInfo, Compilation, CompilationOptimizeModules, CompilerMake, Plugin,
 };
