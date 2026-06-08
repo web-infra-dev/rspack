@@ -581,8 +581,9 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr
     .iter()
     .skip(start)
     .filter_map(|arg| {
+      let source = source_for_span(parser, arg.expr.span())?;
       if arg.spread.is_some() {
-        return None;
+        return Some(format!("[...({source})]"));
       }
       if is_side_effect_free_ignored_url_arg(parser, &arg.expr)
         || arg
@@ -592,7 +593,7 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr
       {
         return None;
       }
-      source_for_span(parser, arg.expr.span())
+      Some(source)
     })
     .collect::<Vec<_>>()
 }
