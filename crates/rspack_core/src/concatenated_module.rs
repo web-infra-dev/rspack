@@ -1441,7 +1441,7 @@ impl Module for ConcatenatedModule {
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
-          if !ConcatenationScope::is_module_reference(name.as_str()) {
+          if !ConcatenationScope::has_module_reference_prefix(name.as_str()) {
             continue;
           }
           if let Some(match_info) = info.module_references.get(name) {
@@ -1452,6 +1452,19 @@ impl Module for ConcatenatedModule {
               match_info,
               build_meta.strict_esm_module,
             ));
+          } else if let Some(stripped_name) =
+            ConcatenationScope::strip_module_reference_property_access_suffix(name.as_str())
+          {
+            let stripped_name = Atom::from(stripped_name);
+            if let Some(match_info) = info.module_references.get(&stripped_name) {
+              let referenced_info_id = &references_info[match_info.index].0;
+              refs.push((
+                reference.clone(),
+                referenced_info_id,
+                match_info,
+                build_meta.strict_esm_module,
+              ));
+            }
           }
         }
 

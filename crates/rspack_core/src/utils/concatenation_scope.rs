@@ -222,8 +222,12 @@ impl ConcatenationScope {
     })
   }
 
-  pub fn is_module_reference(name: &str) -> bool {
+  pub fn has_module_reference_prefix(name: &str) -> bool {
     name.starts_with(MODULE_REFERENCE_PREFIX)
+  }
+
+  pub fn strip_module_reference_property_access_suffix(name: &str) -> Option<&str> {
+    name.strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
   }
 
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
@@ -380,12 +384,26 @@ mod tests {
   }
 
   #[test]
-  fn is_module_reference_checks_prefix() {
-    assert!(ConcatenationScope::is_module_reference(
+  fn has_module_reference_prefix_checks_prefix() {
+    assert!(ConcatenationScope::has_module_reference_prefix(
       "__rspack_module_ref1_0__"
     ));
-    assert!(!ConcatenationScope::is_module_reference(
+    assert!(!ConcatenationScope::has_module_reference_prefix(
       "__webpack_module_ref1_0__"
     ));
+  }
+
+  #[test]
+  fn strip_module_reference_property_access_suffix_strips_full_reference_suffix() {
+    assert_eq!(
+      ConcatenationScope::strip_module_reference_property_access_suffix(
+        "__rspack_module_ref1_0__._"
+      ),
+      Some("__rspack_module_ref1_0__")
+    );
+    assert_eq!(
+      ConcatenationScope::strip_module_reference_property_access_suffix("__rspack_module_ref1_0__"),
+      None
+    );
   }
 }
