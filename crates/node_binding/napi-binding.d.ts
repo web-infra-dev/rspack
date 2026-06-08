@@ -617,6 +617,7 @@ export declare enum BuiltinPluginName {
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
   CircularModulesInfoPlugin = 'CircularModulesInfoPlugin',
+  CircularCheckRspackPlugin = 'CircularCheckRspackPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
@@ -1918,6 +1919,14 @@ export interface RawCacheOptionsPersistent {
   readonly?: boolean
 }
 
+export interface RawCircularCheckRspackPluginOptions {
+  failOnError?: boolean
+  exclude?: RegExp
+  include?: RegExp
+  onDetected?: (module: Module, paths: string[]) => void
+}
+
+/** Deprecated. Use `RawCircularCheckRspackPluginOptions` instead. */
 export interface RawCircularDependencyRspackPluginOptions {
   failOnError?: boolean
   exclude?: RegExp
@@ -2264,6 +2273,7 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  sourceImport: boolean
   pureFunctions: boolean
 }
 
@@ -2468,6 +2478,7 @@ export interface RawJavascriptParserOptions {
   commonjsMagicComments?: boolean
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
 deferImport?: boolean
+sourceImport?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
@@ -2679,6 +2690,7 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
+  phase?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>

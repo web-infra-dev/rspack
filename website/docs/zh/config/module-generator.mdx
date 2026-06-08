@@ -593,7 +593,7 @@ export default {
 - **类型：** `string`
 - **默认值：** development 模式下，如果 [`output.uniqueName`](/config/output#outputuniquename) 非空则为 `[uniqueName]-[id]-[local]`，否则为 `[id]-[local]`；production 模式下为 `[fullhash]`。
 
-自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
+自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/filename-placeholders#file-占位符)和[模块级别](/config/filename-placeholders#module-占位符)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
 ```js title="rspack.config.mjs"
 export default {

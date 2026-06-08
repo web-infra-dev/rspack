@@ -23,4 +23,4 @@ webpack/runtime/make_namespace_object xx bytes {main} [code generated]
   [no exports]
   [used exports unknown]
   
-1970-04-20 12<LINE_COL>: Rspack x.x.x compiled successfully in X s (7d8dc8543f75d258)
+1970-04-20 12<LINE_COL>: Rspack x.x.x compiled successfully in X s (c8efd3f0c70d4f0e)

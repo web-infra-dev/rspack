@@ -81,13 +81,14 @@ pnpm run bench:rust:local -- --bench rspack_sources
 The script expands to:
 
 ```bash
-mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation
+mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation
 ```
 
 This command:
 
 - Creates a stable temporary directory for CodSpeed and Valgrind files
 - Sets `TMPDIR` so the temporary files are written to that directory
+- Sets `MIMALLOC_PURGE_DELAY=-1` to keep mimalloc delayed purging from calling `clock_gettime` during CPU simulation measurements
 - Sets `BENCH_MODE=simulation` to match the single-threaded CI simulation environment
 - Sets `RSPACK_BENCHCASES_DIR` to the prepared benchmark fixtures
 - Wraps `cargo codspeed run -m simulation` in `codspeed run -m simulation` so local runs use the CodSpeed runner environment instead of only checking benchmarks

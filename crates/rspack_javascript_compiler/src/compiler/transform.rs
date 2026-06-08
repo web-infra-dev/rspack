@@ -319,9 +319,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
     let minify = built_input.minify;
     let source_map_config = SourceMapConfig {
-      enable: source_map_kind.source_map(),
-      inline_sources_content: source_map_kind.source_map(),
-      emit_columns: !source_map_kind.cheap(),
+      source_map_kind,
       names: Default::default(),
     };
 

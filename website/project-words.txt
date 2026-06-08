@@ -54,6 +54,7 @@ externalstypecommonjs
 faga295
 fansenze
 fargs
+fetchcompileasyncwasmplugin
 feishu
 fi3ework
 fnames

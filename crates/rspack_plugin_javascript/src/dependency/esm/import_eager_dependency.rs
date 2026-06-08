@@ -37,7 +37,7 @@ impl ImportEagerDependency {
     phase: ImportPhase,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,

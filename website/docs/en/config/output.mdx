@@ -27,7 +27,7 @@ The name of the file to be output by the Asset module. This value can be overrid
 
 :::info Asset module output as a separate file
 
-- Module type is `'asset'` and asset is set to satisfy [rules[].parser.dataUrlCondition](/config/module-rules#rulesparserdataurlcondition)
+- Module type is `'asset'` and asset is set to satisfy [rules[].parser.dataUrlCondition](/config/module-parser#assetdataurlcondition)
 - Module type is `'asset/resource'`
 
 :::
@@ -415,7 +415,7 @@ export default {
 ## output.enabledWasmLoadingTypes
 
 - **Type:** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
-- **Default:** Determined by [`output.wasmLoading`](#outputwasmloading) and [`output.workerWasmLoading`](#workerWasmLoading)
+- **Default:** Determined by [`output.wasmLoading`](#outputwasmloading) and [`output.workerWasmLoading`](#outputworkerwasmloading)
 
 List of Wasm loading types enabled for use by entry points.
 

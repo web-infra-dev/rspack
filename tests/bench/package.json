@@ -10,13 +10,13 @@
     "@codspeed/tinybench-plugin": "^5.5.0",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-react-refresh": "^2.0.1",
-    "@types/react": "^19.2.15",
+    "@rspack/plugin-react-refresh": "^2.0.2",
+    "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "tinybench": "^5.1.0"
   },
   "dependencies": {
-    "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   }
 }

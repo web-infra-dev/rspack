@@ -355,13 +355,23 @@ impl RstestParserPlugin {
           );
           parser.add_dependency(Box::new(dep));
 
-          parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span().into(),
-            call_expr.callee.span().into(),
-            lit_str.clone(),
-            hoist,
-            method,
-          )));
+          parser.add_presentational_dependency(Box::new(
+            MockMethodDependency::new(
+              call_expr.span().into(),
+              call_expr.callee.span().into(),
+              lit_str.clone(),
+              hoist,
+              method,
+            )
+            // has_b=false (1-arg `rs.unmock('X')`): append request after the id.
+            // has_b=true (1-arg auto-mock): request rides the synthetic-target
+            // suffix below instead — skip here to avoid a same-offset collision.
+            .with_request_arg_end(if has_b {
+              None
+            } else {
+              Some(first_arg.span().real_hi())
+            }),
+          ));
 
           if has_b {
             let second_arg = Span::new(
@@ -378,7 +388,9 @@ impl RstestParserPlugin {
               } else {
                 rspack_core::DependencyCategory::CommonJS
               },
-              None,
+              // Render the synthetic target id followed by the clean request
+              // literal, yielding `rstest_mock(<id>, <targetId>, "X")`.
+              Some(format!(", {}", json_stringify_str(&lit_str))),
             )));
           }
         }
@@ -408,13 +420,17 @@ impl RstestParserPlugin {
             None,
           );
 
-          parser.add_presentational_dependency(Box::new(MockMethodDependency::new(
-            call_expr.span().into(),
-            call_expr.callee.span().into(),
-            lit_str,
-            hoist,
-            method,
-          )));
+          parser.add_presentational_dependency(Box::new(
+            MockMethodDependency::new(
+              call_expr.span().into(),
+              call_expr.callee.span().into(),
+              lit_str,
+              hoist,
+              method,
+            )
+            // 2-arg `rs.mock('X', factory)`: append request after the factory.
+            .with_request_arg_end(Some(second_arg.span().real_hi())),
+          ));
           parser.add_dependency(Box::new(module_dep));
         } else {
           parser.add_error(

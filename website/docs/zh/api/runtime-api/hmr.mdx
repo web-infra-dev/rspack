@@ -215,7 +215,7 @@ if (require.cache[moduleId]) {
 }
 ```
 
-T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose-or-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose-or-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
+T> 当调用 `invalidate` 时，将最终调用 [`dispose`](#dispose或-adddisposehandler) 处理函数并填充 `module.hot.data`。如果未注册 [`dispose`](#dispose或-adddisposehandler) 处理程序，则将空对象提供给 `module.hot.data`.
 
 W> 通过一次次的调用 `invalidate`，不要陷入 `invalidate` 循环。这将导致栈溢出并且 HMR 进入 `fail` 状态。
 

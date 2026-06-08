@@ -214,8 +214,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     };
     let is_circular_module = compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&module.identifier()));
+      .is_circular_module(&module.identifier());
     let binding = if matches!(is_circular_module, Some(false)) && dep.const_value.is_some() {
       ESMExportBinding::Value(dep.value.clone())
     } else {

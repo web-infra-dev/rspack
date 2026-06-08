@@ -190,7 +190,7 @@ export default {
 
 ### 废弃入口配置惰性生效这一行为
 
-该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
+该行为通过 [experiments.rspackFuture.disableApplyEntryLazily](https://v0.rspack.rs/zh/config/experiments#experimentsrspackfuturedisableapplyentrylazily) 进行废弃，该配置在 v0.4.5 中引入，在 v0.5.0 中默认启用，并将在 v0.6.0 中移除。
 
 当 `experiments.rspackFuture.disableApplyEntryLazily` 为 `false`，`options.entry` 仍然可以进行有效的修改在 `rspack(options)` 调用之后，但设置为 `true` 时将不能，并且该行为和 Webpack5 保持一致。
 
@@ -198,7 +198,7 @@ export default {
 
 ## 迁移指南
 
-v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四个破坏性更新，如果你正在使用 Rspack 开发应用，那么你只需要关注其中两个。因此，如果你已经迁移到 v0.4+ 并且没有弃用警告，那么 v0.5.0 将很容易迁移，如果你还没有，请查看 [v0.4.0 迁移指南](https://rspack.rs/blog/announcing-0.4#migration-guide).
+v0.5.0 移除了许多已经弃用的功能，除此之外，v0.5.0 引入了四个破坏性更新，如果你正在使用 Rspack 开发应用，那么你只需要关注其中两个。因此，如果你已经迁移到 v0.4+ 并且没有弃用警告，那么 v0.5.0 将很容易迁移，如果你还没有，请查看 [v0.4.0 迁移指南](/blog/announcing-0-4#migration-guide).
 
 ### 添加 resolve.extensions
 
