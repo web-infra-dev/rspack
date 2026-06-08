@@ -13,6 +13,7 @@ const warnings = [
 	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/,
+	/The accessed createRequire\(\) member is not supported by Rspack/,
 	/The accessed createRequire\(\) member is not supported by Rspack/
 ];
 

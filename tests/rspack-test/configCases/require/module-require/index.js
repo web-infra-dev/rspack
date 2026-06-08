@@ -422,6 +422,7 @@ it("should add warning on using as expression", () => {
 it("should add warning on using require.main", () => {
 	let _require = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(_require.main).toBe(undefined);
+	expect(_require?.main).toBe(undefined);
 	expect(_createRequire(import.meta.url).main).toBe(undefined);
 	expect(_createRequire(import.meta.url).resolve).toBe(undefined);
 });

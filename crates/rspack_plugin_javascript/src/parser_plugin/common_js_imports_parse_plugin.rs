@@ -1498,13 +1498,6 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if members
-        .first()
-        .is_none_or(|member| member.as_ref() != "cache")
-        && get_non_optional_part(members, members_optionals).len() != members.len()
-      {
-        return None;
-      }
       handle_created_require_member(
         parser,
         _expr.span(),
