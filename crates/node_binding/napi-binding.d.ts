@@ -1926,6 +1926,7 @@ export interface RawCircularCheckRspackPluginOptions {
   onDetected?: (module: Module, paths: string[]) => void
 }
 
+/** Deprecated. Use `RawCircularCheckRspackPluginOptions` instead. */
 export interface RawCircularDependencyRspackPluginOptions {
   failOnError?: boolean
   exclude?: RegExp

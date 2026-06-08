@@ -28,6 +28,7 @@ fn ignore_pattern_to_entry(
 type ConnectionPattern = Either<String, RspackRegex>;
 type CycleHookParams = (String, Vec<String>);
 
+/// Deprecated. Use `RawCircularCheckRspackPluginOptions` instead.
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawCircularDependencyRspackPluginOptions {

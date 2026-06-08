@@ -213,6 +213,7 @@ pub type CycleHandlerFn =
   Box<dyn Fn(String, Vec<String>) -> BoxFuture<'static, Result<()>> + Sync + Send>;
 pub type CompilationHookFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
+/// Deprecated. Use `CircularCheckRspackPluginOptions` instead.
 #[derive(Debug)]
 pub struct CircularDependencyRspackPluginOptions {
   /// When `true`, the plugin will emit Error diagnostics rather than the
@@ -237,6 +238,7 @@ pub struct CircularDependencyRspackPluginOptions {
   pub on_end: Option<CompilationHookFn>,
 }
 
+/// Deprecated. Use `CircularCheckRspackPlugin` instead.
 #[plugin]
 #[derive(Debug)]
 pub struct CircularDependencyRspackPlugin {
