@@ -222,6 +222,10 @@ impl ConcatenationScope {
     })
   }
 
+  pub fn is_module_reference(name: &str) -> bool {
+    name.starts_with(MODULE_REFERENCE_PREFIX)
+  }
+
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
     matches!(
       self.modules_map.get(module).expect("should have module"),
@@ -373,5 +377,15 @@ mod tests {
     assert!(
       ConcatenationScope::match_module_reference("__rspack_module_ref1_ns_asiSafe2__").is_none()
     );
+  }
+
+  #[test]
+  fn is_module_reference_checks_prefix() {
+    assert!(ConcatenationScope::is_module_reference(
+      "__rspack_module_ref1_0__"
+    ));
+    assert!(!ConcatenationScope::is_module_reference(
+      "__webpack_module_ref1_0__"
+    ));
   }
 }
