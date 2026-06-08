@@ -49,6 +49,18 @@ it("should resolve using created require", () => {
 	const require = _createRequire(import.meta.url);
 	expect(require.resolve("./b")).toBe("./b.js");
 	expect(_createRequire(import.meta.url).resolve("./b")).toBe("./b.js");
+	const resolveSideEffects = [];
+	expect(
+		_createRequire(
+			new URL(
+				"./foo/c.js",
+				import.meta.url,
+				resolveSideEffects.push("resolve-url-extra")
+			),
+			resolveSideEffects.push("resolve-extra")
+		).resolve("./a")
+	).toMatch(/[\\/]foo[\\/]a\.js$/);
+	expect(resolveSideEffects).toEqual(["resolve-url-extra", "resolve-extra"]);
 });
 
 it("should preserve optional created require members", () => {

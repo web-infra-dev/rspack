@@ -2143,7 +2143,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
         return Some(true);
       }
-      let context = parse_create_require_argument(parser, inner_call_expr, false)?.context;
+      let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
+      let side_effects =
+        wrap_create_require_call_with_extra_arg_side_effects(parser, inner_call_expr, &argument);
+      wrap_created_require_member_with_side_effects(parser, call_expr.span(), &side_effects);
+      let context = argument.context;
       walk_create_require_ignored_args(parser, inner_call_expr);
       self.process_resolve(parser, call_expr, false, Some(context));
       return Some(true);
