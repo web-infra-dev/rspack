@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@rstack-dev/doc-ui": "1.14.4",
-    "axios": "^1.16.1",
+    "axios": "^1.17.0",
     "markdown-to-jsx": "^9.8.1",
     "mermaid": "^11.15.0",
     "react": "^19.2.7",
