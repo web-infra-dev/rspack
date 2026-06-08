@@ -134,6 +134,13 @@ it("should provide dependency context", () => {
 			"./namespace-direct-only"
 		)
 	).toBe("__rspackDirectNamespaceCreateRequire");
+	const namespaceCreateRequire = moduleNs.createRequire;
+	const namespaceAliasRequire = namespaceCreateRequire(
+		new URL("./foo/c.js", import.meta.url)
+	);
+	expect(namespaceAliasRequire("./namespace-alias-only")).toBe(
+		"__rspackAliasNamespaceCreateRequire"
+	);
 	const _require1 = _createRequire(new URL("./foo/", import.meta.url));
 	expect(_require1("./c")).toBe(5);
 	expect(

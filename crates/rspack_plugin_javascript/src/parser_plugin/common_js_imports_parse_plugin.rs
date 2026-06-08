@@ -1726,8 +1726,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return Some(true);
     }
 
-    if let Some(init) = init.as_ident()
-      && is_create_require_specifier(parser, &init.sym)
+    if let Some(init_ident) = init.as_ident()
+      && is_create_require_specifier(parser, &init_ident.sym)
       && let Some(binding) = declarator.name.as_ident()
     {
       parser.define_variable(binding.id.sym.clone());
@@ -1735,6 +1735,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
 
     let binding = declarator.name.as_ident()?;
+
+    if is_create_require_namespace_member(parser, init) {
+      parser.define_variable(binding.id.sym.clone());
+      tag_create_require(parser, binding.id.sym.clone());
+    }
 
     if let Some(call) = init.as_call()
       && let Some(callee) = call.callee.as_expr()
