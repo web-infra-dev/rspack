@@ -50,10 +50,10 @@ it('should ensure max size fit', () => {
 
 	expect(chunks.size).toBe(4)
 
-	expect(chunks.get('main~1')).toBeDefined()
-	expect(chunks.get('main~1').modules.length).toBe(3)
-	expect(chunks.get('main~2')).toBeDefined()
-	expect(chunks.get('main~2').modules.length).toBe(3)
-	expect(chunks.get('main~3')).toBeDefined()
-	expect(chunks.get('main~3').modules.length).toBe(1)
+	expect(chunks.get('main-1')).toBeDefined()
+	expect(chunks.get('main-1').modules.length).toBe(3)
+	expect(chunks.get('main-2')).toBeDefined()
+	expect(chunks.get('main-2').modules.length).toBe(3)
+	expect(chunks.get('main-3')).toBeDefined()
+	expect(chunks.get('main-3').modules.length).toBe(1)
 })
