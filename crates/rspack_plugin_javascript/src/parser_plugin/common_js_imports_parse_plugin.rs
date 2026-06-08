@@ -583,6 +583,43 @@ fn create_require_unsupported_member_replacement(
   }
 }
 
+#[inline(never)]
+fn create_require_extra_arg_side_effects(
+  parser: &JavascriptParser,
+  call_expr: &CallExpr,
+) -> Vec<String> {
+  call_expr
+    .args
+    .iter()
+    .skip(1)
+    .filter_map(|arg| {
+      if arg.spread.is_some() {
+        return None;
+      }
+      source_for_span(parser, arg.expr.span())
+    })
+    .collect::<Vec<_>>()
+}
+
+#[inline(never)]
+fn wrap_create_require_call_with_extra_arg_side_effects(
+  parser: &mut JavascriptParser,
+  call_expr: &CallExpr,
+) {
+  let side_effects = create_require_extra_arg_side_effects(parser, call_expr);
+  if side_effects.is_empty() {
+    return;
+  }
+  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    (call_expr.span.real_lo(), call_expr.span.real_lo()).into(),
+    format!("({}, ", side_effects.join(", ")).into(),
+  )));
+  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    (call_expr.span.real_hi(), call_expr.span.real_hi()).into(),
+    ")".into(),
+  )));
+}
+
 #[cold]
 #[inline(never)]
 fn add_create_require_warning(parser: &mut JavascriptParser, message: &str, span: Span) {
@@ -1693,15 +1730,13 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     if !should_handle_create_require_specifier(parser, for_name) {
       return None;
     }
-    if !ignored_url_args_are_side_effect_free_from(parser, &expr.args, 1) {
-      return None;
-    }
     let argument = parse_create_require_argument(parser, expr, false)?;
     if !argument.replace_argument
       && !is_absolute_file_url_constructor_arg(parser, &expr.args[0].expr)
     {
       return None;
     }
+    wrap_create_require_call_with_extra_arg_side_effects(parser, expr);
     let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
