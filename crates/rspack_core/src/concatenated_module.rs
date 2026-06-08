@@ -50,11 +50,12 @@ use crate::{
   ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
   InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  ModuleIdentifier, ModuleLayer, ModuleReferenceOptions, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -314,6 +315,7 @@ pub struct ConcatenatedModuleInfo {
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub module_references: HashMap<Atom, ModuleReferenceOptions>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -1439,52 +1441,33 @@ impl Module for ConcatenatedModule {
         let mut refs = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
-          let match_result = ConcatenationScope::match_module_reference(name.as_str());
-          if let Some(match_info) = match_result {
+          if let Some(match_info) = info.module_references.get(name) {
             let referenced_info_id = &references_info[match_info.index].0;
             refs.push((
               reference.clone(),
               referenced_info_id,
-              match_info
-                .ids
-                .into_iter()
-                .map(|item| Atom::from(item.as_str()))
-                .collect::<Vec<_>>(),
-              match_info.call,
-              !match_info.direct_import,
-              match_info.deferred_import,
+              match_info,
               build_meta.strict_esm_module,
-              match_info.asi_safe,
             ));
           }
         }
 
         let mut changes = vec![];
-        for (
-          reference_ident,
-          referenced_info_id,
-          export_name,
-          call,
-          call_context,
-          deferred_import,
-          strict_esm_module,
-          asi_safe,
-        ) in refs
-        {
+        for (reference_ident, referenced_info_id, match_info, strict_esm_module) in refs {
           let final_name = Self::get_final_name(
             compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
             &compilation.exports_info_artifact,
             &compilation.module_static_cache,
             referenced_info_id,
-            export_name,
+            match_info.ids.clone(),
             &module_to_info_map,
             runtime,
-            deferred_import,
-            call,
-            call_context,
+            match_info.deferred_import,
+            match_info.call,
+            !match_info.direct_import,
             strict_esm_module,
-            asi_safe,
+            match_info.asi_safe,
             &context,
           );
 

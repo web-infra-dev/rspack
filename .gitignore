@@ -198,5 +198,8 @@ rstack-examples/
 .aider
 .codex
 
+# ignore known coding support frameworks
+.codegraph/
+
 # rstest event report files
 /*-report.txt

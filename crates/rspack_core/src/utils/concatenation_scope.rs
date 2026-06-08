@@ -121,39 +121,39 @@ impl ConcatenationScope {
   pub fn create_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    options: ModuleReferenceOptions,
+    mut options: ModuleReferenceOptions,
   ) -> String {
     let info = self
       .modules_map
       .get(module)
       .expect("should have module info");
 
-    let export_data = if !options.ids.is_empty() {
-      hex::encode(serde_json::to_string(&options.ids).expect("should serialize to json string"))
-    } else {
-      "ns".to_string()
-    };
+    options.index = info.index();
 
     let mut index_buffer = itoa::Buffer::new();
-    let index_str = index_buffer.format(info.index());
-    let mut module_ref = String::with_capacity(index_str.len() + export_data.len() + 64);
-    module_ref.push_str("__rspack_module_ref");
-    module_ref.push_str(index_str);
-    module_ref.push('_');
-    module_ref.push_str(&export_data);
-    if options.call {
-      module_ref.push_str("_call");
-    }
-    if options.direct_import {
-      module_ref.push_str("_directImport");
-    }
-    if options.deferred_import {
-      module_ref.push_str("_deferredImport");
-    }
-    if let Some(asi_safe) = options.asi_safe {
-      module_ref.push_str(if asi_safe { "_asiSafe1" } else { "_asiSafe0" });
-    }
-    module_ref.push_str("__._");
+    let index_str = index_buffer.format(options.index);
+    let mut reference_index_buffer = itoa::Buffer::new();
+    let reference_index_str =
+      reference_index_buffer.format(self.current_module.module_references.len());
+    let mut module_ref_identifier =
+      String::with_capacity(index_str.len() + reference_index_str.len() + 32);
+    module_ref_identifier.push_str(MODULE_REFERENCE_PREFIX);
+    module_ref_identifier.push_str(index_str);
+    module_ref_identifier.push('_');
+    module_ref_identifier.push_str(reference_index_str);
+    module_ref_identifier.push_str("__");
+
+    self
+      .current_module
+      .module_references
+      .insert(Atom::from(module_ref_identifier.as_str()), options.clone());
+
+    let mut module_ref = String::with_capacity(
+      module_ref_identifier.len() + MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX.len(),
+    );
+    module_ref.push_str(&module_ref_identifier);
+    module_ref.push_str(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX);
+
     let entry = self.refs.entry(*module).or_default();
     entry.insert(module_ref.clone(), options);
 
@@ -269,7 +269,7 @@ mod tests {
   }
 
   #[test]
-  fn create_module_reference_round_trips_through_matcher() {
+  fn create_module_reference_stores_lookup_and_legacy_refs() {
     let (mut scope, referenced_module_id) = create_test_scope(7);
     let options = ModuleReferenceOptions {
       ids: vec![Atom::from("default"), Atom::from("named")],
@@ -281,21 +281,29 @@ mod tests {
     };
 
     let module_ref = scope.create_module_reference(&referenced_module_id, options.clone());
+    assert!(module_ref.ends_with(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX));
+    let module_ref_identifier = module_ref
+      .strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
+      .expect("should include module reference property access suffix");
+    let expected = ModuleReferenceOptions {
+      index: 7,
+      ..options
+    };
 
     let stored = scope
       .refs
       .get(&referenced_module_id)
       .and_then(|refs| refs.get(&module_ref))
       .expect("should store created module reference");
-    assert_module_reference_options_eq(stored, &options);
+    assert_module_reference_options_eq(stored, &expected);
 
-    let parsed = ConcatenationScope::match_module_reference(&module_ref)
-      .expect("should parse full module reference");
-    let expected = ModuleReferenceOptions {
-      index: 7,
-      ..options
-    };
-    assert_module_reference_options_eq(&parsed, &expected);
+    let lookup_key = Atom::from(module_ref_identifier);
+    let lookup = scope
+      .current_module
+      .module_references
+      .get(&lookup_key)
+      .expect("should store created module reference lookup");
+    assert_module_reference_options_eq(lookup, &expected);
   }
 
   #[test]
