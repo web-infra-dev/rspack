@@ -107,27 +107,25 @@ import(`./locale/${language}.json`).then((module) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
-
-Rspack 也支持带有 `rspack` 前缀的等价魔法注释。例如，`rspackIgnore` 等价于 `webpackIgnore`，`rspackChunkName` 等价于 `webpackChunkName`。
+通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。在 Rspack 项目中，推荐使用下面展示的 `rspack` 前缀魔法注释。对应的 `webpack` 前缀注释也会被兼容支持，例如 `webpackIgnore` 等价于 `rspackIgnore`。
 
 ```js
 // 单个模块
 import(
-  /* webpackChunkName: "my-chunk-name" */
-  /* webpackMode: "lazy" */
-  /* webpackFetchPriority: "high" */
+  /* rspackChunkName: "my-chunk-name" */
+  /* rspackMode: "lazy" */
+  /* rspackFetchPriority: "high" */
   'module'
 );
 
 // 多个可能模块
 import(
-  /* webpackInclude: /\.json$/ */
-  /* webpackExclude: /\.noimport\.json$/ */
-  /* webpackChunkName: "my-chunk-name" */
-  /* webpackMode: "lazy" */
-  /* webpackPrefetch: true */
-  /* webpackPreload: true */
+  /* rspackInclude: /\.json$/ */
+  /* rspackExclude: /\.noimport\.json$/ */
+  /* rspackChunkName: "my-chunk-name" */
+  /* rspackMode: "lazy" */
+  /* rspackPrefetch: true */
+  /* rspackPreload: true */
   `./locale/${language}`
 );
 ```
@@ -145,30 +143,30 @@ import(
 这在需要从外部 CDN 动态加载 ESM 格式的第三方库时特别有用，例如：
 
 ```js
-import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
-  console.log(React.version); // 19.0.0
-});
-```
-
-你也可以使用等价的 `rspackIgnore` 注释：
-
-```js
 import('https://esm.sh/react' /* rspackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```
 
-`webpackIgnore` 同样适用于 `new URL()` 语法。默认情况下，Rspack 会解析 `new URL()` 中的模块标识符，并将其引用的模块打包到构建产物中。当你需要 Rspack 跳过某个 `new URL()` 的处理时，可以添加 `webpackIgnore: true` 注释：
+也支持等价的 `webpackIgnore` 注释：
+
+```js
+import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
+  console.log(React.version); // 19.0.0
+});
+```
+
+`rspackIgnore` 同样适用于 `new URL()` 语法。默认情况下，Rspack 会解析 `new URL()` 中的模块标识符，并将其引用的模块打包到构建产物中。当你需要 Rspack 跳过某个 `new URL()` 的处理时，可以添加 `rspackIgnore: true` 注释：
 
 ```js
 // Rspack 会处理这个 URL，将 './index.css' 打包到构建产物中
 const url1 = new URL('./index.css', import.meta.url);
 
 // Rspack 会忽略这个 URL，保持原始的模块标识符
-const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
+const url2 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
 
-// 同样支持 `rspackIgnore`
-const url3 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
+// 同样支持 `webpackIgnore`
+const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 ```
 
 ##### webpackMode

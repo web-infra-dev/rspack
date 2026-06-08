@@ -134,11 +134,11 @@ export default {
 };
 ```
 
-Note that only the `webpackIgnore` and `rspackIgnore` comments are supported at the moment:
+Note that only the `rspackIgnore` and `webpackIgnore` comments are supported at the moment. Prefer `rspackIgnore` in Rspack projects; `webpackIgnore` remains supported for compatibility:
 
 ```js
-const x = require(/* webpackIgnore: true */ 'x');
-const y = require(/* rspackIgnore: true */ 'y');
+const x = require(/* rspackIgnore: true */ 'x');
+const y = require(/* webpackIgnore: true */ 'y');
 ```
 
 ### javascript.dynamicImportMode
