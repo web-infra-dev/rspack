@@ -182,12 +182,18 @@ module.exports = [
     [new CircularCheckRspackPlugin()],
     expectNoDiagnostics,
   ),
-  // createCase(
-  //   'ignores-self-import',
-  //   './deps/self-referencing/imports-self.js',
-  //   [new CircularCheckRspackPlugin()],
-  //   expectNoDiagnostics,
-  // ),
+  createCase(
+    'ignores-self-import',
+    './deps/self-referencing/imports-self.js',
+    [new CircularCheckRspackPlugin()],
+    (stats) => {
+      expectCircularDiagnostic(
+        stats,
+        'warnings',
+        './deps/self-referencing/imports-self.js -> ./deps/self-referencing/imports-self.js',
+      );
+    },
+  ),
   createCase(
     'detects-esm-self-import',
     './deps/self-referencing/esm-imports-self.js',
