@@ -2,7 +2,11 @@ use rspack_util::SpanExt;
 use swc_core::{atoms::Atom, ecma::ast::NewExpr};
 
 use super::BasicEvaluatedExpression;
-use crate::{utils::eval, visitors::JavascriptParser};
+use crate::{
+  parser_plugin::{evaluate_create_require_new_expression, is_create_require_specifier},
+  utils::eval,
+  visitors::{CallHooksName, JavascriptParser},
+};
 
 #[inline]
 pub fn eval_new_expression<'a>(
@@ -10,6 +14,16 @@ pub fn eval_new_expression<'a>(
   expr: &'a NewExpr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let ident = expr.callee.as_ident()?;
+  if scanner.javascript_options.is_create_require_enabled()
+    && is_create_require_specifier(scanner, &ident.sym)
+  {
+    let evaluated = ident.sym.call_hooks_name(scanner, |scanner, for_name| {
+      evaluate_create_require_new_expression(scanner, for_name, expr)
+    });
+    if evaluated.is_some() {
+      return evaluated;
+    }
+  }
   if ident.sym.as_str() != "RegExp" {
     // FIXME: call hooks
     return None;

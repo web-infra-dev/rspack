@@ -374,18 +374,25 @@ fn parse_create_require_argument(
   call_expr: &CallExpr,
   emit_warning: bool,
 ) -> Option<CreateRequireArgument> {
-  if call_expr.args.is_empty() {
+  parse_create_require_argument_from_args(parser, &call_expr.args, call_expr.span, emit_warning)
+}
+
+#[cold]
+#[inline(never)]
+fn parse_create_require_argument_from_args(
+  parser: &mut JavascriptParser,
+  args: &[ExprOrSpread],
+  span: Span,
+  emit_warning: bool,
+) -> Option<CreateRequireArgument> {
+  if args.is_empty() {
     if emit_warning {
-      add_create_require_warning(
-        parser,
-        "module.createRequire requires one argument.",
-        call_expr.span,
-      );
+      add_create_require_warning(parser, "module.createRequire requires one argument.", span);
     }
     return None;
   }
 
-  if let Some(spread) = call_expr.args[0].spread {
+  if let Some(spread) = args[0].spread {
     if emit_warning {
       add_create_require_warning(
         parser,
@@ -396,7 +403,7 @@ fn parse_create_require_argument(
     return None;
   }
 
-  let arg = &call_expr.args[0].expr;
+  let arg = &args[0].expr;
   let Some(value) = evaluate_create_require_argument(parser, arg) else {
     if emit_warning {
       add_create_require_warning(
@@ -420,6 +427,17 @@ fn parse_create_require_argument(
     context: context?,
     replace_argument: should_replace_create_require_argument(parser, arg),
   })
+}
+
+#[cold]
+#[inline(never)]
+fn parse_create_require_new_argument(
+  parser: &mut JavascriptParser,
+  new_expr: &NewExpr,
+  emit_warning: bool,
+) -> Option<CreateRequireArgument> {
+  let args = new_expr.args.as_deref().unwrap_or_default();
+  parse_create_require_argument_from_args(parser, args, new_expr.span, emit_warning)
 }
 
 #[inline(never)]
@@ -599,10 +617,9 @@ fn create_require_unsupported_member_replacement(
 #[inline(never)]
 fn create_require_extra_arg_side_effects(
   parser: &JavascriptParser,
-  call_expr: &CallExpr,
+  args: &[ExprOrSpread],
 ) -> Vec<String> {
-  call_expr
-    .args
+  args
     .iter()
     .skip(1)
     .filter_map(|arg| {
@@ -627,8 +644,63 @@ fn wrap_create_require_call_with_extra_arg_side_effects(
   } else {
     create_require_url_arg_side_effects(parser, &call_expr.args[0].expr)
   };
-  side_effects.extend(create_require_extra_arg_side_effects(parser, call_expr));
+  side_effects.extend(create_require_extra_arg_side_effects(
+    parser,
+    &call_expr.args,
+  ));
   side_effects
+}
+
+#[inline(never)]
+fn create_require_new_with_extra_arg_side_effects(
+  parser: &mut JavascriptParser,
+  new_expr: &NewExpr,
+  argument: &CreateRequireArgument,
+) -> Vec<String> {
+  let Some(args) = &new_expr.args else {
+    return Vec::new();
+  };
+  let mut side_effects = if argument.replace_argument {
+    Vec::new()
+  } else {
+    create_require_url_arg_side_effects(parser, &args[0].expr)
+  };
+  side_effects.extend(create_require_extra_arg_side_effects(parser, args));
+  side_effects
+}
+
+#[inline(never)]
+pub(crate) fn evaluate_create_require_new_expression<'a>(
+  parser: &mut JavascriptParser,
+  for_name: &str,
+  expr: &'a NewExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
+  if !should_handle_create_require_specifier(parser, for_name) {
+    return None;
+  }
+  let argument = parse_create_require_new_argument(parser, expr, false)?;
+  let side_effects = create_require_new_with_extra_arg_side_effects(parser, expr, &argument);
+  let evaluated_name = Atom::from(expr.span.real_lo().to_string());
+  parser.tag_variable(
+    evaluated_name.clone(),
+    CREATED_REQUIRE_IDENTIFIER_TAG,
+    Some(CreatedRequireTagData {
+      context: argument.context,
+      side_effects,
+    }),
+  );
+  let mut evaluated =
+    BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+  evaluated.set_identifier(
+    evaluated_name.clone(),
+    ExportedVariableInfo::Name(evaluated_name),
+    None,
+    None,
+    None,
+  );
+  evaluated.set_side_effects(false);
+  evaluated.set_truthy();
+  Some(evaluated)
 }
 
 #[inline(never)]
@@ -718,6 +790,42 @@ fn tag_created_require_declarator(
   }
   walk_create_require_callee(parser, call);
   walk_create_require_ignored_args(parser, call);
+}
+
+#[cold]
+#[inline(never)]
+fn tag_created_require_new_declarator(
+  parser: &mut JavascriptParser,
+  new_expr: &NewExpr,
+  binding: &Ident,
+  argument: CreateRequireArgument,
+) {
+  let CreateRequireArgument {
+    value,
+    context,
+    replace_argument,
+  } = argument;
+  parser.define_variable(binding.sym.clone());
+  parser.tag_variable(
+    binding.sym.clone(),
+    CREATED_REQUIRE_IDENTIFIER_TAG,
+    Some(CreatedRequireTagData {
+      context,
+      side_effects: Vec::new(),
+    }),
+  );
+  if let Some(args) = &new_expr.args {
+    if replace_argument {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        args[0].expr.span().into(),
+        json_stringify_str(&value).into(),
+      )));
+    } else {
+      walk_create_require_argument_side_effects(parser, &args[0].expr);
+    }
+    parser.walk_expr_or_spread(&args[1..]);
+  }
+  parser.walk_expression(&new_expr.callee);
 }
 
 fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
@@ -1504,15 +1612,23 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       tag_create_require(parser, binding.id.sym.clone());
     }
 
-    let call = init.as_call()?;
-    let callee = call.callee.as_expr()?;
-    if !is_evaluated_create_require(parser, callee) {
-      return None;
-    }
     let binding = declarator.name.as_ident()?;
 
-    if let Some(argument) = parse_create_require_argument(parser, call, false) {
-      tag_created_require_declarator(parser, call, &binding.id, argument);
+    if let Some(call) = init.as_call()
+      && let Some(callee) = call.callee.as_expr()
+      && is_evaluated_create_require(parser, callee)
+    {
+      if let Some(argument) = parse_create_require_argument(parser, call, false) {
+        tag_created_require_declarator(parser, call, &binding.id, argument);
+        return Some(true);
+      }
+    }
+
+    if let Some(init) = init.as_new()
+      && is_evaluated_create_require(parser, &init.callee)
+      && let Some(argument) = parse_create_require_new_argument(parser, init, false)
+    {
+      tag_created_require_new_declarator(parser, init, &binding.id, argument);
       return Some(true);
     }
 
