@@ -88,7 +88,8 @@ jobs:
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
+      measurement: simulation
+      runner: '"physical-1-exclusive"'
 
   bench-rust-walltime:
     name: Rust Bench Walltime
