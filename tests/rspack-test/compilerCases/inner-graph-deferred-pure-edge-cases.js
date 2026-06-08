@@ -11,7 +11,7 @@ function readOutput(context) {
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
 	description:
-		"should keep unsupported deferred pure edge cases conservative",
+		"should handle supported deferred pure expressions and keep mixed cases conservative",
 	options(context) {
 		return {
 			mode: "production",
@@ -95,8 +95,8 @@ module.exports = {
 		expect(output).not.toContain("default-alias-marker");
 		expect(output).not.toContain("reexport-alias-marker");
 		expect(output).not.toContain("star-reexport-marker");
-		expect(output).toContain("all-pure-a-marker");
-		expect(output).toContain("all-pure-b-marker");
+		expect(output).not.toContain("all-pure-a-marker");
+		expect(output).not.toContain("all-pure-b-marker");
 		expect(output).toContain("mixed-pure-a-marker");
 		expect(output).toContain("mixed-impure-b-marker");
 	}

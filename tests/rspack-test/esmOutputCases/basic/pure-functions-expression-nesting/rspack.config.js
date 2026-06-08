@@ -13,7 +13,7 @@ module.exports = {
       {
         test: /decl\.js$/,
         parser: {
-          pureFunctions: ["pureFn", "a", "b"],
+          pureFunctions: ['pureFn', 'a', 'b'],
         },
       },
     ],
