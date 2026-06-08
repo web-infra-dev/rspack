@@ -9,8 +9,9 @@ use swc_core::{
 };
 
 use super::{
-  InnerGraphParserPlugin, JavascriptParserPlugin, import_phase::get_import_phase,
+  InnerGraphParserPlugin, JavascriptParserPlugin,
   common_js_imports_parse_plugin::{is_create_require_import, tag_create_require},
+  import_phase::get_import_phase,
   inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{

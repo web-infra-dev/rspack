@@ -182,6 +182,17 @@ fn should_handle_create_require_specifier(parser: &JavascriptParser, for_name: &
 
 #[cold]
 #[inline(never)]
+fn should_handle_create_require_call(
+  parser: &mut JavascriptParser,
+  for_name: &str,
+  callee: Option<&Expr>,
+) -> bool {
+  should_handle_create_require_specifier(parser, for_name)
+    || callee.is_some_and(|callee| is_create_require_namespace_member(parser, callee))
+}
+
+#[cold]
+#[inline(never)]
 fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   let evaluated = parser.evaluate_expression(expr);
   evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
@@ -207,6 +218,29 @@ fn is_create_require_namespace_member(parser: &mut JavascriptParser, expr: &Expr
   };
   namespace_import
     && create_require_import_specifier(parser, &source).is_some_and(|specifier| member == specifier)
+}
+
+#[cold]
+#[inline(never)]
+fn is_create_require_namespace_member_param(
+  parser: &JavascriptParser,
+  property: &str,
+  param: &BasicEvaluatedExpression,
+) -> bool {
+  if !param.is_identifier() {
+    return false;
+  }
+  let ExportedVariableInfo::VariableInfo(variable) = param.root_info() else {
+    return false;
+  };
+  let Some(settings) =
+    parser.get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)
+  else {
+    return false;
+  };
+  settings.namespace_import
+    && create_require_import_specifier(parser, &settings.source)
+      .is_some_and(|specifier| property == specifier.as_ref())
 }
 
 #[cold]
@@ -736,6 +770,37 @@ pub(crate) fn evaluate_create_require_new_expression<'a>(
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
   let side_effects = create_require_new_with_extra_arg_side_effects(parser, expr, &argument);
+  let has_side_effects = !side_effects.is_empty();
+  let evaluated_name = Atom::from(expr.span.real_lo().to_string());
+  parser.tag_variable(
+    evaluated_name.clone(),
+    CREATED_REQUIRE_IDENTIFIER_TAG,
+    Some(CreatedRequireTagData {
+      context: argument.context,
+      side_effects,
+    }),
+  );
+  let mut evaluated =
+    BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+  evaluated.set_identifier(
+    evaluated_name.clone(),
+    ExportedVariableInfo::Name(evaluated_name),
+    None,
+    None,
+    None,
+  );
+  evaluated.set_side_effects(has_side_effects);
+  evaluated.set_truthy();
+  Some(evaluated)
+}
+
+#[inline(never)]
+fn evaluate_create_require_call_expression<'a>(
+  parser: &mut JavascriptParser,
+  expr: &'a CallExpr,
+) -> Option<BasicEvaluatedExpression<'a>> {
+  let argument = parse_create_require_argument(parser, expr, false)?;
+  let side_effects = wrap_create_require_call_with_extra_arg_side_effects(parser, expr, &argument);
   let has_side_effects = !side_effects.is_empty();
   let evaluated_name = Atom::from(expr.span.real_lo().to_string());
   parser.tag_variable(
@@ -1949,34 +2014,27 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     for_name: &str,
     expr: &'a CallExpr,
   ) -> Option<BasicEvaluatedExpression<'a>> {
-    if !should_handle_create_require_specifier(parser, for_name) {
+    if !should_handle_create_require_call(
+      parser,
+      for_name,
+      expr.callee.as_expr().map(|callee| &**callee),
+    ) {
       return None;
     }
-    let argument = parse_create_require_argument(parser, expr, false)?;
-    let side_effects =
-      wrap_create_require_call_with_extra_arg_side_effects(parser, expr, &argument);
-    let has_side_effects = !side_effects.is_empty();
-    let evaluated_name = Atom::from(expr.span.real_lo().to_string());
-    parser.tag_variable(
-      evaluated_name.clone(),
-      CREATED_REQUIRE_IDENTIFIER_TAG,
-      Some(CreatedRequireTagData {
-        context: argument.context,
-        side_effects,
-      }),
-    );
-    let mut evaluated =
-      BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-    evaluated.set_identifier(
-      evaluated_name.clone(),
-      ExportedVariableInfo::Name(evaluated_name),
-      None,
-      None,
-      None,
-    );
-    evaluated.set_side_effects(has_side_effects);
-    evaluated.set_truthy();
-    Some(evaluated)
+    evaluate_create_require_call_expression(parser, expr)
+  }
+
+  fn evaluate_call_expression_member<'a>(
+    &self,
+    parser: &mut JavascriptParser,
+    property: &str,
+    expr: &'a CallExpr,
+    param: BasicEvaluatedExpression,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    if !is_create_require_namespace_member_param(parser, property, &param) {
+      return None;
+    }
+    evaluate_create_require_call_expression(parser, expr)
   }
 
   fn r#typeof(
@@ -2013,7 +2071,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && should_parse_commonjs_require(parser)
     {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
-    } else if should_handle_create_require_specifier(parser, for_name) {
+    } else if should_handle_create_require_call(
+      parser,
+      for_name,
+      call_expr.callee.as_expr().map(|callee| &**callee),
+    ) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
         if argument.replace_argument {
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
