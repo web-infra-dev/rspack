@@ -1,11 +1,9 @@
 pub mod internal;
 pub mod rollback;
 
-use std::hash::BuildHasherDefault;
-
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
-use rspack_collections::{IdentifierHasher, IdentifierMap};
+use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
 use rustc_hash::FxHashMap as HashMap;
@@ -23,7 +21,7 @@ mod connection;
 pub use connection::*;
 
 use crate::{
-  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
+  BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact, ModuleId,
   ModuleIdentifier,
 };
 
@@ -107,9 +105,8 @@ impl<'a> IncomingConnectionsByOriginModule<'a> {
 #[derive(Debug, Default)]
 pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
-  /// Module indexed by `ModuleIdentifier`.
-  pub(crate) modules:
-    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
+  /// Modules stored densely and keyed internally by numeric `ModuleId`.
+  pub(crate) modules: rollback::DenseVec<BoxModule>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
@@ -138,10 +135,9 @@ pub(crate) struct ModuleGraphData {
   connection_to_condition: HashMap<DependencyId, DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
-  /// ModuleGraphModule indexed by `ModuleIdentifier`.
+  /// ModuleGraphModule indexed by internal numeric `ModuleId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_core/src/compilation/build_chunk_graph/code_splitter.rs#L1216
-  module_graph_modules:
-    rollback::OverlayMap<ModuleIdentifier, ModuleGraphModule, BuildHasherDefault<IdentifierHasher>>,
+  module_graph_modules: rollback::DenseModuleIdOverlayMap<ModuleGraphModule>,
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
@@ -172,6 +168,18 @@ impl ModuleGraphData {
 pub struct ModuleGraph {
   pub(super) inner: ModuleGraphData,
 }
+impl ModuleGraphData {
+  #[inline]
+  fn module_id(&self, identifier: &ModuleIdentifier) -> Option<&ModuleId> {
+    self.modules.get_id(identifier)
+  }
+
+  #[inline]
+  fn get_or_insert_module_id(&mut self, identifier: ModuleIdentifier) -> ModuleId {
+    self.modules.get_or_insert_id(identifier)
+  }
+}
+
 impl ModuleGraph {
   // checkpoint
   pub fn checkpoint(&mut self) {
@@ -210,7 +218,11 @@ impl ModuleGraph {
   pub fn module_graph_modules(
     &self,
   ) -> impl Iterator<Item = (&ModuleIdentifier, &ModuleGraphModule)> {
-    self.inner.module_graph_modules.iter()
+    self
+      .inner
+      .module_graph_modules
+      .iter()
+      .map(|(_, mgm)| (&mgm.module_identifier, mgm))
   }
 
   // #[tracing::instrument(skip_all, fields(module = ?module_id))]
@@ -355,8 +367,10 @@ impl ModuleGraph {
       })
       .unwrap_or_default();
 
+    if let Some(module_id_key) = self.inner.module_id(module_id).cloned() {
+      self.inner.module_graph_modules.remove(&module_id_key);
+    }
     self.inner.modules.remove(module_id);
-    self.inner.module_graph_modules.remove(module_id);
 
     for block in blocks {
       self.inner.blocks.remove(&block);
@@ -373,10 +387,13 @@ impl ModuleGraph {
   }
 
   pub fn add_module_graph_module(&mut self, module_graph_module: ModuleGraphModule) {
+    let module_id = self
+      .inner
+      .get_or_insert_module_id(module_graph_module.module_identifier);
     self
       .inner
       .module_graph_modules
-      .insert(module_graph_module.module_identifier, module_graph_module);
+      .insert(&module_id, module_graph_module);
   }
 
   /// Make sure both source and target module are exists in module graph
@@ -770,7 +787,10 @@ impl ModuleGraph {
     &self,
     identifier: &ModuleIdentifier,
   ) -> Option<&ModuleGraphModule> {
-    self.inner.module_graph_modules.get(identifier)
+    self
+      .inner
+      .module_id(identifier)
+      .and_then(|module_id| self.inner.module_graph_modules.get(module_id))
   }
 
   /// Get a mutable module graph module by identifier, panicking if not found.
@@ -783,10 +803,15 @@ impl ModuleGraph {
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> &mut ModuleGraphModule {
+    let module_id = self
+      .inner
+      .module_id(identifier)
+      .cloned()
+      .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"));
     self
       .inner
       .module_graph_modules
-      .get_mut(identifier)
+      .get_mut(&module_id)
       .unwrap_or_else(|| panic!("ModuleGraphModule with identifier {identifier:?} not found"))
   }
 
@@ -1140,7 +1165,8 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, mgm);
+      let module_id = self.inner.get_or_insert_module_id(mid);
+      self.inner.module_graph_modules.insert(&module_id, mgm);
     }
   }
 
@@ -1166,7 +1192,8 @@ impl ModuleGraph {
       .collect::<Vec<_>>();
 
     for (mid, mgm) in changed {
-      self.inner.module_graph_modules.insert(mid, mgm);
+      let module_id = self.inner.get_or_insert_module_id(mid);
+      self.inner.module_graph_modules.insert(&module_id, mgm);
     }
   }
 

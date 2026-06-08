@@ -57,5 +57,6 @@ pub(crate) fn try_get_module_graph_module_mut_by_identifier<'a>(
   module_graph: &'a mut ModuleGraph,
   identifier: &ModuleIdentifier,
 ) -> Option<&'a mut ModuleGraphModule> {
-  module_graph.inner.module_graph_modules.get_mut(identifier)
+  let module_id = module_graph.inner.module_id(identifier).cloned()?;
+  module_graph.inner.module_graph_modules.get_mut(&module_id)
 }
