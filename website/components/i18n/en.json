@@ -19,7 +19,7 @@
   "webpack-manifest-plugin-desc": "Use [rspack-manifest-plugin](https://github.com/rstackjs/rspack-manifest-plugin) instead",
   "workbox-webpack-plugin-desc": "Use [@aaroon/workbox-rspack-plugin](https://github.com/Clarkkkk/workbox-rspack-plugin) instead",
   "webpack-subresource-integrity-desc": "Use [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin) instead",
-  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#rspackplugin-react-refresh) instead",
+  "react-refresh-webpack-plugin-desc": "Use [@rspack/plugin-react-refresh](/guide/tech/react#fast-refresh) instead",
   "@nx/webpack-desc": "Use [@nx/rspack](https://www.npmjs.com/package/@nx/rspack) instead",
   "webpack-filter-warnings-plugin-desc": "Use [ignoreWarnings](/config/other-options#ignorewarnings) instead",
   "speed-measure-webpack-plugin-desc": "Use [Rsdoctor](/guide/optimization/use-rsdoctor) instead",

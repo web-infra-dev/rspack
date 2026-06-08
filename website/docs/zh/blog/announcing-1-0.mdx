@@ -49,7 +49,7 @@ Rspack 是基于 Rust 编写的下一代 JavaScript 打包工具， 兼容 webpa
 
 ### 更极致的性能
 
-作为基于 Rust 实现的 Bundler，性能始终是 Rspack 的一个核心指标。从 Rspack 0.1 发布以来，我们对 Rspack 做了大量的性能改进，优化各个场景下的性能表现，并支持了 [lazy compilation](/config/experiments#experimentslazycompilation) 等核心功能，以保障 Rspack 在大型项目中有更佳的性能。
+作为基于 Rust 实现的 Bundler，性能始终是 Rspack 的一个核心指标。从 Rspack 0.1 发布以来，我们对 Rspack 做了大量的性能改进，优化各个场景下的性能表现，并支持了 [lazy compilation](/config/lazy-compilation) 等核心功能，以保障 Rspack 在大型项目中有更佳的性能。
 
 下图是 Rspack 0.1 与 Rspack 1.0 在 [benchmark](https://github.com/rstackjs/build-tools-performance) 中的 build 性能对比。可以看到，Rspack 在实现大量新特性的同时，也显著提升了构建性能：
 
@@ -160,7 +160,7 @@ Rspack 缓存能力的演进路线，是依次实现 memory cache、persistent c
 
 ### React Server Components 支持
 
-在字节跳动内部，我们已经基于 Rspack 实验性地支持了 RSC（React Server Components），并在一个大型 web 项目中得到验证。未来 Rspack 将会为 RSC 提供一等公民的支持，提供更多的核心能力来帮助实现 RSC。例如，目前 Rspack 已经支持 [layer](/config/experiments#experimentslayers) 特性，能够在单次打包时构建出多种环境的产物。
+在字节跳动内部，我们已经基于 Rspack 实验性地支持了 RSC（React Server Components），并在一个大型 web 项目中得到验证。未来 Rspack 将会为 RSC 提供一等公民的支持，提供更多的核心能力来帮助实现 RSC。例如，目前 Rspack 已经支持 [layer](/guide/features/layer) 特性，能够在单次打包时构建出多种环境的产物。
 
 ### 改进 ESM 产物
 
@@ -198,7 +198,7 @@ Rspack 的发展离不开广大的社区贡献者和社区伙伴，这里特别�
 
 ### 发布 1.0 意味着什么？
 
-1.0 的发布，意味着 Rspack 实现了 webpack 的核心功能，API 达到稳定。在未来 12～18 个月内，我们会保证 Rspack 1.x API 的稳定性，开发者可以放心地基于 Rspack API 开发上层的框架和工具。在 1.x 的迭代期间，我们仍然可能会发现一些 Rspack 不合理的设计，我们将通过 [future flags](/config/experiments#experimentsrspackfuture) 的方式，实现渐进式地升级。
+1.0 的发布，意味着 Rspack 实现了 webpack 的核心功能，API 达到稳定。在未来 12～18 个月内，我们会保证 Rspack 1.x API 的稳定性，开发者可以放心地基于 Rspack API 开发上层的框架和工具。在 1.x 的迭代期间，我们仍然可能会发现一些 Rspack 不合理的设计，我们将通过 [future flags](https://v1.rspack.rs/config/experiments#experimentsrspackfuture) 的方式，实现渐进式地升级。
 
 ### 什么时候发布 Rsbuild 1.0？
 

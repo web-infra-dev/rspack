@@ -35,11 +35,11 @@ Notable changes include:
   - [Extract source map](#extract-source-map)
   - [Performance improvements](#performance-improvements)
 - Rstack Progress
-  - [Rsbuild 1.6](#rsbuild-1-6)
+  - [Rsbuild 1.6](#rsbuild-16)
   - [Rspress v2 beta](#rspress-v2-beta)
-  - [Rslib 0.16](#rslib-0-16)
-  - [Rstest 0.6](#rstest-0-6)
-  - [Rsdoctor 1.3](#rsdoctor-1-3)
+  - [Rslib 0.16](#rslib-016)
+  - [Rstest 0.6](#rstest-06)
+  - [Rsdoctor 1.3](#rsdoctor-13)
 - Ecosystem
   - [next-rspack](#next-rspack)
 
@@ -152,7 +152,7 @@ export default {
 
 ### Optimized barrels by default
 
-In Rspack 1.5, we introduced the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
+In Rspack 1.5, we introduced the experimental [lazyBarrel](/guide/optimization/lazy-barrel) optimization feature, specifically designed to improve the build performance of barrel files. After a period of production environment practice and user feedback collection, we confirmed that the lazyBarrel feature has reached a stable state, so it is enabled by default in Rspack 1.6.
 
 :::info
 What are barrel files? Barrel files are files that are primarily used to re-export content from other modules, typically used to simplify import paths and provide a unified API entry point.
@@ -165,7 +165,7 @@ Layer is a feature for organizing modules into different layers, which can be us
 - Compiling modules in different layers for different target environments
 - Outputting them to separate build directories
 
-Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/config/experiments#experimentslayers) has been deprecated. You can now use the layer feature directly without the experimental flag.
+Starting from Rspack 1.6, the layer feature has become stable enough that the experimental flag [experiments.layers](/guide/features/layer) has been deprecated. You can now use the layer feature directly without the experimental flag.
 
 For more details and practical examples, check out our new [Layer guide](/guide/features/layer#layer).
 

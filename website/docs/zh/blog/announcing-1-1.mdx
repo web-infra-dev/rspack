@@ -65,7 +65,7 @@ Rspack v1.1 和 Rsbuild v1.1 已经正式发布！
 
 然而，此功能仅在重新构建时的 `make` 和 `emitAssets` 阶段做到了增量。许多项目在 `make` 阶段运行 loader 会花费大量时间。当时对于这些项目，此功能在重新构建时有相对明显的性能提升。但仍有一些项目在 `make` 之外的其他阶段花费大量时间。因此，我们对这个功能进行了优化和扩展，逐渐将增量引入到其他阶段，如 `buildChunkGraph`、`providedExports`、`moduleCodegen` 等。
 
-在 Rspack v1.1 中，我们引入了 [experiments.incremental](/config/experiments#experimentsincremental) 作为 `experiments.incrementalRebuild` 的后继者和超集，旨在为开发者带来进一步的重新构建时的性能提升和更快的 HMR。
+在 Rspack v1.1 中，我们引入了 [experiments.incremental](/config/deprecated-options#experimentsincremental) 作为 `experiments.incrementalRebuild` 的后继者和超集，旨在为开发者带来进一步的重新构建时的性能提升和更快的 HMR。
 
 在一个有 10000 个 React 组件的案例中，HMR 速度提升了 **38%**：
 
@@ -88,7 +88,7 @@ export default {
 };
 ```
 
-> 更多详细信息请参考 [experiments.incremental](/config/experiments#experimentsincremental)。
+> 更多详细信息请参考 [experiments.incremental](/config/deprecated-options#experimentsincremental)。
 
 目前这是一个实验性功能，还需更多的验证以保证其稳定。如果你感兴趣可以尝试一下，并将错误报告和反馈提交至[#8106](https://github.com/web-infra-dev/rspack/issues/8106)。
 

@@ -822,10 +822,10 @@ export default {
 
 ## rules[].rules
 
-- **类型：** [Rule](#rules)[]
+- **类型：** [Rule](#rule)[]
 - **默认值：** `undefined`
 
-[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rules) 匹配成功后，会使用这些 Rules 继续进行匹配。
+[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rule) 匹配成功后，会使用这些 Rules 继续进行匹配。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -856,7 +856,7 @@ export default {
 
 ## rules[].oneOf
 
-- **类型：** ([Rule](#rules) | Falsy)[]
+- **类型：** ([Rule](#rule) | Falsy)[]
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule。
