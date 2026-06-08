@@ -736,6 +736,7 @@ pub(crate) fn evaluate_create_require_new_expression<'a>(
   }
   let argument = parse_create_require_new_argument(parser, expr, false)?;
   let side_effects = create_require_new_with_extra_arg_side_effects(parser, expr, &argument);
+  let has_side_effects = !side_effects.is_empty();
   let evaluated_name = Atom::from(expr.span.real_lo().to_string());
   parser.tag_variable(
     evaluated_name.clone(),
@@ -754,7 +755,7 @@ pub(crate) fn evaluate_create_require_new_expression<'a>(
     None,
     None,
   );
-  evaluated.set_side_effects(false);
+  evaluated.set_side_effects(has_side_effects);
   evaluated.set_truthy();
   Some(evaluated)
 }
@@ -1954,6 +1955,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     let argument = parse_create_require_argument(parser, expr, false)?;
     let side_effects =
       wrap_create_require_call_with_extra_arg_side_effects(parser, expr, &argument);
+    let has_side_effects = !side_effects.is_empty();
     let evaluated_name = Atom::from(expr.span.real_lo().to_string());
     parser.tag_variable(
       evaluated_name.clone(),
@@ -1972,7 +1974,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       None,
       None,
     );
-    evaluated.set_side_effects(false);
+    evaluated.set_side_effects(has_side_effects);
     evaluated.set_truthy();
     Some(evaluated)
   }

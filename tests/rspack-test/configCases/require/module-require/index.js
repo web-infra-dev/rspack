@@ -23,6 +23,16 @@ it("should evaluate require/createRequire", () => {
 	expect(
 		(function () { if (typeof require); }).toString()
 	).toBe("function () { if (true); }");
+	const evaluatedCreateRequireEffects = [];
+	if (
+		_createRequire(
+			import.meta.url,
+			evaluatedCreateRequireEffects.push("evaluated-extra")
+		)
+	) {
+		evaluatedCreateRequireEffects.push("body");
+	}
+	expect(evaluatedCreateRequireEffects).toEqual(["evaluated-extra", "body"]);
 });
 
 it("should not parse unbound createRequire identifiers", () => {
