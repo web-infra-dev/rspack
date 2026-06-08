@@ -203,10 +203,10 @@ fn value_span_to_error_span(
 
   let value_start = value_span
     .start
-    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32 + 1)? as usize;
   let value_end = value_span
     .end
-    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32 + 1)? as usize;
 
   let comment_start = comment_span.real_lo() as usize;
   let start = comment_start + BLOCK_COMMENT_START_LEN + value_start;
@@ -786,7 +786,7 @@ mod tests_extract_magic_comment_object {
     test_extract_regexp();
     assert_eq!(
       try_match_error_range("webpackPrefetch: \"aaa\"", "webpackPrefetch"),
-      Some(DependencyRange::new(119, 124))
+      Some(DependencyRange::new(118, 123))
     );
   }
 }
