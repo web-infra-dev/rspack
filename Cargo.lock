@@ -5304,7 +5304,6 @@ dependencies = [
 name = "rspack_watcher"
 version = "0.100.6"
 dependencies = [
- "codspeed-criterion-compat",
  "cow-utils",
  "dashmap",
  "fast-glob",
