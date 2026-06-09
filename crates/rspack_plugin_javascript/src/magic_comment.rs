@@ -40,37 +40,105 @@ pub enum MagicCommentValue {
 }
 
 #[derive(Debug)]
-pub struct RspackCommentMap(FxHashMap<RspackComment, MagicCommentValue>);
+pub struct RspackCommentMap(FxHashMap<RspackComment, MagicCommentItem>);
 
 impl RspackCommentMap {
   fn new() -> Self {
     Self(Default::default())
   }
 
-  fn insert(&mut self, key: RspackComment, value: MagicCommentValue) {
+  fn insert(&mut self, key: RspackComment, value: MagicCommentItem) {
     self.0.insert(key, value);
   }
 
+  fn push_conflict_warning(
+    source: &str,
+    ignored_comment_name: &str,
+    preferred_comment_name: &str,
+    item: &MagicCommentItem,
+    warning_diagnostics: &mut Vec<Diagnostic>,
+  ) {
+    let mut error: Error = create_traceable_error(
+      "Magic comments conflict".into(),
+      format!(
+        "`{ignored_comment_name}` is ignored because `{preferred_comment_name}` is also specified. Prefer `{preferred_comment_name}`."
+      ),
+      source.to_owned(),
+      item.span,
+    );
+    error.severity = Severity::Warning;
+    error.hide_stack = Some(true);
+    warning_diagnostics.push(error.into())
+  }
+
+  fn insert_with_conflict_warning(
+    &mut self,
+    source: &str,
+    comment_name: MagicCommentName,
+    rspack_comment: RspackComment,
+    item: MagicCommentItem,
+    warning_diagnostics: &mut Vec<Diagnostic>,
+  ) {
+    if let Some(existing) = self.0.get_mut(&rspack_comment) {
+      match (existing.prefix, item.prefix) {
+        (MagicCommentPrefix::Rspack, MagicCommentPrefix::Webpack) => {
+          Self::push_conflict_warning(
+            source,
+            comment_name.prefixed_name(MagicCommentPrefix::Webpack),
+            comment_name.prefixed_name(MagicCommentPrefix::Rspack),
+            &item,
+            warning_diagnostics,
+          );
+        }
+        (MagicCommentPrefix::Webpack, MagicCommentPrefix::Rspack) => {
+          Self::push_conflict_warning(
+            source,
+            comment_name.prefixed_name(MagicCommentPrefix::Webpack),
+            comment_name.prefixed_name(MagicCommentPrefix::Rspack),
+            existing,
+            warning_diagnostics,
+          );
+          *existing = item;
+        }
+        _ => {
+          Self::push_conflict_warning(
+            source,
+            comment_name.prefixed_name(item.prefix),
+            comment_name.prefixed_name(existing.prefix),
+            &item,
+            warning_diagnostics,
+          );
+        }
+      }
+    } else {
+      self.insert(rspack_comment, item);
+    }
+  }
+
   pub fn get_ignore_value(&self) -> Option<&MagicCommentValue> {
-    self.0.get(&RspackComment::Ignore)
+    self.0.get(&RspackComment::Ignore).map(|item| &item.value)
   }
 
   pub fn get_mode(&self) -> Option<&String> {
-    match self.0.get(&RspackComment::Mode) {
+    match self.0.get(&RspackComment::Mode).map(|item| &item.value) {
       Some(MagicCommentValue::String(value)) => Some(value),
       _ => None,
     }
   }
 
   pub fn get_chunk_name(&self) -> Option<&String> {
-    match self.0.get(&RspackComment::ChunkName) {
+    match self
+      .0
+      .get(&RspackComment::ChunkName)
+      .map(|item| &item.value)
+    {
       Some(MagicCommentValue::String(value)) => Some(value),
       _ => None,
     }
   }
 
   pub fn get_prefetch(&self) -> Option<Cow<'_, str>> {
-    match self.0.get(&RspackComment::Prefetch) {
+    match self.0.get(&RspackComment::Prefetch).map(|item| &item.value) {
       Some(MagicCommentValue::Bool(true)) => Some(Cow::Borrowed("true")),
       Some(MagicCommentValue::Number(value)) => Some(Cow::Borrowed(value.as_str())),
       _ => None,
@@ -78,7 +146,7 @@ impl RspackCommentMap {
   }
 
   pub fn get_preload(&self) -> Option<Cow<'_, str>> {
-    match self.0.get(&RspackComment::Preload) {
+    match self.0.get(&RspackComment::Preload).map(|item| &item.value) {
       Some(MagicCommentValue::Bool(true)) => Some(Cow::Borrowed("true")),
       Some(MagicCommentValue::Number(value)) => Some(Cow::Borrowed(value.as_str())),
       _ => None,
@@ -86,14 +154,18 @@ impl RspackCommentMap {
   }
 
   pub fn get_ignore(&self) -> Option<bool> {
-    match self.0.get(&RspackComment::Ignore) {
+    match self.0.get(&RspackComment::Ignore).map(|item| &item.value) {
       Some(MagicCommentValue::Bool(value)) => Some(*value),
       _ => None,
     }
   }
 
   pub fn get_fetch_priority(&self) -> Option<&String> {
-    match self.0.get(&RspackComment::FetchPriority) {
+    match self
+      .0
+      .get(&RspackComment::FetchPriority)
+      .map(|item| &item.value)
+    {
       Some(MagicCommentValue::String(value)) => Some(value),
       _ => None,
     }
@@ -103,7 +175,7 @@ impl RspackCommentMap {
     self
       .0
       .get(&RspackComment::IncludeRegexp)
-      .and_then(|value| match value {
+      .and_then(|item| match &item.value {
         MagicCommentValue::RegExp { source, flags } => {
           Some(RspackRegex::with_flags(source, flags).unwrap_or_else(|_| {
             // test when capture
@@ -118,7 +190,7 @@ impl RspackCommentMap {
     self
       .0
       .get(&RspackComment::ExcludeRegexp)
-      .and_then(|value| match value {
+      .and_then(|item| match &item.value {
         MagicCommentValue::RegExp { source, flags } => {
           Some(RspackRegex::with_flags(source, flags).unwrap_or_else(|_| {
             // test when capture
@@ -130,7 +202,7 @@ impl RspackCommentMap {
   }
 
   pub fn get_exports(&self) -> Option<Vec<String>> {
-    match self.0.get(&RspackComment::Exports) {
+    match self.0.get(&RspackComment::Exports).map(|item| &item.value) {
       Some(MagicCommentValue::String(value)) => Some(vec![value.clone()]),
       Some(MagicCommentValue::Array(value)) => Some(value.clone()),
       _ => None,
@@ -138,21 +210,21 @@ impl RspackCommentMap {
   }
 
   pub fn get_defer(&self) -> Option<bool> {
-    match self.0.get(&RspackComment::Defer) {
+    match self.0.get(&RspackComment::Defer).map(|item| &item.value) {
       Some(MagicCommentValue::Bool(value)) => Some(*value),
       _ => None,
     }
   }
 
   pub fn get_source(&self) -> Option<bool> {
-    match self.0.get(&RspackComment::Source) {
+    match self.0.get(&RspackComment::Source).map(|item| &item.value) {
       Some(MagicCommentValue::Bool(value)) => Some(*value),
       _ => None,
     }
   }
 }
 
-fn add_magic_comment_warning(
+fn push_magic_comment_parse_warning(
   source: &str,
   comment_name: &str,
   comment_type: &str,
@@ -382,7 +454,7 @@ fn expr_to_exports(expr: &Expr) -> Option<MagicCommentValue> {
   Some(MagicCommentValue::Array(exports))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum MagicCommentName {
   ChunkName,
   Prefetch,
@@ -397,21 +469,241 @@ enum MagicCommentName {
   Exports,
 }
 
-fn magic_comment_name(name: &str) -> Option<MagicCommentName> {
+impl MagicCommentName {
+  fn prefixed_name(self, prefix: MagicCommentPrefix) -> &'static str {
+    match (self, prefix) {
+      (Self::ChunkName, MagicCommentPrefix::Rspack) => "rspackChunkName",
+      (Self::ChunkName, MagicCommentPrefix::Webpack) => "webpackChunkName",
+      (Self::Prefetch, MagicCommentPrefix::Rspack) => "rspackPrefetch",
+      (Self::Prefetch, MagicCommentPrefix::Webpack) => "webpackPrefetch",
+      (Self::Preload, MagicCommentPrefix::Rspack) => "rspackPreload",
+      (Self::Preload, MagicCommentPrefix::Webpack) => "webpackPreload",
+      (Self::Ignore, MagicCommentPrefix::Rspack) => "rspackIgnore",
+      (Self::Ignore, MagicCommentPrefix::Webpack) => "webpackIgnore",
+      (Self::Mode, MagicCommentPrefix::Rspack) => "rspackMode",
+      (Self::Mode, MagicCommentPrefix::Webpack) => "webpackMode",
+      (Self::Defer, MagicCommentPrefix::Rspack) => "rspackDefer",
+      (Self::Defer, MagicCommentPrefix::Webpack) => "webpackDefer",
+      (Self::Source, MagicCommentPrefix::Rspack) => "rspackSource",
+      (Self::Source, MagicCommentPrefix::Webpack) => "webpackSource",
+      (Self::FetchPriority, MagicCommentPrefix::Rspack) => "rspackFetchPriority",
+      (Self::FetchPriority, MagicCommentPrefix::Webpack) => "webpackFetchPriority",
+      (Self::Include, MagicCommentPrefix::Rspack) => "rspackInclude",
+      (Self::Include, MagicCommentPrefix::Webpack) => "webpackInclude",
+      (Self::Exclude, MagicCommentPrefix::Rspack) => "rspackExclude",
+      (Self::Exclude, MagicCommentPrefix::Webpack) => "webpackExclude",
+      (Self::Exports, MagicCommentPrefix::Rspack) => "rspackExports",
+      (Self::Exports, MagicCommentPrefix::Webpack) => "webpackExports",
+    }
+  }
+
+  fn rspack_comment(self) -> RspackComment {
+    match self {
+      Self::ChunkName => RspackComment::ChunkName,
+      Self::Prefetch => RspackComment::Prefetch,
+      Self::Preload => RspackComment::Preload,
+      Self::Ignore => RspackComment::Ignore,
+      Self::Mode => RspackComment::Mode,
+      Self::Defer => RspackComment::Defer,
+      Self::Source => RspackComment::Source,
+      Self::FetchPriority => RspackComment::FetchPriority,
+      Self::Include => RspackComment::IncludeRegexp,
+      Self::Exclude => RspackComment::ExcludeRegexp,
+      Self::Exports => RspackComment::Exports,
+    }
+  }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MagicCommentPrefix {
+  Rspack,
+  Webpack,
+}
+
+#[derive(Debug)]
+struct MagicCommentItem {
+  prefix: MagicCommentPrefix,
+  value: MagicCommentValue,
+  span: DependencyRange,
+}
+
+fn parse_magic_comment_name(name: &str) -> Option<(MagicCommentName, MagicCommentPrefix)> {
   match name {
-    "webpackChunkName" | "rspackChunkName" => Some(MagicCommentName::ChunkName),
-    "webpackPrefetch" | "rspackPrefetch" => Some(MagicCommentName::Prefetch),
-    "webpackPreload" | "rspackPreload" => Some(MagicCommentName::Preload),
-    "webpackIgnore" | "rspackIgnore" => Some(MagicCommentName::Ignore),
-    "webpackMode" | "rspackMode" => Some(MagicCommentName::Mode),
-    "webpackDefer" | "rspackDefer" => Some(MagicCommentName::Defer),
-    "webpackSource" | "rspackSource" => Some(MagicCommentName::Source),
-    "webpackFetchPriority" | "rspackFetchPriority" => Some(MagicCommentName::FetchPriority),
-    "webpackInclude" | "rspackInclude" => Some(MagicCommentName::Include),
-    "webpackExclude" | "rspackExclude" => Some(MagicCommentName::Exclude),
-    "webpackExports" | "rspackExports" => Some(MagicCommentName::Exports),
+    "rspackChunkName" => Some((MagicCommentName::ChunkName, MagicCommentPrefix::Rspack)),
+    "webpackChunkName" => Some((MagicCommentName::ChunkName, MagicCommentPrefix::Webpack)),
+    "rspackPrefetch" => Some((MagicCommentName::Prefetch, MagicCommentPrefix::Rspack)),
+    "webpackPrefetch" => Some((MagicCommentName::Prefetch, MagicCommentPrefix::Webpack)),
+    "rspackPreload" => Some((MagicCommentName::Preload, MagicCommentPrefix::Rspack)),
+    "webpackPreload" => Some((MagicCommentName::Preload, MagicCommentPrefix::Webpack)),
+    "rspackIgnore" => Some((MagicCommentName::Ignore, MagicCommentPrefix::Rspack)),
+    "webpackIgnore" => Some((MagicCommentName::Ignore, MagicCommentPrefix::Webpack)),
+    "rspackMode" => Some((MagicCommentName::Mode, MagicCommentPrefix::Rspack)),
+    "webpackMode" => Some((MagicCommentName::Mode, MagicCommentPrefix::Webpack)),
+    "rspackDefer" => Some((MagicCommentName::Defer, MagicCommentPrefix::Rspack)),
+    "webpackDefer" => Some((MagicCommentName::Defer, MagicCommentPrefix::Webpack)),
+    "rspackSource" => Some((MagicCommentName::Source, MagicCommentPrefix::Rspack)),
+    "webpackSource" => Some((MagicCommentName::Source, MagicCommentPrefix::Webpack)),
+    "rspackFetchPriority" => Some((MagicCommentName::FetchPriority, MagicCommentPrefix::Rspack)),
+    "webpackFetchPriority" => Some((MagicCommentName::FetchPriority, MagicCommentPrefix::Webpack)),
+    "rspackInclude" => Some((MagicCommentName::Include, MagicCommentPrefix::Rspack)),
+    "webpackInclude" => Some((MagicCommentName::Include, MagicCommentPrefix::Webpack)),
+    "rspackExclude" => Some((MagicCommentName::Exclude, MagicCommentPrefix::Rspack)),
+    "webpackExclude" => Some((MagicCommentName::Exclude, MagicCommentPrefix::Webpack)),
+    "rspackExports" => Some((MagicCommentName::Exports, MagicCommentPrefix::Rspack)),
+    "webpackExports" => Some((MagicCommentName::Exports, MagicCommentPrefix::Webpack)),
     _ => None,
   }
+}
+
+fn magic_comment_name(name: &str) -> Option<MagicCommentName> {
+  parse_magic_comment_name(name).map(|(name, _)| name)
+}
+
+fn parse_magic_comment_item(
+  source: &str,
+  comment_text: &str,
+  comment_span: Span,
+  error_span: Span,
+  comment_name: MagicCommentName,
+  prefix: MagicCommentPrefix,
+  value: &Expr,
+  warning_diagnostics: &mut Vec<Diagnostic>,
+) -> Option<(RspackComment, MagicCommentItem)> {
+  let item_name = comment_name.prefixed_name(prefix);
+  let received = raw_value(comment_text, value).unwrap_or_default();
+  let item_span = value_span_to_error_span(comment_span, value.span()).unwrap_or(error_span.into());
+  let mut push_parse_warning = |comment_type| {
+    push_magic_comment_parse_warning(
+      source,
+      item_name,
+      comment_type,
+      received,
+      warning_diagnostics,
+      item_span,
+    );
+  };
+
+  let value = match comment_name {
+    MagicCommentName::ChunkName => {
+      if let Some(value) = expr_to_str(value) {
+        MagicCommentValue::String(value.into_owned())
+      } else {
+        push_parse_warning("a string");
+        return None;
+      }
+    }
+    MagicCommentName::Prefetch => {
+      if let Some(value) = expr_to_order_str(comment_text, value) {
+        if value == "true" {
+          MagicCommentValue::Bool(true)
+        } else {
+          MagicCommentValue::Number(value.to_string())
+        }
+      } else {
+        push_parse_warning("true or a number");
+        return None;
+      }
+    }
+    MagicCommentName::Preload => {
+      if let Some(value) = expr_to_order_str(comment_text, value) {
+        if value == "true" {
+          MagicCommentValue::Bool(true)
+        } else {
+          MagicCommentValue::Number(value.to_string())
+        }
+      } else {
+        push_parse_warning("true or a number");
+        return None;
+      }
+    }
+    MagicCommentName::Ignore => {
+      if let Some(value) = expr_to_bool(value) {
+        MagicCommentValue::Bool(value)
+      } else {
+        let value =
+          expr_to_magic_comment_value(comment_text, value).unwrap_or(MagicCommentValue::Unknown);
+        push_parse_warning("a boolean");
+        value
+      }
+    }
+    MagicCommentName::Mode => {
+      if let Some(value) = expr_to_str(value) {
+        MagicCommentValue::String(value.into_owned())
+      } else {
+        push_parse_warning("a string");
+        return None;
+      }
+    }
+    MagicCommentName::Defer => {
+      if let Some(value) = expr_to_bool(value) {
+        MagicCommentValue::Bool(value)
+      } else {
+        push_parse_warning("a boolean");
+        return None;
+      }
+    }
+    MagicCommentName::Source => {
+      if let Some(value) = expr_to_bool(value) {
+        MagicCommentValue::Bool(value)
+      } else {
+        push_parse_warning("a boolean");
+        return None;
+      }
+    }
+    MagicCommentName::FetchPriority => {
+      if let Some(priority) = expr_to_str(value)
+        && matches!(priority.as_ref(), "low" | "high" | "auto")
+      {
+        MagicCommentValue::String(priority.into_owned())
+      } else {
+        push_parse_warning(r#""low", "high" or "auto""#);
+        return None;
+      }
+    }
+    MagicCommentName::Include => {
+      if let Some((regexp, flags)) = expr_to_regexp(value)
+        && RspackRegex::with_flags(regexp, flags).is_ok()
+      {
+        MagicCommentValue::RegExp {
+          source: regexp.to_string(),
+          flags: flags.to_string(),
+        }
+      } else {
+        push_parse_warning(r#"a regular expression"#);
+        return None;
+      }
+    }
+    MagicCommentName::Exclude => {
+      if let Some((regexp, flags)) = expr_to_regexp(value)
+        && RspackRegex::with_flags(regexp, flags).is_ok()
+      {
+        MagicCommentValue::RegExp {
+          source: regexp.to_string(),
+          flags: flags.to_string(),
+        }
+      } else {
+        push_parse_warning(r#"a regular expression"#);
+        return None;
+      }
+    }
+    MagicCommentName::Exports => {
+      if let Some(exports) = expr_to_exports(value) {
+        exports
+      } else {
+        push_parse_warning(r#"a string or an array of strings"#);
+        return None;
+      }
+    }
+  };
+
+  Some((
+    comment_name.rspack_comment(),
+    MagicCommentItem {
+      prefix,
+      value,
+      span: item_span,
+    },
+  ))
 }
 
 fn analyze_comments(
@@ -445,222 +737,39 @@ fn analyze_comments(
       let Prop::KeyValue(prop) = &**prop else {
         continue;
       };
-      if let Some(item_name) = prop_name_to_str(&prop.key) {
-        let value = &prop.value;
-        let received = raw_value(&comment.text, value).unwrap_or_default();
-        let error_span =
-          || value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
-        match magic_comment_name(item_name.as_ref()) {
-          Some(MagicCommentName::ChunkName) => {
-            if let Some(value) = expr_to_str(value) {
-              result.insert(
-                RspackComment::ChunkName,
-                MagicCommentValue::String(value.into_owned()),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "a string",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Prefetch) => {
-            if let Some(value) = expr_to_order_str(&comment.text, value) {
-              result.insert(
-                RspackComment::Prefetch,
-                if value == "true" {
-                  MagicCommentValue::Bool(true)
-                } else {
-                  MagicCommentValue::Number(value.to_string())
-                },
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "true or a number",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Preload) => {
-            if let Some(value) = expr_to_order_str(&comment.text, value) {
-              result.insert(
-                RspackComment::Preload,
-                if value == "true" {
-                  MagicCommentValue::Bool(true)
-                } else {
-                  MagicCommentValue::Number(value.to_string())
-                },
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "true or a number",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Ignore) => {
-            if let Some(value) = expr_to_bool(value) {
-              result.insert(RspackComment::Ignore, MagicCommentValue::Bool(value));
-              continue;
-            }
-            result.insert(
-              RspackComment::Ignore,
-              expr_to_magic_comment_value(&comment.text, value)
-                .unwrap_or(MagicCommentValue::Unknown),
-            );
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "a boolean",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Mode) => {
-            if let Some(value) = expr_to_str(value) {
-              result.insert(
-                RspackComment::Mode,
-                MagicCommentValue::String(value.into_owned()),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "a string",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Defer) => {
-            if let Some(value) = expr_to_bool(value) {
-              result.insert(RspackComment::Defer, MagicCommentValue::Bool(value));
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "a boolean",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Source) => {
-            if let Some(value) = expr_to_bool(value) {
-              result.insert(RspackComment::Source, MagicCommentValue::Bool(value));
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              "a boolean",
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::FetchPriority) => {
-            if let Some(priority) = expr_to_str(value)
-              && matches!(priority.as_ref(), "low" | "high" | "auto")
-            {
-              result.insert(
-                RspackComment::FetchPriority,
-                MagicCommentValue::String(priority.into_owned()),
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              r#""low", "high" or "auto""#,
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Include) => {
-            if let Some((regexp, flags)) = expr_to_regexp(value)
-              && RspackRegex::with_flags(regexp, flags).is_ok()
-            {
-              result.insert(
-                RspackComment::IncludeRegexp,
-                MagicCommentValue::RegExp {
-                  source: regexp.to_string(),
-                  flags: flags.to_string(),
-                },
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              r#"a regular expression"#,
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Exclude) => {
-            if let Some((regexp, flags)) = expr_to_regexp(value)
-              && RspackRegex::with_flags(regexp, flags).is_ok()
-            {
-              result.insert(
-                RspackComment::ExcludeRegexp,
-                MagicCommentValue::RegExp {
-                  source: regexp.to_string(),
-                  flags: flags.to_string(),
-                },
-              );
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              r#"a regular expression"#,
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          Some(MagicCommentName::Exports) => {
-            if let Some(exports) = expr_to_exports(value) {
-              result.insert(RspackComment::Exports, exports);
-              continue;
-            }
-            add_magic_comment_warning(
-              source,
-              item_name.as_ref(),
-              r#"a string or an array of strings"#,
-              received,
-              warning_diagnostics,
-              error_span(),
-            );
-          }
-          _ => {}
-        }
-      }
+      let Some(item_name) = prop_name_to_str(&prop.key) else {
+        continue;
+      };
+      let Some((comment_name, prefix)) = parse_magic_comment_name(item_name.as_ref()) else {
+        continue;
+      };
+      let value = &prop.value;
+      let Some((rspack_comment, item)) = parse_magic_comment_item(
+        source,
+        &comment.text,
+        comment.span,
+        error_span,
+        comment_name,
+        prefix,
+        value,
+        warning_diagnostics,
+      ) else {
+        continue;
+      };
+      result.insert_with_conflict_warning(
+        source,
+        comment_name,
+        rspack_comment,
+        item,
+        warning_diagnostics,
+      );
     }
   }
 }
 
 #[cfg(test)]
 mod tests_extract_magic_comment_object {
-  use swc_core::{atoms::Atom, common::DUMMY_SP};
+  use swc_experimental_ecma_ast::DUMMY_SP;
 
   use super::*;
 
@@ -687,12 +796,14 @@ mod tests_extract_magic_comment_object {
   fn extract(raw: &str) -> (RspackCommentMap, Vec<Diagnostic>) {
     let mut result = RspackCommentMap::new();
     let mut warning_diagnostics = Vec::new();
+    let allocator = Allocator::new();
     analyze_comments(
+      &allocator,
       "",
       &[Comment {
         kind: CommentKind::Block,
         span: DUMMY_SP,
-        text: Atom::from(raw),
+        text: swc_experimental_allocator::atom::Atom::new_in(raw, &allocator),
       }],
       DUMMY_SP,
       &mut warning_diagnostics,
