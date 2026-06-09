@@ -4938,7 +4938,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
- "simd-json",
  "tokio",
  "tracing",
 ]

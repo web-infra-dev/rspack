@@ -6,7 +6,7 @@ use rspack_core::{
   RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
+use crate::{extract_runtime_globals_from_ejs, runtime_module::utils::stringify_chunk_id_array};
 
 static CHUNK_PREFETCH_STARTUP_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_startup.ejs");
 static CHUNK_PREFETCH_STARTUP_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -76,8 +76,8 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
         let source = context.runtime_template.render(
           &self.id,
           Some(serde_json::json!({
-            "_chunk_ids": simd_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
-            "_child_chunk_ids": simd_json::to_string(&child_chunk_ids).expect("invalid json tostring"),
+            "_chunk_ids": stringify_chunk_id_array(group_chunk_ids.iter().copied()),
+            "_child_chunk_ids": stringify_chunk_id_array(child_chunk_ids.iter().copied()),
           })),
         )?;
 

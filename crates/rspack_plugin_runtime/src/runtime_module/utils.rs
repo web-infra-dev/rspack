@@ -61,6 +61,21 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
   result
 }
 
+pub fn stringify_chunk_id_array<'a>(chunk_ids: impl IntoIterator<Item = &'a ChunkId>) -> String {
+  let chunk_ids = chunk_ids.into_iter();
+  let (lower, _) = chunk_ids.size_hint();
+  let mut result = String::with_capacity(lower * 8 + 2);
+  result.push('[');
+  for (i, chunk_id) in chunk_ids.enumerate() {
+    if i > 0 {
+      result.push(',');
+    }
+    result.push_str(&rspack_util::json_stringify(chunk_id));
+  }
+  result.push(']');
+  result
+}
+
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {
   compilation
     .build_chunk_graph_artifact
