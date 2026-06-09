@@ -6,8 +6,6 @@ use rspack_core::{
   impl_runtime_module,
 };
 
-use crate::runtime_module::utils::stringify_chunk_id_array;
-
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct StartupChunkDependenciesRuntimeModule {
@@ -74,7 +72,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           ),
           _ => format!(
             "return Promise.all({}.map({}, {})).then(next);",
-            stringify_chunk_id_array(&chunk_ids),
+            simd_json::to_string(&chunk_ids).expect("invalid json to_string"),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),
