@@ -18,6 +18,14 @@ impl ExportsInfo {
     Self(NEXT_EXPORTS_INFO_UKEY.fetch_add(1, Relaxed))
   }
 
+  pub fn as_u32(&self) -> u32 {
+    self.0
+  }
+
+  pub(crate) fn from_u32(id: u32) -> Self {
+    Self(id)
+  }
+
   pub fn as_data<'a>(&self, exports_info_artifact: &'a ExportsInfoArtifact) -> &'a ExportsInfoData {
     exports_info_artifact.get_exports_info_by_id(self)
   }

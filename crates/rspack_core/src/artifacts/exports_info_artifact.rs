@@ -2,15 +2,15 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ExportsInfo, ExportsInfoData, ModuleIdentifier,
+  ArtifactExt, DenseExportsInfoMap, ExportsInfo, ExportsInfoData, ModuleIdentifier,
   incremental::{Incremental, IncrementalPasses},
-  module_graph::rollback,
+  module_graph::rollback::RollbackAtom,
 };
 
 #[derive(Debug, Default)]
 pub struct ExportsInfoArtifact {
   module_exports_info: IdentifierMap<ExportsInfo>,
-  exports_info_map: rollback::RollbackAtomMap<ExportsInfo, ExportsInfoData>,
+  exports_info_map: RollbackAtom<DenseExportsInfoMap<ExportsInfoData>>,
 }
 
 impl ArtifactExt for ExportsInfoArtifact {
@@ -101,15 +101,16 @@ impl ExportsInfoArtifact {
   }
 
   pub fn reset_all_exports_info_used(&mut self) {
-    self.exports_info_map.par_iter_mut().for_each(
-      |(_, exports_info): (&ExportsInfo, &mut ExportsInfoData)| {
+    self
+      .exports_info_map
+      .par_iter_mut()
+      .for_each(|(_, exports_info)| {
         for export_info in exports_info.exports_mut().values_mut() {
           export_info.set_has_use_info();
         }
         exports_info.side_effects_only_info_mut().set_has_use_info();
         exports_info.other_exports_info_mut().set_has_use_info();
-      },
-    );
+      });
   }
 }
 

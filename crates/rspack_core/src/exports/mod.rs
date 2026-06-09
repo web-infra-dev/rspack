@@ -1,3 +1,4 @@
+mod dense_exports_info_map;
 mod export_info;
 mod export_info_getter;
 mod export_info_setter;
@@ -8,6 +9,7 @@ mod referenced_export;
 mod target;
 mod utils;
 
+pub(crate) use dense_exports_info_map::*;
 pub use export_info::*;
 pub use exports_info::*;
 pub use referenced_export::*;
