@@ -126,7 +126,8 @@ function matchStatsSnapshot(
     stats
       .toString({
         all: false,
-        logging: 'info',
+        logging: false,
+        loggingDebug: /^rspack\.persistentCache$/,
         colors: false,
       })
       .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms'),
