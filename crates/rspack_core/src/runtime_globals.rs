@@ -189,6 +189,11 @@ define_runtime_globals! {
   const INSTANTIATE_WASM;
 
   /**
+   * compile a wasm module from id and hash
+   */
+  const COMPILE_WASM;
+
+  /**
    * Creates an async module. The body function must be a async function.
    * "module.exports" will be decorated with an AsyncModulePromise.
    * The body function will be called.
@@ -336,6 +341,7 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
     | RuntimeGlobals::GET_FULL_HASH
     | RuntimeGlobals::GLOBAL
     | RuntimeGlobals::INSTANTIATE_WASM
+    | RuntimeGlobals::COMPILE_WASM
     | RuntimeGlobals::ASYNC_MODULE
     | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
     | RuntimeGlobals::BASE_URI
@@ -429,6 +435,7 @@ pub fn runtime_globals_to_string(
     RuntimeGlobals::GLOBAL => "g",
     RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME => "return-exports-from-runtime",
     RuntimeGlobals::INSTANTIATE_WASM => "v",
+    RuntimeGlobals::COMPILE_WASM => "vs",
     RuntimeGlobals::ASYNC_MODULE => "a",
     RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL => "aE",
     RuntimeGlobals::BASE_URI => "b",

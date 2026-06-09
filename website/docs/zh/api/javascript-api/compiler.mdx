@@ -16,7 +16,7 @@ import { Badge } from '@theme';
 
 # Compiler
 
-Compiler 是 Rspack 内部的核心对象，当你调用 Rspack 的 [JavaScript API](/api/javascript-api/index) 或 [CLI](/api/cli) 时，都会创建一个 Compiler 实例。
+Compiler 是 Rspack 内部的核心对象，当你调用 Rspack 的 [JavaScript API](/api/javascript-api/) 或 [CLI](/api/cli) 时，都会创建一个 Compiler 实例。
 
 它提供了 [run](#run) 和 [watch](#watch) 等方法来启动构建，同时暴露了丰富的 [Compiler 钩子](/api/plugin-api/compiler-hooks)，使 Rspack 插件能够干预构建的各个阶段。
 
@@ -274,7 +274,7 @@ function isChild(): boolean;
 
 获取当前的 `@rspack/core` 的导出，以此来获取关联的内部对象。当你无法直接引用 `@rspack/core`，或者存在多个 Rspack 实例时很有用。
 
-一个常见的例子是在 Rspack 插件中获取 [sources](/api/javascript-api/index#sources-对象) 对象：
+一个常见的例子是在 Rspack 插件中获取 [sources](/api/javascript-api/#sources-对象) 对象：
 
 ```js
 const { RawSource } = compiler.rspack.sources;
@@ -320,7 +320,7 @@ console.log(compiler.webpack === compiler.rspack); // true
 
 - **类型：** `RspackOptionsNormalized`
 
-获取根 Compiler 所使用的完整[构建配置](/config/index)。
+获取根 Compiler 所使用的完整[构建配置](/config/)。
 
 ### target
 
@@ -581,7 +581,7 @@ getInfrastructureLogger(name: string): Logger;
 
 - **类型：** `RspackOptionsNormalized[]`
 
-获取各个 Compiler 所使用的完整[构建配置](/config/index)。
+获取各个 Compiler 所使用的完整[构建配置](/config/)。
 
 #### inputFileSystem
 

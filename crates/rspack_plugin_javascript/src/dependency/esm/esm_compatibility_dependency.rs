@@ -4,7 +4,7 @@ use rspack_core::{
   InitFragmentStage, ModuleGraph, NormalInitFragment, RuntimeGlobals, TemplateContext,
   TemplateReplaceSource, UsageState,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 // Mark module `__esModule`.
 // Add `__webpack_require__.r(__webpack_exports__);`.

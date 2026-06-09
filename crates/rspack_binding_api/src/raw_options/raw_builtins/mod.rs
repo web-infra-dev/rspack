@@ -52,7 +52,7 @@ use rspack_plugin_asset::AssetPlugin;
 use rspack_plugin_banner::BannerPlugin;
 use rspack_plugin_case_sensitive::CaseSensitivePlugin;
 use rspack_plugin_circular_dependencies::{
-  CircularDependencyRspackPlugin, CircularModulesInfoPlugin,
+  CircularCheckRspackPlugin, CircularDependencyRspackPlugin, CircularModulesInfoPlugin,
 };
 use rspack_plugin_copy::{CopyRspackPlugin, CopyRspackPluginOptions};
 use rspack_plugin_css::CssPlugin;
@@ -117,7 +117,9 @@ use rustc_hash::FxHashMap as HashMap;
 use self::{
   raw_banner::RawBannerPluginOptions,
   raw_bundle_info::{RawBundlerInfoModeWrapper, RawBundlerInfoPluginOptions},
-  raw_circular_dependency::RawCircularDependencyRspackPluginOptions,
+  raw_circular_dependency::{
+    RawCircularCheckRspackPluginOptions, RawCircularDependencyRspackPluginOptions,
+  },
   raw_context_replacement::RawContextReplacementPluginOptions,
   raw_copy::RawCopyRspackPluginOptions,
   raw_css_chunking::RawCssChunkingPluginOptions,
@@ -249,6 +251,7 @@ pub enum BuiltinPluginName {
   RstestPlugin,
   RslibPlugin,
   CircularModulesInfoPlugin,
+  CircularCheckRspackPlugin,
   CircularDependencyRspackPlugin,
   URLPlugin,
 
@@ -806,6 +809,14 @@ impl<'a> BuiltinPlugin<'a> {
       BuiltinPluginName::CircularDependencyRspackPlugin => plugins.push(
         CircularDependencyRspackPlugin::new(
           downcast_into::<RawCircularDependencyRspackPluginOptions>(self.options)
+            .map_err(|report| napi::Error::from_reason(report.to_string()))?
+            .into(),
+        )
+        .boxed(),
+      ),
+      BuiltinPluginName::CircularCheckRspackPlugin => plugins.push(
+        CircularCheckRspackPlugin::new(
+          downcast_into::<RawCircularCheckRspackPluginOptions>(self.options)
             .map_err(|report| napi::Error::from_reason(report.to_string()))?
             .into(),
         )

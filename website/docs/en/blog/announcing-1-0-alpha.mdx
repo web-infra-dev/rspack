@@ -128,13 +128,13 @@ export default {
 
 ## Bundling CSS
 
-Rspack 1.0 aligns with the webpack [experiment.css](/config/experiments#experimentscss) default value, making it easier to migrate from webpack to Rspack.
+Rspack 1.0 aligns with the webpack [experiment.css](/config/deprecated-options#experimentscss) default value, making it easier to migrate from webpack to Rspack.
 
 In the webpack ecosystem, there are three common approaches to bundling CSS files:
 
 1. Use [css-loader](https://github.com/webpack/css-loader) and [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin) to generate standalone CSS files.
 2. Use [css-loader](https://github.com/webpack/css-loader) and [style-loader](https://github.com/webpack/style-loader) to inject CSS through `<style>` tags.
-3. Use [experiment.css](/config/experiments#experimentscss), an experimental feature introduced in webpack 5 that provides native CSS support.
+3. Use [experiment.css](/config/deprecated-options#experimentscss), an experimental feature introduced in webpack 5 that provides native CSS support.
 
 In version 0.x, Rspack enabled `experiment.css` by default, which would conflict with css-loader. Users had to manually disable `experiment.css` to use css-loader.
 

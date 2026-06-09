@@ -198,6 +198,11 @@ enum RuntimeGlobals {
   instantiateWasm,
 
   /**
+   * compile a wasm module from id and hash
+   */
+  compileWasm,
+
+  /**
    * the uncaught error handler for the webpack runtime
    */
   uncaughtErrorHandler,
@@ -567,6 +572,8 @@ function renderRuntimeGlobals(
       return `${scope_name}.w`;
     case RuntimeGlobals.instantiateWasm:
       return `${scope_name}.v`;
+    case RuntimeGlobals.compileWasm:
+      return `${scope_name}.vs`;
     case RuntimeGlobals.uncaughtErrorHandler:
       return `${scope_name}.oe`;
     case RuntimeGlobals.scriptNonce:

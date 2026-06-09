@@ -80,9 +80,9 @@ Below are the main configuration options related to ESM and their descriptions, 
    6. Affects [output.iife](/config/output#outputiife) default value: When `output.module` is `true`, `output.iife` defaults to `false`
    7. If [`output.library`](/config/output#outputlibrary) is also configured and [`output.library.type`](/config/output#outputlibrarytype) is not set explicitly, the default becomes `'modern-module'` instead of `'var'`
    8. Affects [output.scriptType](/config/output#outputscripttype) default value: When `output.module` is `true`, defaults to `'module'`
-   9. Affects [output.environment.dynamicImport](/config/output#outputenvironmentdynamicimport) default value: Enabled when `output.module` is `true`
-   10. Affects [output.environment.dynamicImportInWorker](/config/output#outputenvironmentdynamicimportinworker) default value: Enabled when `output.module` is `true`
-   11. Affects [output.environment.module](/config/output#outputenvironmentmodule) default value: Enabled when `output.module` is `true`
+   9. Affects [output.environment.dynamicImport](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
+   10. Affects [output.environment.dynamicImportInWorker](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
+   11. Affects [output.environment.module](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
    12. Affects Node.js related configuration defaults: In Node.js environment, when `output.module` is `true`, `__filename` and `__dirname` default to `'node-module'`
 2. [output.chunkFormat](/config/output#outputchunkformat): When building application ESM output, this is typically set to `'module'` to use ESM-format chunks.
 3. [output.library.type](/config/output#outputlibrarytype): When building library ESM output, this is typically set to `'modern-module'` to use Rspack's dedicated ESM library rendering path.

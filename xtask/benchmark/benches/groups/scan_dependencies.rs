@@ -14,28 +14,23 @@ use rspack_core::{
   BuildInfo, BuildMeta, Compiler, CompilerOptions, Mode, ModuleCodeTemplate, ModuleIdentifier,
   ModuleType, Optimization, ParseMeta, ParserOptions, ResourceData, SideEffectOption,
 };
-use rspack_javascript_compiler::{JavaScriptCompiler, ast::Program};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
   parser_and_generator::ParserRuntimeRequirementsData,
   visitors::{
-    ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
-    semicolon::InsertedSemicolons, swc_visitor::resolver,
+    ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies as run_scan_dependencies,
+    semicolon::InsertedSemicolons,
   },
 };
 use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashSet;
-use swc_core::{
-  base::config::IsModule,
-  common::{
-    BytePos, GLOBALS, Globals, Mark, comments::SingleThreadedComments, input::SourceFileInput,
-  },
-  ecma::{
-    ast::EsVersion,
-    parser::{EsSyntax, Syntax, lexer::Lexer},
-    transforms::base::fixer::paren_remover,
-  },
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::{Comments, EsVersion, Program, VisitWith};
+use swc_experimental_ecma_parser::{
+  EsSyntax, Lexer, Parser, StringSource, Syntax, unstable::Capturing,
 };
+use swc_experimental_ecma_semantic::resolver::resolver;
+use swc_experimental_ecma_transforms_base::remove_paren::remove_paren;
 
 const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
@@ -53,27 +48,25 @@ struct PreparedScanDependenciesBenchmarkCase {
   benchmark_id: &'static str,
   source_text: String,
   compiler_options: Arc<CompilerOptions>,
-  initial_semicolons: FxHashSet<BytePos>,
+  initial_semicolons: FxHashSet<u32>,
   parser_options: ParserOptions,
-  program: Program,
+  parsed_ast: ParsedJavaScriptAst<'static>,
   module_identifier: ModuleIdentifier,
   module_type: ModuleType,
   resource_data: ResourceData,
-  unresolved_mark: Mark,
   parser_runtime_requirements: ParserRuntimeRequirementsData,
 }
 
 struct PreparedScanDependenciesProgram {
-  program: Program,
-  unresolved_mark: Mark,
-  semicolons: FxHashSet<BytePos>,
+  parsed_ast: ParsedJavaScriptAst<'static>,
+  semicolons: FxHashSet<u32>,
 }
 
 #[derive(Default)]
 struct ScanDependenciesIterationState {
   build_meta: BuildMeta,
   build_info: BuildInfo,
-  semicolons: FxHashSet<BytePos>,
+  semicolons: FxHashSet<u32>,
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
 }
@@ -85,18 +78,16 @@ pub fn benchmark_scan_dependencies(c: &mut Criterion) {
 }
 
 fn register_scan_dependencies_benchmarks(c: &mut Criterion) {
-  GLOBALS.set(&Globals::new(), || {
-    let compiler = create_scan_dependencies_compiler();
-    let benchmark_cases = load_scan_dependencies_benchmark_specs()
-      .into_iter()
-      .map(|case_spec| prepare_scan_dependencies_benchmark_case(&compiler, case_spec))
-      .collect::<Vec<_>>();
+  let compiler = create_scan_dependencies_compiler();
+  let benchmark_cases = load_scan_dependencies_benchmark_specs()
+    .into_iter()
+    .map(|case_spec| prepare_scan_dependencies_benchmark_case(&compiler, case_spec))
+    .collect::<Vec<_>>();
 
-    for benchmark_case in &benchmark_cases {
-      benchmark_case.assert_can_execute();
-      register_scan_dependencies_benchmark_case(c, benchmark_case);
-    }
-  });
+  for benchmark_case in &benchmark_cases {
+    benchmark_case.assert_can_execute();
+    register_scan_dependencies_benchmark_case(c, benchmark_case);
+  }
 }
 
 fn register_scan_dependencies_benchmark_case(
@@ -151,8 +142,7 @@ fn prepare_scan_dependencies_benchmark_case(
     module_type,
   } = case_spec;
   let PreparedScanDependenciesProgram {
-    program,
-    unresolved_mark,
+    parsed_ast,
     semicolons,
   } = parse_benchmark_program(resource_path, &source_text, &module_type);
   let compiler_options = compiler.options.clone();
@@ -171,11 +161,10 @@ fn prepare_scan_dependencies_benchmark_case(
     compiler_options: compiler_options.clone(),
     initial_semicolons: semicolons,
     parser_options,
-    program,
+    parsed_ast,
     module_identifier: resource_path.into(),
     module_type,
     resource_data: ResourceData::new_with_resource(resource_path.to_string()),
-    unresolved_mark,
     parser_runtime_requirements: ParserRuntimeRequirementsData::new(&ModuleCodeTemplate::new(
       compiler_options,
     )),
@@ -187,8 +176,11 @@ fn parse_benchmark_program(
   source_text: &str,
   module_type: &ModuleType,
 ) -> PreparedScanDependenciesProgram {
-  let comments = SingleThreadedComments::default();
+  let source_text = Box::leak(source_text.to_string().into_boxed_str());
+  let allocator = Box::leak(Box::new(Allocator::default()));
+  let comments = Box::leak(Box::new(Comments::default()));
   let parser_lexer = Lexer::new(
+    allocator,
     Syntax::Es(EsSyntax {
       jsx: resource_path.ends_with(".jsx"),
       allow_return_outside_function: matches!(
@@ -199,55 +191,44 @@ fn parse_benchmark_program(
       import_attributes: true,
       ..Default::default()
     }),
-    EsVersion::latest(),
-    SourceFileInput::new(
-      source_text,
-      BytePos(1),
-      BytePos(source_text.len() as u32 + 1),
-    ),
-    Some(&comments),
+    EsVersion::EsNext,
+    StringSource::new(source_text),
+    Some(comments),
   );
-  let compiler = JavaScriptCompiler::new();
-  let (mut ast, tokens) = compiler
-    .parse_with_lexer(
-      source_text,
-      parser_lexer,
-      resolve_parse_mode(module_type),
-      Some(comments.clone()),
-      true,
-    )
-    .expect("scan_dependencies benchmark source should parse");
+  let parser_lexer = Capturing::new(parser_lexer);
+  let mut parser = Parser::new_from(allocator, parser_lexer);
+  let mut program = match module_type {
+    ModuleType::JsEsm => parser
+      .parse_module()
+      .map(|module| Program::Module(allocator.boxed(module))),
+    ModuleType::JsDynamic => parser
+      .parse_commonjs()
+      .map(|script| Program::Script(allocator.boxed(script))),
+    _ => parser.parse_program(),
+  }
+  .expect("scan_dependencies benchmark source should parse");
+  let parse_errors = parser.take_errors();
+  assert!(
+    parse_errors.is_empty(),
+    "scan_dependencies benchmark source should parse without recoverable errors"
+  );
+  let tokens = parser.input().iter.tokens().to_vec();
+  drop(parser);
 
   let mut semicolons = FxHashSet::default();
-  ast.transform(|program, context| {
-    program.visit_mut_with(&mut paren_remover(Some(&comments)));
-    program.visit_mut_with(&mut resolver(
-      context.unresolved_mark,
-      context.top_level_mark,
-      false,
-    ));
-    program.visit_with(&mut InsertedSemicolons::new(
-      &mut semicolons,
-      tokens
-        .as_deref()
-        .expect("scan_dependencies benchmark parse should capture tokens"),
-    ));
-  });
+  remove_paren(&mut program, allocator, Some(comments));
+  let program = Box::leak(Box::new(program));
+  let semantic = Box::leak(Box::new(resolver(program)));
+  program.visit_with(&mut InsertedSemicolons::new(&mut semicolons, &tokens));
 
-  let (program, unresolved_mark) =
-    ast.visit(|program, context| (program.clone(), context.unresolved_mark));
   PreparedScanDependenciesProgram {
-    program,
-    unresolved_mark,
+    parsed_ast: ParsedJavaScriptAst {
+      allocator,
+      comments,
+      semantic,
+      program,
+    },
     semicolons,
-  }
-}
-
-fn resolve_parse_mode(module_type: &ModuleType) -> IsModule {
-  match module_type {
-    ModuleType::JsEsm => IsModule::Bool(true),
-    ModuleType::JsDynamic => IsModule::Bool(false),
-    _ => IsModule::Unknown,
   }
 }
 
@@ -265,7 +246,7 @@ impl PreparedScanDependenciesBenchmarkCase {
   ) -> ScanDependenciesResult {
     run_scan_dependencies(
       &self.source_text,
-      &self.program,
+      &self.parsed_ast,
       &self.resource_data,
       self.compiler_options.as_ref(),
       &self.module_type,
@@ -276,7 +257,6 @@ impl PreparedScanDependenciesBenchmarkCase {
       self.module_identifier,
       Some(&self.parser_options),
       &mut iteration_state.semicolons,
-      self.unresolved_mark,
       &mut iteration_state.parser_plugins,
       std::mem::take(&mut iteration_state.parse_meta),
       &self.parser_runtime_requirements,

@@ -1,13 +1,20 @@
+use std::{ptr::NonNull, sync::Arc};
+
 use derive_more::Debug;
+use futures::future::BoxFuture;
 use napi::{Either, bindgen_prelude::FnArgs};
 use napi_derive::napi;
+use rspack_core::{CompilerId, Module};
 use rspack_plugin_circular_dependencies::{
-  CircularDependencyIgnoredConnection, CircularDependencyIgnoredConnectionEntry,
-  CircularDependencyRspackPluginOptions, CompilationHookFn, CycleHandlerFn,
+  CircularCheckHandlerFn, CircularCheckRspackPluginOptions, CircularDependencyIgnoredConnection,
+  CircularDependencyIgnoredConnectionEntry, CircularDependencyRspackPluginOptions,
+  CompilationHookFn, CycleHandlerFn,
 };
 use rspack_regex::RspackRegex;
 
-use crate::compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction;
+use crate::{
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, module::ModuleObject,
+};
 
 fn ignore_pattern_to_entry(
   pattern: Either<String, RspackRegex>,
@@ -21,6 +28,7 @@ fn ignore_pattern_to_entry(
 type ConnectionPattern = Either<String, RspackRegex>;
 type CycleHookParams = (String, Vec<String>);
 
+/// Deprecated. Use `RawCircularCheckRspackPluginOptions` instead.
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
 pub struct RawCircularDependencyRspackPluginOptions {
@@ -117,6 +125,53 @@ impl From<RawCircularDependencyRspackPluginOptions> for CircularDependencyRspack
       on_ignored,
       on_start,
       on_end,
+    }
+  }
+}
+
+type OnDetectedArgs = FnArgs<(ModuleObject, Vec<String>)>;
+
+#[derive(Debug)]
+#[napi(object, object_to_js = false)]
+pub struct RawCircularCheckRspackPluginOptions {
+  pub fail_on_error: Option<bool>,
+  #[napi(ts_type = "RegExp")]
+  pub exclude: Option<RspackRegex>,
+  #[napi(ts_type = "RegExp")]
+  pub include: Option<RspackRegex>,
+  #[debug(skip)]
+  #[napi(ts_type = "(module: Module, paths: string[]) => void")]
+  pub on_detected: Option<ThreadsafeFunction<OnDetectedArgs, ()>>,
+}
+
+impl From<RawCircularCheckRspackPluginOptions> for CircularCheckRspackPluginOptions {
+  fn from(value: RawCircularCheckRspackPluginOptions) -> Self {
+    let on_detected: Option<CircularCheckHandlerFn> = match value.on_detected {
+      Some(callback) => Some(Arc::new(
+        move |compiler_id: CompilerId,
+              module: &dyn Module,
+              paths: Vec<String>|
+              -> BoxFuture<'_, rspack_error::Result<()>> {
+          let callback = callback.clone();
+          let module = ModuleObject::with_ptr(
+            NonNull::new(module as *const dyn Module as *mut dyn Module)
+              .expect("module pointer should not be null"),
+            compiler_id,
+          );
+          Box::pin(async move {
+            callback.call_with_sync((module, paths).into()).await?;
+            Ok(())
+          })
+        },
+      )),
+      None => None,
+    };
+
+    Self {
+      exclude: value.exclude,
+      include: value.include,
+      fail_on_error: value.fail_on_error.unwrap_or(false),
+      on_detected,
     }
   }
 }

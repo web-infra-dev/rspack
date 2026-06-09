@@ -27,7 +27,7 @@ Asset module 输出的文件名称。这个值可以被 [rules[].generator.filen
 
 :::info Asset module 作为一个单独的文件输出的情况
 
-- 模块类型为 `'asset'` 且 asset 满足 [`rules[].parser.dataUrlCondition`](/config/module-rules#rulesparserdataurlcondition) 设定值
+- 模块类型为 `'asset'` 且 asset 满足 [`rules[].parser.dataUrlCondition`](/config/module-parser#assetdataurlcondition) 设定值
 - 模块类型为 `'asset/resource'`
 
 :::
@@ -411,7 +411,7 @@ export default {
 ## output.enabledWasmLoadingTypes
 
 - **类型：** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
-- **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#workerWasmLoading) 的配置推断
+- **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#outputworkerwasmloading) 的配置推断
 
 开启可用的 Wasm 加载类型的运行时模块打包。
 
@@ -685,7 +685,7 @@ export default {
 
 JSONP 函数用于异步加载热更新块。
 
-具体可以参阅 [output.chunkLoadingGlobal](#outputchunkLoadingGlobal)。
+具体可以参阅 [output.chunkLoadingGlobal](#outputchunkloadingglobal)。
 
 ## output.hotUpdateMainFilename
 
@@ -1268,7 +1268,7 @@ export default {
 });
 ```
 
-请注意，根据[对象赋值部分](#expose-via-object-assignment)，省略 `library.name` 将导致入口起点返回的所有属性直接赋值给根对象。示例：
+请注意，根据[对象赋值部分](#通过对象赋值暴露)，省略 `library.name` 将导致入口起点返回的所有属性直接赋值给根对象。示例：
 
 ```js title="rspack.config.mjs"
 export default {

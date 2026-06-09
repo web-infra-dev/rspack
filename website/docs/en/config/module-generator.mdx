@@ -594,7 +594,7 @@ export default {
 - **Type:** `string`
 - **Default:** `[uniqueName]-[id]-[local]` in development mode when [`output.uniqueName`](/config/output#outputuniquename) is non-empty, `[id]-[local]` in development mode otherwise, and `[fullhash]` in production mode.
 
-Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/output#file-context) and [Module-level](/config/output#module-context), also include `[uniqueName]` and `[local]`.
+Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/filename-placeholders#file-placeholders) and [Module-level](/config/filename-placeholders#module-placeholders), also include `[uniqueName]` and `[local]`.
 
 ```js title="rspack.config.mjs"
 export default {

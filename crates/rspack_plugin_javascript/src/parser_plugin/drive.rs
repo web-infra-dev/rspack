@@ -1,15 +1,13 @@
-use swc_core::{
-  atoms::Atom,
-  common::Span,
-  ecma::ast::{
-    AssignExpr, BinExpr, CallExpr, Callee, ClassMember, CondExpr, Expr, IfStmt, MemberExpr,
-    OptChainExpr, UnaryExpr, UnaryOp, VarDeclarator,
-  },
+use swc_atoms::Atom;
+use swc_experimental_allocator::CloneIn;
+use swc_experimental_ecma_ast::{
+  AssignExpr, AwaitExpr, BinExpr, BinaryOp, CallExpr, Callee, ClassMember, CondExpr, Expr,
+  ForOfStmt, Ident, IfStmt, ImportDecl, MemberExpr, ModuleDecl, NewExpr, OptChainExpr, Program,
+  Span, ThisExpr, UnaryExpr, UnaryOp, VarDeclarator,
 };
 
 use super::{BoxJavascriptParserPlugin, JavascriptParserPlugin, JavascriptParserPluginHook};
 use crate::{
-  parser_plugin::r#const::is_logic_op,
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
@@ -17,6 +15,13 @@ use crate::{
     Statement, VariableDeclaration,
   },
 };
+
+fn is_logic_op(op: BinaryOp) -> bool {
+  matches!(
+    op,
+    BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing
+  )
+}
 
 const PLUGIN_BITMASK_BITS: usize = u64::BITS as usize;
 
@@ -83,34 +88,22 @@ impl JavaScriptParserPluginDrive {
   }
 }
 
-impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
-  fn top_level_await_expr(
-    &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::AwaitExpr,
-  ) {
+impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive {
+  fn top_level_await_expr(&self, parser: &mut JavascriptParser<'p>, expr: &AwaitExpr) {
     for plugin in self.plugins_for(JavascriptParserPluginHook::TopLevelAwaitExpr) {
       // `SyncBailHook` but without return value
       plugin.top_level_await_expr(parser, expr);
     }
   }
 
-  fn top_level_for_of_await_stmt(
-    &self,
-    parser: &mut JavascriptParser,
-    stmt: &swc_core::ecma::ast::ForOfStmt,
-  ) {
+  fn top_level_for_of_await_stmt(&self, parser: &mut JavascriptParser<'p>, stmt: &ForOfStmt) {
     for plugin in self.plugins_for(JavascriptParserPluginHook::TopLevelForOfAwaitStmt) {
       // `SyncBailHook` but without return value
       plugin.top_level_for_of_await_stmt(parser, stmt);
     }
   }
 
-  fn program(
-    &self,
-    parser: &mut JavascriptParser,
-    ast: &swc_core::ecma::ast::Program,
-  ) -> Option<bool> {
+  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Program) {
       let res = plugin.program(parser, ast);
       // `SyncBailHook`
@@ -121,7 +114,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Finish) {
       let res = plugin.finish(parser);
       // `SyncBailHook`
@@ -134,8 +127,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn block_pre_module_declaration(
     &self,
-    parser: &mut JavascriptParser,
-    decl: &swc_core::ecma::ast::ModuleDecl,
+    parser: &mut JavascriptParser<'p>,
+    decl: &ModuleDecl,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::BlockPreModuleDeclaration) {
       let res = plugin.block_pre_module_declaration(parser, decl);
@@ -149,8 +142,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn module_declaration(
     &self,
-    parser: &mut JavascriptParser,
-    decl: &swc_core::ecma::ast::ModuleDecl,
+    parser: &mut JavascriptParser<'p>,
+    decl: &ModuleDecl,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::ModuleDeclaration) {
       let res = plugin.module_declaration(parser, decl);
@@ -162,7 +155,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, name: &str) -> Option<bool> {
+  fn call(&self, parser: &mut JavascriptParser<'p>, expr: &CallExpr, name: &str) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Call) {
       let res = plugin.call(parser, expr, name);
       // `SyncBailHook`
@@ -175,8 +168,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Member) {
@@ -191,8 +184,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn member_chain(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
@@ -217,7 +210,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -242,7 +235,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
+  fn is_pure(&self, parser: &mut JavascriptParser<'p>, expr: &Expr) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::IsPure) {
       let res = plugin.is_pure(parser, expr);
       // `SyncBailHook`
@@ -255,7 +248,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn member_chain_of_call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     member_expr: &MemberExpr,
     callee_members: &[Atom],
     call_expr: &CallExpr,
@@ -283,7 +276,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn call_member_chain_of_call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     callee_members: &[Atom],
     inner_call_expr: &CallExpr,
@@ -311,7 +304,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn assign(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &AssignExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -327,7 +320,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn assign_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &AssignExpr,
     members: &[Atom],
     for_name: &str,
@@ -344,7 +337,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -361,7 +354,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn expression_logical_operator(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &BinExpr,
   ) -> Option<bool> {
     assert!(is_logic_op(expr.op));
@@ -375,7 +368,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn binary_expression(&self, parser: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
+  fn binary_expression(&self, parser: &mut JavascriptParser<'p>, expr: &BinExpr) -> Option<bool> {
     assert!(!is_logic_op(expr.op));
     for plugin in self.plugins_for(JavascriptParserPluginHook::BinaryExpression) {
       let res = plugin.binary_expression(parser, expr);
@@ -387,7 +380,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Statement) {
       let res = plugin.statement(parser, stmt);
       // `SyncBailHook`
@@ -398,7 +391,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::UnusedStatement) {
       let res = plugin.unused_statement(parser, stmt);
       // `SyncBailHook`
@@ -409,7 +402,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn statement_if(&self, parser: &mut JavascriptParser, expr: &IfStmt) -> Option<bool> {
+  fn statement_if(&self, parser: &mut JavascriptParser<'p>, expr: &IfStmt) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::StatementIf) {
       let res = plugin.statement_if(parser, expr);
       // `SyncBailHook`
@@ -422,7 +415,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn declarator(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &VarDeclarator,
     stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
@@ -438,8 +431,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn new_expression(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::NewExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::NewExpression) {
@@ -454,8 +447,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    expr: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Identifier) {
@@ -470,7 +463,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn class_extends_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     super_class: &Expr,
     class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -486,7 +479,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn class_body_element(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     member: &ClassMember,
     class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -502,8 +495,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn class_body_value(
     &self,
-    parser: &mut JavascriptParser,
-    element: &swc_core::ecma::ast::ClassMember,
+    parser: &mut JavascriptParser<'p>,
+    element: &ClassMember,
     expr_span: Span,
     class_decl_or_expr: ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -519,8 +512,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn this(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::ThisExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &ThisExpr,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::This) {
@@ -533,9 +526,9 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate<'a>(
+  fn evaluate(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &'a Expr,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Evaluate) {
@@ -548,10 +541,10 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateTypeof) {
@@ -564,11 +557,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_call_expression<'a>(
+  fn evaluate_call_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     name: &str,
-    expr: &'a CallExpr,
+    expr: &'a CallExpr<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateCallExpression) {
       let res = plugin.evaluate_call_expression(parser, name, expr);
@@ -579,15 +572,16 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn evaluate_call_expression_member<'a>(
+  fn evaluate_call_expression_member(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     property: &str,
-    expr: &'a CallExpr,
+    expr: &'a CallExpr<'a>,
     param: BasicEvaluatedExpression<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateCallExpressionMember) {
-      let res = plugin.evaluate_call_expression_member(parser, property, expr, param.clone());
+      let cloned_param = param.clone_in(parser.ast.allocator);
+      let res = plugin.evaluate_call_expression_member(parser, property, expr, cloned_param);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -598,11 +592,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateIdentifier) {
       let res = plugin.evaluate_identifier(parser, for_name, start, end);
       // `SyncBailHook`
@@ -615,7 +609,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn can_collect_destructuring_assignment_properties(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &Expr,
   ) -> Option<bool> {
     for plugin in
@@ -632,8 +626,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn pattern(
     &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Pattern) {
@@ -648,7 +642,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
@@ -662,7 +656,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn can_rename(&self, parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+  fn can_rename(&self, parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::CanRename) {
       let res = plugin.can_rename(parser, str);
       // `SyncBailHook`
@@ -673,7 +667,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, str: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, str: &str) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Rename) {
       let res = plugin.rename(parser, expr, str);
       // `SyncBailHook`
@@ -684,7 +678,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::PreStatement) {
       let res = plugin.pre_statement(parser, stmt);
       // `SyncBailHook`
@@ -695,7 +689,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn block_pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn block_pre_statement(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    stmt: Statement,
+  ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::BlockPreStatement) {
       let res = plugin.block_pre_statement(parser, stmt);
       // `SyncBailHook`
@@ -708,7 +706,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn import_call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &CallExpr,
     import_then: Option<&CallExpr>,
     members: Option<(&[Atom], bool /* is_call */)>,
@@ -726,8 +724,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn meta_property(
     &self,
-    parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    parser: &mut JavascriptParser<'p>,
+    root_name: &swc_atoms::Atom,
     span: Span,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::MetaProperty) {
@@ -742,7 +740,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn unhandled_expression_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     root_info: &ExportedVariableInfo,
     expr: &MemberExpr,
   ) -> Option<bool> {
@@ -758,8 +756,8 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn import(
     &self,
-    parser: &mut JavascriptParser,
-    statement: &swc_core::ecma::ast::ImportDecl,
+    parser: &mut JavascriptParser<'p>,
+    statement: &ImportDecl,
     source: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Import) {
@@ -774,9 +772,9 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn import_specifier(
     &self,
-    parser: &mut JavascriptParser,
-    statement: &swc_core::ecma::ast::ImportDecl,
-    source: &swc_core::atoms::Atom,
+    parser: &mut JavascriptParser<'p>,
+    statement: &ImportDecl,
+    source: &swc_atoms::Atom,
     export_name: Option<&Atom>,
     identifier_name: &Atom,
   ) -> Option<bool> {
@@ -792,7 +790,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn export_import(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     statement: ExportImport,
     source: &Atom,
   ) -> Option<bool> {
@@ -806,7 +804,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn export(&self, parser: &mut JavascriptParser, statement: ExportLocal) -> Option<bool> {
+  fn export(&self, parser: &mut JavascriptParser<'p>, statement: ExportLocal) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::Export) {
       let res = plugin.export(parser, statement);
       // `SyncBailHook`
@@ -819,7 +817,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn export_import_specifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     statement: ExportImport,
     source: &Atom,
     local_id: Option<&Atom>,
@@ -845,7 +843,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn export_specifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     statement: ExportLocal,
     local_id: &Atom,
     export_name: &Atom,
@@ -863,7 +861,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn export_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     statement: ExportDefaultDeclaration,
     expr: ExportDefaultExpression,
   ) -> Option<bool> {
@@ -877,7 +875,11 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
     None
   }
 
-  fn optional_chaining(&self, parser: &mut JavascriptParser, expr: &OptChainExpr) -> Option<bool> {
+  fn optional_chaining(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &OptChainExpr,
+  ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::OptionalChaining) {
       let res = plugin.optional_chaining(parser, expr);
       // `SyncBailHook`
@@ -890,7 +892,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn expression_conditional_operation(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &CondExpr,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::ExpressionConditionalOperation) {
@@ -905,7 +907,7 @@ impl JavascriptParserPlugin for JavaScriptParserPluginDrive {
 
   fn import_meta_property_in_destructuring(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::ImportMetaPropertyInDestructuring) {

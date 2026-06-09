@@ -6,6 +6,7 @@ use rspack_core::{
   TemplateContext, TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
+use rspack_util::json_stringify_str;
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -130,6 +131,21 @@ fn module_namespace_promise_rstest(
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
   };
 
+  // Externalized specifiers exhibit a two-id split: rspack mints a distinct id
+  // for the dynamic import (`external import "X"`) vs the one `rs.mock` patches
+  // (`external module "X"`). Internal modules share one id, so a hoisted
+  // `rs.mock` already covers their dynamic import — leave that byte-identical.
+  // Only the Namespace arm below needs the shim: a split always resolves to
+  // `import`/`module` (= Namespace) for rstest's plain-string externals (a
+  // `has_rest()` property-access external would resolve to Dynamic and miss it,
+  // but rstest never emits those).
+  let use_dynamic_shim = !is_import_actual && {
+    compilation
+      .get_module_graph()
+      .get_module_by_dependency_id(dep_id)
+      .is_some_and(|m| m.as_external_module().is_some())
+  };
+
   let header = if weak {
     Some(format!(
       "if(!{}[{module_id_expr}]) {{\n {} \n}}",
@@ -148,6 +164,18 @@ fn module_namespace_promise_rstest(
           ".then(function() {{ {header}\nreturn {}}})",
           runtime_template.module_raw(compilation, dep_id, request, weak)
         )
+      } else if use_dynamic_shim {
+        // Route the external dynamic import through the request-keyed
+        // `rstest_dynamic_require` (in the @rstest/core runtime, a separate repo:
+        // .../plugins/mockRuntimeCode.js) so the hoisted `rs.mock` is found.
+        //
+        // TODO(compat): the `rstest_dynamic_require ? … : <plain require>` guard
+        // falls back to plain require for an older @rstest/core lacking the helper;
+        // drop it once the minimum @rstest/core always ships it.
+        appending = format!(
+          ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
+          json_stringify_str(request)
+        );
       } else {
         appending = format!(".then({final_require}.bind({final_require}, {module_id_expr}))");
       }

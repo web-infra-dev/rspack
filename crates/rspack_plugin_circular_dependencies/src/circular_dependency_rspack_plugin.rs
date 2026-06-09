@@ -2,9 +2,10 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use itertools::Itertools;
-use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
-  Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier, Plugin,
+  CircularModulesInfo, Compilation, CompilationOptimizeModules, DependencyType, ModuleIdentifier,
+  Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -212,6 +213,7 @@ pub type CycleHandlerFn =
   Box<dyn Fn(String, Vec<String>) -> BoxFuture<'static, Result<()>> + Sync + Send>;
 pub type CompilationHookFn = Box<dyn Fn() -> BoxFuture<'static, Result<()>> + Sync + Send>;
 
+/// Deprecated. Use `CircularCheckRspackPluginOptions` instead.
 #[derive(Debug)]
 pub struct CircularDependencyRspackPluginOptions {
   /// When `true`, the plugin will emit Error diagnostics rather than the
@@ -236,6 +238,7 @@ pub struct CircularDependencyRspackPluginOptions {
   pub on_end: Option<CompilationHookFn>,
 }
 
+/// Deprecated. Use `CircularCheckRspackPlugin` instead.
 #[plugin]
 #[derive(Debug)]
 pub struct CircularDependencyRspackPlugin {
@@ -362,7 +365,7 @@ impl CircularDependencyRspackPlugin {
 async fn optimize_modules(
   &self,
   compilation: &Compilation,
-  _circular_modules: &mut Option<IdentifierSet>,
+  _circular_modules: &mut CircularModulesInfo,
   diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   if let Some(on_start) = &self.options.on_start {

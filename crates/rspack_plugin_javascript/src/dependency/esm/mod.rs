@@ -16,7 +16,7 @@ mod provide_dependency;
 
 use std::fmt::Write as _;
 
-use rspack_core::{DependencyCategory, ImportAttributes, ResourceIdentifier};
+use rspack_core::{DependencyCategory, ImportAttributes, ImportPhase, ResourceIdentifier};
 
 pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
@@ -56,6 +56,7 @@ pub use self::{
 
 pub fn create_resource_identifier_for_esm_dependency(
   request: &str,
+  phase: ImportPhase,
   attributes: Option<&ImportAttributes>,
 ) -> ResourceIdentifier {
   let category = DependencyCategory::Esm.as_str();
@@ -63,6 +64,11 @@ pub fn create_resource_identifier_for_esm_dependency(
   ident.push_str(category);
   ident.push('|');
   ident.push_str(request);
+
+  if phase != ImportPhase::Evaluation {
+    ident.push_str("|phase=");
+    ident.push_str(phase.as_str());
+  }
 
   let Some(attributes) = attributes else {
     return ident.into();
@@ -110,7 +116,7 @@ fn push_esm_resource_identifier_attribute_part(ident: &mut String, value: &str) 
 
 #[cfg(test)]
 mod tests {
-  use rspack_core::ImportAttributes;
+  use rspack_core::{ImportAttributes, ImportPhase};
 
   use super::create_resource_identifier_for_esm_dependency;
 
@@ -121,7 +127,11 @@ mod tests {
       ("integrity".to_string(), "sha256".to_string()),
     ]);
 
-    let ident = create_resource_identifier_for_esm_dependency("./data.json", Some(&attributes));
+    let ident = create_resource_identifier_for_esm_dependency(
+      "./data.json",
+      ImportPhase::Evaluation,
+      Some(&attributes),
+    );
 
     assert_eq!(
       ident.to_string(),
@@ -137,11 +147,25 @@ mod tests {
       ("c".to_string(), "d".to_string()),
     ]);
 
-    let first =
-      create_resource_identifier_for_esm_dependency("./data.json", Some(&first_attributes));
-    let second =
-      create_resource_identifier_for_esm_dependency("./data.json", Some(&second_attributes));
+    let first = create_resource_identifier_for_esm_dependency(
+      "./data.json",
+      ImportPhase::Evaluation,
+      Some(&first_attributes),
+    );
+    let second = create_resource_identifier_for_esm_dependency(
+      "./data.json",
+      ImportPhase::Evaluation,
+      Some(&second_attributes),
+    );
 
     assert_ne!(first, second);
+  }
+
+  #[test]
+  fn creates_resource_identifier_with_import_phase() {
+    let ident =
+      create_resource_identifier_for_esm_dependency("./mod.wasm", ImportPhase::Source, None);
+
+    assert_eq!(ident.to_string(), "esm|./mod.wasm|phase=source");
   }
 }

@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::runtime::AsyncWasmLoadingRuntimeModule;
+use crate::runtime::{AsyncWasmCompileRuntimeModule, AsyncWasmLoadingRuntimeModule};
 
 pub fn enable_wasm_loading_plugin(wasm_loading_type: WasmLoadingType) -> BoxPlugin {
   match wasm_loading_type {
@@ -29,24 +29,43 @@ async fn fetch_compile_async_wasm_plugin_runtime_requirements_in_tree(
   runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM)
+    && !runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM)
+  {
     return Ok(None);
   }
 
   let runtime_template = compilation.runtime_template.create_runtime_code_template();
-  runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
-  runtime_modules_to_add.push((
-    *chunk_ukey,
-    AsyncWasmLoadingRuntimeModule::new(
-      &compilation.runtime_template,
-      format!(
-        "fetch({} + $PATH)",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
-      ),
-      true,
-    )
-    .boxed(),
-  ));
+  if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmLoadingRuntimeModule::new(
+        &compilation.runtime_template,
+        format!(
+          "fetch({} + $PATH)",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+        ),
+        true,
+      )
+      .boxed(),
+    ));
+  }
+  if runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM) {
+    runtime_requirements_mut.insert(RuntimeGlobals::PUBLIC_PATH);
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmCompileRuntimeModule::new(
+        &compilation.runtime_template,
+        format!(
+          "fetch({} + $PATH)",
+          runtime_template.render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH)
+        ),
+        true,
+      )
+      .boxed(),
+    ));
+  }
 
   Ok(None)
 }
@@ -85,7 +104,9 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM)
+    && !runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM)
+  {
     return Ok(None);
   }
 
@@ -96,19 +117,29 @@ async fn read_file_compile_async_wasm_plugin_runtime_requirements_in_tree(
       .environment
       .supports_dynamic_import();
 
-  runtime_modules_to_add.push((
-    *chunk_ukey,
-    AsyncWasmLoadingRuntimeModule::new(
-      &compilation.runtime_template,
-      if import_enabled {
-        include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
-      } else {
-        include_str!("runtime/read_file_compile_async_wasm.js").to_string()
-      },
-      false,
-    )
-    .boxed(),
-  ));
+  let load_binary_code = if import_enabled {
+    include_str!("runtime/read_file_compile_async_wasm_with_import.js").to_string()
+  } else {
+    include_str!("runtime/read_file_compile_async_wasm.js").to_string()
+  };
+  if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmLoadingRuntimeModule::new(
+        &compilation.runtime_template,
+        load_binary_code.clone(),
+        false,
+      )
+      .boxed(),
+    ));
+  }
+  if runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmCompileRuntimeModule::new(&compilation.runtime_template, load_binary_code, false)
+        .boxed(),
+    ));
+  }
 
   Ok(None)
 }
@@ -141,7 +172,9 @@ async fn universal_compile_async_wasm_plugin_runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+  if !runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM)
+    && !runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM)
+  {
     return Ok(None);
   }
 
@@ -194,17 +227,32 @@ var wasmUrl = $PATH;"#
 		}"#
     .to_string();
 
-  runtime_modules_to_add.push((
-    *chunk_ukey,
-    AsyncWasmLoadingRuntimeModule::new_with_before_streaming(
-      &compilation.runtime_template,
-      generate_load_binary_code,
-      generate_before_load_binary_code,
-      generate_before_instantiate_streaming,
-      true, // supports_streaming
-    )
-    .boxed(),
-  ));
+  if runtime_requirements.contains(RuntimeGlobals::INSTANTIATE_WASM) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmLoadingRuntimeModule::new_with_before_streaming(
+        &compilation.runtime_template,
+        generate_load_binary_code.clone(),
+        generate_before_load_binary_code.clone(),
+        generate_before_instantiate_streaming.clone(),
+        true, // supports_streaming
+      )
+      .boxed(),
+    ));
+  }
+  if runtime_requirements.contains(RuntimeGlobals::COMPILE_WASM) {
+    runtime_modules_to_add.push((
+      *chunk_ukey,
+      AsyncWasmCompileRuntimeModule::new_with_before_streaming(
+        &compilation.runtime_template,
+        generate_load_binary_code,
+        generate_before_load_binary_code,
+        generate_before_instantiate_streaming,
+        true, // supports_streaming
+      )
+      .boxed(),
+    ));
+  }
 
   Ok(None)
 }

@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod time_info;
 mod trigger;
 
 use std::{sync::Arc, time::SystemTime};
