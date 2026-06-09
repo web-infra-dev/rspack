@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, fmt};
 
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
@@ -30,31 +30,26 @@ pub enum RspackComment {
 }
 
 impl RspackComment {
-  fn prefixed_name(self, prefix: MagicCommentPrefix) -> &'static str {
-    match (self, prefix) {
-      (Self::ChunkName, MagicCommentPrefix::Rspack) => "rspackChunkName",
-      (Self::ChunkName, MagicCommentPrefix::Webpack) => "webpackChunkName",
-      (Self::Prefetch, MagicCommentPrefix::Rspack) => "rspackPrefetch",
-      (Self::Prefetch, MagicCommentPrefix::Webpack) => "webpackPrefetch",
-      (Self::Preload, MagicCommentPrefix::Rspack) => "rspackPreload",
-      (Self::Preload, MagicCommentPrefix::Webpack) => "webpackPreload",
-      (Self::Ignore, MagicCommentPrefix::Rspack) => "rspackIgnore",
-      (Self::Ignore, MagicCommentPrefix::Webpack) => "webpackIgnore",
-      (Self::Mode, MagicCommentPrefix::Rspack) => "rspackMode",
-      (Self::Mode, MagicCommentPrefix::Webpack) => "webpackMode",
-      (Self::Defer, MagicCommentPrefix::Rspack) => "rspackDefer",
-      (Self::Defer, MagicCommentPrefix::Webpack) => "webpackDefer",
-      (Self::Source, MagicCommentPrefix::Rspack) => "rspackSource",
-      (Self::Source, MagicCommentPrefix::Webpack) => "webpackSource",
-      (Self::FetchPriority, MagicCommentPrefix::Rspack) => "rspackFetchPriority",
-      (Self::FetchPriority, MagicCommentPrefix::Webpack) => "webpackFetchPriority",
-      (Self::IncludeRegexp, MagicCommentPrefix::Rspack) => "rspackInclude",
-      (Self::IncludeRegexp, MagicCommentPrefix::Webpack) => "webpackInclude",
-      (Self::ExcludeRegexp, MagicCommentPrefix::Rspack) => "rspackExclude",
-      (Self::ExcludeRegexp, MagicCommentPrefix::Webpack) => "webpackExclude",
-      (Self::Exports, MagicCommentPrefix::Rspack) => "rspackExports",
-      (Self::Exports, MagicCommentPrefix::Webpack) => "webpackExports",
-    }
+  fn prefixed_name(self, prefix: MagicCommentPrefix) -> String {
+    format!("{prefix}{self}")
+  }
+}
+
+impl fmt::Display for RspackComment {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(match self {
+      Self::ChunkName => "ChunkName",
+      Self::Prefetch => "Prefetch",
+      Self::Preload => "Preload",
+      Self::Ignore => "Ignore",
+      Self::FetchPriority => "FetchPriority",
+      Self::IncludeRegexp => "Include",
+      Self::ExcludeRegexp => "Exclude",
+      Self::Mode => "Mode",
+      Self::Exports => "Exports",
+      Self::Defer => "Defer",
+      Self::Source => "Source",
+    })
   }
 }
 
@@ -82,8 +77,8 @@ impl RspackCommentMap {
 
   fn push_conflict_warning(
     source: &str,
-    ignored_comment_name: &str,
-    preferred_comment_name: &str,
+    ignored_comment_name: impl fmt::Display,
+    preferred_comment_name: impl fmt::Display,
     item: &MagicCommentItem,
     warning_diagnostics: &mut Vec<Diagnostic>,
   ) {
@@ -254,7 +249,7 @@ impl RspackCommentMap {
 
 fn push_magic_comment_parse_warning(
   source: &str,
-  comment_name: &str,
+  comment_name: impl fmt::Display,
   comment_type: &str,
   received: &str,
   warning_diagnostics: &mut Vec<Diagnostic>,
@@ -488,6 +483,15 @@ enum MagicCommentPrefix {
   Webpack,
 }
 
+impl fmt::Display for MagicCommentPrefix {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(match self {
+      Self::Rspack => "rspack",
+      Self::Webpack => "webpack",
+    })
+  }
+}
+
 #[derive(Debug)]
 struct MagicCommentItem {
   prefix: MagicCommentPrefix,
@@ -565,7 +569,7 @@ fn analyze_comments(
       let received = raw_value(&comment.text, value).unwrap_or_default();
       let item_span =
         value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
-      let mut push_parse_warning = |comment_type| {
+      let push_parse_warning = |comment_type| {
         push_magic_comment_parse_warning(
           source,
           item_name,
