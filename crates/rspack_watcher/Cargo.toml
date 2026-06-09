@@ -11,6 +11,7 @@ cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
 fast-glob    = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
+regex        = { workspace = true }
 rspack_error = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
@@ -22,10 +23,15 @@ tracing      = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
-tempfile = "3.23.0"
+criterion = { workspace = true }
+tempfile  = "3.23.0"
 
 [lints]
 workspace = true
 
 [lib]
 doctest = false
+
+[[bench]]
+harness = false
+name    = "ignored_filter"

@@ -1,10 +1,15 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
+use std::{
+  fmt::Debug,
+  ops::Deref,
+  path::{Path, PathBuf},
+  time::SystemTime,
+};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
 use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
-use super::FsWatcherIgnored;
+use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -111,23 +116,25 @@ where
 
 impl PathUpdater {
   /// Update the paths in the given set.
-  fn update(self, watch_tracker: &PathTracker, ignored: &FsWatcherIgnored) -> Result<()> {
+  fn update(self, watch_tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
     for added in added_paths {
-      if ignored.should_be_ignored(added.to_str().expect("Path should be valid UTF-8")) {
-        continue; // Skip ignored paths
-      }
+      // Absolutize before the ignored check so registration filters on the
+      // same absolute path the watcher reports for events.
+      let added = if added.is_absolute() {
+        added
+      } else {
+        ArcPath::from(self.base_dir.join(added.as_ref()))
+      };
 
-      if added.is_absolute() {
-        watch_tracker.add(added);
+      // Skip ignored paths AND anything inside an ignored directory.
+      if ignored.is_ignored(added.to_str().expect("Path should be valid UTF-8")) {
         continue;
       }
 
-      let added_absolute_path = self.base_dir.join(added.as_ref());
-
-      watch_tracker.add(ArcPath::from(added_absolute_path));
+      watch_tracker.add(added);
     }
 
     for removed in removed_paths {
@@ -185,7 +192,7 @@ pub(crate) struct PathManager {
   files: PathTracker,
   directories: PathTracker,
   missing: PathTracker,
-  pub ignored: FsWatcherIgnored,
+  ignored: IgnoredMatcher,
   /// Baseline mtime for registered files, captured at scan time.
   /// Used to filter stale FSEvents that arrive for files not actually modified.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
@@ -199,7 +206,7 @@ impl PathManager {
       files: PathTracker::default(),
       directories: PathTracker::default(),
       missing: PathTracker::default(),
-      ignored,
+      ignored: IgnoredMatcher::new(ignored),
       file_mtimes: ArcPathDashMap::default(),
     }
   }
@@ -301,6 +308,15 @@ impl PathManager {
   pub fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(self)
   }
+
+  /// Whether `path` is excluded from watching by the configured ignored
+  /// patterns — directly, or by living inside an ignored directory.
+  pub fn is_ignored_path(&self, path: &Path) -> bool {
+    match path.to_str() {
+      Some(s) => self.ignored.is_ignored(s),
+      None => false,
+    }
+  }
 }
 
 #[cfg(test)]
@@ -327,7 +343,9 @@ mod tests {
 
     let path_tracker = PathTracker::default();
 
-    updater.update(&path_tracker, &ignored).unwrap();
+    updater
+      .update(&path_tracker, &IgnoredMatcher::new(ignored))
+      .unwrap();
 
     let all = path_tracker.all;
 

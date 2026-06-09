@@ -13,6 +13,10 @@ use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
 pub use ignored::FsWatcherIgnored;
+// Exposed only so the `ignored_filter` benchmark (a separate crate) can
+// construct it directly; not intended as public API.
+#[doc(hidden)]
+pub use ignored::IgnoredMatcher;
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
