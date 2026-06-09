@@ -595,6 +595,8 @@ export default {
 
 自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/filename-placeholders#file-占位符)和[模块级别](/config/filename-placeholders#module-占位符)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
 
+从 Rspack `2.0.7` 开始，`localIdentName` 中的 `[hash]` 占位符会根据模板中是否包含 `[local]` 使用不同的哈希输入。当 `localIdentName` 不包含 `[local]` 时，局部类名会作为哈希输入的一部分，因此同一个 CSS Module 中不同的局部类名会生成不同的值。当 `localIdentName` 包含 `[local]` 时，局部类名不会再作为 `[hash]` 的输入，因为 `[local]` 已经能保证最终生成的类名唯一。
+
 ```js title="rspack.config.mjs"
 export default {
   module: {
