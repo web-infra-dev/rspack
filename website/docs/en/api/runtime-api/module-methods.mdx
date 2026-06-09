@@ -107,7 +107,7 @@ import(`./locale/${language}.json`).then((module) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Inline comments to make features work. By adding comments to the import, we can do things such as specify chunk name or select different loading modes. In Rspack projects, prefer the `rspack`-prefixed magic comments shown below. The corresponding `webpack`-prefixed comments are also supported for compatibility, for example `webpackIgnore` is equivalent to `rspackIgnore`.
+Inline comments to make features work. By adding comments to the import, we can do things such as specify chunk name or select different loading modes. Starting from Rspack 2.0.7, Rspack projects should prefer the `rspack`-prefixed magic comments shown below. The corresponding `webpack`-prefixed comments are also supported for compatibility, for example `webpackIgnore` is equivalent to `rspackIgnore`.
 
 ```js
 // Single target

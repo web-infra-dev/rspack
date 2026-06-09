@@ -134,7 +134,7 @@ export default {
 };
 ```
 
-目前仅支持 `rspackIgnore` 和 `webpackIgnore` 注释。Rspack 项目中推荐使用 `rspackIgnore`；`webpackIgnore` 仍会被兼容支持：
+目前仅支持 `rspackIgnore` 和 `webpackIgnore` 注释。从 Rspack 2.0.7 开始，Rspack 项目中推荐使用 `rspackIgnore`；`webpackIgnore` 仍会被兼容支持：
 
 ```js
 const x = require(/* rspackIgnore: true */ 'x');

@@ -107,7 +107,7 @@ import(`./locale/${language}.json`).then((module) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。在 Rspack 项目中，推荐使用下面展示的 `rspack` 前缀魔法注释。对应的 `webpack` 前缀注释也会被兼容支持，例如 `webpackIgnore` 等价于 `rspackIgnore`。
+通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。从 Rspack 2.0.7 开始，Rspack 项目中推荐使用下面展示的 `rspack` 前缀魔法注释。对应的 `webpack` 前缀注释也会被兼容支持，例如 `webpackIgnore` 等价于 `rspackIgnore`。
 
 ```js
 // 单个模块
