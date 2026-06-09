@@ -31,7 +31,6 @@ rspack_paths        = { workspace = true }
 rspack_regex        = { workspace = true }
 rustc-hash          = { workspace = true }
 serde_json          = { workspace = true }
-simd-json           = { workspace = true }
 supports-color      = { workspace = true }
 
 # Plugins

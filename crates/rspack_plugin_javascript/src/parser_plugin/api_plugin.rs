@@ -1,6 +1,6 @@
 use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
-use rspack_util::SpanExt;
+use rspack_util::{SpanExt, json_stringify_str};
 use swc_core::{
   common::{Span, Spanned},
   ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
@@ -145,8 +145,9 @@ impl JavascriptParserPlugin for APIPlugin {
       API_LAYER => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          simd_json::to_string(&parser.module_layer)
-            .expect("should stringify JSON")
+          parser
+            .module_layer
+            .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
             .into(),
         )));
         Some(true)
