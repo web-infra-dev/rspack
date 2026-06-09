@@ -1053,6 +1053,112 @@ mod tests_extract_magic_comment_object {
   }
 
   #[test]
+  fn test_rspack_prefixed_magic_comments_override_webpack_prefixed_comments() {
+    let (comments, warnings) = extract(
+      r#"
+        webpackChunkName: "webpack-chunk",
+        rspackChunkName: "rspack-chunk",
+        rspackMode: "eager",
+        webpackMode: "lazy",
+        webpackPrefetch: 1,
+        rspackPrefetch: true,
+        rspackPreload: 2,
+        webpackPreload: true,
+        webpackIgnore: false,
+        rspackIgnore: true,
+        webpackDefer: false,
+        rspackDefer: true,
+        rspackSource: true,
+        webpackSource: false,
+        rspackFetchPriority: "high",
+        webpackFetchPriority: "low",
+        webpackInclude: /\.jsx$/,
+        rspackInclude: /\.js$/,
+        rspackExclude: /\.test\.js$/,
+        webpackExclude: /\.spec\.js$/,
+        webpackExports: ["webpack"],
+        rspackExports: ["rspack"]
+      "#,
+    );
+
+    assert_eq!(comments.get_chunk_name(), Some(&"rspack-chunk".to_string()));
+    assert_eq!(comments.get_mode(), Some(&"eager".to_string()));
+    assert_eq!(comments.get_prefetch().as_deref(), Some("true"));
+    assert_eq!(comments.get_preload().as_deref(), Some("2"));
+    assert_eq!(comments.get_ignore(), Some(true));
+    assert_eq!(comments.get_defer(), Some(true));
+    assert_eq!(comments.get_source(), Some(true));
+    assert_eq!(comments.get_fetch_priority(), Some(&"high".to_string()));
+    assert_eq!(comments.get_include().unwrap().source(), r#"\.js$"#);
+    assert_eq!(comments.get_exclude().unwrap().source(), r#"\.test\.js$"#);
+    assert_eq!(comments.get_exports(), Some(vec!["rspack".into()]));
+    assert_eq!(warnings.len(), 11);
+    for webpack_name in [
+      "webpackChunkName",
+      "webpackMode",
+      "webpackPrefetch",
+      "webpackPreload",
+      "webpackIgnore",
+      "webpackDefer",
+      "webpackSource",
+      "webpackFetchPriority",
+      "webpackInclude",
+      "webpackExclude",
+      "webpackExports",
+    ] {
+      assert!(
+        warnings.iter().any(|warning| warning
+          .message
+          .contains(&format!("`{webpack_name}` is ignored"))),
+        "missing conflict warning for {webpack_name}"
+      );
+    }
+  }
+
+  #[test]
+  fn test_rspack_prefixed_magic_comments_override_webpack_prefixed_comments_in_any_order() {
+    let (comments, warnings) = extract(
+      r#"
+        rspackChunkName: "rspack-chunk",
+        webpackChunkName: "webpack-chunk"
+      "#,
+    );
+
+    assert_eq!(comments.get_chunk_name(), Some(&"rspack-chunk".to_string()));
+    assert_eq!(warnings.len(), 1);
+    assert!(
+      warnings[0]
+        .message
+        .contains("`webpackChunkName` is ignored")
+    );
+  }
+
+  #[test]
+  fn test_repeated_magic_comments_with_same_prefix_keep_first_value() {
+    let (comments, warnings) = extract(
+      r#"
+        webpackChunkName: "first-webpack-chunk",
+        webpackChunkName: "second-webpack-chunk",
+        rspackMode: "eager",
+        rspackMode: "lazy"
+      "#,
+    );
+
+    assert_eq!(
+      comments.get_chunk_name(),
+      Some(&"first-webpack-chunk".to_string())
+    );
+    assert_eq!(comments.get_mode(), Some(&"eager".to_string()));
+    assert_eq!(warnings.len(), 2);
+    assert!(
+      warnings[0]
+        .message
+        .contains("`webpackChunkName` is ignored")
+    );
+    assert!(warnings[1].message.contains("`rspackMode` is ignored"));
+  }
+
+  #[test]
   fn test_extract_magic_comment_object() {
     test_extract_string();
     test_extract_number();
