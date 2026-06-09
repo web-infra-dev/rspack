@@ -2476,6 +2476,7 @@ export interface RawJavascriptParserOptions {
   overrideStrict?: string
   importMeta?: string
   commonjsMagicComments?: boolean
+  createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
 deferImport?: boolean
 sourceImport?: boolean

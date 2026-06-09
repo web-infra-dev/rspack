@@ -44,7 +44,12 @@ pub(crate) use self::{
   },
   api_plugin::APIPlugin,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
-  common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
+  common_js_imports_parse_plugin::{
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
+    CommonJsImportsParserPlugin, CreatedRequireTagData, RequireReferencesState,
+    evaluate_create_require_new_expression, is_create_require_namespace_member,
+    is_create_require_specifier,
+  },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
   r#const::ConstPlugin,
@@ -67,7 +72,7 @@ pub(crate) use self::{
   require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin,
   require_ensure_dependencies_block_parse_plugin::RequireEnsureDependenciesBlockParserPlugin,
   side_effects_parser_plugin::SideEffectsParserPlugin,
-  url_plugin::URLPlugin,
+  url_plugin::{URLPlugin, get_url_request},
   use_strict_plugin::UseStrictPlugin,
   worker_plugin::WorkerPlugin,
 };

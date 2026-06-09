@@ -880,6 +880,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     expr: &AssignExpr,
+    _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {

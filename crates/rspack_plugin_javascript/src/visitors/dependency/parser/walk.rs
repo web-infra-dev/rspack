@@ -5,17 +5,17 @@ use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignPat, AssignTarget, AssignTargetPat, AwaitExpr,
-  BinExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class, ClassExpr,
-  ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr, ExprOrSpread, ExprStmt,
-  FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan, GetterProp, Ident, IdentName,
-  IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement, JSXElementChild, JSXElementName,
-  JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr, JSXNamespacedName, JSXObject,
-  KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp, MetaPropExpr, ModuleDecl, ModuleItem,
-  NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr, Param, Pat, Prop, PropName,
-  PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp, SimpleAssignTarget, Stmt, SwitchCase,
-  SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt, UnaryExpr, UnaryOp, UpdateExpr,
-  VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
+  ArrayLit, ArrayPat, ArrowExpr, AssignExpr, AssignOp, AssignPat, AssignTarget, AssignTargetPat,
+  AwaitExpr, BinExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Callee, CatchClause, Class,
+  ClassExpr, ClassMember, CondExpr, DefaultDecl, DoWhileStmt, ExportDefaultDecl, Expr,
+  ExprOrSpread, ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan,
+  GetterProp, Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement,
+  JSXElementChild, JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr,
+  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp,
+  MetaPropExpr, ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall,
+  OptChainExpr, Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
+  SimpleAssignTarget, Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt,
+  UnaryExpr, UnaryOp, UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
 };
 
 use super::{
@@ -25,12 +25,22 @@ use super::{
 };
 use crate::{
   dependency::{DependencyBranchGuard, ESMImportSpecifierDependency, ESMImportedBooleanGuardNode},
-  parser_plugin::JavascriptParserPlugin,
+  parser_plugin::{
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
+    CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
+  },
   visitors::{
-    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration,
-    dependency::parser::ExtractedMemberExpressionChainData, get_non_optional_part,
+    AtomMembers, ExportedVariableInfo, ExprRef, VariableDeclaration, VariableInfo,
+    VariableInfoFlags, dependency::parser::ExtractedMemberExpressionChainData,
+    get_non_optional_part,
   },
 };
+
+fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
+  tag == CREATED_REQUIRE_IDENTIFIER_TAG
+    || (include_create_require_fn
+      && (tag == CREATE_REQUIRE_SPECIFIER_TAG || tag == CREATE_REQUIRE_EVALUATED_TAG))
+}
 
 fn warp_ident_to_pat<'a>(ident: &Ident<'a>, allocator: &'a Allocator) -> Pat<'a> {
   Pat::Ident(allocator.boxed(ident.clone_in(allocator).into_binding(allocator)))
@@ -575,6 +585,9 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
+      if this.javascript_options.is_create_require_enabled() {
+        this.clear_created_require_tags_in_for_head(&stmt.left);
+      }
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -590,6 +603,9 @@ impl JavascriptParser<'_> {
     self.in_block_scope(false, |this| {
       this.walk_for_head(&stmt.left);
       this.walk_expression(&stmt.right);
+      if this.javascript_options.is_create_require_enabled() {
+        this.clear_created_require_tags_in_for_head(&stmt.left);
+      }
       if let Some(body) = stmt.body.as_block() {
         let prev = this.prev_statement;
         this.block_pre_walk_statements(&body.stmts);
@@ -613,30 +629,68 @@ impl JavascriptParser<'_> {
         self.block_pre_walk_variable_declaration(decl);
         self.walk_variable_declaration(decl);
       }
-      ForHead::Pat(pat) => self.walk_pattern(pat),
+      ForHead::Pat(pat) => {
+        self.walk_pattern(pat);
+      }
+    }
+  }
+
+  fn clear_created_require_tags_in_for_head(&mut self, for_head: &ForHead) {
+    if let ForHead::Pat(pat) = for_head {
+      self.clear_created_require_tags_in_pattern(pat);
     }
   }
 
   fn walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
     let drive = self.plugin_drive.clone();
     for declarator in decl.declarators() {
+      if self.javascript_options.is_create_require_enabled()
+        && let Some(init) = declarator.init.as_ref()
+        && let Some(assign) = init.as_assign()
+        && assign.op == AssignOp::Assign
+        && let AssignTarget::Simple(simple) = &assign.left
+        && let Some(target) = simple.as_ident()
+        && let Some(binding) = declarator.name.as_ident()
+        && self
+          .try_walk_created_require_assignment(assign, &target.id)
+          .unwrap_or_default()
+      {
+        self.copy_create_require_assignment_result(
+          Atom::from(binding.id.sym.as_str()),
+          &Atom::from(target.id.sym.as_str()),
+        );
+        continue;
+      }
       if let Some(init) = declarator.init.as_ref()
         && let Some(renamed_identifier) = self.get_rename_identifier(init)
         && let Some(ident) = declarator.name.as_ident()
-        && drive
-          .can_rename(self, &renamed_identifier)
-          .unwrap_or_default()
       {
-        if !drive
-          .rename(self, init, &renamed_identifier)
-          .unwrap_or_default()
+        if self.javascript_options.is_create_require_enabled()
+          && renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG
+          && !matches!(init, Expr::Call(_) | Expr::New(_))
         {
           self.set_variable(
             Atom::from(ident.id.sym.as_str()),
-            ExportedVariableInfo::Name(renamed_identifier.clone()),
+            ExportedVariableInfo::Name(renamed_identifier),
           );
+          self.walk_expression(init);
+          continue;
         }
-        continue;
+        if drive
+          .can_rename(self, &renamed_identifier)
+          .unwrap_or_default()
+        {
+          if !drive
+            .rename(self, init, &renamed_identifier)
+            .unwrap_or_default()
+          {
+            self.set_variable(
+              Atom::from(ident.id.sym.as_str()),
+              ExportedVariableInfo::Name(renamed_identifier.clone()),
+            );
+          }
+          continue;
+        }
       }
       if !drive.declarator(self, declarator, decl).unwrap_or_default() {
         self.walk_pattern(&declarator.name);
@@ -698,7 +752,194 @@ impl JavascriptParser<'_> {
   }
 
   fn walk_update_expression(&mut self, expr: &UpdateExpr) {
-    self.walk_expression(&expr.arg)
+    if !self.javascript_options.is_create_require_enabled() {
+      self.walk_expression(&expr.arg);
+      return;
+    }
+    let updated_ident = expr
+      .arg
+      .as_ident()
+      .map(|ident| Atom::from(ident.sym.as_str()));
+    if let Some(name) = &updated_ident {
+      self.clear_create_require_tag(name);
+    }
+    self.walk_expression(&expr.arg);
+    if let Some(name) = &updated_ident {
+      self.clear_create_require_tag(name);
+    }
+  }
+
+  fn clear_create_require_tag(&mut self, name: &Atom) {
+    if let Some(variable_info) = self.get_variable_info(name) {
+      let declared_scope = variable_info.declared_scope;
+      let should_clear_name = variable_info.name.as_ref().is_some_and(|name| {
+        name == CREATED_REQUIRE_IDENTIFIER_TAG
+          || name == CREATE_REQUIRE_SPECIFIER_TAG
+          || name == CREATE_REQUIRE_EVALUATED_TAG
+      });
+      let mut should_clear = should_clear_name;
+      let mut tag_info_id = variable_info.tag_info;
+      while let Some(id) = tag_info_id {
+        let tag_info = self.definitions_db.expect_get_tag_info(id);
+        if tag_info.tag == CREATED_REQUIRE_IDENTIFIER_TAG
+          || tag_info.tag == CREATE_REQUIRE_SPECIFIER_TAG
+          || tag_info.tag == CREATE_REQUIRE_EVALUATED_TAG
+        {
+          should_clear = true;
+          break;
+        }
+        tag_info_id = tag_info.next;
+      }
+      if should_clear {
+        let info = VariableInfo::create(
+          &mut self.definitions_db,
+          declared_scope,
+          None,
+          VariableInfoFlags::NORMAL,
+          None,
+        );
+        self.definitions_db.set(declared_scope, name.clone(), info);
+      }
+    }
+  }
+
+  fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
+    let Some(variable_info) = self.get_variable_info(name) else {
+      return false;
+    };
+    if variable_info
+      .name
+      .as_ref()
+      .is_some_and(|name| is_create_require_tag(name, include_create_require_fn))
+    {
+      return true;
+    }
+    let mut tag_info_id = variable_info.tag_info;
+    while let Some(id) = tag_info_id {
+      let tag_info = self.definitions_db.expect_get_tag_info(id);
+      if is_create_require_tag(tag_info.tag, include_create_require_fn) {
+        return true;
+      }
+      tag_info_id = tag_info.next;
+    }
+    false
+  }
+
+  fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
+    match pat {
+      Pat::Ident(ident) => {
+        self.clear_create_require_tag(&Atom::from(ident.id.sym.as_str()));
+      }
+      Pat::Array(array) => array
+        .elems
+        .iter()
+        .flatten()
+        .for_each(|ele| self.clear_created_require_tags_in_pattern(ele)),
+      Pat::Assign(assign) => self.clear_created_require_tags_in_pattern(&assign.left),
+      Pat::Object(obj) => {
+        for prop in &obj.props {
+          match prop {
+            ObjectPatProp::KeyValue(kv) => self.clear_created_require_tags_in_pattern(&kv.value),
+            ObjectPatProp::Assign(assign) => {
+              self.clear_create_require_tag(&Atom::from(assign.key.id.sym.as_str()));
+            }
+            ObjectPatProp::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
+          }
+        }
+      }
+      Pat::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
+      Pat::Expr(_) | Pat::Invalid(_) => (),
+    }
+  }
+
+  #[cold]
+  #[inline(never)]
+  fn try_walk_created_require_assignment(
+    &mut self,
+    expr: &AssignExpr,
+    ident: &Ident,
+  ) -> Option<bool> {
+    let ident_name = Atom::from(ident.sym.as_str());
+    if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
+      && self.has_create_require_tag(&ident_name, true)
+    {
+      return Some(true);
+    }
+    if expr.op != AssignOp::Assign {
+      return None;
+    }
+    if let Some(variable) = expr.right.as_ident().and_then(|rhs| {
+      let rhs_name = Atom::from(rhs.sym.as_str());
+      self
+        .has_create_require_tag(&rhs_name, false)
+        .then(|| self.get_variable_info(&rhs_name).map(|info| info.id()))
+        .flatten()
+    }) {
+      self.set_variable(
+        ident_name.clone(),
+        ExportedVariableInfo::VariableInfo(variable),
+      );
+      return Some(true);
+    }
+    if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+      && let Some(context) = self
+        .get_tag_data::<CreatedRequireTagData>(&rename_identifier, CREATED_REQUIRE_IDENTIFIER_TAG)
+        .map(|data| data.context.clone())
+    {
+      self.tag_variable(
+        ident_name.clone(),
+        CREATED_REQUIRE_IDENTIFIER_TAG,
+        Some(CreatedRequireTagData {
+          context,
+          side_effects: String::new(),
+        }),
+      );
+      if !expr.right.is_ident() {
+        self.walk_expression(&expr.right);
+      }
+      return Some(true);
+    }
+    if is_create_require_namespace_member(self, &expr.right) {
+      self.tag_variable_without_data(ident_name.clone(), CREATE_REQUIRE_SPECIFIER_TAG);
+      self.walk_expression(&expr.right);
+      return Some(true);
+    }
+    if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+      && rename_identifier == CREATE_REQUIRE_EVALUATED_TAG
+    {
+      self.set_variable(ident_name, ExportedVariableInfo::Name(rename_identifier));
+      self.walk_expression(&expr.right);
+      return Some(true);
+    }
+    None
+  }
+
+  fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
+    if let Some(context) = self
+      .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
+      .map(|data| data.context.clone())
+    {
+      self.tag_variable(
+        binding,
+        CREATED_REQUIRE_IDENTIFIER_TAG,
+        Some(CreatedRequireTagData {
+          context,
+          side_effects: String::new(),
+        }),
+      );
+    } else if let Some(info) = self.get_variable_info(target)
+      && info
+        .name
+        .as_ref()
+        .is_some_and(|name| name == CREATE_REQUIRE_EVALUATED_TAG)
+    {
+      self.set_variable(
+        binding,
+        ExportedVariableInfo::Name(CREATE_REQUIRE_EVALUATED_TAG.into()),
+      );
+    } else if self.has_create_require_tag(target, true) {
+      self.tag_variable_without_data(binding, CREATE_REQUIRE_SPECIFIER_TAG);
+    }
   }
 
   fn walk_unary_expression(&mut self, expr: &UnaryExpr) {
@@ -1575,7 +1816,15 @@ impl JavascriptParser<'_> {
     if let AssignTarget::Simple(simple) = &expr.left
       && let Some(ident) = simple.as_ident()
     {
-      if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
+      if self.javascript_options.is_create_require_enabled()
+        && self
+          .try_walk_created_require_assignment(expr, &ident.id)
+          .unwrap_or_default()
+      {
+        return;
+      }
+      if expr.op == AssignOp::Assign
+        && let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
         && rename_identifier
           .call_hooks_name(self, |this, for_name| drive.can_rename(this, for_name))
           .unwrap_or_default()
@@ -1594,12 +1843,21 @@ impl JavascriptParser<'_> {
         }
         return;
       }
-      self.walk_expression(&expr.right);
+      if !self.javascript_options.is_create_require_enabled()
+        || !expr
+          .right
+          .as_ident()
+          .is_some_and(|rhs| self.has_create_require_tag(&Atom::from(rhs.sym.as_str()), false))
+      {
+        self.walk_expression(&expr.right);
+      }
       self.enter_pattern(
         PatRef::Owned(warp_ident_to_pat(&ident.id, self.ast.allocator)),
         |this, ident| {
           if !Atom::from(ident.sym.as_str())
-            .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
+            .call_hooks_name(this, |this, for_name| {
+              drive.assign(this, expr, ident, for_name)
+            })
             .unwrap_or_default()
           {
             // webpack use `walk_expression`, `walk_expression` just walk down the ast, so it's ok to use `walk_identifier`
@@ -1611,7 +1869,9 @@ impl JavascriptParser<'_> {
       self.walk_expression(&expr.right);
       self.enter_assign_target_pattern(pat, |this: &mut JavascriptParser<'_>, ident| {
         if !Atom::from(ident.sym.as_str())
-          .call_hooks_name(this, |this, for_name| drive.assign(this, expr, for_name))
+          .call_hooks_name(this, |this, for_name| {
+            drive.assign(this, expr, ident, for_name)
+          })
           .unwrap_or_default()
         {
           this.define_variable(Atom::from(ident.sym.as_str()));
