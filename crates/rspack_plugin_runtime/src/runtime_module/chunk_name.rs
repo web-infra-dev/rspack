@@ -29,7 +29,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
-        serde_json::to_string(&chunk.name()).expect("Invalid json string")
+        simd_json::to_string(&chunk.name()).expect("Invalid json string")
       ))
     } else {
       unreachable!("should attach chunk for css_loading")

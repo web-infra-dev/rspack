@@ -3387,7 +3387,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(serde_json::json!(value.into()).to_string());
+    self.node_env = Some(simd_json::to_string(&value.into()).expect("invalid json to_string"));
     self
   }
 

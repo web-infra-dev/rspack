@@ -3530,6 +3530,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "supports-color 3.0.2",
  "tokio",
 ]
@@ -3695,6 +3696,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sftrace-setup",
+ "simd-json",
  "swc_core",
  "tokio",
  "tracing",
@@ -3770,6 +3772,7 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "smol_str",
  "sugar_path",
  "swc_core",
@@ -3974,6 +3977,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tracing",
 ]
 
@@ -4310,6 +4314,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "smol_str",
  "tokio",
  "tracing",
@@ -4376,6 +4381,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "simd-json",
  "tracing",
 ]
 
@@ -4527,6 +4533,7 @@ dependencies = [
  "rspack_util",
  "serde",
  "serde_json",
+ "simd-json",
  "sugar_path",
  "swc_core",
  "swc_html",
@@ -4583,6 +4590,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "slotmap",
  "smallvec",
  "sugar_path",
@@ -4622,6 +4630,7 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -4643,6 +4652,7 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_util",
  "serde_json",
+ "simd-json",
  "swc_core",
  "tracing",
 ]
@@ -4709,6 +4719,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -4889,6 +4900,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "swc_core",
  "tracing",
 ]
@@ -4932,6 +4944,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -5057,6 +5070,7 @@ dependencies = [
  "rspack_regex",
  "rspack_util",
  "serde_json",
+ "simd-json",
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
@@ -5215,6 +5229,7 @@ dependencies = [
  "rspack_tracing_perfetto",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tracing-subscriber",
 ]
 
@@ -5257,6 +5272,7 @@ dependencies = [
  "serde",
  "serde_json",
  "signal-hook",
+ "simd-json",
  "sugar_path",
  "swc_config",
  "swc_core",

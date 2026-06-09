@@ -38,6 +38,7 @@ rspack_regex               = { workspace = true }
 rspack_util                = { workspace = true }
 rustc-hash                 = { workspace = true }
 serde_json                 = { workspace = true }
+simd-json                  = { workspace = true }
 slotmap                    = { workspace = true }
 smallvec                   = { workspace = true }
 sugar_path                 = { workspace = true }

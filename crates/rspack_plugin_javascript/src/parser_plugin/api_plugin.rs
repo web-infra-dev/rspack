@@ -145,7 +145,7 @@ impl JavascriptParserPlugin for APIPlugin {
       API_LAYER => {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           ident.span.into(),
-          serde_json::to_string(&parser.module_layer)
+          simd_json::to_string(&parser.module_layer)
             .expect("should stringify JSON")
             .into(),
         )));

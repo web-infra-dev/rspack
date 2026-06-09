@@ -17,8 +17,7 @@ fn create_resource_identifier(options: &ContextOptions) -> Identifier {
   let mut resource_identifier =
     create_resource_identifier_for_context_dependency(None, options).to_string();
   if let Some(attributes) = &options.attributes {
-    resource_identifier
-      .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
+    resource_identifier.push_str(&simd_json::to_string(attributes).expect("json stringify failed"));
   }
   resource_identifier.into()
 }

@@ -118,7 +118,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         })
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
-        serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
+        simd_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
       Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({

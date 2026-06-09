@@ -26,6 +26,7 @@ rspack_plugin_runtime = { workspace = true }
 rspack_util           = { workspace = true }
 rustc-hash            = { workspace = true }
 serde_json            = { workspace = true }
+simd-json             = { workspace = true }
 smol_str              = { workspace = true }
 tokio                 = { workspace = true }
 tracing               = { workspace = true }

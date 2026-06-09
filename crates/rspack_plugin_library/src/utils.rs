@@ -18,7 +18,7 @@ pub fn externals_dep_array(modules: &[&ExternalModule]) -> Result<String> {
     .into_iter()
     .flatten()
     .collect::<Vec<_>>();
-  serde_json::to_string(&value).to_rspack_result()
+  simd_json::to_string(&value).to_rspack_result()
 }
 
 fn inner_external_arguments(modules: &[&ExternalModule], compilation: &Compilation) -> Vec<String> {

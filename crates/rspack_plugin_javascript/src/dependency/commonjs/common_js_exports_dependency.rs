@@ -238,8 +238,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last())
-                  .expect("Unexpected render define property base")
+                simd_json::to_string(&used.last()).expect("Unexpected render define property base")
               ),
               None,
             );
