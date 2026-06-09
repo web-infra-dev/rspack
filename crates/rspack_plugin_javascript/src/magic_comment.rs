@@ -29,6 +29,35 @@ pub enum RspackComment {
   Source,
 }
 
+impl RspackComment {
+  fn prefixed_name(self, prefix: MagicCommentPrefix) -> &'static str {
+    match (self, prefix) {
+      (Self::ChunkName, MagicCommentPrefix::Rspack) => "rspackChunkName",
+      (Self::ChunkName, MagicCommentPrefix::Webpack) => "webpackChunkName",
+      (Self::Prefetch, MagicCommentPrefix::Rspack) => "rspackPrefetch",
+      (Self::Prefetch, MagicCommentPrefix::Webpack) => "webpackPrefetch",
+      (Self::Preload, MagicCommentPrefix::Rspack) => "rspackPreload",
+      (Self::Preload, MagicCommentPrefix::Webpack) => "webpackPreload",
+      (Self::Ignore, MagicCommentPrefix::Rspack) => "rspackIgnore",
+      (Self::Ignore, MagicCommentPrefix::Webpack) => "webpackIgnore",
+      (Self::Mode, MagicCommentPrefix::Rspack) => "rspackMode",
+      (Self::Mode, MagicCommentPrefix::Webpack) => "webpackMode",
+      (Self::Defer, MagicCommentPrefix::Rspack) => "rspackDefer",
+      (Self::Defer, MagicCommentPrefix::Webpack) => "webpackDefer",
+      (Self::Source, MagicCommentPrefix::Rspack) => "rspackSource",
+      (Self::Source, MagicCommentPrefix::Webpack) => "webpackSource",
+      (Self::FetchPriority, MagicCommentPrefix::Rspack) => "rspackFetchPriority",
+      (Self::FetchPriority, MagicCommentPrefix::Webpack) => "webpackFetchPriority",
+      (Self::IncludeRegexp, MagicCommentPrefix::Rspack) => "rspackInclude",
+      (Self::IncludeRegexp, MagicCommentPrefix::Webpack) => "webpackInclude",
+      (Self::ExcludeRegexp, MagicCommentPrefix::Rspack) => "rspackExclude",
+      (Self::ExcludeRegexp, MagicCommentPrefix::Webpack) => "webpackExclude",
+      (Self::Exports, MagicCommentPrefix::Rspack) => "rspackExports",
+      (Self::Exports, MagicCommentPrefix::Webpack) => "webpackExports",
+    }
+  }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum MagicCommentValue {
   Bool(bool),
@@ -74,7 +103,6 @@ impl RspackCommentMap {
   fn insert_with_conflict_warning(
     &mut self,
     source: &str,
-    comment_name: MagicCommentName,
     rspack_comment: RspackComment,
     item: MagicCommentItem,
     warning_diagnostics: &mut Vec<Diagnostic>,
@@ -84,8 +112,8 @@ impl RspackCommentMap {
         (MagicCommentPrefix::Rspack, MagicCommentPrefix::Webpack) => {
           Self::push_conflict_warning(
             source,
-            comment_name.prefixed_name(MagicCommentPrefix::Webpack),
-            comment_name.prefixed_name(MagicCommentPrefix::Rspack),
+            rspack_comment.prefixed_name(MagicCommentPrefix::Webpack),
+            rspack_comment.prefixed_name(MagicCommentPrefix::Rspack),
             &item,
             warning_diagnostics,
           );
@@ -93,8 +121,8 @@ impl RspackCommentMap {
         (MagicCommentPrefix::Webpack, MagicCommentPrefix::Rspack) => {
           Self::push_conflict_warning(
             source,
-            comment_name.prefixed_name(MagicCommentPrefix::Webpack),
-            comment_name.prefixed_name(MagicCommentPrefix::Rspack),
+            rspack_comment.prefixed_name(MagicCommentPrefix::Webpack),
+            rspack_comment.prefixed_name(MagicCommentPrefix::Rspack),
             existing,
             warning_diagnostics,
           );
@@ -103,8 +131,8 @@ impl RspackCommentMap {
         _ => {
           Self::push_conflict_warning(
             source,
-            comment_name.prefixed_name(item.prefix),
-            comment_name.prefixed_name(existing.prefix),
+            rspack_comment.prefixed_name(item.prefix),
+            rspack_comment.prefixed_name(existing.prefix),
             &item,
             warning_diagnostics,
           );
@@ -454,66 +482,6 @@ fn expr_to_exports(expr: &Expr) -> Option<MagicCommentValue> {
   Some(MagicCommentValue::Array(exports))
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum MagicCommentName {
-  ChunkName,
-  Prefetch,
-  Preload,
-  Ignore,
-  Mode,
-  Defer,
-  Source,
-  FetchPriority,
-  Include,
-  Exclude,
-  Exports,
-}
-
-impl MagicCommentName {
-  fn prefixed_name(self, prefix: MagicCommentPrefix) -> &'static str {
-    match (self, prefix) {
-      (Self::ChunkName, MagicCommentPrefix::Rspack) => "rspackChunkName",
-      (Self::ChunkName, MagicCommentPrefix::Webpack) => "webpackChunkName",
-      (Self::Prefetch, MagicCommentPrefix::Rspack) => "rspackPrefetch",
-      (Self::Prefetch, MagicCommentPrefix::Webpack) => "webpackPrefetch",
-      (Self::Preload, MagicCommentPrefix::Rspack) => "rspackPreload",
-      (Self::Preload, MagicCommentPrefix::Webpack) => "webpackPreload",
-      (Self::Ignore, MagicCommentPrefix::Rspack) => "rspackIgnore",
-      (Self::Ignore, MagicCommentPrefix::Webpack) => "webpackIgnore",
-      (Self::Mode, MagicCommentPrefix::Rspack) => "rspackMode",
-      (Self::Mode, MagicCommentPrefix::Webpack) => "webpackMode",
-      (Self::Defer, MagicCommentPrefix::Rspack) => "rspackDefer",
-      (Self::Defer, MagicCommentPrefix::Webpack) => "webpackDefer",
-      (Self::Source, MagicCommentPrefix::Rspack) => "rspackSource",
-      (Self::Source, MagicCommentPrefix::Webpack) => "webpackSource",
-      (Self::FetchPriority, MagicCommentPrefix::Rspack) => "rspackFetchPriority",
-      (Self::FetchPriority, MagicCommentPrefix::Webpack) => "webpackFetchPriority",
-      (Self::Include, MagicCommentPrefix::Rspack) => "rspackInclude",
-      (Self::Include, MagicCommentPrefix::Webpack) => "webpackInclude",
-      (Self::Exclude, MagicCommentPrefix::Rspack) => "rspackExclude",
-      (Self::Exclude, MagicCommentPrefix::Webpack) => "webpackExclude",
-      (Self::Exports, MagicCommentPrefix::Rspack) => "rspackExports",
-      (Self::Exports, MagicCommentPrefix::Webpack) => "webpackExports",
-    }
-  }
-
-  fn rspack_comment(self) -> RspackComment {
-    match self {
-      Self::ChunkName => RspackComment::ChunkName,
-      Self::Prefetch => RspackComment::Prefetch,
-      Self::Preload => RspackComment::Preload,
-      Self::Ignore => RspackComment::Ignore,
-      Self::Mode => RspackComment::Mode,
-      Self::Defer => RspackComment::Defer,
-      Self::Source => RspackComment::Source,
-      Self::FetchPriority => RspackComment::FetchPriority,
-      Self::Include => RspackComment::IncludeRegexp,
-      Self::Exclude => RspackComment::ExcludeRegexp,
-      Self::Exports => RspackComment::Exports,
-    }
-  }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum MagicCommentPrefix {
   Rspack,
@@ -527,36 +495,32 @@ struct MagicCommentItem {
   span: DependencyRange,
 }
 
-fn parse_magic_comment_name(name: &str) -> Option<(MagicCommentName, MagicCommentPrefix)> {
+fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPrefix)> {
   match name {
-    "rspackChunkName" => Some((MagicCommentName::ChunkName, MagicCommentPrefix::Rspack)),
-    "webpackChunkName" => Some((MagicCommentName::ChunkName, MagicCommentPrefix::Webpack)),
-    "rspackPrefetch" => Some((MagicCommentName::Prefetch, MagicCommentPrefix::Rspack)),
-    "webpackPrefetch" => Some((MagicCommentName::Prefetch, MagicCommentPrefix::Webpack)),
-    "rspackPreload" => Some((MagicCommentName::Preload, MagicCommentPrefix::Rspack)),
-    "webpackPreload" => Some((MagicCommentName::Preload, MagicCommentPrefix::Webpack)),
-    "rspackIgnore" => Some((MagicCommentName::Ignore, MagicCommentPrefix::Rspack)),
-    "webpackIgnore" => Some((MagicCommentName::Ignore, MagicCommentPrefix::Webpack)),
-    "rspackMode" => Some((MagicCommentName::Mode, MagicCommentPrefix::Rspack)),
-    "webpackMode" => Some((MagicCommentName::Mode, MagicCommentPrefix::Webpack)),
-    "rspackDefer" => Some((MagicCommentName::Defer, MagicCommentPrefix::Rspack)),
-    "webpackDefer" => Some((MagicCommentName::Defer, MagicCommentPrefix::Webpack)),
-    "rspackSource" => Some((MagicCommentName::Source, MagicCommentPrefix::Rspack)),
-    "webpackSource" => Some((MagicCommentName::Source, MagicCommentPrefix::Webpack)),
-    "rspackFetchPriority" => Some((MagicCommentName::FetchPriority, MagicCommentPrefix::Rspack)),
-    "webpackFetchPriority" => Some((MagicCommentName::FetchPriority, MagicCommentPrefix::Webpack)),
-    "rspackInclude" => Some((MagicCommentName::Include, MagicCommentPrefix::Rspack)),
-    "webpackInclude" => Some((MagicCommentName::Include, MagicCommentPrefix::Webpack)),
-    "rspackExclude" => Some((MagicCommentName::Exclude, MagicCommentPrefix::Rspack)),
-    "webpackExclude" => Some((MagicCommentName::Exclude, MagicCommentPrefix::Webpack)),
-    "rspackExports" => Some((MagicCommentName::Exports, MagicCommentPrefix::Rspack)),
-    "webpackExports" => Some((MagicCommentName::Exports, MagicCommentPrefix::Webpack)),
+    "rspackChunkName" => Some((RspackComment::ChunkName, MagicCommentPrefix::Rspack)),
+    "webpackChunkName" => Some((RspackComment::ChunkName, MagicCommentPrefix::Webpack)),
+    "rspackPrefetch" => Some((RspackComment::Prefetch, MagicCommentPrefix::Rspack)),
+    "webpackPrefetch" => Some((RspackComment::Prefetch, MagicCommentPrefix::Webpack)),
+    "rspackPreload" => Some((RspackComment::Preload, MagicCommentPrefix::Rspack)),
+    "webpackPreload" => Some((RspackComment::Preload, MagicCommentPrefix::Webpack)),
+    "rspackIgnore" => Some((RspackComment::Ignore, MagicCommentPrefix::Rspack)),
+    "webpackIgnore" => Some((RspackComment::Ignore, MagicCommentPrefix::Webpack)),
+    "rspackMode" => Some((RspackComment::Mode, MagicCommentPrefix::Rspack)),
+    "webpackMode" => Some((RspackComment::Mode, MagicCommentPrefix::Webpack)),
+    "rspackDefer" => Some((RspackComment::Defer, MagicCommentPrefix::Rspack)),
+    "webpackDefer" => Some((RspackComment::Defer, MagicCommentPrefix::Webpack)),
+    "rspackSource" => Some((RspackComment::Source, MagicCommentPrefix::Rspack)),
+    "webpackSource" => Some((RspackComment::Source, MagicCommentPrefix::Webpack)),
+    "rspackFetchPriority" => Some((RspackComment::FetchPriority, MagicCommentPrefix::Rspack)),
+    "webpackFetchPriority" => Some((RspackComment::FetchPriority, MagicCommentPrefix::Webpack)),
+    "rspackInclude" => Some((RspackComment::IncludeRegexp, MagicCommentPrefix::Rspack)),
+    "webpackInclude" => Some((RspackComment::IncludeRegexp, MagicCommentPrefix::Webpack)),
+    "rspackExclude" => Some((RspackComment::ExcludeRegexp, MagicCommentPrefix::Rspack)),
+    "webpackExclude" => Some((RspackComment::ExcludeRegexp, MagicCommentPrefix::Webpack)),
+    "rspackExports" => Some((RspackComment::Exports, MagicCommentPrefix::Rspack)),
+    "webpackExports" => Some((RspackComment::Exports, MagicCommentPrefix::Webpack)),
     _ => None,
   }
-}
-
-fn magic_comment_name(name: &str) -> Option<MagicCommentName> {
-  parse_magic_comment_name(name).map(|(name, _)| name)
 }
 
 fn parse_magic_comment_item(
@@ -564,12 +528,12 @@ fn parse_magic_comment_item(
   comment_text: &str,
   comment_span: Span,
   error_span: Span,
-  comment_name: MagicCommentName,
+  rspack_comment: RspackComment,
   prefix: MagicCommentPrefix,
   value: &Expr,
   warning_diagnostics: &mut Vec<Diagnostic>,
-) -> Option<(RspackComment, MagicCommentItem)> {
-  let item_name = comment_name.prefixed_name(prefix);
+) -> Option<MagicCommentItem> {
+  let item_name = rspack_comment.prefixed_name(prefix);
   let received = raw_value(comment_text, value).unwrap_or_default();
   let item_span = value_span_to_error_span(comment_span, value.span()).unwrap_or(error_span.into());
   let mut push_parse_warning = |comment_type| {
@@ -583,8 +547,8 @@ fn parse_magic_comment_item(
     );
   };
 
-  let value = match comment_name {
-    MagicCommentName::ChunkName => {
+  let value = match rspack_comment {
+    RspackComment::ChunkName => {
       if let Some(value) = expr_to_str(value) {
         MagicCommentValue::String(value.into_owned())
       } else {
@@ -592,7 +556,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Prefetch => {
+    RspackComment::Prefetch => {
       if let Some(value) = expr_to_order_str(comment_text, value) {
         if value == "true" {
           MagicCommentValue::Bool(true)
@@ -604,7 +568,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Preload => {
+    RspackComment::Preload => {
       if let Some(value) = expr_to_order_str(comment_text, value) {
         if value == "true" {
           MagicCommentValue::Bool(true)
@@ -616,7 +580,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Ignore => {
+    RspackComment::Ignore => {
       if let Some(value) = expr_to_bool(value) {
         MagicCommentValue::Bool(value)
       } else {
@@ -626,7 +590,7 @@ fn parse_magic_comment_item(
         value
       }
     }
-    MagicCommentName::Mode => {
+    RspackComment::Mode => {
       if let Some(value) = expr_to_str(value) {
         MagicCommentValue::String(value.into_owned())
       } else {
@@ -634,7 +598,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Defer => {
+    RspackComment::Defer => {
       if let Some(value) = expr_to_bool(value) {
         MagicCommentValue::Bool(value)
       } else {
@@ -642,7 +606,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Source => {
+    RspackComment::Source => {
       if let Some(value) = expr_to_bool(value) {
         MagicCommentValue::Bool(value)
       } else {
@@ -650,7 +614,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::FetchPriority => {
+    RspackComment::FetchPriority => {
       if let Some(priority) = expr_to_str(value)
         && matches!(priority.as_ref(), "low" | "high" | "auto")
       {
@@ -660,7 +624,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Include => {
+    RspackComment::IncludeRegexp => {
       if let Some((regexp, flags)) = expr_to_regexp(value)
         && RspackRegex::with_flags(regexp, flags).is_ok()
       {
@@ -673,7 +637,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Exclude => {
+    RspackComment::ExcludeRegexp => {
       if let Some((regexp, flags)) = expr_to_regexp(value)
         && RspackRegex::with_flags(regexp, flags).is_ok()
       {
@@ -686,7 +650,7 @@ fn parse_magic_comment_item(
         return None;
       }
     }
-    MagicCommentName::Exports => {
+    RspackComment::Exports => {
       if let Some(exports) = expr_to_exports(value) {
         exports
       } else {
@@ -696,14 +660,11 @@ fn parse_magic_comment_item(
     }
   };
 
-  Some((
-    comment_name.rspack_comment(),
-    MagicCommentItem {
-      prefix,
-      value,
-      span: item_span,
-    },
-  ))
+  Some(MagicCommentItem {
+    prefix,
+    value,
+    span: item_span,
+  })
 }
 
 fn analyze_comments(
@@ -740,29 +701,23 @@ fn analyze_comments(
       let Some(item_name) = prop_name_to_str(&prop.key) else {
         continue;
       };
-      let Some((comment_name, prefix)) = parse_magic_comment_name(item_name.as_ref()) else {
+      let Some((rspack_comment, prefix)) = parse_magic_comment_name(item_name.as_ref()) else {
         continue;
       };
       let value = &prop.value;
-      let Some((rspack_comment, item)) = parse_magic_comment_item(
+      let Some(item) = parse_magic_comment_item(
         source,
         &comment.text,
         comment.span,
         error_span,
-        comment_name,
+        rspack_comment,
         prefix,
         value,
         warning_diagnostics,
       ) else {
         continue;
       };
-      result.insert_with_conflict_warning(
-        source,
-        comment_name,
-        rspack_comment,
-        item,
-        warning_diagnostics,
-      );
+      result.insert_with_conflict_warning(source, rspack_comment, item, warning_diagnostics);
     }
   }
 }
@@ -975,48 +930,48 @@ mod tests_extract_magic_comment_object {
   #[test]
   fn test_rspack_magic_comment_name_aliases() {
     assert_eq!(
-      magic_comment_name("rspackChunkName"),
-      Some(MagicCommentName::ChunkName)
+      parse_magic_comment_name("rspackChunkName").map(|(comment, _)| comment),
+      Some(RspackComment::ChunkName)
     );
     assert_eq!(
-      magic_comment_name("rspackPrefetch"),
-      Some(MagicCommentName::Prefetch)
+      parse_magic_comment_name("rspackPrefetch").map(|(comment, _)| comment),
+      Some(RspackComment::Prefetch)
     );
     assert_eq!(
-      magic_comment_name("rspackPreload"),
-      Some(MagicCommentName::Preload)
+      parse_magic_comment_name("rspackPreload").map(|(comment, _)| comment),
+      Some(RspackComment::Preload)
     );
     assert_eq!(
-      magic_comment_name("rspackIgnore"),
-      Some(MagicCommentName::Ignore)
+      parse_magic_comment_name("rspackIgnore").map(|(comment, _)| comment),
+      Some(RspackComment::Ignore)
     );
     assert_eq!(
-      magic_comment_name("rspackMode"),
-      Some(MagicCommentName::Mode)
+      parse_magic_comment_name("rspackMode").map(|(comment, _)| comment),
+      Some(RspackComment::Mode)
     );
     assert_eq!(
-      magic_comment_name("rspackDefer"),
-      Some(MagicCommentName::Defer)
+      parse_magic_comment_name("rspackDefer").map(|(comment, _)| comment),
+      Some(RspackComment::Defer)
     );
     assert_eq!(
-      magic_comment_name("rspackSource"),
-      Some(MagicCommentName::Source)
+      parse_magic_comment_name("rspackSource").map(|(comment, _)| comment),
+      Some(RspackComment::Source)
     );
     assert_eq!(
-      magic_comment_name("rspackFetchPriority"),
-      Some(MagicCommentName::FetchPriority)
+      parse_magic_comment_name("rspackFetchPriority").map(|(comment, _)| comment),
+      Some(RspackComment::FetchPriority)
     );
     assert_eq!(
-      magic_comment_name("rspackInclude"),
-      Some(MagicCommentName::Include)
+      parse_magic_comment_name("rspackInclude").map(|(comment, _)| comment),
+      Some(RspackComment::IncludeRegexp)
     );
     assert_eq!(
-      magic_comment_name("rspackExclude"),
-      Some(MagicCommentName::Exclude)
+      parse_magic_comment_name("rspackExclude").map(|(comment, _)| comment),
+      Some(RspackComment::ExcludeRegexp)
     );
     assert_eq!(
-      magic_comment_name("rspackExports"),
-      Some(MagicCommentName::Exports)
+      parse_magic_comment_name("rspackExports").map(|(comment, _)| comment),
+      Some(RspackComment::Exports)
     );
   }
 
