@@ -205,6 +205,7 @@ impl JavascriptParser<'_> {
 
     let terminated = self.terminated;
 
+    self.definitions_db.exit_scope(self.definitions);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
@@ -243,6 +244,7 @@ impl JavascriptParser<'_> {
     f(self);
 
     self.in_try = old_in_try;
+    self.definitions_db.exit_scope(self.definitions);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
@@ -270,6 +272,7 @@ impl JavascriptParser<'_> {
     });
     f(self);
 
+    self.definitions_db.exit_scope(self.definitions);
     self.definitions = old_definitions;
     self.top_level_scope = old_top_level_scope;
     self.in_tagged_template_tag = old_in_tagged_template_tag;
