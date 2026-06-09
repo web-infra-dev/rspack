@@ -53,6 +53,27 @@ impl fmt::Display for RspackComment {
   }
 }
 
+impl TryFrom<&str> for RspackComment {
+  type Error = ();
+
+  fn try_from(value: &str) -> Result<Self, Self::Error> {
+    match value {
+      "ChunkName" => Ok(Self::ChunkName),
+      "Prefetch" => Ok(Self::Prefetch),
+      "Preload" => Ok(Self::Preload),
+      "Ignore" => Ok(Self::Ignore),
+      "FetchPriority" => Ok(Self::FetchPriority),
+      "Include" => Ok(Self::IncludeRegexp),
+      "Exclude" => Ok(Self::ExcludeRegexp),
+      "Mode" => Ok(Self::Mode),
+      "Exports" => Ok(Self::Exports),
+      "Defer" => Ok(Self::Defer),
+      "Source" => Ok(Self::Source),
+      _ => Err(()),
+    }
+  }
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum MagicCommentValue {
   Bool(bool),
@@ -500,31 +521,15 @@ struct MagicCommentItem {
 }
 
 fn parse_magic_comment_name(name: &str) -> Option<(RspackComment, MagicCommentPrefix)> {
-  match name {
-    "rspackChunkName" => Some((RspackComment::ChunkName, MagicCommentPrefix::Rspack)),
-    "webpackChunkName" => Some((RspackComment::ChunkName, MagicCommentPrefix::Webpack)),
-    "rspackPrefetch" => Some((RspackComment::Prefetch, MagicCommentPrefix::Rspack)),
-    "webpackPrefetch" => Some((RspackComment::Prefetch, MagicCommentPrefix::Webpack)),
-    "rspackPreload" => Some((RspackComment::Preload, MagicCommentPrefix::Rspack)),
-    "webpackPreload" => Some((RspackComment::Preload, MagicCommentPrefix::Webpack)),
-    "rspackIgnore" => Some((RspackComment::Ignore, MagicCommentPrefix::Rspack)),
-    "webpackIgnore" => Some((RspackComment::Ignore, MagicCommentPrefix::Webpack)),
-    "rspackMode" => Some((RspackComment::Mode, MagicCommentPrefix::Rspack)),
-    "webpackMode" => Some((RspackComment::Mode, MagicCommentPrefix::Webpack)),
-    "rspackDefer" => Some((RspackComment::Defer, MagicCommentPrefix::Rspack)),
-    "webpackDefer" => Some((RspackComment::Defer, MagicCommentPrefix::Webpack)),
-    "rspackSource" => Some((RspackComment::Source, MagicCommentPrefix::Rspack)),
-    "webpackSource" => Some((RspackComment::Source, MagicCommentPrefix::Webpack)),
-    "rspackFetchPriority" => Some((RspackComment::FetchPriority, MagicCommentPrefix::Rspack)),
-    "webpackFetchPriority" => Some((RspackComment::FetchPriority, MagicCommentPrefix::Webpack)),
-    "rspackInclude" => Some((RspackComment::IncludeRegexp, MagicCommentPrefix::Rspack)),
-    "webpackInclude" => Some((RspackComment::IncludeRegexp, MagicCommentPrefix::Webpack)),
-    "rspackExclude" => Some((RspackComment::ExcludeRegexp, MagicCommentPrefix::Rspack)),
-    "webpackExclude" => Some((RspackComment::ExcludeRegexp, MagicCommentPrefix::Webpack)),
-    "rspackExports" => Some((RspackComment::Exports, MagicCommentPrefix::Rspack)),
-    "webpackExports" => Some((RspackComment::Exports, MagicCommentPrefix::Webpack)),
-    _ => None,
-  }
+  let (name, prefix) = if let Some(name) = name.strip_prefix("rspack") {
+    (name, MagicCommentPrefix::Rspack)
+  } else if let Some(name) = name.strip_prefix("webpack") {
+    (name, MagicCommentPrefix::Webpack)
+  } else {
+    return None;
+  };
+
+  Some((RspackComment::try_from(name).ok()?, prefix))
 }
 
 fn analyze_comments(
