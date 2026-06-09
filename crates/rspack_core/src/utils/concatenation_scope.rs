@@ -3,7 +3,7 @@ use std::sync::{Arc, LazyLock};
 use anymap::CloneAny;
 use rspack_collections::IdentifierIndexMap;
 use rspack_util::{
-  fx_hash::{FxIndexMap, FxIndexSet},
+  fx_hash::{FxHashMap, FxIndexMap, FxIndexSet},
   itoa,
 };
 use swc_core::atoms::Atom;
@@ -19,7 +19,7 @@ pub const DEFAULT_EXPORT: &str = "__rspack_default_export";
 const MODULE_REFERENCE_PREFIX: &str = "__rspack_module_ref";
 const MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX: &str = "._";
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModuleReferenceOptions {
   pub ids: Vec<Atom>,
   pub call: bool,
@@ -36,6 +36,7 @@ pub struct ConcatenationScope {
   pub modules_map: Arc<IdentifierIndexMap<ModuleInfo>>,
   pub data: anymap::Map<dyn CloneAny + Send + Sync>,
   pub refs: IdentifierIndexMap<FxIndexMap<String, ModuleReferenceOptions>>,
+  pub module_reference_by_options: IdentifierIndexMap<FxHashMap<ModuleReferenceOptions, String>>,
   pub dyn_refs: IdentifierIndexMap<FxIndexSet<(String, Atom)>>,
   pub re_exports: IdentifierIndexMap<Vec<ExportMode>>,
 }
@@ -53,6 +54,7 @@ impl ConcatenationScope {
       modules_map,
       data: Default::default(),
       refs: IdentifierIndexMap::default(),
+      module_reference_by_options: IdentifierIndexMap::default(),
       dyn_refs: Default::default(),
       re_exports: Default::default(),
     }
@@ -130,6 +132,14 @@ impl ConcatenationScope {
 
     options.index = info.index();
 
+    if let Some(module_ref) = self
+      .module_reference_by_options
+      .get(module)
+      .and_then(|references| references.get(&options))
+    {
+      return module_ref.clone();
+    }
+
     let mut index_buffer = itoa::Buffer::new();
     let index_str = index_buffer.format(options.index);
     let mut reference_index_buffer = itoa::Buffer::new();
@@ -155,7 +165,12 @@ impl ConcatenationScope {
     module_ref.push_str(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX);
 
     let entry = self.refs.entry(*module).or_default();
-    entry.insert(module_ref.clone(), options);
+    entry.insert(module_ref.clone(), options.clone());
+    self
+      .module_reference_by_options
+      .entry(*module)
+      .or_default()
+      .insert(options, module_ref.clone());
 
     module_ref
   }
@@ -312,6 +327,31 @@ mod tests {
       .get(&lookup_key)
       .expect("should store created module reference lookup");
     assert_module_reference_options_eq(lookup, &expected);
+  }
+
+  #[test]
+  fn create_module_reference_reuses_same_options() {
+    let (mut scope, referenced_module_id) = create_test_scope(7);
+    let options = ModuleReferenceOptions {
+      ids: vec![Atom::from("default")],
+      direct_import: true,
+      ..Default::default()
+    };
+
+    let first_ref = scope.create_module_reference(&referenced_module_id, options.clone());
+    let second_ref = scope.create_module_reference(&referenced_module_id, options.clone());
+    assert_eq!(first_ref, second_ref);
+    assert_eq!(scope.current_module.module_references.len(), 1);
+
+    let different_ref = scope.create_module_reference(
+      &referenced_module_id,
+      ModuleReferenceOptions {
+        call: true,
+        ..options
+      },
+    );
+    assert_ne!(first_ref, different_ref);
+    assert_eq!(scope.current_module.module_references.len(), 2);
   }
 
   #[test]
