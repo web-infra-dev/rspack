@@ -268,6 +268,45 @@ export default {
 };
 ```
 
+### security
+
+- 类型：
+  ```ts
+  interface SecurityOptions {
+    allowedRemoteOrigins?: string[];
+  }
+  ```
+
+用于限制运行时允许加载哪些远程入口来源。
+
+如果不配置这个选项，原有加载行为保持不变。配置了 `allowedRemoteOrigins` 之后，只允许匹配到的网络远程入口地址继续加载。
+
+`allowedRemoteOrigins` 支持：
+
+- `'*'`：允许所有来源
+- 主机名，例如 `localhost`、`cdn.example.com`
+- 主机名加端口，例如 `cdn.example.com:8080`
+- 精确来源，例如 `https://cdn.example.com`
+- 正则字面量，例如 `/^https:\\/\\/.*\\.example\\.com$/`
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [
+    new rspack.container.ModuleFederationPlugin({
+      name: 'host',
+      remotes: {
+        remote: 'remote@https://cdn.example.com/remoteEntry.js',
+      },
+      security: {
+        allowedRemoteOrigins: ['cdn.example.com'],
+      },
+    }),
+  ],
+};
+```
+
 ## 常见问题
 
 - 构建产物中存在未降级语法？
