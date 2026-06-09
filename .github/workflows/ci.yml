@@ -91,6 +91,7 @@ jobs:
       runner: '"ubuntu-22.04"'
 
   # add some comment
+  # add another comment
   bench-rust-walltime:
     name: Rust Bench Walltime
     needs: [check-changed]
