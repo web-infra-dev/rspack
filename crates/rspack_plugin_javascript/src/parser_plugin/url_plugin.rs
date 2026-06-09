@@ -3,12 +3,9 @@ use rspack_core::{
   RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::{
-    ast::{Expr, ExprOrSpread, MemberExpr, MetaPropKind, NewExpr},
-    visit::{Visit, VisitWith},
-  },
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{
+  Expr, ExprOrSpread, GetSpan, MemberExpr, MetaPropKind, NewExpr, Visit, VisitWith,
 };
 use url::Url;
 
@@ -25,8 +22,8 @@ struct NestedNewUrlVisitor {
   has_nested_new_url: bool,
 }
 
-impl Visit for NestedNewUrlVisitor {
-  fn visit_new_expr(&mut self, expr: &NewExpr) {
+impl Visit<'_> for NestedNewUrlVisitor {
+  fn visit_new_expr(&mut self, expr: &NewExpr<'_>) {
     if expr
       .callee
       .as_ident()
@@ -70,7 +67,7 @@ pub fn get_url_request(
     else {
       return None;
     };
-    let Expr::Member(arg2) = &**arg2 else {
+    let Expr::Member(arg2) = arg2 else {
       return None;
     };
     if is_meta_url(parser, arg2) {
@@ -81,7 +78,7 @@ pub fn get_url_request(
     }
   } else {
     // new URL(import.meta.url)
-    let Expr::Member(arg1) = &**arg1 else {
+    let Expr::Member(arg1) = arg1 else {
       return None;
     };
     if is_meta_url(parser, arg1) {
@@ -103,14 +100,14 @@ pub struct URLPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for URLPlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for URLPlugin {
+  fn can_rename(&self, _parser: &mut JavascriptParser<'p>, for_name: &str) -> Option<bool> {
     (for_name == "URL").then_some(true)
   }
 
   fn new_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -132,7 +129,7 @@ impl JavascriptParserPlugin for URLPlugin {
           spread: None,
           expr: arg2_expr,
         } = arg2
-          && let Expr::Member(arg2) = &**arg2_expr
+          && let Expr::Member(arg2) = arg2_expr
           && !is_meta_url(parser, arg2)
         {
           return None;
@@ -215,10 +212,14 @@ impl JavascriptParserPlugin for URLPlugin {
     Some(true)
   }
 
-  fn is_pure(&self, parser: &mut JavascriptParser, expr: &Expr) -> Option<bool> {
+  fn is_pure(&self, parser: &mut JavascriptParser<'p>, expr: &Expr) -> Option<bool> {
     let expr = expr.as_new()?;
     let callee = expr.callee.as_ident()?;
-    if parser.get_free_info_from_variable(&callee.sym).is_none() || !callee.sym.eq("URL") {
+    if parser
+      .get_free_info_from_variable(&Atom::from(callee.sym.as_str()))
+      .is_none()
+      || !callee.sym.eq("URL")
+    {
       return None;
     }
     get_url_request(parser, expr)?;

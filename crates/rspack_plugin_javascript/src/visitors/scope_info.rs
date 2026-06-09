@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 use rustc_hash::FxHashMap;
 use slotmap::{KeyData, SlotMap, new_key_type};
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 new_key_type! {
   pub struct ScopeInfoId;

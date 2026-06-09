@@ -1,12 +1,12 @@
-use swc_core::ecma::ast::{CallExpr, Callee, MemberProp};
+use swc_experimental_ecma_ast::{CallExpr, Callee, MemberProp};
 
 use super::BasicEvaluatedExpression;
 use crate::{parser_plugin::JavascriptParserPlugin, visitors::JavascriptParser};
 
 #[inline]
-pub fn eval_call_expression<'a>(
-  parser: &mut JavascriptParser,
-  expr: &'a CallExpr,
+pub fn eval_call_expression<'parser: 'a, 'a>(
+  parser: &mut JavascriptParser<'parser>,
+  expr: &'a CallExpr<'a>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let drive = parser.plugin_drive.clone();
   match &expr.callee {

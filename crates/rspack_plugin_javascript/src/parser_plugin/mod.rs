@@ -47,7 +47,7 @@ pub(crate) use self::{
   common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
-  r#const::{ConstPlugin, is_logic_op},
+  r#const::ConstPlugin,
   drive::JavaScriptParserPluginDrive,
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
@@ -72,8 +72,8 @@ pub(crate) use self::{
   worker_plugin::WorkerPlugin,
 };
 
-pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_core::atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_core::atoms::atom!("default"));
+pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_atoms::atom!("default"));
 
-pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_core::atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_core::atoms::atom!("*default*"));
+pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_atoms::atom!("*default*"));

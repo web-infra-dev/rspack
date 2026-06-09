@@ -1,9 +1,7 @@
 use rspack_core::{BoxDependency, DependencyRange};
 use rspack_util::SpanExt;
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::{ast::CallExpr, atoms::Atom},
-};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 
 use crate::{
   dependency::{
@@ -67,11 +65,12 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    let callee_range = DependencyRange::from(call_expr.callee.span());
+    let callee_span = call_expr.callee.span();
+    let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.accept".into()),
-      call_expr.callee.span().into(),
+      callee_span.into(),
       loc,
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
@@ -107,11 +106,12 @@ impl JavascriptParser<'_> {
     create_dependency: CreateDependency,
   ) -> Option<bool> {
     self.build_info.module_concatenation_bailout = Some(String::from("Hot Module Replacement"));
-    let callee_range = DependencyRange::from(call_expr.callee.span());
+    let callee_span = call_expr.callee.span();
+    let callee_range = DependencyRange::from(callee_span);
     let loc = self.to_dependency_location(callee_range);
     self.add_presentational_dependency(Box::new(ModuleArgumentDependency::new(
       Some("hot.decline".into()),
-      call_expr.callee.span().into(),
+      callee_span.into(),
       loc,
     )));
     let dependencies = extract_deps(self, call_expr, create_dependency);
@@ -133,14 +133,14 @@ impl ModuleHotReplacementParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ModuleHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
     if for_name == expr_name::MODULE_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::MODULE_HOT.into(),
@@ -156,8 +156,8 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT {
@@ -170,8 +170,8 @@ impl JavascriptParserPlugin for ModuleHotReplacementParserPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    parser: &mut JavascriptParser<'p>,
+    call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE_HOT_ACCEPT {
@@ -201,14 +201,14 @@ impl ImportMetaHotReplacementParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
     if for_name == expr_name::IMPORT_META_HOT {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_HOT.into(),
@@ -224,8 +224,8 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_HOT {
@@ -238,8 +238,8 @@ impl JavascriptParserPlugin for ImportMetaHotReplacementParserPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    parser: &mut JavascriptParser<'p>,
+    call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_HOT_ACCEPT {

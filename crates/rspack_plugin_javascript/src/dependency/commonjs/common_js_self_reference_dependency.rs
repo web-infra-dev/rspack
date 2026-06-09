@@ -8,7 +8,7 @@ use rspack_core::{
   ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access_with_optional,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 use super::ExportsBase;
 
