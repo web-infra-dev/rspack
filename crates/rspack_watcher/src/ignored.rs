@@ -78,64 +78,58 @@ fn glob_to_subtree_regex(glob: &str) -> String {
   src
 }
 
-/// watchpack-style ignore matcher: all globs are rewritten to match their
-/// subtree and folded into one precompiled regex, so a single `is_match`
-/// classifies an event path. The user-supplied `Regex` variant is applied as-is.
+/// watchpack-style ignore matcher. Exactly one classification strategy is live
+/// per watch: glob patterns are rewritten to match their subtree and folded
+/// into one precompiled regex (a single `is_match` per event), while a
+/// user-supplied `Regex` is applied as-is. `None` short-circuits before
+/// normalizing the path.
 #[derive(Default)]
-pub struct IgnoredMatcher {
-  globs: Option<Regex>,
-  user_regex: Option<RspackRegex>,
+pub enum IgnoredMatcher {
+  #[default]
+  None,
+  Globs(Regex),
+  Regex(RspackRegex),
 }
 
 impl IgnoredMatcher {
   pub fn new(ignored: FsWatcherIgnored) -> Self {
-    fn compile(patterns: &[String]) -> Option<Regex> {
+    fn compile(patterns: &[String]) -> IgnoredMatcher {
       let parts: Vec<String> = patterns
         .iter()
         .filter(|g| !g.is_empty())
         .map(|g| format!("(?:{})", glob_to_subtree_regex(g)))
         .collect();
       if parts.is_empty() {
-        return None;
+        return IgnoredMatcher::None;
       }
       match Regex::new(&parts.join("|")) {
-        Ok(re) => Some(re),
+        Ok(re) => IgnoredMatcher::Globs(re),
         // Glob escaping guarantees valid syntax, so the only realistic failure
         // is the regex size limit on a pathological `ignored` config. Degrade
         // to "no glob filtering" (events flow, no missed changes) but surface
         // it — never disable ignores silently.
         Err(e) => {
           tracing::error!("failed to compile ignored patterns, ignore filtering disabled: {e}");
-          None
+          IgnoredMatcher::None
         }
       }
     }
     match ignored {
-      FsWatcherIgnored::None => Self::default(),
-      FsWatcherIgnored::Path(p) => Self {
-        globs: compile(&[p]),
-        user_regex: None,
-      },
-      FsWatcherIgnored::Paths(ps) => Self {
-        globs: compile(&ps),
-        user_regex: None,
-      },
-      FsWatcherIgnored::Regex(reg) => Self {
-        globs: None,
-        user_regex: Some(reg),
-      },
+      FsWatcherIgnored::None => IgnoredMatcher::None,
+      FsWatcherIgnored::Path(p) => compile(&[p]),
+      FsWatcherIgnored::Paths(ps) => compile(&ps),
+      FsWatcherIgnored::Regex(reg) => IgnoredMatcher::Regex(reg),
     }
   }
 
   /// Whether `path` is ignored — directly or by living inside an ignored
-  /// directory. Single regex test (plus the optional user regex).
+  /// directory. Single regex test against the normalized path.
   pub fn is_ignored(&self, path: &str) -> bool {
-    if self.globs.is_none() && self.user_regex.is_none() {
-      return false; // no patterns — skip per-event normalization
+    match self {
+      IgnoredMatcher::None => false,
+      IgnoredMatcher::Globs(re) => re.is_match(&normalize_path(path)),
+      IgnoredMatcher::Regex(re) => re.test(&normalize_path(path)),
     }
-    let path = normalize_path(path);
-    self.globs.as_ref().is_some_and(|re| re.is_match(&path))
-      || self.user_regex.as_ref().is_some_and(|re| re.test(&path))
   }
 }
 
