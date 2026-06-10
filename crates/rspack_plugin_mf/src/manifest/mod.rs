@@ -360,7 +360,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             );
             if let Some(chunk_key) = candidates
               .iter()
-              .find_map(|name| compilation.build_chunk_graph_artifact.named_chunks.get(name))
+              .find_map(|name| {
+                compilation
+                  .build_chunk_graph_artifact
+                  .named_chunks
+                  .get(name)
+              })
               .filter(|chunk_key| chunk_group.chunks.contains(chunk_key))
               .or_else(|| {
                 chunk_group.chunks.iter().find(|chunk_key| {

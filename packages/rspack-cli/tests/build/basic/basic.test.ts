@@ -13,12 +13,7 @@ describe('build command', () => {
     async () => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
-        [
-          '--mode',
-          'development',
-          '--output-path',
-          'dist/default-command',
-        ],
+        ['--mode', 'development', '--output-path', 'dist/default-command'],
         {},
         {},
         true,
@@ -32,12 +27,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return function', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      [
-        '--config',
-        './entry.function.js',
-        '--output-path',
-        'dist/function',
-      ],
+      ['--config', './entry.function.js', '--output-path', 'dist/function'],
       {},
       {},
       true,
@@ -51,12 +41,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await run(
         __dirname,
-        [
-          '--config',
-          './entry.env.js',
-          '--output-path',
-          'dist/env',
-        ],
+        ['--config', './entry.env.js', '--output-path', 'dist/env'],
         {},
         {},
         true,
@@ -92,12 +77,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return promise', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      [
-        '--config',
-        './entry.promise.js',
-        '--output-path',
-        'dist/promise',
-      ],
+      ['--config', './entry.promise.js', '--output-path', 'dist/promise'],
       {},
       {},
       true,
@@ -109,12 +89,7 @@ describe('build command', () => {
   it.concurrent('should work with mjs configuration ', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      [
-        '--config',
-        './entry.config.mjs',
-        '--output-path',
-        'dist/mjs',
-      ],
+      ['--config', './entry.config.mjs', '--output-path', 'dist/mjs'],
       {},
       {},
       true,
