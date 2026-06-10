@@ -1,8 +1,5 @@
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{Lit, UnaryExpr, UnaryOp},
-};
+use swc_experimental_ecma_ast::{Lit, UnaryExpr, UnaryOp};
 
 use super::BasicEvaluatedExpression;
 use crate::{
@@ -11,9 +8,9 @@ use crate::{
 };
 
 #[inline]
-fn eval_typeof<'a>(
-  parser: &mut JavascriptParser,
-  expr: &'a UnaryExpr,
+fn eval_typeof<'parser: 'a, 'a>(
+  parser: &mut JavascriptParser<'parser>,
+  expr: &'a UnaryExpr<'a>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   assert!(expr.op == UnaryOp::TypeOf);
   if let Some(ident) = expr.arg.as_ident()
@@ -54,7 +51,7 @@ fn eval_typeof<'a>(
     })
   {
     return Some(res);
-  } else if expr.arg.as_fn_expr().is_some() {
+  } else if expr.arg.as_fn().is_some() {
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
     res.set_string("function".to_string());
     return Some(res);
@@ -62,8 +59,8 @@ fn eval_typeof<'a>(
 
   let arg = parser.evaluate_expression(&expr.arg);
   if arg.is_unknown() {
-    let arg = &*expr.arg;
-    if arg.as_fn_expr().is_some() || arg.as_class().is_some() {
+    let arg = &expr.arg;
+    if arg.as_fn().is_some() || arg.as_class().is_some() {
       let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       res.set_string("function".to_string());
       Some(res)
@@ -113,17 +110,16 @@ fn eval_typeof<'a>(
 }
 
 #[inline]
-pub fn eval_unary_expression<'a>(
-  scanner: &mut JavascriptParser,
-  expr: &'a UnaryExpr,
+pub fn eval_unary_expression<'parser: 'a, 'a>(
+  scanner: &mut JavascriptParser<'parser>,
+  expr: &'a UnaryExpr<'a>,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   match expr.op {
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
     UnaryOp::Bang => {
       let arg = scanner.evaluate_expression(&expr.arg);
       let boolean = arg.as_bool()?;
-      let mut eval =
-        BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi());
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       eval.set_bool(!boolean);
       eval.set_side_effects(arg.could_have_side_effects());
       Some(eval)
@@ -131,8 +127,7 @@ pub fn eval_unary_expression<'a>(
     UnaryOp::Tilde => {
       let arg = scanner.evaluate_expression(&expr.arg);
       let number = arg.as_int()?;
-      let mut eval =
-        BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi());
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       eval.set_number(!number as f64);
       eval.set_side_effects(arg.could_have_side_effects());
       Some(eval)
@@ -145,8 +140,7 @@ pub fn eval_unary_expression<'a>(
         UnaryOp::Plus => number,
         _ => unreachable!(),
       };
-      let mut eval =
-        BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi());
+      let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       eval.set_number(res);
       eval.set_side_effects(arg.could_have_side_effects());
       Some(eval)
