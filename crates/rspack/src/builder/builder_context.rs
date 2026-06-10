@@ -185,7 +185,8 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              source_map_kind: options.module_source_map_kind(),
+              module: options.module,
+              cheap: !options.columns,
             },
           )
           .boxed(),
@@ -196,7 +197,8 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              source_map_kind: options.module_source_map_kind(),
+              module: options.module,
+              cheap: !options.columns,
             },
           )
           .boxed(),

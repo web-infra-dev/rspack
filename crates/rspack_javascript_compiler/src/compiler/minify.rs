@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::BatchErrors;
-use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_util::swc::minify_file_comments;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 pub use swc_core::base::BoolOrDataConfig;
@@ -79,8 +79,6 @@ impl JavaScriptCompiler {
             })
           })
           .expect("should have source map config");
-        let source_map_kind = SourceMapKind::from_enabled(source_map.enabled())
-          .with_sources_content(opts.inline_sources_content);
 
         let mut min_opts = MinifyOptions {
           compress: opts
@@ -183,7 +181,9 @@ impl JavaScriptCompiler {
           source_map: self.cm.clone(),
           target,
           source_map_config: SourceMapConfig {
-            source_map_kind,
+            enable: source_map.enabled(),
+            inline_sources_content: opts.inline_sources_content,
+            emit_columns: true,
             names: Default::default(),
           },
           input_source_map: None,

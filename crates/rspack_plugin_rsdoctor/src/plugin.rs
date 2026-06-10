@@ -18,10 +18,7 @@ use rspack_plugin_devtool::{
 };
 #[cfg(allocative)]
 use rspack_util::allocative;
-use rspack_util::{
-  fx_hash::{FxDashMap, FxHashSet},
-  source_map::SourceMapKind,
-};
+use rspack_util::fx_hash::{FxDashMap, FxHashSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{
@@ -617,8 +614,8 @@ impl Plugin for RsdoctorPlugin {
       .tap(after_process_assets::new(self));
 
     SourceMapDevToolModuleOptionsPlugin::new(SourceMapDevToolModuleOptionsPluginOptions {
-      source_map_kind: SourceMapKind::from_module(self.options.source_map_features.module)
-        .with_cheap(self.options.source_map_features.cheap),
+      cheap: self.options.source_map_features.cheap,
+      module: self.options.source_map_features.module,
     })
     .apply(ctx)?;
 
