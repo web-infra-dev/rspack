@@ -107,31 +107,31 @@ import(`./locale/${language}.json`).then((module) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-Inline comments to make features work. By adding comments to the import, we can do things such as specify chunk name or select different loading modes. **Since Rspack 2.0.7**, prefer the `rspack`-prefixed magic comments shown below. The corresponding `webpack`-prefixed comments are also supported for compatibility, for example `webpackIgnore` is equivalent to `rspackIgnore`.
+Inline comments to make features work. By adding comments to the import, we can do things such as specify chunk name or select different loading modes. For a full list of these magic comments see the code below followed by an explanation of what these comments do.
 
 ```js
 // Single target
 import(
-  /* rspackChunkName: "my-chunk-name" */
-  /* rspackMode: "lazy" */
-  /* rspackExports: ["default", "named"] */
-  /* rspackFetchPriority: "high" */
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackExports: ["default", "named"] */
+  /* webpackFetchPriority: "high" */
   'module'
 );
 
 // Multiple possible targets
 import(
-  /* rspackInclude: /\.json$/ */
-  /* rspackExclude: /\.noimport\.json$/ */
-  /* rspackChunkName: "my-chunk-name" */
-  /* rspackMode: "lazy" */
-  /* rspackPrefetch: true */
-  /* rspackPreload: true */
+  /* webpackInclude: /\.json$/ */
+  /* webpackExclude: /\.noimport\.json$/ */
+  /* webpackChunkName: "my-chunk-name" */
+  /* webpackMode: "lazy" */
+  /* webpackPrefetch: true */
+  /* webpackPreload: true */
   `./locale/${language}`
 );
 ```
 
-##### rspackIgnore / webpackIgnore \{#webpackignore}
+##### webpackIgnore
 
 - **Type:** `boolean`
 
@@ -144,33 +144,22 @@ When set to `true`, Rspack will skip analysis and bundling processing for the dy
 This is particularly useful for dynamically loading ESM third-party libraries from external CDNs, for example:
 
 ```js
-import('https://esm.sh/react' /* rspackIgnore: true */).then((React) => {
-  console.log(React.version); // 19.0.0
-});
-```
-
-The equivalent `webpackIgnore` comment is also supported:
-
-```js
 import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```
 
-`rspackIgnore` also applies to the `new URL()` syntax. By default, Rspack will parse module identifiers in `new URL()` and bundle the referenced module into the build output. When you need Rspack to skip processing a particular `new URL()`, you can add the `rspackIgnore: true` comment:
+`webpackIgnore` also applies to the `new URL()` syntax. By default, Rspack will parse module identifiers in `new URL()` and bundle the referenced module into the build output. When you need Rspack to skip processing a particular `new URL()`, you can add the `webpackIgnore: true` comment:
 
 ```js
 // Rspack will process this URL and bundle './index.css' into the build output
 const url1 = new URL('./index.css', import.meta.url);
 
 // Rspack will ignore this URL and preserve the original module identifier
-const url2 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
-
-// `webpackIgnore` is also supported
-const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
+const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 ```
 
-##### rspackMode / webpackMode \{#webpackmode}
+##### webpackMode
 
 - **Type:** `"eager" | "lazy" | "weak" | "lazy-once"`
 - **Default:** `'lazy'`
@@ -182,7 +171,7 @@ Different modes for resolving dynamic imports can be specified. The following op
 - `'eager'`: Generates no extra chunk. All modules are included in the current chunk and no additional network requests are made. A Promise is still returned but is already resolved. In contrast to a static import, the module isn't executed until the call to `import()` is made.
 - `'weak'`: Tries to load the module if the module function has already been loaded in some other way (e.g. another chunk imported it or a script containing the module was loaded). A Promise is still returned, but only successfully resolves if the chunks are already on the client. If the module is not available, the Promise is rejected. A network request will never be performed. This is useful for universal rendering when required chunks are always manually served in initial requests (embedded within the page), but not in cases where app navigation will trigger an import not initially served.
 
-##### rspackPrefetch / webpackPrefetch \{#webpackprefetch}
+##### webpackPrefetch
 
 - **Type:**
   - `number`: chunk prefetch priority
@@ -190,7 +179,7 @@ Different modes for resolving dynamic imports can be specified. The following op
 
 Tells the browser that the resource is probably needed for some navigation in the future, see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
-##### rspackPreload / webpackPreload \{#webpackpreload}
+##### webpackPreload
 
 - **Type:**
   - `number`: chunk preload priority
@@ -198,13 +187,13 @@ Tells the browser that the resource is probably needed for some navigation in th
 
 Tells the browser that the resource might be needed during the current navigation, , see [Prefetching/Preloading modules](/guide/optimization/code-splitting#prefetchingpreloading-modules) for more details.
 
-##### rspackChunkName / webpackChunkName \{#webpackchunkname}
+##### webpackChunkName
 
 - **Type:**: `string`
 
 A name for the new chunk.
 
-##### rspackFetchPriority / webpackFetchPriority \{#webpackfetchpriority}
+##### webpackFetchPriority
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -212,7 +201,7 @@ A name for the new chunk.
 
 Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority) for specific dynamic imports. It's also possible to set a global default value for all dynamic imports by using the `module.parser.javascript.dynamicImportFetchPriority` option.
 
-##### rspackInclude / webpackInclude \{#webpackinclude}
+##### webpackInclude
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -220,7 +209,7 @@ Set [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImage
 
 A regular expression that will be matched against during import resolution. Only modules that match **will be bundled**.
 
-##### rspackExclude / webpackExclude \{#webpackexclude}
+##### webpackExclude
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -229,10 +218,10 @@ A regular expression that will be matched against during import resolution. Only
 A regular expression that will be matched against during import resolution. Any module that matches **will not be bundled**.
 
 :::info
-Note that `rspackInclude` and `rspackExclude` options do not interfere with the prefix. The equivalent `webpackInclude` and `webpackExclude` comments are also supported for compatibility. eg: `./locale`.
+Note that `webpackInclude` and `webpackExclude` options do not interfere with the prefix. eg: `./locale`.
 :::
 
-##### rspackExports / webpackExports \{#webpackexports}
+##### webpackExports
 
 <ApiMeta addedVersion="1.0.0" />
 

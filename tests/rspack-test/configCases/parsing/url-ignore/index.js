@@ -28,9 +28,4 @@ it('should ignore', function() {
   expect(url10.toString()).toBe(window.location.href);
   const url11 = new URL(/* webpackIgnore: true */ ...args);
   expect(url11.pathname.endsWith('file3.css')).toBe(true);
-  const url12 = new URL(/* rspackIgnore: true */ 'file12.css', import.meta.url);
-  expect(url12.pathname.endsWith('file12.css')).toBe(true);
-  expect(url12.pathname.includes('/public/')).toBe(false);
-  const url13 = new URL(/* rspackIgnore: false */ 'file2.css', import.meta.url);
-  expect(/\/public\/.+\.css/.test(url13.pathname)).toBe(true);
 });
