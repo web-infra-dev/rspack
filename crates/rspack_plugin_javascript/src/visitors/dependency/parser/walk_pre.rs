@@ -1,73 +1,50 @@
-use rspack_util::SpanExt;
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{
-  ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
-  ForStmt, GetSpan, IfStmt, LabeledStmt, ModuleItem, ObjectPat, ObjectPatProp, Pat, PropName, Stmt,
-  SwitchCase, SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
+use std::borrow::Cow;
+
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{
+    ArrayPat, AssignExpr, BlockStmt, CatchClause, DoWhileStmt, ForHead, ForInStmt, ForOfStmt,
+    ForStmt, IfStmt, LabeledStmt, ModuleDecl, ModuleItem, ObjectPat, ObjectPatProp, Pat, Stmt,
+    SwitchCase, SwitchStmt, TryStmt, VarDeclarator, WhileStmt, WithStmt,
+  },
 };
 
 use super::{
-  DestructuringAssignmentProperty, JavascriptParser, PatRef,
+  DestructuringAssignmentProperty, JavascriptParser,
   estree::{MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
   parser_plugin::JavascriptParserPlugin,
-  utils::eval::BasicEvaluatedExpression,
+  utils::eval,
   visitors::{DestructuringAssignmentProperties, VariableDeclaration, VariableDeclarationKind},
 };
 
-fn eval_prop_name<'parser: 'a, 'a>(
-  parser: &mut JavascriptParser<'parser>,
-  prop_name: &'a PropName<'a>,
-) -> BasicEvaluatedExpression<'a> {
-  match prop_name {
-    PropName::Str(str) => {
-      let mut evaluated =
-        BasicEvaluatedExpression::with_range(str.span.real_lo(), str.span.real_hi());
-      evaluated.set_string(str.value.as_wtf8().to_string_lossy().to_string());
-      evaluated
-    }
-    PropName::Num(num) => {
-      let mut evaluated =
-        BasicEvaluatedExpression::with_range(num.span.real_lo(), num.span.real_hi());
-      evaluated.set_number(num.value);
-      evaluated
-    }
-    PropName::BigInt(bigint) => {
-      let mut evaluated =
-        BasicEvaluatedExpression::with_range(bigint.span.real_lo(), bigint.span.real_hi());
-      evaluated.set_bigint(bigint.to_bigint());
-      evaluated
-    }
-    PropName::Ident(ident) => {
-      let mut evaluated =
-        BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
-      evaluated.set_string(ident.sym.to_string());
-      evaluated
-    }
-    PropName::Computed(computed) => parser.evaluate_expression(&computed.expr),
-  }
-}
-
 impl JavascriptParser<'_> {
-  pub fn pre_walk_module_items(&mut self, statements: &[ModuleItem<'_>]) {
+  pub fn pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
     for statement in statements {
       self.pre_walk_module_item(statement);
     }
   }
 
-  pub fn pre_walk_statements(&mut self, statements: &[Stmt<'_>]) {
+  pub fn pre_walk_statements(&mut self, statements: &Vec<Stmt>) {
     for statement in statements {
       self.pre_walk_statement(statement.into())
     }
   }
 
-  fn pre_walk_module_item(&mut self, statement: &ModuleItem<'_>) {
+  fn pre_walk_module_item(&mut self, statement: &ModuleItem) {
     match statement {
-      ModuleItem::ModuleDecl(_) => {
-        self.is_esm = true;
+      ModuleItem::ModuleDecl(decl) => {
+        match decl {
+          ModuleDecl::TsImportEquals(_)
+          | ModuleDecl::TsExportAssignment(_)
+          | ModuleDecl::TsNamespaceExport(_) => unreachable!(),
+          _ => {
+            self.is_esm = true;
+          }
+        };
       }
-      ModuleItem::Stmt(stmt) => self.pre_walk_statement((&**stmt).into()),
+      ModuleItem::Stmt(stmt) => self.pre_walk_statement(stmt.into()),
     }
   }
 
@@ -98,18 +75,18 @@ impl JavascriptParser<'_> {
   }
 
   fn pre_walk_with_statement(&mut self, stmt: &WithStmt) {
-    self.pre_walk_statement((&stmt.body).into())
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
   fn pre_walk_while_statement(&mut self, stmt: &WhileStmt) {
-    self.pre_walk_statement((&stmt.body).into())
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
-  fn pre_walk_catch_clause(&mut self, cache_clause: &CatchClause<'_>) {
+  fn pre_walk_catch_clause(&mut self, cache_clause: &CatchClause) {
     self.pre_walk_statement(Statement::Block(&cache_clause.body));
   }
 
-  fn pre_walk_try_statement(&mut self, stmt: &TryStmt<'_>) {
+  fn pre_walk_try_statement(&mut self, stmt: &TryStmt) {
     self.pre_walk_statement(Statement::Block(&stmt.block));
     if let Some(handler) = &stmt.handler {
       self.pre_walk_catch_clause(handler)
@@ -119,41 +96,41 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn pre_walk_switch_cases(&mut self, switch_cases: &[SwitchCase<'_>]) {
+  fn pre_walk_switch_cases(&mut self, switch_cases: &Vec<SwitchCase>) {
     for switch_case in switch_cases {
       self.pre_walk_statements(&switch_case.cons)
     }
   }
 
-  fn pre_walk_switch_statement(&mut self, stmt: &SwitchStmt<'_>) {
+  fn pre_walk_switch_statement(&mut self, stmt: &SwitchStmt) {
     self.pre_walk_switch_cases(&stmt.cases)
   }
 
   fn pre_walk_labeled_statement(&mut self, stmt: &LabeledStmt) {
-    self.pre_walk_statement((&stmt.body).into());
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_if_statement(&mut self, stmt: &IfStmt) {
-    self.pre_walk_statement((&stmt.cons).into());
+    self.pre_walk_statement(stmt.cons.as_ref().into());
     if let Some(alter) = &stmt.alt {
-      self.pre_walk_statement(alter.into());
+      self.pre_walk_statement(alter.as_ref().into());
     }
   }
 
   pub fn pre_walk_function_declaration(&mut self, decl: MaybeNamedFunctionDecl) {
     if let Some(ident) = decl.ident() {
-      self.define_variable(Atom::from(ident.sym.as_str()));
+      self.define_variable(ident.sym.clone());
     }
   }
 
-  fn pre_walk_for_statement(&mut self, stmt: &ForStmt<'_>) {
+  fn pre_walk_for_statement(&mut self, stmt: &ForStmt) {
     if let Some(decl) = stmt.init.as_ref().and_then(|init| init.as_var_decl()) {
       self.pre_walk_statement(Statement::Var(VariableDeclaration::VarDecl(decl)))
     }
-    self.pre_walk_statement((&stmt.body).into());
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
-  fn pre_walk_for_head(&mut self, head: &ForHead<'_>) {
+  fn pre_walk_for_head(&mut self, head: &ForHead) {
     match head {
       ForHead::VarDecl(decl) => {
         self.pre_walk_variable_declaration(VariableDeclaration::VarDecl(decl))
@@ -165,7 +142,7 @@ impl JavascriptParser<'_> {
     }
   }
 
-  fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt<'_>) {
+  fn pre_walk_for_of_statement(&mut self, stmt: &ForOfStmt) {
     if stmt.is_await && self.is_top_level_scope() {
       self
         .plugin_drive
@@ -173,20 +150,20 @@ impl JavascriptParser<'_> {
         .top_level_for_of_await_stmt(self, stmt);
     }
     self.pre_walk_for_head(&stmt.left);
-    self.pre_walk_statement((&stmt.body).into())
+    self.pre_walk_statement(stmt.body.as_ref().into())
   }
 
-  pub(super) fn pre_walk_block_statement(&mut self, stmt: &BlockStmt<'_>) {
+  pub(super) fn pre_walk_block_statement(&mut self, stmt: &BlockStmt) {
     self.pre_walk_statements(&stmt.stmts);
   }
 
-  fn pre_walk_do_while_statement(&mut self, stmt: &DoWhileStmt<'_>) {
-    self.pre_walk_statement((&stmt.body).into());
+  fn pre_walk_do_while_statement(&mut self, stmt: &DoWhileStmt) {
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
-  fn pre_walk_for_in_statement(&mut self, stmt: &ForInStmt<'_>) {
+  fn pre_walk_for_in_statement(&mut self, stmt: &ForInStmt) {
     self.pre_walk_for_head(&stmt.left);
-    self.pre_walk_statement((&stmt.body).into());
+    self.pre_walk_statement(stmt.body.as_ref().into());
   }
 
   fn pre_walk_variable_declaration(&mut self, decl: VariableDeclaration<'_>) {
@@ -203,8 +180,8 @@ impl JavascriptParser<'_> {
         .pre_declarator(self, declarator, decl)
         .unwrap_or_default()
       {
-        self.enter_pattern(PatRef::Borrowed(&declarator.name), |this, ident| {
-          this.define_variable(Atom::from(ident.sym.as_str()));
+        self.enter_pattern(Cow::Borrowed(&declarator.name), |this, ident| {
+          this.define_variable(ident.sym.clone());
         });
       }
     }
@@ -212,7 +189,7 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn collect_destructuring_assignment_properties(
     &mut self,
-    pattern: &Pat<'_>,
+    pattern: &Pat,
   ) -> Option<DestructuringAssignmentProperties> {
     if let Some(obj_pat) = pattern.as_object()
       && let Some(properties) =
@@ -231,7 +208,7 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn collect_destructuring_assignment_properties_from_object_pattern(
     &mut self,
-    obj_pat: &ObjectPat<'_>,
+    obj_pat: &ObjectPat,
   ) -> Option<DestructuringAssignmentProperties> {
     let mut keys = DestructuringAssignmentProperties::default();
     for prop in &obj_pat.props {
@@ -239,13 +216,13 @@ impl JavascriptParser<'_> {
         ObjectPatProp::KeyValue(prop) => {
           if let Some(ident_key) = prop.key.as_ident() {
             keys.insert(DestructuringAssignmentProperty {
-              id: Atom::from(ident_key.sym.as_str()),
+              id: ident_key.sym.clone(),
               range: prop.key.span().into(),
               pattern: self.collect_destructuring_assignment_properties(&prop.value),
               shorthand: false,
             });
           } else {
-            let name = eval_prop_name(self, &prop.key);
+            let name = eval::eval_prop_name(self, &prop.key);
             if let Some(id) = name.as_string() {
               keys.insert(DestructuringAssignmentProperty {
                 id: id.into(),
@@ -260,7 +237,7 @@ impl JavascriptParser<'_> {
         }
         ObjectPatProp::Assign(prop) => {
           keys.insert(DestructuringAssignmentProperty {
-            id: Atom::from(prop.key.id.sym.as_str()),
+            id: prop.key.sym.clone(),
             range: prop.key.span().into(),
             pattern: None,
             shorthand: true,
@@ -274,7 +251,7 @@ impl JavascriptParser<'_> {
 
   pub(crate) fn collect_destructuring_assignment_properties_from_array_pattern(
     &mut self,
-    arr_pat: &ArrayPat<'_>,
+    arr_pat: &ArrayPat,
   ) -> Option<DestructuringAssignmentProperties> {
     let mut keys = DestructuringAssignmentProperties::default();
     let mut buf = rspack_util::itoa::Buffer::new();

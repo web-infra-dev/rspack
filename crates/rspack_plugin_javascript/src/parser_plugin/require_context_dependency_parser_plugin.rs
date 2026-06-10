@@ -3,7 +3,7 @@ use rspack_core::{
 };
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{CallExpr, GetSpan};
+use swc_core::{common::Spanned, ecma::ast::CallExpr};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -14,13 +14,8 @@ use crate::{
 pub struct RequireContextDependencyParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPlugin {
-  fn call(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
-    for_name: &str,
-  ) -> Option<bool> {
+impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
+  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
     if for_name != "require.context" {
       return None;
     }

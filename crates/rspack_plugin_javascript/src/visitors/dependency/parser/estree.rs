@@ -1,28 +1,28 @@
 //! The compat estree helpers for swc ecma ast
 
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{
-  BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl, DoWhileStmt,
-  EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr, ExportSpecifier, Expr,
-  ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan, Ident, IfStmt,
-  LabeledStmt, ModuleExportName, NamedExport, ObjectLit, ReturnStmt, Span, Stmt, SwitchStmt,
-  ThrowStmt, TryStmt, UsingDecl, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
+use rspack_util::atom::ModuleExportNameExt;
+use swc_core::{
+  atoms::Atom,
+  common::{Span, Spanned},
+  ecma::ast::{
+    BlockStmt, BreakStmt, Class, ClassDecl, ClassExpr, ContinueStmt, DebuggerStmt, Decl,
+    DoWhileStmt, EmptyStmt, ExportAll, ExportDecl, ExportDefaultDecl, ExportDefaultExpr,
+    ExportSpecifier, Expr, ExprStmt, FnDecl, FnExpr, ForInStmt, ForOfStmt, ForStmt, Function,
+    Ident, IfStmt, LabeledStmt, NamedExport, ObjectLit, ReturnStmt, Stmt, SwitchStmt, ThrowStmt,
+    TryStmt, UsingDecl, VarDecl, VarDeclKind, VarDeclarator, WhileStmt, WithStmt,
+  },
 };
 
 use crate::JS_DEFAULT_KEYWORD;
 
-fn wtf8_atom_to_atom(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
-  Atom::from(value.as_wtf8().to_string_lossy().as_ref())
-}
-
 #[derive(Debug, Clone, Copy)]
 pub enum ClassDeclOrExpr<'ast> {
   Decl(MaybeNamedClassDecl<'ast>),
-  Expr(&'ast ClassExpr<'ast>),
+  Expr(&'ast ClassExpr),
 }
 
-impl ClassDeclOrExpr<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ClassDeclOrExpr<'_> {
+  fn span(&self) -> Span {
     match self {
       ClassDeclOrExpr::Decl(decl) => decl.span(),
       ClassDeclOrExpr::Expr(expr) => expr.span(),
@@ -31,10 +31,10 @@ impl ClassDeclOrExpr<'_> {
 }
 
 impl ClassDeclOrExpr<'_> {
-  pub fn ident(&self) -> Option<&Ident<'_>> {
+  pub fn ident(&self) -> Option<&Ident> {
     match self {
       ClassDeclOrExpr::Decl(decl) => decl.ident,
-      ClassDeclOrExpr::Expr(expr) => expr.ident.as_deref(),
+      ClassDeclOrExpr::Expr(expr) => expr.ident.as_ref(),
     }
   }
 }
@@ -42,13 +42,13 @@ impl ClassDeclOrExpr<'_> {
 #[derive(Debug, Clone, Copy)]
 pub enum ExportAllDeclaration<'ast> {
   /// `export * from 'm'`
-  All(&'ast ExportAll<'ast>),
+  All(&'ast ExportAll),
   /// `export * as x from 'm'`
-  NamedAll(&'ast NamedExport<'ast>),
+  NamedAll(&'ast NamedExport),
 }
 
-impl ExportAllDeclaration<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportAllDeclaration<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportAllDeclaration::All(all) => all.span(),
       ExportAllDeclaration::NamedAll(all) => all.span(),
@@ -57,15 +57,20 @@ impl ExportAllDeclaration<'_> {
 }
 
 impl ExportAllDeclaration<'_> {
-  pub fn source(&self) -> Atom {
+  pub fn source(&self) -> &Atom {
     match self {
-      ExportAllDeclaration::All(e) => wtf8_atom_to_atom(e.src.value),
-      ExportAllDeclaration::NamedAll(e) => wtf8_atom_to_atom(
-        e.src
-          .as_ref()
-          .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
-          .value,
-      ),
+      ExportAllDeclaration::All(e) => e
+        .src
+        .value
+        .as_atom()
+        .expect("ModuleExportName should be a valid utf8"),
+      ExportAllDeclaration::NamedAll(e) => e
+        .src
+        .as_ref()
+        .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must have src")
+        .value
+        .as_atom()
+        .expect("ModuleExportName should be a valid utf8"),
     }
   }
 
@@ -93,20 +98,20 @@ impl ExportAllDeclaration<'_> {
     }
   }
 
-  pub fn exported_name(&self) -> Option<Atom> {
+  pub fn exported_name(&self) -> Option<&Atom> {
     match self {
       ExportAllDeclaration::All(_) => None,
       ExportAllDeclaration::NamedAll(e) => Some(
         e.specifiers
           .first()
           .and_then(|e| e.as_namespace())
-          .map(|e| module_export_name_to_atom(&e.name))
+          .map(|e| e.name.atom_ref())
           .expect("ExportAllDeclaration::NamedAll (export * as x from 'm') must one specifier"),
       ),
     }
   }
 
-  pub fn get_with_obj(&self) -> Option<&ObjectLit<'_>> {
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
     match self {
       ExportAllDeclaration::All(e) => e.with.as_deref(),
       ExportAllDeclaration::NamedAll(e) => e.with.as_deref(),
@@ -118,14 +123,14 @@ impl ExportAllDeclaration<'_> {
 pub enum ExportNamedDeclaration<'ast> {
   /// `export var x = 1`
   /// `export class X {}`
-  Decl(&'ast ExportDecl<'ast>),
+  Decl(&'ast ExportDecl),
   /// `export { x } from 'm'`
   /// `export { x }`
-  Specifiers(&'ast NamedExport<'ast>),
+  Specifiers(&'ast NamedExport),
 }
 
-impl ExportNamedDeclaration<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportNamedDeclaration<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportNamedDeclaration::Decl(decl) => decl.span(),
       ExportNamedDeclaration::Specifiers(export) => export.span(),
@@ -134,10 +139,14 @@ impl ExportNamedDeclaration<'_> {
 }
 
 impl ExportNamedDeclaration<'_> {
-  pub fn source(&self) -> Option<Atom> {
+  pub fn source(&self) -> Option<&Atom> {
     match self {
       Self::Decl(_) => None,
-      Self::Specifiers(e) => e.src.as_ref().map(|s| wtf8_atom_to_atom(s.value)),
+      Self::Specifiers(e) => e.src.as_ref().map(|s| {
+        s.value
+          .as_atom()
+          .expect("ModuleExportName should be a valid utf8")
+      }),
     }
   }
 
@@ -155,33 +164,25 @@ impl ExportNamedDeclaration<'_> {
     }
   }
 
-  pub fn get_with_obj(&self) -> Option<&ObjectLit<'_>> {
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
     match self {
       ExportNamedDeclaration::Decl(_) => None,
       ExportNamedDeclaration::Specifiers(e) => e.with.as_deref(),
     }
   }
 
-  pub fn named_export_specifiers<'a>(
-    named: &'a NamedExport<'a>,
-  ) -> impl Iterator<Item = (Atom, Atom, Span)> + use<'a> {
+  pub fn named_export_specifiers(
+    named: &NamedExport,
+  ) -> impl Iterator<Item = (Atom, Atom, Span)> + use<'_> {
     named.specifiers.iter().map(|spec| {
       match spec {
         ExportSpecifier::Namespace(_) => unreachable!("should handle ExportSpecifier::Namespace by ExportAllOrNamedAll::NamedAll in block_pre_walk_export_all_declaration"),
         ExportSpecifier::Default(s) => {
-          (
-            JS_DEFAULT_KEYWORD.clone(),
-            Atom::from(s.exported.sym.as_str()),
-            s.exported.span(),
-          )
+          (JS_DEFAULT_KEYWORD.clone(), s.exported.sym.clone(), s.exported.span())
         },
         ExportSpecifier::Named(n) => {
           let exported_name = n.exported.as_ref().unwrap_or(&n.orig);
-          (
-            module_export_name_to_atom(&n.orig),
-            module_export_name_to_atom(exported_name),
-            exported_name.span(),
-          )
+          (n.orig.atom().into_owned(), exported_name.atom().into_owned(), exported_name.span())
         },
       }
     })
@@ -194,14 +195,14 @@ pub enum ExportDefaultDeclaration<'ast> {
   /// `export default class {}`
   /// `export default function x() {}`
   /// `export default function () {}`
-  Decl(&'ast ExportDefaultDecl<'ast>),
+  Decl(&'ast ExportDefaultDecl),
   /// `export default (class X {})`
   /// `export default 'x'`
-  Expr(&'ast ExportDefaultExpr<'ast>),
+  Expr(&'ast ExportDefaultExpr),
 }
 
-impl ExportDefaultDeclaration<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportDefaultDeclaration<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportDefaultDeclaration::Decl(decl) => decl.span(),
       ExportDefaultDeclaration::Expr(expr) => expr.span(),
@@ -221,16 +222,16 @@ impl ExportDefaultDeclaration<'_> {
 #[derive(Debug, Clone, Copy)]
 pub enum ExportDefaultExpression<'ast> {
   /// `export default function () {}`
-  FnDecl(&'ast FnExpr<'ast>),
+  FnDecl(&'ast FnExpr),
   /// `export default class {}`
-  ClassDecl(&'ast ClassExpr<'ast>),
+  ClassDecl(&'ast ClassExpr),
   /// `export default (class {})`
   /// `export default 'x'`
-  Expr(&'ast Expr<'ast>),
+  Expr(&'ast Expr),
 }
 
-impl ExportDefaultExpression<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportDefaultExpression<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportDefaultExpression::FnDecl(f) => f.span(),
       ExportDefaultExpression::ClassDecl(c) => c.span(),
@@ -240,14 +241,10 @@ impl ExportDefaultExpression<'_> {
 }
 
 impl ExportDefaultExpression<'_> {
-  pub fn ident(&self) -> Option<Atom> {
+  pub fn ident(&self) -> Option<&Atom> {
     match self {
-      ExportDefaultExpression::FnDecl(f) => {
-        f.ident.as_ref().map(|ident| Atom::from(ident.sym.as_str()))
-      }
-      ExportDefaultExpression::ClassDecl(c) => {
-        c.ident.as_ref().map(|ident| Atom::from(ident.sym.as_str()))
-      }
+      ExportDefaultExpression::FnDecl(f) => f.ident.as_ref().map(|ident| &ident.sym),
+      ExportDefaultExpression::ClassDecl(c) => c.ident.as_ref().map(|ident| &ident.sym),
       ExportDefaultExpression::Expr(_) => None,
     }
   }
@@ -259,8 +256,8 @@ pub enum ExportImport<'ast> {
   Named(ExportNamedDeclaration<'ast>),
 }
 
-impl ExportImport<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportImport<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportImport::All(all) => all.span(),
       ExportImport::Named(named) => named.span(),
@@ -269,7 +266,7 @@ impl ExportImport<'_> {
 }
 
 impl ExportImport<'_> {
-  pub fn source(&self) -> Atom {
+  pub fn source(&self) -> &Atom {
     match self {
       ExportImport::All(e) => e.source(),
       ExportImport::Named(e) => e
@@ -287,7 +284,7 @@ impl ExportImport<'_> {
     }
   }
 
-  pub fn get_with_obj(&self) -> Option<&ObjectLit<'_>> {
+  pub fn get_with_obj(&self) -> Option<&ObjectLit> {
     match self {
       ExportImport::All(e) => e.get_with_obj(),
       ExportImport::Named(e) => e.get_with_obj(),
@@ -305,8 +302,8 @@ pub enum ExportLocal<'ast> {
   Default(ExportDefaultDeclaration<'ast>),
 }
 
-impl ExportLocal<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for ExportLocal<'_> {
+  fn span(&self) -> Span {
     match self {
       ExportLocal::Named(decl) => decl.span(),
       ExportLocal::Default(decl) => decl.span(),
@@ -326,18 +323,18 @@ impl ExportLocal<'_> {
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedFunctionDecl<'ast> {
   span: Span,
-  ident: Option<&'ast Ident<'ast>>,
-  function: &'ast Function<'ast>,
+  ident: Option<&'ast Ident>,
+  function: &'ast Function,
 }
 
-impl MaybeNamedFunctionDecl<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for MaybeNamedFunctionDecl<'_> {
+  fn span(&self) -> Span {
     self.span
   }
 }
 
-impl<'ast> From<&'ast FnDecl<'ast>> for MaybeNamedFunctionDecl<'ast> {
-  fn from(value: &'ast FnDecl<'ast>) -> Self {
+impl<'ast> From<&'ast FnDecl> for MaybeNamedFunctionDecl<'ast> {
+  fn from(value: &'ast FnDecl) -> Self {
     Self {
       span: value.span(),
       ident: Some(&value.ident),
@@ -346,22 +343,22 @@ impl<'ast> From<&'ast FnDecl<'ast>> for MaybeNamedFunctionDecl<'ast> {
   }
 }
 
-impl<'ast> From<&'ast FnExpr<'ast>> for MaybeNamedFunctionDecl<'ast> {
-  fn from(f: &'ast FnExpr<'ast>) -> Self {
+impl<'ast> From<&'ast FnExpr> for MaybeNamedFunctionDecl<'ast> {
+  fn from(f: &'ast FnExpr) -> Self {
     Self {
       span: f.span(),
-      ident: f.ident.as_deref(),
+      ident: f.ident.as_ref(),
       function: &f.function,
     }
   }
 }
 
 impl<'ast> MaybeNamedFunctionDecl<'ast> {
-  pub fn ident(&self) -> Option<&'ast Ident<'ast>> {
+  pub fn ident(&self) -> Option<&'ast Ident> {
     self.ident
   }
 
-  pub fn function(&self) -> &'ast Function<'ast> {
+  pub fn function(&self) -> &'ast Function {
     self.function
   }
 }
@@ -369,18 +366,18 @@ impl<'ast> MaybeNamedFunctionDecl<'ast> {
 #[derive(Debug, Clone, Copy)]
 pub struct MaybeNamedClassDecl<'ast> {
   span: Span,
-  ident: Option<&'ast Ident<'ast>>,
-  class: &'ast Class<'ast>,
+  ident: Option<&'ast Ident>,
+  class: &'ast Class,
 }
 
-impl MaybeNamedClassDecl<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for MaybeNamedClassDecl<'_> {
+  fn span(&self) -> Span {
     self.span
   }
 }
 
-impl<'ast> From<&'ast ClassDecl<'ast>> for MaybeNamedClassDecl<'ast> {
-  fn from(value: &'ast ClassDecl<'ast>) -> Self {
+impl<'ast> From<&'ast ClassDecl> for MaybeNamedClassDecl<'ast> {
+  fn from(value: &'ast ClassDecl) -> Self {
     Self {
       span: value.span(),
       ident: Some(&value.ident),
@@ -389,46 +386,46 @@ impl<'ast> From<&'ast ClassDecl<'ast>> for MaybeNamedClassDecl<'ast> {
   }
 }
 
-impl<'ast> From<&'ast ClassExpr<'ast>> for MaybeNamedClassDecl<'ast> {
-  fn from(value: &'ast ClassExpr<'ast>) -> Self {
+impl<'ast> From<&'ast ClassExpr> for MaybeNamedClassDecl<'ast> {
+  fn from(value: &'ast ClassExpr) -> Self {
     Self {
       span: value.span(),
-      ident: value.ident.as_deref(),
+      ident: value.ident.as_ref(),
       class: &value.class,
     }
   }
 }
 
 impl MaybeNamedClassDecl<'_> {
-  pub fn ident(&self) -> Option<&Ident<'_>> {
+  pub fn ident(&self) -> Option<&Ident> {
     self.ident
   }
 
-  pub fn class(&self) -> &Class<'_> {
+  pub fn class(&self) -> &Class {
     self.class
   }
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum Statement<'ast> {
-  Block(&'ast BlockStmt<'ast>),
+  Block(&'ast BlockStmt),
   Empty(&'ast EmptyStmt),
   Debugger(&'ast DebuggerStmt),
-  With(&'ast WithStmt<'ast>),
-  Return(&'ast ReturnStmt<'ast>),
-  Labeled(&'ast LabeledStmt<'ast>),
-  Break(&'ast BreakStmt<'ast>),
-  Continue(&'ast ContinueStmt<'ast>),
-  If(&'ast IfStmt<'ast>),
-  Switch(&'ast SwitchStmt<'ast>),
-  Throw(&'ast ThrowStmt<'ast>),
-  Try(&'ast TryStmt<'ast>),
-  While(&'ast WhileStmt<'ast>),
-  DoWhile(&'ast DoWhileStmt<'ast>),
-  For(&'ast ForStmt<'ast>),
-  ForIn(&'ast ForInStmt<'ast>),
-  ForOf(&'ast ForOfStmt<'ast>),
-  Expr(&'ast ExprStmt<'ast>),
+  With(&'ast WithStmt),
+  Return(&'ast ReturnStmt),
+  Labeled(&'ast LabeledStmt),
+  Break(&'ast BreakStmt),
+  Continue(&'ast ContinueStmt),
+  If(&'ast IfStmt),
+  Switch(&'ast SwitchStmt),
+  Throw(&'ast ThrowStmt),
+  Try(&'ast TryStmt),
+  While(&'ast WhileStmt),
+  DoWhile(&'ast DoWhileStmt),
+  For(&'ast ForStmt),
+  ForIn(&'ast ForInStmt),
+  ForOf(&'ast ForOfStmt),
+  Expr(&'ast ExprStmt),
   // ClassDecl, don't put ClassExpr into it, unless it's DefaultDecl::ClassExpr
   // which is represented by ClassExpr but it actually is a ClassDecl without ident
   Class(MaybeNamedClassDecl<'ast>),
@@ -438,8 +435,8 @@ pub enum Statement<'ast> {
   Var(VariableDeclaration<'ast>),
 }
 
-impl Statement<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for Statement<'_> {
+  fn span(&self) -> Span {
     use Statement::*;
     match self {
       Block(d) => d.span(),
@@ -467,8 +464,8 @@ impl Statement<'_> {
   }
 }
 
-impl<'ast> From<&'ast Stmt<'ast>> for Statement<'ast> {
-  fn from(value: &'ast Stmt<'ast>) -> Self {
+impl<'ast> From<&'ast Stmt> for Statement<'ast> {
+  fn from(value: &'ast Stmt) -> Self {
     use Statement::*;
     match value {
       Stmt::Block(d) => Block(d),
@@ -489,19 +486,22 @@ impl<'ast> From<&'ast Stmt<'ast>> for Statement<'ast> {
       Stmt::ForIn(d) => ForIn(d),
       Stmt::ForOf(d) => ForOf(d),
       Stmt::Expr(d) => Expr(d),
-      Stmt::Decl(d) => (&**d).into(),
+      Stmt::Decl(d) => d.into(),
     }
   }
 }
 
-impl<'ast> From<&'ast Decl<'ast>> for Statement<'ast> {
-  fn from(value: &'ast Decl<'ast>) -> Self {
+impl<'ast> From<&'ast Decl> for Statement<'ast> {
+  fn from(value: &'ast Decl) -> Self {
     use Statement::*;
     match value {
-      Decl::Class(d) => Class((&**d).into()),
-      Decl::Fn(d) => Fn((&**d).into()),
+      Decl::Class(d) => Class(d.into()),
+      Decl::Fn(d) => Fn(d.into()),
       Decl::Var(d) => Var(VariableDeclaration::VarDecl(d)),
       Decl::Using(d) => Var(VariableDeclaration::UsingDecl(d)),
+      Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) | Decl::TsModule(_) => {
+        unreachable!()
+      }
     }
   }
 }
@@ -524,8 +524,8 @@ impl<'ast> Statement<'ast> {
 
 #[derive(Debug, Clone, Copy)]
 pub enum VariableDeclaration<'a> {
-  VarDecl(&'a VarDecl<'a>),
-  UsingDecl(&'a UsingDecl<'a>),
+  VarDecl(&'a VarDecl),
+  UsingDecl(&'a UsingDecl),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -537,8 +537,8 @@ pub enum VariableDeclarationKind {
   AwaitUsing,
 }
 
-impl VariableDeclaration<'_> {
-  pub fn span(&self) -> Span {
+impl Spanned for VariableDeclaration<'_> {
+  fn span(&self) -> Span {
     match self {
       VariableDeclaration::VarDecl(var_decl) => var_decl.span(),
       VariableDeclaration::UsingDecl(using_decl) => using_decl.span(),
@@ -564,17 +564,10 @@ impl<'a> VariableDeclaration<'a> {
     }
   }
 
-  pub fn declarators(&self) -> &'a [VarDeclarator<'a>] {
+  pub fn declarators(&self) -> &'a [VarDeclarator] {
     match self {
       VariableDeclaration::VarDecl(v) => &v.decls,
       VariableDeclaration::UsingDecl(u) => &u.decls,
     }
-  }
-}
-
-fn module_export_name_to_atom(name: &ModuleExportName<'_>) -> Atom {
-  match name {
-    ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
-    ModuleExportName::Str(s) => wtf8_atom_to_atom(s.value),
   }
 }

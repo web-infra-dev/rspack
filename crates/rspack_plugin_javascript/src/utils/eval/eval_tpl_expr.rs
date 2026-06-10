@@ -1,5 +1,8 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{TaggedTpl, Tpl};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{TaggedTpl, Tpl},
+};
 
 use super::BasicEvaluatedExpression;
 use crate::visitors::JavascriptParser;
@@ -12,10 +15,10 @@ pub enum TemplateStringKind {
 }
 
 #[inline]
-fn get_simplified_template_result<'parser: 'a, 'a>(
-  scanner: &mut JavascriptParser<'parser>,
+fn get_simplified_template_result<'a>(
+  scanner: &mut JavascriptParser,
   kind: TemplateStringKind,
-  node: &'a Tpl<'a>,
+  node: &'a Tpl,
 ) -> (
   Vec<BasicEvaluatedExpression<'a>>,
   Vec<BasicEvaluatedExpression<'a>>,
@@ -28,12 +31,13 @@ fn get_simplified_template_result<'parser: 'a, 'a>(
       TemplateStringKind::Cooked => {
         // When template literals contain invalid escape sequences,
         // the cooked value can be None. Fall back to raw in this case.
-        quasi_expr.cooked.as_ref().map_or_else(
-          || quasi_expr.raw.to_string(),
-          |q| q.as_wtf8().to_string_lossy().to_string(),
-        )
+        quasi_expr
+          .cooked
+          .as_ref()
+          .and_then(|q| q.as_atom())
+          .unwrap_or(&quasi_expr.raw)
       }
-      TemplateStringKind::Raw => quasi_expr.raw.to_string(),
+      TemplateStringKind::Raw => &quasi_expr.raw,
     };
     if i > 0 {
       let prev_expr = parts.last_mut().expect("should not empty");
@@ -44,14 +48,14 @@ fn get_simplified_template_result<'parser: 'a, 'a>(
         // We can merge quasi + expr + quasi when expr
         // is a const string
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
-        prev_expr.set_range(prev_expr.range().0, quasi_expr.span.real_hi());
+        prev_expr.set_range(prev_expr.range().0, quasi_expr.span().real_hi());
         // We unset the expression as it doesn't match to a single expression
         prev_expr.set_expression(None);
 
         // also merge for quasis
         let prev_expr = quasis.last_mut().expect("should not empty");
         prev_expr.set_string(format!("{}{}{}", prev_expr.string(), str, quasi));
-        prev_expr.set_range(prev_expr.range().0, quasi_expr.span.real_hi());
+        prev_expr.set_range(prev_expr.range().0, quasi_expr.span().real_hi());
         prev_expr.set_expression(None);
         continue;
       }
@@ -60,8 +64,8 @@ fn get_simplified_template_result<'parser: 'a, 'a>(
 
     let part = || {
       let mut part = BasicEvaluatedExpression::new();
-      part.set_string(quasi.clone());
-      part.set_range(quasi_expr.span.real_lo(), quasi_expr.span.real_hi());
+      part.set_string(quasi.to_string());
+      part.set_range(quasi_expr.span().real_lo(), quasi_expr.span().real_hi());
       part
     };
     // part.set_expression(Some(quasi_expr));
@@ -73,27 +77,27 @@ fn get_simplified_template_result<'parser: 'a, 'a>(
 }
 
 #[inline]
-pub fn eval_tpl_expression<'parser: 'a, 'a>(
-  scanner: &mut JavascriptParser<'parser>,
-  tpl: &'a Tpl<'a>,
+pub fn eval_tpl_expression<'a>(
+  scanner: &mut JavascriptParser,
+  tpl: &'a Tpl,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let kind = TemplateStringKind::Cooked;
   let (quasis, mut parts) = get_simplified_template_result(scanner, kind, tpl);
   if parts.len() == 1 {
     let mut part = parts.remove(0);
-    part.set_range(tpl.span.real_lo(), tpl.span.real_hi());
+    part.set_range(tpl.span().real_lo(), tpl.span().real_hi());
     Some(part)
   } else {
-    let mut res = BasicEvaluatedExpression::with_range(tpl.span.real_lo(), tpl.span.real_hi());
+    let mut res = BasicEvaluatedExpression::with_range(tpl.span().real_lo(), tpl.span().real_hi());
     res.set_template_string(quasis, parts, kind);
     Some(res)
   }
 }
 
 #[inline]
-pub fn eval_tagged_tpl_expression<'parser: 'a, 'a>(
-  scanner: &mut JavascriptParser<'parser>,
-  tagged_tpl: &'a TaggedTpl<'a>,
+pub fn eval_tagged_tpl_expression<'a>(
+  scanner: &mut JavascriptParser,
+  tagged_tpl: &'a TaggedTpl,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let tag = scanner.evaluate_expression(&tagged_tpl.tag);
   if !tag.is_identifier() || tag.identifier() != "String.raw" {
@@ -103,7 +107,7 @@ pub fn eval_tagged_tpl_expression<'parser: 'a, 'a>(
   let tpl = &tagged_tpl.tpl;
   let (quasis, parts) = get_simplified_template_result(scanner, kind, tpl);
   let mut res =
-    BasicEvaluatedExpression::with_range(tagged_tpl.span.real_lo(), tagged_tpl.span.real_hi());
+    BasicEvaluatedExpression::with_range(tagged_tpl.span().real_lo(), tagged_tpl.span().real_hi());
   res.set_template_string(quasis, parts, kind);
   Some(res)
 }

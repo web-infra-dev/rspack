@@ -8,17 +8,16 @@ use rspack_core::{
   ParserOptions, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::Diagnostic;
+use rspack_javascript_compiler::ast::Program;
 use rustc_hash::FxHashSet;
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{Comments, Program};
-use swc_experimental_ecma_semantic::resolver::Semantic;
+use swc_core::common::{BytePos, Mark, comments::Comments};
 
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{
     AllowedMemberTypes, AtomMembers, CallExpressionInfo, CallHooksName,
     DestructuringAssignmentProperties, DestructuringAssignmentProperty, ExportedVariableInfo,
-    JavascriptParser, MemberExpressionInfo, MemberRanges, OptionalMembers, PatRef, RootName,
+    JavascriptParser, MemberExpressionInfo, MemberRanges, OptionalMembers, RootName,
     ScopeTerminated, TagInfoData, TopLevelScope, ast::*, estree::*,
   },
   util::*,
@@ -33,17 +32,10 @@ pub struct ScanDependenciesResult {
   pub side_effects_item: Option<SideEffectsBailoutItemWithSpan>,
 }
 
-pub struct ParsedJavaScriptAst<'ast> {
-  pub allocator: &'ast Allocator,
-  pub comments: &'ast Comments<'ast>,
-  pub semantic: &'ast Semantic,
-  pub program: &'ast Program<'ast>,
-}
-
 #[allow(clippy::too_many_arguments)]
 pub fn scan_dependencies(
   source: &str,
-  ast: &ParsedJavaScriptAst<'_>,
+  program: &Program,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   module_type: &ModuleType,
@@ -53,18 +45,19 @@ pub fn scan_dependencies(
   build_info: &mut BuildInfo,
   module_identifier: ModuleIdentifier,
   module_parser_options: Option<&ParserOptions>,
-  semicolons: &mut FxHashSet<u32>,
+  semicolons: &mut FxHashSet<BytePos>,
+  unresolved_mark: Mark,
   parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   parse_meta: ParseMeta,
   parser_runtime_requirements: &ParserRuntimeRequirementsData,
 ) -> Result<ScanDependenciesResult, Vec<Diagnostic>> {
   let mut parser = JavascriptParser::new(
     source,
-    ast,
     compiler_options,
     module_parser_options
       .and_then(|p| p.get_javascript())
       .expect("should at least have a global javascript parser options"),
+    program.comments.as_ref().map(|c| c as &dyn Comments),
     &module_identifier,
     module_type,
     module_layer,
@@ -73,11 +66,12 @@ pub fn scan_dependencies(
     build_meta,
     build_info,
     semicolons,
+    unresolved_mark,
     parser_plugins,
     parse_meta,
     parser_runtime_requirements,
   );
 
-  parser.walk_program(ast.program);
+  parser.walk_program(program.get_inner_program());
   parser.into_results()
 }

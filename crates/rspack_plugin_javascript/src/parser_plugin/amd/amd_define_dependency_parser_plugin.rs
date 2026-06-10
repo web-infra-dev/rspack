@@ -7,7 +7,13 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
-use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, GetSpan, Lit};
+use swc_core::{
+  common::Spanned,
+  ecma::{
+    ast::{BlockStmtOrExpr, CallExpr, Callee, Expr, Lit, Pat},
+    utils::ExprExt,
+  },
+};
 
 use crate::{
   JavascriptParserPlugin,
@@ -20,15 +26,14 @@ use crate::{
   },
   utils::eval::BasicEvaluatedExpression,
   visitors::{
-    ExportedVariableInfo, JavascriptParser, PatRef, Statement, context_reg_exp,
-    create_context_dependency,
+    ExportedVariableInfo, JavascriptParser, Statement, context_reg_exp, create_context_dependency,
   },
 };
 
 pub struct AMDDefineDependencyParserPlugin;
 
 fn is_unbound_function_expression(expr: &Expr) -> bool {
-  expr.is_fn() || expr.is_arrow()
+  expr.is_fn_expr() || expr.is_arrow()
 }
 
 fn is_bound_function_expression(expr: &Expr) -> bool {
@@ -50,7 +55,7 @@ fn is_bound_function_expression(expr: &Expr) -> bool {
       if callee_member.prop.is_computed() {
         return false;
       }
-      if !callee_member.obj.is_fn() {
+      if !callee_member.obj.is_fn_expr() {
         return false;
       }
       if !callee_member.prop.is_ident_with("bind") {
@@ -95,16 +100,13 @@ const RESERVED_NAMES: [&str; 3] = [REQUIRE, EXPORTS, MODULE];
 
 fn get_lit_str(expr: &Expr) -> Option<Atom> {
   expr.as_lit().and_then(|lit| match lit {
-    Lit::Str(s) => Some(Atom::new(s.value.as_wtf8().to_string_lossy().as_ref())),
+    Lit::Str(s) => Some(s.value.to_atom_lossy().into_owned()),
     _ => None,
   })
 }
 
-fn get_ident_name(pat: &PatRef<'_>) -> Atom {
-  pat
-    .as_pat()
-    .as_ident()
-    .map_or("".into(), |ident| Atom::new(ident.id.sym.as_str()))
+fn get_ident_name(pat: &Pat) -> Atom {
+  pat.as_ident().map_or("".into(), |ident| ident.sym.clone())
 }
 
 impl AMDDefineDependencyParserPlugin {
@@ -237,7 +239,7 @@ impl AMDDefineDependencyParserPlugin {
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let call_span = call_expr.span;
+    let call_span = call_expr.span();
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
@@ -245,7 +247,7 @@ impl AMDDefineDependencyParserPlugin {
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
-      pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
+      pattern: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser).into(),
       category: DependencyCategory::Amd,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
       context: result.context,
@@ -350,7 +352,7 @@ impl AMDDefineDependencyParserPlugin {
         if !first_arg.expr.is_lit() {
           return None;
         }
-        if !second_arg.expr.is_array() {
+        if !second_arg.expr.is_array_lit() {
           return None;
         }
 
@@ -383,7 +385,7 @@ impl AMDDefineDependencyParserPlugin {
       parser.parser_exports_state = Some(false);
     }
 
-    let mut fn_params: Option<Vec<PatRef<'_>>> = None;
+    let mut fn_params: Option<Vec<Cow<'_, Pat>>> = None;
     let mut fn_params_offset = 0usize;
     if let Some(func) = func {
       if is_unbound_function_expression(func) {
@@ -393,10 +395,10 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| PatRef::Borrowed(&param.pat))
+              .map(|param| Cow::Borrowed(&param.pat))
               .collect(),
           ),
-          Expr::Arrow(array_func) => Some(array_func.params.iter().map(PatRef::Borrowed).collect()),
+          Expr::Arrow(array_func) => Some(array_func.params.iter().map(Cow::Borrowed).collect()),
           _ => None,
         };
       } else if is_bound_function_expression(func) {
@@ -410,7 +412,7 @@ impl AMDDefineDependencyParserPlugin {
           .as_member()
           .expect("call_expr.callee is supposed to be MemberExpr")
           .obj
-          .as_fn()
+          .as_fn_expr()
           .expect("call_expr.callee.obj is supposed to be FnExpr");
 
         fn_params = Some(
@@ -418,7 +420,7 @@ impl AMDDefineDependencyParserPlugin {
             .function
             .params
             .iter()
-            .map(|param| PatRef::Borrowed(&param.pat))
+            .map(|param| Cow::Borrowed(&param.pat))
             .collect(),
         );
 
@@ -485,7 +487,7 @@ impl AMDDefineDependencyParserPlugin {
 
           parser.in_try = in_try;
 
-          if let Some(func) = func.and_then(|f| f.as_fn()) {
+          if let Some(func) = func.and_then(|f| f.as_fn_expr()) {
             if let Some(body) = &func.function.body {
               parser.detect_mode(&body.stmts);
               let prev = parser.prev_statement;
@@ -494,7 +496,7 @@ impl AMDDefineDependencyParserPlugin {
               parser.walk_statement(Statement::Block(body));
             }
           } else if let Some(func) = func.and_then(|f| f.as_arrow()) {
-            match &func.body {
+            match &*func.body {
               BlockStmtOrExpr::BlockStmt(stmt) => {
                 parser.detect_mode(&stmt.stmts);
                 let prev = parser.prev_statement;
@@ -515,7 +517,7 @@ impl AMDDefineDependencyParserPlugin {
           .callee
           .as_expr()
           .and_then(|expr| expr.as_member())
-          .and_then(|member_expr| member_expr.obj.as_fn());
+          .and_then(|member_expr| member_expr.obj.as_fn_expr());
 
         if let Some(func_expr) = object {
           parser.in_function_scope(
@@ -524,12 +526,11 @@ impl AMDDefineDependencyParserPlugin {
               .function
               .params
               .iter()
-              .map(|param| PatRef::Borrowed(&param.pat))
+              .map(|param| Cow::Borrowed(&param.pat))
               .filter(|pat| {
                 pat
-                  .as_pat()
                   .as_ident()
-                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.id.sym.as_str()))
+                  .is_some_and(|ident| !RESERVED_NAMES.contains(&ident.sym.as_str()))
               }),
             |parser| {
               for (name, rename_identifier) in fn_renames.iter() {
@@ -581,10 +582,10 @@ impl AMDDefineDependencyParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDDefineDependencyParserPlugin {
+impl JavascriptParserPlugin for AMDDefineDependencyParserPlugin {
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -595,7 +596,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDDefineDependencyParserPlugin 
     }
   }
 
-  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     for local_module in std::mem::take(&mut parser.local_modules) {
       let dep_idx = local_module.amd_dep_idx();
       if let Some(dep) = parser.get_presentational_dependency_mut(dep_idx)

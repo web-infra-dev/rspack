@@ -1,17 +1,17 @@
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::{Lit, ModuleItem, Program, Span, Stmt};
+use swc_core::ecma::ast::{Expr, Lit, ModuleItem, Program, Stmt};
 
 pub struct ReactDirectivesParserPlugin;
 
 impl ReactDirectivesParserPlugin {
-  fn process_statements<'a, I>(stmts: I, directives: &mut Vec<(String, Span)>)
+  fn process_statements<'a, I>(stmts: I, directives: &mut Vec<(String, swc_core::common::Span)>)
   where
-    I: Iterator<Item = &'a Stmt<'a>>,
+    I: Iterator<Item = &'a Stmt>,
   {
     for stmt in stmts {
       let Stmt::Expr(expr_stmt) = stmt else { break };
-      let Some(Lit::Str(str_lit)) = expr_stmt.expr.as_lit() else {
+      let Expr::Lit(Lit::Str(str_lit)) = &*expr_stmt.expr else {
         break;
       };
 
@@ -27,15 +27,15 @@ impl ReactDirectivesParserPlugin {
 }
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ReactDirectivesParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
+impl JavascriptParserPlugin for ReactDirectivesParserPlugin {
+  fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let mut directives = Vec::new();
 
     match ast {
       Program::Module(module) => {
         let stmts = module.body.iter().filter_map(|item| {
           if let ModuleItem::Stmt(stmt) = item {
-            Some(&**stmt)
+            Some(stmt)
           } else {
             None
           }

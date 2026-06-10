@@ -1,8 +1,9 @@
 use rspack_core::{ConstDependency, ModuleArgument, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{
-  CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::ast::{CallExpr, Ident, Pat, UnaryExpr},
 };
 
 use crate::{
@@ -95,11 +96,11 @@ fn get_typeof_evaluate_of_api(sym: &str) -> Option<&str> {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
-  fn evaluate_typeof(
+impl JavascriptParserPlugin for APIPlugin {
+  fn evaluate_typeof<'a>(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
+    parser: &mut JavascriptParser,
+    expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if for_name == API_LAYER {
@@ -122,7 +123,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -275,11 +276,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression<'p>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
     if for_name == API_LAYER {
       if let Some(layer) = parser.module_layer {
         Some(eval::evaluate_to_string(layer.into(), start, end))
@@ -293,8 +294,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    member_expr: &MemberExpr,
+    parser: &mut JavascriptParser,
+    member_expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "require.extensions"
@@ -343,8 +344,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    declarator: &VarDeclarator,
+    parser: &mut JavascriptParser,
+    declarator: &swc_core::ecma::ast::VarDeclarator,
     _declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     // Check if we're at top level scope and the declarator is a simple identifier named "module"
@@ -357,7 +358,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     None
   }
 
-  fn pre_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn pre_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     // Check if we're at top level scope
     if parser.is_top_level_scope() {
       match stmt {
@@ -385,7 +386,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -395,7 +396,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       || for_name == "require.main.require"
       || for_name == "module.parent.require"
     {
-      let (warning, dep) = expression_not_supported(parser.source, for_name, true, call_expr.span);
+      let (warning, dep) =
+        expression_not_supported(parser.source, for_name, true, call_expr.span());
       parser.add_warning(warning.into());
       parser.add_presentational_dependency(dep);
       return Some(true);

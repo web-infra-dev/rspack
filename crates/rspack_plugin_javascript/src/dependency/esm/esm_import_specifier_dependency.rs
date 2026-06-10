@@ -16,7 +16,7 @@ use rspack_core::{
 };
 use rspack_error::Diagnostic;
 use rspack_util::{ext::DynHash, json_stringify_str};
-use swc_atoms::Atom;
+use swc_core::ecma::atoms::Atom;
 
 use super::{
   create_resource_identifier_for_esm_dependency,
