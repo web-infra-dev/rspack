@@ -575,3 +575,7 @@ regex_creation_in_loops = "warn"
 # regex
 invalid_regex = "warn"
 trivial_regex = "warn"
+
+# Verify rstackjs/rspack-resolver#275 (std::fs instead of tokio::fs) against rspack benches
+[patch.crates-io]
+rspack_resolver = { git = "https://github.com/rstackjs/rspack-resolver.git", rev = "b9eb9b83926acb4130e85bd7abaf4c92dce0b3f0" }
