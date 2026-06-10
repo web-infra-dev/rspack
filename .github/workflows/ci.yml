@@ -33,6 +33,7 @@ permissions:
   pull-requests: write
 
 jobs:
+  # add a comment
   check-changed:
     runs-on: rspack-ubuntu-22.04-mini
     name: Check Source Changed
