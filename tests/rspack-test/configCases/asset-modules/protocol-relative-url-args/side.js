@@ -1,1 +1,0 @@
-globalThis.protocolRelativeUrlSideEffect = true;

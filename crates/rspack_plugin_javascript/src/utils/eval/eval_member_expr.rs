@@ -1,31 +1,21 @@
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{Expr, MemberExpr};
+use swc_core::ecma::ast::{Expr, MemberExpr};
 
 use super::BasicEvaluatedExpression;
 use crate::{
-  parser_plugin::{CREATED_REQUIRE_IDENTIFIER_TAG, CreatedRequireTagData, JavascriptParserPlugin},
-  visitors::{
-    AllowedMemberTypes, ExportedVariableInfo, ExprRef, JavascriptParser, MemberExpressionInfo,
-  },
+  parser_plugin::JavascriptParserPlugin,
+  visitors::{AllowedMemberTypes, ExprRef, JavascriptParser, MemberExpressionInfo},
 };
 
-pub fn eval_member_expression<'parser: 'a, 'a>(
-  parser: &mut JavascriptParser<'parser>,
-  member: &'a MemberExpr<'a>,
-  expr: &'a Expr<'a>,
+pub fn eval_member_expression<'a>(
+  parser: &mut JavascriptParser,
+  member: &'a MemberExpr,
+  expr: &'a Expr,
 ) -> Option<BasicEvaluatedExpression<'a>> {
   let drive = parser.plugin_drive.clone();
   let ret = if let Some(MemberExpressionInfo::Expression(info)) =
     parser.get_member_expression_info(ExprRef::Member(member), AllowedMemberTypes::Expression)
   {
-    let is_created_require_member = parser.javascript_options.is_create_require_enabled()
-      && matches!(
-        info.root_info,
-        ExportedVariableInfo::VariableInfo(id)
-          if parser
-            .get_variable_tag_data::<CreatedRequireTagData>(id, CREATED_REQUIRE_IDENTIFIER_TAG)
-            .is_some()
-      );
     drive
       .evaluate_identifier(
         parser,
@@ -33,7 +23,6 @@ pub fn eval_member_expression<'parser: 'a, 'a>(
         member.span.real_lo(),
         member.span.real_hi(),
       )
-      .filter(|_| !is_created_require_member)
       .or_else(|| drive.evaluate(parser, expr))
       .or_else(|| {
         // TODO: fallback with `evaluateDefinedIdentifier`

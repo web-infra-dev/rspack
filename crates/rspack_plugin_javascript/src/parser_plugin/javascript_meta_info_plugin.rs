@@ -1,6 +1,5 @@
 use rspack_util::atom::Atom;
 use rustc_hash::FxHashSet;
-use swc_experimental_ecma_ast::CallExpr;
 
 use super::{
   JavascriptParserPlugin,
@@ -11,11 +10,11 @@ use crate::visitors::JavascriptParser;
 pub struct JavascriptMetaInfoPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
+impl JavascriptParserPlugin for JavascriptMetaInfoPlugin {
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    _expr: &CallExpr<'_>,
+    parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "eval" {
@@ -33,7 +32,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for JavascriptMetaInfoPlugin {
     None
   }
 
-  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     if parser.build_info.top_level_declarations.is_none() {
       parser.build_info.top_level_declarations = Some(FxHashSet::default());
     }

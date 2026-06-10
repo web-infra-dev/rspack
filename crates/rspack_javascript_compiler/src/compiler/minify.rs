@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::BatchErrors;
-use rspack_util::source_map::SourceMapKind;
+use rspack_util::{source_map::SourceMapKind, swc::minify_file_comments};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 pub use swc_core::base::BoolOrDataConfig;
@@ -13,7 +13,7 @@ use swc_core::{
   },
   common::{
     BytePos, FileName, Mark,
-    comments::{Comment, CommentKind, Comments, SingleThreadedComments},
+    comments::{Comments, SingleThreadedComments},
     errors::HANDLER,
   },
   ecma::{
@@ -37,66 +37,6 @@ use super::{
   stringify::{PrintOptions, SourceMapConfig},
 };
 use crate::error::with_rspack_error_handler;
-
-/**
- * Some code is modified based on
- * https://github.com/swc-project/swc/blob/e6fc5327b1a309eae840fe1ec3a2367adab37430/crates/swc_compiler_base/src/lib.rs#L342
- * Apache-2.0 licensed
- * Author Donny/강동윤
- * Copyright (c)
- */
-pub(super) fn minify_file_comments(
-  comments: &SingleThreadedComments,
-  preserve_comments: &BoolOr<JsMinifyCommentOption>,
-  preserve_annotations: bool,
-) {
-  match preserve_comments {
-    BoolOr::Bool(true) | BoolOr::Data(JsMinifyCommentOption::PreserveAllComments) => {}
-
-    BoolOr::Data(JsMinifyCommentOption::PreserveSomeComments) => {
-      let preserve_excl = |_: &BytePos, vc: &mut std::vec::Vec<Comment>| -> bool {
-        // Preserve license comments.
-        //
-        // See https://github.com/terser/terser/blob/798135e04baddd94fea403cfaab4ba8b22b1b524/lib/output.js#L175-L181
-        vc.retain(|c: &Comment| {
-          c.text.contains("@lic")
-            || c.text.contains("@preserve")
-            || c.text.contains("@copyright")
-            || c.text.contains("@cc_on")
-            || (preserve_annotations
-              && (c.text.contains("__PURE__")
-                || c.text.contains("__INLINE__")
-                || c.text.contains("__NOINLINE__")
-                || c.text.contains("@vite-ignore")))
-            || (c.kind == CommentKind::Block && c.text.starts_with('!'))
-        });
-        !vc.is_empty()
-      };
-      let (mut l, mut t) = comments.borrow_all_mut();
-
-      l.retain(preserve_excl);
-      t.retain(preserve_excl);
-    }
-
-    BoolOr::Bool(false) => {
-      let (mut l, mut t) = comments.borrow_all_mut();
-      l.clear();
-      t.clear();
-    }
-    BoolOr::Data(JsMinifyCommentOption::PreserveRegexComments { regex }) => {
-      let preserve_excl = |_: &BytePos, vc: &mut std::vec::Vec<Comment>| -> bool {
-        // Preserve comments that match the regex
-        //
-        // See https://github.com/terser/terser/blob/798135e04baddd94fea403cfaab4ba8b22b1b524/lib/output.js#L286
-        vc.retain(|c: &Comment| regex.find(&c.text).is_some());
-        !vc.is_empty()
-      };
-      let (mut l, mut t) = comments.borrow_all_mut();
-      l.retain(preserve_excl);
-      t.retain(preserve_excl);
-    }
-  }
-}
 
 impl JavaScriptCompiler {
   /// Minifies the given JavaScript source code.

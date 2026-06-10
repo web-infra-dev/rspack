@@ -11,7 +11,7 @@ use rspack_core::{
   property_access, to_normal_comment,
 };
 use rspack_util::ext::DynHash;
-use swc_atoms::Atom;
+use swc_core::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]

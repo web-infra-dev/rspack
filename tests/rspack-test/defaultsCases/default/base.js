@@ -295,7 +295,6 @@ module.exports = {
 			      },
 			      javascript: Object {
 			        commonjs: true,
-			        createRequire: false,
 			        deferImport: false,
 			        dynamicImportMode: lazy,
 			        dynamicImportPrefetch: false,

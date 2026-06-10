@@ -5,15 +5,23 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
-use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
-use swc_experimental_ecma_ast::{
-  ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind, Comments, Decl,
-  DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName, ScopeId, Span,
-  Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+use swc_core::{
+  atoms::Atom,
+  common::{
+    BytePos, Mark, Span, Spanned, SyntaxContext,
+    comments::{CommentKind, Comments},
+  },
+  ecma::{
+    ast::{
+      ArrayPat, ArrowExpr, AssignPat, AssignPatProp, BlockStmt, BlockStmtOrExpr, Class,
+      ClassMember, Decl, ExportSpecifier, Expr, ExprOrSpread, Function, ImportSpecifier,
+      KeyValuePatProp, ModuleDecl, ModuleExportName, ModuleItem, ObjectPat, ObjectPatProp, Pat,
+      Program, PropName, RestPat, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr,
+    },
+    utils::{ExprCtx, ExprExt},
+    visit::{Visit, VisitWith},
+  },
 };
-use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
 use crate::{
   ClassExt, JavascriptParserPlugin,
@@ -26,14 +34,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new("(?s)^\\s*(#|@)__PURE__(?:\\s|$)").expect("Should create the regex")
 });
 pub struct SideEffectsParserPlugin {
-  unresolved_scope_id: ScopeId,
+  unresolve_ctxt: SyntaxContext,
   analyze_side_effects_free: bool,
 }
 
 impl SideEffectsParserPlugin {
-  pub fn new(unresolved_scope_id: ScopeId, analyze_side_effects_free: bool) -> Self {
+  pub fn new(unresolved_mark: Mark, analyze_side_effects_free: bool) -> Self {
     Self {
-      unresolved_scope_id,
+      unresolve_ctxt: SyntaxContext::empty().apply_mark(unresolved_mark),
       analyze_side_effects_free,
     }
   }
@@ -44,80 +52,65 @@ struct PureAnnotation<'a> {
   parser: &'a JavascriptParser<'a>,
 }
 
-fn compat_atom(atom: &AstAtom<'_>) -> Atom {
-  Atom::from(atom.as_str())
+fn has_no_side_effects_notation(comments: Option<&dyn Comments>, span: Span) -> bool {
+  comments.is_some_and(|comments| comments.has_flag(span.lo, "NO_SIDE_EFFECTS"))
 }
 
-fn has_no_side_effects_notation(comments: &Comments<'_>, span: AstSpan) -> bool {
-  comments.has_flag(span.start, "NO_SIDE_EFFECTS")
-}
-
-fn expr_ctx<'a>(parser: &'a JavascriptParser<'_>, is_unresolved_ref_safe: bool) -> ExprCtx<'a> {
-  ExprCtx {
-    semantic: parser.ast.semantic,
-    is_unresolved_ref_safe,
-    in_strict: false,
-    remaining_depth: 4,
-  }
-}
-
-impl<'a> Visit<'a> for PureAnnotation<'a> {
-  fn visit_module_decl(&mut self, node: &ModuleDecl<'a>) {
+impl<'a> Visit for PureAnnotation<'a> {
+  fn visit_module_decl(&mut self, node: &ModuleDecl) {
     match &node {
       ModuleDecl::ExportDefaultExpr(default_expr) => {
-        if let Some(fn_expr) = default_expr.expr.as_fn()
-          && (has_no_side_effects_notation(self.parser.ast.comments, default_expr.span())
-            || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
+        if let Some(fn_expr) = default_expr.expr.as_fn_expr()
+          && (has_no_side_effects_notation(self.parser.comments, default_expr.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
         {
           if let Some(ident) = &fn_expr.ident {
-            self.side_effects_free.insert(compat_atom(&ident.sym));
+            self.side_effects_free.insert(ident.sym.clone());
           }
           self.side_effects_free.insert(Atom::from("default"));
         } else if let Some(arrow_expr) = default_expr.expr.as_arrow()
-          && (has_no_side_effects_notation(self.parser.ast.comments, default_expr.span())
-            || has_no_side_effects_notation(self.parser.ast.comments, arrow_expr.span()))
+          && (has_no_side_effects_notation(self.parser.comments, default_expr.span())
+            || has_no_side_effects_notation(self.parser.comments, arrow_expr.span()))
         {
           self.side_effects_free.insert(Atom::from("default"));
         }
       }
       ModuleDecl::ExportDefaultDecl(default_decl) => {
-        if let Some(fn_expr) = default_decl.decl.as_fn()
-          && (has_no_side_effects_notation(self.parser.ast.comments, default_decl.span())
-            || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
+        if let Some(fn_expr) = default_decl.decl.as_fn_expr()
+          && (has_no_side_effects_notation(self.parser.comments, default_decl.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
         {
           if let Some(ident) = &fn_expr.ident {
-            self.side_effects_free.insert(compat_atom(&ident.sym));
+            self.side_effects_free.insert(ident.sym.clone());
           }
           self.side_effects_free.insert(Atom::from("default"));
         }
       }
       ModuleDecl::ExportDecl(export_decl) => {
-        if let Some(fn_decl) = export_decl.decl.as_fn()
-          && (has_no_side_effects_notation(self.parser.ast.comments, export_decl.span())
-            || has_no_side_effects_notation(self.parser.ast.comments, fn_decl.span()))
+        if let Some(fn_decl) = export_decl.decl.as_fn_decl()
+          && (has_no_side_effects_notation(self.parser.comments, export_decl.span())
+            || has_no_side_effects_notation(self.parser.comments, fn_decl.span()))
         {
-          self
-            .side_effects_free
-            .insert(compat_atom(&fn_decl.ident.sym));
+          self.side_effects_free.insert(fn_decl.ident.sym.clone());
         } else if let Some(var_decl) = export_decl.decl.as_var()
           && matches!(var_decl.kind, VarDeclKind::Const)
           && var_decl.decls.len() == 1
         {
           let const_decl = &var_decl.decls[0];
           if let Some(ident) = const_decl.name.as_ident()
-            && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref()
-            && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, export_decl.span()))
+            && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+            && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+              || has_no_side_effects_notation(self.parser.comments, fn_expr.span())
+              || has_no_side_effects_notation(self.parser.comments, export_decl.span()))
           {
-            self.side_effects_free.insert(compat_atom(&ident.id.sym));
+            self.side_effects_free.insert(ident.sym.clone());
           } else if let Some(ident) = const_decl.name.as_ident()
-            && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref()
-            && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span())
-              || has_no_side_effects_notation(self.parser.ast.comments, export_decl.span()))
+            && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+            && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+              || has_no_side_effects_notation(self.parser.comments, fn_expr.span())
+              || has_no_side_effects_notation(self.parser.comments, export_decl.span()))
           {
-            self.side_effects_free.insert(compat_atom(&ident.id.sym));
+            self.side_effects_free.insert(ident.sym.clone());
           }
         }
       }
@@ -125,15 +118,13 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
     }
   }
 
-  fn visit_stmt(&mut self, node: &Stmt<'a>) {
+  fn visit_stmt(&mut self, node: &Stmt) {
     if let Stmt::Decl(decl) = node {
       #[allow(clippy::collapsible_match)]
-      match &**decl {
+      match decl {
         Decl::Fn(fn_decl) => {
-          if has_no_side_effects_notation(self.parser.ast.comments, fn_decl.span()) {
-            self
-              .side_effects_free
-              .insert(compat_atom(&fn_decl.ident.sym));
+          if has_no_side_effects_notation(self.parser.comments, fn_decl.span()) {
+            self.side_effects_free.insert(fn_decl.ident.sym.clone());
           }
         }
         Decl::Var(var_decl) => {
@@ -148,17 +139,17 @@ impl<'a> Visit<'a> for PureAnnotation<'a> {
             let const_decl = &var_decl.decls[0];
 
             if let Some(ident) = const_decl.name.as_ident()
-              && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref()
-              && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
-                || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
+              && let Some(Expr::Fn(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+              && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+                || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
             {
-              self.side_effects_free.insert(compat_atom(&ident.id.sym));
+              self.side_effects_free.insert(ident.sym.clone());
             } else if let Some(ident) = const_decl.name.as_ident()
-              && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref()
-              && (has_no_side_effects_notation(self.parser.ast.comments, var_decl.span())
-                || has_no_side_effects_notation(self.parser.ast.comments, fn_expr.span()))
+              && let Some(Expr::Arrow(fn_expr)) = const_decl.init.as_ref().map(|init| init.as_ref())
+              && (has_no_side_effects_notation(self.parser.comments, var_decl.span())
+                || has_no_side_effects_notation(self.parser.comments, fn_expr.span()))
             {
-              self.side_effects_free.insert(compat_atom(&ident.id.sym));
+              self.side_effects_free.insert(ident.sym.clone());
             }
           }
         }
@@ -176,8 +167,8 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<Atom> 
   //     `default` keyword for default-exported functions/arrows — preserves
   //     the original "configure on the source module" workflow.
   let mut names = FxHashSet::default();
-  let mut insert = |name: Atom| {
-    names.insert(name);
+  let mut insert = |name: &Atom| {
+    names.insert(name.clone());
   };
 
   match program {
@@ -185,14 +176,11 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<Atom> 
       // First pass: collect every actual top-level binding name.
       for item in &module.body {
         match item {
-          ModuleItem::Stmt(stmt) => {
-            if let Stmt::Decl(decl) = &**stmt {
-              visit_decl_binding_names(decl, &mut insert)
-            }
-          }
+          ModuleItem::Stmt(Stmt::Decl(decl)) => visit_decl_binding_names(decl, &mut insert),
           ModuleItem::ModuleDecl(decl) => {
             visit_module_decl_defined_binding_names(decl, &mut insert)
           }
+          _ => {}
         }
       }
 
@@ -202,36 +190,38 @@ fn collect_pure_function_acceptable_names(program: &Program) -> FxHashSet<Atom> 
         let ModuleItem::ModuleDecl(decl) = item else {
           continue;
         };
-        match &**decl {
+        match decl {
           ModuleDecl::ExportNamed(named_export) if named_export.src.is_none() => {
             for specifier in &named_export.specifiers {
               let ExportSpecifier::Named(named) = specifier else {
                 continue;
               };
               let orig_atom = match &named.orig {
-                ModuleExportName::Ident(ident) => compat_atom(&ident.sym),
+                ModuleExportName::Ident(ident) => &ident.sym,
                 ModuleExportName::Str(_) => continue,
               };
-              if !local_bindings.contains(&orig_atom) {
+              if !local_bindings.contains(orig_atom) {
                 continue;
               }
               match named.exported.as_ref().unwrap_or(&named.orig) {
                 ModuleExportName::Ident(ident) => {
-                  names.insert(compat_atom(&ident.sym));
+                  names.insert(ident.sym.clone());
                 }
                 ModuleExportName::Str(s) => {
-                  names.insert(Atom::from(s.value.to_string_lossy().as_ref()));
+                  if let Some(atom) = s.value.as_atom() {
+                    names.insert(atom.clone());
+                  }
                 }
               }
             }
           }
           ModuleDecl::ExportDefaultDecl(default_decl)
-            if matches!(default_decl.decl, DefaultDecl::Fn(_)) =>
+            if matches!(default_decl.decl, swc_core::ecma::ast::DefaultDecl::Fn(_)) =>
           {
             names.insert(Atom::from("default"));
           }
           ModuleDecl::ExportDefaultExpr(default_expr)
-            if default_expr.expr.is_fn() || default_expr.expr.is_arrow() =>
+            if default_expr.expr.is_fn_expr() || default_expr.expr.is_arrow() =>
           {
             names.insert(Atom::from("default"));
           }
@@ -266,35 +256,35 @@ fn collect_defined_configured_side_effects_free(
     .collect()
 }
 
-fn visit_pat_binding_names(pat: &Pat, f: &mut impl FnMut(Atom)) {
+fn visit_pat_binding_names(pat: &Pat, f: &mut impl FnMut(&Atom)) {
   match pat {
-    Pat::Ident(ident) => f(compat_atom(&ident.id.sym)),
-    Pat::Array(array) => {
-      for elem in array.elems.iter().flatten() {
+    Pat::Ident(ident) => f(&ident.id.sym),
+    Pat::Array(ArrayPat { elems, .. }) => {
+      for elem in elems.iter().flatten() {
         visit_pat_binding_names(elem, f);
       }
     }
-    Pat::Object(object) => {
-      for prop in &object.props {
+    Pat::Object(ObjectPat { props, .. }) => {
+      for prop in props {
         match prop {
-          ObjectPatProp::KeyValue(prop) => {
-            visit_pat_binding_names(&prop.value, f);
+          ObjectPatProp::KeyValue(KeyValuePatProp { value, .. }) => {
+            visit_pat_binding_names(value, f);
           }
-          ObjectPatProp::Assign(prop) => f(compat_atom(&prop.key.id.sym)),
-          ObjectPatProp::Rest(prop) => visit_pat_binding_names(&prop.arg, f),
+          ObjectPatProp::Assign(AssignPatProp { key, .. }) => f(&key.id.sym),
+          ObjectPatProp::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
         }
       }
     }
-    Pat::Assign(assign) => visit_pat_binding_names(&assign.left, f),
-    Pat::Rest(rest) => visit_pat_binding_names(&rest.arg, f),
+    Pat::Assign(AssignPat { left, .. }) => visit_pat_binding_names(left, f),
+    Pat::Rest(RestPat { arg, .. }) => visit_pat_binding_names(arg, f),
     Pat::Expr(_) | Pat::Invalid(_) => {}
   }
 }
 
-fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(Atom)) {
+fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(&Atom)) {
   match decl {
-    Decl::Fn(fn_decl) => f(compat_atom(&fn_decl.ident.sym)),
-    Decl::Class(class_decl) => f(compat_atom(&class_decl.ident.sym)),
+    Decl::Fn(fn_decl) => f(&fn_decl.ident.sym),
+    Decl::Class(class_decl) => f(&class_decl.ident.sym),
     Decl::Var(var_decl) => {
       for declarator in &var_decl.decls {
         visit_pat_binding_names(&declarator.name, f);
@@ -304,29 +294,30 @@ fn visit_decl_binding_names(decl: &Decl, f: &mut impl FnMut(Atom)) {
   }
 }
 
-fn visit_module_decl_defined_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(Atom)) {
+fn visit_module_decl_defined_binding_names(decl: &ModuleDecl, f: &mut impl FnMut(&Atom)) {
   match decl {
     ModuleDecl::Import(import_decl) => {
       for specifier in &import_decl.specifiers {
         match specifier {
-          ImportSpecifier::Named(named) => f(compat_atom(&named.local.sym)),
-          ImportSpecifier::Default(default) => f(compat_atom(&default.local.sym)),
-          ImportSpecifier::Namespace(namespace) => f(compat_atom(&namespace.local.sym)),
+          ImportSpecifier::Named(named) => f(&named.local.sym),
+          ImportSpecifier::Default(default) => f(&default.local.sym),
+          ImportSpecifier::Namespace(namespace) => f(&namespace.local.sym),
         }
       }
     }
     ModuleDecl::ExportDecl(export_decl) => visit_decl_binding_names(&export_decl.decl, f),
     ModuleDecl::ExportDefaultDecl(default_decl) => match &default_decl.decl {
-      DefaultDecl::Fn(fn_expr) => {
+      swc_core::ecma::ast::DefaultDecl::Fn(fn_expr) => {
         if let Some(ident) = &fn_expr.ident {
-          f(compat_atom(&ident.sym));
+          f(&ident.sym);
         }
       }
-      DefaultDecl::Class(class_expr) => {
+      swc_core::ecma::ast::DefaultDecl::Class(class_expr) => {
         if let Some(ident) = &class_expr.ident {
-          f(compat_atom(&ident.sym));
+          f(&ident.sym);
         }
       }
+      swc_core::ecma::ast::DefaultDecl::TsInterfaceDecl(_) => {}
     },
     _ => {}
   }
@@ -334,22 +325,19 @@ fn visit_module_decl_defined_binding_names(decl: &ModuleDecl, f: &mut impl FnMut
 
 fn collect_duplicate_top_level_names(program: &Program) -> FxHashSet<Atom> {
   let mut counts = rustc_hash::FxHashMap::<Atom, usize>::default();
-  let mut count_name = |name: Atom| {
-    *counts.entry(name).or_default() += 1;
+  let mut count_name = |name: &Atom| {
+    *counts.entry(name.clone()).or_default() += 1;
   };
 
   match program {
     Program::Module(module) => {
       for item in &module.body {
         match item {
-          ModuleItem::Stmt(stmt) => {
-            if let Stmt::Decl(decl) = &**stmt {
-              visit_decl_binding_names(decl, &mut count_name)
-            }
-          }
+          ModuleItem::Stmt(Stmt::Decl(decl)) => visit_decl_binding_names(decl, &mut count_name),
           ModuleItem::ModuleDecl(decl) => {
             visit_module_decl_defined_binding_names(decl, &mut count_name)
           }
+          _ => {}
         }
       }
     }
@@ -381,8 +369,8 @@ fn try_mark_auto_side_effects_free_var_decl(
   analyze_side_effects_free: bool,
   var_decl: &VarDecl,
   export_name: Option<&Atom>,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
   if !matches!(var_decl.kind, VarDeclKind::Const) {
@@ -393,22 +381,21 @@ fn try_mark_auto_side_effects_free_var_decl(
     let Some(ident) = declarator.name.as_ident() else {
       continue;
     };
-    let ident = compat_atom(&ident.id.sym);
 
     if parser
       .build_info
       .side_effects_free
       .as_ref()
-      .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
+      .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
     {
       continue;
     }
 
-    if duplicate_names.contains(&ident) {
+    if duplicate_names.contains(&ident.sym) {
       continue;
     }
 
-    let is_side_effects_free = match declarator.init.as_ref() {
+    let is_side_effects_free = match declarator.init.as_deref() {
       Some(Expr::Fn(fn_expr)) => is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
@@ -427,7 +414,7 @@ fn try_mark_auto_side_effects_free_var_decl(
     };
 
     if is_side_effects_free {
-      mark_side_effects_free(parser, &ident, export_name);
+      mark_side_effects_free(parser, &ident.sym, export_name);
     }
   }
 }
@@ -436,45 +423,42 @@ fn try_mark_auto_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Stmt,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
-  if let Stmt::Decl(decl) = stmt {
-    match &**decl {
-      Decl::Fn(fn_decl) => {
-        let ident = compat_atom(&fn_decl.ident.sym);
-        if parser
-          .build_info
-          .side_effects_free
-          .as_ref()
-          .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-          || duplicate_names.contains(&ident)
-        {
-          return;
-        }
-
-        if is_side_effects_free_function_body(
-          parser,
-          analyze_side_effects_free,
-          &fn_decl.function,
-          unresolved_ctxt,
-          comments,
-        ) {
-          mark_side_effects_free(parser, &ident, None);
-        }
+  match stmt {
+    Stmt::Decl(Decl::Fn(fn_decl)) => {
+      if parser
+        .build_info
+        .side_effects_free
+        .as_ref()
+        .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+        || duplicate_names.contains(&fn_decl.ident.sym)
+      {
+        return;
       }
-      Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
+
+      if is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
-        var_decl,
-        None,
+        &fn_decl.function,
         unresolved_ctxt,
         comments,
-        duplicate_names,
-      ),
-      _ => {}
+      ) {
+        mark_side_effects_free(parser, &fn_decl.ident.sym, None);
+      }
     }
+    Stmt::Decl(Decl::Var(var_decl)) => try_mark_auto_side_effects_free_var_decl(
+      parser,
+      analyze_side_effects_free,
+      var_decl,
+      None,
+      unresolved_ctxt,
+      comments,
+      duplicate_names,
+    ),
+    _ => {}
   }
 }
 
@@ -482,26 +466,25 @@ fn try_mark_auto_side_effects_free_module_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   decl: &ModuleDecl,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
   match decl {
     ModuleDecl::ExportDefaultExpr(default_expr) => {
-      let Some(fn_expr) = default_expr.expr.as_fn() else {
+      let Some(fn_expr) = default_expr.expr.as_fn_expr() else {
         return;
       };
       let Some(ident) = &fn_expr.ident else {
         return;
       };
-      let ident = compat_atom(&ident.sym);
       let export_name = Atom::from("default");
       if parser
         .build_info
         .side_effects_free
         .as_ref()
-        .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-        || duplicate_names.contains(&ident)
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
         return;
       }
@@ -512,24 +495,23 @@ fn try_mark_auto_side_effects_free_module_decl(
         unresolved_ctxt,
         comments,
       ) {
-        mark_side_effects_free(parser, &ident, Some(&export_name));
+        mark_side_effects_free(parser, &ident.sym, Some(&export_name));
       }
     }
     ModuleDecl::ExportDefaultDecl(default_decl) => {
-      let Some(fn_expr) = default_decl.decl.as_fn() else {
+      let Some(fn_expr) = default_decl.decl.as_fn_expr() else {
         return;
       };
       let Some(ident) = &fn_expr.ident else {
         return;
       };
-      let ident = compat_atom(&ident.sym);
       let export_name = Atom::from("default");
       if parser
         .build_info
         .side_effects_free
         .as_ref()
-        .is_some_and(|side_effects_free| side_effects_free.contains(&ident))
-        || duplicate_names.contains(&ident)
+        .is_some_and(|side_effects_free| side_effects_free.contains(&ident.sym))
+        || duplicate_names.contains(&ident.sym)
       {
         return;
       }
@@ -540,7 +522,7 @@ fn try_mark_auto_side_effects_free_module_decl(
         unresolved_ctxt,
         comments,
       ) {
-        mark_side_effects_free(parser, &ident, Some(&export_name));
+        mark_side_effects_free(parser, &ident.sym, Some(&export_name));
       }
     }
     ModuleDecl::ExportDecl(export_decl) => match &export_decl.decl {
@@ -549,10 +531,8 @@ fn try_mark_auto_side_effects_free_module_decl(
           .build_info
           .side_effects_free
           .as_ref()
-          .is_some_and(|side_effects_free| {
-            side_effects_free.contains(&compat_atom(&fn_decl.ident.sym))
-          })
-          || duplicate_names.contains(&compat_atom(&fn_decl.ident.sym))
+          .is_some_and(|side_effects_free| side_effects_free.contains(&fn_decl.ident.sym))
+          || duplicate_names.contains(&fn_decl.ident.sym)
         {
           return;
         }
@@ -564,7 +544,7 @@ fn try_mark_auto_side_effects_free_module_decl(
           unresolved_ctxt,
           comments,
         ) {
-          mark_side_effects_free(parser, &compat_atom(&fn_decl.ident.sym), None);
+          mark_side_effects_free(parser, &fn_decl.ident.sym, None);
         }
       }
       Decl::Var(var_decl) => try_mark_auto_side_effects_free_var_decl(
@@ -586,8 +566,8 @@ fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   program: &Program,
-  unresolved_scope_id: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
   match program {
@@ -598,7 +578,7 @@ fn mark_auto_side_effects_free_program(
             parser,
             analyze_side_effects_free,
             stmt,
-            unresolved_scope_id,
+            unresolved_ctxt,
             comments,
             duplicate_names,
           ),
@@ -606,7 +586,7 @@ fn mark_auto_side_effects_free_program(
             parser,
             analyze_side_effects_free,
             decl,
-            unresolved_scope_id,
+            unresolved_ctxt,
             comments,
             duplicate_names,
           ),
@@ -619,7 +599,7 @@ fn mark_auto_side_effects_free_program(
           parser,
           analyze_side_effects_free,
           stmt,
-          unresolved_scope_id,
+          unresolved_ctxt,
           comments,
           duplicate_names,
         );
@@ -629,8 +609,12 @@ fn mark_auto_side_effects_free_program(
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
+impl JavascriptParserPlugin for SideEffectsParserPlugin {
+  fn program(
+    &self,
+    parser: &mut JavascriptParser,
+    ast: &swc_core::ecma::ast::Program,
+  ) -> Option<bool> {
     parser.build_info.side_effects_free = None;
     parser.build_info.deferred_pure_checks.clear();
 
@@ -674,8 +658,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           ast,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           &duplicate_names,
         );
         let next_len = parser
@@ -692,11 +676,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
     None
   }
 
-  fn module_declaration(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    decl: &ModuleDecl,
-  ) -> Option<bool> {
+  fn module_declaration(&self, parser: &mut JavascriptParser, decl: &ModuleDecl) -> Option<bool> {
     match decl {
       ModuleDecl::ExportDefaultExpr(expr) => {
         let mut callees = vec![];
@@ -704,8 +684,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &expr.expr,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(expr.span);
@@ -742,8 +722,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &decl.decl,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(decl.decl.span());
@@ -776,7 +756,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
     };
     None
   }
-  fn statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     if !parser.is_top_level_scope() {
       return None;
     }
@@ -784,7 +764,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
     None
   }
 
-  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     if self.analyze_side_effects_free {
       let mut not_defined = Vec::new();
       // check if all user flagged side_effects_free are defined
@@ -824,15 +804,15 @@ fn is_pure_call_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &Expr,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   let Expr::Call(call_expr) = expr else {
     unreachable!();
   };
-  let pure_flag = has_pure_comment(comments, expr.span().start)
-    || has_pure_comment(comments, call_expr.callee.span().start);
+  let pure_flag = has_pure_comment(comments, expr.span().lo)
+    || has_pure_comment(comments, call_expr.callee.span().lo);
   let callee = &call_expr.callee;
 
   if pure_flag {
@@ -844,10 +824,12 @@ fn is_pure_call_expr(
       comments,
       callees,
     );
-  } else if analyze_side_effects_free && let Some(Expr::Ident(ident)) = callee.as_expr() {
+  } else if analyze_side_effects_free
+    && let Some(Expr::Ident(ident)) = callee.as_expr().map(|expr| expr.as_ref())
+  {
     match resolve_explicit_side_effects_free_callee(
       parser,
-      &compat_atom(&ident.sym),
+      &ident.sym,
       callee.span(),
       callees.is_none(),
     ) {
@@ -865,7 +847,7 @@ fn is_pure_call_expr(
         let Some(callees) = callees else {
           return false;
         };
-        callees.push((compat_atom(&ident.sym), callee.span()));
+        callees.push((ident.sym.clone(), callee.span()));
         return is_pure_call_args(
           parser,
           analyze_side_effects_free,
@@ -880,7 +862,7 @@ fn is_pure_call_expr(
     }
 
     if let Some(callees) = callees {
-      callees.push((compat_atom(&ident.sym), callee.span()));
+      callees.push((ident.sym.clone(), callee.span()));
       return is_pure_call_args(
         parser,
         analyze_side_effects_free,
@@ -892,16 +874,21 @@ fn is_pure_call_expr(
     }
   }
 
-  !expr.may_have_side_effects(expr_ctx(parser, false))
+  !expr.may_have_side_effects(ExprCtx {
+    unresolved_ctxt,
+    in_strict: false,
+    is_unresolved_ref_safe: false,
+    remaining_depth: 4,
+  })
 }
 
 #[inline(never)]
 fn is_pure_call_args(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
-  call_expr: &CallExpr,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  call_expr: &swc_core::ecma::ast::CallExpr,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   for arg in &call_expr.args {
@@ -1014,15 +1001,20 @@ fn is_pure_new_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &Expr,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   let Expr::New(new_expr) = expr else {
     unreachable!();
   };
-  let pure_flag = has_pure_comment(comments, expr.span().start);
+  let pure_flag = has_pure_comment(comments, expr.span().lo);
   if !pure_flag {
-    !expr.may_have_side_effects(expr_ctx(parser, false))
+    !expr.may_have_side_effects(ExprCtx {
+      unresolved_ctxt,
+      in_strict: false,
+      is_unresolved_ref_safe: false,
+      remaining_depth: 4,
+    })
   } else {
     are_pure_args(
       parser,
@@ -1034,20 +1026,22 @@ fn is_pure_new_expr(
   }
 }
 
-fn has_pure_comment(comments: &Comments<'_>, pos: u32) -> bool {
-  comments.leading.get(&pos).is_some_and(|comment_list| {
-    comment_list
-      .iter()
-      .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text))
-  })
+fn has_pure_comment(comments: Option<&dyn Comments>, pos: BytePos) -> bool {
+  comments
+    .and_then(|comments| comments.get_leading(pos))
+    .is_some_and(|comment_list| {
+      comment_list
+        .iter()
+        .any(|comment| comment.kind == CommentKind::Block && PURE_COMMENTS.is_match(&comment.text))
+    })
 }
 
 fn are_pure_args<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   args: &'a [ExprOrSpread],
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
 ) -> bool {
   args.iter().all(|arg| {
     if arg.spread.is_some() {
@@ -1077,8 +1071,8 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &if_stmt.test,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(if_stmt.span());
@@ -1095,8 +1089,8 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &while_stmt.test,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(while_stmt.span());
@@ -1113,8 +1107,8 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &do_while_stmt.test,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(do_while_stmt.span());
@@ -1133,16 +1127,16 @@ impl SideEffectsParserPlugin {
               parser,
               self.analyze_side_effects_free,
               decl,
-              self.unresolved_scope_id,
-              parser.ast.comments,
+              self.unresolve_ctxt,
+              parser.comments,
               Some(&mut callees),
             ),
             VarDeclOrExpr::Expr(expr) => is_pure_expression(
               parser,
               self.analyze_side_effects_free,
               expr,
-              self.unresolved_scope_id,
-              parser.ast.comments,
+              self.unresolve_ctxt,
+              parser.comments,
               Some(&mut callees),
             ),
           },
@@ -1165,8 +1159,8 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             test,
-            self.unresolved_scope_id,
-            parser.ast.comments,
+            self.unresolve_ctxt,
+            parser.comments,
             Some(&mut callees),
           ),
           None => true,
@@ -1188,8 +1182,8 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             expr,
-            self.unresolved_scope_id,
-            parser.ast.comments,
+            self.unresolve_ctxt,
+            parser.comments,
             Some(&mut callees),
           ),
           None => true,
@@ -1210,8 +1204,8 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &expr_stmt.expr,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(expr_stmt.span());
@@ -1228,8 +1222,8 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &switch_stmt.discriminant,
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
           let range = DependencyRange::from(switch_stmt.span());
@@ -1246,11 +1240,11 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           class_stmt.class(),
-          self.unresolved_scope_id,
-          parser.ast.comments,
+          self.unresolve_ctxt,
+          parser.comments,
           Some(&mut callees),
         ) {
-          let range = DependencyRange::from(stmt.span());
+          let range = DependencyRange::from(class_stmt.span());
           let loc = parser.to_dependency_location(range);
           parser.side_effects_item = Some(SideEffectsBailoutItemWithSpan::new(
             range,
@@ -1265,8 +1259,8 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             var_decl,
-            self.unresolved_scope_id,
-            parser.ast.comments,
+            self.unresolve_ctxt,
+            parser.comments,
             Some(&mut callees),
           ) {
             let range = DependencyRange::from(var_stmt.span());
@@ -1329,8 +1323,8 @@ pub fn is_pure_pat<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   pat: &'a Pat,
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   match pat {
@@ -1367,20 +1361,29 @@ fn is_side_effects_free_param(pat: &Pat) -> bool {
   matches!(pat, Pat::Ident(_))
 }
 
+fn function_body_expr_ctx(unresolved_ctxt: SyntaxContext) -> ExprCtx {
+  ExprCtx {
+    unresolved_ctxt,
+    is_unresolved_ref_safe: true,
+    in_strict: false,
+    remaining_depth: 4,
+  }
+}
+
 #[inline(never)]
 fn is_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   var_decl: &VarDecl,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   for declarator in &var_decl.decls {
     if declarator.name.as_ident().is_none() {
       return false;
     }
 
-    if let Some(init) = declarator.init.as_ref()
+    if let Some(init) = declarator.init.as_deref()
       && !is_pure_expression(
         parser,
         analyze_side_effects_free,
@@ -1397,26 +1400,23 @@ fn is_side_effects_free_var_decl(
   true
 }
 
-fn stmt_may_have_side_effects(parser: &JavascriptParser, stmt: &Stmt) -> bool {
-  let expr_ctx = expr_ctx(parser, true);
+fn stmt_may_have_side_effects(stmt: &Stmt, unresolved_ctxt: SyntaxContext) -> bool {
+  let expr_ctx = function_body_expr_ctx(unresolved_ctxt);
 
   match stmt {
     Stmt::Empty(_) => false,
     Stmt::Expr(expr_stmt) => expr_stmt.expr.may_have_side_effects(expr_ctx),
     Stmt::Return(return_stmt) => return_stmt
       .arg
-      .as_ref()
+      .as_deref()
       .is_some_and(|arg| arg.may_have_side_effects(expr_ctx)),
-    Stmt::Decl(decl) => match &**decl {
-      Decl::Var(var_decl) => var_decl.decls.iter().any(|declarator| {
-        declarator.name.as_ident().is_none()
-          || declarator
-            .init
-            .as_ref()
-            .is_some_and(|init| init.may_have_side_effects(expr_ctx))
-      }),
-      _ => true,
-    },
+    Stmt::Decl(Decl::Var(var_decl)) => var_decl.decls.iter().any(|declarator| {
+      declarator.name.as_ident().is_none()
+        || declarator
+          .init
+          .as_deref()
+          .is_some_and(|init| init.may_have_side_effects(expr_ctx))
+    }),
     _ => true,
   }
 }
@@ -1425,10 +1425,10 @@ fn is_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Stmt,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
-  if !stmt_may_have_side_effects(parser, stmt) {
+  if !stmt_may_have_side_effects(stmt, unresolved_ctxt) {
     return true;
   }
 
@@ -1441,7 +1441,7 @@ fn is_side_effects_free_stmt(
       comments,
       None,
     ),
-    Stmt::Return(return_stmt) => return_stmt.arg.as_ref().is_none_or(|arg| {
+    Stmt::Return(return_stmt) => return_stmt.arg.as_deref().is_none_or(|arg| {
       is_pure_expression(
         parser,
         analyze_side_effects_free,
@@ -1451,16 +1451,13 @@ fn is_side_effects_free_stmt(
         None,
       )
     }),
-    Stmt::Decl(decl) => match &**decl {
-      Decl::Var(var_decl) => is_side_effects_free_var_decl(
-        parser,
-        analyze_side_effects_free,
-        var_decl,
-        unresolved_ctxt,
-        comments,
-      ),
-      _ => false,
-    },
+    Stmt::Decl(Decl::Var(var_decl)) => is_side_effects_free_var_decl(
+      parser,
+      analyze_side_effects_free,
+      var_decl,
+      unresolved_ctxt,
+      comments,
+    ),
     _ => false,
   }
 }
@@ -1470,8 +1467,8 @@ fn is_side_effects_free_block_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   block_stmt: &BlockStmt,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   for stmt in &block_stmt.stmts {
     if !is_side_effects_free_stmt(
@@ -1493,8 +1490,8 @@ fn is_side_effects_free_function_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   function: &Function,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   if !function
     .params
@@ -1520,14 +1517,14 @@ fn is_side_effects_free_arrow_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   arrow_expr: &ArrowExpr,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
 ) -> bool {
   if !arrow_expr.params.iter().all(is_side_effects_free_param) {
     return false;
   }
 
-  match &arrow_expr.body {
+  match &*arrow_expr.body {
     BlockStmtOrExpr::BlockStmt(block_stmt) => is_side_effects_free_block_stmt(
       parser,
       analyze_side_effects_free,
@@ -1550,8 +1547,8 @@ pub fn is_pure_function<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   function: &'a Function,
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   for param in &function.params {
@@ -1574,16 +1571,16 @@ pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &'a Expr,
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   pub fn _is_pure_expression<'a>(
     parser: &mut JavascriptParser,
     analyze_side_effects_free: bool,
     expr: &'a Expr,
-    unresolved_ctxt: ScopeId,
-    comments: &'a Comments<'a>,
+    unresolved_ctxt: SyntaxContext,
+    comments: Option<&'a dyn Comments>,
     mut callees: Option<&mut Vec<(Atom, Span)>>,
   ) -> bool {
     if let Some(res) = parser.plugin_drive.clone().is_pure(parser, expr) {
@@ -1623,7 +1620,12 @@ pub fn is_pure_expression<'a>(
         true
       }
       _ => {
-        if !expr.may_have_side_effects(expr_ctx(parser, true)) {
+        if !expr.may_have_side_effects(ExprCtx {
+          unresolved_ctxt,
+          is_unresolved_ref_safe: true,
+          in_strict: false,
+          remaining_depth: 4,
+        }) {
           return true;
         }
         // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
@@ -1647,8 +1649,8 @@ pub fn is_pure_class_member<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   member: &'a ClassMember,
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   let is_key_pure = match member.class_key() {
@@ -1702,6 +1704,7 @@ pub fn is_pure_class_member<'a>(
         true
       }
     }
+    ClassMember::TsIndexSignature(_) => unreachable!(),
     ClassMember::Empty(_) => true,
     ClassMember::StaticBlock(_) => false,
     ClassMember::AutoAccessor(_) => false,
@@ -1717,8 +1720,8 @@ pub fn is_pure_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Decl,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   match stmt {
@@ -1740,6 +1743,11 @@ pub fn is_pure_decl(
       callees,
     ),
     Decl::Using(_) => false,
+    Decl::TsInterface(_) => unreachable!(),
+    Decl::TsTypeAlias(_) => unreachable!(),
+
+    Decl::TsEnum(_) => unreachable!(),
+    Decl::TsModule(_) => unreachable!(),
   }
 }
 
@@ -1748,8 +1756,8 @@ pub fn is_pure_class(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   class: &Class,
-  unresolved_ctxt: ScopeId,
-  comments: &Comments<'_>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   if let Some(ref super_class) = class.super_class
@@ -1788,7 +1796,7 @@ pub fn is_pure_class(
       ClassMember::PrivateMethod(method) => is_pure_expression(
         parser,
         analyze_side_effects_free,
-        &Expr::PrivateName(method.key.clone_in(parser.ast.allocator)),
+        &Expr::PrivateName(method.key.clone()),
         unresolved_ctxt,
         comments,
         callees.as_deref_mut(),
@@ -1813,7 +1821,7 @@ pub fn is_pure_class(
         is_pure_expression(
           parser,
           analyze_side_effects_free,
-          &Expr::PrivateName(prop.key.clone_in(parser.ast.allocator)),
+          &Expr::PrivateName(prop.key.clone()),
           unresolved_ctxt,
           comments,
           callees.as_deref_mut(),
@@ -1831,6 +1839,7 @@ pub fn is_pure_class(
             true
           })
       }
+      ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => true,
       ClassMember::StaticBlock(_) => false, // TODO: support is pure analyze for statements
       ClassMember::AutoAccessor(_) => false,
@@ -1847,8 +1856,8 @@ fn is_pure_var_decl<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   var: &'a VarDecl,
-  unresolved_ctxt: ScopeId,
-  comments: &'a Comments<'a>,
+  unresolved_ctxt: SyntaxContext,
+  comments: Option<&'a dyn Comments>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   for decl in &var.decls {
