@@ -9,7 +9,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
@@ -176,8 +176,7 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     let module_identifier = module.identifier();
     let is_circular_module = compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&module_identifier));
+      .is_circular_module(&module_identifier);
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {

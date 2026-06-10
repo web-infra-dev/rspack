@@ -345,6 +345,7 @@ export type {
 } from './builtin-loader/swc/index';
 ///// Rspack Postfixed Internal Plugins /////
 export type {
+  CircularCheckRspackPluginOptions,
   CircularDependencyRspackPluginOptions,
   CopyRspackPluginOptions,
   CssExtractRspackLoaderOptions,
@@ -359,6 +360,7 @@ export type {
   SwcJsMinimizerRspackPluginOptions,
 } from './builtin-plugin';
 export {
+  CircularCheckRspackPlugin,
   CircularDependencyRspackPlugin,
   ContextReplacementPlugin,
   CopyRspackPlugin,

@@ -240,11 +240,21 @@ impl<'a> LocalIdentOptions<'a> {
       .and_then(|s| s.to_str())
       .unwrap_or_default();
     let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
+    let hash = if self
+      .local_ident_name
+      .template
+      .template()
+      .is_some_and(|template| template.contains("[local]"))
+    {
+      self.module_hash(module_hash_options)
+    } else {
+      local_ident_hash.as_str()
+    };
     let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(chunk_name)
-        .hash(self.module_hash(module_hash_options))
+        .hash(hash)
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,

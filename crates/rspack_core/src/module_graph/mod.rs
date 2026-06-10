@@ -112,7 +112,7 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
@@ -133,9 +133,9 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
+  dependency_id_to_parents: rollback::DenseDependencyIdMap<DependencyParents>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+  connection_to_condition: rollback::DenseDependencyIdMap<DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -149,7 +149,7 @@ pub(crate) struct ModuleGraphData {
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: rollback::DenseDependencyIdMap<DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
@@ -610,7 +610,7 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
     self.inner.dependencies.iter()
   }
 

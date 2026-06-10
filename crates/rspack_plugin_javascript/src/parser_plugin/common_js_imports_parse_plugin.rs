@@ -4,13 +4,10 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::SpanExt;
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-  ecma::ast::{
-    AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, Ident, MemberExpr, NewExpr, UnaryExpr,
-    VarDeclarator,
-  },
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{
+  AssignExpr, CallExpr, Callee, Expr, ExprOrSpread, GetSpan, Ident, MemberExpr, NewExpr, Span,
+  UnaryExpr, VarDeclarator,
 };
 
 use super::JavascriptParserPlugin;
@@ -102,7 +99,7 @@ fn tag_commonjs_require_referenced(
   require_call: &CallExpr,
   variable_name: Atom,
 ) {
-  let require_span = require_call.span();
+  let require_span = require_call.span;
   parser
     .common_js_require_references
     .add_require(require_span);
@@ -126,7 +123,7 @@ fn create_commonjs_require_context_dependency(
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
-  let span = call_expr.span();
+  let span = call_expr.span;
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -140,7 +137,7 @@ fn create_commonjs_require_context_dependency(
     referenced_specifiers,
     ..Default::default()
   };
-  let range = call_expr.span().into();
+  let range = call_expr.span.into();
   let loc = parser
     .to_dependency_location(range)
     .expect("Should get correct loc");
@@ -214,19 +211,19 @@ pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExp
 }
 
 enum CallOrNewExpr<'a> {
-  Call(&'a CallExpr),
-  New(&'a NewExpr),
+  Call(&'a CallExpr<'a>),
+  New(&'a NewExpr<'a>),
 }
 
-impl CallOrNewExpr<'_> {
-  pub fn callee(&self) -> Option<&Expr> {
+impl<'a> CallOrNewExpr<'a> {
+  pub fn callee(&self) -> Option<&'a Expr<'a>> {
     match self {
-      CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr().map(|e| &**e),
+      CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr(),
       CallOrNewExpr::New(new_expr) => Some(&new_expr.callee),
     }
   }
 
-  pub fn args(&self) -> Option<&[ExprOrSpread]> {
+  pub fn args(&self) -> Option<&'a [ExprOrSpread<'a>]> {
     match self {
       CallOrNewExpr::Call(call_expr) => Some(&call_expr.args),
       CallOrNewExpr::New(new_expr) => new_expr.args.as_deref(),
@@ -267,11 +264,14 @@ impl CommonJsImportsParserPlugin {
       return false;
     };
 
-    let Expr::Ident(ident) = member_expr.obj.as_ref() else {
+    let Expr::Ident(ident) = &member_expr.obj else {
       return false;
     };
 
-    if parser.get_variable_info(&ident.sym).is_some() {
+    if parser
+      .get_variable_info(&Atom::from(ident.sym.as_str()))
+      .is_some()
+    {
       return false;
     }
 
@@ -372,7 +372,7 @@ impl CommonJsImportsParserPlugin {
       CommonJsFullRequireDependency::new(
         param.string().to_owned(),
         members.to_vec(),
-        member_expr.span().into(),
+        member_expr.span.into(),
         loc,
         is_call,
         parser
@@ -381,7 +381,7 @@ impl CommonJsImportsParserPlugin {
           .unwrap_or(false)
           && !members.is_empty(),
         parser.in_try,
-        !parser.is_asi_position(member_expr.span_lo()),
+        !parser.is_asi_position(member_expr.span.start),
       )
     })
   }
@@ -435,7 +435,7 @@ impl CommonJsImportsParserPlugin {
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let Some(argument_expr) = &call_expr.args.first().map(|expr| expr.expr.as_ref()) else {
+    let Some(argument_expr) = call_expr.args.first().map(|expr| &expr.expr) else {
       unreachable!("ensure require includes arguments")
     };
     let referenced_specifiers = parser
@@ -552,7 +552,7 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
-    let span = ident.span();
+    let span = ident.span;
     let start = span.real_lo();
     let end = span.real_hi();
     let mut dep = CommonJsRequireContextDependency::new(
@@ -569,7 +569,7 @@ impl CommonJsImportsParserPlugin {
       parser
         .to_dependency_location(DependencyRange::from(span))
         .expect("Should get correct loc"),
-      ident.span().into(),
+      span.into(),
       None,
       parser.in_try,
     );
@@ -586,7 +586,7 @@ impl CommonJsImportsParserPlugin {
         "require function is used in a way in which dependencies cannot be statically extracted"
           .to_string(),
         parser.source.to_string(),
-        ident.span().into(),
+        span.into(),
       );
       error.severity = Severity::Warning;
       *dep.critical_mut() = Some(Diagnostic::from(error));
@@ -597,10 +597,10 @@ impl CommonJsImportsParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &Expr,
   ) -> Option<bool> {
     if let Some(call) = expr.as_call()
@@ -609,7 +609,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
+      && let Some(name_info) = parser.get_name_info_from_variable(&Atom::from(ident.sym.as_str()))
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -623,7 +623,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
@@ -633,15 +633,16 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       && let Some(binding) = declarator.name.as_ident()
       && is_require_call_expr(parser, call)
     {
-      parser.define_variable(binding.id.sym.clone());
-      tag_commonjs_require_referenced(parser, call, binding.id.sym.clone());
+      let name = Atom::from(binding.id.sym.as_str());
+      parser.define_variable(name.clone());
+      tag_commonjs_require_referenced(parser, call, name);
     }
     None
   }
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -650,10 +651,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
         .definitions_db
         .expect_get_tag_info(parser.current_tag_info?);
       let data = RequireTagData::downcast(tag_info.data.clone()?);
-      if let Some(keys) = parser
-        .destructuring_assignment_properties
-        .get(&ident.span())
-      {
+      if let Some(keys) = parser.destructuring_assignment_properties.get(&ident.span) {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
           refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
@@ -682,7 +680,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     _expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
@@ -706,7 +704,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -737,7 +735,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     Some(true)
   }
 
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(&self, _parser: &mut JavascriptParser<'p>, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
       Some(true)
     } else {
@@ -745,7 +743,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == expr_name::REQUIRE {
       if parser.javascript_options.require_alias.unwrap_or_default() {
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
@@ -765,10 +763,10 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     }
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    _parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == expr_name::REQUIRE
@@ -785,11 +783,11 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     match for_name {
       expr_name::REQUIRE => Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE.into(),
@@ -818,8 +816,8 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     // same as webpack/tagRequireExpression
@@ -828,7 +826,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
       || for_name == expr_name::REQUIRE_RESOLVE_WEAK
     {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        expr.span().into(),
+        expr.span.into(),
         "'function'".into(),
       )));
       Some(true)
@@ -839,7 +837,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -868,7 +866,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn new_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -881,7 +879,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn member_chain_of_call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     member_expr: &MemberExpr,
     callee_members: &[Atom],
     call_expr: &CallExpr,
@@ -901,7 +899,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn call_member_chain_of_call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     callee_members: &[Atom],
     inner_call_expr: &CallExpr,
@@ -924,7 +922,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
 
   fn assign(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     _expr: &AssignExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -939,7 +937,7 @@ impl JavascriptParserPlugin for CommonJsImportsParserPlugin {
     None
   }
 
-  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     for (locator, variable_name, mut references) in parser
       .common_js_require_references
       .take_all_require_references()

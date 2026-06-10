@@ -2,11 +2,19 @@
 description: 'Detects circular import dependencies between modules that will exist at runtime'
 ---
 
-import { ApiMeta } from '@components/ApiMeta.tsx';
+import { ApiMeta, Stability } from '@components/ApiMeta.tsx';
 
 # CircularDependencyRspackPlugin
 
-<ApiMeta specific={['Rspack']} addedVersion="1.3.0" />
+<ApiMeta
+  specific={['Rspack']}
+  addedVersion="1.3.0"
+  stability={Stability.Deprecated}
+/>
+
+:::warning Deprecated
+`CircularDependencyRspackPlugin` is deprecated. Use [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin), which has better performance and a more reasonable API design.
+:::
 
 Detects circular import dependencies between modules that will exist at runtime. Import cycles are often _not_ indicative of a bug when used by functions called at runtime, but may cause bugs or errors when the imports are used during initialization. This plugin does not distinguish between the two, but can be used to help identify and resolve cycles after a bug has been encountered.
 

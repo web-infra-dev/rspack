@@ -1,6 +1,8 @@
 use crate::Mapping;
 
 const B64_CHARS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+// Covers common short mappings while keeping empty/no-map encoders cheap.
+const INITIAL_MAPPINGS_CAPACITY: usize = 512;
 
 #[inline(always)]
 pub fn encode_vlq(out: &mut Vec<u8>, a: u32, b: u32) {
@@ -89,7 +91,7 @@ impl FullMappingsEncoder {
       active_mapping: false,
       active_name: false,
       initial: true,
-      mappings: Default::default(),
+      mappings: Vec::with_capacity(INITIAL_MAPPINGS_CAPACITY),
     }
   }
 }
@@ -204,7 +206,7 @@ impl LinesOnlyMappingsEncoder {
       current_line: 1,
       current_source_index: 0,
       current_original_line: 1,
-      mappings: Default::default(),
+      mappings: Vec::with_capacity(INITIAL_MAPPINGS_CAPACITY),
     }
   }
 }

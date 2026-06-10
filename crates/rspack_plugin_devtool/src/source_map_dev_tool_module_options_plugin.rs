@@ -8,20 +8,18 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::source_map::SourceMapKind;
 
 pub struct SourceMapDevToolModuleOptionsPluginOptions {
-  pub module: bool,
-  pub cheap: bool,
+  pub source_map_kind: SourceMapKind,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct SourceMapDevToolModuleOptionsPlugin {
-  module: bool,
-  cheap: bool,
+  source_map_kind: SourceMapKind,
 }
 
 impl SourceMapDevToolModuleOptionsPlugin {
   pub fn new(options: SourceMapDevToolModuleOptionsPluginOptions) -> Self {
-    Self::new_inner(options.module, options.cheap)
+    Self::new_inner(options.source_map_kind)
   }
 }
 
@@ -32,15 +30,7 @@ async fn build_module(
   _compilation_id: CompilationId,
   module: &mut BoxModule,
 ) -> Result<()> {
-  if self.module {
-    module.set_source_map_kind(SourceMapKind::SourceMap);
-  } else {
-    module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-  }
-  if self.cheap {
-    let current_kind = *module.get_source_map_kind();
-    module.set_source_map_kind(current_kind | SourceMapKind::Cheap)
-  }
+  module.set_source_map_kind(self.source_map_kind);
   Ok(())
 }
 
@@ -55,15 +45,7 @@ async fn runtime_module(
   let Some(runtime_module) = runtime_modules.get_mut(module_identifier) else {
     return Ok(());
   };
-  if self.module {
-    runtime_module.set_source_map_kind(SourceMapKind::SourceMap);
-  } else {
-    runtime_module.set_source_map_kind(SourceMapKind::SimpleSourceMap);
-  }
-  if self.cheap {
-    let current_kind = *runtime_module.get_source_map_kind();
-    runtime_module.set_source_map_kind(current_kind | SourceMapKind::Cheap)
-  }
+  runtime_module.set_source_map_kind(self.source_map_kind);
   Ok(())
 }
 

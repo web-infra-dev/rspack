@@ -75,7 +75,7 @@ hooks.createLink.tap('MyPlugin', (code, chunk) => {
 
 `SyncWaterfallHook<[string, Chunk]>`
 
-可修改创建[预取](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="prefetch">` 标签时所执行的代码。
+可修改创建[预取](/guide/optimization/code-splitting#prefetchingpreloading-模块)的 `<link rel="prefetch">` 标签时所执行的代码。
 
 如以下代码，可给用于预取的 `<link>` 标签添加 `crossorigin` 属性：
 
@@ -98,7 +98,7 @@ hooks.linkPrefetch.tap('MyPlugin', (code, chunk) => {
 
 `SyncWaterfallHook<[string, Chunk]>`
 
-可修改创建[预加载](/guide/optimization/code-splitting#prefetchingpreloading-modules)的 `<link rel="preload">` 标签时所执行的代码。
+可修改创建[预加载](/guide/optimization/code-splitting#prefetchingpreloading-模块)的 `<link rel="preload">` 标签时所执行的代码。
 
 如以下代码，可给用于预加载的 `<link>` 标签添加 `crossorigin` 属性：
 

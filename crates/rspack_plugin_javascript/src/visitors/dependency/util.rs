@@ -3,10 +3,8 @@ use std::sync::LazyLock;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
-use swc_core::{
-  atoms::Atom,
-  ecma::ast::{Expr, Lit, MemberExpr, OptChainBase},
-};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{Expr, Lit, MemberExpr, OptChainBase};
 
 use super::JavascriptParser;
 
@@ -137,20 +135,23 @@ pub fn get_non_optional_part<'a>(members: &'a [Atom], members_optionals: &[bool]
   }
 }
 
-pub fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) -> &Expr {
+pub fn get_non_optional_member_chain_from_expr<'a>(
+  mut expr: &'a Expr<'a>,
+  mut count: i32,
+) -> &'a Expr<'a> {
   while count != 0 {
     if let Expr::Member(member) = expr {
       expr = &member.obj;
       count -= 1;
     } else if let Expr::OptChain(opt_chain) = expr {
-      expr = match &*opt_chain.base {
-        OptChainBase::Member(member) => &*member.obj,
+      expr = match &opt_chain.base {
+        OptChainBase::Member(member) => &member.obj,
         OptChainBase::Call(call) if call.callee.as_member().is_some() => {
           let member = call
             .callee
             .as_member()
             .expect("`call.callee` is `MemberExpr` in `if_guard`");
-          &*member.obj
+          &member.obj
         }
         _ => unreachable!(),
       };
@@ -162,7 +163,10 @@ pub fn get_non_optional_member_chain_from_expr(mut expr: &Expr, mut count: i32) 
   expr
 }
 
-pub fn get_non_optional_member_chain_from_member(member: &MemberExpr, mut count: i32) -> &Expr {
+pub fn get_non_optional_member_chain_from_member<'a>(
+  member: &'a MemberExpr<'a>,
+  mut count: i32,
+) -> &'a Expr<'a> {
   count -= 1;
   get_non_optional_member_chain_from_expr(&member.obj, count)
 }

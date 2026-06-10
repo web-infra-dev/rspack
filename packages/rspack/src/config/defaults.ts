@@ -126,6 +126,7 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     uniqueName: options.output.uniqueName,
     deferImport: options.experiments.deferImport,
+    sourceImport: options.experiments.sourceImport,
     outputModule: options.output.module,
     hashFunction: options.output.hashFunction!,
     hashSalt: options.output.hashSalt,
@@ -223,6 +224,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
+  D(experiments, 'sourceImport', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
@@ -267,9 +269,11 @@ const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
   {
     deferImport,
+    sourceImport,
     outputModule,
   }: {
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
@@ -294,6 +298,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
+  D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
 };
 
@@ -376,6 +381,7 @@ const applyModuleDefaults = (
     mode,
     uniqueName,
     deferImport,
+    sourceImport,
     outputModule,
     hashFunction,
     hashSalt,
@@ -385,6 +391,7 @@ const applyModuleDefaults = (
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
     hashFunction: HashFunction;
     hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
@@ -404,6 +411,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.javascript);
   applyJavascriptParserOptionsDefaults(module.parser.javascript, {
     deferImport,
+    sourceImport,
     outputModule,
   });
 

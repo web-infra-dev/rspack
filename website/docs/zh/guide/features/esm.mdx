@@ -78,9 +78,9 @@ export default {
    6. 影响 [output.iife](/config/output#outputiife) 默认值：当 `output.module` 为 `true` 时，`output.iife` 默认为 `false`
    7. 如果同时配置了 [`output.library`](/config/output#outputlibrary) 且没有显式指定 [`output.library.type`](/config/output#outputlibrarytype)，当 `output.module` 为 `true` 时，默认值为 `'modern-module'` 而不是 `'var'`
    8. 影响 [output.scriptType](/config/output#outputscripttype) 默认值：当 `output.module` 为 `true` 时，默认为 `'module'`
-   9. 影响 [output.environment.dynamicImport](/config/output#outputenvironmentdynamicimport) 默认值：当 `output.module` 为 `true` 时会被启用
-   10. 影响 [output.environment.dynamicImportInWorker](/config/output#outputenvironmentdynamicimportinworker) 默认值：当 `output.module` 为 `true` 时会被启用
-   11. 影响 [output.environment.module](/config/output#outputenvironmentmodule) 默认值：当 `output.module` 为 `true` 时会被启用
+   9. 影响 [output.environment.dynamicImport](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
+   10. 影响 [output.environment.dynamicImportInWorker](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
+   11. 影响 [output.environment.module](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
    12. 影响 Node.js 相关配置的默认值：在 Node.js 环境下，当 `output.module` 为 `true` 时，`__filename` 和 `__dirname` 默认为 `'node-module'`
 2. [output.chunkFormat](/config/output#outputchunkformat): 在构建应用的 ESM 产物时，通常设置为 `'module'`，表示使用 ESM 格式的 chunk。
 3. [output.library.type](/config/output#outputlibrarytype): 在构建库的 ESM 产物时，通常设置为 `'modern-module'`，表示使用 Rspack 专门的 ESM library 渲染路径。

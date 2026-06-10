@@ -558,7 +558,7 @@ async fn optimize_dependencies(
       .filter(|(_, dep)| dep.dependency_type() == &DependencyType::RstestMockModuleId)
       .filter_map(|(dep_id, _)| {
         module_graph
-          .module_identifier_by_dependency_id(dep_id)
+          .module_identifier_by_dependency_id(&dep_id)
           .copied()
       })
       .collect()

@@ -49,7 +49,7 @@ Since the release of 0.1, Rspack has introduced numerous important features and 
 
 ### Better performance
 
-As a Rust-based bundler, performance has always been a core focus for Rspack. Since the release of Rspack 0.1, we have made numerous performance improvements, optimized its performance for different scenarios, and added key features such as [lazy compilation](/config/experiments#experimentslazycompilation) to ensure better performance in large projects.
+As a Rust-based bundler, performance has always been a core focus for Rspack. Since the release of Rspack 0.1, we have made numerous performance improvements, optimized its performance for different scenarios, and added key features such as [lazy compilation](/config/lazy-compilation) to ensure better performance in large projects.
 
 Here is a comparison of build performance between Rspack 0.1 and Rspack 1.0 from the [benchmark](https://github.com/rstackjs/build-tools-performance). Rspack has significantly improved build performance while also adding many new features:
 
@@ -160,7 +160,7 @@ Currently, higher-level tools can use the JS API to integrate Rspack, which prov
 
 ### React Server Components support
 
-At ByteDance, we have experimentally supported RSC (React Server Components) based on Rspack and validated it in a large web application. In the future, Rspack will provide first-class support for RSC, with more core features to make RSC easier to implement. For example, Rspack now supports the [layer](/config/experiments#experimentslayers) feature, which allows to build for multiple environments in a single run.
+At ByteDance, we have experimentally supported RSC (React Server Components) based on Rspack and validated it in a large web application. In the future, Rspack will provide first-class support for RSC, with more core features to make RSC easier to implement. For example, Rspack now supports the [layer](/guide/features/layer) feature, which allows to build for multiple environments in a single run.
 
 ### Improved ESM output
 
@@ -198,13 +198,13 @@ Finally, we would like to thank all the developers who have contributed to the R
 
 ### What does the 1.0 release mean?
 
-The 1.0 release means that Rspack has implemented the core features of webpack and achieved API stability. Over the next 12 to 18 months, we will ensure the stability of the Rspack 1.x API so that developers can confidently build frameworks and tools on top of it. During the 1.x iteration, we may still find some designs require polishing in Rspack. We will address these through progressive upgrades using [future flags](/config/experiments#experimentsrspackfuture).
+The 1.0 release means that Rspack has implemented the core features of webpack and achieved API stability. Over the next 12 to 18 months, we will ensure the stability of the Rspack 1.x API so that developers can confidently build frameworks and tools on top of it. During the 1.x iteration, we may still find some designs require polishing in Rspack. We will address these through progressive upgrades using [future flags](https://v1.rspack.rs/config/experiments#experimentsrspackfuture).
 
 ### When will Rsbuild 1.0 be released?
 
 We are currently preparing for the release of Rsbuild 1.0, which is scheduled for early September.
 
-We have also released the Rsbuild 1.0 RC version, and there will be no further breaking changes introduced for Rsbuild. Please refer to [Migrating from Rsbuild 0.x](https://rsbuild.rs/guide/migration/rsbuild-0-x) to upgrade to Rsbuild 1.0 RC.
+We have also released the Rsbuild 1.0 RC version, and there will be no further breaking changes introduced for Rsbuild. Please refer to [Migrating from Rsbuild 0.x](https://rsbuild.rs/guide/upgrade/v0-to-v1) to upgrade to Rsbuild 1.0 RC.
 
 ### Does Rspack follow semantic versioning?
 
