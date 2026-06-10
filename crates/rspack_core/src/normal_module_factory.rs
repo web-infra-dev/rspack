@@ -433,7 +433,7 @@ mod tests {
   use super::*;
   use crate::{
     AssetGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-    CssGeneratorOptions, CssParserOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
+    CssGeneratorOptions, CssParserOptions, JavascriptParserOptions,
   };
 
   #[test]
@@ -613,28 +613,6 @@ mod tests {
     assert_eq!(parser_options.named_exports, Some(true));
     assert_eq!(generator_options.exports_only, Some(false));
     assert_eq!(generator_options.es_module, Some(true));
-  }
-
-  #[test]
-  fn merge_explicit_disabled_create_require_into_global_parser_options() {
-    let global = ParserOptions::Javascript(JavascriptParserOptions {
-      create_require: Some(JavascriptParserCreateRequire::Enabled(
-        "createRequire from module".to_string(),
-      )),
-      ..Default::default()
-    });
-    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
-      create_require: Some(JavascriptParserCreateRequire::Disabled),
-      ..Default::default()
-    });
-
-    let resolved = merge_parser_options_with_local(Some(&global), Some(&local))
-      .expect("merged parser options should exist");
-
-    let options = resolved
-      .get_javascript()
-      .expect("javascript parser options should be resolved");
-    assert!(!options.is_create_require_enabled());
   }
 
   #[test]

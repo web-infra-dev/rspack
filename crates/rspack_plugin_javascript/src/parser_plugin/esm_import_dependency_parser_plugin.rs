@@ -8,9 +8,7 @@ use swc_experimental_ecma_ast::{
 };
 
 use super::{
-  InnerGraphParserPlugin, JavascriptParserPlugin,
-  common_js_imports_parse_plugin::{is_create_require_import, tag_create_require},
-  import_phase::get_import_phase,
+  InnerGraphParserPlugin, JavascriptParserPlugin, import_phase::get_import_phase,
   inner_graph::state::InnerGraphUsageOperation,
 };
 use crate::{
@@ -93,7 +91,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     id: Option<&Atom>,
     name: &Atom,
   ) -> Option<bool> {
-    let is_create_require = is_create_require_import(parser, source, id);
     let phase = get_import_phase(parser, statement.phase, None, None);
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
@@ -108,9 +105,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
         attributes: statement.with.as_ref().map(|obj| get_attributes(obj)),
       }),
     );
-    if is_create_require {
-      tag_create_require(parser, name.clone());
-    }
     Some(true)
   }
 

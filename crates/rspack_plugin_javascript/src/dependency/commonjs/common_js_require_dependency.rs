@@ -3,15 +3,14 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
   FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  RuntimeSpec, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
-use super::create_resource_identifier_for_contextual_commonjs_dependency;
 use crate::dependency::{
   DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition,
 };
@@ -29,8 +28,6 @@ pub struct CommonJsRequireDependency {
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guards: Option<Box<DependencyBranchGuards>>,
-  context: Option<Context>,
-  resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
 }
 
@@ -52,38 +49,7 @@ impl CommonJsRequireDependency {
       loc,
       referenced_specifiers,
       branch_guards: None,
-      context: None,
-      resource_identifier: Default::default(),
       factorize_info: Default::default(),
-    }
-  }
-
-  pub fn new_contextual(
-    request: String,
-    range: DependencyRange,
-    range_expr: Option<DependencyRange>,
-    optional: bool,
-    context: Context,
-    loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
-  ) -> Self {
-    let resource_identifier = create_resource_identifier_for_contextual_commonjs_dependency(
-      "cjs require",
-      &context,
-      &request,
-    )
-    .into();
-    Self {
-      context: Some(context),
-      resource_identifier,
-      ..Self::new(
-        request,
-        range,
-        range_expr,
-        optional,
-        loc,
-        referenced_specifiers,
-      )
     }
   }
 
@@ -112,17 +78,6 @@ impl Dependency for CommonJsRequireDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::CjsRequire
-  }
-
-  fn get_context(&self) -> Option<&Context> {
-    self.context.as_ref()
-  }
-
-  fn resource_identifier(&self) -> Option<&str> {
-    self
-      .context
-      .as_ref()
-      .map(|_| self.resource_identifier.as_str())
   }
 
   fn range(&self) -> Option<DependencyRange> {
