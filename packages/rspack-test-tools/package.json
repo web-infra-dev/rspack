@@ -1,6 +1,6 @@
 {
   "name": "@rspack/test-tools",
-  "version": "2.0.7",
+  "version": "2.0.8",
   "description": "Test tools for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
