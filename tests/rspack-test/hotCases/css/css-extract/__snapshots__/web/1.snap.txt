@@ -34,7 +34,7 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./entry.js"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
@@ -47,7 +47,7 @@ module.hot.accept();
 
 },
 "./index.module.css"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });

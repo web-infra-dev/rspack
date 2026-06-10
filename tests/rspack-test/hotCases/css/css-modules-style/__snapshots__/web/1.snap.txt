@@ -44,7 +44,7 @@ if (module.hot.data && module.hot.data.exports && module.hot.data.exports != str
   module.hot.accept();
 }
 module.hot.dispose(function(data) { data.exports = stringified_exports; });
-__webpack_require__.r(module.exports = exports);
+__webpack_require__.N(module.exports = exports);
 
 
 },

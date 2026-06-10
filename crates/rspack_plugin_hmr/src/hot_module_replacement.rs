@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  impl_runtime_module,
+  impl_runtime_module, runtime_mode::RuntimeMode,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::test::is_hot_test;
@@ -38,6 +38,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
       self.id.as_str(),
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),
+        "_is_rspack_runtime_mode": context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack,
       })),
     )?;
 

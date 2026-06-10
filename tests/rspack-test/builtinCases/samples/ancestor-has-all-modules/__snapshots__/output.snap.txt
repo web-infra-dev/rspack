@@ -50,7 +50,7 @@ __webpack_require__.e(/* import() */ "shared_js").then(__webpack_require__.bind(
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["shared_js"], {
 "./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _foo__rspack_import_0 = __webpack_require__("./foo.js");
 /* import */ var _foo__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_foo__rspack_import_0);
 // should not contain foo as ancestor already has

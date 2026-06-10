@@ -12,7 +12,9 @@ createWorker;
 
 it("should generate correct new Worker statement", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
-	const method = "__webpack_require__.tu";
+	const method = content.includes(["var ", "__rspack_context"].join(""))
+		? "__rspack_context.tu"
+		: "__webpack_require__.tu";
 	expect(content).toContain(`new Worker(${method}(new URL(`)
 });
 
@@ -26,7 +28,10 @@ createWorkerWithChunkName
 it("should generate correct new Worker statement with magic comments", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	const chunkName = "someChunkName";
-	expect(content).toContain(`new Worker(/* webpackChunkName: "${chunkName}" */__webpack_require__.tu(new URL(`)
+	const method = content.includes(["var ", "__rspack_context"].join(""))
+		? "__rspack_context.tu"
+		: "__webpack_require__.tu";
+	expect(content).toContain(`new Worker(/* webpackChunkName: "${chunkName}" */${method}(new URL(`)
 	expect(fs.existsSync(path.join(__dirname, `${chunkName}.js`))).toBeTruthy();
 });
 
@@ -40,6 +45,9 @@ createWorkerWithChunkNameInnner
 it("should generate correct new Worker statement with magic comments", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	const chunkName = "someChunkName2";
-	expect(content).toContain(`new Worker(__webpack_require__.tu(new URL(/* webpackChunkName: "${chunkName}" */`)
+	const method = content.includes(["var ", "__rspack_context"].join(""))
+		? "__rspack_context.tu"
+		: "__webpack_require__.tu";
+	expect(content).toContain(`new Worker(${method}(new URL(/* webpackChunkName: "${chunkName}" */`)
 	expect(fs.existsSync(path.join(__dirname, `${chunkName}.js`))).toBeTruthy();
 });

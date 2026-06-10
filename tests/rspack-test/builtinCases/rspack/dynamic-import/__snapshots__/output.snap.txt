@@ -2,7 +2,7 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["child_a_js"], {
 "./child/a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   a: () => (a)
 });
@@ -18,7 +18,7 @@ const a = "a";
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["child_b_js"], {
 "./child/b.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   b: () => (b)
 });

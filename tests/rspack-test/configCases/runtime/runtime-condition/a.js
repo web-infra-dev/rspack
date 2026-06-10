@@ -17,7 +17,10 @@ it("should include runtime condition check code", () => {
 		),
 		"utf-8"
 	);
-	expect(source).toContain(`"a-runtime" == __webpack_require__.j`)
-	expect(source).toContain(`"b-runtime" == __webpack_require__.j`);
-	expect(source).toContain(`/^[ab]x\\-name$/.test(__webpack_require__.j)`);
+	const runtimeId = typeof __rspack_context !== "undefined"
+		? "__rspack_context.j"
+		: "__webpack_require__.j";
+	expect(source).toContain(`"a-runtime" == ${runtimeId}`)
+	expect(source).toContain(`"b-runtime" == ${runtimeId}`);
+	expect(source).toContain(`/^[ab]x\\-name$/.test(${runtimeId})`);
 })

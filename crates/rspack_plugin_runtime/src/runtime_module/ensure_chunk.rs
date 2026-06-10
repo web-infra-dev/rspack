@@ -75,10 +75,10 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    let mut requirements = RuntimeGlobals::ENSURE_CHUNK;
     if self.has_async_chunks {
-      RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-    } else {
-      RuntimeGlobals::default()
+      requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
+    requirements
   }
 }

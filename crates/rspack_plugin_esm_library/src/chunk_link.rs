@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
-  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkCodeTemplate, ChunkGraph, ChunkUkey, Compilation, ImportSpec,
+  ModuleGraph, ModuleIdentifier, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -163,7 +163,7 @@ impl ExternalInterop {
   pub fn render(
     &self,
     compilation: &Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &ChunkCodeTemplate,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();

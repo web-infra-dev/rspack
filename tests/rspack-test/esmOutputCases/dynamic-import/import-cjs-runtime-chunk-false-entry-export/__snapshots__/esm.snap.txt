@@ -80,7 +80,7 @@ __webpack_require__.t = function(value, mode) {
 		if((mode & 16) && typeof value.then === 'function') return value;
 	}
 	var ns = Object.create(null);
-  __webpack_require__.r(ns);
+  __webpack_require__.N(ns);
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
@@ -90,6 +90,7 @@ __webpack_require__.t = function(value, mode) {
 	__webpack_require__.d(ns, def);
 	return ns;
 };
+
 })();
 // webpack/runtime/define_property_getters
 (() => {
@@ -120,7 +121,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
@@ -136,14 +137,14 @@ __webpack_require__.r = (exports) => {
       var installedChunks = {"index_js": 0,"main": 0,};
       var installChunk = (data) => {
     var __rspack_esm_ids = data.__rspack_esm_ids;
-    var __webpack_modules__ = data.__webpack_modules__;
+    var moreModules = data.__webpack_modules__;
     var __rspack_esm_runtime = data.__rspack_esm_runtime;
     // add "modules" to the modules object,
     // then flag all "ids" as loaded and fire callback
     var moduleId, chunkId, i = 0;
-    for (moduleId in __webpack_modules__) {
-        if (__webpack_require__.o(__webpack_modules__, moduleId)) {
-            __webpack_require__.m[moduleId] = __webpack_modules__[moduleId];
+    for (moduleId in moreModules) {
+        if (__webpack_require__.o(moreModules, moduleId)) {
+            __webpack_require__.m[moduleId] = moreModules[moduleId];
         }
     }
     if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
@@ -155,7 +156,8 @@ __webpack_require__.r = (exports) => {
         installedChunks[__rspack_esm_ids[i]] = 0;
     }
     
-};// no chunk on demand loading
+};
+// no chunk on demand loading
 
         __webpack_require__.C = installChunk;
         // no on chunks loaded

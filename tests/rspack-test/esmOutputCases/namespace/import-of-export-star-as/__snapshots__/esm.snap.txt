@@ -2,14 +2,14 @@
 import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./bar.js
 var bar_namespaceObject = {};
-__webpack_require__.r(bar_namespaceObject);
+__webpack_require__.N(bar_namespaceObject);
 __webpack_require__.d(bar_namespaceObject, { 
   bar: () => (bar) });
 
 
 // NAMESPACE OBJECT: ./foo.js
 var foo_namespaceObject = {};
-__webpack_require__.r(foo_namespaceObject);
+__webpack_require__.N(foo_namespaceObject);
 __webpack_require__.d(foo_namespaceObject, { 
   barNs: () => (bar_namespaceObject) });
 
@@ -60,7 +60,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

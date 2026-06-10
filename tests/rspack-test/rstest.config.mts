@@ -123,6 +123,7 @@ export default defineConfig({
     name: 'base',
     exclude: [
       'NativeWatcher*.test.js',
+      'RuntimeMode*.test.js',
     ],
   }, {
     extends: sharedConfig,
@@ -143,6 +144,15 @@ export default defineConfig({
     retry: 0, // re-try in native watcher tests is useless
     maxConcurrency: 1,
     testTimeout: 30_000,
+  }, {
+    extends: sharedConfig,
+    name: 'runtimeMode',
+    include: process.env.WASM ? [] : [
+      'RuntimeMode*.test.js',
+    ],
+    exclude: [
+      'NativeWatcher*.test.js',
+    ],
   }],
   reporters,
   pool: {
@@ -150,4 +160,3 @@ export default defineConfig({
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
   },
 });
-

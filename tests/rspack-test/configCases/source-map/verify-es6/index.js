@@ -10,7 +10,8 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources).toEqual([
+	const out = fs.readFileSync(__filename, "utf-8");
+	expect(map.sources.filter(source => !source.startsWith("webpack:///webpack/runtime/"))).toEqual([
 		`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
 		"webpack:///./b-dir/c-dir/c.js",
 		"webpack:///./b-dir/b.js",
@@ -18,7 +19,6 @@ it("verify es6 (esmodule) bundle source map", async () => {
 		"webpack:///./index.js",
 	]);
 	expect(map.file).toEqual("bundle0.js");
-	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`

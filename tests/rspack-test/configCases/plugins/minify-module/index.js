@@ -6,7 +6,5 @@ it("should minify outputModule", async () => {
 		path.join(__dirname, "./module.mjs"),
 		"utf-8"
 	);
-	expect(
-		out.startsWith('import s from"https://test.rspack.rs/test.js"')
-	).toBe(true);
+	expect(out).toMatch(/^import \w+ from"https:\/\/test\.rspack\.rs\/test\.js"/);
 });

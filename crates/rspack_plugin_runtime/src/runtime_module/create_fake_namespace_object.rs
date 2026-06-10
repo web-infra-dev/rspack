@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  impl_runtime_module,
+  impl_runtime_module, runtime_mode::RuntimeMode,
 };
 
 use crate::extract_runtime_globals_from_ejs;
@@ -35,7 +35,18 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let params = Some(
+      if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+        serde_json::json!({
+          "REQUIRE": "(typeof this === \"function\" ? this : this.r)"
+        })
+      } else {
+        serde_json::json!({
+          "REQUIRE": "this"
+        })
+      },
+    );
+    let source = context.runtime_template.render(&self.id, params)?;
 
     Ok(source)
   }

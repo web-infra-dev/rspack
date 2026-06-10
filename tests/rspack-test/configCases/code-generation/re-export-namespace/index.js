@@ -69,9 +69,12 @@ it("should use/preserve accessor form for import object and namespaces", functio
 
 	expectSourceToContain(source, 'const bb = _module1__rspack_import_1.obj1.up.down?.left.right;');
 
-	expectSourceToContain(source, 'const ww = (__webpack_require__(602)/* .obj1.bing.bang */.obj1.bing.bang);');
-	expectSourceToContain(source, 'const xx = (__webpack_require__(602)/* .obj1.pip.pop */.obj1.pip.pop)();');
-	expectSourceToContain(source, 'const yy = (__webpack_require__(144)/* .m_2.m_1.obj1.tip.top */.m_2.m_1.obj1.tip.top)();');
+	const requireExpression = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+		? "__rspack_context.r"
+		: "__webpack_require__";
+	expectSourceToContain(source, `const ww = (${requireExpression}(602)/* .obj1.bing.bang */.obj1.bing.bang);`);
+	expectSourceToContain(source, `const xx = (${requireExpression}(602)/* .obj1.pip.pop */.obj1.pip.pop)();`);
+	expectSourceToContain(source, `const yy = (${requireExpression}(144)/* .m_2.m_1.obj1.tip.top */.m_2.m_1.obj1.tip.top)();`);
 
 	expectSourceToContain(source, '_data__rspack_import_0.nested.object3.unknownProperty.depth = "deep";');
 

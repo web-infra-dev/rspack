@@ -35,7 +35,7 @@
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./index.css"(module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 // extracted by css-extract-rspack-plugin
 
     if(true) {
@@ -62,7 +62,7 @@ __webpack_require__.r(__webpack_exports__);
 
 },
 "../../../../../../../../packages/rspack/dist/cssExtractHmr.js"(__unused_rspack___webpack_module__, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   cssReload: () => (cssReload),
   normalizeUrl: () => (normalizeUrl)

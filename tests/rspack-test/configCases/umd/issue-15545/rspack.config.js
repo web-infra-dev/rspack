@@ -9,7 +9,7 @@ module.exports = {
     library: { type: 'umd', name: 'MyLibrary' },
     chunkLoading: 'jsonp',
     chunkFormat: 'array-push',
-    globalObject: 'this',
+    globalObject: 'globalThis',
   },
   optimization: {
     minimize: false,

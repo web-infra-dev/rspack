@@ -22,7 +22,7 @@ console.log.bind((__webpack_require__(/*! fs */ "fs")/* .readFile */.readFile))
   !*** ./index.js ***!
   \******************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _cjs__rspack_import_0 = __webpack_require__(/*! ./cjs */ "./cjs.js");
 /* module decorator */ module = __webpack_require__.hmd(module);
 
@@ -139,7 +139,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

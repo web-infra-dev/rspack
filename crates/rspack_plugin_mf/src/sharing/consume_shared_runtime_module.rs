@@ -10,7 +10,10 @@ use rspack_util::json_stringify_str;
 use rustc_hash::FxHashMap;
 
 use super::consume_shared_plugin::ConsumeVersion;
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, runtime_require_scope_name},
+};
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
@@ -199,7 +202,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     } else {
       json_stringify(&initial_consumes)
     };
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = runtime_require_scope_name(runtime_template);
     let mut source = format!(
       r#"
 {require_name}.consumesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToConsumeDataMapping: {module_id_to_consume_data_mapping}, initialConsumes: {initial_consumes_json} }};

@@ -14,13 +14,20 @@ it("should run", function () { });
 
 it("should export module library", function () {
 	const __filename = url.fileURLToPath(import.meta.url);
+	const runtimeModeOutput = typeof __rspack_context !== "undefined";
 	const source = fs.readFileSync(
 		path.join(
 			__filename,
-			"../../../../js/config/library/esm-external/bundle0.mjs"
+			runtimeModeOutput
+				? "../../../../js/runtime-mode-config/library/esm-external/bundle0.mjs"
+				: "../../../../js/config/library/esm-external/bundle0.mjs"
 		),
 		"utf-8"
 	);
-	const createRequire = "__rspack_createRequire_require";
-	expect(source).toContain(`${createRequire}("node:fs")`);
+	if (runtimeModeOutput) {
+		expect(source).toContain('__rspack_context.r("node:fs")');
+	} else {
+		const createRequire = "__rspack_createRequire_require";
+		expect(source).toContain(`${createRequire}("node:fs")`);
+	}
 });

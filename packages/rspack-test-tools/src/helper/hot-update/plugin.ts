@@ -170,14 +170,23 @@ export class HotUpdatePlugin {
           if (
             module.constructor.name === 'DefinePropertyGettersRuntimeModule'
           ) {
+            const runtimeMode = compiler.options.experiments?.runtimeMode;
+            const definePropertyGetters =
+              runtimeMode === 'rspack'
+                ? 'definePropertyGetters'
+                : RuntimeGlobals.definePropertyGetters;
+            const hasOwnProperty =
+              runtimeMode === 'rspack'
+                ? 'hasOwnProperty'
+                : RuntimeGlobals.hasOwnProperty;
             // HMR tests re-execute modules and redefine the same export keys, so
             // the test-only runtime keeps export descriptors configurable (`configurable: true`).
             module.source.source = Buffer.from(
               `
-${RuntimeGlobals.definePropertyGetters} = function (exports, getters, values) {
+${definePropertyGetters} = function (exports, getters, values) {
   var define = function (defs, kind) {
     for(var key in defs) {
-      if(${RuntimeGlobals.hasOwnProperty}(defs, key) && !${RuntimeGlobals.hasOwnProperty}(exports, key)) {
+      if(${hasOwnProperty}(defs, key) && !${hasOwnProperty}(exports, key)) {
         Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
       }
     }

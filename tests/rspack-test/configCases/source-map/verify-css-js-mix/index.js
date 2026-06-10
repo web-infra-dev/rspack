@@ -11,13 +11,18 @@ try {
 it("verify importing css js source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources.sort()).toEqual([
+	const out = fs.readFileSync(__filename, "utf-8");
+	const usesRuntimeContext = out.includes(["var ", "__rspack_context"].join(""));
+	expect(map.sources.sort()).toEqual(usesRuntimeContext ? [
+		"webpack:///./a.js",
+		"webpack:///./index.js",
+		"webpack:///webpack/runtime/make_namespace_object",
+	] : [
 		"webpack:///./a.js",
 		"webpack:///./index.js",
 		"webpack:///webpack/runtime/make_namespace_object",
 	]);
 	expect(map.file).toEqual("bundle0.js");
-	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`

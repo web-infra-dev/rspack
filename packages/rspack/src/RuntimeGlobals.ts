@@ -474,6 +474,7 @@ export function renderModulePrefix(
 
 export enum RuntimeVariable {
   Require,
+  Context,
   Modules,
   ModuleCache,
   Module,
@@ -488,6 +489,8 @@ export function renderRuntimeVariables(
   switch (variable) {
     case RuntimeVariable.Require:
       return '__webpack_require__';
+    case RuntimeVariable.Context:
+      return '__rspack_context';
     case RuntimeVariable.Modules:
       return '__webpack_modules__';
     case RuntimeVariable.ModuleCache:
@@ -557,7 +560,7 @@ function renderRuntimeGlobals(
     case RuntimeGlobals.definePropertyGetters:
       return `${scope_name}.d`;
     case RuntimeGlobals.makeNamespaceObject:
-      return `${scope_name}.r`;
+      return `${scope_name}.N`;
     case RuntimeGlobals.createFakeNamespaceObject:
       return `${scope_name}.t`;
     case RuntimeGlobals.compatGetDefaultExport:

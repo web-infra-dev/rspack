@@ -2,7 +2,7 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["a_js-_62a90"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
 /* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 /* import */ var _i_1__rspack_import_1 = __webpack_require__("./i-1.js");
@@ -29,7 +29,7 @@ console.log("i-1");
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["a_js-_62a91"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
 /* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 /* import */ var _i_1__rspack_import_1 = __webpack_require__("./i-1.js");

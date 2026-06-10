@@ -6,12 +6,14 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
+
+use crate::utils::runtime_require_scope_name;
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -46,7 +48,7 @@ pub async fn federation_runtime_template(
 ) -> String {
   let federation_global = format!(
     "{}.federation",
-    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    runtime_require_scope_name(runtime_template)
   );
 
   let condition_map = compilation

@@ -18,7 +18,7 @@ __webpack_require__.add({
   !*** ./modules/a.js ***!
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 
 
 /* export default */ const __rspack_default_export = ("a");
@@ -195,7 +195,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
@@ -228,9 +228,7 @@ linkTag.rel = "stylesheet";
 
 linkTag.type = "text/css";
 
-if (__webpack_require__.nc) {
-  linkTag.nonce = __webpack_require__.nc;
-}
+
 linkTag.href = fullhref;
 
 if (fetchPriority) {

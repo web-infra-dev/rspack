@@ -23,6 +23,8 @@ module.exports = {
     }),
     {
       apply(compiler) {
+        const isRspackRuntimeMode =
+          compiler.options.experiments.runtimeMode === 'rspack';
         compiler.hooks.compilation.tap('TestPlugin::Assets', (compilation) => {
           const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
           hooks.assets.tap('TestPlugin::Assets', (data) => {
@@ -33,26 +35,45 @@ module.exports = {
               path: a.path,
             }));
             assetsInfo.sort((a, b) => (a.path > b.path ? 1 : -1));
-            expect(assetsInfo).toMatchInlineSnapshot(`
-              Array [
-                Object {
-                  path: a.js,
-                  size: 4298,
+            if (isRspackRuntimeMode) {
+              expect(assetsInfo).toEqual([
+                {
+                  path: 'a.js',
+                  size: 6104,
                 },
-                Object {
-                  path: b.js,
-                  size: 4298,
+                {
+                  path: 'b.js',
+                  size: 6104,
                 },
-                Object {
-                  path: c_js.js,
+                {
+                  path: 'c_js.js',
+                  size: 213,
+                },
+                {
+                  path: 'd_js.js',
+                  size: 213,
+                },
+              ]);
+            } else {
+              expect(assetsInfo).toEqual([
+                {
+                  path: 'a.js',
+                  size: 4299,
+                },
+                {
+                  path: 'b.js',
+                  size: 4299,
+                },
+                {
+                  path: 'c_js.js',
                   size: 219,
                 },
-                Object {
-                  path: d_js.js,
+                {
+                  path: 'd_js.js',
                   size: 219,
                 },
-              ]
-            `);
+              ]);
+            }
           });
         });
       },

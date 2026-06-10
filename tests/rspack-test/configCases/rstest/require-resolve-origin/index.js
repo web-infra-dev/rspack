@@ -28,7 +28,9 @@ it('rewrites require.resolve calls with source module origin', () => {
 	// `webpackIgnore` only affects require.resolve when commonjsMagicComments is
 	// enabled, and shadowed require must not be rewritten.
 	expect(content).toContain(
-		`${helper}((__webpack_require__(161)/* .name */.name), ${originLiteral})`,
+		globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+			? `${helper}((__rspack_context.r(161)/* .name */.name), ${originLiteral})`
+			: `${helper}((__webpack_require__(161)/* .name */.name), ${originLiteral})`,
 	);
 	expect(content).toContain(
 		`${helper}(/* webpackIgnore: true */ './ignored', ${originLiteral})`,

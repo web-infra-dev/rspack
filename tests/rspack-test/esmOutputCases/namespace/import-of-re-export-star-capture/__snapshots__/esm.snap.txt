@@ -2,7 +2,7 @@
 import { __webpack_require__ } from "./runtime.mjs";
 // NAMESPACE OBJECT: ./bar.js
 var bar_namespaceObject = {};
-__webpack_require__.r(bar_namespaceObject);
+__webpack_require__.N(bar_namespaceObject);
 __webpack_require__.d(bar_namespaceObject, { 
   foo: () => ((/* inlined export .foo */123)) });
 
@@ -50,7 +50,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

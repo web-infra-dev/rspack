@@ -11,7 +11,12 @@ it("should modify runtime module source in main", () => {
 
 it("should has css loading hmr runtime requirements", () => {
 	const name = "hmrC.css";
+	const isRspackRuntime = typeof __rspack_context !== "undefined";
 	expect(
 		fs.readFileSync(path.join(__dirname, "./bundle0.js"), "utf-8")
-	).toContain("__webpack_require__." + name + " = ");
+	).toContain(
+		isRspackRuntime
+			? "__rspack_hmrDownloadUpdateHandlers.css = "
+			: "__webpack_require__." + name + " = "
+	);
 });

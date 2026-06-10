@@ -33,7 +33,7 @@
 "use strict";
 self["rspackHotUpdatecss_test"]("main", {
 "./index.css"(module, __unused_rspack_exports, __webpack_require__) {
-__webpack_require__.r(module.exports = {});
+__webpack_require__.N(module.exports = {});
 module.hot.accept();
 
 

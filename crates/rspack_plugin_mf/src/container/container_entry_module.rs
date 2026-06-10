@@ -21,7 +21,10 @@ use rustc_hash::FxHashSet;
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, module_require_scope_name},
+};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -254,7 +257,8 @@ impl Module for ContainerEntryModule {
     } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = module_require_scope_name(compilation, runtime_template);
+    let runtime_argument = require_name.clone();
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       let module_graph = compilation.get_module_graph();
@@ -272,10 +276,7 @@ impl Module for ContainerEntryModule {
         }
       }
 
-      let federation_global = format!(
-        "{}.federation",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
+      let federation_global = format!("{}.federation", require_name);
 
       // Generate installInitialConsumes function using returning_function
       let install_initial_consumes_call = format!(
@@ -283,7 +284,7 @@ impl Module for ContainerEntryModule {
             installedModules: localInstalledModules, 
             initialConsumes: {require_name}.consumesLoadingData.initialConsumes, 
             moduleToHandlerMapping: {require_name}.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
-            webpackRequire: {require_name}, 
+            webpackRequire: {runtime_argument}, 
             asyncLoad: true 
           }})"#,
       );
@@ -345,14 +346,8 @@ impl Module for ContainerEntryModule {
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      let get_container = format!(
-        "{}.getContainer",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
-      let init_container = format!(
-        "{}.initContainer",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
+      let get_container = format!("{}.getContainer", require_name);
+      let init_container = format!("{}.initContainer", require_name);
 
       format!(
         r#"

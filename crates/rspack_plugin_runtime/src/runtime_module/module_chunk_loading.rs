@@ -13,7 +13,7 @@ use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
-    utils::{get_initial_chunk_ids, stringify_chunks},
+    utils::{get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks},
   },
 };
 
@@ -97,6 +97,7 @@ impl ModuleChunkLoadingRuntimeModule {
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
     *MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
       | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+      | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
     *MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
@@ -223,6 +224,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
 
     let is_neutral_platform = compilation.platform.is_neutral();
 
@@ -275,10 +277,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!(
-            "{}_module",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
-          );
+          let state_expression = render_hmr_runtime_state_expression(runtime_template, "module");
           format!("{state_expression} = {state_expression} || ")
         }
         false => String::new(),
@@ -339,6 +338,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
             "_cross_origin": cross_origin_loading.to_string(),
+            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 
@@ -372,6 +372,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
             "_cross_origin": cross_origin_loading.to_string(),
+            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 

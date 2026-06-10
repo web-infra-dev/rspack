@@ -36,7 +36,7 @@
 "use strict";
 self["rspackHotUpdate"]("file_js", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   Vue: () => (/* reexport safe */ vue__rspack_import_0.Vue)
 });
@@ -64,7 +64,7 @@ __webpack_require__.d(__webpack_exports__, {
 "use strict";
 self["rspackHotUpdate"]("main", {
 "./chunk.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   test: () => (test)
 });

@@ -59,7 +59,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 "use strict";
 self["rspackHotUpdate"]("style2_css", {
 "./style2.css"(module, __unused_rspack_exports, __webpack_require__) {
-__webpack_require__.r(module.exports = {});
+__webpack_require__.N(module.exports = {});
 module.hot.accept();
 
 

@@ -4,7 +4,7 @@ import * as __rspack_external_fs from "fs";
 
 // NAMESPACE OBJECT: ./externals.js
 var externals_namespaceObject = {};
-__webpack_require__.r(externals_namespaceObject);
+__webpack_require__.N(externals_namespaceObject);
 __webpack_require__.d(externals_namespaceObject, { 
   "default": () => (__rspack_external_fs["default"]),
   readFile: () => (__rspack_external_fs.readFile) });
@@ -71,7 +71,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

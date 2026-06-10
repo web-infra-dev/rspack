@@ -9,7 +9,7 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _style_module_css__rspack_import_0 = __webpack_require__("./style.module.css");
 
 
@@ -22,7 +22,7 @@ var exports = {
   "foo": "./_style.module_./_foo--/__8a645abe7d001191<8a6",
 };
 
-__webpack_require__.r(module.exports = exports);
+__webpack_require__.N(module.exports = exports);
 
 
 },

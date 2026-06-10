@@ -27,7 +27,7 @@ it("default export should be used", () => {
 
 },
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 __webpack_require__.d(__webpack_exports__, {
   mod: () => (mod)
 });

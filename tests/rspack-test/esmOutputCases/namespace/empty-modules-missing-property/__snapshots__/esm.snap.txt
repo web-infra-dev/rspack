@@ -14,12 +14,12 @@ __webpack_require__.add({
 });
 // NAMESPACE OBJECT: ./empty.js
 var empty_namespaceObject = {};
-__webpack_require__.r(empty_namespaceObject);
+__webpack_require__.N(empty_namespaceObject);
 
 
 // NAMESPACE OBJECT: ./empty.mjs
 var empty_namespaceObject_0 = {};
-__webpack_require__.r(empty_namespaceObject_0);
+__webpack_require__.N(empty_namespaceObject_0);
 
 
 // ./empty.js
@@ -77,7 +77,7 @@ __webpack_require__.add = function registerModules(modules) { Object.assign(__we
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

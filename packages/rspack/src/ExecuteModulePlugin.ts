@@ -21,8 +21,20 @@ export default class ExecuteModulePlugin {
           const code = source;
 
           try {
+            const isRspackRuntimeMode =
+              compiler.options.experiments?.runtimeMode === 'rspack';
+            const runtimeContext =
+              context[
+                renderRuntimeVariables(
+                  RuntimeVariable.Context,
+                  compiler.options,
+                )
+              ];
+            const runtimeContextArgument = isRspackRuntimeMode
+              ? `, ${renderRuntimeVariables(RuntimeVariable.Context, compiler.options)}`
+              : '';
             const fn = vm.runInThisContext(
-              `(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}) {\n${code}\n})`,
+              `(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}${runtimeContextArgument}) {\n${code}\n})`,
               {
                 filename: moduleObject.id,
               },
@@ -40,6 +52,7 @@ export default class ExecuteModulePlugin {
                   compiler.options,
                 )
               ],
+              runtimeContext,
             );
           } catch (e: any) {
             const err = e instanceof Error ? e : new Error(e);

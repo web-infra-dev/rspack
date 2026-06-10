@@ -2,7 +2,7 @@
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _b__rspack_import_0 = __webpack_require__("./b.js");
 /* import */ var _b__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_0);
 
@@ -17,7 +17,7 @@ console.log("b");
 },
 "./index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _a__rspack_import_0 = __webpack_require__("./a.js");
 
 console.log("hello, world");

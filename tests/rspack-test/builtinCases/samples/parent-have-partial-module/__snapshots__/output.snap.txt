@@ -24,7 +24,7 @@ console.log("exist");
 },
 "./parent-1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
 /* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 
@@ -56,7 +56,7 @@ console.log("exist");
 },
 "./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
 /* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 
@@ -73,7 +73,7 @@ console.log("shared");
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["shared_js-_38af1"], {
 "./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
 /* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 

@@ -53,11 +53,19 @@ module.exports = {
                 /import (.+) from "\.\/static-package\.json";/,
               );
               expect(esmImportSpecifier1[1]).not.toBe(esmImportSpecifier2[1]);
+              const runtimeRequire =
+                globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+                  ? '__rspack_context\\.e'
+                  : '__webpack_require__\\.e';
               const importChunkId1 = content.match(
-                /const dynamicPkgPure = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
+                new RegExp(
+                  `const dynamicPkgPure = await ${runtimeRequire}\\(/\\* import\\(\\) \\*/ (?:"([^"]+)"|([0-9]+))\\)`,
+                ),
               );
               const importChunkId2 = content.match(
-                /const dynamicPkgStr = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
+                new RegExp(
+                  `const dynamicPkgStr = await ${runtimeRequire}\\(/\\* import\\(\\) \\*/ (?:"([^"]+)"|([0-9]+))\\)`,
+                ),
               );
               const dynamicPkgPureChunkId =
                 importChunkId1[1] ?? importChunkId1[2];

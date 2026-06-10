@@ -11,7 +11,9 @@ use super::generate_javascript_hmr_runtime;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
-  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
+  runtime_module::utils::{
+    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+  },
 };
 
 static JSONP_CHUNK_LOADING_TEMPLATE: &str = include_str!("runtime/jsonp_chunk_loading.ejs");
@@ -91,6 +93,7 @@ impl JsonpChunkLoadingRuntimeModule {
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
     *JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
       | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+      | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
     *JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
@@ -238,6 +241,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
 
@@ -267,10 +271,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!(
-            "{}_jsonp",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
-          );
+          let state_expression = render_hmr_runtime_state_expression(runtime_template, "jsonp");
           format!("{state_expression} = {state_expression} || ")
         }
         false => String::new(),
@@ -315,6 +316,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": cross_origin_loading.to_string(),
+          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 
@@ -349,6 +351,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_script_type": script_type.as_str(),
           "_cross_origin": cross_origin_loading.to_string(),
+          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 

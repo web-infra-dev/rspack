@@ -39,7 +39,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
@@ -57,7 +57,7 @@ import fs, { readFile, readFileSync } from "fs";
 
 // NAMESPACE OBJECT: ./a.js
 var a_namespaceObject = {};
-__webpack_require__.r(a_namespaceObject);
+__webpack_require__.N(a_namespaceObject);
 __webpack_require__.d(a_namespaceObject, { 
   fsDefault: () => (fs),
   readFile: () => (readFile),
@@ -66,7 +66,7 @@ __webpack_require__.d(a_namespaceObject, {
 
 // NAMESPACE OBJECT: ./b.js
 var b_namespaceObject = {};
-__webpack_require__.r(b_namespaceObject);
+__webpack_require__.N(b_namespaceObject);
 __webpack_require__.d(b_namespaceObject, { 
   marker: () => (marker),
   readFile: () => (readFile) });

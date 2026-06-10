@@ -9,8 +9,8 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact,
+  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
@@ -19,8 +19,8 @@ use rspack_core::{
   ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -284,7 +284,7 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<Option<RenderSource>> {
   self
     .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
@@ -547,7 +547,9 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
+  if runtime_requirements
+    .intersects(RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
+  {
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(EsmRegisterModuleRuntimeModule::new(

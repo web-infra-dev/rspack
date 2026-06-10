@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin, RuntimeGlobals,
+  RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -125,7 +125,7 @@ async fn render_chunk(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let hooks = JsPlugin::get_compilation_hooks(compilation.id());
   let chunk = compilation
@@ -152,18 +152,19 @@ async fn render_chunk(
   }
 
   if chunk.has_entry_module(&compilation.build_chunk_graph_artifact.chunk_graph) {
+    let runtime_template = compilation.runtime_template.create_chunk_code_template();
     let runtime_chunk_output_name = get_runtime_chunk_output_name(compilation, chunk_ukey).await?;
+    let runtime_require_path = json_stringify_str(&get_relative_path(
+      base_chunk_output_name
+        .trim_start_matches("/")
+        .trim_start_matches("\\"),
+      &runtime_chunk_output_name,
+    ));
+    let runtime_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
     sources.add(RawStringSource::from(format!(
       r#"// load runtime
-var {} = require({});
-"#,
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-      json_stringify_str(&get_relative_path(
-        base_chunk_output_name
-          .trim_start_matches("/")
-          .trim_start_matches("\\"),
-        &runtime_chunk_output_name
-      ))
+var {runtime_scope} = require({runtime_require_path});
+"#
     )));
     sources.add(RawStringSource::from(format!(
       "{}(exports)\n",
@@ -175,7 +176,7 @@ var {} = require({});
       .chunk_graph
       .get_chunk_entry_modules_with_chunk_group_iterable(chunk_ukey);
     let start_up_source =
-      generate_entry_startup(compilation, chunk_ukey, entries, false, runtime_template);
+      generate_entry_startup(compilation, chunk_ukey, entries, false, &runtime_template);
     let last_entry_module = entries
       .keys()
       .next_back()
@@ -192,7 +193,7 @@ var {} = require({});
         chunk_ukey,
         last_entry_module,
         &mut startup_render_source,
-        runtime_template,
+        &runtime_template,
       )
       .await?;
     sources.add(startup_render_source.source);

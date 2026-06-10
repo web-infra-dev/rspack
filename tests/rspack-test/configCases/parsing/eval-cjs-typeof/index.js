@@ -5,5 +5,9 @@ it("should compile", async () => {
 		throw new Error("wrong")
 	}
 	const file = await fs.promises.readFile(__filename, 'utf-8');
-	expect(file).not.toContain(["type", "of"].join(""))
+	if (file.includes(["var ", "__rspack_context"].join(""))) {
+		expect(file).not.toContain(['if (', 'ty', 'pe', 'of exports !== "object"', ' || ', 'ty', 'pe', 'of module !== "object"', ')'].join(""))
+	} else {
+		expect(file).not.toContain(["ty", "pe", "of"].join(""))
+	}
 });

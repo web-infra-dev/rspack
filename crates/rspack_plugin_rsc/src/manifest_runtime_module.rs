@@ -85,9 +85,9 @@ impl RuntimeModule for RscManifestRuntimeModule {
 
     Ok(formatdoc! {
       r#"
-        {require_name}.rscM = JSON.parse({rsc_manifest_json});
+        {rsc_manifest} = JSON.parse({rsc_manifest_json});
       "#,
-      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      rsc_manifest = runtime_template.render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST),
       rsc_manifest_json = to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }

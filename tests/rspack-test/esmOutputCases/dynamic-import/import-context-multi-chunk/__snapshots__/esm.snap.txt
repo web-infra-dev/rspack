@@ -8,7 +8,7 @@ __webpack_require__.add({
   !*** ./modules/a.js ***!
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
 
 
@@ -36,7 +36,7 @@ __webpack_require__.add({
   !*** ./modules/b.js ***!
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.r(__webpack_exports__);
+__webpack_require__.N(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__(/*! ../shared */ "./shared.js");
 
 
@@ -197,7 +197,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.r = (exports) => {
+__webpack_require__.N = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}

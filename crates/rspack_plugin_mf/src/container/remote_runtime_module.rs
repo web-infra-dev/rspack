@@ -11,7 +11,10 @@ use rustc_hash::FxHashMap;
 use serde::Serialize;
 
 use super::remote_module::RemoteModule;
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, runtime_require_scope_name},
+};
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
@@ -124,7 +127,7 @@ impl RuntimeModule for RemoteRuntimeModule {
 {require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
 {remotes_loading_impl}
 "#,
-      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      require_name = runtime_require_scope_name(runtime_template),
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,

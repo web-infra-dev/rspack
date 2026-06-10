@@ -6,5 +6,12 @@ it("should have runtime __webpack_require__.f.j", async () => {
 	const path = __non_webpack_require__("path");
 	const fs = __non_webpack_require__("fs");
 	const code = await fs.promises.readFile(path.resolve(__dirname, "runtime.js"), "utf-8");
-	expect(code.includes("__webpack_require__.f.j")).toBe(true);
+	const isRspackRuntime = typeof __rspack_context !== "undefined";
+	expect(
+			code.includes(
+				isRspackRuntime
+					? "ensureChunkHandlers.j"
+					: "__webpack_require__.f.j"
+			)
+	).toBe(true);
 })

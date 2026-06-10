@@ -61,6 +61,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     let runtime_template = context.runtime_template;
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &self.chunk_ukey);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
 
     let unique_prefix = if self.unique_name.is_empty() {
       None
@@ -77,6 +78,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
         "_script_type": &compilation.options.output.script_type,
         "_unique_prefix": unique_prefix.is_some(),
         "_with_fetch_priority": with_fetch_priority,
+        "_with_script_nonce": with_script_nonce,
         "_with_create_script_url": self.with_create_script_url,
         "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
         "_chunk_load_timeout": compilation.options.output.chunk_load_timeout.saturating_div(1000).to_string(),
@@ -112,11 +114,11 @@ impl RuntimeModule for LoadScriptRuntimeModule {
   }
 
   fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    let mut requirements = RuntimeGlobals::default();
     if compilation.options.output.trusted_types.is_some() {
-      RuntimeGlobals::CREATE_SCRIPT_URL
-    } else {
-      RuntimeGlobals::default()
+      requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
     }
+    requirements
   }
 }
 
