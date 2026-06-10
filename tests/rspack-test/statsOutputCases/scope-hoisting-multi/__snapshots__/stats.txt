@@ -1,36 +1,36 @@
 runtime modules xx KiB 18 modules
-orphan modules xx bytes [orphan] 6 modules
+orphan modules xx bytes [orphan] 5 modules
 cacheable modules xx bytes
   ./first.js xx bytes [built] [code generated]
   ./second.js xx bytes [built] [code generated]
+  ./module_first.js xx bytes [built] [code generated]
   ./lazy_first.js xx bytes [built] [code generated]
   ./lazy_shared.js xx bytes [built] [code generated]
   ./lazy_second.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
 runtime modules xx KiB 18 modules
-cacheable modules xx bytes
+cacheable modules xx KiB
   orphan modules xx bytes [orphan]
+    ./first.js xx bytes [orphan] [built]
+      ExportDefaultExpr with side_effects in source code at ./first.js<LINE_COL>-26
+      ModuleConcatenation bailout: Module is an entry point
+    ./module_first.js xx bytes [orphan] [built]
     ./common.js xx bytes [orphan] [built]
       ModuleConcatenation bailout: Module is not in any chunk
     ./common2.js xx bytes [orphan] [built]
       ModuleConcatenation bailout: Module is not in any chunk
-    ./module_first.js xx bytes [orphan] [built]
-      ModuleConcatenation bailout: Module is not in any chunk
     ./vendor.js xx bytes [orphan] [built]
       ModuleConcatenation bailout: Module is not in any chunk
-    ./common_lazy.js xx bytes [orphan] [built]
-      ModuleConcatenation bailout: Module is not in any chunk
-    ./common_lazy_shared.js xx bytes [orphan] [built]
-      ModuleConcatenation bailout: Module is not in any chunk
+    + 2 modules
   code generated modules xx bytes [code generated]
-    ./first.js xx bytes [built] [code generated]
-      Statement with side_effects in source code at ./first.js<LINE_COL>-61
-      ModuleConcatenation bailout: Module is an entry point
+    ./first.js + 1 modules xx bytes [code generated]
     ./second.js xx bytes [built] [code generated]
-      Statement with side_effects in source code at ./second.js<LINE_COL>-63
+      ExportDefaultExpr with side_effects in source code at ./second.js<LINE_COL>-22
       ModuleConcatenation bailout: Module is an entry point
     ./lazy_first.js xx bytes [built] [code generated]
+      ExportDefaultExpr with side_effects in source code at ./lazy_first.js<LINE_COL>-22
     ./lazy_shared.js xx bytes [built] [code generated]
     ./lazy_second.js xx bytes [built] [code generated]
+      ExportDefaultExpr with side_effects in source code at ./lazy_second.js<LINE_COL>-22
 Rspack x.x.x compiled successfully in X s

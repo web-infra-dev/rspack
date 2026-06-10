@@ -1,3 +1,3 @@
 import { pureFn } from "./decl";
 
-const unused = pureFn("binary") + 1;
+const unused = pureFn("binary") === 1;

@@ -16,6 +16,12 @@ module.exports = {
           pureFunctions: ['pureFn', 'a', 'b'],
         },
       },
+      {
+        test: /unsafe-decl\.js$/,
+        parser: {
+          pureFunctions: ['unsafePureFn'],
+        },
+      },
     ],
   },
 };

@@ -1,12 +1,4 @@
-```mjs title=main.mjs
-// ./unsafe-decl.js
-function unsafePureFn(label) {
-  (globalThis.__PURE_FUNCTION_EDGE_CALLS__ ||= []).push(label);
-  return 1;
-}
-
-// ./unsafe-coercion-expressions.js
-
+import { unsafePureFn } from "./unsafe-decl";
 
 const coercion = {
   valueOf() {
@@ -29,17 +21,3 @@ const key = {
 const unusedNumericUnary = +coercion;
 const unusedUnsafeBinary = unsafePureFn("unsafe-binary") + coercion;
 const unusedComputedKey = { [key]: unsafePureFn("unsafe-computed") };
-
-// ./index.js
-
-
-
-
-
-
-
-
-
-export {};
-
-```

@@ -8,8 +8,8 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
-  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ArrayLit, ArrowExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember,
+  CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
   ImportSpecifier, Lit, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptCall,
   OptChainBase, Pat, Program, Prop, PropName, PropOrSpread, ScopeId, Span, Span as AstSpan, Stmt,
   UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
@@ -958,6 +958,20 @@ fn is_pure_without_composite_call_inspection(parser: &mut JavascriptParser, expr
   !evaluated.could_have_side_effects()
 }
 
+fn is_side_effect_free_primitive_expr(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  if let Expr::Lit(lit) = expr
+    && matches!(
+      &**lit,
+      Lit::Str(_) | Lit::Num(_) | Lit::Bool(_) | Lit::Null(_) | Lit::BigInt(_)
+    )
+  {
+    return true;
+  }
+
+  let evaluated = parser.evaluate_expression(expr);
+  !evaluated.could_have_side_effects() && evaluated.is_primitive_type() == Some(true)
+}
+
 enum ExplicitSideEffectsFreeCallee {
   Direct,
   Deferred,
@@ -1110,14 +1124,17 @@ fn is_pure_prop_name<'a>(
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   match name {
-    PropName::Computed(computed) => is_pure_expression(
-      parser,
-      analyze_side_effects_free,
-      &computed.expr,
-      unresolved_ctxt,
-      comments,
-      callees,
-    ),
+    PropName::Computed(computed) => {
+      is_side_effect_free_primitive_expr(parser, &computed.expr)
+        && is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          &computed.expr,
+          unresolved_ctxt,
+          comments,
+          callees,
+        )
+    }
     PropName::BigInt(_) | PropName::Ident(_) | PropName::Str(_) | PropName::Num(_) => true,
   }
 }
@@ -1819,31 +1836,75 @@ pub fn is_pure_expression<'a>(
         }
         true
       }
-      Expr::Unary(unary_expr) => is_pure_expression(
-        parser,
-        analyze_side_effects_free,
-        &unary_expr.arg,
-        unresolved_ctxt,
-        comments,
-        callees,
-      ),
-      Expr::Bin(bin_expr) => {
-        is_pure_expression(
+      Expr::Unary(unary_expr) => match unary_expr.op {
+        UnaryOp::Bang | UnaryOp::Void | UnaryOp::TypeOf => is_pure_expression(
           parser,
           analyze_side_effects_free,
-          &bin_expr.left,
-          unresolved_ctxt,
-          comments,
-          callees.as_deref_mut(),
-        ) && is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &bin_expr.right,
+          &unary_expr.arg,
           unresolved_ctxt,
           comments,
           callees,
-        )
-      }
+        ),
+        UnaryOp::Delete => false,
+        UnaryOp::Plus | UnaryOp::Minus | UnaryOp::Tilde => {
+          if is_side_effect_free_primitive_expr(parser, &unary_expr.arg) {
+            is_pure_without_composite_call_inspection(parser, expr)
+          } else {
+            false
+          }
+        }
+      },
+      Expr::Bin(bin_expr) => match bin_expr.op {
+        BinaryOp::LogicalAnd
+        | BinaryOp::LogicalOr
+        | BinaryOp::NullishCoalescing
+        | BinaryOp::EqEqEq
+        | BinaryOp::NotEqEq => {
+          is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            &bin_expr.left,
+            unresolved_ctxt,
+            comments,
+            callees.as_deref_mut(),
+          ) && is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            &bin_expr.right,
+            unresolved_ctxt,
+            comments,
+            callees,
+          )
+        }
+        BinaryOp::EqEq
+        | BinaryOp::NotEq
+        | BinaryOp::Lt
+        | BinaryOp::LtEq
+        | BinaryOp::Gt
+        | BinaryOp::GtEq
+        | BinaryOp::LShift
+        | BinaryOp::RShift
+        | BinaryOp::ZeroFillRShift
+        | BinaryOp::Add
+        | BinaryOp::Sub
+        | BinaryOp::Mul
+        | BinaryOp::Div
+        | BinaryOp::Mod
+        | BinaryOp::BitOr
+        | BinaryOp::BitXor
+        | BinaryOp::BitAnd
+        | BinaryOp::In
+        | BinaryOp::InstanceOf
+        | BinaryOp::Exp => {
+          if is_side_effect_free_primitive_expr(parser, &bin_expr.left)
+            && is_side_effect_free_primitive_expr(parser, &bin_expr.right)
+          {
+            is_pure_without_composite_call_inspection(parser, expr)
+          } else {
+            false
+          }
+        }
+      },
       Expr::Cond(cond_expr) => {
         is_pure_expression(
           parser,

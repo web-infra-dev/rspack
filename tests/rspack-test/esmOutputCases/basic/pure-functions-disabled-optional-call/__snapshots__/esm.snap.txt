@@ -1,0 +1,15 @@
+```mjs title=main.mjs
+// ./dep.js
+function sideEffect(label) {
+  (globalThis.__PURE_FUNCTION_DISABLED_OPTIONAL_CALLS__ ||= []).push(label);
+  return 1;
+}
+
+// ./index.js
+
+
+const unused = sideEffect?.("OPTIONAL_CALL_WITH_PURE_FUNCTIONS_DISABLED");
+
+export {};
+
+```
