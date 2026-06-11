@@ -5,6 +5,8 @@ import "./object-expression";
 import "./optional-call";
 import "./pure-call-with-local-pure-call-arg";
 import "./pure-call-with-pure-call-array-arg";
+import "./static-conditional-branches";
+import "./static-logical-branches";
 import "./unsafe-coercion-expressions";
 import "./unsafe-optional-member-access";
 import "./unsafe-shorthand-object";

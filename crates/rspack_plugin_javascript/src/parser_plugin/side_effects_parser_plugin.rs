@@ -1855,11 +1855,37 @@ pub fn is_pure_expression<'a>(
         }
       },
       Expr::Bin(bin_expr) => match bin_expr.op {
-        BinaryOp::LogicalAnd
-        | BinaryOp::LogicalOr
-        | BinaryOp::NullishCoalescing
-        | BinaryOp::EqEqEq
-        | BinaryOp::NotEqEq => {
+        BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing => {
+          if !is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            &bin_expr.left,
+            unresolved_ctxt,
+            comments,
+            callees.as_deref_mut(),
+          ) {
+            return false;
+          }
+
+          let left = parser.evaluate_expression(&bin_expr.left);
+          let should_check_right = match bin_expr.op {
+            BinaryOp::LogicalAnd => left.as_bool() != Some(false),
+            BinaryOp::LogicalOr => left.as_bool() != Some(true),
+            BinaryOp::NullishCoalescing => left.as_nullish() != Some(false),
+            _ => unreachable!(),
+          };
+
+          !should_check_right
+            || is_pure_expression(
+              parser,
+              analyze_side_effects_free,
+              &bin_expr.right,
+              unresolved_ctxt,
+              comments,
+              callees,
+            )
+        }
+        BinaryOp::EqEqEq | BinaryOp::NotEqEq => {
           is_pure_expression(
             parser,
             analyze_side_effects_free,
@@ -1906,28 +1932,52 @@ pub fn is_pure_expression<'a>(
         }
       },
       Expr::Cond(cond_expr) => {
-        is_pure_expression(
+        if !is_pure_expression(
           parser,
           analyze_side_effects_free,
           &cond_expr.test,
           unresolved_ctxt,
           comments,
           callees.as_deref_mut(),
-        ) && is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &cond_expr.cons,
-          unresolved_ctxt,
-          comments,
-          callees.as_deref_mut(),
-        ) && is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &cond_expr.alt,
-          unresolved_ctxt,
-          comments,
-          callees,
-        )
+        ) {
+          return false;
+        }
+
+        match parser.evaluate_expression(&cond_expr.test).as_bool() {
+          Some(true) => is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            &cond_expr.cons,
+            unresolved_ctxt,
+            comments,
+            callees,
+          ),
+          Some(false) => is_pure_expression(
+            parser,
+            analyze_side_effects_free,
+            &cond_expr.alt,
+            unresolved_ctxt,
+            comments,
+            callees,
+          ),
+          None => {
+            is_pure_expression(
+              parser,
+              analyze_side_effects_free,
+              &cond_expr.cons,
+              unresolved_ctxt,
+              comments,
+              callees.as_deref_mut(),
+            ) && is_pure_expression(
+              parser,
+              analyze_side_effects_free,
+              &cond_expr.alt,
+              unresolved_ctxt,
+              comments,
+              callees,
+            )
+          }
+        }
       }
       Expr::Call(_) => is_pure_call_expr(
         parser,
