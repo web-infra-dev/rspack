@@ -44,25 +44,8 @@ export { external_path_namespaceObject as pathNs, joinFn, readFile, readFileSync
 ```
 
 ```mjs title=runtime.mjs
-// The module cache
-var __webpack_module_cache__ = {};
-// The require function
-function __webpack_require__(moduleId) {
-// Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
-if (cachedModule !== undefined) {
-return cachedModule.exports;
-}
-// Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
-exports: {}
-});
-// Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
-
-// Return the exports of the module
-return module.exports;
-}
+// The require scope
+var __webpack_require__ = {};
 
 // webpack/runtime/create_fake_namespace_object
 (() => {
@@ -92,7 +75,6 @@ __webpack_require__.t = function(value, mode) {
 	__webpack_require__.d(ns, def);
 	return ns;
 };
-
 })();
 // webpack/runtime/define_property_getters
 (() => {

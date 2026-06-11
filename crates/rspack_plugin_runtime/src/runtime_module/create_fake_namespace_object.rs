@@ -38,11 +38,11 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     let params = Some(
       if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
         serde_json::json!({
-          "REQUIRE": "(typeof this === \"function\" ? this : this.r)"
+          "__this": "(typeof this === \"function\" ? this : this.r)"
         })
       } else {
         serde_json::json!({
-          "REQUIRE": "this"
+          "__this": "this"
         })
       },
     );

@@ -201,6 +201,10 @@ fn static_require_member_chain(
   expr_span: Span,
   write: bool,
 ) -> Option<bool> {
+  if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+    return None;
+  }
+
   if for_name == API_REQUIRE
     && let Some(property) = members.first()
   {
@@ -210,8 +214,7 @@ fn static_require_member_chain(
       let dep_span = if members.len() > 1 {
         member_ranges
           .and_then(|ranges| ranges.get(1))
-          .map(|range| Span::new(expr_span.lo, range.hi))
-          .unwrap_or(expr_span)
+          .map_or(expr_span, |range| Span::new(expr_span.start, range.end))
       } else {
         expr_span
       };
@@ -486,17 +489,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     &self,
     parser: &mut JavascriptParser,
     _expr: &AssignExpr,
+    _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     if let Some(runtime_global) = runtime_api_from_name(for_name).and_then(|api| api.runtime_global)
+      && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
     {
-      if parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write_only(
-          runtime_global,
-        )));
-        return None;
-      }
-      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write_only(
         runtime_global,
       )));
     }
@@ -551,7 +550,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == API_REQUIRE {
+    if for_name == API_REQUIRE
+      && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
+    {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
         RuntimeGlobals::REQUIRE,
       )));
