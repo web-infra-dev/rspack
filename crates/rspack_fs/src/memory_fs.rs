@@ -66,9 +66,24 @@ impl FileType {
   }
 }
 
+// `Utf8PathBuf` keys delegate Hash/Eq to `std::path`, which walks path
+// components on every map probe; that walk dominates fs-heavy workloads like
+// resolver probing. Stored paths are normalized, so byte-based `String` keys
+// behave the same and hash much faster. Trailing slashes still have to be
+// stripped because a directory created as `/a/b/` is later looked up as
+// `/a/b` (e.g. via `parent()` of a child path).
+fn key(path: &Utf8Path) -> &str {
+  let trimmed = path.as_str().trim_end_matches('/');
+  if trimmed.is_empty() && !path.as_str().is_empty() {
+    "/"
+  } else {
+    trimmed
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct MemoryFileSystem {
-  files: Arc<Mutex<FxHashMap<Utf8PathBuf, FileType>>>,
+  files: Arc<Mutex<FxHashMap<String, FileType>>>,
 }
 
 impl MemoryFileSystem {
@@ -79,7 +94,7 @@ impl MemoryFileSystem {
 
   fn contains_dir(&self, dir: &Utf8Path) -> Result<bool> {
     let files = self.files.lock().expect("should get lock");
-    if let Some(ft) = files.get(dir) {
+    if let Some(ft) = files.get(key(dir)) {
       if let FileType::Dir(_) = ft {
         return Ok(true);
       } else {
@@ -91,7 +106,7 @@ impl MemoryFileSystem {
 
   fn contains_file(&self, file: &Utf8Path) -> Result<bool> {
     let files = self.files.lock().expect("should get lock");
-    if let Some(ft) = files.get(file) {
+    if let Some(ft) = files.get(key(file)) {
       if let FileType::File { .. } = ft {
         return Ok(true);
       } else {
@@ -104,7 +119,7 @@ impl MemoryFileSystem {
   fn _remove_file(&self, file: &Utf8Path) -> Result<()> {
     if self.contains_file(file)? {
       let mut files = self.files.lock().expect("should get lock");
-      files.remove(file);
+      files.remove(key(file));
     }
     Ok(())
   }
@@ -112,7 +127,7 @@ impl MemoryFileSystem {
   async fn _remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     if self.contains_dir(dir)? {
       let mut files = self.files.lock().expect("should get lock");
-      files.retain(|path, _| !path.starts_with(dir));
+      files.retain(|path, _| !Utf8Path::new(path).starts_with(dir));
     }
     Ok(())
   }
@@ -125,7 +140,7 @@ impl MemoryFileSystem {
     let files = self.files.lock().expect("should get lock");
     let mut res: FxHashSet<String> = FxHashSet::default();
     for path in files.keys() {
-      if let Ok(relative) = path.strip_prefix(dir)
+      if let Ok(relative) = Utf8Path::new(path).strip_prefix(dir)
         && let Some(s) = relative.iter().next()
       {
         res.insert(s.to_string());
@@ -139,8 +154,8 @@ impl MemoryFileSystem {
       return Err(new_error("from dir not exist"));
     }
     let mut files = self.files.lock().expect("should get lock");
-    let file = files.remove(from).expect("should have file");
-    files.insert(to.into(), file);
+    let file = files.remove(key(from)).expect("should have file");
+    files.insert(key(to).into(), file);
 
     Ok(())
   }
@@ -159,7 +174,7 @@ impl WritableFileSystem for MemoryFileSystem {
     }
 
     let mut files = self.files.lock().expect("should get lock");
-    files.insert(dir.to_path_buf(), FileType::new_dir());
+    files.insert(key(dir).into(), FileType::new_dir());
     Ok(())
   }
 
@@ -172,7 +187,7 @@ impl WritableFileSystem for MemoryFileSystem {
       WritableFileSystem::create_dir_all(self, p).await?;
     }
     let mut files = self.files.lock().expect("should get lock");
-    files.insert(dir.to_path_buf(), FileType::new_dir());
+    files.insert(key(dir).into(), FileType::new_dir());
     Ok(())
   }
 
@@ -180,7 +195,7 @@ impl WritableFileSystem for MemoryFileSystem {
     {
       // check file exist and update it
       let mut files = self.files.lock().expect("should get lock");
-      if let Some(ft) = files.get_mut(file) {
+      if let Some(ft) = files.get_mut(key(file)) {
         if let FileType::File { content, metadata } = ft {
           let now = current_time();
           *content = data.to_vec();
@@ -201,7 +216,7 @@ impl WritableFileSystem for MemoryFileSystem {
     }
 
     let mut files = self.files.lock().expect("should get lock");
-    files.insert(file.to_path_buf(), FileType::new_file(data.to_vec()));
+    files.insert(key(file).into(), FileType::new_file(data.to_vec()));
     Ok(())
   }
 
@@ -238,7 +253,7 @@ impl ReadableFileSystem for MemoryFileSystem {
 
   fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
     let files = self.files.lock().expect("should get lock");
-    match files.get(path) {
+    match files.get(key(path)) {
       Some(FileType::File { content, .. }) => Ok(content.clone()),
       _ => Err(Error::Io(std::io::Error::new(
         std::io::ErrorKind::NotFound,
@@ -253,7 +268,7 @@ impl ReadableFileSystem for MemoryFileSystem {
 
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let files = self.files.lock().expect("should get lock");
-    match files.get(path) {
+    match files.get(key(path)) {
       Some(ft) => Ok(ft.metadata().clone()),
       None => Err(Error::Io(std::io::Error::new(
         std::io::ErrorKind::NotFound,
