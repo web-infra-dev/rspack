@@ -87,11 +87,22 @@ mod utils {
     }
   }
 
+  pub fn runtime_require_scope_requirement(compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      RuntimeGlobals::REQUIRE_SCOPE
+    } else {
+      RuntimeGlobals::default()
+    }
+  }
+
   pub fn module_require_scope_name(
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::REQUIRE_SCOPE);
       runtime_template.render_runtime_variable(&RuntimeVariable::Context)
     } else {
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)

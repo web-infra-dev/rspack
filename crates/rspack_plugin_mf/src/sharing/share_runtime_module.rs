@@ -15,7 +15,7 @@ use rustc_hash::FxHashMap;
 use super::provide_shared_plugin::ProvideVersion;
 use crate::{
   ConsumeVersion, ShareScope,
-  utils::{json_stringify, runtime_require_scope_name},
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
@@ -154,8 +154,8 @@ impl RuntimeModule for ShareRuntimeModule {
     ))
   }
 
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    *INITIALIZE_SHARING_RUNTIME_REQUIREMENTS | runtime_require_scope_requirement(compilation)
   }
 }
 

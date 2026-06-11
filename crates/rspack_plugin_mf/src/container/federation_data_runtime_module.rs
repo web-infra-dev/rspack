@@ -6,14 +6,14 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeModule,
+  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
-use crate::utils::runtime_require_scope_name;
+use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -38,6 +38,10 @@ impl RuntimeModule for FederationDataRuntimeModule {
       .chunk_by_ukey
       .expect_get(&self.chunk.expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    runtime_require_scope_requirement(compilation)
   }
 }
 

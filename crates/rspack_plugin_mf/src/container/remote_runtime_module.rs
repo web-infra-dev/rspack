@@ -13,7 +13,7 @@ use serde::Serialize;
 use super::remote_module::RemoteModule;
 use crate::{
   ShareScope,
-  utils::{json_stringify, runtime_require_scope_name},
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
@@ -134,8 +134,8 @@ impl RuntimeModule for RemoteRuntimeModule {
     ))
   }
 
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *REMOTES_LOADING_RUNTIME_REQUIREMENTS
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    *REMOTES_LOADING_RUNTIME_REQUIREMENTS | runtime_require_scope_requirement(compilation)
   }
 }
 

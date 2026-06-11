@@ -197,6 +197,7 @@ fn static_require_member_chain(
   parser: &mut JavascriptParser,
   for_name: &str,
   members: &[Atom],
+  member_ranges: Option<&[Span]>,
   expr_span: Span,
   write: bool,
 ) -> Option<bool> {
@@ -204,10 +205,18 @@ fn static_require_member_chain(
     && let Some(property) = members.first()
   {
     if let Some(runtime_global) = RuntimeGlobals::from_property_name(property.as_ref()) {
-      let dep = if write {
-        RuntimeRequirementsDependency::write(expr_span.into(), runtime_global)
+      let dep_span = if members.len() > 1 {
+        member_ranges
+          .and_then(|ranges| ranges.get(1))
+          .map(|range| Span::new(expr_span.lo, range.hi))
+          .unwrap_or(expr_span)
       } else {
-        RuntimeRequirementsDependency::new(expr_span.into(), runtime_global)
+        expr_span
+      };
+      let dep = if write {
+        RuntimeRequirementsDependency::write(dep_span.into(), runtime_global)
+      } else {
+        RuntimeRequirementsDependency::new(dep_span.into(), runtime_global)
       };
       parser.add_presentational_dependency(Box::new(dep));
     } else {
@@ -412,12 +421,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
   ) -> Option<bool> {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    static_require_member_chain(parser, for_name, members, member_expr.span, false)
+    static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      member_expr.span,
+      false,
+    )
   }
 
   fn call_member_chain(
@@ -427,12 +443,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     for_name: &str,
     members: &[Atom],
     _members_optionals: &[bool],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
   ) -> Option<bool> {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    let handled = static_require_member_chain(parser, for_name, members, expr.callee.span(), false);
+    let handled = static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      expr.callee.span(),
+      false,
+    );
     if handled.is_some() {
       parser.walk_expr_or_spread(&expr.args);
     }
@@ -449,7 +472,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    let handled = static_require_member_chain(parser, for_name, members, expr.left.span(), true);
+    let handled =
+      static_require_member_chain(parser, for_name, members, None, expr.left.span(), true);
     if handled.is_some() {
       parser.walk_expression(&expr.right);
     }

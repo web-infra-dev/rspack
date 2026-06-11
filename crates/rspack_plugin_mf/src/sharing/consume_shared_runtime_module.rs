@@ -12,7 +12,7 @@ use rustc_hash::FxHashMap;
 use super::consume_shared_plugin::ConsumeVersion;
 use crate::{
   ShareScope,
-  utils::{json_stringify, runtime_require_scope_name},
+  utils::{json_stringify, runtime_require_scope_name, runtime_require_scope_requirement},
 };
 
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
@@ -232,10 +232,11 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     Ok(source)
   }
 
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
     *CONSUMES_RUNTIME_REQUIREMENTS
       | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
       | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
+      | runtime_require_scope_requirement(compilation)
   }
 }
 
