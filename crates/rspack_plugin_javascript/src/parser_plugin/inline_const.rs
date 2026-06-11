@@ -1,10 +1,8 @@
 use rspack_cacheable::cacheable;
 use rspack_core::EvaluatedInlinableValue;
 use rspack_util::ryu_js;
-use swc_core::ecma::{
-  ast::{ObjectPatProp, Pat, VarDeclarator},
-  atoms::Atom,
-};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{ObjectPatProp, Pat, VarDeclarator};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -53,14 +51,14 @@ impl ConstValuePlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ConstValuePlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstValuePlugin {
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     if for_name != INLINABLE_CONST_TAG {
       return None;
     }
@@ -85,7 +83,7 @@ impl JavascriptParserPlugin for ConstValuePlugin {
 
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
@@ -111,7 +109,7 @@ impl JavascriptParserPlugin for ConstValuePlugin {
       } else {
         ConstValue::NoInlinable
       };
-      tag_const_variable(parser, name.id.sym.clone(), const_value);
+      tag_const_variable(parser, Atom::from(name.id.sym.as_str()), const_value);
     } else {
       tag_const_pattern(parser, &declarator.name);
     }
@@ -132,7 +130,11 @@ fn tag_const_variable(parser: &mut JavascriptParser, name: Atom, value: ConstVal
 fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
   match pattern {
     Pat::Ident(ident) => {
-      tag_const_variable(parser, ident.id.sym.clone(), ConstValue::NoInlinable);
+      tag_const_variable(
+        parser,
+        Atom::from(ident.id.sym.as_str()),
+        ConstValue::NoInlinable,
+      );
     }
     Pat::Array(array) => {
       for elem in array.elems.iter().flatten() {
@@ -147,7 +149,11 @@ fn tag_const_pattern(parser: &mut JavascriptParser, pattern: &Pat) {
         match prop {
           ObjectPatProp::KeyValue(prop) => tag_const_pattern(parser, &prop.value),
           ObjectPatProp::Assign(prop) => {
-            tag_const_variable(parser, prop.key.sym.clone(), ConstValue::NoInlinable);
+            tag_const_variable(
+              parser,
+              Atom::from(prop.key.id.sym.as_str()),
+              ConstValue::NoInlinable,
+            );
           }
           ObjectPatProp::Rest(rest) => tag_const_pattern(parser, &rest.arg),
         }

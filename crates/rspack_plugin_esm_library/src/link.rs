@@ -24,11 +24,13 @@ use rspack_plugin_javascript::{
 };
 use rspack_plugin_runtime::should_export_webpack_require_for_module_chunk_loading;
 use rspack_util::{
+  SpanExt,
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
 use swc_core::common::SyntaxContext;
-use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::{EsVersion, Program};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
 
@@ -1533,8 +1535,9 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let mut ast = Ast::new(source_str.len(), StringAllocator::default());
+                let allocator = Allocator::new();
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
+                  &allocator,
                   Syntax::Es(EsSyntax {
                     jsx,
                     ..Default::default()
@@ -1542,24 +1545,23 @@ var {} = {{}};
                   EsVersion::EsNext,
                   StringSource::new(&source_str),
                   None,
-                  ast.string_allocator(),
                 );
-                let mut parser = Parser::new_from(&mut ast, lexer);
+                let mut parser = Parser::new_from(&allocator, lexer);
                 let module = match parser.parse_module() {
                   Ok(module) => module,
                   Err(err) => {
                     return Err(Error::from_string(
                       Some(source_str.clone()),
-                      err.span().start.saturating_sub(1) as usize,
-                      err.span().end.saturating_sub(1) as usize,
+                      err.span().real_lo() as usize,
+                      err.span().real_hi() as usize,
                       "JavaScript parse error:\n".to_string(),
                       err.kind().msg().to_string(),
                     ));
                   }
                 };
-                let ast = &ast;
-                let semantic = resolver(module, ast);
-                let ids = collect_ident(ast, module);
+                let program = Program::Module(allocator.boxed(module));
+                let semantic = resolver(&program);
+                let ids = collect_ident(&allocator, &program);
 
                 concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
                 concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
@@ -1576,10 +1578,10 @@ var {} = {{}};
                 binding_to_ref.reserve(ids.len());
 
                 for ident in ids {
-                  let scope = semantic.node_scope(ident.id);
+                  let scope = semantic.node_scope(&ident.id);
                   let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
                   let legacy = if is_global {
-                    let leg = ident.to_legacy(ast, &semantic);
+                    let leg = ident.to_legacy(&semantic);
                     concate_info.global_scope_ident.push(leg.clone());
                     all_used_names.insert(leg.id.sym.clone());
                     Some(leg)
@@ -1587,13 +1589,13 @@ var {} = {{}};
                     None
                   };
                   if ident.is_class_expr_with_ident {
-                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                     continue;
                   }
                   if scope != top_level_scope_id {
-                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                   }
-                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(ast, &semantic));
+                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
                   concate_info.idents.push(legacy.clone());
                   binding_to_ref
                     .entry((legacy.id.sym.clone(), legacy.id.ctxt))

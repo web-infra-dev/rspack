@@ -1,8 +1,6 @@
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{
-    ExportSpecifier, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
-  },
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{
+  ExportSpecifier, GetSpan, ImportDecl, ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem,
 };
 
 use crate::{
@@ -11,11 +9,11 @@ use crate::{
 };
 
 impl JavascriptParser<'_> {
-  pub fn module_pre_walk_module_items(&mut self, statements: &Vec<ModuleItem>) {
+  pub fn module_pre_walk_module_items(&mut self, statements: &[ModuleItem<'_>]) {
     for statement in statements {
       self.statement_path.push(statement.span().into());
       match statement {
-        ModuleItem::ModuleDecl(module_decl) => match module_decl {
+        ModuleItem::ModuleDecl(module_decl) => match &**module_decl {
           ModuleDecl::Import(decl) => self.module_pre_walk_import_declaration(decl),
           ModuleDecl::ExportAll(decl) => {
             self.module_pre_walk_export_all_declaration(ExportAllDeclaration::All(decl))
@@ -38,49 +36,58 @@ impl JavascriptParser<'_> {
     }
   }
 
-  pub fn module_pre_walk_import_declaration(&mut self, decl: &ImportDecl) {
+  pub fn module_pre_walk_import_declaration(&mut self, decl: &ImportDecl<'_>) {
     let drive = self.plugin_drive.clone();
-    let atom = decl.src.value.to_atom_lossy();
-    let source = atom.as_ref();
+    let source = decl.src.value.as_wtf8().to_string_lossy().to_string();
     drive.import(self, decl, source.as_str());
+    let source_atom = Atom::from(source.as_str());
 
     for specifier in &decl.specifiers {
       match specifier {
         ImportSpecifier::Named(named) => {
-          let identifier_name = &named.local.sym;
-          let export_name = named
-            .imported
-            .as_ref()
-            .map_or(&named.local.sym, |imported| match imported {
-              ModuleExportName::Ident(ident) => &ident.sym,
-              ModuleExportName::Str(s) => s
-                .value
-                .as_atom()
-                .expect("ModuleExportName should be a valid utf8"),
-            });
+          let identifier_name = Atom::from(named.local.sym.as_str());
+          let export_name = named.imported.as_ref().map_or_else(
+            || identifier_name.clone(),
+            |imported| match imported {
+              ModuleExportName::Ident(ident) => Atom::from(ident.sym.as_str()),
+              ModuleExportName::Str(s) => Atom::from(s.value.as_wtf8().to_string_lossy().as_ref()),
+            },
+          );
           if drive
-            .import_specifier(self, decl, source, Some(export_name), identifier_name)
+            .import_specifier(
+              self,
+              decl,
+              &source_atom,
+              Some(&export_name),
+              &identifier_name,
+            )
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.clone())
+            self.define_variable(identifier_name)
           }
         }
         ImportSpecifier::Default(default) => {
-          let identifier_name = &default.local.sym;
+          let identifier_name = Atom::from(default.local.sym.as_str());
           if drive
-            .import_specifier(self, decl, source, Some(&"default".into()), identifier_name)
+            .import_specifier(
+              self,
+              decl,
+              &source_atom,
+              Some(&"default".into()),
+              &identifier_name,
+            )
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.clone())
+            self.define_variable(identifier_name)
           }
         }
         ImportSpecifier::Namespace(namespace) => {
-          let identifier_name = &namespace.local.sym;
+          let identifier_name = Atom::from(namespace.local.sym.as_str());
           if drive
-            .import_specifier(self, decl, source, None, identifier_name)
+            .import_specifier(self, decl, &source_atom, None, &identifier_name)
             .unwrap_or_default()
           {
-            self.define_variable(identifier_name.clone())
+            self.define_variable(identifier_name)
           }
         }
       }
@@ -93,13 +100,13 @@ impl JavascriptParser<'_> {
     let exported_name_span = decl.exported_name_span();
     let statement = ExportImport::All(decl);
     let source = statement.source();
-    drive.export_import(self, statement, source);
+    drive.export_import(self, statement, &source);
     drive.export_import_specifier(
       self,
       statement,
-      source,
+      &source,
       None,
-      exported_name,
+      exported_name.as_ref(),
       exported_name_span,
     );
   }
@@ -109,7 +116,7 @@ impl JavascriptParser<'_> {
       return;
     };
     let drive = self.plugin_drive.clone();
-    drive.export_import(self, ExportImport::Named(export), source);
+    drive.export_import(self, ExportImport::Named(export), &source);
     match export {
       ExportNamedDeclaration::Decl(_) => {}
       ExportNamedDeclaration::Specifiers(named) => {
@@ -119,7 +126,7 @@ impl JavascriptParser<'_> {
           drive.export_import_specifier(
             self,
             ExportImport::Named(export),
-            source,
+            &source,
             Some(&local_id),
             Some(&exported_name),
             Some(exported_name_span),

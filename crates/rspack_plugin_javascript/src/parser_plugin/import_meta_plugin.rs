@@ -6,9 +6,8 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::ast::{Expr, MemberProp, MetaPropKind},
+use swc_experimental_ecma_ast::{
+  CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, Span, UnaryExpr,
 };
 use url::Url;
 
@@ -91,21 +90,18 @@ impl ImportMetaPlugin {
     }
   }
 
-  fn process_import_meta_resolve(
-    &self,
-    parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
-  ) {
+  fn process_import_meta_resolve(&self, parser: &mut JavascriptParser, call_expr: &CallExpr) {
     if call_expr.args.len() != 1 {
       return;
     }
 
     let argument_expr = &call_expr.args[0].expr;
     let param = parser.evaluate_expression(argument_expr);
-    let range = DependencyRange::from(call_expr.callee.span());
+    let callee_span = call_expr.callee.span();
+    let range = DependencyRange::from(callee_span);
     let loc = parser.to_dependency_location(range);
     let import_meta_resolve_header_dependency = Box::new(ImportMetaResolveHeaderDependency::new(
-      call_expr.callee.span().into(),
+      callee_span.into(),
       loc,
     ));
 
@@ -147,11 +143,7 @@ impl ImportMetaPlugin {
     parser.add_dependency(Box::new(dep));
   }
 
-  fn process_rspack_rsc(
-    &self,
-    parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
-  ) {
+  fn process_rspack_rsc(&self, parser: &mut JavascriptParser, member_expr: &MemberExpr) {
     let importer = get_rspack_rsc_importer(parser);
     mark_import_meta_rsc_used(parser);
 
@@ -207,11 +199,11 @@ fn mark_import_meta_rsc_used(parser: &mut JavascriptParser) {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ImportMetaPlugin {
-  fn evaluate_typeof<'a>(
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
+  fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &'a swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     let mut evaluated = None;
@@ -247,11 +239,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'p>> {
     if for_name == expr_name::IMPORT_META_VERSION {
       Some(eval::evaluate_to_number(5_f64, start, end))
     } else if for_name == expr_name::IMPORT_META_URL {
@@ -275,9 +267,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
     }
   }
 
-  fn evaluate<'a>(
+  fn evaluate(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &'a Expr,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     if let Some(member) = expr.as_member()
@@ -295,27 +287,23 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         {
           return None;
         }
-        return Some(eval::evaluate_to_undefined(
-          member.span().real_lo(),
-          member.span().real_hi(),
-        ));
+        let span = member.span();
+        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
       if let Some(computed) = member.prop.as_computed()
         && computed.expr.is_lit()
       {
         // Check for computed properties like import.meta["dirname"]
         if let Some(str_lit) = computed.expr.as_lit().and_then(|lit| lit.as_str())
-          && (str_lit.value == "dirname"
-            || str_lit.value == "filename"
-            || str_lit.value == "main"
-            || (str_lit.value == "rspackRsc" && is_rsc_layer(parser)))
+          && (str_lit.value.as_str() == Some("dirname")
+            || str_lit.value.as_str() == Some("filename")
+            || str_lit.value.as_str() == Some("main")
+            || (str_lit.value.as_str() == Some("rspackRsc") && is_rsc_layer(parser)))
         {
           return None;
         }
-        return Some(eval::evaluate_to_undefined(
-          member.span().real_lo(),
-          member.span().real_hi(),
-        ));
+        let span = member.span();
+        return Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()));
       }
     }
     None
@@ -323,8 +311,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
-    unary_expr: &swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
@@ -371,7 +359,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn can_collect_destructuring_assignment_properties(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     expr: &Expr,
   ) -> Option<bool> {
     if expr.is_meta_prop() {
@@ -382,8 +370,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn meta_property(
     &self,
-    parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    parser: &mut JavascriptParser<'p>,
+    root_name: &swc_atoms::Atom,
     span: Span,
   ) -> Option<bool> {
     if root_name == expr_name::IMPORT_META {
@@ -440,7 +428,7 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
         error.severity = Severity::Warning;
         parser.add_warning(error.into());
 
-        let content = if parser.is_asi_position(span.lo()) {
+        let content = if parser.is_asi_position(span.start) {
           ";({})"
         } else {
           "({})"
@@ -458,8 +446,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::IMPORT_META_URL {
@@ -494,8 +482,8 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
-    call_expr: &swc_core::ecma::ast::CallExpr,
+    parser: &mut JavascriptParser<'p>,
+    call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if parser.javascript_options.import_meta_resolve == Some(true)
@@ -509,9 +497,9 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 
   fn unhandled_expression_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     root_info: &ExportedVariableInfo,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    expr: &MemberExpr,
   ) -> Option<bool> {
     match root_info {
       ExportedVariableInfo::Name(root) => {
@@ -562,11 +550,11 @@ impl JavascriptParserPlugin for ImportMetaPlugin {
 pub struct ImportMetaDisabledPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ImportMetaDisabledPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaDisabledPlugin {
   fn meta_property(
     &self,
-    parser: &mut JavascriptParser,
-    root_name: &swc_core::atoms::Atom,
+    parser: &mut JavascriptParser<'p>,
+    root_name: &swc_atoms::Atom,
     span: Span,
   ) -> Option<bool> {
     let import_meta_name = parser.compiler_options.output.import_meta_name.clone();
