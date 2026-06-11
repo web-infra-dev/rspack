@@ -285,7 +285,7 @@ export default {
 ## optimization.minimizer
 
 <PropertyType
-  type="Array<Plugin>"
+  type="('...' | Plugin)[]"
   defaultValueList={[
     {
       defaultValue:
@@ -338,7 +338,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="'natural' | 'named' | 'deterministic' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -355,6 +355,7 @@ The following string values are supported:
 | `named`         | Use meaningful, easy-to-debug content as id.                                                                                   |
 | `deterministic` | Use the hashed module identifier as the id to benefit from long-term caching. By default a minimum length of 3 digits is used. |
 | `hashed`        | Use hashed module identifiers as ids. Equivalent to using `HashedModuleIdsPlugin` with default options (md4, base64, 4 chars). |
+| `false`         | Disable Rspack's built-in module id algorithm, allowing a custom plugin to provide module ids.                                 |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -369,7 +370,7 @@ The `deterministic` option is useful for long term caching, and results in small
 ## optimization.nodeEnv
 
 <PropertyType
-  type="boolean | string"
+  type="string | false"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -446,7 +447,7 @@ export default {
 ## optimization.runtimeChunk
 
 <PropertyType
-  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
+  type="boolean | 'single' | 'multiple' | { name?: string | ((entrypoint: { name: string }) => string) }"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -466,17 +467,19 @@ export default {
 };
 ```
 
-Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk. This setting is an alias for:
+Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    runtimeChunk: 'runtime',
+    runtimeChunk: {
+      name: 'runtime',
+    },
   },
 };
 ```
 
-By setting `optimization.runtimeChunk` to an object it can provide the `name` property which stands for the name for the runtime chunks.
+By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the runtime chunks.
 
 ```js title="rspack.config.mjs"
 export default {
