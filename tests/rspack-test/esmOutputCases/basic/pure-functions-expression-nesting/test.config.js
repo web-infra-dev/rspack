@@ -1,5 +1,5 @@
 const markers = ["PURE_NESTING_FN_A_MARKER", "PURE_NESTING_FN_B_MARKER"];
-const retainedMarkers = ["UNSAFE_OPTIONAL_MEMBER_MARKER"];
+const retainedMarkers = ["UNSAFE_OPTIONAL_MEMBER_MARKER", "UNSAFE_SHORTHAND_MARKER"];
 
 module.exports = {
   snapshotContent(content) {

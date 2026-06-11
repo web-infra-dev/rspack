@@ -1148,7 +1148,7 @@ fn is_pure_object_prop<'a>(
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
   match prop {
-    Prop::Shorthand(_) => true,
+    Prop::Shorthand(_) => false,
     Prop::KeyValue(key_value) => {
       is_pure_prop_name(
         parser,

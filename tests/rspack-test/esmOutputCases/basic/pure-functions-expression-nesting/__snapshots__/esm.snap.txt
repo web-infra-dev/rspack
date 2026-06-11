@@ -47,7 +47,15 @@ const optionalMemberObj = {
 
 memberPure([optionalMemberObj?.value]);
 
+// ./unsafe-shorthand-object.js
+
+
+const shorthandValue = "UNSAFE_SHORTHAND_MARKER";
+
+memberPure([{ shorthandValue: shorthandValue }]);
+
 // ./index.js
+
 
 
 
