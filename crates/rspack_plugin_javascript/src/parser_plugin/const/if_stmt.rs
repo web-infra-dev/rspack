@@ -2,57 +2,51 @@ use itertools::Itertools;
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{
-    DoWhileStmt, ForHead, ForInStmt, ForOfStmt, Ident, IfStmt, LabeledStmt, ObjectPatProp, Pat,
-    Stmt, VarDeclKind, VarDeclOrExpr, WhileStmt,
-  },
+use swc_experimental_ecma_ast::{
+  ForHead, GetSpan, Ident, IfStmt, ObjectPatProp, Pat, Stmt, VarDeclKind, VarDeclOrExpr,
 };
 
 use crate::visitors::{JavascriptParser, Statement, VariableDeclarationKind};
 
 /// Collects hoisted `var` and (in non-strict) function/class declaration idents from a statement.
-pub fn get_hoisted_declarations<'ast>(
-  stmt: Statement<'ast>,
+pub fn get_hoisted_declarations<'a>(
+  stmt: Statement<'a>,
   include_function_declarations: bool,
-) -> FxHashSet<&'ast Ident> {
+) -> FxHashSet<&'a str> {
   let mut declarations = FxHashSet::default();
   let mut stmt_stack = vec![stmt];
 
-  let collect_declaration_from_ident =
-    |ident: &'ast Ident, declarations: &mut FxHashSet<&'ast Ident>| {
-      declarations.insert(ident);
-    };
+  let collect_declaration_from_ident = |ident: &'a Ident, declarations: &mut FxHashSet<&'a str>| {
+    declarations.insert(ident.sym.as_str());
+  };
 
-  let collect_declaration_from_pat =
-    |pattern: &'ast Pat, declarations: &mut FxHashSet<&'ast Ident>| {
-      let mut stack = vec![pattern];
-      while let Some(node) = stack.pop() {
-        match node {
-          Pat::Ident(ident) => collect_declaration_from_ident(&ident.id, declarations),
-          Pat::Array(array) => {
-            for element in array.elems.iter().flatten() {
-              stack.push(element);
-            }
+  let collect_declaration_from_pat = |pattern: &'a Pat, declarations: &mut FxHashSet<&'a str>| {
+    let mut stack = vec![pattern];
+    while let Some(node) = stack.pop() {
+      match node {
+        Pat::Ident(ident) => collect_declaration_from_ident(&ident.id, declarations),
+        Pat::Array(array) => {
+          for element in array.elems.iter().flatten() {
+            stack.push(element);
           }
-          Pat::Assign(assign) => stack.push(&assign.left),
-          Pat::Object(object) => {
-            for property in &object.props {
-              match property {
-                ObjectPatProp::KeyValue(key_value) => stack.push(&key_value.value),
-                ObjectPatProp::Assign(assign) => {
-                  collect_declaration_from_ident(&assign.key, declarations);
-                }
-                ObjectPatProp::Rest(rest) => stack.push(&rest.arg),
-              }
-            }
-          }
-          Pat::Rest(rest) => stack.push(&rest.arg),
-          _ => {}
         }
+        Pat::Assign(assign) => stack.push(&assign.left),
+        Pat::Object(object) => {
+          for property in &object.props {
+            match property {
+              ObjectPatProp::KeyValue(key_value) => stack.push(&key_value.value),
+              ObjectPatProp::Assign(assign) => {
+                collect_declaration_from_ident(&assign.key.id, declarations);
+              }
+              ObjectPatProp::Rest(rest) => stack.push(&rest.arg),
+            }
+          }
+        }
+        Pat::Rest(rest) => stack.push(&rest.arg),
+        _ => {}
       }
-    };
+    }
+  };
 
   while let Some(node) = stmt_stack.pop() {
     #[allow(clippy::collapsible_match)]
@@ -63,9 +57,9 @@ pub fn get_hoisted_declarations<'ast>(
         }
       }
       Statement::If(r#if) => {
-        stmt_stack.push(Statement::from(r#if.cons.as_ref()));
+        stmt_stack.push(Statement::from(&r#if.cons));
         if let Some(alt) = &r#if.alt {
-          stmt_stack.push(Statement::from(alt.as_ref()));
+          stmt_stack.push(Statement::from(alt));
         }
       }
       Statement::For(r#for) => {
@@ -77,21 +71,32 @@ pub fn get_hoisted_declarations<'ast>(
             collect_declaration_from_pat(&decl.name, &mut declarations);
           }
         }
-        stmt_stack.push(Statement::from(r#for.body.as_ref()));
+        stmt_stack.push(Statement::from(&r#for.body));
       }
-      Statement::ForIn(ForInStmt { left, body, .. })
-      | Statement::ForOf(ForOfStmt { left, body, .. }) => {
-        if let ForHead::VarDecl(var_decl) = left {
+      Statement::ForIn(stmt) => {
+        if let ForHead::VarDecl(var_decl) = &stmt.left {
           for decl in &var_decl.decls {
             collect_declaration_from_pat(&decl.name, &mut declarations);
           }
         }
-        stmt_stack.push(Statement::from(body.as_ref()));
+        stmt_stack.push(Statement::from(&stmt.body));
       }
-      Statement::DoWhile(DoWhileStmt { body, .. })
-      | Statement::While(WhileStmt { body, .. })
-      | Statement::Labeled(LabeledStmt { body, .. }) => {
-        stmt_stack.push(Statement::from(body.as_ref()));
+      Statement::ForOf(stmt) => {
+        if let ForHead::VarDecl(var_decl) = &stmt.left {
+          for decl in &var_decl.decls {
+            collect_declaration_from_pat(&decl.name, &mut declarations);
+          }
+        }
+        stmt_stack.push(Statement::from(&stmt.body));
+      }
+      Statement::DoWhile(stmt) => {
+        stmt_stack.push(Statement::from(&stmt.body));
+      }
+      Statement::While(stmt) => {
+        stmt_stack.push(Statement::from(&stmt.body));
+      }
+      Statement::Labeled(stmt) => {
+        stmt_stack.push(Statement::from(&stmt.body));
       }
       Statement::Switch(switch) => {
         for case in &switch.cases {
@@ -134,7 +139,7 @@ pub fn get_hoisted_declarations<'ast>(
   declarations
 }
 
-pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<bool> {
+pub fn statement_if<'p>(scanner: &mut JavascriptParser<'p>, stmt: &IfStmt<'_>) -> Option<bool> {
   let param = scanner.evaluate_expression(&stmt.test);
   let boolean = param.as_bool()?;
   if !param.could_have_side_effects() {
@@ -147,7 +152,7 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
   }
 
   let branch_to_remove: Option<&Stmt> = if boolean {
-    stmt.alt.as_ref().map(|b| b.as_ref())
+    stmt.alt.as_ref()
   } else {
     Some(&stmt.cons)
   };
@@ -162,18 +167,14 @@ pub fn statement_if(scanner: &mut JavascriptParser, stmt: &IfStmt) -> Option<boo
     let replacement = if declarations.is_empty() {
       "{}".to_string()
     } else {
-      format!(
-        "{{ var {} }}",
-        declarations.iter().map(|decl| decl.sym.as_str()).join(", ")
-      )
+      format!("{{ var {} }}", declarations.iter().join(", "))
     };
 
     scanner.add_presentational_dependency(Box::new(ConstDependency::new(
-      (
-        branch_to_remove.span().real_lo(),
-        branch_to_remove.span().real_hi(),
-      )
-        .into(),
+      {
+        let span = branch_to_remove.span();
+        (span.real_lo(), span.real_hi()).into()
+      },
       replacement.into_boxed_str(),
     )))
   }

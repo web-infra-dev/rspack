@@ -13,7 +13,9 @@ mod eval_unary_expr;
 use bitflags::bitflags;
 use num_bigint::BigInt;
 use rspack_core::DependencyRange;
-use swc_core::{atoms::Atom, common::Span, ecma::ast::Expr};
+use swc_atoms::Atom;
+use swc_experimental_allocator::{Allocator, CloneIn};
+use swc_experimental_ecma_ast::{Expr, Span};
 
 pub use self::{
   eval_array_expr::eval_array_expression,
@@ -46,21 +48,21 @@ struct IdentifierData {
   member_ranges: Option<Vec<Span>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct WrappedData<'a> {
   prefix: Option<Box<BasicEvaluatedExpression<'a>>>,
   postfix: Option<Box<BasicEvaluatedExpression<'a>>>,
   inner_expressions: Vec<BasicEvaluatedExpression<'a>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct TemplateStringData<'a> {
   quasis: Vec<BasicEvaluatedExpression<'a>>,
   parts: Vec<BasicEvaluatedExpression<'a>>,
   kind: TemplateStringKind,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 enum Payload<'a> {
   Unknown,
   Undefined,
@@ -78,12 +80,12 @@ enum Payload<'a> {
   TemplateString(Box<TemplateStringData<'a>>),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct BasicEvaluatedExpression<'a> {
   // For 'static-lifetime usage, any reference fields must originate from this owned expression.
-  owned_expression: Option<Box<Expr>>,
+  owned_expression: Option<Box<Expr<'a>>>,
   // During Tpl parsing, this may switch from Some(...) to None, hence separate from owned_expression.
-  expression: Option<&'a Expr>,
+  expression: Option<&'a Expr<'a>>,
   payload: Payload<'a>,
   range: Option<DependencyRange>,
   falsy: bool,
@@ -95,6 +97,109 @@ pub struct BasicEvaluatedExpression<'a> {
 impl Default for BasicEvaluatedExpression<'_> {
   fn default() -> Self {
     Self::new()
+  }
+}
+
+impl<'a> CloneIn<'a> for IdentifierData {
+  type Cloned = Self;
+
+  fn clone_in(&self, _allocator: &'a Allocator) -> Self::Cloned {
+    Self {
+      identifier: self.identifier.clone(),
+      root_info: self.root_info.clone(),
+      members: self.members.clone(),
+      members_optionals: self.members_optionals.clone(),
+      member_ranges: self.member_ranges.clone(),
+    }
+  }
+}
+
+impl<'alloc: 'a, 'a> CloneIn<'alloc> for WrappedData<'a> {
+  type Cloned = Self;
+
+  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+    Self {
+      prefix: self
+        .prefix
+        .as_ref()
+        .map(|expr| Box::new(expr.clone_in(allocator))),
+      postfix: self
+        .postfix
+        .as_ref()
+        .map(|expr| Box::new(expr.clone_in(allocator))),
+      inner_expressions: self
+        .inner_expressions
+        .iter()
+        .map(|expr| expr.clone_in(allocator))
+        .collect(),
+    }
+  }
+}
+
+impl<'alloc: 'a, 'a> CloneIn<'alloc> for TemplateStringData<'a> {
+  type Cloned = Self;
+
+  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+    Self {
+      quasis: self
+        .quasis
+        .iter()
+        .map(|expr| expr.clone_in(allocator))
+        .collect(),
+      parts: self
+        .parts
+        .iter()
+        .map(|expr| expr.clone_in(allocator))
+        .collect(),
+      kind: self.kind,
+    }
+  }
+}
+
+impl<'alloc: 'a, 'a> CloneIn<'alloc> for Payload<'a> {
+  type Cloned = Self;
+
+  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+    match self {
+      Self::Unknown => Self::Unknown,
+      Self::Undefined => Self::Undefined,
+      Self::Null => Self::Null,
+      Self::String(value) => Self::String(value.clone()),
+      Self::Number(value) => Self::Number(*value),
+      Self::Boolean(value) => Self::Boolean(*value),
+      Self::RegExp(value) => Self::RegExp(value.clone()),
+      Self::Conditional(value) => {
+        Self::Conditional(value.iter().map(|expr| expr.clone_in(allocator)).collect())
+      }
+      Self::Array(value) => {
+        Self::Array(value.iter().map(|expr| expr.clone_in(allocator)).collect())
+      }
+      Self::Wrapped(value) => Self::Wrapped(Box::new(value.clone_in(allocator))),
+      Self::ConstArray(value) => Self::ConstArray(value.clone()),
+      Self::BigInt(value) => Self::BigInt(value.clone()),
+      Self::Identifier(value) => Self::Identifier(Box::new(value.clone_in(allocator))),
+      Self::TemplateString(value) => Self::TemplateString(Box::new(value.clone_in(allocator))),
+    }
+  }
+}
+
+impl<'alloc: 'a, 'a> CloneIn<'alloc> for BasicEvaluatedExpression<'a> {
+  type Cloned = Self;
+
+  fn clone_in(&self, allocator: &'alloc Allocator) -> Self::Cloned {
+    Self {
+      owned_expression: self
+        .owned_expression
+        .as_ref()
+        .map(|expr| Box::new(expr.clone_in(allocator))),
+      expression: self.expression,
+      payload: self.payload.clone_in(allocator),
+      range: self.range,
+      falsy: self.falsy,
+      truthy: self.truthy,
+      side_effects: self.side_effects,
+      nullish: self.nullish,
+    }
   }
 }
 
@@ -638,27 +743,28 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.range.as_ref()
   }
 
-  pub fn set_expression(&mut self, expression: Option<&'a Expr>) {
+  pub fn set_expression(&mut self, expression: Option<&'a Expr<'a>>) {
     self.expression = expression;
   }
 
-  pub fn with_expression(mut self, expression: Option<&'a Expr>) -> Self {
+  pub fn with_expression(mut self, expression: Option<&'a Expr<'a>>) -> Self {
     self.expression = expression;
     self
   }
 
-  pub fn expression(&self) -> Option<&'a Expr> {
+  pub fn expression(&self) -> Option<&'a Expr<'a>> {
     self.expression
   }
 
-  pub fn with_owned_expression<F>(expr: Expr, f: F) -> Option<BasicEvaluatedExpression<'static>>
+  pub fn with_owned_expression<F>(expr: Expr<'a>, f: F) -> Option<BasicEvaluatedExpression<'a>>
   where
-    F: FnOnce(&Expr) -> Option<BasicEvaluatedExpression<'_>>,
+    F: FnOnce(&'a Expr<'a>) -> Option<BasicEvaluatedExpression<'a>>,
   {
     let expr = Box::new(expr);
     let raw_ptr = Box::into_raw(expr);
     // SAFETY: We are the only owner of the Box, and we are converting it to a raw pointer
-    let mut basic_evaluated_expression = f(unsafe { &*raw_ptr })?;
+    let expr_ref: &'a Expr<'a> = unsafe { &*raw_ptr };
+    let mut basic_evaluated_expression = f(expr_ref)?;
 
     if basic_evaluated_expression.owned_expression.is_none() {
       // SAFETY: If reference fields exist, they must originate from this owned expression.
