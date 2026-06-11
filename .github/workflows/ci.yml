@@ -227,7 +227,7 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
     steps:
       - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@ca8d345a115158ea5ab3807378357f2162be7467 # v0.3.1
+        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@0e65507af053729fa482e81bbdf95cb46e363aa9 # v0.3.2
         with:
           github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           ecosystem-owner: web-infra-dev
