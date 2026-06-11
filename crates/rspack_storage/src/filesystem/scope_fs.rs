@@ -126,7 +126,6 @@ impl ScopeFileSystem {
   }
 
   /// Reads entire file content
-  #[cfg(test)]
   pub async fn read(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Vec<u8>> {
     let path = self.workspace.join(relative_path);
     let data = self.fs.read_file(&path).await?;
