@@ -272,13 +272,26 @@ impl ContextModule {
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
   ) -> Self {
+    Self::new_with_strict(resolve_dependencies, options, None)
+  }
+
+  pub(crate) fn new_with_strict(
+    resolve_dependencies: ResolveContextModuleDependencies,
+    options: ContextModuleOptions,
+    strict: Option<bool>,
+  ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn,
