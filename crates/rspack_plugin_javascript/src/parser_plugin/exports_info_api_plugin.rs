@@ -1,7 +1,10 @@
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{Ident, MemberExpr, Span};
+use swc_core::{
+  atoms::Atom,
+  common::Span,
+  ecma::ast::{Ident, MemberExpr},
+};
 
 use super::JavascriptParserPlugin;
 use crate::{dependency::ExportInfoDependency, visitors::JavascriptParser};
@@ -11,10 +14,10 @@ const EXPORTS_INFO: &str = "__webpack_exports_info__";
 pub struct ExportsInfoApiPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ExportsInfoApiPlugin {
+impl JavascriptParserPlugin for ExportsInfoApiPlugin {
   fn member_chain(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     member_expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],

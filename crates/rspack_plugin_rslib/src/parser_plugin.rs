@@ -1,5 +1,5 @@
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
+use swc_core::ecma::ast::MemberExpr;
 
 #[derive(PartialEq, Debug, Default)]
 pub struct RslibParserPlugin {
@@ -15,10 +15,10 @@ impl RslibParserPlugin {
 }
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RslibParserPlugin {
+impl JavascriptParserPlugin for RslibParserPlugin {
   fn member(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    _parser: &mut JavascriptParser,
     _member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -36,8 +36,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RslibParserPlugin {
 
   fn r#typeof(
     &self,
-    _parser: &mut JavascriptParser<'p>,
-    _expr: &UnaryExpr,
+    _parser: &mut JavascriptParser,
+    _expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == "module" {

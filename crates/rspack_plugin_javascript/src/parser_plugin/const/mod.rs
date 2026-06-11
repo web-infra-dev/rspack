@@ -1,10 +1,11 @@
-use rspack_util::SpanExt;
 mod if_stmt;
 mod logic_expr;
 
 use rspack_core::{CachedConstDependency, ConstDependency};
-use swc_experimental_ecma_ast::{BinExpr, CondExpr, GetSpan, Ident, IfStmt};
+use rspack_util::SpanExt;
+use swc_core::common::Spanned;
 
+pub use self::logic_expr::is_logic_op;
 use super::JavascriptParserPlugin;
 use crate::{
   utils::eval::evaluate_to_string,
@@ -17,19 +18,19 @@ const RESOURCE_FRAGMENT: &str = "__resourceFragment";
 const RESOURCE_QUERY: &str = "__resourceQuery";
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
+impl JavascriptParserPlugin for ConstPlugin {
   fn expression_logical_operator(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &BinExpr,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::BinExpr,
   ) -> Option<bool> {
     self::logic_expr::expression_logic_operator(parser, expr)
   }
 
   fn expression_conditional_operation(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expression: &CondExpr,
+    parser: &mut JavascriptParser,
+    expression: &swc_core::ecma::ast::CondExpr,
   ) -> Option<bool> {
     let param = parser.evaluate_expression(&expression.test);
     if let Some(bool) = param.as_bool() {
@@ -58,14 +59,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     }
   }
 
-  fn statement_if(&self, parser: &mut JavascriptParser<'p>, expr: &IfStmt) -> Option<bool> {
+  fn statement_if(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::IfStmt,
+  ) -> Option<bool> {
     self::if_stmt::statement_if(parser, expr)
   }
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    parser: &mut JavascriptParser,
+    ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
     match for_name {
@@ -93,11 +98,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     match for_name {
       RESOURCE_QUERY => Some(evaluate_to_string(
         parser
@@ -121,7 +126,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     }
   }
 
-  fn unused_statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
+  fn unused_statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
     // Skip top level scope to align with webpack's ConstPlugin behavior.
     if parser.is_top_level_scope() {
       return None;
@@ -134,7 +139,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ConstPlugin {
     let replacement_body = if declarations.is_empty() {
       "{}".to_string()
     } else {
-      let mut names: Vec<&str> = declarations.iter().copied().collect();
+      let mut names: Vec<&str> = declarations.iter().map(|decl| decl.sym.as_str()).collect();
       names.sort_unstable();
       format!("{{ var {} }}", names.join(", "))
     };

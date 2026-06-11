@@ -12,7 +12,7 @@ use rspack_core::{
   SourceType, TemplateContext, TemplateReplaceSource, TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
-use swc_atoms::Atom;
+use swc_core::ecma::atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 

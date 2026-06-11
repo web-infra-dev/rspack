@@ -1,20 +1,22 @@
 use rustc_hash::FxHashSet;
-use swc_experimental_ecma_ast::{
-  BreakStmt, ClassMember, ContinueStmt, DebuggerStmt, ExportAll, ExportDefaultExpr, ExprStmt,
-  ImportDecl, NamedExport, ReturnStmt, Span, ThrowStmt, UpdateExpr, VarDecl, Visit, VisitWith,
-  YieldExpr,
+use swc_core::{
+  common::{BytePos, Span},
+  ecma::{
+    ast::ClassMember,
+    parser::unstable::{Token, TokenAndSpan},
+    visit::{Visit, VisitWith},
+  },
 };
-use swc_experimental_ecma_parser::unstable::{Token, TokenAndSpan};
 
 /// Auto inserted semicolon
 /// See: https://262.ecma-international.org/7.0/#sec-rules-of-automatic-semicolon-insertion
 pub struct InsertedSemicolons<'a> {
-  semicolons: &'a mut FxHashSet<u32>,
+  semicolons: &'a mut FxHashSet<BytePos>,
   tokens: &'a [TokenAndSpan],
 }
 
 impl<'a> InsertedSemicolons<'a> {
-  pub fn new(semicolons: &'a mut FxHashSet<u32>, tokens: &'a [TokenAndSpan]) -> Self {
+  pub fn new(semicolons: &'a mut FxHashSet<BytePos>, tokens: &'a [TokenAndSpan]) -> Self {
     Self { semicolons, tokens }
   }
 
@@ -25,7 +27,7 @@ impl<'a> InsertedSemicolons<'a> {
   fn curr_token(&self, span: &Span) -> Option<usize> {
     self
       .tokens
-      .binary_search_by(|t| t.span.start.cmp(&span.start))
+      .binary_search_by(|t| t.span.lo.cmp(&span.lo))
       .ok()
   }
 
@@ -36,7 +38,7 @@ impl<'a> InsertedSemicolons<'a> {
   fn next_token(&self, span: &Span) -> Option<usize> {
     self
       .tokens
-      .binary_search_by(|t| t.span.end.cmp(&span.end))
+      .binary_search_by(|t| t.span.hi.cmp(&span.hi))
       .ok()
       .map(|i| i + 1)
   }
@@ -59,7 +61,7 @@ impl<'a> InsertedSemicolons<'a> {
     if index > 0 {
       let prev = &self.tokens[index - 1];
       if !matches!(prev.token, Token::Semi) && self.can_insert_semi(index) {
-        self.semicolons.insert(prev.span.end);
+        self.semicolons.insert(prev.span.hi);
       }
     }
   }
@@ -72,81 +74,81 @@ impl<'a> InsertedSemicolons<'a> {
     if index > 0 {
       let prev = &self.tokens[index - 1];
       if !matches!(prev.token, Token::Semi) && self.can_insert_semi(index) {
-        self.semicolons.insert(prev.span.end);
+        self.semicolons.insert(prev.span.hi);
       }
     }
   }
 }
 
-impl<'a> Visit<'a> for InsertedSemicolons<'_> {
-  fn visit_expr_stmt(&mut self, n: &ExprStmt<'a>) {
+impl Visit for InsertedSemicolons<'_> {
+  fn visit_expr_stmt(&mut self, n: &swc_core::ecma::ast::ExprStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_var_decl(&mut self, n: &VarDecl<'a>) {
+  fn visit_var_decl(&mut self, n: &swc_core::ecma::ast::VarDecl) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_update_expr(&mut self, n: &UpdateExpr<'a>) {
+  fn visit_update_expr(&mut self, n: &swc_core::ecma::ast::UpdateExpr) {
     self.semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_continue_stmt(&mut self, n: &ContinueStmt<'a>) {
+  fn visit_continue_stmt(&mut self, n: &swc_core::ecma::ast::ContinueStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_break_stmt(&mut self, n: &BreakStmt<'a>) {
+  fn visit_break_stmt(&mut self, n: &swc_core::ecma::ast::BreakStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_return_stmt(&mut self, n: &ReturnStmt<'a>) {
+  fn visit_return_stmt(&mut self, n: &swc_core::ecma::ast::ReturnStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_throw_stmt(&mut self, n: &ThrowStmt<'a>) {
+  fn visit_throw_stmt(&mut self, n: &swc_core::ecma::ast::ThrowStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_yield_expr(&mut self, n: &YieldExpr<'a>) {
+  fn visit_yield_expr(&mut self, n: &swc_core::ecma::ast::YieldExpr) {
     self.post_semi(&n.span);
     if let Some(arg) = &n.arg {
       arg.visit_children_with(self)
     }
   }
 
-  fn visit_import_decl(&mut self, n: &ImportDecl<'a>) {
+  fn visit_import_decl(&mut self, n: &swc_core::ecma::ast::ImportDecl) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_named_export(&mut self, n: &NamedExport<'a>) {
+  fn visit_named_export(&mut self, n: &swc_core::ecma::ast::NamedExport) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_default_expr(&mut self, n: &ExportDefaultExpr<'a>) {
+  fn visit_export_default_expr(&mut self, n: &swc_core::ecma::ast::ExportDefaultExpr) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_export_all(&mut self, n: &ExportAll<'a>) {
+  fn visit_export_all(&mut self, n: &swc_core::ecma::ast::ExportAll) {
     self.post_semi(&n.span);
     n.visit_children_with(self)
   }
 
-  fn visit_debugger_stmt(&mut self, n: &DebuggerStmt) {
+  fn visit_debugger_stmt(&mut self, n: &swc_core::ecma::ast::DebuggerStmt) {
     self.post_semi(&n.span);
     n.visit_children_with(self);
   }
 
-  fn visit_class_member(&mut self, n: &ClassMember<'a>) {
+  fn visit_class_member(&mut self, n: &swc_core::ecma::ast::ClassMember) {
     match n {
       ClassMember::ClassProp(prop) => self.post_semi(&prop.span),
       ClassMember::PrivateProp(prop) => self.post_semi(&prop.span),

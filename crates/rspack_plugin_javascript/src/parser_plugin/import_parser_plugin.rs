@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rspack_core::{
   AsyncDependenciesBlock, ChunkGroupOptions, ContextDependency, ContextNameSpaceObject,
   ContextOptions, DependencyCategory, DependencyRange, DependencyType, DynamicImportFetchPriority,
@@ -6,10 +8,12 @@ use rspack_core::{
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, swc::get_swc_comments};
 use rustc_hash::FxHashMap;
-use swc_atoms::Atom;
-use swc_experimental_allocator::CloneIn;
-use swc_experimental_ecma_ast::{
-  BlockStmtOrExpr, CallExpr, Expr, GetSpan, Ident, MemberExpr, Pat, Span, VarDeclarator,
+use swc_core::{
+  common::{Span, Spanned},
+  ecma::{
+    ast::{BlockStmtOrExpr, CallExpr, Expr, Ident, MemberExpr, Pat, VarDeclarator},
+    atoms::Atom,
+  },
 };
 
 use super::{JavascriptParserPlugin, import_phase::get_import_phase};
@@ -20,7 +24,7 @@ use crate::{
   magic_comment::try_extract_magic_comment,
   utils::object_properties::{get_attributes, get_value_by_obj_prop},
   visitors::{
-    ContextModuleScanResult, JavascriptParser, PatRef, Statement, TagInfoData, TopLevelScope,
+    ContextModuleScanResult, JavascriptParser, Statement, TagInfoData, TopLevelScope,
     VariableDeclaration, VariableDeclarationKind, context_reg_exp, create_context_dependency,
     create_traceable_error, get_non_optional_part, parse_order_string,
   },
@@ -121,10 +125,10 @@ struct ImportTagData {
 pub struct ImportParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
+impl JavascriptParserPlugin for ImportParserPlugin {
   fn can_collect_destructuring_assignment_properties(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     expr: &Expr,
   ) -> Option<bool> {
     if let Some(call) = expr.as_call()
@@ -133,7 +137,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       return Some(true);
     }
     if let Some(ident) = expr.as_ident()
-      && let Some(name_info) = parser.get_name_info_from_variable(&Atom::from(ident.sym.as_str()))
+      && let Some(name_info) = parser.get_name_info_from_variable(&ident.sym)
       && let Some(info) = name_info.info
       && let Some(name) = info.name.clone()
       && parser
@@ -147,27 +151,26 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
 
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if declaration.kind() != VariableDeclarationKind::Var
       && let Some(init) = &declarator.init
-      && let Some(expr) = init.as_await()
+      && let Some(expr) = init.as_await_expr()
       && let Some(call) = expr.arg.as_call()
       && call.callee.is_import()
       && let Some(binding) = declarator.name.as_ident()
     {
-      let name = Atom::from(binding.id.sym.as_str());
-      parser.define_variable(name.clone());
-      tag_dynamic_import_referenced(parser, call, name);
+      parser.define_variable(binding.id.sym.clone());
+      tag_dynamic_import_referenced(parser, call, binding.id.sym.clone());
     }
     None
   }
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -203,7 +206,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
 
   fn member_chain(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     _expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
@@ -227,7 +230,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -260,7 +263,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
 
   fn import_call(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     node: &CallExpr,
     import_then: Option<&CallExpr>,
     referenced_in_members: Option<(&[Atom], bool)>,
@@ -384,7 +387,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     }
 
     let attributes = get_attributes_from_call_expr(node);
-    let param = parser.evaluate_expression(&dyn_imported.expr);
+    let param = parser.evaluate_expression(dyn_imported.expr.as_ref());
 
     let dep_locator = if param.is_string() {
       if matches!(mode, DynamicImportMode::Eager) {
@@ -426,14 +429,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           attributes,
           phase,
           parser.in_try,
-          {
-            let dyn_imported_span = dyn_imported.span();
-            get_swc_comments(
-              parser.ast.comments,
-              dyn_imported_span.start,
-              dyn_imported_span.end,
-            )
-          },
+          get_swc_comments(
+            parser.comments,
+            dyn_imported.span().lo,
+            dyn_imported.span().hi,
+          ),
         ));
         let range = DependencyRange::from(import_call_span);
         let loc = parser.to_dependency_location(range);
@@ -472,8 +472,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         critical,
       } = create_context_dependency(&param, parser);
 
-      let dyn_imported_span = dyn_imported.span();
-      let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
+      let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported.span().into()), parser);
       let mut dep = ImportContextDependency::new(
         ContextOptions {
           mode: mode.into(),
@@ -505,7 +504,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           phase: Some(phase),
         },
         import_call_span.into(),
-        dyn_imported_span.into(),
+        dyn_imported.span().into(),
         parser.in_try,
       );
       *dep.critical_mut() = critical;
@@ -537,7 +536,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     Some(true)
   }
 
-  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
     for (locator, variable_name, mut references) in parser
       .dynamic_import_references
       .take_all_import_references()
@@ -602,12 +601,12 @@ fn get_attributes_from_call_expr(node: &CallExpr) -> Option<ImportAttributes> {
     .map(get_attributes)
 }
 
-fn get_fulfilled_callback_namespace_obj<'a>(import_then: &'a CallExpr<'a>) -> Option<&'a Pat<'a>> {
+fn get_fulfilled_callback_namespace_obj(import_then: &CallExpr) -> Option<&Pat> {
   let fulfilled_callback = import_then.args.first()?;
   if fulfilled_callback.spread.is_some() {
     return None;
   }
-  let fulfilled_callback = &fulfilled_callback.expr;
+  let fulfilled_callback = &*fulfilled_callback.expr;
   let ns_obj = match fulfilled_callback {
     Expr::Arrow(f) => f.params.first()?,
     Expr::Fn(f) => &f.function.params.first()?.pat,
@@ -622,33 +621,27 @@ fn get_fulfilled_callback_namespace_obj<'a>(import_then: &'a CallExpr<'a>) -> Op
 fn walk_import_then_fulfilled_callback(
   parser: &mut JavascriptParser,
   import_call: &CallExpr,
-  fulfilled_callback: &Expr<'_>,
-  namespace_obj_arg: &Pat<'_>,
+  fulfilled_callback: &Expr,
+  namespace_obj_arg: &Pat,
 ) {
-  let mut scope_params: Vec<PatRef<'_>> = if let Some(fn_expr) = fulfilled_callback.as_fn() {
+  let mut scope_params: Vec<Cow<Pat>> = if let Some(fn_expr) = fulfilled_callback.as_fn_expr() {
     fn_expr
       .function
       .params
       .iter()
-      .map(|p| PatRef::Borrowed(&p.pat))
+      .map(|p| Cow::Borrowed(&p.pat))
       .collect()
   } else if let Some(arrow_expr) = fulfilled_callback.as_arrow() {
-    arrow_expr.params.iter().map(PatRef::Borrowed).collect()
+    arrow_expr.params.iter().map(Cow::Borrowed).collect()
   } else {
     unreachable!()
   };
 
   // Add function name in scope for recursive calls
-  if let Some(expr) = fulfilled_callback.as_fn()
+  if let Some(expr) = fulfilled_callback.as_fn_expr()
     && let Some(ident) = &expr.ident
   {
-    scope_params.push(PatRef::Owned(Pat::Ident(
-      parser.ast.allocator.boxed(
-        (**ident)
-          .clone_in(parser.ast.allocator)
-          .into_binding(parser.ast.allocator),
-      ),
-    )));
+    scope_params.push(Cow::Owned(Pat::Ident(ident.clone().into())));
   }
 
   let was_top_level_scope = parser.top_level_scope;
@@ -660,21 +653,21 @@ fn walk_import_then_fulfilled_callback(
     };
 
   parser.in_function_scope(
-    fulfilled_callback.is_fn(),
+    fulfilled_callback.is_fn_expr(),
     scope_params.into_iter(),
     |parser| {
       if let Some(ns_obj) = namespace_obj_arg.as_ident() {
-        tag_dynamic_import_referenced(parser, import_call, Atom::from(ns_obj.id.sym.as_str()));
+        tag_dynamic_import_referenced(parser, import_call, ns_obj.id.sym.clone());
       } else if let Some(ns_obj) = namespace_obj_arg.as_object() {
         if let Some(keys) =
           parser.collect_destructuring_assignment_properties_from_object_pattern(ns_obj)
         {
           parser
             .dynamic_import_references
-            .add_import(import_call.span);
+            .add_import(import_call.span());
           let import_references = parser
             .dynamic_import_references
-            .get_import_mut_expect(&import_call.span);
+            .get_import_mut_expect(&import_call.span());
           let mut refs = Vec::new();
           keys.traverse_on_leaf(&mut |stack| {
             refs.push(stack.iter().map(|p| p.id.clone()).collect::<Vec<Atom>>());
@@ -686,7 +679,7 @@ fn walk_import_then_fulfilled_callback(
       } else {
         unreachable!()
       }
-      if let Some(expr) = fulfilled_callback.as_fn() {
+      if let Some(expr) = fulfilled_callback.as_fn_expr() {
         for param in &expr.function.params {
           parser.walk_pattern(&param.pat);
         }
@@ -701,7 +694,7 @@ fn walk_import_then_fulfilled_callback(
         for pat in &expr.params {
           parser.walk_pattern(pat);
         }
-        match &expr.body {
+        match &*expr.body {
           BlockStmtOrExpr::BlockStmt(stmt) => {
             parser.detect_mode(&stmt.stmts);
             let prev = parser.prev_statement;

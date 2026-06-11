@@ -1,8 +1,18 @@
 use rspack_core::ConstDependency;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{BinExpr, BinaryOp},
+};
 
 use crate::visitors::JavascriptParser;
+
+pub fn is_logic_op(op: BinaryOp) -> bool {
+  matches!(
+    op,
+    BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing
+  )
+}
 
 pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr) -> Option<bool> {
   if expr.op == BinaryOp::LogicalAnd || expr.op == BinaryOp::LogicalOr {
@@ -25,10 +35,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
 
     if !keep_right {
       scanner.add_presentational_dependency(Box::new(ConstDependency::new(
-        {
-          let span = expr.right.span();
-          (span.real_lo(), span.real_hi()).into()
-        },
+        (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
         "0".into(),
       )));
     }
@@ -43,10 +50,7 @@ pub fn expression_logic_operator(scanner: &mut JavascriptParser, expr: &BinExpr)
         )));
       } else {
         scanner.add_presentational_dependency(Box::new(ConstDependency::new(
-          {
-            let span = expr.right.span();
-            (span.real_lo(), span.real_hi()).into()
-          },
+          (expr.right.span().real_lo(), expr.right.span().real_hi()).into(),
           "0".into(),
         )));
         scanner.walk_expression(&expr.left);

@@ -1,6 +1,7 @@
-use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
-use swc_experimental_ecma_ast::{Expr, MemberExpr, OptChainExpr};
+use swc_core::{
+  atoms::Atom,
+  ecma::ast::{Expr, MemberExpr, OptChainExpr},
+};
 
 use super::{AllowedMemberTypes, ExportedVariableInfo, JavascriptParser, MemberExpressionInfo};
 use crate::visitors::{ExprRef, scope_info::VariableInfoId};
@@ -9,24 +10,16 @@ use crate::visitors::{ExprRef, scope_info::VariableInfoId};
 /// webpack use HookMap and filter at callHooksForName/callHooksForInfo
 /// we need to pass the name to hook to filter in the hook
 pub trait CallHooksName {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>;
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>;
 }
 
 #[allow(unused_lifetimes)]
 impl CallHooksName for Atom {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     if let Some(id) = parser.get_variable_info(self).map(|info| info.id()) {
       // resolved variable info
@@ -39,39 +32,18 @@ impl CallHooksName for Atom {
 }
 
 impl CallHooksName for &str {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+  fn call_hooks_name<F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     Atom::from(*self).call_hooks_name(parser, hook_call)
   }
 }
-
-impl CallHooksName for AstAtom<'_> {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
-  where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
-  {
-    Atom::from(self.as_str()).call_hooks_name(parser, hook_call)
-  }
-}
 #[allow(unused_lifetimes)]
 impl CallHooksName for String {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     self.as_str().call_hooks_name(parser, hook_call)
   }
@@ -80,11 +52,11 @@ impl CallHooksName for String {
 impl CallHooksName for ExportedVariableInfo {
   fn call_hooks_name<'parser, F, T>(
     &self,
-    parser: &mut JavascriptParser<'parser>,
+    parser: &mut JavascriptParser,
     hooks_call: F,
   ) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     match self {
       ExportedVariableInfo::Name(n) => n.call_hooks_name(parser, hooks_call),
@@ -93,14 +65,10 @@ impl CallHooksName for ExportedVariableInfo {
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for MemberExpr<'_> {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+impl CallHooksName for MemberExpr {
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) =
       parser.get_member_expression_info(ExprRef::Member(self), AllowedMemberTypes::Expression)
@@ -117,23 +85,14 @@ impl CallHooksName for MemberExpr<'_> {
   }
 }
 #[allow(unused_lifetimes)]
-impl CallHooksName for OptChainExpr<'_> {
-  fn call_hooks_name<'parser, F, T>(
-    &self,
-    parser: &mut JavascriptParser<'parser>,
-    hook_call: F,
-  ) -> Option<T>
+impl CallHooksName for OptChainExpr {
+  fn call_hooks_name<'parser, F, T>(&self, parser: &mut JavascriptParser, hook_call: F) -> Option<T>
   where
-    F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+    F: Fn(&mut JavascriptParser, &str) -> Option<T>,
   {
     let Some(MemberExpressionInfo::Expression(expr_name)) = parser
       .get_member_expression_info_from_expr(
-        &Expr::OptChain(
-          parser
-            .ast
-            .allocator
-            .boxed(self.clone_in(parser.ast.allocator)),
-        ),
+        &Expr::OptChain(self.to_owned()),
         AllowedMemberTypes::Expression,
       )
     else {
@@ -149,13 +108,13 @@ impl CallHooksName for OptChainExpr<'_> {
   }
 }
 
-fn call_hooks_info<'parser, F, T>(
+fn call_hooks_info<F, T>(
   id: VariableInfoId,
-  parser: &mut JavascriptParser<'parser>,
+  parser: &mut JavascriptParser,
   hook_call: F,
 ) -> Option<T>
 where
-  F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
+  F: Fn(&mut JavascriptParser, &str) -> Option<T>,
 {
   let info = parser.definitions_db.expect_get_variable(id);
   let mut next_tag_info = info.tag_info;

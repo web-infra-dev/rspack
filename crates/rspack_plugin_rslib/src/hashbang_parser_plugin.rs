@@ -1,12 +1,12 @@
 use rspack_core::ConstDependency;
 use rspack_plugin_javascript::{JavascriptParserPlugin, visitors::JavascriptParser};
-use swc_experimental_ecma_ast::Program;
+use swc_core::ecma::ast::Program;
 
 pub struct HashbangParserPlugin;
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for HashbangParserPlugin {
-  fn program(&self, parser: &mut JavascriptParser<'p>, ast: &Program) -> Option<bool> {
+impl JavascriptParserPlugin for HashbangParserPlugin {
+  fn program(&self, parser: &mut JavascriptParser, ast: &Program) -> Option<bool> {
     let hashbang = ast
       .as_module()
       .and_then(|m| m.shebang.as_ref())

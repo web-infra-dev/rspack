@@ -1,5 +1,5 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
-use swc_experimental_ecma_ast::{MemberExpr, UnaryExpr};
+use swc_core::ecma::ast::MemberExpr;
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -10,14 +10,14 @@ use crate::{
 pub struct CommonJsPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
+impl JavascriptParserPlugin for CommonJsPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    _parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'p>> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     if for_name == expr_name::MODULE_HOT {
       Some(evaluate_to_identifier(
         expr_name::MODULE_HOT.into(),
@@ -33,8 +33,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == expr_name::MODULE {
@@ -50,7 +50,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     _expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {

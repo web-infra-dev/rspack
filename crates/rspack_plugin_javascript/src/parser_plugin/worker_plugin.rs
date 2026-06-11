@@ -10,9 +10,10 @@ use rspack_core::{
 use rspack_hash::RspackHash;
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{
-  CallExpr, ExprOrSpread, GetSpan, Ident, NewExpr, Span, VarDeclarator,
+use swc_core::{
+  atoms::Atom,
+  common::{Span, Spanned},
+  ecma::ast::{CallExpr, ExprOrSpread, Ident, NewExpr, VarDeclarator},
 };
 use url::Url;
 
@@ -151,12 +152,12 @@ fn add_dependencies(
 
 fn handle_worker<'a>(
   parser: &mut JavascriptParser,
-  args: &'a [ExprOrSpread<'a>],
+  args: &'a [ExprOrSpread],
   span: Span,
 ) -> Option<(
   ParsedNewWorkerPath,
   Option<ParsedNewWorkerOptions>,
-  &'a ExprOrSpread<'a>,
+  &'a ExprOrSpread,
   bool,
 )> {
   if let Some(expr_or_spread) = args.first()
@@ -177,9 +178,8 @@ fn handle_worker<'a>(
       && is_meta_url(parser, member_expr)
     {
       need_new_url = true;
-      let span = member_expr.span();
       ParsedNewWorkerPath {
-        range: (span.real_lo(), span.real_hi()),
+        range: (member_expr.span().real_lo(), member_expr.span().real_hi()),
         value: Url::from_file_path(parser.resource_data.resource())
           .expect("should be a path")
           .to_string(),
@@ -354,42 +354,36 @@ impl WorkerPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
+impl JavascriptParserPlugin for WorkerPlugin {
   fn pre_declarator(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     decl: &VarDeclarator,
     _statement: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if let Some(ident) = decl.name.as_ident()
-      && self
-        .inner
-        .pattern_syntax
-        .contains_key(ident.id.sym.as_str())
+      && self.inner.pattern_syntax.contains_key(ident.sym.as_str())
     {
-      let key = Atom::from(ident.id.sym.as_str());
       parser.tag_variable(
-        key.clone(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
-        Some(WorkerSpecifierData { key }),
+        Some(WorkerSpecifierData {
+          key: ident.sym.clone(),
+        }),
       );
       return Some(true);
     }
     None
   }
 
-  fn pattern(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
-    for_name: &str,
-  ) -> Option<bool> {
+  fn pattern(&self, parser: &mut JavascriptParser, ident: &Ident, for_name: &str) -> Option<bool> {
     if self.inner.pattern_syntax.contains_key(for_name) {
-      let key = Atom::from(ident.sym.as_str());
       parser.tag_variable(
-        key.clone(),
+        ident.sym.clone(),
         WORKER_SPECIFIER_TAG,
-        Some(WorkerSpecifierData { key }),
+        Some(WorkerSpecifierData {
+          key: ident.sym.clone(),
+        }),
       );
       return Some(true);
     }
@@ -398,7 +392,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -440,7 +434,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -503,7 +497,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
 
   fn new_expression(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     new_expr: &NewExpr,
     for_name: &str,
   ) -> Option<bool> {
