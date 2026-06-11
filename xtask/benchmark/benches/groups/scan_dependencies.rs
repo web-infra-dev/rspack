@@ -11,8 +11,8 @@ use criterion::{BatchSize, black_box};
 use rspack::builder::{Builder as _, NodeOptionBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  BuildInfo, BuildMeta, Compiler, CompilerOptions, Mode, ModuleCodeTemplate, ModuleIdentifier,
-  ModuleType, Optimization, ParseMeta, ParserOptions, ResourceData, SideEffectOption,
+  BuildInfo, BuildMeta, Compiler, CompilerOptions, Mode, ModuleIdentifier, ModuleType,
+  Optimization, ParseMeta, ParserOptions, ResourceData, RuntimeTemplate, SideEffectOption,
 };
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
@@ -155,6 +155,9 @@ fn prepare_scan_dependencies_benchmark_case(
     .cloned()
     .expect("scan_dependencies benchmark compiler should include javascript parser options");
 
+  let runtime_template =
+    RuntimeTemplate::new(compiler_options.clone()).create_module_code_template();
+
   PreparedScanDependenciesBenchmarkCase {
     benchmark_id,
     source_text,
@@ -165,9 +168,7 @@ fn prepare_scan_dependencies_benchmark_case(
     module_identifier: resource_path.into(),
     module_type,
     resource_data: ResourceData::new_with_resource(resource_path.to_string()),
-    parser_runtime_requirements: ParserRuntimeRequirementsData::new(&ModuleCodeTemplate::new(
-      compiler_options,
-    )),
+    parser_runtime_requirements: ParserRuntimeRequirementsData::new(&runtime_template),
   }
 }
 
