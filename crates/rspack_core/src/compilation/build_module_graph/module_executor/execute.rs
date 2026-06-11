@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
+use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
@@ -23,7 +23,10 @@ use crate::{
   render_runtime_module_source,
   runtime_globals::{RuntimeVariable, runtime_variable_name},
   runtime_mode::RuntimeMode,
-  utils::task_loop::{Task, TaskResult, TaskType},
+  utils::{
+    property_access,
+    task_loop::{Task, TaskResult, TaskType},
+  },
 };
 
 #[derive(Debug, Clone)]
@@ -84,6 +87,27 @@ fn create_execute_runtime_source(
       .source()
       .into_string_lossy(),
     );
+  }
+  for (_, runtime_global) in lexical_fields.iter_names() {
+    let (Some(property_name), Some(lexical_name)) = (
+      runtime_global.rspack_context_property_name(),
+      runtime_global.to_lexical_name(),
+    ) else {
+      continue;
+    };
+    writeln!(
+      source,
+      "{lexical_name}={runtime_context}{};",
+      property_access([property_name], 0)
+    )
+    .expect("write to string should succeed");
+    if runtime_global.should_initialize_as_object() {
+      writeln!(source, "{lexical_name}={lexical_name}||{{}};")
+        .expect("write to string should succeed");
+    } else if runtime_global.should_initialize_as_array() {
+      writeln!(source, "{lexical_name}={lexical_name}||[];")
+        .expect("write to string should succeed");
+    }
   }
   source.push_str(&metadata.render_context_setter_assignments(runtime_context));
 
