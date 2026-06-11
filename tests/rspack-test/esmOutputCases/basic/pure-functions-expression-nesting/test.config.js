@@ -7,7 +7,13 @@ const markers = [
   "DEAD_LOGICAL_OR_MARKER",
   "DEAD_NULLISH_MARKER",
 ];
-const retainedMarkers = ["UNSAFE_OPTIONAL_MEMBER_MARKER", "UNSAFE_SHORTHAND_MARKER"];
+const retainedMarkers = [
+  "UNSAFE_OPTIONAL_MEMBER_MARKER",
+  "UNSAFE_SHORTHAND_MARKER",
+  "SHADOWED_PURE_PARAM_MARKER",
+  "SHADOWED_PURE_LOCAL_MARKER",
+  "SHADOWED_PURE_FN_EXPR_NAME_MARKER",
+];
 
 module.exports = {
   snapshotContent(content) {

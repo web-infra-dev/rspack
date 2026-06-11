@@ -28,6 +28,12 @@ module.exports = {
           pureFunctions: ['unsafePureFn'],
         },
       },
+      {
+        test: /shadowed-pure-name\.js$/,
+        parser: {
+          pureFunctions: ['pureFn'],
+        },
+      },
     ],
   },
 };

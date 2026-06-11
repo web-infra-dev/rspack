@@ -10,7 +10,7 @@ use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
   ArrayLit, ArrowExpr, BinaryOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember,
   CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
-  ImportSpecifier, Lit, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptCall,
+  Ident, ImportSpecifier, Lit, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptCall,
   OptChainBase, Pat, Program, Prop, PropName, PropOrSpread, ScopeId, Span, Span as AstSpan, Stmt,
   UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
@@ -413,6 +413,7 @@ fn try_mark_auto_side_effects_free_var_decl(
       Some(Expr::Fn(fn_expr)) => is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        fn_expr.ident.as_deref(),
         &fn_expr.function,
         unresolved_ctxt,
         comments,
@@ -458,6 +459,7 @@ fn try_mark_auto_side_effects_free_stmt(
         if is_side_effects_free_function_body(
           parser,
           analyze_side_effects_free,
+          Some(&fn_decl.ident),
           &fn_decl.function,
           unresolved_ctxt,
           comments,
@@ -509,6 +511,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       if is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        fn_expr.ident.as_deref(),
         &fn_expr.function,
         unresolved_ctxt,
         comments,
@@ -537,6 +540,7 @@ fn try_mark_auto_side_effects_free_module_decl(
       if is_side_effects_free_function_body(
         parser,
         analyze_side_effects_free,
+        fn_expr.ident.as_deref(),
         &fn_expr.function,
         unresolved_ctxt,
         comments,
@@ -561,6 +565,7 @@ fn try_mark_auto_side_effects_free_module_decl(
         if is_side_effects_free_function_body(
           parser,
           analyze_side_effects_free,
+          Some(&fn_decl.ident),
           &fn_decl.function,
           unresolved_ctxt,
           comments,
@@ -846,12 +851,8 @@ fn is_pure_call_expr(
       callees,
     );
   } else if analyze_side_effects_free && let Some(Expr::Ident(ident)) = callee.as_expr() {
-    match resolve_explicit_side_effects_free_callee(
-      parser,
-      &compat_atom(&ident.sym),
-      callee.span(),
-      callees.is_none(),
-    ) {
+    match resolve_explicit_side_effects_free_callee(parser, ident, callee.span(), callees.is_none())
+    {
       ExplicitSideEffectsFreeCallee::Direct => {
         return is_pure_call_args(
           parser,
@@ -981,23 +982,23 @@ enum ExplicitSideEffectsFreeCallee {
 
 fn resolve_explicit_side_effects_free_callee(
   parser: &mut JavascriptParser,
-  ident: &Atom,
+  ident: &Ident<'_>,
   span: Span,
   allow_unresolved_marked: bool,
 ) -> ExplicitSideEffectsFreeCallee {
-  let is_marked = parser
-    .build_info
-    .side_effects_free
-    .as_ref()
-    .is_some_and(|side_effects_free| side_effects_free.contains(ident));
-
-  if !is_marked {
-    return ExplicitSideEffectsFreeCallee::NotMarked;
-  }
+  let ident_atom = {
+    let Some(side_effects_free) = parser.build_info.side_effects_free.as_ref() else {
+      return ExplicitSideEffectsFreeCallee::NotMarked;
+    };
+    let Some(ident_atom) = to_marked_side_effects_free_atom(side_effects_free, &ident.sym) else {
+      return ExplicitSideEffectsFreeCallee::NotMarked;
+    };
+    ident_atom
+  };
 
   // For non-imports the deferred path doesn't apply at all, so we skip the
   // user-config lookup and fall straight through to Direct/Invalid.
-  if try_extract_deferred_check(parser, ident.clone(), span).is_some() {
+  if try_extract_deferred_check(parser, ident_atom.clone(), span).is_some() {
     // When the user explicitly listed this name in `pureFunctions`, trust the
     // assertion at the call site instead of deferring to the import target.
     // This lets users mark imported helpers (e.g. `import { cva } from 'cva'`)
@@ -1006,13 +1007,26 @@ fn resolve_explicit_side_effects_free_callee(
       .javascript_options
       .side_effects_free
       .as_ref()
-      .is_some_and(|names| names.iter().any(|name| name.as_str() == ident.as_str()));
+      .is_some_and(|names| {
+        names
+          .iter()
+          .any(|name| name.as_str() == ident_atom.as_str())
+      });
     if !is_user_configured {
       return ExplicitSideEffectsFreeCallee::Deferred;
     }
   }
 
-  if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
+  let semantic = parser.ast.semantic;
+  let ident_scope = semantic.node_scope(ident);
+  let is_top_level_or_unresolved =
+    ident_scope == semantic.unresolved_scope_id() || ident_scope == semantic.top_level_scope_id();
+
+  if let Some(info) = parser.get_variable_info(&ident_atom) {
+    if info.is_free() || info.is_tagged() || is_top_level_or_unresolved {
+      return ExplicitSideEffectsFreeCallee::Direct;
+    }
+  } else if allow_unresolved_marked {
     return ExplicitSideEffectsFreeCallee::Direct;
   }
 
@@ -1212,7 +1226,7 @@ fn is_pure_optional_call_expr<'a>(
 
   match resolve_explicit_side_effects_free_callee(
     parser,
-    &compat_atom(&ident.sym),
+    ident,
     call_expr.callee.span(),
     callees.is_none(),
   ) {
@@ -1559,8 +1573,39 @@ pub fn is_pure_pat<'a>(
   }
 }
 
-fn is_side_effects_free_param(pat: &Pat) -> bool {
-  matches!(pat, Pat::Ident(_))
+fn to_marked_side_effects_free_atom(
+  side_effects_free: &FxHashSet<Atom>,
+  ident: &AstAtom<'_>,
+) -> Option<Atom> {
+  let ident_name = ident.as_str();
+  if side_effects_free.len() <= 4 {
+    side_effects_free
+      .iter()
+      .any(|name| name.as_str() == ident_name)
+      .then(|| Atom::from(ident_name))
+  } else {
+    let ident_atom = Atom::from(ident_name);
+    side_effects_free
+      .contains(&ident_atom)
+      .then_some(ident_atom)
+  }
+}
+
+fn is_marked_side_effects_free(parser: &JavascriptParser, ident: &AstAtom<'_>) -> bool {
+  parser
+    .build_info
+    .side_effects_free
+    .as_ref()
+    .is_some_and(|side_effects_free| {
+      to_marked_side_effects_free_atom(side_effects_free, ident).is_some()
+    })
+}
+
+fn is_side_effects_free_param(parser: &JavascriptParser, pat: &Pat) -> bool {
+  let Pat::Ident(ident) = pat else {
+    return false;
+  };
+  !is_marked_side_effects_free(parser, &ident.id.sym)
 }
 
 #[inline(never)]
@@ -1572,7 +1617,11 @@ fn is_side_effects_free_var_decl(
   comments: &Comments<'_>,
 ) -> bool {
   for declarator in &var_decl.decls {
-    if declarator.name.as_ident().is_none() {
+    let Some(ident) = declarator.name.as_ident() else {
+      return false;
+    };
+
+    if is_marked_side_effects_free(parser, &ident.id.sym) {
       return false;
     }
 
@@ -1688,14 +1737,19 @@ fn is_side_effects_free_block_stmt(
 fn is_side_effects_free_function_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
+  function_ident: Option<&Ident<'_>>,
   function: &Function,
   unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
+  if function_ident.is_some_and(|ident| is_marked_side_effects_free(parser, &ident.sym)) {
+    return false;
+  }
+
   if !function
     .params
     .iter()
-    .all(|param| is_side_effects_free_param(&param.pat))
+    .all(|param| is_side_effects_free_param(parser, &param.pat))
   {
     return false;
   }
@@ -1719,7 +1773,11 @@ fn is_side_effects_free_arrow_body(
   unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
-  if !arrow_expr.params.iter().all(is_side_effects_free_param) {
+  if !arrow_expr
+    .params
+    .iter()
+    .all(|param| is_side_effects_free_param(parser, param))
+  {
     return false;
   }
 
