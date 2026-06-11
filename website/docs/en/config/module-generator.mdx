@@ -596,6 +596,8 @@ export default {
 
 Customize the format of the local class names generated for CSS modules, besides the substitutions at [File-level](/config/filename-placeholders#file-placeholders) and [Module-level](/config/filename-placeholders#module-placeholders), also include `[uniqueName]` and `[local]`.
 
+Starting from Rspack `2.0.7`, the `[hash]` placeholder in `localIdentName` uses different hash inputs depending on whether the template includes `[local]`. When `localIdentName` does not include `[local]`, the local name is included in the hash input so different local names in the same CSS module generate different values. When `localIdentName` includes `[local]`, the local name is not included in the `[hash]` input because `[local]` already keeps the generated class name unique.
+
 ```js title="rspack.config.mjs"
 export default {
   module: {

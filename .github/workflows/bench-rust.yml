@@ -118,14 +118,15 @@ jobs:
         with:
           mode: walltime
           run: |
+            sync; echo 1 > /proc/sys/vm/drop_caches
             if [ -n "${{ inputs.bench_target }}" ]; then
               bench_args=(--bench "${{ inputs.bench_target }}")
               if [ -n "${{ inputs.bench_filter }}" ]; then
                 bench_args+=("${{ inputs.bench_filter }}")
               fi
-              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+              taskset -c 176-191 env RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
             else
-              pnpm run bench:rust
+              taskset -c 176-191 pnpm run bench:rust
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: 4.13.0

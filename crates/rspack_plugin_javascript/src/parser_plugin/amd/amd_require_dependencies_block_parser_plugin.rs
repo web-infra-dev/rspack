@@ -1,4 +1,4 @@
-use std::iter;
+use std::{borrow::Cow, iter};
 
 use either::Either;
 use itertools::Itertools;
@@ -8,7 +8,10 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};
-use swc_experimental_ecma_ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, GetSpan, Pat};
+use swc_core::{
+  common::Spanned,
+  ecma::ast::{BlockStmtOrExpr, CallExpr, ExprOrSpread, Pat},
+};
 
 use crate::{
   JavascriptParserPlugin,
@@ -37,10 +40,10 @@ fn is_reserved_param(pat: &Pat) -> bool {
 pub struct AMDRequireDependenciesBlockParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDRequireDependenciesBlockParserPlugin {
+impl JavascriptParserPlugin for AMDRequireDependenciesBlockParserPlugin {
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -166,7 +169,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     call_expr: &CallExpr,
     param: &BasicEvaluatedExpression,
   ) -> Option<bool> {
-    let call_span = call_expr.span;
+    let call_span = call_expr.span();
     let param_range = param.range();
 
     let result = create_context_dependency(param, parser);
@@ -174,7 +177,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
     let options = ContextOptions {
       mode: ContextMode::Sync,
       recursive: true,
-      pattern: context_reg_exp(&result.reg, "", Some(call_span.into()), parser).into(),
+      pattern: context_reg_exp(&result.reg, "", Some(call_expr.span().into()), parser).into(),
       category: DependencyCategory::Amd,
       request: format!("{}{}{}", result.context, result.query, result.fragment),
       context: result.context,
@@ -234,7 +237,7 @@ impl AMDRequireDependenciesBlockParserPlugin {
               .params
               .iter()
               .filter(|param| !is_reserved_param(&param.pat))
-              .map(|param| crate::visitors::PatRef::Borrowed(&param.pat));
+              .map(|param| Cow::Borrowed(&param.pat));
             parser.in_function_scope(true, params, |parser| {
               parser.walk_statement(Statement::Block(body));
             });
@@ -245,8 +248,8 @@ impl AMDRequireDependenciesBlockParserPlugin {
             .params
             .iter()
             .filter(|param| !is_reserved_param(param))
-            .map(crate::visitors::PatRef::Borrowed);
-          parser.in_function_scope(true, params, |parser| match &arrow.body {
+            .map(Cow::Borrowed);
+          parser.in_function_scope(true, params, |parser| match &*arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
           });

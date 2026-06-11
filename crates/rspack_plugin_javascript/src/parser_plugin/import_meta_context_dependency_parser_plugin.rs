@@ -8,8 +8,11 @@ use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
 use sugar_path::SugarPath;
-use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Lit, PropName};
+use swc_core::{
+  atoms::Atom,
+  common::Spanned,
+  ecma::ast::{CallExpr, Expr, Lit, PropName},
+};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -289,19 +292,16 @@ fn create_import_meta_context_dependency(
     let regexp = get_regex_by_obj_prop(obj, "regExp");
     let regexp_span = regexp.map(|r| r.span().into());
     let regexp = regexp.map_or_else(default_context_reg_exp, |regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
+      RspackRegex::try_from(regexp).expect("reg failed")
     });
-    let include = get_regex_by_obj_prop(obj, "include").map(|regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
-    });
-    let exclude = get_regex_by_obj_prop(obj, "exclude").map(|regexp| {
-      RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
-    });
+    let include = get_regex_by_obj_prop(obj, "include")
+      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
+    let exclude = get_regex_by_obj_prop(obj, "exclude")
+      .map(|regexp| RspackRegex::try_from(regexp).expect("reg failed"));
     let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
       s.value.to_string_lossy().as_ref().into()
     });
     let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
-    let span = node.span;
     ContextOptions {
       pattern: clean_regexp_in_context_module(regexp, regexp_span, parser).into(),
       include,
@@ -311,12 +311,11 @@ fn create_import_meta_context_dependency(
       request: context.clone(),
       context,
       mode,
-      start: span.real_lo(),
-      end: span.real_hi(),
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
       ..Default::default()
     }
   } else {
-    let span = node.span;
     ContextOptions {
       recursive: true,
       mode: ContextMode::Sync,
@@ -324,8 +323,8 @@ fn create_import_meta_context_dependency(
       category: DependencyCategory::Esm,
       request: context.clone(),
       context,
-      start: span.real_lo(),
-      end: span.real_hi(),
+      start: node.span().real_lo(),
+      end: node.span().real_hi(),
       ..Default::default()
     }
   };
@@ -401,7 +400,6 @@ fn create_import_meta_glob_dependency(
     ContextNameSpaceObject::Bool(true)
   };
 
-  let span = node.span;
   let context_options = ContextOptions {
     pattern: ContextModulePattern::Glob(glob_patterns),
     recursive,
@@ -410,8 +408,8 @@ fn create_import_meta_glob_dependency(
     context,
     namespace_object,
     mode,
-    start: span.real_lo(),
-    end: span.real_hi(),
+    start: node.span().real_lo(),
+    end: node.span().real_hi(),
     referenced_specifiers,
     glob_import,
     glob_exhaustive,
@@ -419,7 +417,7 @@ fn create_import_meta_glob_dependency(
   };
   Some(ImportMetaContextDependency::new_glob(
     context_options,
-    span.into(),
+    node.span.into(),
     parser.in_try,
   ))
 }
@@ -427,14 +425,14 @@ fn create_import_meta_glob_dependency(
 pub struct ImportMetaContextDependencyParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParserPlugin {
+impl JavascriptParserPlugin for ImportMetaContextDependencyParserPlugin {
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser<'p>,
+    _parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'p>> {
+  ) -> Option<BasicEvaluatedExpression<'static>> {
     let name = match for_name {
       expr_name::IMPORT_META_CONTEXT => expr_name::IMPORT_META_CONTEXT,
       expr_name::IMPORT_META_GLOB => expr_name::IMPORT_META_GLOB,
@@ -452,8 +450,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaContextDependencyParse
 
   fn call(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &CallExpr,
+    parser: &mut JavascriptParser,
+    expr: &swc_core::ecma::ast::CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if expr.args.is_empty() || expr.args.len() > 2 {

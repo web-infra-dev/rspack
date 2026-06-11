@@ -24,26 +24,23 @@ mimalloc = { workspace = true, features = ["v3"] }
 
 [dev-dependencies]
 # Make rust analyzer happy
-async-trait                           = { workspace = true }
-rspack                                = { workspace = true, features = ["codspeed", "full"] }
-rspack_cacheable                      = { workspace = true }
-rspack_collections                    = { workspace = true }
-rspack_core                           = { workspace = true, features = ["codspeed"] }
-rspack_error                          = { workspace = true }
-rspack_fs                             = { workspace = true }
-rspack_hash                           = { workspace = true }
-rspack_plugin_javascript              = { workspace = true }
-rspack_plugin_split_chunks            = { workspace = true }
-rspack_regex                          = { workspace = true }
-rspack_sources                        = { workspace = true }
-rspack_tasks                          = { workspace = true }
-rustc-hash                            = { workspace = true }
-serde_json                            = { workspace = true }
-swc_experimental_allocator            = { workspace = true }
-swc_experimental_ecma_ast             = { workspace = true }
-swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
-swc_experimental_ecma_semantic        = { workspace = true }
-swc_experimental_ecma_transforms_base = { workspace = true }
+async-trait                = { workspace = true }
+rspack                     = { workspace = true, features = ["codspeed", "full"] }
+rspack_cacheable           = { workspace = true }
+rspack_collections         = { workspace = true }
+rspack_core                = { workspace = true, features = ["codspeed"] }
+rspack_error               = { workspace = true }
+rspack_fs                  = { workspace = true }
+rspack_hash                = { workspace = true }
+rspack_javascript_compiler = { workspace = true }
+rspack_plugin_javascript   = { workspace = true }
+rspack_plugin_split_chunks = { workspace = true }
+rspack_regex               = { workspace = true }
+rspack_sources             = { workspace = true }
+rspack_tasks               = { workspace = true }
+rustc-hash                 = { workspace = true }
+serde_json                 = { workspace = true }
+swc_core                   = { workspace = true, features = ["__parser", "base"] }
 
 [[bench]]
 harness = false

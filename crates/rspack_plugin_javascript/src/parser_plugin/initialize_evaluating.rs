@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use rspack_util::SpanExt;
-use swc_experimental_ecma_ast::CallExpr;
+use swc_core::ecma::ast::CallExpr;
 
 use super::JavascriptParserPlugin;
 use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
@@ -18,16 +18,13 @@ const SUBSTRING_METHOD_NAME: &str = "substring";
 pub struct InitializeEvaluating;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
-  fn evaluate_call_expression(
+impl JavascriptParserPlugin for InitializeEvaluating {
+  fn evaluate_call_expression<'a>(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     name: &str,
-    expr: &'a CallExpr<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+    expr: &'a CallExpr,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if expr.args.len() != 1 || expr.args[0].spread.is_some() {
       return None;
     }
@@ -62,16 +59,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
     None
   }
 
-  fn evaluate_call_expression_member(
+  fn evaluate_call_expression_member<'a>(
     &self,
-    parser: &mut crate::visitors::JavascriptParser<'p>,
+    parser: &mut crate::visitors::JavascriptParser,
     property: &str,
-    expr: &'a CallExpr<'a>,
+    expr: &'a swc_core::ecma::ast::CallExpr,
     param: BasicEvaluatedExpression<'a>,
-  ) -> Option<BasicEvaluatedExpression<'a>>
-  where
-    'p: 'a,
-  {
+  ) -> Option<BasicEvaluatedExpression<'a>> {
     if property == INDEXOF_METHOD_NAME && param.is_string() {
       let arg1 = (!expr.args.is_empty()).then_some(true).and_then(|_| {
         if expr.args[0].spread.is_some() {
@@ -183,9 +177,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
       res.set_side_effects(param.could_have_side_effects());
       return Some(res);
     } else if property == CONCAT_METHOD_NAME && (param.is_string() || param.is_wrapped()) {
-      let mut string_suffix: Option<BasicEvaluatedExpression<'a>> = None;
+      let mut string_suffix: Option<BasicEvaluatedExpression> = None;
       let mut has_unknown_params = false;
-      let mut inner_exprs: Vec<BasicEvaluatedExpression<'a>> = Vec::new();
+      let mut inner_exprs = Vec::new();
       for arg in expr.args.iter().rev() {
         if arg.spread.is_some() {
           return None;
@@ -216,29 +210,39 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InitializeEvaluating {
         string_suffix = Some(eval);
       }
       if has_unknown_params {
-        let (prefix, inner) = if param.is_string() {
-          inner_exprs.reverse();
-          (Some(param), inner_exprs)
-        } else if param.is_wrapped() {
-          let (prefix, _, mut wrapped_inner_exprs) = param.into_wrapped().expect("checked wrapped");
-          inner_exprs.reverse();
-          wrapped_inner_exprs.extend(inner_exprs);
-          (prefix, wrapped_inner_exprs)
+        let prefix = if param.is_string() {
+          Some(param.clone())
         } else {
-          inner_exprs.reverse();
-          (None, inner_exprs)
+          param.prefix().cloned()
+        };
+        inner_exprs.reverse();
+        let inner = if param.is_wrapped()
+          && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()
+        {
+          let mut wrapped_inner_exprs = wrapped_inner_expressions.to_vec();
+          wrapped_inner_exprs.extend(inner_exprs);
+          wrapped_inner_exprs
+        } else {
+          inner_exprs
         };
         let mut eval =
           BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
         eval.set_wrapped(prefix, string_suffix, inner);
         return Some(eval);
       } else if param.is_wrapped() {
-        let (prefix, postfix, mut inner) = param.into_wrapped().expect("checked wrapped");
-        let postfix = string_suffix.or(postfix);
-        inner.extend(inner_exprs);
+        let postfix = string_suffix.or_else(|| param.postfix().cloned());
+        let inner = if param.is_wrapped()
+          && let Some(wrapped_inner_expressions) = param.wrapped_inner_expressions()
+        {
+          let mut wrapped_inner_exprs = wrapped_inner_expressions.to_vec();
+          wrapped_inner_exprs.extend(inner_exprs);
+          wrapped_inner_exprs
+        } else {
+          inner_exprs
+        };
         let mut eval =
           BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-        eval.set_wrapped(prefix, postfix, inner);
+        eval.set_wrapped(param.prefix().cloned(), postfix, inner);
         return Some(eval);
       } else {
         let mut new_string = param.string().to_owned();

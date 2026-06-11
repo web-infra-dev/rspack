@@ -5,7 +5,7 @@ use rspack_core::{
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, MemberExpr, Span, UnaryExpr};
+use swc_core::{common::Spanned, ecma::ast::Expr};
 use url::Url;
 
 use crate::{
@@ -237,7 +237,7 @@ impl NodeStuffPlugin {
 
   fn add_cjs_node_module_dependency(
     parser: &mut JavascriptParser,
-    ident_span: Span,
+    ident_span: swc_core::common::Span,
     name: &str,
     property: NodeMetaProperty,
   ) {
@@ -397,11 +397,11 @@ impl NodeStuffPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
+impl JavascriptParserPlugin for NodeStuffPlugin {
   fn identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    ident: &Ident,
+    parser: &mut JavascriptParser,
+    ident: &swc_core::ecma::ast::Ident,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -533,7 +533,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
     // Skip CJS handling if not enabled
     if !self.handle_cjs {
       return None;
@@ -557,8 +557,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    unary_expr: &UnaryExpr,
+    parser: &mut JavascriptParser,
+    unary_expr: &swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -652,10 +652,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
     Some(true)
   }
 
-  fn evaluate_typeof(
+  fn evaluate_typeof<'a>(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
+    parser: &mut JavascriptParser,
+    expr: &'a swc_core::ecma::ast::UnaryExpr,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     use crate::visitors::expr_name;
@@ -715,11 +715,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
     use crate::visitors::expr_name;
 
     if for_name == DIRNAME {
@@ -791,8 +791,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser<'p>,
-    member_expr: &MemberExpr,
+    parser: &mut JavascriptParser,
+    member_expr: &swc_core::ecma::ast::MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -826,7 +826,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
 
   fn import_meta_property_in_destructuring(
     &self,
-    parser: &mut JavascriptParser<'p>,
+    parser: &mut JavascriptParser,
     property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     // Skip ESM handling if not enabled

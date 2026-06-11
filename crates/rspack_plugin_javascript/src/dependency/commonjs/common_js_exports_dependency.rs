@@ -11,7 +11,7 @@ use rspack_core::{
   TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
-use swc_atoms::Atom;
+use swc_core::atoms::Atom;
 
 use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 

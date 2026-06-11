@@ -7,7 +7,7 @@ use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
   TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
-use swc_atoms::Atom;
+use swc_core::ecma::atoms::Atom;
 
 #[cacheable]
 #[derive(Debug, Clone)]

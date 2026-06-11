@@ -34,7 +34,6 @@ serde                          = { workspace = true }
 serde_json                     = { workspace = true }
 sugar_path                     = { workspace = true }
 swc_core                       = { workspace = true, features = ["swc_ecma_transforms_base"] }
-swc_experimental_allocator     = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }

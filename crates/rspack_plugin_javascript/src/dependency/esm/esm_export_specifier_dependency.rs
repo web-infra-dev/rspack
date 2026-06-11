@@ -8,7 +8,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
-use swc_atoms::Atom;
+use swc_core::ecma::atoms::Atom;
 
 use crate::{ConstValue, is_export_inlined};
 
