@@ -5,6 +5,10 @@ use std::{
   sync::Arc,
 };
 
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsRefStr},
+};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -38,12 +42,14 @@ use crate::{
 ///   "start1\nstart2\nreplaced!\nend1\nend2"
 /// );
 /// ```
+#[cacheable]
 pub struct ReplaceSource {
   inner: BoxSource,
   replacements: Vec<Replacement>,
 }
 
 /// Enforce replacement order when two replacement start and end are both equal
+#[cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReplacementEnforce {
   /// pre
@@ -56,11 +62,14 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
   end: u32,
+  #[cacheable(with=AsRefStr)]
   content: Cow<'static, str>,
+  #[cacheable(with=AsOption<AsRefStr>)]
   name: Option<Cow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
@@ -312,6 +321,7 @@ impl ReplaceSource {
   }
 }
 
+#[cacheable_dyn]
 impl Source for ReplaceSource {
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {

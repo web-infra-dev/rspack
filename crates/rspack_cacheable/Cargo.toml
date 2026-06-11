@@ -23,7 +23,6 @@ regex                   = { workspace = true }
 rkyv                    = { workspace = true }
 rspack_cacheable_macros = { workspace = true }
 rspack_resolver         = { workspace = true }
-rspack_sources          = { workspace = true }
 rustc-hash              = { workspace = true }
 serde_json              = { workspace = true }
 simd-json               = { workspace = true }

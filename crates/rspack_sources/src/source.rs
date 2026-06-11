@@ -8,10 +8,13 @@ use std::{
 };
 
 use dyn_clone::DynClone;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsInner, AsOption, AsRefStr, AsVec},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-  Result,
   helpers::{Chunks, StreamChunks, decode_mappings},
   object_pool::ObjectPool,
 };
@@ -108,6 +111,7 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
+#[cacheable_dyn]
 pub trait Source:
   StreamChunks + DynHash + AsAny + DynEq + DynClone + fmt::Debug + Sync + Send
 {
@@ -133,38 +137,6 @@ pub trait Source:
 
   /// Writes the source into a writer, preferably a `std::io::BufWriter<std::io::Write>`.
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
-}
-
-impl Source for BoxSource {
-  #[inline]
-  fn source(&self) -> SourceValue<'_> {
-    self.as_ref().source()
-  }
-
-  #[inline]
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    self.as_ref().rope(on_chunk)
-  }
-
-  #[inline]
-  fn buffer(&self) -> Cow<'_, [u8]> {
-    self.as_ref().buffer()
-  }
-
-  #[inline]
-  fn size(&self) -> usize {
-    self.as_ref().size()
-  }
-
-  #[inline]
-  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
-    self.as_ref().map(object_pool, options)
-  }
-
-  #[inline]
-  fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    self.as_ref().to_writer(writer)
-  }
 }
 
 dyn_clone::clone_trait_object!(Source);
@@ -240,10 +212,13 @@ pub trait SourceExt {
 
 impl<T: Source + 'static> SourceExt for T {
   fn boxed(self) -> BoxSource {
-    if let Some(source) = self.as_any().downcast_ref::<BoxSource>() {
-      return source.clone();
-    }
     Arc::new(self)
+  }
+}
+
+impl SourceExt for BoxSource {
+  fn boxed(self) -> BoxSource {
+    self
   }
 }
 
@@ -283,20 +258,29 @@ fn is_all_empty(val: &[Arc<str>]) -> bool {
 }
 
 /// The source map created by [Source::map].
+#[cacheable]
 #[derive(Clone, PartialEq, Eq, Serialize)]
 pub struct SourceMap {
   version: u8,
+  #[cacheable(with=AsOption<AsRefStr>)]
   #[serde(skip_serializing_if = "Option::is_none")]
   file: Option<Arc<str>>,
+  #[cacheable(with=AsVec)]
   sources: Arc<[String]>,
+  #[cacheable(with=AsVec<AsRefStr>)]
   #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
   sources_content: Arc<[Arc<str>]>,
+  #[cacheable(with=AsVec)]
   names: Arc<[String]>,
+  #[cacheable(with=AsRefStr)]
   mappings: Arc<str>,
+  #[cacheable(with=AsOption<AsRefStr>)]
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
   source_root: Option<Arc<str>>,
+  #[cacheable(with=AsOption<AsRefStr>)]
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
   debug_id: Option<Arc<str>>,
+  #[cacheable(with=AsOption<AsInner<AsVec>>)]
   #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
   ignore_list: Option<Arc<Vec<u32>>>,
 }
@@ -467,18 +451,18 @@ struct RawSourceMap {
 }
 
 impl RawSourceMap {
-  pub fn from_reader<R: std::io::Read>(r: R) -> Result<Self> {
+  pub fn from_reader<R: std::io::Read>(r: R) -> crate::Result<Self> {
     let raw: RawSourceMap = simd_json::serde::from_reader(r)?;
     Ok(raw)
   }
 
-  pub fn from_slice(val: &[u8]) -> Result<Self> {
+  pub fn from_slice(val: &[u8]) -> crate::Result<Self> {
     let mut v = val.to_vec();
     let raw: RawSourceMap = simd_json::serde::from_slice(&mut v)?;
     Ok(raw)
   }
 
-  pub fn from_json(val: &str) -> Result<Self> {
+  pub fn from_json(val: &str) -> crate::Result<Self> {
     let mut v = val.as_bytes().to_vec();
     let raw: RawSourceMap = simd_json::serde::from_slice(&mut v)?;
     Ok(raw)
@@ -487,17 +471,17 @@ impl RawSourceMap {
 
 impl SourceMap {
   /// Create a [SourceMap] from json string.
-  pub fn from_json(s: &str) -> Result<Self> {
+  pub fn from_json(s: &str) -> crate::Result<Self> {
     RawSourceMap::from_json(s)?.try_into()
   }
 
   /// Create a [SourceMap] from [&[u8]].
-  pub fn from_slice(s: &[u8]) -> Result<Self> {
+  pub fn from_slice(s: &[u8]) -> crate::Result<Self> {
     RawSourceMap::from_slice(s)?.try_into()
   }
 
   /// Create a [SourceMap] from reader.
-  pub fn from_reader<R: std::io::Read>(s: R) -> Result<Self> {
+  pub fn from_reader<R: std::io::Read>(s: R) -> crate::Result<Self> {
     RawSourceMap::from_reader(s)?.try_into()
   }
 
@@ -580,7 +564,7 @@ impl SourceMap {
 impl TryFrom<RawSourceMap> for SourceMap {
   type Error = crate::Error;
 
-  fn try_from(raw: RawSourceMap) -> Result<Self> {
+  fn try_from(raw: RawSourceMap) -> crate::Result<Self> {
     let file = raw.file.map(Into::into);
     let mappings = raw.mappings.into();
     let sources = raw

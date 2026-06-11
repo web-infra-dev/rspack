@@ -4,6 +4,11 @@ use std::{
   sync::OnceLock,
 };
 
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsRefStr, Skip},
+};
+
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
@@ -26,8 +31,9 @@ use crate::{
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
+#[cacheable]
 #[derive(Clone, PartialEq, Eq)]
-pub struct RawStringSource(Cow<'static, str>);
+pub struct RawStringSource(#[cacheable(with=AsRefStr)] Cow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
@@ -59,6 +65,7 @@ impl From<&str> for RawStringSource {
   }
 }
 
+#[cacheable_dyn]
 impl Source for RawStringSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.0))
@@ -149,8 +156,10 @@ impl StreamChunks for RawStringSource {
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
+#[cacheable]
 pub struct RawBufferSource {
   value: Vec<u8>,
+  #[cacheable(with=Skip)]
   value_as_string: OnceLock<Option<String>>,
 }
 
@@ -203,6 +212,7 @@ impl From<&[u8]> for RawBufferSource {
   }
 }
 
+#[cacheable_dyn]
 impl Source for RawBufferSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::Buffer(Cow::Borrowed(&self.value))

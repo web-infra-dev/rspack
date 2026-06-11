@@ -1,6 +1,7 @@
 #![allow(missing_docs)]
 use std::{borrow::Cow, hash::Hash};
 
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
 use rspack_sources::{
   ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   stream_chunks::{
@@ -8,16 +9,21 @@ use rspack_sources::{
   },
 };
 
+#[cacheable]
 #[derive(Debug, Eq)]
-struct CompatSource(&'static str, Option<SourceMap>);
+struct CompatSource(
+  #[cacheable(with=AsRefStr)] Cow<'static, str>,
+  Option<SourceMap>,
+);
 
+#[cacheable_dyn]
 impl Source for CompatSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(self.0))
+    SourceValue::String(Cow::Borrowed(self.0.as_ref()))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    on_chunk(self.0)
+    on_chunk(self.0.as_ref())
   }
 
   fn buffer(&self) -> Cow<'_, [u8]> {
@@ -37,11 +43,11 @@ impl Source for CompatSource {
   }
 }
 
-struct CompatSourceChunks<'source>(&'static str, Option<&'source SourceMap>);
+struct CompatSourceChunks<'source>(&'source str, Option<&'source SourceMap>);
 
 impl<'source> CompatSourceChunks<'source> {
   pub fn new(source: &'source CompatSource) -> Self {
-    CompatSourceChunks(source.0, source.1.as_ref())
+    CompatSourceChunks(source.0.as_ref(), source.1.as_ref())
   }
 }
 
@@ -87,7 +93,7 @@ impl PartialEq for CompatSource {
 
 impl Clone for CompatSource {
   fn clone(&self) -> Self {
-    Self(self.0, self.1.clone())
+    Self(self.0.clone(), self.1.clone())
   }
 }
 
@@ -95,7 +101,7 @@ impl Clone for CompatSource {
 fn should_work_with_custom_compat_source() {
   const CONTENT: &str = "Line1\n\nLine3\n";
 
-  let source = CompatSource(CONTENT, None);
+  let source = CompatSource(Cow::Borrowed(CONTENT), None);
   assert_eq!(source.source().into_string_lossy(), CONTENT);
   assert_eq!(source.size(), 42);
   assert_eq!(source.buffer(), CONTENT.as_bytes());
@@ -120,7 +126,7 @@ fn should_generate_correct_source_map() {
 
   let result = ConcatSource::new([
     RawStringSource::from("Line0\n").boxed(),
-    CompatSource("Line1\nLine2\nLine3\n", Some(source_map)).boxed(),
+    CompatSource(Cow::Borrowed("Line1\nLine2\nLine3\n"), Some(source_map)).boxed(),
   ]);
 
   let source = result.source();

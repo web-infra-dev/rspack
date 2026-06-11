@@ -26,5 +26,5 @@ pub use as_tuple3::AsTuple3;
 pub use as_vec::{AsVec, AsVecConverter};
 pub use custom::{Custom, CustomConverter};
 pub use inline::Inline;
-pub use rkyv::with::{Map as AsOption, Skip};
+pub use rkyv::with::{Lock, Map as AsOption, Skip};
 pub use unsupported::Unsupported;

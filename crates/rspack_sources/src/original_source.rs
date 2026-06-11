@@ -4,6 +4,8 @@ use std::{
   sync::Arc,
 };
 
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsRefStr};
+
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
@@ -35,9 +37,12 @@ use crate::{
 ///   "AAAA;AACA",
 /// );
 /// ```
+#[cacheable]
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
+  #[cacheable(with=AsRefStr)]
   value: Arc<str>,
+  #[cacheable(with=AsRefStr)]
   name: Box<str>,
 }
 
@@ -61,6 +66,7 @@ impl OriginalSource {
   }
 }
 
+#[cacheable_dyn]
 impl Source for OriginalSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))

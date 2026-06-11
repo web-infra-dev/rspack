@@ -4,6 +4,11 @@ use std::{
   sync::Arc,
 };
 
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsRefStr},
+};
+
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
@@ -59,11 +64,15 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
+#[cacheable]
 #[derive(Clone, Eq)]
 pub struct SourceMapSource {
+  #[cacheable(with=AsRefStr)]
   value: Arc<str>,
+  #[cacheable(with=AsRefStr)]
   name: Box<str>,
   source_map: SourceMap,
+  #[cacheable(with=AsOption<AsRefStr>)]
   original_source: Option<Arc<str>>,
   inner_source_map: Option<SourceMap>,
   remove_original_source: bool,
@@ -119,6 +128,7 @@ impl SourceMapSource {
   }
 }
 
+#[cacheable_dyn]
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
