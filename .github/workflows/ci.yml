@@ -34,7 +34,7 @@ permissions:
 
 jobs:
   check-changed:
-    runs-on: rspack-ubuntu-22.04-mini
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     name: Check Source Changed
     outputs:
       code_changed: ${{ steps.filter.outputs.code_changed == 'true' }}
@@ -192,7 +192,7 @@ jobs:
         check-cache,
       ]
     if: ${{ always() && !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - name: Log
         run: echo ${{ join(needs.*.result, ',') }}
