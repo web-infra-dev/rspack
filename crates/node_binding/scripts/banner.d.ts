@@ -69,6 +69,7 @@ export interface NormalModule extends Module {
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
+	get error(): RspackError | undefined;
 }
 
 export interface ConcatenatedModule extends Module {
