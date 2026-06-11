@@ -34,7 +34,7 @@ struct ImportMetaWebpackContextOptions {
   reg_exp: Option<RspackRegex>,
   include: Option<RspackRegex>,
   exclude: Option<RspackRegex>,
-  mode: Option<String>,
+  mode: Option<ContextMode>,
   /// Absent or unrecognized means `true`.
   recursive: Option<bool>,
 }
@@ -57,10 +57,7 @@ impl From<&ImportMetaWebpackContextOptions> for ContextOptions {
       pattern: options.reg_exp.clone().into(),
       include: options.include.clone(),
       exclude: options.exclude.clone(),
-      mode: options
-        .mode
-        .as_deref()
-        .map_or(ContextMode::Sync, ContextMode::from),
+      mode: options.mode.clone().unwrap_or(ContextMode::Sync),
       recursive: options.recursive.unwrap_or(true),
       ..Default::default()
     }

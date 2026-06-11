@@ -2,6 +2,7 @@ use rspack_core::{
   BoxDependency, ContextMode, ContextOptions, DependencyCategory, get_context,
   try_convert_str_to_context_mode,
 };
+use rspack_error::Error;
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan};
@@ -9,7 +10,10 @@ use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 use super::JavascriptParserPlugin;
 use crate::{
   dependency::RequireContextDependency,
-  visitors::{JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp},
+  visitors::{
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp,
+  },
 };
 
 pub struct RequireContextDependencyParserPlugin;
@@ -34,6 +38,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPl
       } else if let Some(mode_expr) = try_convert_str_to_context_mode(mode_expr.string()) {
         mode_expr
       } else {
+        // Align with webpack, which throws an `Unsupported mode` error during
+        // code generation when an unknown context mode is used.
+        let mut error: Error = create_traceable_error(
+          "Unsupported mode".into(),
+          format!(
+            r#"`mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "{}"."#,
+            mode_expr.string()
+          ),
+          parser.source.to_string(),
+          expr.args[3].expr.span().into(),
+        );
+        error.hide_stack = Some(true);
+        parser.add_error(error.into());
         ContextMode::Sync
       }
     } else {
