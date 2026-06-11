@@ -218,6 +218,41 @@ mod tests {
   }
 
   #[test]
+  fn combines_multiple_globs() {
+    // watchpack: `ignored: ["**/foo", "**/bar"]` — folded into one regex.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Paths(vec![
+      "**/foo".to_owned(),
+      "**/bar".to_owned(),
+    ]));
+    assert!(m.is_ignored("/x/foo"));
+    assert!(m.is_ignored("/x/bar"));
+    assert!(!m.is_ignored("/x/baz"));
+  }
+
+  #[test]
+  fn empty_patterns_match_nothing() {
+    // watchpack treats "", [] and an all-empty array as ignoring nothing.
+    let cases = [
+      FsWatcherIgnored::Path(String::new()),
+      FsWatcherIgnored::Paths(vec![]),
+      FsWatcherIgnored::Paths(vec![String::new(), String::new()]),
+    ];
+    for ignored in cases {
+      assert!(!IgnoredMatcher::new(ignored).is_ignored("any"));
+    }
+  }
+
+  #[test]
+  fn user_regex_matches_like_watchpack() {
+    // watchpack: `ignored: /ignoredPattern/` is applied to the path as-is.
+    let m = IgnoredMatcher::new(FsWatcherIgnored::Regex(
+      RspackRegex::new("ignoredPattern").unwrap(),
+    ));
+    assert!(m.is_ignored("/foo/ignoredPattern/bar"));
+    assert!(!m.is_ignored("/foo/keep"));
+  }
+
+  #[test]
   fn extended_glob_syntax_matches_watchpack() {
     // The full port gives us brace groups, character classes and `?` — the
     // syntax the minimal translator used to swallow as literals.
