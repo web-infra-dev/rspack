@@ -7,23 +7,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_share_fallbacks__,
   __module_federation_library_type__;
 export default function () {
-  const runtimeRequire =
-    typeof __rspack_context === 'undefined'
-      ? __webpack_require__
-      : new Proxy(
-          function (moduleId) {
-            return __rspack_context.r(moduleId);
-          },
-          {
-            get(_target, key) {
-              return __rspack_context[key];
-            },
-            set(_target, key, value) {
-              __rspack_context[key] = value;
-              return true;
-            },
-          },
-        );
+  const runtimeRequire = __module_federation_runtime_require__;
   if (
     (runtimeRequire.initializeSharingData ||
       runtimeRequire.initializeExposesData) &&

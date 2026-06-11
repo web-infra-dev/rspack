@@ -282,6 +282,11 @@ var module = ({module_cache}[moduleId] = {{"#,
     let intercept_module_execution =
       runtime_requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
     let module_used = runtime_requirements.contains(RuntimeGlobals::MODULE);
+    let uses_runtime_context = compilation
+      .options
+      .experiments
+      .runtime_mode
+      .uses_runtime_context();
     let has_custom_runtime_module = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -293,7 +298,7 @@ var module = ({module_cache}[moduleId] = {{"#,
       });
     let require_scope_used = runtime_requirements.contains(RuntimeGlobals::REQUIRE_SCOPE)
       || !runtime_requirements.renderable_require_scope().is_empty()
-      || has_custom_runtime_module;
+      || (uses_runtime_context && has_custom_runtime_module);
     let need_module_defer =
       runtime_requirements.contains(RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
     let use_require = require_function || intercept_module_execution || module_used;
@@ -305,11 +310,6 @@ var module = ({module_cache}[moduleId] = {{"#,
       .output
       .environment
       .supports_arrow_function();
-    let uses_runtime_context = compilation
-      .options
-      .experiments
-      .runtime_mode
-      .uses_runtime_context();
     let has_bootstrap_runtime_context =
       uses_runtime_context && runtime_requirements.needs_bootstrap_runtime_context();
 
