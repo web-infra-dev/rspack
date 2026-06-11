@@ -10,6 +10,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
   TemplateReplaceSource, UsedName, property_access,
 };
+use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
 
 use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
@@ -238,8 +239,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last())
-                  .expect("Unexpected render define property base")
+                json_stringify_str(used.last().expect("Unexpected render define property base"))
               ),
               None,
             );

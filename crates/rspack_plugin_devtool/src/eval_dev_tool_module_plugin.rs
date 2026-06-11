@@ -15,7 +15,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{fx_hash::FxDashMap, json_stringify_str};
 
 use crate::{
   ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
@@ -157,8 +157,7 @@ async fn render_module_content(
       )
     );
 
-    let module_content =
-      simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("failed to parse string");
+    let module_content = json_stringify_str(&format!("{{{source}{footer}\n}}"));
     RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {

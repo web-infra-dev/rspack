@@ -129,7 +129,7 @@ impl ConcatenationScope {
       .expect("should have module info");
 
     let export_data = if !options.ids.is_empty() {
-      hex::encode(serde_json::to_string(&options.ids).expect("should serialize to json string"))
+      hex::encode(simd_json::to_string(&options.ids).expect("should serialize to json string"))
     } else {
       "ns".to_string()
     };

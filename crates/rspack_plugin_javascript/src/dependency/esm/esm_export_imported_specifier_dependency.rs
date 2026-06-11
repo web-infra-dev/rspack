@@ -774,7 +774,7 @@ impl ESMExportImportedSpecifierDependency {
         if ignored.len() > 1 {
           content += &format!(
             "if({}.indexOf(__rspack_import_key) < 0) ",
-            serde_json::to_string(&ignored).expect("should serialize to array")
+            json_stringify(&ignored)
           );
         } else if let Some(item) = ignored.iter().next() {
           content += &format!(

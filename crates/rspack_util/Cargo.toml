@@ -27,6 +27,7 @@ rustc-hash       = { workspace = true }
 ryu-js           = { workspace = true }
 serde            = { workspace = true }
 serde_json       = { workspace = true }
+simd-json        = { workspace = true }
 sugar_path       = { workspace = true }
 unicase          = { workspace = true }
 

@@ -27,6 +27,7 @@ rspack_util                = { workspace = true }
 async-trait               = { workspace = true }
 rustc-hash                = { workspace = true }
 serde_json                = { workspace = true }
+simd-json                 = { workspace = true }
 swc_core                  = { workspace = true }
 swc_experimental_ecma_ast = { workspace = true }
 tracing                   = { workspace = true }

@@ -20,6 +20,7 @@ use rspack_util::{
   base64,
   fx_hash::FxDashMap,
   identifier::make_paths_absolute,
+  json_stringify_str,
 };
 
 use crate::{
@@ -257,8 +258,7 @@ async fn render_module_content(
 //# sourceURL=webpack-internal:///{module_id}
 "#
       );
-      let module_content =
-        simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("should convert to string");
+      let module_content = json_stringify_str(&format!("{{{source}{footer}\n}}"));
       RawStringSource::from(format!(
         "eval({});",
         if compilation.options.output.trusted_types.is_some() {

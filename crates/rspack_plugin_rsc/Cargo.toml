@@ -30,7 +30,6 @@ rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 serde                    = { workspace = true }
-serde_json               = { workspace = true }
 simd-json                = { workspace = true }
 swc_core                 = { workspace = true }
 tokio                    = { workspace = true }

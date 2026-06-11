@@ -76,7 +76,7 @@ impl std::hash::Hash for MinimizerOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self
       .__format_cache
-      .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
+      .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize"))
       .hash(state);
     self
       .__compress_cache
@@ -84,7 +84,7 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .compress
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
     self
@@ -93,7 +93,7 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .mangle
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
   }
