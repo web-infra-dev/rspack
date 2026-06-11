@@ -324,10 +324,11 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     parser: &mut JavascriptParser<'p>,
     expr: &AssignExpr,
     members: &[Atom],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::AssignMemberChain) {
-      let res = plugin.assign_member_chain(parser, expr, members, for_name);
+      let res = plugin.assign_member_chain(parser, expr, members, member_ranges, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;

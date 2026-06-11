@@ -472,13 +472,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     parser: &mut JavascriptParser,
     expr: &AssignExpr,
     members: &[Atom],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
-    let handled =
-      static_require_member_chain(parser, for_name, members, None, expr.left.span(), true);
+    let handled = static_require_member_chain(
+      parser,
+      for_name,
+      members,
+      Some(member_ranges),
+      expr.left.span(),
+      true,
+    );
     if handled.is_some() {
       parser.walk_expression(&expr.right);
     }

@@ -499,9 +499,7 @@ fn render_runtime_context_fields(
     return None;
   }
 
-  let metadata = compilation
-    .runtime_proxy_metadata_artifact
-    .get(chunk_ukey)?;
+  let metadata = runtime_context_metadata(compilation, chunk_ukey)?;
   let mut sources = ConcatSource::default();
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   let render_live_bindings = render_setter_fields && !render_plain_fields;

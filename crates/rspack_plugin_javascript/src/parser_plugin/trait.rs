@@ -563,6 +563,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _expr: &AssignExpr,
     _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None
