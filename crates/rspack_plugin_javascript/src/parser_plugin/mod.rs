@@ -44,10 +44,15 @@ pub(crate) use self::{
   },
   api_plugin::APIPlugin,
   common_js_exports_parse_plugin::CommonJsExportsParserPlugin,
-  common_js_imports_parse_plugin::{CommonJsImportsParserPlugin, RequireReferencesState},
+  common_js_imports_parse_plugin::{
+    CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
+    CommonJsImportsParserPlugin, CreatedRequireTagData, RequireReferencesState,
+    evaluate_create_require_new_expression, is_create_require_namespace_member,
+    is_create_require_specifier,
+  },
   common_js_plugin::CommonJsPlugin,
   compatibility_plugin::CompatibilityPlugin,
-  r#const::{ConstPlugin, is_logic_op},
+  r#const::ConstPlugin,
   drive::JavaScriptParserPluginDrive,
   esm_detection_parser_plugin::ESMDetectionParserPlugin,
   esm_export_dependency_parser_plugin::ESMExportDependencyParserPlugin,
@@ -67,13 +72,13 @@ pub(crate) use self::{
   require_context_dependency_parser_plugin::RequireContextDependencyParserPlugin,
   require_ensure_dependencies_block_parse_plugin::RequireEnsureDependenciesBlockParserPlugin,
   side_effects_parser_plugin::SideEffectsParserPlugin,
-  url_plugin::URLPlugin,
+  url_plugin::{URLPlugin, get_url_request},
   use_strict_plugin::UseStrictPlugin,
   worker_plugin::WorkerPlugin,
 };
 
-pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_core::atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_core::atoms::atom!("default"));
+pub static JS_DEFAULT_KEYWORD: std::sync::LazyLock<swc_atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_atoms::atom!("default"));
 
-pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_core::atoms::Atom> =
-  std::sync::LazyLock::new(|| swc_core::atoms::atom!("*default*"));
+pub static DEFAULT_STAR_JS_WORD: std::sync::LazyLock<swc_atoms::Atom> =
+  std::sync::LazyLock::new(|| swc_atoms::atom!("*default*"));

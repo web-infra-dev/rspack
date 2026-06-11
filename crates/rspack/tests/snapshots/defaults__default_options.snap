@@ -1708,6 +1708,7 @@ CompilerOptions {
                             commonjs_magic_comments: Some(
                                 false,
                             ),
+                            create_require: None,
                             jsx: Some(
                                 false,
                             ),

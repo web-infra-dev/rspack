@@ -1,22 +1,19 @@
 use rspack_core::ImportPhase;
+use swc_experimental_ecma_ast::ImportPhase as AstImportPhase;
 
 use crate::visitors::JavascriptParser;
 
 pub(super) fn get_import_phase(
   parser: &JavascriptParser,
-  syntax_phase: swc_core::ecma::ast::ImportPhase,
+  syntax_phase: AstImportPhase,
   webpack_defer: Option<bool>,
   webpack_source: Option<bool>,
 ) -> ImportPhase {
   let phase_by_syntax = match syntax_phase {
-    swc_core::ecma::ast::ImportPhase::Defer
-      if parser.javascript_options.defer_import.unwrap_or_default() =>
-    {
+    AstImportPhase::Defer if parser.javascript_options.defer_import.unwrap_or_default() => {
       ImportPhase::Defer
     }
-    swc_core::ecma::ast::ImportPhase::Source
-      if parser.javascript_options.source_import.unwrap_or_default() =>
-    {
+    AstImportPhase::Source if parser.javascript_options.source_import.unwrap_or_default() => {
       ImportPhase::Source
     }
     _ => ImportPhase::Evaluation,

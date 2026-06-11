@@ -30,11 +30,12 @@ use rspack_util::{
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_core::{
   atoms::Atom,
-  common::{BytePos, Span, Spanned, SyntaxContext},
+  common::{BytePos, Spanned, SyntaxContext},
   ecma::visit::swc_ecma_ast,
 };
+use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
-  Ast, ClassExpr, EsVersion, GetSpan, Ident, ObjectPatProp, Prop, StringAllocator, Visit, VisitWith,
+  ClassExpr, EsVersion, Ident, ObjectPatProp, Program, Prop, Visit, VisitWith,
 };
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
@@ -2567,8 +2568,9 @@ impl ConcatenatedModule {
         })
         .unwrap_or(false);
 
-      let mut ast = Ast::new(source_code.len(), StringAllocator::default());
+      let allocator = Allocator::new();
       let lexer = swc_experimental_ecma_parser::Lexer::new(
+        &allocator,
         Syntax::Es(EsSyntax {
           jsx,
           ..Default::default()
@@ -2576,9 +2578,8 @@ impl ConcatenatedModule {
         EsVersion::EsNext,
         StringSource::new(source_code.as_ref()),
         None,
-        ast.string_allocator(),
       );
-      let mut p = Parser::new_from(&mut ast, lexer);
+      let mut p = Parser::new_from(&allocator, lexer);
       let ret = p.parse_module();
 
       let module = match ret {
@@ -2594,9 +2595,9 @@ impl ConcatenatedModule {
           ));
         }
       };
-      let ast = &ast;
-      let semantic = resolver(module, ast);
-      let ids = collect_ident(ast, module);
+      let program = Program::Module(allocator.boxed(module));
+      let semantic = resolver(&program);
+      let ids = collect_ident(&allocator, &program);
 
       module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
       module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
@@ -2611,10 +2612,10 @@ impl ConcatenatedModule {
       binding_to_ref.reserve(ids.len());
 
       for ident in ids {
-        let scope = semantic.node_scope(ident.id);
+        let scope = semantic.node_scope(&ident.id);
         let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
         let legacy = if is_global {
-          let leg = ident.to_legacy(ast, &semantic);
+          let leg = ident.to_legacy(&semantic);
           module_info.global_scope_ident.push(leg.clone());
           all_used_names.insert(leg.id.sym.clone());
           Some(leg)
@@ -2622,16 +2623,16 @@ impl ConcatenatedModule {
           None
         };
         if ident.is_class_expr_with_ident {
-          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+          all_used_names.insert(Atom::from(ident.id.sym.as_str()));
           continue;
         }
         // deconflict naming from inner scope, the module level deconflict will be finished
         // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
         // during module eval phase.
         if scope != top_level_scope_id {
-          all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+          all_used_names.insert(Atom::from(ident.id.sym.as_str()));
         }
-        let legacy = legacy.unwrap_or_else(|| ident.to_legacy(ast, &semantic));
+        let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
         module_info.idents.push(legacy.clone());
         binding_to_ref
           .entry((legacy.id.sym.clone(), legacy.id.ctxt))
@@ -3487,19 +3488,18 @@ pub fn escape_name_atom_ref(name: &Atom) -> Atom {
   }
 }
 
-#[derive(Clone, Debug)]
-pub struct NewConcatenatedModuleIdent {
-  pub id: Ident,
+#[derive(Debug)]
+pub struct NewConcatenatedModuleIdent<'a> {
+  pub id: Ident<'a>,
   pub shorthand: bool,
   pub is_class_expr_with_ident: bool,
 }
 
-impl NewConcatenatedModuleIdent {
-  pub fn to_legacy(&self, ast: &Ast, semantic: &Semantic) -> ConcatenatedModuleIdent {
-    let span = self.id.span(ast);
-    let span = Span::new_with_checked(BytePos(span.start), BytePos(span.end));
-    let sym = ast.get_atom(self.id.sym(ast));
-    let ctxt = SyntaxContext::from_u32(semantic.node_scope(self.id).raw());
+impl NewConcatenatedModuleIdent<'_> {
+  pub fn to_legacy(&self, semantic: &Semantic) -> ConcatenatedModuleIdent {
+    let span = swc_core::common::Span::new(BytePos(self.id.span.start), BytePos(self.id.span.end));
+    let sym = Atom::from(self.id.sym.as_str());
+    let ctxt = SyntaxContext::from_u32(semantic.node_scope(&self.id).raw());
     ConcatenatedModuleIdent {
       id: swc_ecma_ast::Ident::new(sym, span, ctxt),
       is_class_expr_with_ident: self.is_class_expr_with_ident,
@@ -3513,37 +3513,33 @@ impl NewConcatenatedModuleIdent {
 /// which depends on `free_node` during parsing.
 /// However, a better mutability story on swc_experimental is designing and `free_node` is removed temporarily.
 /// Once it's finished, this function will be reverted back.
-pub fn collect_ident(
-  ast: &Ast,
-  root: swc_experimental_ecma_ast::Module,
-) -> Vec<NewConcatenatedModuleIdent> {
+pub fn collect_ident<'a>(
+  allocator: &'a Allocator,
+  root: &Program<'a>,
+) -> Vec<NewConcatenatedModuleIdent<'a>> {
   struct IdentCollector<'a> {
-    ast: &'a Ast,
-    ids: Vec<NewConcatenatedModuleIdent>,
+    allocator: &'a Allocator,
+    ids: Vec<NewConcatenatedModuleIdent<'a>>,
   }
 
-  impl Visit for IdentCollector<'_> {
-    fn ast(&self) -> &Ast {
-      self.ast
-    }
-
-    fn visit_ident(&mut self, node: Ident) {
+  impl<'a> Visit<'a> for IdentCollector<'a> {
+    fn visit_ident(&mut self, node: &Ident<'a>) {
       self.ids.push(NewConcatenatedModuleIdent {
-        id: node,
+        id: node.clone_in(self.allocator),
         shorthand: false,
         is_class_expr_with_ident: false,
       });
     }
 
-    fn visit_object_pat_prop(&mut self, n: ObjectPatProp) {
+    fn visit_object_pat_prop(&mut self, n: &ObjectPatProp<'a>) {
       match n {
         ObjectPatProp::Assign(assign) => {
           self.ids.push(NewConcatenatedModuleIdent {
-            id: assign.key(self.ast).id(self.ast),
+            id: assign.key.id.as_ref().clone_in(self.allocator),
             shorthand: true,
             is_class_expr_with_ident: false,
           });
-          assign.value(self.ast).visit_with(self);
+          assign.value.visit_with(self);
         }
         ObjectPatProp::KeyValue(_) | ObjectPatProp::Rest(_) => {
           n.visit_children_with(self);
@@ -3551,11 +3547,11 @@ pub fn collect_ident(
       }
     }
 
-    fn visit_prop(&mut self, node: Prop) {
+    fn visit_prop(&mut self, node: &Prop<'a>) {
       match node {
         Prop::Shorthand(node) => {
           self.ids.push(NewConcatenatedModuleIdent {
-            id: node,
+            id: node.as_ref().clone_in(self.allocator),
             shorthand: true,
             is_class_expr_with_ident: false,
           });
@@ -3567,24 +3563,24 @@ pub fn collect_ident(
     }
 
     /// https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1173-L1197
-    fn visit_class_expr(&mut self, node: ClassExpr) {
-      if let Some(ident) = node.ident(self.ast)
-        && node.class(self.ast).super_class(self.ast).is_some()
+    fn visit_class_expr(&mut self, node: &ClassExpr<'a>) {
+      if let Some(ident) = &node.ident
+        && node.class.super_class.is_some()
       {
         self.ids.push(NewConcatenatedModuleIdent {
-          id: ident,
+          id: ident.as_ref().clone_in(self.allocator),
           shorthand: false,
           is_class_expr_with_ident: true,
         });
       }
-      node.class(self.ast).visit_with(self);
+      node.class.visit_with(self);
     }
   }
 
   let mut collector = IdentCollector {
-    ast,
+    allocator,
     ids: Vec::new(),
   };
-  collector.visit_module(root);
+  root.visit_with(&mut collector);
   collector.ids
 }

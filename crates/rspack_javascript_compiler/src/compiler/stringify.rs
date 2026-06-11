@@ -46,7 +46,10 @@ impl SourceMapGenConfig for SourceMapConfig {
   }
 
   fn inline_sources_content(&self, _: &FileName) -> bool {
-    self.source_map_kind.inline_sources_content()
+    // Ideally transform should keep the original source via `original_source`, but
+    // NormalModule historically wraps loader output with `WithoutOriginalOptions`.
+    // Keep the old behavior of carrying it through SWC's inline source content.
+    self.source_map_kind.source_map()
   }
 
   fn emit_columns(&self, _f: &FileName) -> bool {

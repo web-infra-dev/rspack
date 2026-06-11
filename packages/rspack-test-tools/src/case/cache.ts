@@ -123,11 +123,14 @@ function matchStatsSnapshot(
   stats: Stats,
 ) {
   const content = normalizePlaceholder(
-    stats.toString({
-      all: false,
-      logging: 'info',
-      colors: false,
-    }),
+    stats
+      .toString({
+        all: false,
+        logging: false,
+        loggingDebug: /^rspack\.persistentCache$/,
+        colors: false,
+      })
+      .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms'),
   ).trim();
 
   if (!content.includes('rspack.persistentCache')) {

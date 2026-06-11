@@ -1,3 +1,4 @@
+use rspack_util::SpanExt;
 pub mod ast;
 mod call_hooks_name;
 pub mod estree;
@@ -8,7 +9,6 @@ mod walk_module_pre;
 mod walk_pre;
 
 use std::{
-  borrow::Cow,
   fmt::Display,
   hash::{Hash, Hasher},
   rc::Rc,
@@ -27,20 +27,15 @@ use rspack_core::{
   ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_util::{SpanExt, fx_hash::FxIndexSet};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smallvec::SmallVec;
-use swc_core::{
-  atoms::Atom,
-  common::{BytePos, Mark, Span, Spanned, comments::Comments},
-  ecma::{
-    ast::{
-      ArrayPat, AssignPat, AssignTargetPat, CallExpr, Decl, Expr, Ident, Lit, MemberExpr,
-      MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase, OptChainExpr,
-      Pat, Program, RestPat, Stmt, ThisExpr,
-    },
-    utils::ExprFactory,
-  },
+use swc_atoms::Atom;
+use swc_experimental_allocator::{Allocator, CloneIn};
+use swc_experimental_ecma_ast::{
+  ArrayPat, AssignPat, AssignTargetPat, CallExpr, Callee, Decl, Expr, GetSpan, Ident, Lit,
+  MemberExpr, MetaPropExpr, MetaPropKind, ObjectPat, ObjectPatProp, OptCall, OptChainBase,
+  OptChainExpr, Pat, Program, RestPat, Span, Stmt, ThisExpr,
 };
 
 use crate::{
@@ -53,7 +48,7 @@ use crate::{
   },
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{
-    ScanDependenciesResult,
+    ParsedJavaScriptAst, ScanDependenciesResult,
     dependency::parser::{ast::ExprRef, location_advancer::DependencyLocationAdvancer},
     scope_info::{
       ScopeInfoDB, ScopeInfoId, TagInfo, TagInfoId, VariableInfo, VariableInfoFlags, VariableInfoId,
@@ -69,6 +64,16 @@ pub trait TagInfoData: Clone + Sized + 'static {
   fn downcast_ref(any: &dyn anymap::CloneAny) -> &Self;
 
   fn downcast_mut(any: &mut dyn anymap::CloneAny) -> &mut Self;
+}
+
+fn atom_from_wtf8(value: swc_experimental_allocator::atom::Wtf8Atom<'_>) -> Atom {
+  Atom::from(value.as_wtf8().to_string_lossy().as_ref())
+}
+
+impl GetSpan for estree::Statement<'_> {
+  fn span(&self) -> Span {
+    self.span()
+  }
 }
 
 impl<T> TagInfoData for T
@@ -129,7 +134,7 @@ pub enum MemberExpressionInfo<'ast> {
 
 #[derive(Debug)]
 pub struct CallExpressionInfo<'ast> {
-  pub call: &'ast CallExpr,
+  pub call: &'ast CallExpr<'ast>,
   pub root_info: ExportedVariableInfo,
   pub callee_members: AtomMembers,
   pub members: AtomMembers,
@@ -176,7 +181,7 @@ pub trait RootName {
   }
 }
 
-impl RootName for Expr {
+impl RootName for Expr<'_> {
   fn get_root_name(&self) -> Option<Atom> {
     match self {
       Expr::Ident(ident) => ident.get_root_name(),
@@ -204,9 +209,9 @@ impl RootName for ThisExpr {
   }
 }
 
-impl RootName for Ident {
+impl RootName for Ident<'_> {
   fn get_root_name(&self) -> Option<Atom> {
-    Some(self.sym.clone())
+    Some(Atom::from(self.sym.as_str()))
   }
 }
 
@@ -222,6 +227,20 @@ impl RootName for MetaPropExpr {
 pub struct NameInfo<'a> {
   pub name: &'a Atom,
   pub info: Option<&'a VariableInfo>,
+}
+
+pub enum PatRef<'a> {
+  Borrowed(&'a Pat<'a>),
+  Owned(Pat<'a>),
+}
+
+impl<'a> PatRef<'a> {
+  pub(crate) fn as_pat(&self) -> &Pat<'a> {
+    match self {
+      PatRef::Borrowed(pat) => pat,
+      PatRef::Owned(pat) => pat,
+    }
+  }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -242,7 +261,7 @@ pub struct StatementPath {
   span: Span,
 }
 
-impl Spanned for StatementPath {
+impl StatementPath {
   fn span(&self) -> Span {
     self.span
   }
@@ -366,8 +385,8 @@ pub struct JavascriptParser<'parser> {
   blocks: Vec<Box<AsyncDependenciesBlock>>,
   // ===== inputs =======
   pub(crate) source: &'parser str,
+  pub ast: &'parser ParsedJavaScriptAst<'parser>,
   pub parse_meta: ParseMeta,
-  pub comments: Option<&'parser dyn Comments>,
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
@@ -389,7 +408,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) in_short_hand: bool,
   pub(crate) in_tagged_template_tag: bool,
   pub(crate) member_expr_in_optional_chain: bool,
-  pub(crate) semicolons: &'parser mut FxHashSet<BytePos>,
+  pub(crate) semicolons: &'parser mut FxHashSet<u32>,
   pub(crate) statement_path: Vec<StatementPath>,
   pub(crate) prev_statement: Option<StatementPath>,
   pub is_esm: bool,
@@ -412,9 +431,9 @@ impl<'parser> JavascriptParser<'parser> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     source: &'parser str,
+    ast: &'parser ParsedJavaScriptAst<'parser>,
     compiler_options: &'parser CompilerOptions,
     javascript_options: &'parser JavascriptParserOptions,
-    comments: Option<&'parser dyn Comments>,
     module_identifier: &'parser ModuleIdentifier,
     module_type: &'parser ModuleType,
     module_layer: Option<&'parser ModuleLayer>,
@@ -422,8 +441,7 @@ impl<'parser> JavascriptParser<'parser> {
     factory_meta: Option<&'parser FactoryMeta>,
     build_meta: &'parser mut BuildMeta,
     build_info: &'parser mut BuildInfo,
-    semicolons: &'parser mut FxHashSet<BytePos>,
-    unresolved_mark: Mark,
+    semicolons: &'parser mut FxHashSet<u32>,
     parser_plugins: &'parser mut Vec<BoxJavascriptParserPlugin>,
     parse_meta: ParseMeta,
     parser_runtime_requirements: &'parser ParserRuntimeRequirementsData,
@@ -434,6 +452,7 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
+    let unresolved_scope_id = ast.semantic.unresolved_scope_id();
 
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
@@ -483,8 +502,11 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+    }
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       let commonjs_exports = javascript_options
         .commonjs
@@ -535,14 +557,14 @@ impl<'parser> JavascriptParser<'parser> {
     )));
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_mark,
+        unresolved_scope_id,
         compiler_options.experiments.pure_functions,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_mark,
+        unresolved_scope_id,
         compiler_options.experiments.pure_functions,
       )));
     }
@@ -552,7 +574,7 @@ impl<'parser> JavascriptParser<'parser> {
 
     Self {
       last_esm_import_order: 0,
-      comments,
+      ast,
       javascript_options,
       source,
       errors,
@@ -740,13 +762,13 @@ impl<'parser> JavascriptParser<'parser> {
     self.local_modules.iter_mut().find(|m| m.get_name() == name)
   }
 
-  pub fn is_asi_position(&self, pos: BytePos) -> bool {
+  pub fn is_asi_position(&self, pos: u32) -> bool {
     let curr_path = self.statement_path.last().expect("Should in statement");
-    if curr_path.span_hi() == pos && self.semicolons.contains(&pos) {
+    if curr_path.span().end == pos && self.semicolons.contains(&pos) {
       true
-    } else if curr_path.span_lo() == pos
+    } else if curr_path.span().start == pos
       && let Some(prev) = &self.prev_statement
-      && self.semicolons.contains(&prev.span_hi())
+      && self.semicolons.contains(&prev.span().end)
     {
       true
     } else {
@@ -754,11 +776,11 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  pub fn set_asi_position(&mut self, pos: BytePos) -> bool {
+  pub fn set_asi_position(&mut self, pos: u32) -> bool {
     self.semicolons.insert(pos)
   }
 
-  pub fn unset_asi_position(&mut self, pos: BytePos) -> bool {
+  pub fn unset_asi_position(&mut self, pos: u32) -> bool {
     self.semicolons.remove(&pos)
   }
 
@@ -890,9 +912,8 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_all_variables_from_current_scope(
     &self,
-  ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
-    scope.variables()
+  ) -> impl Iterator<Item = (&str, VariableInfoId)> {
+    self.definitions_db.scope_variables(self.definitions)
   }
 
   pub fn define_variable(&mut self, name: Atom) {
@@ -946,7 +967,7 @@ impl<'parser> JavascriptParser<'parser> {
     tag: &'static str,
     data: Option<Data>,
   ) {
-    self.tag_variable_impl(name, tag, data, None);
+    self.tag_variable_impl(name, tag, data.map(TagInfoData::into_any), None);
   }
 
   pub fn tag_variable_with_flags<Data: TagInfoData>(
@@ -956,18 +977,21 @@ impl<'parser> JavascriptParser<'parser> {
     data: Option<Data>,
     flags: VariableInfoFlags,
   ) {
-    self.tag_variable_impl(name, tag, data, Some(flags));
+    self.tag_variable_impl(name, tag, data.map(TagInfoData::into_any), Some(flags));
   }
 
-  fn tag_variable_impl<Data: TagInfoData>(
+  pub fn tag_variable_without_data(&mut self, name: Atom, tag: &'static str) {
+    self.tag_variable_impl(name, tag, None, None);
+  }
+
+  fn tag_variable_impl(
     &mut self,
     name: Atom,
     tag: &'static str,
-    data: Option<Data>,
+    data: Option<Box<dyn anymap::CloneAny>>,
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let data = data.map(|data| TagInfoData::into_any(data));
     let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {
@@ -1137,35 +1161,34 @@ impl<'parser> JavascriptParser<'parser> {
       match object {
         ExprRef::Member(expr) => {
           if let Some(computed) = expr.prop.as_computed() {
-            let Expr::Lit(lit) = &*computed.expr else {
+            let Expr::Lit(lit) = &computed.expr else {
               break;
             };
-            let value = match lit {
-              Lit::Str(s) => s.value.clone(),
-              Lit::Bool(b) => if b.value { "true" } else { "false" }.into(),
-              Lit::Null(_) => "null".into(),
-              Lit::Num(n) => n.value.to_string().into(),
-              Lit::BigInt(i) => i.value.to_string().into(),
-              Lit::Regex(r) => r.exp.clone().into(),
-              Lit::JSXText(_) => unreachable!(),
+            let value = match &**lit {
+              Lit::Str(s) => atom_from_wtf8(s.value),
+              Lit::Bool(b) => Atom::from(if b.value { "true" } else { "false" }),
+              Lit::Null(_) => Atom::from("null"),
+              Lit::Num(n) => Atom::from(n.value.to_string().as_str()),
+              Lit::BigInt(i) => Atom::from(i.value.as_str()),
+              Lit::Regex(r) => Atom::from(r.exp.as_str()),
             };
             // Since members are not used across rspack javascript parser plugin,
             // we directly makes it atom here
-            members.push(value.to_atom_lossy().into_owned());
+            members.push(value);
             member_ranges.push(expr.obj.span());
           } else if let Some(ident) = expr.prop.as_ident() {
-            members.push(ident.sym.clone());
+            members.push(Atom::from(ident.sym.as_str()));
             member_ranges.push(expr.obj.span());
           } else {
             break;
           }
           members_optionals.push(in_optional_chain);
-          object = expr.obj.as_ref().into();
+          object = (&expr.obj).into();
           in_optional_chain = false;
         }
         ExprRef::OptChain(expr) => {
           in_optional_chain = expr.optional;
-          if let OptChainBase::Member(member) = expr.base.as_ref() {
+          if let OptChainBase::Member(member) = &expr.base {
             object = ExprRef::Member(member);
           } else {
             break;
@@ -1187,8 +1210,7 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, &Ident),
   {
     let drive = self.plugin_drive.clone();
-    if !ident
-      .sym
+    if !Atom::from(ident.sym.as_str())
       .call_hooks_name(self, |parser, for_name| {
         drive.pattern(parser, ident, for_name)
       })
@@ -1206,14 +1228,14 @@ impl<'parser> JavascriptParser<'parser> {
       .elems
       .iter()
       .flatten()
-      .for_each(|ele| self.enter_pattern(Cow::Borrowed(ele), on_ident));
+      .for_each(|ele| self.enter_pattern(PatRef::Borrowed(ele), on_ident));
   }
 
   fn enter_assignment_pattern<F>(&mut self, assign: &AssignPat, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    self.enter_pattern(Cow::Borrowed(&assign.left), on_ident);
+    self.enter_pattern(PatRef::Borrowed(&assign.left), on_ident);
   }
 
   fn enter_object_pattern<F>(&mut self, obj: &ObjectPat, on_ident: F)
@@ -1222,13 +1244,13 @@ impl<'parser> JavascriptParser<'parser> {
   {
     for prop in &obj.props {
       match prop {
-        ObjectPatProp::KeyValue(kv) => self.enter_pattern(Cow::Borrowed(&kv.value), on_ident),
+        ObjectPatProp::KeyValue(kv) => self.enter_pattern(PatRef::Borrowed(&kv.value), on_ident),
         ObjectPatProp::Assign(assign) => {
           let old = self.in_short_hand;
           if assign.value.is_none() {
             self.in_short_hand = true;
           }
-          self.enter_ident(&assign.key, on_ident);
+          self.enter_ident(&assign.key.id, on_ident);
           self.in_short_hand = old;
         }
         ObjectPatProp::Rest(rest) => self.enter_rest_pattern(rest, on_ident),
@@ -1240,14 +1262,14 @@ impl<'parser> JavascriptParser<'parser> {
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    self.enter_pattern(Cow::Borrowed(&rest.arg), on_ident)
+    self.enter_pattern(PatRef::Borrowed(&rest.arg), on_ident)
   }
 
-  fn enter_pattern<F>(&mut self, pattern: Cow<Pat>, on_ident: F)
+  fn enter_pattern<F>(&mut self, pattern: PatRef<'_>, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match &*pattern {
+    match pattern.as_pat() {
       Pat::Ident(ident) => self.enter_ident(&ident.id, on_ident),
       Pat::Array(array) => self.enter_array_pattern(array, on_ident),
       Pat::Assign(assign) => self.enter_assignment_pattern(assign, on_ident),
@@ -1258,11 +1280,11 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn enter_assign_target_pattern<F>(&mut self, pattern: Cow<AssignTargetPat>, on_ident: F)
+  fn enter_assign_target_pattern<F>(&mut self, pattern: &AssignTargetPat, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
   {
-    match &*pattern {
+    match pattern {
       AssignTargetPat::Array(array) => self.enter_array_pattern(array, on_ident),
       AssignTargetPat::Object(obj) => self.enter_object_pattern(obj, on_ident),
       AssignTargetPat::Invalid(_) => (),
@@ -1272,7 +1294,7 @@ impl<'parser> JavascriptParser<'parser> {
   fn enter_patterns<'a, I, F>(&mut self, patterns: I, on_ident: F)
   where
     F: FnOnce(&mut Self, &Ident) + Copy,
-    I: Iterator<Item = Cow<'a, Pat>>,
+    I: Iterator<Item = PatRef<'a>>,
   {
     for pattern in patterns {
       self.enter_pattern(pattern, on_ident);
@@ -1281,16 +1303,16 @@ impl<'parser> JavascriptParser<'parser> {
 
   fn enter_optional_chain<'a, C, M, R>(
     &mut self,
-    expr: &'a OptChainExpr,
+    expr: &'a OptChainExpr<'a>,
     on_call: C,
     on_member: M,
   ) -> R
   where
-    C: FnOnce(&mut Self, &'a OptCall) -> R,
-    M: FnOnce(&mut Self, &'a MemberExpr) -> R,
+    C: FnOnce(&mut Self, &'a OptCall<'a>) -> R,
+    M: FnOnce(&mut Self, &'a MemberExpr<'a>) -> R,
   {
     let member_expr_in_optional_chain = self.member_expr_in_optional_chain;
-    let ret = match &*expr.base {
+    let ret = match &expr.base {
       OptChainBase::Call(call) => {
         if call.callee.is_member() {
           self.member_expr_in_optional_chain = expr.optional;
@@ -1319,17 +1341,16 @@ impl<'parser> JavascriptParser<'parser> {
       }
       Decl::Var(var) => {
         for decl in &var.decls {
-          self.enter_pattern(Cow::Borrowed(&decl.name), on_ident);
+          self.enter_pattern(PatRef::Borrowed(&decl.name), on_ident);
         }
       }
       Decl::Using(_) => (),
-      _ => unreachable!(),
     }
   }
 
   fn enter_statement<S, H, F>(&mut self, statement: &S, call_hook: H, on_statement: F)
   where
-    S: Spanned,
+    S: GetSpan,
     H: FnOnce(&mut Self, &S) -> bool,
     F: FnOnce(&mut Self, &S),
   {
@@ -1344,11 +1365,11 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn enter_destructuring_assignment<'a>(
     &mut self,
-    pattern: &ObjectPat,
-    expr: &'a Expr,
-  ) -> Option<&'a Expr> {
+    pattern: &ObjectPat<'a>,
+    expr: &'a Expr<'a>,
+  ) -> Option<&'a Expr<'a>> {
     let drive = self.plugin_drive.clone();
-    let expr = if let Some(await_expr) = expr.as_await_expr() {
+    let expr = if let Expr::Await(await_expr) = expr {
       &await_expr.arg
     } else {
       expr
@@ -1364,13 +1385,14 @@ impl<'parser> JavascriptParser<'parser> {
         .unwrap_or_default();
       can_collect.then_some(expr)
     };
-    if let Some(destructuring) = destructuring
+    let destructuring_span = destructuring.map(|destructuring| destructuring.span());
+    if let Some(destructuring_span) = destructuring_span
       && let Some(keys) =
         self.collect_destructuring_assignment_properties_from_object_pattern(pattern)
     {
       self
         .destructuring_assignment_properties
-        .add(destructuring.span(), keys);
+        .add(destructuring_span, keys);
     }
     destructuring
   }
@@ -1418,7 +1440,7 @@ impl<'parser> JavascriptParser<'parser> {
       return;
     };
 
-    if str.value == "use strict" {
+    if str.value.as_wtf8().to_string_lossy().as_ref() == "use strict" {
       self.set_strict(true);
     }
   }
@@ -1436,8 +1458,11 @@ impl<'parser> JavascriptParser<'parser> {
   }
 }
 
-impl JavascriptParser<'_> {
-  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr) -> BasicEvaluatedExpression<'a> {
+impl<'parser> JavascriptParser<'parser> {
+  pub fn evaluate_expression<'a>(&mut self, expr: &'a Expr<'a>) -> BasicEvaluatedExpression<'a>
+  where
+    'parser: 'a,
+  {
     match self.evaluating(expr) {
       Some(evaluated) => evaluated.with_expression(Some(expr)),
       None => BasicEvaluatedExpression::with_range(expr.span().real_lo(), expr.span().real_hi())
@@ -1449,13 +1474,16 @@ impl JavascriptParser<'_> {
     &mut self,
     source: String,
     error_title: T,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression<'parser>> {
     eval::eval_source(self, source, error_title.to_string())
   }
 
   // same as `JavascriptParser._initializeEvaluating` in webpack
   // FIXME: should mv it to plugin(for example `parse.hooks.evaluate for`)
-  fn evaluating<'a>(&mut self, expr: &'a Expr) -> Option<BasicEvaluatedExpression<'a>> {
+  fn evaluating<'a>(&mut self, expr: &'a Expr<'a>) -> Option<BasicEvaluatedExpression<'a>>
+  where
+    'parser: 'a,
+  {
     match expr {
       Expr::Tpl(tpl) => eval::eval_tpl_expression(self, tpl),
       Expr::TaggedTpl(tagged_tpl) => eval::eval_tagged_tpl_expression(self, tagged_tpl),
@@ -1469,25 +1497,20 @@ impl JavascriptParser<'_> {
       Expr::OptChain(opt_chain) => self.enter_optional_chain(
         opt_chain,
         |parser, call| {
-          let expr = Expr::Call(CallExpr {
-            ctxt: call.ctxt,
+          let allocator: &'a Allocator = parser.ast.allocator;
+          let call_expr = allocator.alloc(CallExpr {
             span: call.span,
-            callee: call.callee.clone().as_callee(),
-            args: call.args.clone(),
-            type_args: None,
+            callee: Callee::Expr(allocator.boxed(call.callee.clone_in(allocator))),
+            args: call.args.clone_in(allocator),
           });
-          BasicEvaluatedExpression::with_owned_expression(expr, |expr| {
-            #[allow(clippy::unwrap_used)]
-            let call_expr = expr.as_call().unwrap();
-            eval::eval_call_expression(parser, call_expr)
-          })
+          eval::eval_call_expression(parser, call_expr)
         },
         |parser, member| eval::eval_member_expression(parser, member, expr),
       ),
       Expr::Member(member) => eval::eval_member_expression(self, member, expr),
       Expr::Ident(ident) => {
-        let name = &ident.sym;
-        if name.eq("undefined") {
+        let name = Atom::from(ident.sym.as_str());
+        if name == "undefined" {
           let mut eval =
             BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
           eval.set_undefined();
@@ -1499,7 +1522,7 @@ impl JavascriptParser<'_> {
             drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.real_hi())
           })
           .or_else(|| {
-            let info = self.get_variable_info(name);
+            let info = self.get_variable_info(&name);
             if let Some(info) = info {
               if let Some(name) = &info.name
                 && (info.is_free() || info.is_tagged())
@@ -1521,7 +1544,7 @@ impl JavascriptParser<'_> {
               let mut eval =
                 BasicEvaluatedExpression::with_range(ident.span.real_lo(), ident.span.real_hi());
               eval.set_identifier(
-                ident.sym.clone(),
+                Atom::from(ident.sym.as_str()),
                 ExportedVariableInfo::Name(name.clone()),
                 None,
                 None,

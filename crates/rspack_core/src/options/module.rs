@@ -333,11 +333,38 @@ pub struct JavascriptParserOptions {
   pub commonjs: Option<JavascriptParserCommonjsOptions>,
   pub import_dynamic: Option<bool>,
   pub commonjs_magic_comments: Option<bool>,
+  pub create_require: Option<JavascriptParserCreateRequire>,
   pub jsx: Option<bool>,
   pub defer_import: Option<bool>,
   pub source_import: Option<bool>,
   pub import_meta_resolve: Option<bool>,
   pub side_effects_free: Option<Vec<String>>,
+}
+
+impl JavascriptParserOptions {
+  pub fn create_require_option(&self) -> Option<&str> {
+    match self.create_require.as_ref()? {
+      JavascriptParserCreateRequire::Disabled => None,
+      JavascriptParserCreateRequire::Enabled(option) => Some(option),
+    }
+  }
+
+  pub fn is_create_require_enabled(&self) -> bool {
+    self.create_require_option().is_some()
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum JavascriptParserCreateRequire {
+  Disabled,
+  Enabled(String),
+}
+
+impl MergeFrom for JavascriptParserCreateRequire {
+  fn merge_from(self, other: &Self) -> Self {
+    other.clone()
+  }
 }
 
 #[cacheable]

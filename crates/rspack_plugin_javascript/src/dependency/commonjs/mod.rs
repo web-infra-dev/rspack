@@ -37,6 +37,21 @@ pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDep
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,
 };
+use rspack_core::Context;
+
+pub(super) fn create_resource_identifier_for_contextual_commonjs_dependency(
+  dep_type: &str,
+  context: &Context,
+  request: &str,
+) -> String {
+  let mut identifier = String::with_capacity(dep_type.len() + context.len() + request.len() + 2);
+  identifier.push_str(dep_type);
+  identifier.push('|');
+  identifier.push_str(context);
+  identifier.push('|');
+  identifier.push_str(request);
+  identifier
+}
 
 static OBJECT_PROTOTYPE_METHODS: &[&str] = &[
   "constructor",

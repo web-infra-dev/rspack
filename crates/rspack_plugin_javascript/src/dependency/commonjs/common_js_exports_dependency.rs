@@ -10,7 +10,7 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
   TemplateReplaceSource, UsedName, property_access,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 

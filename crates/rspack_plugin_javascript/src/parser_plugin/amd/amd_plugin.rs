@@ -1,9 +1,6 @@
 use rspack_core::{ConstDependency, RuntimeGlobals, RuntimeRequirementsDependency};
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{CallExpr, Expr, MemberExpr, UnaryExpr},
-};
+use swc_experimental_ecma_ast::{CallExpr, Expr, GetSpan, Ident, MemberExpr, UnaryExpr};
 
 use crate::{
   JavascriptParserPlugin,
@@ -19,10 +16,10 @@ const DEFINE_AMD: &str = "define.amd";
 const REQUIRE_AMD: &str = "require.amd";
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for AMDParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -38,7 +35,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -75,7 +72,7 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -98,10 +95,10 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    _parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     if for_name == DEFINE || for_name == REQUIRE {
@@ -125,8 +122,8 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     if for_name == DEFINE {
@@ -141,11 +138,11 @@ impl JavascriptParserPlugin for AMDParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<BasicEvaluatedExpression<'static>> {
+  ) -> Option<BasicEvaluatedExpression<'p>> {
     if for_name == DEFINE_AMD {
       return Some(evaluate_to_identifier(
         for_name.into(),
@@ -169,14 +166,14 @@ impl JavascriptParserPlugin for AMDParserPlugin {
     None
   }
 
-  fn can_rename(&self, _parser: &mut JavascriptParser, for_name: &str) -> Option<bool> {
+  fn can_rename(&self, _parser: &mut JavascriptParser<'p>, for_name: &str) -> Option<bool> {
     if for_name == DEFINE {
       return Some(true);
     }
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == DEFINE {
       parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
         expr.span().into(),

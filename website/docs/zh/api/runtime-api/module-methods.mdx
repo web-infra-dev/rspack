@@ -107,30 +107,30 @@ import(`./locale/${language}.json`).then((module) => {
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。有关这些魔法注释的完整列表，请参见下面的代码，以及对这些注释功能的解释。
+通过向 import 语句添加注释，我们可以实现「指定 chunk 名称」或「设置加载模式」等操作。**从 Rspack 2.0.7 开始**，推荐使用下面展示的 `rspack` 前缀魔法注释。对应的 `webpack` 前缀注释也会被兼容支持，例如 `webpackIgnore` 等价于 `rspackIgnore`。
 
 ```js
 // 单个模块
 import(
-  /* webpackChunkName: "my-chunk-name" */
-  /* webpackMode: "lazy" */
-  /* webpackFetchPriority: "high" */
+  /* rspackChunkName: "my-chunk-name" */
+  /* rspackMode: "lazy" */
+  /* rspackFetchPriority: "high" */
   'module'
 );
 
 // 多个可能模块
 import(
-  /* webpackInclude: /\.json$/ */
-  /* webpackExclude: /\.noimport\.json$/ */
-  /* webpackChunkName: "my-chunk-name" */
-  /* webpackMode: "lazy" */
-  /* webpackPrefetch: true */
-  /* webpackPreload: true */
+  /* rspackInclude: /\.json$/ */
+  /* rspackExclude: /\.noimport\.json$/ */
+  /* rspackChunkName: "my-chunk-name" */
+  /* rspackMode: "lazy" */
+  /* rspackPrefetch: true */
+  /* rspackPreload: true */
   `./locale/${language}`
 );
 ```
 
-##### webpackIgnore
+##### rspackIgnore / webpackIgnore \{#webpackignore}
 
 - **类型：** `boolean`
 
@@ -143,22 +143,33 @@ import(
 这在需要从外部 CDN 动态加载 ESM 格式的第三方库时特别有用，例如：
 
 ```js
+import('https://esm.sh/react' /* rspackIgnore: true */).then((React) => {
+  console.log(React.version); // 19.0.0
+});
+```
+
+也支持等价的 `webpackIgnore` 注释：
+
+```js
 import('https://esm.sh/react' /* webpackIgnore: true */).then((React) => {
   console.log(React.version); // 19.0.0
 });
 ```
 
-`webpackIgnore` 同样适用于 `new URL()` 语法。默认情况下，Rspack 会解析 `new URL()` 中的模块标识符，并将其引用的模块打包到构建产物中。当你需要 Rspack 跳过某个 `new URL()` 的处理时，可以添加 `webpackIgnore: true` 注释：
+`rspackIgnore` 同样适用于 `new URL()` 语法。默认情况下，Rspack 会解析 `new URL()` 中的模块标识符，并将其引用的模块打包到构建产物中。当你需要 Rspack 跳过某个 `new URL()` 的处理时，可以添加 `rspackIgnore: true` 注释：
 
 ```js
 // Rspack 会处理这个 URL，将 './index.css' 打包到构建产物中
 const url1 = new URL('./index.css', import.meta.url);
 
 // Rspack 会忽略这个 URL，保持原始的模块标识符
-const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
+const url2 = new URL(/* rspackIgnore: true */ './index.css', import.meta.url);
+
+// 同样支持 `webpackIgnore`
+const url3 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 ```
 
-##### webpackMode
+##### rspackMode / webpackMode \{#webpackmode}
 
 - **类型：** `"eager" | "lazy" | "weak" | "lazy-once"`
 - **默认值：** `'lazy'`
@@ -170,7 +181,7 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 - `'eager'`：不会生成额外的 chunk。所有的模块都被当前的 chunk 引入，并且没有额外的网络请求。但是仍会返回一个 resolved 状态的 Promise。与静态导入相比，在调用 `import()` 完成之前，该模块不会被执行。
 - `'weak'`：尝试加载模块，如果该模块函数已经以其他方式加载，（即另一个 chunk 导入过此模块，或包含模块的脚本被加载）。仍会返回 Promise， 但是只有在客户端上已经有该 chunk 时才会成功解析。如果该模块不可用，则返回 rejected 状态的 Promise，且网络请求永远都不会执行。当需要的 chunks 始终在（嵌入在页面中的）初始请求中手动提供，而不是在应用程序导航在最初没有提供的模块导入的情况下触发，这对于通用渲染（SSR）是非常有用的。
 
-##### webpackPrefetch
+##### rspackPrefetch / webpackPrefetch \{#webpackprefetch}
 
 - **类型：**
   - `number`: 预取优先级
@@ -178,7 +189,7 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 告诉浏览器将来可能需要该资源来进行某些导航跳转，详情请查看[预取/预载模块](/guide/optimization/code-splitting#prefetchingpreloading-模块)。
 
-##### webpackPreload
+##### rspackPreload / webpackPreload \{#webpackpreload}
 
 - **类型：**
   - `number`: 预载优先级
@@ -186,13 +197,13 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 告诉浏览器在当前导航期间可能需要该资源，详情请查看[预取/预载模块](/guide/optimization/code-splitting#prefetchingpreloading-模块)。
 
-##### webpackChunkName
+##### rspackChunkName / webpackChunkName \{#webpackchunkname}
 
 - **类型：**: `string`
 
 指定新 chunk 的名称。
 
-##### webpackFetchPriority
+##### rspackFetchPriority / webpackFetchPriority \{#webpackfetchpriority}
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -200,7 +211,7 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 为指定的动态导入设置 [`fetchPriority`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLImageElement/fetchPriority)。也可以通过使用 `module.parser.javascript.dynamicImportFetchPriority` 选项为所有动态导入设置全局默认值。
 
-##### webpackInclude
+##### rspackInclude / webpackInclude \{#webpackinclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -208,7 +219,7 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 
 在导入解析时匹配的正则表达式。只有匹配的模块**才会被打包**。
 
-##### webpackExclude
+##### rspackExclude / webpackExclude \{#webpackexclude}
 
 <ApiMeta addedVersion="1.0.0" />
 
@@ -217,10 +228,10 @@ const url2 = new URL(/* webpackIgnore: true */ './index.css', import.meta.url);
 在导入解析时匹配的正则表达式。只有匹配的模块**不会被打包**。
 
 :::info
-请注意，`webpackInclude` 和 `webpackExclude` 选项不会影响前缀。例如：`./locale`。
+请注意，`rspackInclude` 和 `rspackExclude` 选项不会影响前缀。等价的 `webpackInclude` 和 `webpackExclude` 注释也会被兼容支持。例如：`./locale`。
 :::
 
-##### webpackExports
+##### rspackExports / webpackExports \{#webpackexports}
 
 <ApiMeta addedVersion="1.0.0" />
 

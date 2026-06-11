@@ -69,6 +69,7 @@ export interface NormalModule extends Module {
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
+	get error(): RspackError | undefined;
 }
 
 export interface ConcatenatedModule extends Module {
@@ -2477,6 +2478,7 @@ export interface RawJavascriptParserOptions {
   overrideStrict?: string
   importMeta?: string
   commonjsMagicComments?: boolean
+  createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
 deferImport?: boolean
 sourceImport?: boolean
