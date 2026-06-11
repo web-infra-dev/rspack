@@ -71,6 +71,16 @@ fn is_windows_absolute_path(path: &str) -> bool {
     && matches!(bytes[2], b'/' | b'\\')
 }
 
+/// Paths here originate from valid UTF-8 strings, so a single-validation
+/// `into_string` avoids the extra chunked walk that `to_string_lossy` performs.
+#[inline]
+fn path_into_string(path: PathBuf) -> String {
+  path
+    .into_os_string()
+    .into_string()
+    .unwrap_or_else(|os| os.to_string_lossy().into_owned())
+}
+
 #[inline]
 fn push_relative_path_to_request(rel: &str, out: &mut String) {
   if rel.is_empty() {
@@ -107,7 +117,7 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   if maybe_absolute_path.starts_with('/') {
     let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
     let tmp = Path::new(maybe_absolute_resource).relative(context);
-    let tmp_path = tmp.to_string_lossy();
+    let tmp_path = path_into_string(tmp);
     push_relative_path_to_request(&tmp_path, out);
     if let Some(query_part) = query_part {
       out.push_str(query_part);
@@ -118,7 +128,7 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   if is_windows_absolute_path(maybe_absolute_path) {
     let (maybe_absolute_resource, query_part) = split_at_query_mark(maybe_absolute_path);
     let relative_resource = maybe_absolute_resource.as_path().relative(context);
-    let resource = relative_resource.to_string_lossy();
+    let resource = path_into_string(relative_resource);
 
     // In windows, A path that relative to a another path could still be absolute.
     // ("d:/aaaa/cccc").relative("c:/aaaaa/") would get "d:/aaaa/cccc".
@@ -147,12 +157,9 @@ fn request_to_absolute(context: &str, relative_path: &str) -> String {
     } else {
       relative_path
     };
-    Path::new(context)
-      .join(relative_path)
-      .to_string_lossy()
-      .to_string()
+    path_into_string(Path::new(context).join(relative_path))
   } else {
-    PathBuf::from(relative_path).to_string_lossy().to_string()
+    relative_path.to_string()
   }
 }
 
