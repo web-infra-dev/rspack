@@ -14,8 +14,6 @@ describe('build command', () => {
       const { exitCode, stderr, stdout } = await run(__dirname, [
         '--mode',
         'development',
-        '--output-path',
-        'dist/default-command',
       ]);
 
       expect(exitCode).toBe(0);
@@ -27,8 +25,6 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(__dirname, [
       '--config',
       './entry.function.js',
-      '--output-path',
-      'dist/function',
     ]);
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
@@ -37,12 +33,7 @@ describe('build command', () => {
   it.concurrent(
     'should pass env.RSPACK_BUILD and env.RSPACK_BUNDLE for function configuration on build mode',
     async () => {
-      const { stdout } = await run(__dirname, [
-        '--config',
-        './entry.env.js',
-        '--output-path',
-        'dist/env',
-      ]);
+      const { stdout } = await run(__dirname, ['--config', './entry.env.js']);
       expect(stdout).toContain('RSPACK_BUILD=true');
       expect(stdout).toContain('RSPACK_BUNDLE=true');
       expect(stdout).not.toContain('RSPACK_WATCH=true');
@@ -54,13 +45,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await runWatch(
         __dirname,
-        [
-          '--watch',
-          '--config',
-          './entry.env.js',
-          '--output-path',
-          'dist/watch-env',
-        ],
+        ['--watch', '--config', './entry.env.js'],
         {
           // `Rspack compiled successfully` or `Rspack compiled with 1 error`
           killString: /rspack compiled/i,
@@ -75,8 +60,6 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(__dirname, [
       '--config',
       './entry.promise.js',
-      '--output-path',
-      'dist/promise',
     ]);
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
@@ -86,8 +69,6 @@ describe('build command', () => {
     const { exitCode, stderr, stdout } = await run(__dirname, [
       '--config',
       './entry.config.mjs',
-      '--output-path',
-      'dist/mjs',
     ]);
     expect(exitCode).toBe(0);
     expect(stderr).toBeFalsy();
