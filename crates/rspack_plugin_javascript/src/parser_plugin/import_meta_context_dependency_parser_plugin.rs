@@ -2,8 +2,10 @@ use concat_string::concat_string;
 use rspack_core::{
   ContextMode, ContextModulePattern, ContextNameSpaceObject, ContextOptions, DependencyCategory,
   ReferencedSpecifier, escape_glob_pattern, extract_glob_base_dir, get_context,
-  normalize_path_separators, normalize_path_separators_for_path, unescape_glob_path,
+  normalize_path_separators, normalize_path_separators_for_path, try_convert_str_to_context_mode,
+  unescape_glob_path,
 };
+use rspack_error::Error;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rspack_util::{SpanExt, identifier::relative_path_to_request, node_path::NodePath};
@@ -22,8 +24,8 @@ use crate::{
     },
   },
   visitors::{
-    JavascriptParser, clean_regexp_in_context_module, default_context_reg_exp, expr_name,
-    static_string_from_expr,
+    JavascriptParser, clean_regexp_in_context_module, create_traceable_error,
+    default_context_reg_exp, expr_name, static_string_from_expr,
   },
 };
 
@@ -298,7 +300,24 @@ fn create_import_meta_context_dependency(
       RspackRegex::with_flags(regexp.exp.as_str(), regexp.flags.as_str()).expect("reg failed")
     });
     let mode = get_literal_str_by_obj_prop(obj, "mode").map_or(ContextMode::Sync, |s| {
-      s.value.to_string_lossy().as_ref().into()
+      let value = s.value.to_string_lossy();
+      if let Some(mode) = try_convert_str_to_context_mode(value.as_ref()) {
+        mode
+      } else {
+        // Align with webpack, which throws an `Unsupported mode` error during
+        // code generation when an unknown context mode is used.
+        let mut error: Error = create_traceable_error(
+          "Unsupported mode".into(),
+          format!(
+            r#"`mode` expected "sync", "eager", "weak", "async-weak", "lazy" or "lazy-once", but received: "{value}"."#
+          ),
+          parser.source.to_string(),
+          s.span().into(),
+        );
+        error.hide_stack = Some(true);
+        parser.add_error(error.into());
+        ContextMode::Sync
+      }
     });
     let recursive = get_bool_by_obj_prop(obj, "recursive").is_none_or(|bool| bool.value);
     let span = node.span;
