@@ -1270,6 +1270,12 @@ export type JavascriptParserOptions = {
    */
   commonjsMagicComments?: boolean;
 
+  /**
+   * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
+   * @default true for Node-like targets, false otherwise
+   */
+  createRequire?: boolean | string;
+
   /** Whether to tolerant exportsPresence for type reexport */
   typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
 

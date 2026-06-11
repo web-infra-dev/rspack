@@ -10,7 +10,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
 struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,

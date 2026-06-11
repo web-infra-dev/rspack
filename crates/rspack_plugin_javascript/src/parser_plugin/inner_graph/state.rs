@@ -4,7 +4,8 @@ use std::{
 };
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{atoms::Atom, common::Span};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::Span;
 
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 

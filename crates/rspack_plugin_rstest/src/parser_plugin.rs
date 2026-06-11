@@ -13,9 +13,9 @@ use rspack_plugin_javascript::{
   visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error, expr_name},
 };
 use rspack_util::{SpanExt, atom::Atom, json_stringify_str, swc::get_swc_comments};
-use swc_core::{
-  common::{Span, Spanned},
-  ecma::ast::{CallExpr, Callee, Ident, MemberExpr, UnaryExpr},
+use swc_experimental_ecma_ast::{
+  CallExpr, Callee, GetSpan, Ident, IdentName, ImportPhase as AstImportPhase, MemberExpr, Span,
+  UnaryExpr, VarDeclarator,
 };
 
 static RSTEST_MOCK_FIRST_ARG_TAG: &str = "strip the import call from the first arg of mock series";
@@ -108,7 +108,10 @@ impl RstestParserPlugin {
     let member_expr = callee_expr.as_member()?;
     let require_ident = member_expr.obj.as_ident()?;
 
-    if parser.get_variable_info(&require_ident.sym).is_some() {
+    if parser
+      .get_variable_info(&Atom::from(require_ident.sym.as_str()))
+      .is_some()
+    {
       return None;
     }
 
@@ -222,16 +225,16 @@ impl RstestParserPlugin {
 
           let range = call_expr.span.into();
           let dep = Box::new(ImportDependency::new(
-            lit.value.to_atom_lossy().into_owned(),
+            Atom::from(lit.value.to_string_lossy().as_ref()),
             range,
             None,
             Some(attrs),
             ImportPhase::Evaluation,
             parser.in_try,
             get_swc_comments(
-              parser.comments,
-              imported_span.span().lo,
-              imported_span.span().hi,
+              parser.ast.comments,
+              imported_span.span().start,
+              imported_span.span().end,
             ),
           ));
 
@@ -374,10 +377,7 @@ impl RstestParserPlugin {
           ));
 
           if has_b {
-            let second_arg = Span::new(
-              first_arg.span().hi() + swc_core::common::BytePos(0),
-              first_arg.span().hi() + swc_core::common::BytePos(0),
-            );
+            let second_arg = Span::new(first_arg.span().end, first_arg.span().end);
             parser.add_dependency(Box::new(MockModuleIdDependency::new(
               format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
               second_arg.into(),
@@ -560,9 +560,9 @@ impl RstestParserPlugin {
                   ImportPhase::Evaluation,
                   parser.in_try,
                   get_swc_comments(
-                    parser.comments,
-                    imported_span.span().lo,
-                    imported_span.span().hi,
+                    parser.ast.comments,
+                    imported_span.span().start,
+                    imported_span.span().end,
                   ),
                 ));
 
@@ -654,11 +654,11 @@ impl RstestParserPlugin {
     parser: &mut JavascriptParser,
     call_expr: &CallExpr,
     ident: &Ident,
-    prop: &swc_core::ecma::ast::IdentName,
+    prop: &IdentName,
     statement_span: Option<Span>,
   ) -> Option<bool> {
     // Check if this is a global variable (free variable) or an ESM import
-    let is_global = !parser.is_variable_defined(&ident.sym);
+    let is_global = !parser.is_variable_defined(&Atom::from(ident.sym.as_str()));
 
     // Skip global variables if globals option is disabled
     if is_global && !self.options.globals {
@@ -738,11 +738,11 @@ impl RstestParserPlugin {
 }
 
 #[rspack_plugin_javascript::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for RstestParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
   fn declarator(
     &self,
-    parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::VarDeclarator,
+    parser: &mut JavascriptParser<'p>,
+    _expr: &VarDeclarator,
     stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     for decl in stmt.declarators() {
@@ -750,7 +750,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         let call_expr = match init.as_call() {
           Some(call) => Some(call),
           None => init
-            .as_await_expr()
+            .as_await()
             .and_then(|await_expr| await_expr.arg.as_call()),
         };
 
@@ -774,7 +774,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     None
   }
 
-  fn statement(&self, parser: &mut JavascriptParser, stmt: Statement) -> Option<bool> {
+  fn statement(&self, parser: &mut JavascriptParser<'p>, stmt: Statement) -> Option<bool> {
     let call_expr = match stmt {
       Statement::Expr(expr_stmt) if expr_stmt.expr.as_call().is_some() => expr_stmt
         .expr
@@ -800,7 +800,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -813,7 +813,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn import_call(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     import_then: Option<&CallExpr>,
     _members: Option<(&[Atom], bool)>,
@@ -836,10 +836,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
       // does not implement, and the default `ImportParserPlugin` enforces
       // the `experiments.deferImport` gate which we must not bypass.
       let import_node = call_expr.callee.as_import()?;
-      if !matches!(
-        import_node.phase,
-        swc_core::ecma::ast::ImportPhase::Evaluation
-      ) {
+      if !matches!(import_node.phase, AstImportPhase::Evaluation) {
         return None;
       }
 
@@ -855,7 +852,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
         return None;
       }
 
-      let param = parser.evaluate_expression(arg.expr.as_ref());
+      let param = parser.evaluate_expression(&arg.expr);
       if param.is_string() {
         return None;
       }
@@ -895,7 +892,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn call_member_chain(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     call_expr: &CallExpr,
     for_name: &str,
     members: &[Atom],
@@ -937,7 +934,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn identifier(
     &self,
-    parser: &mut rspack_plugin_javascript::visitors::JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
@@ -962,9 +959,9 @@ impl JavascriptParserPlugin for RstestParserPlugin {
     None
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
+    _parser: &mut JavascriptParser<'p>,
     expr: &'a UnaryExpr,
     for_name: &str,
   ) -> Option<utils::eval::BasicEvaluatedExpression<'a>> {
@@ -982,11 +979,11 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
     start: u32,
     end: u32,
-  ) -> Option<eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<eval::BasicEvaluatedExpression<'p>> {
     if self.options.inject_require_resolve_origin && for_name == expr_name::REQUIRE_RESOLVE {
       return Some(eval::evaluate_to_identifier(
         expr_name::REQUIRE_RESOLVE.into(),
@@ -1019,7 +1016,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
@@ -1040,7 +1037,7 @@ impl JavascriptParserPlugin for RstestParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
