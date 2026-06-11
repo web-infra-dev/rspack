@@ -13,7 +13,7 @@ describe('build command', () => {
     async () => {
       const { exitCode, stderr, stdout } = await run(
         __dirname,
-        ['--mode', 'development', '--output-path', 'dist/default-command'],
+        ['--mode', 'development'],
         {},
         {},
         true,
@@ -27,7 +27,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return function', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      ['--config', './entry.function.js', '--output-path', 'dist/function'],
+      ['--config', './entry.function.js'],
       {},
       {},
       true,
@@ -41,7 +41,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await run(
         __dirname,
-        ['--config', './entry.env.js', '--output-path', 'dist/env'],
+        ['--config', './entry.env.js'],
         {},
         {},
         true,
@@ -57,13 +57,7 @@ describe('build command', () => {
     async () => {
       const { stdout } = await runWatch(
         __dirname,
-        [
-          '--watch',
-          '--config',
-          './entry.env.js',
-          '--output-path',
-          'dist/watch-env',
-        ],
+        ['--watch', '--config', './entry.env.js'],
         {
           // `Rspack compiled successfully` or `Rspack compiled with 1 error`
           killString: /rspack compiled/i,
@@ -77,7 +71,7 @@ describe('build command', () => {
   it.concurrent('should work with configuration return promise', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      ['--config', './entry.promise.js', '--output-path', 'dist/promise'],
+      ['--config', './entry.promise.js'],
       {},
       {},
       true,
@@ -89,7 +83,7 @@ describe('build command', () => {
   it.concurrent('should work with mjs configuration ', async () => {
     const { exitCode, stderr, stdout } = await run(
       __dirname,
-      ['--config', './entry.config.mjs', '--output-path', 'dist/mjs'],
+      ['--config', './entry.config.mjs'],
       {},
       {},
       true,
