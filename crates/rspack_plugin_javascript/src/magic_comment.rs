@@ -25,8 +25,6 @@ pub enum RspackComment {
   ExcludeRegexp,
   Mode,
   Exports,
-  Defer,
-  Source,
 }
 
 impl RspackComment {
@@ -47,8 +45,6 @@ impl fmt::Display for RspackComment {
       Self::ExcludeRegexp => "Exclude",
       Self::Mode => "Mode",
       Self::Exports => "Exports",
-      Self::Defer => "Defer",
-      Self::Source => "Source",
     })
   }
 }
@@ -67,8 +63,6 @@ impl TryFrom<&str> for RspackComment {
       "Exclude" => Ok(Self::ExcludeRegexp),
       "Mode" => Ok(Self::Mode),
       "Exports" => Ok(Self::Exports),
-      "Defer" => Ok(Self::Defer),
-      "Source" => Ok(Self::Source),
       _ => Err(()),
     }
   }
@@ -249,20 +243,6 @@ impl RspackCommentMap {
     match self.0.get(&RspackComment::Exports).map(|item| &item.value) {
       Some(MagicCommentValue::String(value)) => Some(vec![value.clone()]),
       Some(MagicCommentValue::Array(value)) => Some(value.clone()),
-      _ => None,
-    }
-  }
-
-  pub fn get_defer(&self) -> Option<bool> {
-    match self.0.get(&RspackComment::Defer).map(|item| &item.value) {
-      Some(MagicCommentValue::Bool(value)) => Some(*value),
-      _ => None,
-    }
-  }
-
-  pub fn get_source(&self) -> Option<bool> {
-    match self.0.get(&RspackComment::Source).map(|item| &item.value) {
-      Some(MagicCommentValue::Bool(value)) => Some(*value),
       _ => None,
     }
   }
@@ -636,22 +616,6 @@ fn analyze_comments(
             continue;
           }
         }
-        RspackComment::Defer => {
-          if let Some(value) = expr_to_bool(value) {
-            MagicCommentValue::Bool(value)
-          } else {
-            push_parse_warning("a boolean");
-            continue;
-          }
-        }
-        RspackComment::Source => {
-          if let Some(value) = expr_to_bool(value) {
-            MagicCommentValue::Bool(value)
-          } else {
-            push_parse_warning("a boolean");
-            continue;
-          }
-        }
         RspackComment::FetchPriority => {
           if let Some(priority) = expr_to_str(value)
             && matches!(priority.as_ref(), "low" | "high" | "auto")
@@ -935,14 +899,6 @@ mod tests_extract_magic_comment_object {
       Some(RspackComment::Mode)
     );
     assert_eq!(
-      parse_magic_comment_name("rspackDefer").map(|(comment, _)| comment),
-      Some(RspackComment::Defer)
-    );
-    assert_eq!(
-      parse_magic_comment_name("rspackSource").map(|(comment, _)| comment),
-      Some(RspackComment::Source)
-    );
-    assert_eq!(
       parse_magic_comment_name("rspackFetchPriority").map(|(comment, _)| comment),
       Some(RspackComment::FetchPriority)
     );
@@ -969,8 +925,6 @@ mod tests_extract_magic_comment_object {
         rspackPreload: true,
         rspackIgnore: true,
         rspackMode: "eager",
-        rspackDefer: true,
-        rspackSource: true,
         rspackFetchPriority: "high",
         rspackInclude: /\.js$/,
         rspackExclude: /\.test\.js$/,
@@ -984,8 +938,6 @@ mod tests_extract_magic_comment_object {
     assert_eq!(comments.get_preload().as_deref(), Some("true"));
     assert_eq!(comments.get_ignore(), Some(true));
     assert_eq!(comments.get_mode(), Some(&"eager".to_string()));
-    assert_eq!(comments.get_defer(), Some(true));
-    assert_eq!(comments.get_source(), Some(true));
     assert_eq!(comments.get_fetch_priority(), Some(&"high".to_string()));
     assert!(comments.get_include().is_some());
     assert!(comments.get_exclude().is_some());
@@ -1006,10 +958,6 @@ mod tests_extract_magic_comment_object {
         webpackPreload: true,
         webpackIgnore: false,
         rspackIgnore: true,
-        webpackDefer: false,
-        rspackDefer: true,
-        rspackSource: true,
-        webpackSource: false,
         rspackFetchPriority: "high",
         webpackFetchPriority: "low",
         webpackInclude: /\.jsx$/,
@@ -1026,21 +974,17 @@ mod tests_extract_magic_comment_object {
     assert_eq!(comments.get_prefetch().as_deref(), Some("true"));
     assert_eq!(comments.get_preload().as_deref(), Some("2"));
     assert_eq!(comments.get_ignore(), Some(true));
-    assert_eq!(comments.get_defer(), Some(true));
-    assert_eq!(comments.get_source(), Some(true));
     assert_eq!(comments.get_fetch_priority(), Some(&"high".to_string()));
     assert_eq!(comments.get_include().unwrap().source(), r#"\.js$"#);
     assert_eq!(comments.get_exclude().unwrap().source(), r#"\.test\.js$"#);
     assert_eq!(comments.get_exports(), Some(vec!["rspack".into()]));
-    assert_eq!(warnings.len(), 11);
+    assert_eq!(warnings.len(), 9);
     for webpack_name in [
       "webpackChunkName",
       "webpackMode",
       "webpackPrefetch",
       "webpackPreload",
       "webpackIgnore",
-      "webpackDefer",
-      "webpackSource",
       "webpackFetchPriority",
       "webpackInclude",
       "webpackExclude",
