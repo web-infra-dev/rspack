@@ -30,7 +30,25 @@ const unusedNumericUnary = +coercion;
 const unusedUnsafeBinary = unsafePureFn("unsafe-binary") + coercion;
 const unusedComputedKey = { [key]: unsafePureFn("unsafe-computed") };
 
+// ./member-decl.js
+function memberPure(value) {
+  return value;
+}
+
+const optionalMemberObj = {
+  get value() {
+    (globalThis.__PURE_FUNCTION_EDGE_CALLS__ ||= []).push("UNSAFE_OPTIONAL_MEMBER_MARKER");
+    return 1;
+  },
+};
+
+// ./unsafe-optional-member-access.js
+
+
+memberPure([optionalMemberObj?.value]);
+
 // ./index.js
+
 
 
 

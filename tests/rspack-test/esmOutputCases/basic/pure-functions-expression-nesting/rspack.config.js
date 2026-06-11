@@ -17,6 +17,12 @@ module.exports = {
         },
       },
       {
+        test: /member-decl\.js$/,
+        parser: {
+          pureFunctions: ['memberPure'],
+        },
+      },
+      {
         test: /unsafe-decl\.js$/,
         parser: {
           pureFunctions: ['unsafePureFn'],
