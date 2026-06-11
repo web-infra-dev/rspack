@@ -295,7 +295,7 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalRenderMode) -> Runtim
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
           format!("{}.r", runtime_variable_name(&RuntimeVariable::Context))
         } else if runtime_globals.renderable_require_scope() == runtime_globals {
-          if let Some(name) = runtime_globals.property_name() {
+          if let Some(name) = runtime_globals.rspack_context_property_name() {
             format!(
               "{}{}",
               runtime_variable_name(&RuntimeVariable::Context),

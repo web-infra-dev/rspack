@@ -389,7 +389,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
     RuntimeGlobals::STARTUP => "x",
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT => "N",
+    RuntimeGlobals::MAKE_NAMESPACE_OBJECT => "r",
     RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT => "z",
     RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT => "zO",
     RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES => "zT",
@@ -528,12 +528,28 @@ impl RuntimeGlobals {
     runtime_globals_property_name(self)
   }
 
+  pub fn rspack_context_property_name(&self) -> Option<&'static str> {
+    if *self == RuntimeGlobals::MAKE_NAMESPACE_OBJECT {
+      Some("N")
+    } else {
+      self.property_name()
+    }
+  }
+
   pub fn name(&self) -> Option<&'static str> {
     RUNTIME_GLOBAL_MAP.0.get(self).copied()
   }
 
   pub fn from_property_name(property_name: &str) -> Option<Self> {
     RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
+  }
+
+  pub fn from_rspack_context_property_name(property_name: &str) -> Option<Self> {
+    if property_name == "N" {
+      return Some(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+    }
+    let runtime_global = Self::from_property_name(property_name)?;
+    (runtime_global != RuntimeGlobals::MAKE_NAMESPACE_OBJECT).then_some(runtime_global)
   }
 
   pub fn renderable_require_scope(self) -> Self {

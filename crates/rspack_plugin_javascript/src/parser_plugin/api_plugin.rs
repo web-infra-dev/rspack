@@ -204,7 +204,9 @@ fn static_require_member_chain(
   if for_name == API_REQUIRE
     && let Some(property) = members.first()
   {
-    if let Some(runtime_global) = RuntimeGlobals::from_property_name(property.as_ref()) {
+    if let Some(runtime_global) =
+      RuntimeGlobals::from_rspack_context_property_name(property.as_ref())
+    {
       let dep_span = if members.len() > 1 {
         member_ranges
           .and_then(|ranges| ranges.get(1))

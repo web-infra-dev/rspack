@@ -514,7 +514,7 @@ fn render_runtime_context_fields(
       continue;
     }
 
-    let Some(key) = runtime_global.property_name() else {
+    let Some(key) = runtime_global.rspack_context_property_name() else {
       continue;
     };
     let Some(lexical_name) = runtime_global.to_lexical_name() else {
@@ -564,7 +564,7 @@ fn render_runtime_context_field_initializers(
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
 
   for (_, runtime_global) in metadata.lexical_fields().iter_names() {
-    let Some(key) = runtime_global.property_name() else {
+    let Some(key) = runtime_global.rspack_context_property_name() else {
       continue;
     };
     let Some(lexical_name) = runtime_global.to_lexical_name() else {

@@ -57,7 +57,7 @@ impl RuntimeProxyMetadata {
     let mut source = String::new();
     for (_, runtime_global) in self.context_fields().iter_names() {
       let (Some(property_name), Some(lexical_name)) = (
-        runtime_global.property_name(),
+        runtime_global.rspack_context_property_name(),
         runtime_global.to_lexical_name(),
       ) else {
         continue;

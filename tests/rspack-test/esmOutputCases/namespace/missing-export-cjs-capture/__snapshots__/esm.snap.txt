@@ -70,7 +70,7 @@ __webpack_require__.t = function(value, mode) {
 		if((mode & 16) && typeof value.then === 'function') return value;
 	}
 	var ns = Object.create(null);
-  __webpack_require__.N(ns);
+  __webpack_require__.r(ns);
 	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
@@ -108,7 +108,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 // webpack/runtime/make_namespace_object
 (() => {
 // define __esModule on exports
-__webpack_require__.N = (exports) => {
+__webpack_require__.r = (exports) => {
 	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
