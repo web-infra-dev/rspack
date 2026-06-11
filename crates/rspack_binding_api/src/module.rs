@@ -98,7 +98,7 @@ fn module_use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
   let this = ctx.this_unchecked::<JsObject>();
   let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
   let (_, module) = wrapped_value.as_ref()?;
-  Ok(module.get_source_map_kind().source_map())
+  Ok(module.get_source_map_kind().simple_source_map())
 }
 
 #[js_function]
