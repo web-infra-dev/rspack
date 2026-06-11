@@ -22,14 +22,17 @@ it("should NOT rename require when requireAlias is false", function () {
 	const path = __non_webpack_require__("path");
 
 	const content = fs.readFileSync(path.join(__dirname, "./bundle0.js"), "utf-8");
-	const requireCall = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
-		? "__rspack_context\\.r\\(239\\)"
-		: "__webpack_require__\\(239\\)";
 	const ok = "ok";
 
-	expect(content).toMatch(new RegExp(`function test\\(\\) \\{\\s*${requireCall};\\s*\\}`, "i"));
-	expect(content).toMatch(new RegExp(`function test2\\(\\) \\{\\s*${requireCall};\\s*\\}`, "i"));
-	expect(content).toMatch(new RegExp(`function test3\\(cjsRequire3\\) \\{\\s*${requireCall};\\s*\\}`, "i"));
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		expect(content).toMatch(/function test\(\) \{\s*__rspack_context\.r\(239\);\s*\}/i);
+		expect(content).toMatch(/function test2\(\) \{\s*__rspack_context\.r\(239\);\s*\}/i);
+		expect(content).toMatch(/function test3\(cjsRequire3\) \{\s*__rspack_context\.r\(239\);\s*\}/i);
+	} else {
+		expect(content).toMatch(/function test\(\) \{\s*__webpack_require__\(239\);\s*\}/i);
+		expect(content).toMatch(/function test2\(\) \{\s*__webpack_require__\(239\);\s*\}/i);
+		expect(content).toMatch(/function test3\(cjsRequire3\) \{\s*__webpack_require__\(239\);\s*\}/i);
+	}
 	expect(content).toContain(`var cjsRequire = undefined, cjsRequire2 = undefined;`);
 	expect(content).toContain(`module.exports = "${ok}";`);
 });

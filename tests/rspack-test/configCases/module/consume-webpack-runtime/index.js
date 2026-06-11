@@ -13,14 +13,16 @@ it("should compile and run", () => {
 	expect(objectExport.foo).toBe(42);
 	expect(defaultUseNested().foo).toBe(42);
 
-	const isRspackRuntimeMode = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK === true;
-
 	const path = __non_webpack_require__('path')
 	const fs = __non_webpack_require__('fs')
 	{
 		const content = fs.readFileSync(path.resolve(__dirname, './bundle0.js'), 'utf-8');
 		const NESTED_RE = /__nested_rspack_require_[A-Za-z0-9_]+__/g;
-		expect((content.match(NESTED_RE) || []).length).toBe(isRspackRuntimeMode ? 0 : 17);
+		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect((content.match(NESTED_RE) || []).length).toBe(0);
+		} else {
+			expect(content.match(NESTED_RE).length).toBe(17);
+		}
 	}
 
 	{
@@ -32,7 +34,11 @@ it("should compile and run", () => {
 	{
 		const content = fs.readFileSync(path.resolve(__dirname, './bundle1.js'), 'utf-8');
 		const NESTED_RE = /__nested_rspack_require_[A-Za-z0-9_]+__/g;
-		expect((content.match(NESTED_RE) || []).length).toBe(isRspackRuntimeMode ? 0 : 19);
+		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect((content.match(NESTED_RE) || []).length).toBe(0);
+		} else {
+			expect(content.match(NESTED_RE).length).toBe(19);
+		}
 	}
 
 	{
@@ -44,7 +50,11 @@ it("should compile and run", () => {
 	{
 		const content = fs.readFileSync(path.resolve(__dirname, './bundle2.js'), 'utf-8');
 		const NESTED_RE = /__nested_rspack_require_[A-Za-z0-9_]+__/g;
-		expect((content.match(NESTED_RE) || []).length).toBe(isRspackRuntimeMode ? 0 : 17);
+		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect((content.match(NESTED_RE) || []).length).toBe(0);
+		} else {
+			expect(content.match(NESTED_RE).length).toBe(17);
+		}
 	}
 
 	{
@@ -56,7 +66,11 @@ it("should compile and run", () => {
 	{
 		const content = fs.readFileSync(path.resolve(__dirname, './bundle3.js'), 'utf-8');
 		const NESTED_RE = /__nested_rspack_require_[A-Za-z0-9_]+__/g;
-		expect((content.match(NESTED_RE) || []).length).toBe(isRspackRuntimeMode ? 0 : 19);
+		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect((content.match(NESTED_RE) || []).length).toBe(0);
+		} else {
+			expect(content.match(NESTED_RE).length).toBe(19);
+		}
 	}
 
 	{

@@ -11,13 +11,23 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	const out = fs.readFileSync(__filename, "utf-8");
-	expect(map.sources.filter(source => !source.startsWith("webpack:///webpack/runtime/"))).toEqual([
-		`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
-		"webpack:///./b-dir/c-dir/c.js",
-		"webpack:///./b-dir/b.js",
-		"webpack:///./a.js",
-		"webpack:///./index.js",
-	]);
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		expect(map.sources.filter(source => !source.startsWith("webpack:///webpack/runtime/"))).toEqual([
+			`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
+			"webpack:///./b-dir/c-dir/c.js",
+			"webpack:///./b-dir/b.js",
+			"webpack:///./a.js",
+			"webpack:///./index.js",
+		]);
+	} else {
+		expect(map.sources).toEqual([
+			`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
+			"webpack:///./b-dir/c-dir/c.js",
+			"webpack:///./b-dir/b.js",
+			"webpack:///./a.js",
+			"webpack:///./index.js",
+		]);
+	}
 	expect(map.file).toEqual("bundle0.js");
 	expect(
 		await checkMap(out, source, {

@@ -161,7 +161,7 @@ fn prepare_scan_dependencies_benchmark_case(
   PreparedScanDependenciesBenchmarkCase {
     benchmark_id,
     source_text,
-    compiler_options: compiler_options.clone(),
+    compiler_options,
     initial_semicolons: semicolons,
     parser_options,
     parsed_ast,

@@ -1,9 +1,12 @@
 const fs = require("fs");
 const path = require("path");
 const readCase = (name) => fs.readFileSync(path.resolve(__dirname, `${name}.mjs`), "utf-8");
-const snapshotDir = typeof __rspack_context !== "undefined"
-	? path.join(__SNAPSHOT__, "runtimeModeSnapshot")
-	: __SNAPSHOT__;
+let snapshotDir;
+if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+	snapshotDir = path.join(__SNAPSHOT__, "runtimeModeSnapshot");
+} else {
+	snapshotDir = __SNAPSHOT__;
+}
 
 it("reexport star from external module", function () {
 	expect(readCase("case1")).toMatchFileSnapshotSync(path.join(snapshotDir, 'case1.txt'));

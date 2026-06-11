@@ -276,7 +276,7 @@ impl Module for ContainerEntryModule {
         }
       }
 
-      let federation_global = format!("{}.federation", require_name);
+      let federation_global = format!("{require_name}.federation");
 
       // Generate installInitialConsumes function using returning_function
       let install_initial_consumes_call = format!(
@@ -346,8 +346,8 @@ impl Module for ContainerEntryModule {
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      let get_container = format!("{}.getContainer", require_name);
-      let init_container = format!("{}.initContainer", require_name);
+      let get_container = format!("{require_name}.getContainer");
+      let init_container = format!("{require_name}.initContainer");
 
       format!(
         r#"

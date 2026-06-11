@@ -10,7 +10,7 @@ it("keeps nested __rspack_context binding local", () => {
 });
 
 it("renames nested __rspack_context in rspack runtime mode", () => {
-	if (typeof __rspack_context === "undefined") {
+	if (!globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		return;
 	}
 	const source = require("fs").readFileSync(__filename, "utf-8");

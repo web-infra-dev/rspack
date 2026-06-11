@@ -23,8 +23,6 @@ module.exports = {
     }),
     {
       apply(compiler) {
-        const isRspackRuntimeMode =
-          compiler.options.experiments.runtimeMode === 'rspack';
         compiler.hooks.compilation.tap('TestPlugin::Assets', (compilation) => {
           const hooks = RsdoctorPlugin.getCompilationHooks(compilation);
           hooks.assets.tap('TestPlugin::Assets', (data) => {
@@ -35,7 +33,7 @@ module.exports = {
               path: a.path,
             }));
             assetsInfo.sort((a, b) => (a.path > b.path ? 1 : -1));
-            if (isRspackRuntimeMode) {
+            if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
               expect(assetsInfo).toEqual([
                 {
                   path: 'a.js',

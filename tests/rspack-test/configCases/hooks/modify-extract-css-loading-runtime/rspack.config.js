@@ -10,9 +10,12 @@ class Plugin {
             'webpack/runtime/css loading',
           );
           const originSource = module.source.source.toString('utf-8');
-          const runtimeSource = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
-            ? '__rspack_context.f.miniCss.test = true;'
-            : '__webpack_require__.f.miniCss.test = true;';
+          let runtimeSource;
+          if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+            runtimeSource = '__rspack_context.f.miniCss.test = true;';
+          } else {
+            runtimeSource = '__webpack_require__.f.miniCss.test = true;';
+          }
           module.source.source = Buffer.from(
             `${originSource}\n${runtimeSource}\n`,
             'utf-8',

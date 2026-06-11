@@ -14,7 +14,7 @@ createWorker;
 it("should generate correct new Worker statement", async () => {
 	const content = fs.readFileSync(path.resolve(path.dirname(__filename), './test-worker.js'), "utf-8");
 	expect(content).toContain(`this is worker`);
-	if (content.includes(["var ", "__rspack_context"].join(""))) {
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		expect(content).toContain(`(__unused_rspack_module, __unused_rspack_exports, __rspack_context)`);
 		expect(content).toContain(`eval(__rspack_context.ts(`);
 	} else {

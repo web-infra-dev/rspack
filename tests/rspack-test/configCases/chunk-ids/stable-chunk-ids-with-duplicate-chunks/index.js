@@ -15,8 +15,11 @@ it("should have stable chunkIds and chunk content", async () => {
 		snapshot += `${key}\n\n::\n\n${content}\n`;
 		snapshot += '==============================================================\n';
 	}
-	const snapshotDir = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
-		? path.join(__SNAPSHOT__, "runtimeModeSnapshot")
-		: __SNAPSHOT__;
+	let snapshotDir;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		snapshotDir = path.join(__SNAPSHOT__, "runtimeModeSnapshot");
+	} else {
+		snapshotDir = __SNAPSHOT__;
+	}
 	expect(snapshot).toMatchFileSnapshotSync(path.join(snapshotDir, 'snapshot.txt'));
 })
