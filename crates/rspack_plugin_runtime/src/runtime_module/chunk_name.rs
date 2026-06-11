@@ -29,7 +29,9 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
-        serde_json::to_string(&chunk.name()).expect("Invalid json string")
+        chunk
+          .name()
+          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
       ))
     } else {
       unreachable!("should attach chunk for css_loading")

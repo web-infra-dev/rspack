@@ -27,6 +27,7 @@ regex       = { workspace = true }
 rustc-hash  = { workspace = true }
 serde       = { workspace = true }
 serde_json  = { workspace = true }
+simd-json   = { workspace = true }
 tokio       = { workspace = true, features = ["rt"] }
 tracing     = { workspace = true }
 

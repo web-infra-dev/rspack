@@ -143,7 +143,7 @@ fn get_source_for_import(
       let attributes_str = if let Some(attributes) = attributes {
         format!(
           ", {{ with: {} }}",
-          serde_json::to_string(attributes).expect("invalid json to_string")
+          simd_json::to_string(attributes).expect("invalid json to_string")
         )
       } else {
         String::new()
@@ -172,7 +172,7 @@ fn module_external_fragment_key(base: &str, attributes: &Option<ImportAttributes
     format!(
       "{}|{}",
       base,
-      serde_json::to_string(attributes).expect("json stringify failed")
+      simd_json::to_string(attributes).expect("json stringify failed")
     )
   } else {
     base.to_string()
@@ -288,7 +288,7 @@ fn get_source_for_module_external(
   let attributes_str = if let Some(attributes) = attributes {
     format!(
       " with {}",
-      serde_json::to_string(attributes).expect("json stringify failed"),
+      simd_json::to_string(attributes).expect("json stringify failed"),
     )
   } else {
     String::new()
@@ -438,14 +438,14 @@ impl ExternalModule {
       blocks: Vec::new(),
       id: Identifier::from({
         let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
-        let request_str = serde_json::to_string(&request).expect("invalid json to_string");
+        let request_str = simd_json::to_string(&request).expect("invalid json to_string");
         let attrs_str = dependency_meta
           .attributes
           .as_ref()
           .map_or(String::new(), |attrs| {
             format!(
               " {}",
-              serde_json::to_string(attrs).expect("invalid json to_string")
+              simd_json::to_string(attrs).expect("invalid json to_string")
             )
           });
         format!("external {resolved_type} {request_str}{attrs_str}")
@@ -670,7 +670,7 @@ impl ExternalModule {
             let mut hasher = RspackHash::from(&compilation.options.output);
             request.primary.hash(&mut hasher);
             if let Some(attributes) = &self.dependency_meta.attributes {
-              serde_json::to_string(attributes)
+              simd_json::to_string(attributes)
                 .expect("json stringify failed")
                 .hash(&mut hasher);
             }
@@ -702,7 +702,7 @@ impl ExternalModule {
             let attributes = self.dependency_meta.attributes.as_ref().map(|meta| {
               format!(
                 " with {}",
-                serde_json::to_string(meta).expect("json stringify failed"),
+                simd_json::to_string(meta).expect("json stringify failed"),
               )
             });
 
@@ -1052,7 +1052,7 @@ impl Module for ExternalModule {
   fn readable_identifier(&self, _context: &Context) -> Cow<'_, str> {
     Cow::Owned(format!(
       "external {}",
-      serde_json::to_string(&self.request).expect("invalid json to_string")
+      simd_json::to_string(&self.request).expect("invalid json to_string")
     ))
   }
 

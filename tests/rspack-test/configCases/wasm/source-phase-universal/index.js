@@ -14,14 +14,13 @@ it("should allow to run a WebAssembly module (direct)", function() {
 	});
 });
 
-it("should allow to run a WebAssembly module using comment (direct)", function() {
-	return import(/* webpackSource: true */ "./wasm.wat?3")
-		.then(wasmModule => WebAssembly.instantiate(wasmModule))
-		.then(({ exports }) => {
-
-			const result = exports.add(exports.getNumber(), 2);
-			expect(result).toEqual(42);
-		});
+it("should ignore source phase magic comments", function() {
+	return import(
+		/* webpackSource: true, rspackSource: true */ "./wasm.wat?3"
+	).then(function(wasmModule) {
+		const result = wasmModule.add(wasmModule.getNumber(), 2);
+		expect(result).toEqual(42);
+	});
 });
 
 it("should allow to run the same WebAssembly module with source", function() {

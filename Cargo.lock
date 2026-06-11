@@ -3723,6 +3723,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sftrace-setup",
+ "simd-json",
  "swc_core",
  "tokio",
  "tracing",
@@ -3798,6 +3799,7 @@ dependencies = [
  "rspack_sources",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "smol_str",
  "sugar_path",
  "swc_core",
@@ -3902,6 +3904,7 @@ dependencies = [
  "scopeguard",
  "serde",
  "serde_json",
+ "simd-json",
  "simdutf8",
  "smallvec",
  "smol_str",
@@ -4002,6 +4005,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tracing",
 ]
 
@@ -4337,6 +4341,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "smol_str",
  "tokio",
  "tracing",
@@ -4379,7 +4384,6 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_util",
  "rustc-hash",
- "simd-json",
  "sugar_path",
  "thread_local",
  "tracing",
@@ -4403,6 +4407,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "simd-json",
  "tracing",
 ]
 
@@ -4555,6 +4560,7 @@ dependencies = [
  "rspack_util",
  "serde",
  "serde_json",
+ "simd-json",
  "sugar_path",
  "swc_core",
  "swc_html",
@@ -4654,7 +4660,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -4675,7 +4681,7 @@ dependencies = [
  "rspack_plugin_remove_duplicate_modules",
  "rspack_plugin_split_chunks",
  "rspack_util",
- "serde_json",
+ "simd-json",
  "swc_core",
  "tracing",
 ]
@@ -4742,6 +4748,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -4870,7 +4877,6 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde",
- "serde_json",
  "simd-json",
  "swc_core",
  "tokio",
@@ -4922,6 +4928,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "swc_core",
  "swc_experimental_ecma_ast",
  "tracing",
@@ -4966,6 +4973,7 @@ dependencies = [
  "rspack_util",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tokio",
  "tracing",
 ]
@@ -5090,7 +5098,7 @@ dependencies = [
  "rspack_plugin_javascript",
  "rspack_regex",
  "rspack_util",
- "serde_json",
+ "simd-json",
  "swc_config",
  "swc_core",
  "swc_ecma_minifier",
@@ -5249,6 +5257,7 @@ dependencies = [
  "rspack_tracing_perfetto",
  "rustc-hash",
  "serde_json",
+ "simd-json",
  "tracing-subscriber",
 ]
 
@@ -5291,6 +5300,7 @@ dependencies = [
  "serde",
  "serde_json",
  "signal-hook",
+ "simd-json",
  "sugar_path",
  "swc_core",
  "swc_experimental_ecma_ast",

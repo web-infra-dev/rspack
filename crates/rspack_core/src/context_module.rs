@@ -1623,7 +1623,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   };
   if let Some(attributes) = &options.context_options.attributes {
     id += "|importAttributes: ";
-    id += &serde_json::to_string(attributes).expect("json stringify failed");
+    id += &simd_json::to_string(attributes).expect("json stringify failed");
   }
   if let Some(phase) = &options.context_options.phase {
     id += "|importPhase: ";

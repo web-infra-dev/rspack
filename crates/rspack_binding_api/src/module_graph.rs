@@ -115,6 +115,32 @@ impl JsModuleGraph {
     })
   }
 
+  #[napi(
+    ts_args_type = "module: Module",
+    ts_return_type = "true | string[] | null"
+  )]
+  pub fn get_provided_exports<'a>(
+    &self,
+    env: &'a Env,
+    js_module: ModuleObjectRef,
+  ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
+    let (compilation, _) = self.as_ref()?;
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&js_module.identifier);
+    let provided = exports_info.get_provided_exports();
+    Ok(match provided {
+      rspack_core::ProvidedExports::Unknown => None,
+      rspack_core::ProvidedExports::ProvidedAll => Some(Either::A(true)),
+      rspack_core::ProvidedExports::ProvidedNames(vec) => Some(Either::B(
+        vec
+          .into_iter()
+          .map(|atom| env.create_string(atom.as_str()))
+          .collect::<napi::Result<Vec<_>>>()?,
+      )),
+    })
+  }
+
   #[napi(ts_args_type = "module: Module", ts_return_type = "Module | null")]
   pub fn get_issuer(&self, module: ModuleObjectRef) -> napi::Result<Option<ModuleObject>> {
     let (compilation, module_graph) = self.as_ref()?;

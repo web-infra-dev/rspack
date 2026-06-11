@@ -33,7 +33,7 @@ where
 {
   #[inline]
   fn serialize_with(field: &Value, serializer: &mut S) -> Result<Self::Resolver> {
-    let value = serde_json::to_string(field)
+    let value = simd_json::to_string(field)
       .map_err(|_| Error::MessageError("serialize serde_json value failed"))?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(SerdeJsonResolver { value, inner })
@@ -73,7 +73,7 @@ where
 {
   #[inline]
   fn serialize_with(field: &Map<String, Value>, serializer: &mut S) -> Result<Self::Resolver> {
-    let value = serde_json::to_string(field)
+    let value = simd_json::to_string(field)
       .map_err(|_| Error::MessageError("serialize serde_json value failed"))?;
     let inner = ArchivedString::serialize_from_str(&value, serializer)?;
     Ok(SerdeJsonResolver { value, inner })

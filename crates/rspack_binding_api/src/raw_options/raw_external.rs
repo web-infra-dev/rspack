@@ -176,7 +176,7 @@ impl RawExternalItemFnCtx {
             match resolver.resolve(Path::new(&context), &request).await {
               Ok(rspack_core::ResolveResult::Resource(resource)) => {
                 let resolve_request = ResolveRequest::from(resource);
-                Ok(match serde_json::to_string(&resolve_request) {
+                Ok(match simd_json::to_string(&resolve_request) {
                   Ok(json) => Either::<String, ()>::A(json),
                   Err(_) => Either::B(()),
                 })
