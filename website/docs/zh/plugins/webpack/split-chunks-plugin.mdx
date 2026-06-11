@@ -381,6 +381,36 @@ Rspack 在处理 `maxSize` 时会基于路径派生出的确定性 key 对模块
 
 `maxInitialSize` 和 `maxSize` 的区别在于 `maxInitialSize` 仅会影响初始加载 chunks。
 
+### splitChunks.fallbackCacheGroup
+
+- **类型：**
+
+```ts
+type FallbackCacheGroup = {
+  chunks?: 'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
+  minSize?: number;
+  maxSize?: number;
+  maxAsyncSize?: number;
+  maxInitialSize?: number;
+  automaticNameDelimiter?: string;
+};
+```
+
+用于配置未被任何 cache group 选中的模块。fallback cache group 的体积相关行为与对应的全局 `splitChunks` 选项一致，但只作用于 cache group 匹配完成后剩余的模块。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      fallbackCacheGroup: {
+        minSize: 10_000,
+        maxSize: 50_000,
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.automaticNameDelimiter
 
 - **类型：** `string`
@@ -658,6 +688,27 @@ cacheGroup: {
 - **Types:** `string | RegExp`
 
 允许模块根据模块类型分配给 cache group
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.layer
+
+- **类型：** `string | RegExp | ((layer?: string) => boolean)`
+
+根据模块 layer 将模块分配给 cache group。当你通过 [entry](/config/entry#entrydescriptionlayer) 或 [rule](/config/module-rules#ruleslayer) 的 layer 区分 modern、legacy、server、client 等代码路径时，这个选项会很有用。
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        modern: {
+          layer: 'modern',
+          chunks: 'all',
+        },
+      },
+    },
+  },
+};
+```
 
 ## 常见问题 {#faq}
 
