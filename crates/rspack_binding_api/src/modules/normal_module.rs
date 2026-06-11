@@ -3,8 +3,11 @@ use napi::{
   bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
 };
 use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
+use rspack_error::Diagnosable;
 
 use crate::{
+  diagnostic,
+  error::RspackError,
   impl_module_methods,
   module::{MODULE_PROPERTIES_BUFFER, Module},
   plugins::JsLoaderItem,
@@ -86,6 +89,22 @@ impl NormalModule {
       Ok(())
     }
 
+    #[js_function]
+    fn error_getter(ctx: CallContext<'_>) -> napi::Result<Either<RspackError, ()>> {
+      let this = ctx.this_unchecked::<JsObject>();
+      let env = ctx.env.raw();
+      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
+
+      let (compilation, module) = wrapped_value.as_ref()?;
+      Ok(match module.first_error() {
+        Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(
+          compilation,
+          diagnostic.as_ref(),
+        )?),
+        None => Either::B(()),
+      })
+    }
+
     MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
       let mut properties = ref_cell.borrow_mut();
       properties.clear();
@@ -125,6 +144,12 @@ impl NormalModule {
           .with_utf8_name("matchResource")?
           .with_getter(match_resource_getter)
           .with_setter(match_resource_setter),
+      );
+      // Info from Build
+      properties.push(
+        napi::Property::new()
+          .with_utf8_name("error")?
+          .with_getter(error_getter),
       );
       Self::new_inherited(self, env, &mut properties)
     })
