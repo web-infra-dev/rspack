@@ -579,3 +579,7 @@ regex_creation_in_loops = "warn"
 # regex
 invalid_regex = "warn"
 trivial_regex = "warn"
+
+# Verify rstackjs/rspack-resolver#278 (reuse owned parent realpath buffer) against rspack benches
+[patch.crates-io]
+rspack_resolver = { git = "https://github.com/rstackjs/rspack-resolver.git", rev = "99becacfd98f9922a290db9192de5a8c5067bd56" }
