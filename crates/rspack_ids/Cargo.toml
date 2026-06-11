@@ -22,6 +22,7 @@ rspack_paths       = { workspace = true }
 rspack_util        = { workspace = true }
 rustc-hash         = { workspace = true }
 serde_json         = { workspace = true }
+simd-json          = { workspace = true }
 tracing            = { workspace = true }
 
 [lints]

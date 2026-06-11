@@ -2,7 +2,7 @@
 description: 'In minor releases, Rspack may change the APIs of experimental features'
 ---
 
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 
@@ -143,6 +143,48 @@ This is because `defer import` syntax is not yet supported by any runtime. In th
 import defer * as __rspack_external_jquery from 'jquery';
 ```
 
+:::
+
+## experiments.sourceImport
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enables support for the TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) proposal.
+
+Source phase imports let you import a module before it is evaluated. In Rspack, this support is currently designed for WebAssembly modules: importing a `.wasm` module in the source phase returns a compiled [`WebAssembly.Module`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module), so you can instantiate it yourself, instantiate it more than once with different imports, or transfer it to a worker.
+
+Enable `experiments.sourceImport`:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+You can use the static source-phase syntax:
+
+```js
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+Or the dynamic syntax:
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+:::note
+For a normal WebAssembly import, Rspack instantiates the module and exposes its exports. For a source phase import, Rspack returns the compiled `WebAssembly.Module` instead, and your code is responsible for calling `WebAssembly.instantiate`.
 :::
 
 ## experiments.futureDefaults

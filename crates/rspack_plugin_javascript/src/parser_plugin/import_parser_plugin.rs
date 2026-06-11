@@ -370,12 +370,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     }
 
     let syntax_phase = node.callee.as_import().expect("should be import").phase;
-    let phase = get_import_phase(
-      parser,
-      syntax_phase,
-      magic_comment_options.get_defer(),
-      magic_comment_options.get_source(),
-    );
+    let phase = get_import_phase(parser, syntax_phase);
     if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
       parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
     }

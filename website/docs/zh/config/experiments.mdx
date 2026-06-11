@@ -2,7 +2,7 @@
 description: '在 minor release 中，Rspack 可能对这些实验性特性的 public API 做一些调整，并在更新日志中对这些变动进行详细的说明。'
 ---
 
-import { ApiMeta } from '../../../components/ApiMeta';
+import { ApiMeta, Stability } from '../../../components/ApiMeta';
 import WebpackLicense from '@components/WebpackLicense';
 import PropertyType from '@components/PropertyType';
 import { Table } from '@builtIns';
@@ -144,6 +144,48 @@ import * as __rspack_external_jquery from 'jquery';
 import defer * as __rspack_external_jquery from 'jquery';
 ```
 
+:::
+
+## experiments.sourceImport
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+开启对 TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) 提案的支持。
+
+Source phase import 允许在模块执行前导入模块。Rspack 当前主要面向 WebAssembly 模块提供该能力：以 source phase 导入 `.wasm` 模块时，返回的是编译后的 [`WebAssembly.Module`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module)，你可以自行实例化它、使用不同 imports 多次实例化，或将它传递给 worker。
+
+启用 `experiments.sourceImport`：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+你可以使用静态的 source-phase 语法：
+
+```js
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+也可以使用动态语法：
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+:::note
+普通 WebAssembly 导入会由 Rspack 实例化模块并暴露其导出；source phase 导入会返回编译后的 `WebAssembly.Module`，需要你的代码自行调用 `WebAssembly.instantiate`。
 :::
 
 ## experiments.futureDefaults

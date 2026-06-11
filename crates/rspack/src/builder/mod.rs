@@ -9,7 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, json_stringify_str};
 pub use target::Targets;
 
 macro_rules! d {
@@ -3391,7 +3391,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(serde_json::json!(value.into()).to_string());
+    self.node_env = Some(json_stringify_str(&value.into()));
     self
   }
 

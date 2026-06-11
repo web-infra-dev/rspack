@@ -132,7 +132,7 @@ async fn render(
       ExternalRequest::Map(map) => map.get("amd").map(|request| request.primary()),
     })
     .collect::<Vec<_>>();
-  let external_deps_array = serde_json::to_string(&external_deps_array).to_rspack_result()?;
+  let external_deps_array = simd_json::to_string(&external_deps_array).to_rspack_result()?;
   let external_arguments = external_module_names(&modules, compilation);
 
   // The name of the variable provided by System for exporting

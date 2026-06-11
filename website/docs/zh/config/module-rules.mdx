@@ -327,6 +327,51 @@ export default {
 };
 ```
 
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+根据引入当前模块的依赖所处的 import phase 来匹配模块。
+
+传给 condition 的值可能是：
+
+- `evaluation`：普通的 `import`、`import()`、`require()`，以及其他没有特殊 import phase 的依赖
+- `defer`：启用 [`experiments.deferImport`](/config/experiments#experimentsdeferimport) 后的 `import defer` 和 `import.defer()` 依赖
+- `source`：启用 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后的 `import source` 和 `import.source()` 依赖
+
+当同一个资源需要根据导入方式应用不同 Loader、parser 选项或模块类型时，可以使用该条件。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].scheme
 
 - **类型：** [`Condition`](#condition)

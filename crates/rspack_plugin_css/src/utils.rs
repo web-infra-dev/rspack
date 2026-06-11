@@ -182,7 +182,7 @@ impl<'a> LocalIdentOptions<'a> {
           .expect("should have convention for module_type css/auto, css/global or css/module"),
       );
       let convention_names =
-        serde_json::to_string(&convention_names).expect("css export names should be serializable");
+        simd_json::to_string(&convention_names).expect("css export names should be serializable");
       let local_ident_name = json_stringify_str(local_ident_name);
       hasher.write(b"exportsConvention|");
       hasher.write(convention_names.as_bytes());

@@ -264,7 +264,7 @@ impl Module for LazyCompilationProxyModule {
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
-      serde_json::to_string(&self.identifier).expect("should serialize identifier")
+      simd_json::to_string(&self.identifier).expect("should serialize identifier")
     );
 
     let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);

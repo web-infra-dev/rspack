@@ -301,7 +301,7 @@ async fn render_startup(
     if has_provided {
       source.add(RawStringSource::from(format!(
         "  if({}.indexOf(__rspack_i) === -1) {{\n",
-        serde_json::to_string(&provided).to_rspack_result()?
+        simd_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
