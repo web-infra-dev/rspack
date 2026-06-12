@@ -65,16 +65,10 @@ fn handle_scope_globals(
   runtime_requirements: &RuntimeGlobals,
   runtime_requirements_mut: &mut RuntimeGlobals,
 ) {
-  if runtime_requirements
-    .iter()
-    .any(|requirement| REQUIRE_SCOPE_GLOBALS.contains(requirement))
-  {
+  if runtime_requirements.intersects(*REQUIRE_SCOPE_GLOBALS) {
     runtime_requirements_mut.insert(RuntimeGlobals::REQUIRE_SCOPE);
   }
-  if runtime_requirements
-    .iter()
-    .any(|requirement| MODULE_GLOBALS.contains(requirement))
-  {
+  if runtime_requirements.intersects(*MODULE_GLOBALS) {
     runtime_requirements_mut.insert(RuntimeGlobals::MODULE);
   }
 }
