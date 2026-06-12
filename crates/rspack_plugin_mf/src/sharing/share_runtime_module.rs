@@ -36,6 +36,10 @@ impl ShareRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ShareRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
   }

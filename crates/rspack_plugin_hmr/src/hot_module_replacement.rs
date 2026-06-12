@@ -48,4 +48,8 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+  }
 }

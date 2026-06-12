@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use indoc::formatdoc;
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
@@ -23,6 +23,10 @@ impl RscManifestRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RscManifestRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::RSC_MANIFEST
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

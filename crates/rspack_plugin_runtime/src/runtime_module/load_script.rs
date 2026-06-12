@@ -40,6 +40,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::LOAD_SCRIPT
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

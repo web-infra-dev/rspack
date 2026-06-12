@@ -154,6 +154,16 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::BASE_URI
+      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+      | RuntimeGlobals::HMR_MODULE_DATA
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (

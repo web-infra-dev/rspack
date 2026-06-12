@@ -34,6 +34,10 @@ impl RemoteRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

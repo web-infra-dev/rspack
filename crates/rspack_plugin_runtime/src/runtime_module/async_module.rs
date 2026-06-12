@@ -43,4 +43,11 @@ impl RuntimeModule for AsyncRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *ASYNC_MODULE_RUNTIME_REQUIREMENTS
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::ASYNC_MODULE
+      | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
+      | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
+      | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
+  }
 }

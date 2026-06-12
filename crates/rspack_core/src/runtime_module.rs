@@ -48,6 +48,9 @@ pub trait RuntimeModule:
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::default()
   }
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::default()
+  }
 }
 
 pub trait AttachableRuntimeModule {

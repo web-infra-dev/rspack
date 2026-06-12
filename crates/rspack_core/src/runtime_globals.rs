@@ -346,6 +346,25 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::STARTUP
 });
 
+pub static HOT_RUNTIME_WRITE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+    | RuntimeGlobals::HMR_MODULE_DATA
+});
+
+pub static INITIALIZE_OBJECT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
+    | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+    | RuntimeGlobals::HMR_MODULE_DATA
+});
+
+pub static INITIALIZE_ARRAY_GLOBALS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+
 pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option<&'static str> {
   Some(match *runtime_globals {
     RuntimeGlobals::REQUIRE_SCOPE => "*",
@@ -573,19 +592,11 @@ impl RuntimeGlobals {
   }
 
   pub fn should_initialize_as_object(&self) -> bool {
-    matches!(
-      *self,
-      RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-        | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
-        | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
-        | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-        | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-        | RuntimeGlobals::HMR_MODULE_DATA
-    )
+    !self.intersection(*INITIALIZE_OBJECT_GLOBALS).is_empty()
   }
 
   pub fn should_initialize_as_array(&self) -> bool {
-    matches!(*self, RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
+    !self.intersection(*INITIALIZE_ARRAY_GLOBALS).is_empty()
   }
 
   pub fn needs_bootstrap_runtime_context(&self) -> bool {

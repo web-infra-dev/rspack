@@ -123,7 +123,6 @@ export default defineConfig({
     name: 'base',
     exclude: [
       'NativeWatcher*.test.js',
-      'RuntimeMode*.test.js',
     ],
   }, {
     extends: sharedConfig,

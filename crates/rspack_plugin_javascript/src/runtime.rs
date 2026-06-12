@@ -1,10 +1,10 @@
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeProxyMetadata, RuntimeVariable, SourceType,
+  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, SourceType,
   chunk_graph_chunk::ChunkIdSet,
-  get_undo_path, property_access, render_runtime_module_source,
+  get_undo_path, render_runtime_module_source,
   rspack_sources::{
     BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
   },
@@ -12,6 +12,10 @@ use rspack_core::{
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
+pub use crate::runtime_context::{
+  render_rspack_runtime_modules, render_runtime_context_declaration,
+  render_runtime_context_require_assignment,
+};
 use crate::{JavascriptModulesPluginHooks, RenderSource};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_ASSET_AUTO_PUBLIC_PATH__";
@@ -314,514 +318,6 @@ pub async fn render_module(
   )))
 }
 
-fn runtime_context_metadata<'a>(
-  compilation: &'a Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Option<&'a RuntimeProxyMetadata> {
-  if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
-    return None;
-  }
-
-  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey) {
-    return Some(metadata);
-  }
-
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  compilation
-    .runtime_proxy_metadata_artifact
-    .iter()
-    .find_map(|(runtime_chunk_ukey, metadata)| {
-      let runtime_chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(runtime_chunk_ukey);
-      runtime_chunk
-        .runtime()
-        .iter()
-        .any(|runtime| chunk.runtime().contains(runtime))
-        .then_some(metadata)
-    })
-}
-
-fn runtime_context_render_metadata(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Option<RuntimeProxyMetadata> {
-  runtime_context_metadata(compilation, chunk_ukey).cloned()
-}
-
-fn runtime_context_current_chunk_metadata(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-) -> Option<RuntimeProxyMetadata> {
-  if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
-    return None;
-  }
-
-  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey) {
-    return Some(metadata.clone());
-  }
-
-  let mut metadata = RuntimeProxyMetadata::default();
-  for runtime_module_id in compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_chunk_runtime_modules_iterable(chunk_ukey)
-  {
-    let runtime_module = compilation
-      .runtime_modules
-      .get(runtime_module_id)
-      .expect("should have runtime module");
-    let additional_runtime_requirements =
-      runtime_module.additional_runtime_requirements(compilation);
-    let generated_runtime_requirements = runtime_module_generated_requirements(&**runtime_module);
-    metadata
-      .tree_runtime_requirements
-      .insert(additional_runtime_requirements);
-    metadata
-      .tree_runtime_requirements
-      .insert(generated_runtime_requirements);
-    metadata
-      .runtime_module_requirements
-      .insert(additional_runtime_requirements);
-  }
-
-  (!metadata.tree_runtime_requirements.is_empty()).then_some(metadata)
-}
-
-pub fn should_render_runtime_context(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
-  if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
-    return false;
-  }
-
-  runtime_context_render_metadata(compilation, chunk_ukey).is_some_and(|metadata| {
-    metadata
-      .tree_runtime_requirements
-      .contains(RuntimeGlobals::REQUIRE_SCOPE)
-  })
-}
-
-fn is_hot_update_chunk(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool {
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  matches!(chunk.kind(), ChunkKind::HotUpdate)
-}
-
-pub fn render_runtime_context_declaration(runtime_template: &ChunkCodeTemplate) -> String {
-  let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-  format!("var {runtime_context}={{}};\n")
-}
-
-pub fn render_runtime_context_require_assignment(runtime_template: &ChunkCodeTemplate) -> String {
-  format!(
-    "{} = {};\n",
-    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-    runtime_template.render_runtime_variable(&RuntimeVariable::Require)
-  )
-}
-
-fn runtime_module_generated_requirements(runtime_module: &dyn RuntimeModule) -> RuntimeGlobals {
-  let constructor_name = runtime_module.get_constructor_name();
-  let module_name = runtime_module.identifier().to_string();
-  match constructor_name.as_str() {
-    "AsyncRuntimeModule" => {
-      RuntimeGlobals::ASYNC_MODULE
-        | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
-        | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
-        | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
-    }
-    "AsyncWasmLoadingRuntimeModule" => RuntimeGlobals::INSTANTIATE_WASM,
-    "AsyncWasmCompileRuntimeModule" => RuntimeGlobals::COMPILE_WASM,
-    "BaseUriRuntimeModule" => RuntimeGlobals::BASE_URI,
-    "PublicPathRuntimeModule" | "AutoPublicPathRuntimeModule" => RuntimeGlobals::PUBLIC_PATH,
-    "GetChunkFilenameRuntimeModule" if module_name.contains("javascript") => {
-      RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-    }
-    "GetChunkFilenameRuntimeModule" if module_name.contains("css") => {
-      RuntimeGlobals::GET_CHUNK_CSS_FILENAME
-    }
-    "GetChunkUpdateFilenameRuntimeModule" => RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME,
-    "GetMainFilenameRuntimeModule" => RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME,
-    "LoadScriptRuntimeModule" => RuntimeGlobals::LOAD_SCRIPT,
-    "HasOwnPropertyRuntimeModule" => RuntimeGlobals::HAS_OWN_PROPERTY,
-    "GetFullHashRuntimeModule" => RuntimeGlobals::GET_FULL_HASH,
-    "GlobalRuntimeModule" => RuntimeGlobals::GLOBAL,
-    "CreateScriptUrlRuntimeModule" => RuntimeGlobals::CREATE_SCRIPT_URL,
-    "CreateScriptRuntimeModule" => RuntimeGlobals::CREATE_SCRIPT,
-    "OnChunkLoadedRuntimeModule" => RuntimeGlobals::ON_CHUNKS_LOADED,
-    "DefinePropertyGettersRuntimeModule" => RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-    "GetTrustedTypesPolicyRuntimeModule" => RuntimeGlobals::GET_TRUSTED_TYPES_POLICY,
-    "CreateFakeNamespaceObjectRuntimeModule" => RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
-    "MakeNamespaceObjectRuntimeModule" => RuntimeGlobals::MAKE_NAMESPACE_OBJECT,
-    "CompatGetDefaultExportRuntimeModule" => RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT,
-    "ESMModuleDecoratorRuntimeModule" => RuntimeGlobals::ESM_MODULE_DECORATOR,
-    "NodeModuleDecoratorRuntimeModule" => RuntimeGlobals::NODE_MODULE_DECORATOR,
-    "SystemContextRuntimeModule" => RuntimeGlobals::SYSTEM_CONTEXT,
-    "NonceRuntimeModule" => RuntimeGlobals::SCRIPT_NONCE,
-    "RelativeUrlRuntimeModule" => RuntimeGlobals::RELATIVE_URL,
-    "ChunkNameRuntimeModule" => RuntimeGlobals::CHUNK_NAME,
-    "RuntimeIdRuntimeModule" => RuntimeGlobals::RUNTIME_ID,
-    "ShareRuntimeModule" => RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
-    "RemoteRuntimeModule" => RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-    "HotModuleReplacementRuntimeModule" => RuntimeGlobals::INTERCEPT_MODULE_EXECUTION,
-    "EmbedFederationRuntimeModule" => RuntimeGlobals::STARTUP,
-    "StartupEntrypointRuntimeModule" => RuntimeGlobals::STARTUP_ENTRYPOINT,
-    "StartupChunkDependenciesRuntimeModule" => RuntimeGlobals::STARTUP,
-    "EnsureChunkRuntimeModule" | "EsmEnsureChunkRuntimeModule" => {
-      RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-    }
-    "JsonpChunkLoadingRuntimeModule"
-    | "ModuleChunkLoadingRuntimeModule"
-    | "ImportScriptsChunkLoadingRuntimeModule"
-    | "ReadFileChunkLoadingRuntimeModule"
-    | "RequireChunkLoadingRuntimeModule" => {
-      RuntimeGlobals::BASE_URI
-        | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-        | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
-        | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-        | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-        | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-        | RuntimeGlobals::HMR_MODULE_DATA
-    }
-    "EsmChunkLoadingRuntimeModule" => RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-    "ChunkPrefetchPreloadFunctionRuntimeModule" if module_name.contains("prefetch") => {
-      RuntimeGlobals::PREFETCH_CHUNK | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
-    }
-    "ChunkPrefetchPreloadFunctionRuntimeModule" if module_name.contains("preload") => {
-      RuntimeGlobals::PRELOAD_CHUNK | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
-    }
-    "AmdDefineRuntimeModule" => RuntimeGlobals::AMD_DEFINE,
-    "AmdOptionsRuntimeModule" => RuntimeGlobals::AMD_OPTIONS,
-    "MakeDeferredNamespaceObjectRuntimeModule" => RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
-    "MakeOptimizedDeferredNamespaceObjectRuntimeModule" => {
-      RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
-    }
-    "RscManifestRuntimeModule" => RuntimeGlobals::RSC_MANIFEST,
-    "RspackVersionRuntimeModule" => RuntimeGlobals::RSPACK_VERSION,
-    "RspackUniqueIdRuntimeModule" => RuntimeGlobals::RSPACK_UNIQUE_ID,
-    "ToBinaryRuntimeModule" => RuntimeGlobals::TO_BINARY,
-    _ => RuntimeGlobals::default(),
-  }
-}
-
-fn has_bootstrap_runtime_context(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
-) -> bool {
-  if !runtime_template.uses_runtime_context() {
-    return false;
-  }
-
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-    return false;
-  }
-
-  let runtime_requirements = compilation
-    .cgc_runtime_requirements_artifact
-    .get(chunk_ukey)
-    .copied()
-    .unwrap_or_default();
-  runtime_requirements.needs_bootstrap_runtime_context()
-}
-
-fn render_runtime_context_declarations(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
-  render_lexical_fields: bool,
-  render_context_object: bool,
-) -> Option<BoxSource> {
-  if !should_render_runtime_context(compilation, chunk_ukey) {
-    return None;
-  }
-
-  let mut sources = ConcatSource::default();
-  if render_context_object {
-    sources.add(RawStringSource::from(render_runtime_context_declaration(
-      runtime_template,
-    )));
-  }
-
-  if render_lexical_fields
-    && let Some(mut metadata) = runtime_context_current_chunk_metadata(compilation, chunk_ukey)
-  {
-    let chunk = compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .expect_get(chunk_ukey);
-    let owns_runtime =
-      chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-    let current_chunk_generated_requirements = compilation
-      .build_chunk_graph_artifact
-      .chunk_graph
-      .get_chunk_runtime_modules_iterable(chunk_ukey)
-      .fold(
-        RuntimeGlobals::default(),
-        |mut requirements, runtime_module_id| {
-          let runtime_module = compilation
-            .runtime_modules
-            .get(runtime_module_id)
-            .expect("should have runtime module");
-          requirements.insert(runtime_module_generated_requirements(&**runtime_module));
-          requirements
-        },
-      );
-    let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-    let is_hot_update = is_hot_update_chunk(compilation, chunk_ukey);
-    if is_hot_update {
-      metadata.tree_runtime_requirements.insert(
-        RuntimeGlobals::PUBLIC_PATH
-          | RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-          | RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
-          | RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME
-          | RuntimeGlobals::GET_FULL_HASH
-          | RuntimeGlobals::LOAD_SCRIPT
-          | RuntimeGlobals::HAS_OWN_PROPERTY
-          | RuntimeGlobals::MODULE_CACHE
-          | RuntimeGlobals::CREATE_SCRIPT_URL,
-      );
-    }
-    let render_runtime_global = |runtime_global: RuntimeGlobals| {
-      let render_context_field = |runtime_global: RuntimeGlobals| {
-        runtime_global
-          .rspack_context_property_name()
-          .map(|property_name| {
-            let value = format!("{runtime_context}{}", property_access([property_name], 0));
-            if runtime_global.should_initialize_as_object() {
-              format!("{value}||{{}}")
-            } else if runtime_global.should_initialize_as_array() {
-              format!("{value}||[]")
-            } else {
-              value
-            }
-          })
-      };
-      if is_hot_update
-        && runtime_global.intersects(
-          RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-            | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-            | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-            | RuntimeGlobals::HMR_MODULE_DATA,
-        )
-      {
-        return None;
-      }
-      if is_hot_update {
-        return render_context_field(runtime_global);
-      }
-      let should_render_context_field = owns_runtime
-        && runtime_global.intersects(RuntimeGlobals::STARTUP | RuntimeGlobals::STARTUP_ENTRYPOINT)
-        && metadata
-          .bootstrap_proxy_requirements
-          .contains(runtime_global)
-        || !owns_runtime
-          && (runtime_global.needs_bootstrap_runtime_context()
-            || metadata
-              .runtime_module_requirements
-              .contains(runtime_global)
-              && !current_chunk_generated_requirements.contains(runtime_global));
-      if runtime_global == RuntimeGlobals::REQUIRE {
-        Some(runtime_template.render_runtime_variable(&RuntimeVariable::Require))
-      } else if runtime_global == RuntimeGlobals::MODULE_FACTORIES
-        || runtime_global == RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
-      {
-        Some(runtime_template.render_runtime_variable(&RuntimeVariable::Modules))
-      } else if runtime_global == RuntimeGlobals::MODULE_CACHE {
-        Some(runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache))
-      } else if should_render_context_field {
-        render_context_field(runtime_global)
-      } else {
-        None
-      }
-    };
-    sources.add(RawStringSource::from(
-      metadata.render_lexical_declarations(Some(&render_runtime_global)),
-    ));
-    if metadata.lexical_fields().intersects(
-      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-        | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-        | RuntimeGlobals::HMR_MODULE_DATA
-        | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
-    ) {
-      for runtime_module_id in compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_runtime_modules_iterable(chunk_ukey)
-      {
-        let runtime_module = compilation
-          .runtime_modules
-          .get(runtime_module_id)
-          .expect("should have runtime module");
-        let key = match runtime_module.get_constructor_name().as_str() {
-          "JsonpChunkLoadingRuntimeModule" => "jsonp",
-          "ModuleChunkLoadingRuntimeModule" => "module",
-          "ImportScriptsChunkLoadingRuntimeModule" => "importScripts",
-          "ReadFileChunkLoadingRuntimeModule" => "readFileVm",
-          "RequireChunkLoadingRuntimeModule" => "require",
-          _ => continue,
-        };
-        sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
-      }
-    }
-  }
-  if !render_context_object {
-    return Some(sources.boxed());
-  }
-
-  Some(sources.boxed())
-}
-
-fn render_runtime_context_exposed_fields(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
-  generated_requirements: RuntimeGlobals,
-) -> Option<BoxSource> {
-  if !runtime_template.uses_lexical_runtime_globals() {
-    return None;
-  }
-
-  let metadata = runtime_context_metadata(compilation, chunk_ukey)?;
-  let is_hot_update = is_hot_update_chunk(compilation, chunk_ukey);
-  let mut context_fields = metadata
-    .context_fields()
-    .intersection(generated_requirements);
-  context_fields.insert(generated_requirements.intersection(metadata.tree_runtime_requirements));
-  let hmr_live_binding_fields = RuntimeGlobals::GET_FULL_HASH
-    | RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-    | RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
-    | RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME
-    | RuntimeGlobals::PUBLIC_PATH;
-  if !is_hot_update
-    && metadata
-      .tree_runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
-  {
-    context_fields.insert(generated_requirements.intersection(hmr_live_binding_fields));
-  }
-  if is_hot_update {
-    context_fields.insert(generated_requirements);
-    context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
-  }
-  if context_fields.is_empty() {
-    return None;
-  }
-
-  let mut sources = ConcatSource::default();
-  let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-
-  for (_, runtime_global) in context_fields.iter_names() {
-    let (Some(key), Some(lexical_name)) = (
-      runtime_global.rspack_context_property_name(),
-      runtime_global.to_lexical_name(),
-    ) else {
-      continue;
-    };
-    let needs_live_binding = !is_hot_update
-      && (metadata.context_setter_fields().contains(runtime_global)
-        || hmr_live_binding_fields.contains(runtime_global)
-          && metadata
-            .tree_runtime_requirements
-            .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST));
-    if needs_live_binding {
-      sources.add(RawStringSource::from(format!(
-        "Object.defineProperty({}, {}, {{ configurable: true, get: function() {{ return {}; }}, set: function(value) {{ {} = value; }} }});\n",
-        runtime_context,
-        rspack_util::json_stringify(key),
-        lexical_name,
-        lexical_name
-      )));
-    } else {
-      sources.add(RawStringSource::from(format!(
-        "{}{} = {};\n",
-        runtime_context,
-        property_access([key], 0),
-        lexical_name
-      )));
-    }
-  }
-
-  Some(sources.boxed())
-}
-
-fn render_runtime_context_field_initializers(
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
-  preserve_initialized_fields: bool,
-) -> Option<BoxSource> {
-  if !runtime_template.uses_lexical_runtime_globals() {
-    return None;
-  }
-
-  let metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey)?;
-  let mut sources = ConcatSource::default();
-  let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-
-  for (_, runtime_global) in metadata.lexical_fields().iter_names() {
-    let Some(key) = runtime_global.rspack_context_property_name() else {
-      continue;
-    };
-    let Some(lexical_name) = runtime_global.to_lexical_name() else {
-      continue;
-    };
-    sources.add(RawStringSource::from(format!(
-      "{lexical_name} = {runtime_context}{};\n",
-      property_access([key], 0)
-    )));
-    if runtime_global.should_initialize_as_object() {
-      let value = if preserve_initialized_fields {
-        format!("{lexical_name} || {{}}")
-      } else {
-        "{}".to_string()
-      };
-      sources.add(RawStringSource::from(format!(
-        "{lexical_name} = {value};\n"
-      )));
-    } else if runtime_global.should_initialize_as_array() {
-      let value = if preserve_initialized_fields {
-        format!("{lexical_name} || []")
-      } else {
-        "[]".to_string()
-      };
-      sources.add(RawStringSource::from(format!(
-        "{lexical_name} = {value};\n"
-      )));
-    }
-  }
-
-  Some(sources.boxed())
-}
-
-fn render_hot_update_runtime_variable_bindings(
-  runtime_template: &ChunkCodeTemplate,
-) -> Option<BoxSource> {
-  if !runtime_template.uses_runtime_context() {
-    return None;
-  }
-
-  let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-  let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
-  let modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
-  let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
-  Some(
-    RawStringSource::from(format!(
-      "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
-    ))
-    .boxed(),
-  )
-}
-
 pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
@@ -829,9 +325,7 @@ pub async fn render_chunk_runtime_modules(
 ) -> Result<BoxSource> {
   let runtime_modules_sources =
     render_runtime_modules(compilation, chunk_ukey, runtime_template).await?;
-  if runtime_modules_sources.source().is_empty()
-    && !should_render_runtime_context(compilation, chunk_ukey)
-  {
+  if runtime_modules_sources.source().is_empty() {
     return Ok(runtime_modules_sources);
   }
 
@@ -850,7 +344,21 @@ pub async fn render_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
-  let mut sources = ConcatSource::default();
+  if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+    render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
+  } else {
+    render_webpack_runtime_modules(compilation, chunk_ukey, runtime_template).await
+  }
+}
+
+pub(crate) type RuntimeModuleSourceItem = (usize, RuntimeModuleStage, BoxSource, RuntimeGlobals);
+
+pub(crate) async fn render_runtime_module_sources(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_template: &ChunkCodeTemplate,
+  reject_custom_runtime_modules: bool,
+) -> Result<Vec<RuntimeModuleSourceItem>> {
   let mut runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -880,8 +388,9 @@ pub async fn render_runtime_modules(
                 RuntimeGlobals::default(),
               ));
             }
-            let generated_requirements = runtime_module_generated_requirements(module);
-            if runtime_template.uses_runtime_context()
+            let generated_requirements =
+              module.additional_write_runtime_requirements(compilation);
+            if reject_custom_runtime_modules
               && (module.get_custom_source().is_some()
                 || module.get_constructor_name() == "RuntimeModuleFromJs")
             {
@@ -943,74 +452,20 @@ pub async fn render_runtime_modules(
     a_stage.cmp(b_stage).then_with(|| a_index.cmp(b_index))
   });
 
-  let isolate_runtime_context = runtime_template.uses_runtime_context()
-    && runtime_template.uses_lexical_runtime_globals()
-    && !compilation.options.output.module
-    && should_render_runtime_context(compilation, chunk_ukey)
-    && runtime_context_render_metadata(compilation, chunk_ukey).is_some_and(|metadata| {
-      !metadata.lexical_fields().is_empty() || !metadata.context_fields().is_empty()
-    });
+  Ok(runtime_module_sources)
+}
 
-  let is_hot_update = is_hot_update_chunk(compilation, chunk_ukey);
-  let chunk = compilation
-    .build_chunk_graph_artifact
-    .chunk_by_ukey
-    .expect_get(chunk_ukey);
-  let owns_runtime = chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-  let has_runtime_context = is_hot_update
-    || has_bootstrap_runtime_context(compilation, chunk_ukey, runtime_template)
-    || (!owns_runtime && runtime_template.uses_runtime_context());
-  if isolate_runtime_context {
-    let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-    sources.add(RawStringSource::from(format!(
-      "(function({runtime_context}) {{\n"
-    )));
-    if let Some(context_declarations) =
-      render_runtime_context_declarations(compilation, chunk_ukey, runtime_template, true, false)
-    {
-      sources.add(context_declarations);
-    }
-  } else if let Some(context_declarations) = render_runtime_context_declarations(
-    compilation,
-    chunk_ukey,
-    runtime_template,
-    true,
-    !has_runtime_context,
-  ) {
-    sources.add(context_declarations);
-  }
-  if !has_runtime_context
-    && let Some(context_fields) = render_runtime_context_field_initializers(
-      compilation,
-      chunk_ukey,
-      runtime_template,
-      is_hot_update,
-    )
-  {
-    sources.add(context_fields);
-  }
-  if is_hot_update
-    && let Some(bindings) = render_hot_update_runtime_variable_bindings(runtime_template)
-  {
-    sources.add(bindings);
-  }
-  for (_, _, runtime_module_source, generated_requirements) in runtime_module_sources {
-    let context_fields = render_runtime_context_exposed_fields(
-      compilation,
-      chunk_ukey,
-      runtime_template,
-      generated_requirements,
-    );
+async fn render_webpack_runtime_modules(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_template: &ChunkCodeTemplate,
+) -> Result<BoxSource> {
+  let runtime_module_sources =
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
+  let mut sources = ConcatSource::default();
+
+  for (_, _, runtime_module_source, _) in runtime_module_sources {
     sources.add(runtime_module_source);
-    if let Some(context_fields) = context_fields {
-      sources.add(context_fields);
-    }
-  }
-  if isolate_runtime_context {
-    let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
-    sources.add(RawStringSource::from(format!(
-      "\n}}).call(this, {runtime_context});\n"
-    )));
   }
 
   Ok(sources.boxed())

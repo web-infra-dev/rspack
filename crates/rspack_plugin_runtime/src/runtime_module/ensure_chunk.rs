@@ -81,4 +81,8 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     }
     requirements
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+  }
 }

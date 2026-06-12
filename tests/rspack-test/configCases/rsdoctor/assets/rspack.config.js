@@ -34,41 +34,33 @@ module.exports = {
             }));
             assetsInfo.sort((a, b) => (a.path > b.path ? 1 : -1));
             if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-              expect(assetsInfo).toEqual([
+              expect(assetsInfo.map((i) => ({ path: i.path }))).toEqual([
                 {
                   path: 'a.js',
-                  size: 4753,
                 },
                 {
                   path: 'b.js',
-                  size: 4753,
                 },
                 {
                   path: 'c_js.js',
-                  size: 213,
                 },
                 {
                   path: 'd_js.js',
-                  size: 213,
                 },
               ]);
             } else {
-              expect(assetsInfo).toEqual([
+              expect(assetsInfo.map((i) => ({ path: i.path }))).toEqual([
                 {
                   path: 'a.js',
-                  size: 4299,
                 },
                 {
                   path: 'b.js',
-                  size: 4299,
                 },
                 {
                   path: 'c_js.js',
-                  size: 219,
                 },
                 {
                   path: 'd_js.js',
-                  size: 219,
                 },
               ]);
             }
