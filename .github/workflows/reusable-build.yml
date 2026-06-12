@@ -46,6 +46,7 @@ jobs:
       binding_postfix: ${{ inputs.binding_postfix }}
       force-rebuild: ${{ inputs.force-rebuild }}
   test:
+    name: Test ${{ inputs.target }}
     # The wasm browser variant is a build-only artifact; the canonical wasm test
     # job already covers both wasm files, so skip the redundant -browser test.
     if: inputs.test && inputs.binding_postfix == ''
