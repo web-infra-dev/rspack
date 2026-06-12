@@ -21,6 +21,7 @@ import type {
   ITestRunner,
 } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
+import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { cachedStats, type THotStepRuntimeData } from './runner';
 
 type TTarget = RspackOptions['target'];
@@ -59,6 +60,7 @@ export function createHotProcessor(
         options.incremental ??= 'advance-silent';
       }
       mergeRspackOptions(options, rspackOptions);
+      applyRuntimeModeTestDefines(options);
       compiler.setOptions(options);
     },
     compiler: async (context: ITestContext) => {

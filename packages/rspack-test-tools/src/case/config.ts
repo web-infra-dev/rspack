@@ -21,6 +21,7 @@ import {
   findMultiCompilerBundle,
   run,
 } from './common';
+import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
 export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
@@ -42,6 +43,7 @@ export function createConfigProcessor(
         (index, context, options) => {
           overrideOptions(index, context, options);
           mergeRspackOptions(options, rspackOptions);
+          applyRuntimeModeTestDefines(options);
         },
       );
     },

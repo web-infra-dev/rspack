@@ -32,7 +32,6 @@ const wasmConfig = process.env.WASM && defineProject({
     "Example.test.js",
     "Incremental-*.test.js",
     "NativeWatcher*.test.js",
-    "RuntimeMode*.test.js",
   ],
 });
 
@@ -147,7 +146,7 @@ export default defineConfig({
   }, {
     extends: sharedConfig,
     name: 'runtimeMode',
-    include: process.env.WASM ? [] : [
+    include: [
       'RuntimeMode*.test.js',
     ],
     exclude: [
