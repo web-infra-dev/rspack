@@ -435,6 +435,8 @@ fn runtime_module_generated_requirements(runtime_module: &dyn RuntimeModule) -> 
         | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
         | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
     }
+    "AsyncWasmLoadingRuntimeModule" => RuntimeGlobals::INSTANTIATE_WASM,
+    "AsyncWasmCompileRuntimeModule" => RuntimeGlobals::COMPILE_WASM,
     "BaseUriRuntimeModule" => RuntimeGlobals::BASE_URI,
     "PublicPathRuntimeModule" | "AutoPublicPathRuntimeModule" => RuntimeGlobals::PUBLIC_PATH,
     "GetChunkFilenameRuntimeModule" if module_name.contains("javascript") => {
@@ -470,7 +472,7 @@ fn runtime_module_generated_requirements(runtime_module: &dyn RuntimeModule) -> 
     "EmbedFederationRuntimeModule" => RuntimeGlobals::STARTUP,
     "StartupEntrypointRuntimeModule" => RuntimeGlobals::STARTUP_ENTRYPOINT,
     "StartupChunkDependenciesRuntimeModule" => RuntimeGlobals::STARTUP,
-    "EnsureChunkRuntimeModule" => {
+    "EnsureChunkRuntimeModule" | "EsmEnsureChunkRuntimeModule" => {
       RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
     }
     "JsonpChunkLoadingRuntimeModule"
@@ -499,6 +501,9 @@ fn runtime_module_generated_requirements(runtime_module: &dyn RuntimeModule) -> 
     "MakeOptimizedDeferredNamespaceObjectRuntimeModule" => {
       RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
     }
+    "RscManifestRuntimeModule" => RuntimeGlobals::RSC_MANIFEST,
+    "RspackVersionRuntimeModule" => RuntimeGlobals::RSPACK_VERSION,
+    "RspackUniqueIdRuntimeModule" => RuntimeGlobals::RSPACK_UNIQUE_ID,
     "ToBinaryRuntimeModule" => RuntimeGlobals::TO_BINARY,
     _ => RuntimeGlobals::default(),
   }
@@ -1004,7 +1009,7 @@ pub async fn render_runtime_modules(
   if isolate_runtime_context {
     let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     sources.add(RawStringSource::from(format!(
-      "\n}})({runtime_context});\n"
+      "\n}}).call(this, {runtime_context});\n"
     )));
   }
 

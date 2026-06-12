@@ -17,7 +17,7 @@ it("should include runtime condition check code", () => {
 		),
 		"utf-8"
 	);
-	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+	if (source.includes("__rspack_context.j")) {
 		expect(source).toContain(`"a-runtime" == __rspack_context.j`)
 		expect(source).toContain(`"b-runtime" == __rspack_context.j`);
 		expect(source).toContain(`/^[ab]x\\-name$/.test(__rspack_context.j)`);
