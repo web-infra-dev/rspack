@@ -599,7 +599,7 @@ Node SSR 下分别覆盖：
 
 ### Phase 1: 锁定 SSR 最小用例
 
-用例已落在 `tests/rspack-test/serialCases/container/mf-ssr-clear-cache`，当前通过 `test.filter.js` 临时过滤。等 runtime 公开 `clearCache({ name })` 后，移除 filter 即可把这些用例纳入执行。
+用例已落在 `tests/rspack-test/serialCases/container/mf-ssr-clear-cache`，并已纳入执行。
 
 - [x] 增加 SSR remote 更新用例：首次请求 remote v1，`clearCache({ name })` 后再次请求 remote v2。
 - [x] 增加多 expose / 多路由用例：`pageA` 消费 `remoteA/A`，`pageB` 消费 `remoteA/B`，清理 `remoteA` 后两个路由的后续请求都重新加载。
@@ -610,14 +610,14 @@ Node SSR 下分别覆盖：
 ### Phase 2: 补齐 bundler runtime 清理基础
 
 - [x] 在 Rspack remote runtime metadata 中补充 remote 到 remote module、external module、consumer module 和 chunk 的索引。
-- [ ] 增加 remote 级别 clear adapter，负责失效旧 remote module 状态、旧 loading 状态和旧 factory 写回状态。
-- [ ] 清理 external module exports，让 remote entry 或 container 后续能重新加载。
-- [ ] 清理受影响 SSR 消费者 module exports，让后续请求重新执行消费链路。
-- [ ] 保证清理后不会出现消费者同步 `require` remote module 时 factory 缺失的状态。
+- [x] 增加 remote 级别 clear adapter，负责失效旧 remote module 状态、旧 loading 状态和旧 factory 写回状态。
+- [x] 清理 external module exports，让 remote entry 或 container 后续能重新加载。
+- [x] 清理受影响 SSR 消费者 module exports，让后续请求重新执行消费链路。
+- [x] 保证清理后不会出现消费者同步 `require` remote module 时 factory 缺失的状态。
 
 ### Phase 3: 接入 MF runtime 公共入口
 
-- [ ] 在 MF runtime 中公开 `clearCache({ name })`。
+- [x] 在 MF runtime 中公开 `clearCache({ name })`。
 - [ ] 拆开“保留注册的缓存清理”和“移除 remote 注册”两种语义。
 - [ ] 增加 remote barrier，让同名 remote 的新加载在清理期间等待。
 - [ ] 增加 remote generation，防止 stale old load 后续写回 runtime cache。
