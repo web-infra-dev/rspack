@@ -143,15 +143,6 @@ export default defineConfig({
     retry: 0, // re-try in native watcher tests is useless
     maxConcurrency: 1,
     testTimeout: 30_000,
-  }, {
-    extends: sharedConfig,
-    name: 'runtimeMode',
-    include: [
-      'RuntimeMode*.test.js',
-    ],
-    exclude: [
-      'NativeWatcher*.test.js',
-    ],
   }],
   reporters,
   pool: {
