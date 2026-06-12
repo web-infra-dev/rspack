@@ -147,7 +147,7 @@ CommonJS 可以按文件路径清理 `require.cache`。
 第一版公共 API 保持最小：
 
 ```ts
-await clearCache({ name: "remoteA" });
+await clearCache({ name: 'remoteA' });
 ```
 
 建议类型：
@@ -218,7 +218,7 @@ MF runtime 用 `name` 清自己的 remote 实例和 module cache；bundler runti
 对于静态消费：
 
 ```ts
-import RemoteButton from "remoteA/Button";
+import RemoteButton from 'remoteA/Button';
 
 export function pageA() {
   return render(RemoteButton);
@@ -599,11 +599,13 @@ Node SSR 下分别覆盖：
 
 ### Phase 1: 锁定 SSR 最小用例
 
-- [ ] 增加 SSR remote 更新用例：首次请求 remote v1，`clearCache({ name })` 后再次请求 remote v2。
-- [ ] 增加多 expose / 多路由用例：`pageA` 消费 `remoteA/A`，`pageB` 消费 `remoteA/B`，清理 `remoteA` 后两个路由的后续请求都重新加载。
-- [ ] 增加消费者缓存用例：确认已执行过的消费者链路会在后续请求中重新执行。
-- [ ] 增加 pending old load 用例：`clearCache` 等待旧加载或把超时旧加载标记为 stale。
-- [ ] 增加 no-preload 用例：确认 `clearCache` 不提前请求 remote entry，也不提前执行 remote `get`。
+用例已落在 `tests/rspack-test/serialCases/container/mf-ssr-clear-cache`，当前通过 `test.filter.js` 临时过滤。等 runtime 公开 `clearCache({ name })` 后，移除 filter 即可把这些用例纳入执行。
+
+- [x] 增加 SSR remote 更新用例：首次请求 remote v1，`clearCache({ name })` 后再次请求 remote v2。
+- [x] 增加多 expose / 多路由用例：`pageA` 消费 `remoteA/A`，`pageB` 消费 `remoteA/B`，清理 `remoteA` 后两个路由的后续请求都重新加载。
+- [x] 增加消费者缓存用例：确认已执行过的消费者链路会在后续请求中重新执行。
+- [x] 增加 pending old load 用例：`clearCache` 等待旧加载或把超时旧加载标记为 stale。
+- [x] 增加 no-preload 用例：确认 `clearCache` 不提前请求 remote entry，也不提前执行 remote `get`。
 
 ### Phase 2: 补齐 bundler runtime 清理基础
 
