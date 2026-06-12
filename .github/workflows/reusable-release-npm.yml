@@ -82,6 +82,8 @@ jobs:
       binding_postfix: ${{ matrix.array.binding_postfix }}
       test: ${{ inputs.test }}
       profile: 'release'
+      # release artifacts must be built from scratch
+      force-rebuild: true
 
   release:
     name: Release

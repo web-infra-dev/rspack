@@ -19,6 +19,10 @@ on:
       binding_postfix: # specify extra postfix for binding artifact
         required: false
         type: string
+      force-rebuild: # Disable Rust cache and build from scratch, e.g. for release builds
+        required: false
+        type: boolean
+        default: false
 
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
@@ -79,6 +83,7 @@ jobs:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
+          use-cache: ${{ !inputs.force-rebuild }}
 
       - name: Setup Zig for musl build
         if: ${{ contains(inputs.target, 'musl') }}
