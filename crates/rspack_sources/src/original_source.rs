@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  BoxSource, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
     split_into_lines, split_into_potential_tokens,
@@ -21,7 +21,7 @@ use crate::{
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#originalsource).
 ///
 /// ```
-/// use rspack_sources::{OriginalSource, MapOptions, Source, ObjectPool};
+/// use rspack_sources::{OriginalSource, MapOptions, Source, SourceExt, ObjectPool};
 ///
 /// let input = "if (hello()) { world(); hi(); there(); } done();\nif (hello()) { world(); hi(); there(); } done();";
 /// let source = OriginalSource::new(input, "file.js");
@@ -78,9 +78,14 @@ impl Source for OriginalSource {
     self.value.len()
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    source: BoxSource,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options)
+    get_map(object_pool, chunks.as_ref(), options, Some(source))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -131,7 +136,7 @@ impl Chunks for OriginalSourceChunks<'_> {
     on_source: crate::helpers::OnSource<'_, 'b>,
     _on_name: crate::helpers::OnName<'_, 'b>,
   ) -> GeneratedInfo {
-    on_source(0, Cow::Borrowed(&self.0.name), Some(&self.0.value));
+    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
     let source = TextSpan::new(self.0.value.as_ref());
     if options.columns {
       // With column info we need to read all lines and split them
@@ -274,12 +279,15 @@ mod tests {
       .unwrap();
 
     assert_eq!(result_text.into_string_lossy(), "Line1\n\nLine3\n");
-    assert_eq!(result_map.sources(), &["file.js".to_string()]);
-    assert_eq!(result_list_map.sources(), ["file.js".to_string()]);
-    assert_eq!(result_map.sources_content(), ["Line1\n\nLine3\n".into()],);
+    assert_eq!(result_map.get_source(0), Some("file.js"));
+    assert_eq!(result_list_map.get_source(0), Some("file.js"));
     assert_eq!(
-      result_list_map.sources_content(),
-      ["Line1\n\nLine3\n".into()],
+      result_map.get_source_content(0).map(AsRef::as_ref),
+      Some("Line1\n\nLine3\n")
+    );
+    assert_eq!(
+      result_list_map.get_source_content(0).map(AsRef::as_ref),
+      Some("Line1\n\nLine3\n")
     );
     assert_eq!(result_map.mappings(), "AAAA;;AAEA");
     assert_eq!(result_list_map.mappings(), "AAAA;AACA;AACA");

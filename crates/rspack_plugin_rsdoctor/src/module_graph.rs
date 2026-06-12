@@ -196,7 +196,10 @@ pub fn collect_module_original_sources(
       let object_pool = tls.get_or(ObjectPool::default);
       let source = module
         .source()
-        .and_then(|s| s.map(object_pool, &MapOptions::default()))
+        .and_then(|s| {
+          s.as_ref()
+            .map_with_source(s.clone(), object_pool, &MapOptions::default())
+        })
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
           let source = s.sources_content().get(idx)?;

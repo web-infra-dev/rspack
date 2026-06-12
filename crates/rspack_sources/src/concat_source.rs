@@ -216,9 +216,14 @@ impl Source for ConcatSource {
       .sum()
   }
 
-  fn map<'a>(&'a self, object_pool: &'a ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    source: BoxSource,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap> {
     let chunks = self.stream_chunks();
-    let result = get_map(object_pool, chunks.as_ref(), options);
+    let result = get_map(object_pool, chunks.as_ref(), options, Some(source));
     result
   }
 

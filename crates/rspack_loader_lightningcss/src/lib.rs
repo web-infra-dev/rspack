@@ -239,25 +239,25 @@ impl LightningCssLoader {
           .get_sources()
           .iter()
           .map(|source| {
-            if source.starts_with('/') || source.contains(':') {
+            Cow::Owned(if source.starts_with('/') || source.contains(':') {
               source.clone()
             } else {
               let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
               absolute_source.push_str(&posix_context);
               absolute_source.push_str(source);
               absolute_source
-            }
+            })
           })
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Arc::from(source_content.clone()))
+          .map(|source_content| Cow::Owned(source_content.clone()))
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_names()
           .iter()
-          .map(ToString::to_string)
+          .map(|name| Cow::Owned(name.to_string()))
           .collect::<Vec<_>>(),
       );
 
@@ -270,7 +270,8 @@ impl LightningCssLoader {
         inner_source_map: loader_context.take_source_map(),
         remove_original_source: false,
       });
-      let source_map = source_map_source.map(&ObjectPool::default(), &MapOptions::default());
+      let source_map =
+        Arc::new(source_map_source).map(&ObjectPool::default(), &MapOptions::default());
       loader_context.finish_with((content.code, source_map));
     } else {
       loader_context.finish_with(content.code);

@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
 
 use rustc_hash::FxHashMap as HashMap;
@@ -13,6 +12,7 @@ use crate::{
   helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
+  source::str_to_static,
   source_content_lines::SourceContentLines,
 };
 
@@ -462,13 +462,21 @@ impl Source for ReplaceSource {
     size
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &crate::MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    source: BoxSource,
+    object_pool: &ObjectPool,
+    options: &crate::MapOptions,
+  ) -> Option<SourceMap> {
     let replacements = &self.replacements;
     if replacements.is_empty() {
-      return self.inner.map(object_pool, options);
+      return self
+        .inner
+        .as_ref()
+        .map_with_source(self.inner.clone(), object_pool, options);
     }
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options)
+    get_map(object_pool, chunks.as_ref(), options, Some(source))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -523,7 +531,7 @@ impl std::fmt::Debug for ReplaceSource {
 }
 
 enum SourceContent<'object_pool> {
-  Raw(Arc<str>),
+  Raw(Cow<'static, str>),
   Lines(SourceContentLines<'object_pool>),
 }
 
@@ -944,8 +952,8 @@ impl Chunks for ReplaceSourceChunks<'_> {
       &mut |source_index, source, source_content| {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
-          let lines =
-            source_content.map(|source_content| SourceContent::Raw(source_content.clone()));
+          let lines = source_content
+            .map(|source_content| SourceContent::Raw(Cow::Borrowed(str_to_static(source_content))));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);

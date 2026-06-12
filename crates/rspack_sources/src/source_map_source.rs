@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  BoxSource, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
     stream_chunks_of_source_map,
@@ -136,12 +136,17 @@ impl Source for SourceMapSource {
     self.value.len()
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    source: BoxSource,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap> {
     if self.inner_source_map.is_none() {
       return Some(self.source_map.clone());
     }
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options)
+    get_map(object_pool, chunks.as_ref(), options, Some(source))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -229,7 +234,7 @@ impl Chunks for SourceMapSourceChunks<'_> {
         &self.0.value,
         &self.0.source_map,
         &self.0.name,
-        self.0.original_source.as_ref(),
+        self.0.original_source.as_deref(),
         inner_source_map,
         self.0.remove_original_source,
         on_chunk,
@@ -260,7 +265,8 @@ impl StreamChunks for SourceMapSource {
 mod tests {
   use super::*;
   use crate::{
-    CachedSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, SourceExt,
+    BoxSource, CachedSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource,
+    SourceExt,
   };
 
   #[test]
@@ -488,23 +494,30 @@ mod tests {
 
     macro_rules! test_cached {
       ($s:expr, $fn:expr) => {{
-        let c = CachedSource::new($s.clone());
-        let o = $fn(&$s);
-        let a = $fn(&c);
+        let s = $s.clone().boxed();
+        let c = CachedSource::new(s.clone()).boxed();
+        let o = $fn(s.clone());
+        let a = $fn(c.clone());
         assert_eq!(a, o);
-        let b = $fn(&c);
+        let b = $fn(c.clone());
         assert_eq!(b, o);
       }};
     }
 
-    test_cached!(source, |s: &dyn Source| s
+    test_cached!(source, |s: BoxSource| s
       .source()
       .into_string_lossy()
       .into_owned());
-    test_cached!(source, |s: &dyn Source| s
-      .map(&ObjectPool::default(), &MapOptions::default()));
-    test_cached!(source, |s: &dyn Source| s
-      .map(&ObjectPool::default(), &MapOptions::new(false)));
+    test_cached!(source, |s: BoxSource| s.as_ref().map_with_source(
+      s.clone(),
+      &ObjectPool::default(),
+      &MapOptions::default()
+    ));
+    test_cached!(source, |s: BoxSource| s.as_ref().map_with_source(
+      s.clone(),
+      &ObjectPool::default(),
+      &MapOptions::new(false)
+    ));
   }
 
   #[test]

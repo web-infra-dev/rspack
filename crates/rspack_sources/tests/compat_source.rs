@@ -2,7 +2,8 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_sources::{
-  ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
+  BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+  SourceValue,
   stream_chunks::{
     Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, stream_chunks_default,
   },
@@ -28,7 +29,12 @@ impl Source for CompatSource {
     42
   }
 
-  fn map(&self, _object_pool: &ObjectPool, _options: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    _source: BoxSource,
+    _object_pool: &ObjectPool,
+    _options: &MapOptions,
+  ) -> Option<SourceMap> {
     self.1.clone()
   }
 

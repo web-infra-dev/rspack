@@ -160,18 +160,33 @@ impl Source for CachedSource {
     })
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(
+    &self,
+    _source: BoxSource,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap> {
     if options.columns {
       self
         .cache
         .columns_map
-        .get_or_init(|| self.inner.map(object_pool, options))
+        .get_or_init(|| {
+          self
+            .inner
+            .as_ref()
+            .map_with_source(self.inner.clone(), object_pool, options)
+        })
         .clone()
     } else {
       self
         .cache
         .line_only_map
-        .get_or_init(|| self.inner.map(object_pool, options))
+        .get_or_init(|| {
+          self
+            .inner
+            .as_ref()
+            .map_with_source(self.inner.clone(), object_pool, options)
+        })
         .clone()
     }
   }
@@ -248,6 +263,7 @@ impl Chunks for CachedSourceChunks<'_> {
           options,
           object_pool,
           self.get_or_init_chunks(),
+          Some(self.cache_source.inner.clone()),
           on_chunk,
           on_source,
           on_name,

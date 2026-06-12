@@ -42,7 +42,8 @@ pub use original_source::OriginalSource;
 pub use raw_source::{RawBufferSource, RawStringSource};
 pub use replace_source::{ReplaceSource, Replacement, ReplacementEnforce};
 pub use source::{
-  BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap, SourceValue,
+  BoxSource, MapOptions, Mapping, OriginalLocation, Source, SourceExt, SourceMap,
+  SourceMapJsonInput, SourceValue,
 };
 pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOriginalOptions};
 

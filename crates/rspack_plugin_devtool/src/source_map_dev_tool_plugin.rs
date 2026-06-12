@@ -479,7 +479,10 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source.map(object_pool, &map_options) {
+                match source
+                  .as_ref()
+                  .map_with_source(source.clone(), object_pool, &map_options)
+                {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -584,7 +587,10 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source.map(object_pool, &map_options) {
+                match source
+                  .as_ref()
+                  .map_with_source(source.clone(), object_pool, &map_options)
+                {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -856,7 +862,7 @@ impl SourceMapDevToolPlugin {
     }
 
     if plugin.no_sources {
-      source_map.set_sources_content([]);
+      source_map.set_sources_content(Vec::<String>::new());
     }
     if let Some(source_root) = &plugin.source_root {
       source_map.set_source_root(Some(source_root.clone()));

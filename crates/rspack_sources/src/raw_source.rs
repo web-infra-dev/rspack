@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  BoxSource, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
     stream_chunks_of_raw_source,
@@ -18,7 +18,7 @@ use crate::{
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawStringSource, Source};
+/// use rspack_sources::{MapOptions, ObjectPool, RawStringSource, Source, SourceExt};
 ///
 /// let code = "some source code";
 /// let s = RawStringSource::from(code.to_string());
@@ -76,7 +76,7 @@ impl Source for RawStringSource {
     self.0.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(&self, _: BoxSource, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 
@@ -141,7 +141,7 @@ impl StreamChunks for RawStringSource {
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawBufferSource, Source};
+/// use rspack_sources::{MapOptions, ObjectPool, RawBufferSource, Source, SourceExt};
 ///
 /// let code = "some source code".as_bytes();
 /// let s = RawBufferSource::from(code);
@@ -220,7 +220,7 @@ impl Source for RawBufferSource {
     self.value.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
+  fn map_with_source(&self, _: BoxSource, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
     None
   }
 

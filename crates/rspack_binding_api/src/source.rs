@@ -62,13 +62,13 @@ impl From<String> for JsSourceToJs {
   }
 }
 
-impl TryFrom<&dyn Source> for JsSourceToJs {
+impl TryFrom<&BoxSource> for JsSourceToJs {
   type Error = napi::Error;
 
-  fn try_from(value: &dyn Source) -> Result<Self> {
+  fn try_from(value: &BoxSource) -> Result<Self> {
     match value.source() {
       SourceValue::String(string) => {
-        let map = to_map(value);
+        let map = to_map(value.clone());
         Ok(JsSourceToJs {
           source: Either::A(string.into_owned()),
           map,
@@ -90,7 +90,7 @@ impl From<JsSourceToJs> for BoxSource {
           value: string,
           name: "inmemory://from js",
           #[allow(clippy::unwrap_used)]
-          source_map: SourceMap::from_json(map.as_ref()).unwrap(),
+          source_map: SourceMap::from_json(map).unwrap(),
         })
         .boxed(),
         None => RawStringSource::from(string).boxed(),
@@ -100,7 +100,11 @@ impl From<JsSourceToJs> for BoxSource {
   }
 }
 
-fn to_map(source: &dyn Source) -> Option<String> {
-  let map = source.map(&ObjectPool::default(), &MapOptions::default());
+fn to_map(source: BoxSource) -> Option<String> {
+  let map = source.as_ref().map_with_source(
+    source.clone(),
+    &ObjectPool::default(),
+    &MapOptions::default(),
+  );
   map.map(|m| m.to_json())
 }
