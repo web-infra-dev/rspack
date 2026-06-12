@@ -609,7 +609,7 @@ Node SSR 下分别覆盖：
 
 ### Phase 2: 补齐 bundler runtime 清理基础
 
-- [ ] 在 Rspack remote runtime metadata 中补充 remote 到 remote module、external module、consumer module 和 chunk 的索引。
+- [x] 在 Rspack remote runtime metadata 中补充 remote 到 remote module、external module、consumer module 和 chunk 的索引。
 - [ ] 增加 remote 级别 clear adapter，负责失效旧 remote module 状态、旧 loading 状态和旧 factory 写回状态。
 - [ ] 清理 external module exports，让 remote entry 或 container 后续能重新加载。
 - [ ] 清理受影响 SSR 消费者 module exports，让后续请求重新执行消费链路。
