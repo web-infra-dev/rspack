@@ -134,7 +134,11 @@ export default {
 };
 ```
 
-Note that only the `rspackIgnore` and `webpackIgnore` comments are supported at the moment. **Since Rspack 2.0.7**, prefer `rspackIgnore`; `webpackIgnore` remains supported for compatibility:
+Note that only the `rspackIgnore` and `webpackIgnore` comments are supported at the moment.
+
+:::tip
+Since Rspack 2.1.0, prefer `rspackIgnore`. `webpackIgnore` remains supported for compatibility.
+:::
 
 ```js
 const x = require(/* rspackIgnore: true */ 'x');
@@ -148,7 +152,7 @@ const y = require(/* webpackIgnore: true */ 'y');
   defaultValueList={[{ defaultValue: "'lazy'" }]}
 />
 
-Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
+Specifies global mode for dynamic import, see [`rspackMode`](/api/runtime-api/module-methods#rspackmode) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -169,7 +173,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
+Specifies global prefetch for dynamic import, see [`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -190,7 +194,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
+Specifies global preload for dynamic import, see [`rspackPreload`](/api/runtime-api/module-methods#rspackpreload) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -213,7 +217,7 @@ export default {
   defaultValueList={[{ defaultValue: "'auto'" }]}
 />
 
-Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
+Specifies global `fetchPriority` for dynamic import, see [`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
