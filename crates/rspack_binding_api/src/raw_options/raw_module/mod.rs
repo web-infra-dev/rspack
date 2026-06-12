@@ -20,11 +20,11 @@ use rspack_core::{
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
   GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  JavascriptParserCommonjsOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions,
+  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -299,6 +299,8 @@ pub struct RawJavascriptParserOptions {
   pub override_strict: Option<String>,
   pub import_meta: Option<String>,
   pub commonjs_magic_comments: Option<bool>,
+  #[napi(ts_type = "boolean | string")]
+  pub create_require: Option<Either<bool, String>>,
   #[napi(ts_type = "boolean | { exports?: boolean | 'skipInEsm' }")]
   pub commonjs: Option<Either<bool, RawJavascriptParserCommonjsOptions>>,
   pub defer_import: Option<bool>,
@@ -413,6 +415,15 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       }),
       import_dynamic: value.import_dynamic,
       commonjs_magic_comments: value.commonjs_magic_comments,
+      create_require: value
+        .create_require
+        .map(|create_require| match create_require {
+          Either::A(true) => {
+            JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
+          }
+          Either::A(false) => JavascriptParserCreateRequire::Disabled,
+          Either::B(value) => JavascriptParserCreateRequire::Enabled(value),
+        }),
       jsx: value.jsx,
       defer_import: value.defer_import,
       source_import: value.source_import,

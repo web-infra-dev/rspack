@@ -9,7 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, json_stringify_str};
 pub use target::Targets;
 
 macro_rules! d {
@@ -47,10 +47,11 @@ use rspack_core::{
   CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
   EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
   ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
-  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
-  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
+  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
+  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1744,6 +1745,9 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
+          create_require: target_properties.node.filter(|node| *node).map(|_| {
+            JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
+          }),
           jsx: Some(false),
           ..Default::default()
         }),
@@ -3387,7 +3391,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(serde_json::json!(value.into()).to_string());
+    self.node_env = Some(json_stringify_str(&value.into()));
     self
   }
 

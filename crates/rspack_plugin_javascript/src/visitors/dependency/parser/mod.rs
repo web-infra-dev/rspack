@@ -502,8 +502,11 @@ impl<'parser> JavascriptParser<'parser> {
       plugins.push(Box::new(parser_plugin::AMDParserPlugin));
     }
 
-    if module_type.is_js_auto() || module_type.is_js_dynamic() {
+    if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::CommonJsImportsParserPlugin));
+    }
+
+    if module_type.is_js_auto() || module_type.is_js_dynamic() {
       plugins.push(Box::new(parser_plugin::CommonJsPlugin));
       let commonjs_exports = javascript_options
         .commonjs
@@ -909,9 +912,8 @@ impl<'parser> JavascriptParser<'parser> {
 
   pub fn get_all_variables_from_current_scope(
     &self,
-  ) -> impl Iterator<Item = (&str, &VariableInfoId)> {
-    let scope = self.definitions_db.expect_get_scope(self.definitions);
-    scope.variables()
+  ) -> impl Iterator<Item = (&str, VariableInfoId)> {
+    self.definitions_db.scope_variables(self.definitions)
   }
 
   pub fn define_variable(&mut self, name: Atom) {
@@ -965,7 +967,7 @@ impl<'parser> JavascriptParser<'parser> {
     tag: &'static str,
     data: Option<Data>,
   ) {
-    self.tag_variable_impl(name, tag, data, None);
+    self.tag_variable_impl(name, tag, data.map(TagInfoData::into_any), None);
   }
 
   pub fn tag_variable_with_flags<Data: TagInfoData>(
@@ -975,18 +977,21 @@ impl<'parser> JavascriptParser<'parser> {
     data: Option<Data>,
     flags: VariableInfoFlags,
   ) {
-    self.tag_variable_impl(name, tag, data, Some(flags));
+    self.tag_variable_impl(name, tag, data.map(TagInfoData::into_any), Some(flags));
   }
 
-  fn tag_variable_impl<Data: TagInfoData>(
+  pub fn tag_variable_without_data(&mut self, name: Atom, tag: &'static str) {
+    self.tag_variable_impl(name, tag, None, None);
+  }
+
+  fn tag_variable_impl(
     &mut self,
     name: Atom,
     tag: &'static str,
-    data: Option<Data>,
+    data: Option<Box<dyn anymap::CloneAny>>,
     flags: Option<VariableInfoFlags>,
   ) {
     let flags = flags.unwrap_or(VariableInfoFlags::TAGGED);
-    let data = data.map(|data| TagInfoData::into_any(data));
     let new_info = if let Some(old_info_id) = self.definitions_db.get(self.definitions, &name) {
       let old_info = self.definitions_db.expect_get_variable(old_info_id);
       if let Some(old_tag_info) = old_info.tag_info {

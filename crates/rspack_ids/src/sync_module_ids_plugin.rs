@@ -212,7 +212,7 @@ async fn record_modules(
   }
 
   let json = if data != old_data {
-    Some(serde_json::to_string(&data).to_rspack_result()?)
+    Some(simd_json::to_string(&data).to_rspack_result()?)
   } else {
     None
   };

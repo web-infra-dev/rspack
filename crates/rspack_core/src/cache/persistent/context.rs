@@ -62,6 +62,7 @@ impl CacheContext {
   /// `initialized` flag in `PersistentCache::initialize`.
   #[tracing::instrument("Cache::Context::load_build_deps", skip_all)]
   pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
+    let start = self.logger().time("validate build dependencies");
     match build_deps.validate(&*self.storage).await {
       Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
         self.invalid = false;
@@ -92,6 +93,7 @@ impl CacheContext {
           .warn(format!("build dependencies validation failed: {err}"));
       }
     }
+    self.logger().time_end(start);
     if self.load_failed && !self.readonly {
       build_deps.reset(&mut *self.storage);
     }
@@ -108,8 +110,12 @@ impl CacheContext {
       return;
     }
 
+    let start = self
+      .logger()
+      .time("write build dependencies to persistent cache");
     let logger = self.logger().clone();
     build_deps.add(&mut *self.storage, added, logger).await;
+    self.logger().time_end(start);
   }
 
   /// Computes modified/removed paths from all snapshot scopes.
@@ -123,6 +129,7 @@ impl CacheContext {
     snapshot: &Snapshot,
   ) -> Option<(bool, ArcPathSet, ArcPathSet)> {
     if !self.load_failed {
+      let start = self.logger().time("read snapshot from persistent cache");
       let mut is_hot_start = false;
       let mut modified_paths = ArcPathSet::default();
       let mut removed_paths = ArcPathSet::default();
@@ -153,6 +160,7 @@ impl CacheContext {
         }
       }
       if !self.load_failed {
+        self.logger().time_end(start);
         if is_hot_start {
           if modified_paths.is_empty() && removed_paths.is_empty() {
             self
@@ -167,6 +175,7 @@ impl CacheContext {
         }
         return Some((is_hot_start, modified_paths, removed_paths));
       }
+      self.logger().time_end(start);
     }
 
     // load_failed: reset snapshot scopes so they are fully rewritten this build.
@@ -189,6 +198,7 @@ impl CacheContext {
       return;
     }
 
+    let start = self.logger().time("write snapshot to persistent cache");
     let (file_added, file_removed) = file_deps;
     let (context_added, context_removed) = context_deps;
     let (missing_added, missing_removed) = missing_deps;
@@ -204,6 +214,7 @@ impl CacheContext {
     snapshot
       .add(&mut *self.storage, SnapshotScope::MISSING, missing_added)
       .await;
+    self.logger().time_end(start);
   }
 
   /// Loads an occasion's artifact from storage.
@@ -213,12 +224,16 @@ impl CacheContext {
   #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
   pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::Artifact> {
     if !self.load_failed {
+      let start = self
+        .logger()
+        .time(read_occasion_timing_label(occasion.name()));
       match occasion.recovery(&*self.storage).await {
         Ok(artifact) => {
           self.logger().info(format!(
             "{} persistent cache recovery succeeded",
             occasion.name()
           ));
+          self.logger().time_end(start);
           return Some(artifact);
         }
         Err(err) => {
@@ -229,6 +244,7 @@ impl CacheContext {
           ));
         }
       }
+      self.logger().time_end(start);
     }
     if !self.readonly {
       occasion.reset(&mut *self.storage);
@@ -243,7 +259,11 @@ impl CacheContext {
       return;
     }
 
+    let start = self
+      .logger()
+      .time(write_occasion_timing_label(occasion.name()));
     occasion.save(&mut *self.storage, artifact);
+    self.logger().time_end(start);
   }
 
   /// Enqueues a background persistence flush. No-op in readonly mode.
@@ -255,14 +275,18 @@ impl CacheContext {
       return;
     }
 
+    let start = self.logger().time("stage persistent cache");
     self.storage.save();
+    self.logger().time_end(start);
   }
 
   /// Waits for all background storage writes to complete.
   ///
   /// Must be called before process exit to avoid losing buffered data.
   pub async fn flush_storage(&self) {
-    self.storage.flush().await
+    let start = self.logger().time("flush persistent cache to disk");
+    self.storage.flush().await;
+    self.logger().time_end(start);
   }
 
   /// Resets per-build state.
@@ -281,6 +305,24 @@ impl CacheContext {
     } else {
       self.load_failed = self.invalid;
     }
+  }
+}
+
+fn read_occasion_timing_label(name: &'static str) -> &'static str {
+  match name {
+    "make" => "read make from persistent cache",
+    "meta" => "read meta from persistent cache",
+    "minimize" => "read minimize from persistent cache",
+    _ => "read occasion from persistent cache",
+  }
+}
+
+fn write_occasion_timing_label(name: &'static str) -> &'static str {
+  match name {
+    "make" => "write make to persistent cache",
+    "meta" => "write meta to persistent cache",
+    "minimize" => "write minimize to persistent cache",
+    _ => "write occasion to persistent cache",
   }
 }
 

@@ -327,6 +327,51 @@ export default {
 };
 ```
 
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **Type:** [`Condition`](#condition)
+- **Default:** `undefined`
+
+Matches modules by the import phase of the dependency that introduced the module.
+
+The value passed to the condition is one of:
+
+- `evaluation`: normal imports such as `import`, `import()`, `require()`, and other dependencies without a special import phase
+- `defer`: `import defer` and `import.defer()` dependencies when [`experiments.deferImport`](/config/experiments#experimentsdeferimport) is enabled
+- `source`: `import source` and `import.source()` dependencies when [`experiments.sourceImport`](/config/experiments#experimentssourceimport) is enabled
+
+This is useful when the same resource needs different loaders, parser options, or module types depending on how it is imported.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].scheme
 
 - **Type:** [`Condition`](#condition)

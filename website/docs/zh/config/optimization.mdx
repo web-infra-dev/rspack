@@ -285,7 +285,7 @@ export default {
 ## optimization.minimizer
 
 <PropertyType
-  type="Array<Plugin>"
+  type="('...' | Plugin)[]"
   defaultValueList={[
     {
       defaultValue:
@@ -338,7 +338,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="'natural' | 'named' | 'deterministic' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -355,6 +355,7 @@ export default {
 | `named`         | 使用有意义、方便调试的内容当作模块 id。                                                                       |
 | `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
 | `hashed`        | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
+| `false`         | 禁用 Rspack 内置的模块 id 算法，允许自定义插件提供模块 id。                                                   |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -367,7 +368,7 @@ export default {
 ## optimization.nodeEnv
 
 <PropertyType
-  type="boolean | string"
+  type="string | false"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -444,7 +445,7 @@ export default {
 ## optimization.runtimeChunk
 
 <PropertyType
-  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
+  type="boolean | 'single' | 'multiple' | { name?: string | ((entrypoint: { name: string }) => string) }"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -464,17 +465,19 @@ export default {
 };
 ```
 
-设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
+设置为 `'single'` 会将所有入口的运行时代码抽离到一个名为 `runtime` 的单独 chunk。该设置等同于：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    runtimeChunk: 'runtime',
+    runtimeChunk: {
+      name: 'runtime',
+    },
   },
 };
 ```
 
-设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
+设置为对象时，可以提供可选的 `name` 属性，该属性代表 runtime chunk 的名称。
 
 ```js title="rspack.config.mjs"
 export default {

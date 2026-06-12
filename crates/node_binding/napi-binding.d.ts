@@ -69,6 +69,7 @@ export interface NormalModule extends Module {
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
+	get error(): RspackError | undefined;
 }
 
 export interface ConcatenatedModule extends Module {
@@ -411,6 +412,7 @@ export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
+  getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
   getConnection(dependency: Dependency): ModuleGraphConnection | null
@@ -2476,6 +2478,7 @@ export interface RawJavascriptParserOptions {
   overrideStrict?: string
   importMeta?: string
   commonjsMagicComments?: boolean
+  createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
 deferImport?: boolean
 sourceImport?: boolean

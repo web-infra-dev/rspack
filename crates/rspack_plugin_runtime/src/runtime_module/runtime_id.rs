@@ -48,7 +48,8 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
         context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
-        serde_json::to_string(&id).expect("Invalid json string")
+        id.as_deref()
+          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
       ))
     } else {
       unreachable!("should attach chunk for css_loading")

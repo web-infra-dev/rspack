@@ -201,7 +201,7 @@ pub fn render_dyn_import_external_module(
   let attributes_str = if let Some(attributes) = import_dep.get_attributes() {
     format!(
       ", {{ with: {} }}",
-      serde_json::to_string(attributes).expect("invalid json to_string")
+      simd_json::to_string(attributes).expect("invalid json to_string")
     )
   } else {
     String::new()

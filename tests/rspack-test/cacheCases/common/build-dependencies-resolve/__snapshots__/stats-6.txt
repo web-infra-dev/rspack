@@ -1,9 +1,20 @@
-LOG from rspack.persistentCache
+DEBUG LOG from rspack.persistentCache
 <i> persistent cache enabled
 <i> build dependencies are valid (4 tracked)
+<t> validate build dependencies: xx ms
 <i> meta persistent cache recovery succeeded
+<t> read meta from persistent cache: xx ms
+<t> read snapshot from persistent cache: xx ms
 <i> snapshot restored with detected changed dependencies:
 <i> modified paths (1):
 <i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/common/build-dependencies-resolve/package.json
 <i> make persistent cache recovery succeeded
+<t> read make from persistent cache: xx ms
+<t> write make to persistent cache: xx ms
 <i> minimize persistent cache recovery succeeded
+<t> read minimize from persistent cache: xx ms
+<t> write minimize to persistent cache: xx ms
+<t> write meta to persistent cache: xx ms
+<t> write snapshot to persistent cache: xx ms
+<t> write build dependencies to persistent cache: xx ms
+<t> stage persistent cache: xx ms

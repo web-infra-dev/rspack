@@ -59,6 +59,7 @@ rustc-hash                 = { workspace = true }
 scopeguard                 = { workspace = true }
 serde                      = { workspace = true }
 serde_json                 = { workspace = true }
+simd-json                  = { workspace = true }
 simdutf8                   = { workspace = true }
 smallvec                   = { workspace = true }
 smol_str                   = { workspace = true }
