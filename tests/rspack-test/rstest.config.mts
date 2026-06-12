@@ -32,6 +32,7 @@ const wasmConfig = process.env.WASM && defineProject({
     "Example.test.js",
     "Incremental-*.test.js",
     "NativeWatcher*.test.js",
+    "RuntimeMode*.test.js",
   ],
 });
 
