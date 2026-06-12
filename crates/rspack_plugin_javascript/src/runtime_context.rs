@@ -293,7 +293,7 @@ pub async fn render_rspack_runtime_modules(
       "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
     )));
   }
-  for (_, _, runtime_module_source, generated_requirements) in runtime_module_sources {
+  for (runtime_module_source, generated_requirements) in runtime_module_sources {
     sources.add(runtime_module_source);
     if !runtime_template.uses_lexical_runtime_globals() {
       continue;

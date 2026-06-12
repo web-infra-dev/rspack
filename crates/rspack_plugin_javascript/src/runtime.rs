@@ -2,7 +2,7 @@ use rayon::prelude::*;
 use rspack_core::{
   ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, SourceType,
+  RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -351,7 +351,7 @@ pub async fn render_runtime_modules(
   }
 }
 
-pub(crate) type RuntimeModuleSourceItem = (usize, RuntimeModuleStage, BoxSource, RuntimeGlobals);
+pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals);
 
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
@@ -359,16 +359,13 @@ pub(crate) async fn render_runtime_module_sources(
   runtime_template: &ChunkCodeTemplate,
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
-  let mut runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
+  let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_runtime_modules_in_order(chunk_ukey, compilation)
-      .enumerate()
-      .map(|(index, (identifier, runtime_module))| {
+      .map(|(identifier, runtime_module)| {
         (
-          index,
-          runtime_module.stage(),
           compilation
             .runtime_modules_code_generation_source
             .get(identifier)
@@ -376,17 +373,12 @@ pub(crate) async fn render_runtime_module_sources(
           runtime_module,
         )
       })
-      .for_each(|(index, stage, source, module)| {
+      .for_each(|(source, module)| {
         let s = unsafe { token.used((compilation, source, module, runtime_template)) };
         s.spawn(
           move |(compilation, source, module, runtime_template)| async move {
             if source.size() == 0 {
-              return Ok((
-                index,
-                stage,
-                ConcatSource::default().boxed(),
-                RuntimeGlobals::default(),
-              ));
+              return Ok((ConcatSource::default().boxed(), RuntimeGlobals::default()));
             }
             let generated_requirements =
               module.additional_write_runtime_requirements(compilation);
@@ -437,20 +429,15 @@ pub(crate) async fn render_runtime_module_sources(
               module.should_isolate(),
               supports_arrow_function,
             );
-            Ok((index, stage, sources, generated_requirements))
+            Ok((sources, generated_requirements))
           },
         );
       })
   })
   .await
   .into_iter()
-  .map(|r| r.to_rspack_result())
-  .collect::<Result<Vec<_>>>()?
-  .into_iter()
+  .map(|r| r.to_rspack_result().and_then(|result| result))
   .collect::<Result<Vec<_>>>()?;
-  runtime_module_sources.sort_by(|(a_index, a_stage, _, _), (b_index, b_stage, _, _)| {
-    a_stage.cmp(b_stage).then_with(|| a_index.cmp(b_index))
-  });
 
   Ok(runtime_module_sources)
 }
@@ -464,7 +451,7 @@ async fn render_webpack_runtime_modules(
     render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
   let mut sources = ConcatSource::default();
 
-  for (_, _, runtime_module_source, _) in runtime_module_sources {
+  for (runtime_module_source, _) in runtime_module_sources {
     sources.add(runtime_module_source);
   }
 
