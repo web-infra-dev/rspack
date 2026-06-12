@@ -801,7 +801,7 @@ impl JavascriptParser<'_> {
           VariableInfoFlags::NORMAL,
           None,
         );
-        self.definitions_db.set_visible(declared_scope, name, info);
+        self.definitions_db.set(declared_scope, name.clone(), info);
       }
     }
   }

@@ -810,7 +810,7 @@ impl<T: Module + 'static> ModuleExt for T {
       );
     }
 
-    BoxModule::Custom(Box::new(self))
+    BoxModule::Custom(Box::new(Box::new(self) as Box<dyn Module>))
   }
 }
 
@@ -822,13 +822,17 @@ pub enum BoxModule {
   Raw(Box<RawModule>),
   SelfModule(Box<SelfModule>),
   Concatenated(Box<ConcatenatedModule>),
-  Custom(Box<dyn Module>),
+  // Boxed twice on purpose: storing a thin `Box<Box<dyn Module>>` keeps the
+  // `BoxModule` enum the same size as the previous `Box<dyn Module>` newtype
+  // (a single pointer + discriminant) instead of growing it to hold a fat
+  // pointer. This avoids a cache regression when iterating large module maps.
+  Custom(Box<Box<dyn Module>>),
 }
 
 impl BoxModule {
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
-    BoxModule::Custom(module)
+    BoxModule::Custom(Box::new(module))
   }
 
   pub fn normal(module: NormalModule) -> Self {
@@ -863,7 +867,7 @@ impl BoxModule {
       Self::Raw(module) => module.as_ref(),
       Self::SelfModule(module) => module.as_ref(),
       Self::Concatenated(module) => &**module,
-      Self::Custom(module) => module.as_ref(),
+      Self::Custom(module) => &***module,
     }
   }
 
@@ -875,7 +879,22 @@ impl BoxModule {
       Self::Raw(module) => module.as_mut(),
       Self::SelfModule(module) => module.as_mut(),
       Self::Concatenated(module) => &mut **module,
-      Self::Custom(module) => module.as_mut(),
+      Self::Custom(module) => &mut ***module,
+    }
+  }
+
+  /// Whether the module needs a module id. Implemented as an inherent
+  /// static-dispatch method so hot call sites resolve directly to the concrete
+  /// implementation instead of going through `Deref` to `dyn Module`.
+  pub fn need_id(&self) -> bool {
+    match self {
+      Self::Normal(module) => module.need_id(),
+      Self::Context(module) => module.need_id(),
+      Self::External(module) => module.need_id(),
+      Self::Raw(module) => module.need_id(),
+      Self::SelfModule(module) => module.need_id(),
+      Self::Concatenated(module) => module.need_id(),
+      Self::Custom(module) => module.need_id(),
     }
   }
 
@@ -1112,7 +1131,7 @@ impl std::ops::DerefMut for BoxModule {
 
 impl From<Box<dyn Module>> for BoxModule {
   fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule::Custom(inner)
+    BoxModule::Custom(Box::new(inner))
   }
 }
 
