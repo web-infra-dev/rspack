@@ -6,7 +6,7 @@ use rspack_sources::BoxSource;
 use super::{TaskContext, add::AddTask};
 use crate::{
   BoxDependency, CompilationId, CompilerId, CompilerOptions, Context, FactorizeInfo, ImportPhase,
-  ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
+  ModuleFactoryCreateData, ModuleFactoryKind, ModuleFactoryResult, ModuleIdentifier, ModuleLayer,
   Resolve, ResolverFactory,
   dependency::DependencyType,
   module_graph::ModuleGraphModule,
@@ -20,7 +20,7 @@ use crate::{
 pub struct FactorizeTask {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
-  pub module_factory: Arc<dyn ModuleFactory>,
+  pub module_factory: ModuleFactoryKind,
   pub original_module_identifier: Option<ModuleIdentifier>,
   pub original_module_source: Option<BoxSource>,
   pub original_module_context: Option<Box<Context>>,

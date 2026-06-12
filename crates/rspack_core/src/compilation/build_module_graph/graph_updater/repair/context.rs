@@ -7,7 +7,7 @@ use rustc_hash::FxHashMap as HashMap;
 use super::BuildModuleGraphArtifact;
 use crate::{
   Compilation, CompilationId, CompilerId, CompilerOptions, CompilerPlatform, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactory, ResolverFactory,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleFactoryKind, ResolverFactory,
   RuntimeTemplate, SharedPluginDriver, incremental::Incremental, module_graph::ModuleGraph,
 };
 
@@ -25,7 +25,7 @@ pub struct TaskContext {
   pub platform: Arc<CompilerPlatform>,
   pub resolver_factory: Arc<ResolverFactory>,
   pub loader_resolver_factory: Arc<ResolverFactory>,
-  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_factories: HashMap<DependencyType, ModuleFactoryKind>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
 

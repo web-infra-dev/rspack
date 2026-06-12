@@ -919,7 +919,7 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
     );
     parser
       .definitions_db
-      .set(declared_scope, name.clone(), info);
+      .set_visible(declared_scope, name, info);
   }
 }
 

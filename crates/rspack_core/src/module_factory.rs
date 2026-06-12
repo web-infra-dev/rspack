@@ -1,11 +1,16 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  any::{Any, TypeId},
+  fmt::Debug,
+  sync::Arc,
+};
 
 use rspack_error::{Diagnostic, Result};
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use crate::{
-  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context, ModuleIdentifier,
-  ModuleLayer, Resolve, ResolverFactory,
+  BoxDependency, BoxModule, CompilationId, CompilerId, CompilerOptions, Context,
+  ContextModuleFactory, IgnoreErrorModuleFactory, ModuleIdentifier, ModuleLayer,
+  NormalModuleFactory, Resolve, ResolverFactory, SelfModuleFactory,
 };
 
 #[derive(Debug, Clone)]
@@ -87,4 +92,102 @@ impl ModuleFactoryResult {
 #[async_trait::async_trait]
 pub trait ModuleFactory: Debug + Sync + Send {
   async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult>;
+}
+
+#[derive(Debug, Clone)]
+pub enum ModuleFactoryKind {
+  Normal(Arc<NormalModuleFactory>),
+  Context(Arc<ContextModuleFactory>),
+  IgnoreError(Arc<IgnoreErrorModuleFactory>),
+  SelfModule(Arc<SelfModuleFactory>),
+  Custom(Arc<dyn ModuleFactory>),
+}
+
+impl ModuleFactoryKind {
+  pub fn normal(factory: Arc<NormalModuleFactory>) -> Self {
+    Self::Normal(factory)
+  }
+
+  pub fn context(factory: Arc<ContextModuleFactory>) -> Self {
+    Self::Context(factory)
+  }
+
+  pub fn ignore_error(factory: Arc<IgnoreErrorModuleFactory>) -> Self {
+    Self::IgnoreError(factory)
+  }
+
+  pub fn self_module(factory: Arc<SelfModuleFactory>) -> Self {
+    Self::SelfModule(factory)
+  }
+
+  pub fn custom(factory: Arc<dyn ModuleFactory>) -> Self {
+    Self::Custom(factory)
+  }
+
+  pub async fn create(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
+    match self {
+      Self::Normal(factory) => factory.create(data).await,
+      Self::Context(factory) => factory.create(data).await,
+      Self::IgnoreError(factory) => factory.create(data).await,
+      Self::SelfModule(factory) => factory.create(data).await,
+      Self::Custom(factory) => factory.create(data).await,
+    }
+  }
+}
+
+pub trait IntoModuleFactoryKind {
+  fn into_module_factory_kind(self) -> ModuleFactoryKind;
+}
+
+impl IntoModuleFactoryKind for ModuleFactoryKind {
+  fn into_module_factory_kind(self) -> ModuleFactoryKind {
+    self
+  }
+}
+
+impl IntoModuleFactoryKind for Arc<dyn ModuleFactory> {
+  fn into_module_factory_kind(self) -> ModuleFactoryKind {
+    ModuleFactoryKind::Custom(self)
+  }
+}
+
+impl<T> IntoModuleFactoryKind for Arc<T>
+where
+  T: ModuleFactory + Any + 'static,
+{
+  fn into_module_factory_kind(self) -> ModuleFactoryKind {
+    if TypeId::of::<T>() == TypeId::of::<NormalModuleFactory>() {
+      let factory = self as Arc<dyn Any + Send + Sync>;
+      return ModuleFactoryKind::Normal(
+        Arc::downcast::<NormalModuleFactory>(factory)
+          .expect("module factory type id should match NormalModuleFactory"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<ContextModuleFactory>() {
+      let factory = self as Arc<dyn Any + Send + Sync>;
+      return ModuleFactoryKind::Context(
+        Arc::downcast::<ContextModuleFactory>(factory)
+          .expect("module factory type id should match ContextModuleFactory"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<IgnoreErrorModuleFactory>() {
+      let factory = self as Arc<dyn Any + Send + Sync>;
+      return ModuleFactoryKind::IgnoreError(
+        Arc::downcast::<IgnoreErrorModuleFactory>(factory)
+          .expect("module factory type id should match IgnoreErrorModuleFactory"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<SelfModuleFactory>() {
+      let factory = self as Arc<dyn Any + Send + Sync>;
+      return ModuleFactoryKind::SelfModule(
+        Arc::downcast::<SelfModuleFactory>(factory)
+          .expect("module factory type id should match SelfModuleFactory"),
+      );
+    }
+
+    ModuleFactoryKind::Custom(self)
+  }
 }

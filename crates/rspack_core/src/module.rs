@@ -1,5 +1,5 @@
 use std::{
-  any::Any,
+  any::{Any, TypeId},
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
   hash::Hash,
@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -30,14 +30,14 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
-  ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
-  CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BindingCell, BoxDependency,
+  BoxDependencyTemplate, BoxModuleDependency, ChunkGraph, ChunkUkey, CodeGenerationResult,
+  CollectedTypeScriptInfo, Compilation, CompilationAsset, CompilationId, CompilerId,
+  CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule, DependenciesBlock,
+  DependencyId, ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult,
+  ImportPhase, ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType,
+  NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec,
+  SelfModule, SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
 };
@@ -754,21 +754,129 @@ pub trait ModuleExt {
   fn boxed(self) -> BoxModule;
 }
 
-impl<T: Module> ModuleExt for T {
+impl<T: Module + 'static> ModuleExt for T {
   fn boxed(self) -> BoxModule {
-    BoxModule(Box::new(self))
+    if TypeId::of::<T>() == TypeId::of::<NormalModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::Normal(
+        module
+          .downcast::<NormalModule>()
+          .expect("module type id should match NormalModule"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<ContextModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::Context(Box::new(
+        *module
+          .downcast::<ContextModule>()
+          .expect("module type id should match ContextModule"),
+      ));
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<ExternalModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::External(Box::new(
+        *module
+          .downcast::<ExternalModule>()
+          .expect("module type id should match ExternalModule"),
+      ));
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<RawModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::Raw(
+        module
+          .downcast::<RawModule>()
+          .expect("module type id should match RawModule"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<SelfModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::SelfModule(
+        module
+          .downcast::<SelfModule>()
+          .expect("module type id should match SelfModule"),
+      );
+    }
+
+    if TypeId::of::<T>() == TypeId::of::<ConcatenatedModule>() {
+      let module = Box::new(self) as Box<dyn Any>;
+      return BoxModule::Concatenated(Box::new(
+        *module
+          .downcast::<ConcatenatedModule>()
+          .expect("module type id should match ConcatenatedModule"),
+      ));
+    }
+
+    BoxModule::Custom(Box::new(self))
   }
 }
 
-/// A newtype wrapper around `Box<dyn Module>` for improved type safety.
-#[cacheable(with=AsInner)]
-#[repr(transparent)]
-pub struct BoxModule(Box<dyn Module>);
+#[cacheable]
+pub enum BoxModule {
+  Normal(Box<NormalModule>),
+  Context(Box<ContextModule>),
+  External(Box<ExternalModule>),
+  Raw(Box<RawModule>),
+  SelfModule(Box<SelfModule>),
+  Concatenated(Box<ConcatenatedModule>),
+  Custom(Box<dyn Module>),
+}
 
 impl BoxModule {
   /// Create a new BoxModule from a boxed Module trait object.
   pub fn new(module: Box<dyn Module>) -> Self {
-    BoxModule(module)
+    BoxModule::Custom(module)
+  }
+
+  pub fn normal(module: NormalModule) -> Self {
+    Self::Normal(Box::new(module))
+  }
+
+  pub fn context(module: ContextModule) -> Self {
+    Self::Context(Box::new(module))
+  }
+
+  pub fn external(module: ExternalModule) -> Self {
+    Self::External(Box::new(module))
+  }
+
+  pub fn raw(module: RawModule) -> Self {
+    Self::Raw(Box::new(module))
+  }
+
+  pub fn self_module(module: SelfModule) -> Self {
+    Self::SelfModule(Box::new(module))
+  }
+
+  pub fn concatenated(module: ConcatenatedModule) -> Self {
+    Self::Concatenated(Box::new(module))
+  }
+
+  fn as_module(&self) -> &dyn Module {
+    match self {
+      Self::Normal(module) => module.as_ref(),
+      Self::Context(module) => &**module,
+      Self::External(module) => &**module,
+      Self::Raw(module) => module.as_ref(),
+      Self::SelfModule(module) => module.as_ref(),
+      Self::Concatenated(module) => &**module,
+      Self::Custom(module) => module.as_ref(),
+    }
+  }
+
+  fn as_module_mut(&mut self) -> &mut dyn Module {
+    match self {
+      Self::Normal(module) => module.as_mut(),
+      Self::Context(module) => &mut **module,
+      Self::External(module) => &mut **module,
+      Self::Raw(module) => module.as_mut(),
+      Self::SelfModule(module) => module.as_mut(),
+      Self::Concatenated(module) => &mut **module,
+      Self::Custom(module) => module.as_mut(),
+    }
   }
 
   pub async fn build(
@@ -776,57 +884,253 @@ impl BoxModule {
     build_context: BuildContext,
     compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.0.build(build_context, compilation).await
+    match self {
+      Self::Normal(module) => module.build(build_context, compilation).await,
+      Self::Context(module) => module.build(build_context, compilation).await,
+      Self::External(module) => module.build(build_context, compilation).await,
+      Self::Raw(module) => module.build(build_context, compilation).await,
+      Self::SelfModule(module) => module.build(build_context, compilation).await,
+      Self::Concatenated(module) => module.build(build_context, compilation).await,
+      Self::Custom(module) => module.build(build_context, compilation).await,
+    }
   }
-}
 
-impl AsInnerConverter for BoxModule {
-  type Inner = Box<dyn Module>;
-
-  fn to_inner(&self) -> &Self::Inner {
-    &self.0
+  pub fn module_type(&self) -> &ModuleType {
+    match self {
+      Self::Normal(module) => module.module_type(),
+      Self::Context(module) => module.module_type(),
+      Self::External(module) => module.module_type(),
+      Self::Raw(module) => module.module_type(),
+      Self::SelfModule(module) => module.module_type(),
+      Self::Concatenated(module) => module.module_type(),
+      Self::Custom(module) => module.module_type(),
+    }
   }
 
-  fn from_inner(data: Self::Inner) -> Self {
-    BoxModule(data)
+  pub fn source(&self) -> Option<&BoxSource> {
+    match self {
+      Self::Normal(module) => module.source(),
+      Self::Context(module) => module.source(),
+      Self::External(module) => module.source(),
+      Self::Raw(module) => module.source(),
+      Self::SelfModule(module) => module.source(),
+      Self::Concatenated(module) => module.source(),
+      Self::Custom(module) => module.source(),
+    }
+  }
+
+  pub fn factory_meta(&self) -> Option<&FactoryMeta> {
+    match self {
+      Self::Normal(module) => module.factory_meta(),
+      Self::Context(module) => module.factory_meta(),
+      Self::External(module) => module.factory_meta(),
+      Self::Raw(module) => module.factory_meta(),
+      Self::SelfModule(module) => module.factory_meta(),
+      Self::Concatenated(module) => module.factory_meta(),
+      Self::Custom(module) => module.factory_meta(),
+    }
+  }
+
+  pub fn set_factory_meta(&mut self, factory_meta: FactoryMeta) {
+    match self {
+      Self::Normal(module) => module.set_factory_meta(factory_meta),
+      Self::Context(module) => module.set_factory_meta(factory_meta),
+      Self::External(module) => module.set_factory_meta(factory_meta),
+      Self::Raw(module) => module.set_factory_meta(factory_meta),
+      Self::SelfModule(module) => module.set_factory_meta(factory_meta),
+      Self::Concatenated(module) => module.set_factory_meta(factory_meta),
+      Self::Custom(module) => module.set_factory_meta(factory_meta),
+    }
+  }
+
+  pub fn build_info(&self) -> &BuildInfo {
+    match self {
+      Self::Normal(module) => module.build_info(),
+      Self::Context(module) => module.build_info(),
+      Self::External(module) => module.build_info(),
+      Self::Raw(module) => module.build_info(),
+      Self::SelfModule(module) => module.build_info(),
+      Self::Concatenated(module) => module.build_info(),
+      Self::Custom(module) => module.build_info(),
+    }
+  }
+
+  pub fn build_info_mut(&mut self) -> &mut BuildInfo {
+    match self {
+      Self::Normal(module) => module.build_info_mut(),
+      Self::Context(module) => module.build_info_mut(),
+      Self::External(module) => module.build_info_mut(),
+      Self::Raw(module) => module.build_info_mut(),
+      Self::SelfModule(module) => module.build_info_mut(),
+      Self::Concatenated(module) => module.build_info_mut(),
+      Self::Custom(module) => module.build_info_mut(),
+    }
+  }
+
+  pub fn build_meta(&self) -> &BuildMeta {
+    match self {
+      Self::Normal(module) => module.build_meta(),
+      Self::Context(module) => module.build_meta(),
+      Self::External(module) => module.build_meta(),
+      Self::Raw(module) => module.build_meta(),
+      Self::SelfModule(module) => module.build_meta(),
+      Self::Concatenated(module) => module.build_meta(),
+      Self::Custom(module) => module.build_meta(),
+    }
+  }
+
+  pub fn build_meta_mut(&mut self) -> &mut BuildMeta {
+    match self {
+      Self::Normal(module) => module.build_meta_mut(),
+      Self::Context(module) => module.build_meta_mut(),
+      Self::External(module) => module.build_meta_mut(),
+      Self::Raw(module) => module.build_meta_mut(),
+      Self::SelfModule(module) => module.build_meta_mut(),
+      Self::Concatenated(module) => module.build_meta_mut(),
+      Self::Custom(module) => module.build_meta_mut(),
+    }
+  }
+
+  pub fn get_dependencies(&self) -> &[DependencyId] {
+    match self {
+      Self::Normal(module) => module.get_dependencies(),
+      Self::Context(module) => module.get_dependencies(),
+      Self::External(module) => module.get_dependencies(),
+      Self::Raw(module) => module.get_dependencies(),
+      Self::SelfModule(module) => module.get_dependencies(),
+      Self::Concatenated(module) => module.get_dependencies(),
+      Self::Custom(module) => module.get_dependencies(),
+    }
+  }
+
+  pub fn get_blocks(&self) -> &[AsyncDependenciesBlockIdentifier] {
+    match self {
+      Self::Normal(module) => module.get_blocks(),
+      Self::Context(module) => module.get_blocks(),
+      Self::External(module) => module.get_blocks(),
+      Self::Raw(module) => module.get_blocks(),
+      Self::SelfModule(module) => module.get_blocks(),
+      Self::Concatenated(module) => module.get_blocks(),
+      Self::Custom(module) => module.get_blocks(),
+    }
+  }
+
+  pub fn add_dependency_id(&mut self, dependency: DependencyId) {
+    match self {
+      Self::Normal(module) => module.add_dependency_id(dependency),
+      Self::Context(module) => module.add_dependency_id(dependency),
+      Self::External(module) => module.add_dependency_id(dependency),
+      Self::Raw(module) => module.add_dependency_id(dependency),
+      Self::SelfModule(module) => module.add_dependency_id(dependency),
+      Self::Concatenated(module) => module.add_dependency_id(dependency),
+      Self::Custom(module) => module.add_dependency_id(dependency),
+    }
+  }
+
+  pub fn add_block_id(&mut self, block: AsyncDependenciesBlockIdentifier) {
+    match self {
+      Self::Normal(module) => module.add_block_id(block),
+      Self::Context(module) => module.add_block_id(block),
+      Self::External(module) => module.add_block_id(block),
+      Self::Raw(module) => module.add_block_id(block),
+      Self::SelfModule(module) => module.add_block_id(block),
+      Self::Concatenated(module) => module.add_block_id(block),
+      Self::Custom(module) => module.add_block_id(block),
+    }
+  }
+
+  pub fn as_normal_module(&self) -> Option<&NormalModule> {
+    match self {
+      Self::Normal(module) => Some(module.as_ref()),
+      Self::Custom(module) => module.as_normal_module(),
+      _ => None,
+    }
+  }
+
+  pub fn as_normal_module_mut(&mut self) -> Option<&mut NormalModule> {
+    match self {
+      Self::Normal(module) => Some(module.as_mut()),
+      Self::Custom(module) => module.as_normal_module_mut(),
+      _ => None,
+    }
+  }
+
+  pub fn as_context_module(&self) -> Option<&ContextModule> {
+    match self {
+      Self::Context(module) => Some(module),
+      Self::Custom(module) => module.as_context_module(),
+      _ => None,
+    }
+  }
+
+  pub fn as_external_module(&self) -> Option<&ExternalModule> {
+    match self {
+      Self::External(module) => Some(module),
+      Self::Custom(module) => module.as_external_module(),
+      _ => None,
+    }
+  }
+
+  pub fn as_raw_module(&self) -> Option<&RawModule> {
+    match self {
+      Self::Raw(module) => Some(module.as_ref()),
+      Self::Custom(module) => module.as_raw_module(),
+      _ => None,
+    }
+  }
+
+  pub fn as_self_module(&self) -> Option<&SelfModule> {
+    match self {
+      Self::SelfModule(module) => Some(module.as_ref()),
+      Self::Custom(module) => module.as_self_module(),
+      _ => None,
+    }
+  }
+
+  pub fn as_concatenated_module(&self) -> Option<&ConcatenatedModule> {
+    match self {
+      Self::Concatenated(module) => Some(module),
+      Self::Custom(module) => module.as_concatenated_module(),
+      _ => None,
+    }
   }
 }
 
 impl std::ops::Deref for BoxModule {
-  type Target = Box<dyn Module>;
+  type Target = dyn Module;
 
   fn deref(&self) -> &Self::Target {
-    &self.0
+    self.as_module()
   }
 }
 
 impl std::ops::DerefMut for BoxModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+    self.as_module_mut()
   }
 }
 
 impl From<Box<dyn Module>> for BoxModule {
   fn from(inner: Box<dyn Module>) -> Self {
-    BoxModule(inner)
+    BoxModule::Custom(inner)
   }
 }
 
 impl AsRef<dyn Module> for BoxModule {
   fn as_ref(&self) -> &dyn Module {
-    self.0.as_ref()
+    self.as_module()
   }
 }
 
 impl AsMut<dyn Module> for BoxModule {
   fn as_mut(&mut self) -> &mut dyn Module {
-    self.0.as_mut()
+    self.as_module_mut()
   }
 }
 
 impl Debug for BoxModule {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    self.0.fmt(f)
+    self.as_module().fmt(f)
   }
 }
 
@@ -834,7 +1138,15 @@ impl Identifiable for BoxModule {
   /// Uniquely identify a module. If two modules share the same module identifier, then they are considered as the same module.
   /// e.g `javascript/auto|<absolute-path>/index.js` and `javascript/auto|<absolute-path>/index.js` are considered as the same.
   fn identifier(&self) -> Identifier {
-    self.0.as_ref().identifier()
+    match self {
+      Self::Normal(module) => module.identifier(),
+      Self::Context(module) => module.identifier(),
+      Self::External(module) => module.identifier(),
+      Self::Raw(module) => module.identifier(),
+      Self::SelfModule(module) => module.identifier(),
+      Self::Concatenated(module) => module.identifier(),
+      Self::Custom(module) => module.identifier(),
+    }
   }
 }
 

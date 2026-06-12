@@ -135,7 +135,7 @@ impl Module for SelfModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
-      module: BoxModule::new(self),
+      module: BoxModule::self_module(*self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],

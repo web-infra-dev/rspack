@@ -1419,13 +1419,13 @@ async fn create_concatenated_module(
       }
     })
     .collect::<Vec<_>>();
-  let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
+  let mut new_module = BoxModule::concatenated(ConcatenatedModule::create(
     root_module_ctxt,
     modules,
     Some(rspack_hash::HashFunction::Xxhash64),
     config.runtime.clone(),
     compilation,
-  )));
+  ));
   let build_result = new_module
     .build(
       rspack_core::BuildContext {

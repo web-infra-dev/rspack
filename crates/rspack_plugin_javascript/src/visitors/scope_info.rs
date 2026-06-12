@@ -218,6 +218,26 @@ impl ScopeInfoDB {
     self.expect_get_mut_scope(id).defined.push(key);
   }
 
+  pub fn set_visible(&mut self, id: ScopeInfoId, key: &Atom, variable_info_id: VariableInfoId) {
+    if self.current == Some(id) {
+      self.set(id, key.clone(), variable_info_id);
+      return;
+    }
+    let Some(stack) = self.bindings.get_mut(key) else {
+      return;
+    };
+    let Some(top) = stack.last_mut() else {
+      return;
+    };
+    debug_assert_eq!(
+      top.scope, id,
+      "only the currently visible binding can be updated outside the innermost scope"
+    );
+    if top.scope == id {
+      top.value = variable_info_id;
+    }
+  }
+
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     self.set(id, key.clone(), VariableInfoId::tombstone());
   }

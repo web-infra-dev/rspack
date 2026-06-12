@@ -80,12 +80,12 @@ use crate::{
   DependenciesDiagnosticsArtifact, DependencyId, DependencyTemplate, DependencyTemplateType,
   DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint, ExecuteModuleId,
   ExportsInfoArtifact, ExtendedReferencedExport, Filename, ImportPhase, ImportVarMap,
-  ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
+  ImportedByDeferModulesArtifact, IntoModuleFactoryKind, MemoryGCStorage, ModuleFactoryKind,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache,
+  PathData, ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals,
+  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate,
+  SharedPluginDriver, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats,
+  StatsContext, StealCell, ValueCacheVersions,
   cache::persistent::occasion::minimize::MinimizePersistentCacheArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
@@ -222,7 +222,7 @@ pub struct Compilation {
   pub platform: Arc<CompilerPlatform>,
   pub entries: Entry,
   pub global_entry: EntryData,
-  pub dependency_factories: HashMap<DependencyType, Arc<dyn ModuleFactory>>,
+  pub dependency_factories: HashMap<DependencyType, ModuleFactoryKind>,
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_modules: IdentifierMap<Box<dyn RuntimeModule>>,
   pub runtime_modules_hash: IdentifierMap<RspackHashDigest>,
@@ -1227,14 +1227,24 @@ impl Compilation {
   pub fn set_dependency_factory(
     &mut self,
     dependency_type: DependencyType,
-    module_factory: Arc<dyn ModuleFactory>,
+    module_factory: impl IntoModuleFactoryKind,
+  ) {
+    self
+      .dependency_factories
+      .insert(dependency_type, module_factory.into_module_factory_kind());
+  }
+
+  pub fn set_dependency_factory_kind(
+    &mut self,
+    dependency_type: DependencyType,
+    module_factory: ModuleFactoryKind,
   ) {
     self
       .dependency_factories
       .insert(dependency_type, module_factory);
   }
 
-  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> Arc<dyn ModuleFactory> {
+  pub fn get_dependency_factory(&self, dependency: &BoxDependency) -> ModuleFactoryKind {
     let dependency_type = dependency.dependency_type();
     self
       .dependency_factories
