@@ -11,8 +11,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
-    Statement, VariableDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo,
+    ExpressionExpressionInfo, JavascriptParser, Statement, VariableDeclaration,
   },
 };
 
@@ -595,11 +595,12 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     &self,
     parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    member_expr_info: Option<&ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateIdentifier) {
-      let res = plugin.evaluate_identifier(parser, for_name, start, end);
+      let res = plugin.evaluate_identifier(parser, for_name, member_expr_info, start, end);
       // `SyncBailHook`
       if res.is_some() {
         return res;

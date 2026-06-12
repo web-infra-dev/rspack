@@ -30,6 +30,7 @@ pub fn eval_member_expression<'parser: 'a, 'a>(
       .evaluate_identifier(
         parser,
         &info.name,
+        Some(&info),
         member.span.real_lo(),
         member.span.real_hi(),
       )
