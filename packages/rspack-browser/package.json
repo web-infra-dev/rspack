@@ -32,7 +32,7 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@emnapi/core": "1.10.0",
+    "@emnapi/core": "1.11.0",
     "@emnapi/runtime": "1.10.0",
     "@napi-rs/wasm-runtime": "1.1.4",
     "@rspack/lite-tapable": "1.1.2",
