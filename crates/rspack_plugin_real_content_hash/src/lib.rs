@@ -107,10 +107,11 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
   // the default automaton scanning with the slower contiguous NFA. Total
   // pattern bytes bound the DFA size; beyond the cap fall back to the default
   // automaton so pathological hash counts don't pay the DFA build cost
+  const DFA_PATTERN_BYTES_CAP: usize = 128 * 1024;
   let total_pattern_bytes: usize = hash_to_asset_names.keys().map(|s| s.len()).sum();
   let hash_ac = AhoCorasick::builder()
     .match_kind(MatchKind::LeftmostLongest)
-    .kind((total_pattern_bytes <= 128 * 1024).then_some(AhoCorasickKind::DFA))
+    .kind((total_pattern_bytes <= DFA_PATTERN_BYTES_CAP).then_some(AhoCorasickKind::DFA))
     .build(hash_to_asset_names.keys().map(|s| s.as_bytes()))
     .expect("Invalid patterns");
   logger.time_end(start);
