@@ -10,6 +10,7 @@ const markers = [
 const retainedMarkers = [
   "UNSAFE_OPTIONAL_MEMBER_MARKER",
   "UNSAFE_SHORTHAND_MARKER",
+  "UNSAFE_UNARY_PURE_CALL_MARKER",
   "SHADOWED_PURE_PARAM_MARKER",
   "SHADOWED_PURE_LOCAL_MARKER",
   "SHADOWED_PURE_FN_EXPR_NAME_MARKER",
@@ -26,6 +27,13 @@ module.exports = {
       if (!content.includes(marker)) {
         throw new Error(`Expected side-effect marker ${marker} to be preserved in ESM output`);
       }
+    }
+    if (
+      !content.includes(
+        'null && (pureWithLocalMarkedDeclaration("LOCAL_MARKED_DECL_MARKER"))'
+      )
+    ) {
+      throw new Error("Expected local marked declaration call to be shaken in ESM output");
     }
     return content;
   },

@@ -21,6 +21,11 @@ function shadowedLocalPureName() {
   return [pureFn()];
 }
 
+function pureWithLocalMarkedDeclaration(label) {
+  const pureFn = 1;
+  return pureFn;
+}
+
 const functionExpressionNameMarker = "SHADOWED_PURE_FN_EXPR_NAME_MARKER";
 
 const shadowedFunctionExpressionName = function pureFn(flag) {
@@ -29,4 +34,5 @@ const shadowedFunctionExpressionName = function pureFn(flag) {
 
 shadowedPureName(sideEffect);
 shadowedLocalPureName();
+const unusedLocalMarkedDeclaration = pureWithLocalMarkedDeclaration("LOCAL_MARKED_DECL_MARKER");
 shadowedFunctionExpressionName(true);

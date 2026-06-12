@@ -19,5 +19,6 @@ const key = {
 };
 
 const unusedNumericUnary = +coercion;
+const unusedUnaryPureCall = !unsafePureFn("UNSAFE_UNARY_PURE_CALL_MARKER");
 const unusedUnsafeBinary = unsafePureFn("unsafe-binary") + coercion;
 const unusedComputedKey = { [key]: unsafePureFn("unsafe-computed") };

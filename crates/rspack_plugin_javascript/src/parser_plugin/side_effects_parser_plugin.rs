@@ -12,7 +12,7 @@ use swc_experimental_ecma_ast::{
   CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
   Ident, ImportSpecifier, Lit, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, OptCall,
   OptChainBase, Pat, Program, Prop, PropName, PropOrSpread, ScopeId, Span, Span as AstSpan, Stmt,
-  UnaryOp, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -950,15 +950,6 @@ fn array_may_have_side_effects_with_pure_calls<'a>(
   false
 }
 
-fn is_pure_without_composite_call_inspection(parser: &mut JavascriptParser, expr: &Expr) -> bool {
-  if !expr.may_have_side_effects(expr_ctx(parser, true)) {
-    return true;
-  }
-  // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
-  let evaluated = parser.evaluate_expression(expr);
-  !evaluated.could_have_side_effects()
-}
-
 fn is_side_effect_free_primitive_expr(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   if let Expr::Lit(lit) = expr
     && matches!(
@@ -1617,11 +1608,7 @@ fn is_side_effects_free_var_decl(
   comments: &Comments<'_>,
 ) -> bool {
   for declarator in &var_decl.decls {
-    let Some(ident) = declarator.name.as_ident() else {
-      return false;
-    };
-
-    if is_marked_side_effects_free(parser, &ident.id.sym) {
+    if declarator.name.as_ident().is_none() {
       return false;
     }
 
@@ -1844,29 +1831,6 @@ pub fn is_pure_expression<'a>(
       return res;
     }
 
-    let should_inspect_composite_call = callees.is_some()
-      || (analyze_side_effects_free
-        && parser
-          .build_info
-          .side_effects_free
-          .as_ref()
-          .is_some_and(|side_effects_free| !side_effects_free.is_empty()));
-
-    if !should_inspect_composite_call
-      && matches!(
-        expr,
-        Expr::Array(_)
-          | Expr::Object(_)
-          | Expr::Unary(_)
-          | Expr::Bin(_)
-          | Expr::Cond(_)
-          | Expr::Seq(_)
-          | Expr::OptChain(_)
-      )
-    {
-      return is_pure_without_composite_call_inspection(parser, expr);
-    }
-
     match expr {
       Expr::Array(array_expr) => !array_may_have_side_effects_with_pure_calls(
         parser,
@@ -1894,24 +1858,7 @@ pub fn is_pure_expression<'a>(
         }
         true
       }
-      Expr::Unary(unary_expr) => match unary_expr.op {
-        UnaryOp::Bang | UnaryOp::Void | UnaryOp::TypeOf => is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &unary_expr.arg,
-          unresolved_ctxt,
-          comments,
-          callees,
-        ),
-        UnaryOp::Delete => false,
-        UnaryOp::Plus | UnaryOp::Minus | UnaryOp::Tilde => {
-          if is_side_effect_free_primitive_expr(parser, &unary_expr.arg) {
-            is_pure_without_composite_call_inspection(parser, expr)
-          } else {
-            false
-          }
-        }
-      },
+      Expr::Unary(_) => false,
       Expr::Bin(bin_expr) => match bin_expr.op {
         BinaryOp::LogicalAnd | BinaryOp::LogicalOr | BinaryOp::NullishCoalescing => {
           if !is_pure_expression(
@@ -1983,7 +1930,12 @@ pub fn is_pure_expression<'a>(
           if is_side_effect_free_primitive_expr(parser, &bin_expr.left)
             && is_side_effect_free_primitive_expr(parser, &bin_expr.right)
           {
-            is_pure_without_composite_call_inspection(parser, expr)
+            if !expr.may_have_side_effects(expr_ctx(parser, true)) {
+              true
+            } else {
+              let evaluated = parser.evaluate_expression(expr);
+              !evaluated.could_have_side_effects()
+            }
           } else {
             false
           }
@@ -2079,7 +2031,14 @@ pub fn is_pure_expression<'a>(
         ),
         OptChainBase::Member(_) => false,
       },
-      _ => is_pure_without_composite_call_inspection(parser, expr),
+      _ => {
+        if !expr.may_have_side_effects(expr_ctx(parser, true)) {
+          return true;
+        }
+        // could_have_side_effects is true by default, so here we test if it's modified by other plugins to return false.
+        let evaluated = parser.evaluate_expression(expr);
+        !evaluated.could_have_side_effects()
+      }
     }
   }
   _is_pure_expression(
