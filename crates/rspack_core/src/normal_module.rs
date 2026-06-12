@@ -474,7 +474,7 @@ impl Module for NormalModule {
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
       return Ok(BuildResult {
-        module: BoxModule::normal(*self),
+        module: BoxModule::Normal(self),
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: vec![],
@@ -538,7 +538,7 @@ impl Module for NormalModule {
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
       return Ok(BuildResult {
-        module: BoxModule::normal(*self),
+        module: BoxModule::Normal(self),
         dependencies: vec![],
         blocks: vec![],
         optimization_bailouts: vec![],
@@ -606,7 +606,7 @@ impl Module for NormalModule {
       Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
     Ok(BuildResult {
-      module: BoxModule::normal(*self),
+      module: BoxModule::Normal(self),
       dependencies,
       blocks,
       optimization_bailouts,

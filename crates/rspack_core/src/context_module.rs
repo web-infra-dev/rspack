@@ -1487,7 +1487,7 @@ impl Module for ContextModule {
     }
 
     Ok(BuildResult {
-      module: BoxModule::context(*self),
+      module: BoxModule::Context(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],

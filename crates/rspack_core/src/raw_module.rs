@@ -174,7 +174,7 @@ impl Module for RawModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BuildResult> {
     Ok(BuildResult {
-      module: BoxModule::raw(*self),
+      module: BoxModule::Raw(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],

@@ -946,7 +946,7 @@ impl Module for ConcatenatedModule {
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {
-      module: BoxModule::concatenated(*self),
+      module: BoxModule::Concatenated(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],

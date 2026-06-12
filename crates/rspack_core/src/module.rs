@@ -767,20 +767,20 @@ impl<T: Module + 'static> ModuleExt for T {
 
     if TypeId::of::<T>() == TypeId::of::<ContextModule>() {
       let module = Box::new(self) as Box<dyn Any>;
-      return BoxModule::Context(Box::new(
-        *module
+      return BoxModule::Context(
+        module
           .downcast::<ContextModule>()
           .expect("module type id should match ContextModule"),
-      ));
+      );
     }
 
     if TypeId::of::<T>() == TypeId::of::<ExternalModule>() {
       let module = Box::new(self) as Box<dyn Any>;
-      return BoxModule::External(Box::new(
-        *module
+      return BoxModule::External(
+        module
           .downcast::<ExternalModule>()
           .expect("module type id should match ExternalModule"),
-      ));
+      );
     }
 
     if TypeId::of::<T>() == TypeId::of::<RawModule>() {
@@ -803,11 +803,11 @@ impl<T: Module + 'static> ModuleExt for T {
 
     if TypeId::of::<T>() == TypeId::of::<ConcatenatedModule>() {
       let module = Box::new(self) as Box<dyn Any>;
-      return BoxModule::Concatenated(Box::new(
-        *module
+      return BoxModule::Concatenated(
+        module
           .downcast::<ConcatenatedModule>()
           .expect("module type id should match ConcatenatedModule"),
-      ));
+      );
     }
 
     BoxModule::Custom(Box::new(self))

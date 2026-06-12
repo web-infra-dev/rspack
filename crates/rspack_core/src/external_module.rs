@@ -1111,7 +1111,7 @@ impl Module for ExternalModule {
     }
     self.build_meta.exports_type = exports_type;
     Ok(BuildResult {
-      module: BoxModule::external(*self),
+      module: BoxModule::External(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
         can_mangle,
