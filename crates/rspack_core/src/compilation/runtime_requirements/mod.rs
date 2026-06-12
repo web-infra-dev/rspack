@@ -4,7 +4,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use super::*;
 use crate::{
   CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, cache::Cache,
-  compilation::pass::PassExt, logger::Logger, runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+  compilation::pass::PassExt, logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 
 pub struct RuntimeRequirementsPass;
@@ -545,8 +546,11 @@ pub async fn process_chunks_runtime_requirements(
         .get(chunk_ukey)
       {
         metadata
-          .hook_exposed_requirements
+          .tree_runtime_requirements
           .insert(*chunk_runtime_requirements);
+        metadata
+          .bootstrap_proxy_requirements
+          .insert(chunk_runtime_requirements.intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS));
       }
       for mid in compilation
         .build_chunk_graph_artifact
@@ -587,11 +591,15 @@ pub async fn process_chunks_runtime_requirements(
           .expect("should have runtime module");
         let additional_runtime_requirements =
           runtime_module.additional_runtime_requirements(compilation);
+        if runtime_module.get_custom_source().is_some()
+          || runtime_module.get_constructor_name() == "RuntimeModuleFromJs"
+        {
+          metadata
+            .hook_exposed_requirements
+            .insert(additional_runtime_requirements);
+        }
         metadata
           .runtime_module_requirements
-          .insert(additional_runtime_requirements);
-        metadata
-          .tree_runtime_requirements
           .insert(additional_runtime_requirements);
       }
     }
@@ -602,6 +610,17 @@ pub async fn process_chunks_runtime_requirements(
         compilation,
         &entry_ukey,
       ));
+    if metadata
+      .tree_runtime_requirements
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
+    {
+      metadata.context_setter_fields.insert(
+        RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+          | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+          | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+          | RuntimeGlobals::HMR_MODULE_DATA,
+      );
+    }
     compilation
       .runtime_proxy_metadata_artifact
       .insert(entry_ukey, metadata);

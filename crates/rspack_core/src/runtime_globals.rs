@@ -340,6 +340,10 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::MODULE_FACTORIES
     | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
     | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::ON_CHUNKS_LOADED
+    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+    | RuntimeGlobals::STARTUP_ENTRYPOINT
+    | RuntimeGlobals::STARTUP
 });
 
 pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option<&'static str> {

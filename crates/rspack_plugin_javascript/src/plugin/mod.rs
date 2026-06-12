@@ -209,7 +209,7 @@ var module = ({module_cache}[moduleId] = {{"#,
         execOptions.factory.call(module.exports, module, module.exports, execOptions.context);
       "#,
           module_factories,
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          callable_require,
           runtime_context,
           runtime_template.render_runtime_globals(&RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
         )

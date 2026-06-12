@@ -6,11 +6,11 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
-  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
+  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
+  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -413,6 +413,13 @@ var init = function(shareScope, initScope) {{
     code_generation_result =
       code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
+    if !self.enhanced {
+      code_generation_result
+        .data
+        .insert(CodeGenerationRuntimeRequirementsWrite {
+          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+        });
+    }
     if self.enhanced {
       code_generation_result
         .data
