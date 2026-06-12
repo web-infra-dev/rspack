@@ -35,6 +35,7 @@ permissions:
 
 jobs:
   build:
+    name: Build ${{ matrix.array.target }}
     strategy:
       fail-fast: false # for better utilize ci runners
       matrix:

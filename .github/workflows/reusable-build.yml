@@ -46,6 +46,7 @@ jobs:
       binding_postfix: ${{ inputs.binding_postfix }}
       force-rebuild: ${{ inputs.force-rebuild }}
   test:
+    name: Test ${{ inputs.target }}
     if: inputs.test
     needs: build
     uses: ./.github/workflows/reusable-build-test.yml
