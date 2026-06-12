@@ -14,11 +14,12 @@ use tracing::instrument;
 use crate::{
   BoxDependency, CompilationId, ContextElementDependency, ContextModule, ContextModuleOptions,
   ContextModulePattern, DependencyCategory, DependencyId, DependencyType, GlobMatchOptions,
-  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, ResolveArgs,
-  ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, escape_glob_pattern,
-  extract_glob_base_dir, glob_match_normalized_with_explicit_dot, normalize_path_separators,
-  normalize_path_separators_for_path, resolve, unescape_glob_path, walk_dir,
+  ModuleExt, ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict,
+  ResolveArgs, ResolveContextModuleDependencies, ResolveInnerOptions,
+  ResolveOptionsWithDependencyType, ResolveResult, Resolver, ResolverFactory, SharedPluginDriver,
+  escape_glob_pattern, extract_glob_base_dir, glob_match_normalized_with_explicit_dot,
+  normalize_path_separators, normalize_path_separators_for_path, resolve, unescape_glob_path,
+  walk_dir,
 };
 
 #[derive(Debug)]
@@ -216,6 +217,7 @@ impl ContextModuleFactory {
     before_resolve_data: Box<BeforeResolveData>,
   ) -> Result<(ModuleFactoryResult, Option<ContextModuleOptions>)> {
     let plugin_driver = &self.plugin_driver;
+    let strict = self.global_override_strict();
     let dependency = data.dependencies[0]
       .as_context_dependency()
       .expect("should be context dependency");
@@ -311,7 +313,12 @@ impl ContextModuleFactory {
           context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
-        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
+        let module = ContextModule::new_with_strict(
+          self.resolve_dependencies.clone(),
+          options.clone(),
+          strict,
+        )
+        .boxed();
         (module, Some(options))
       }
       Ok(ResolveResult::Ignored) => {
@@ -330,7 +337,12 @@ impl ContextModuleFactory {
           context_options: dependency_options,
           type_prefix: dependency.type_prefix(),
         };
-        let module = ContextModule::new(self.resolve_dependencies.clone(), options.clone()).boxed();
+        let module = ContextModule::new_with_strict(
+          self.resolve_dependencies.clone(),
+          options.clone(),
+          strict,
+        )
+        .boxed();
         (module, Some(options))
       }
       Err(err) => {
@@ -396,15 +408,29 @@ impl ContextModuleFactory {
         context_module_options.context_options.pattern = after_resolve_data.pattern.clone();
         context_module_options.context_options.recursive = after_resolve_data.recursive;
 
-        let module = ContextModule::new(
+        let module = ContextModule::new_with_strict(
           after_resolve_data.resolve_dependencies,
           context_module_options.clone(),
+          self.global_override_strict(),
         )
         .boxed();
 
         Ok(Some(ModuleFactoryResult::new_with_module(module)))
       }
     }
+  }
+
+  fn global_override_strict(&self) -> Option<bool> {
+    self
+      .plugin_driver
+      .options
+      .module
+      .parser
+      .as_ref()
+      .and_then(|parser| parser.get("javascript"))
+      .and_then(|parser| parser.get_javascript())
+      .and_then(|options| options.override_strict)
+      .map(|strict| matches!(strict, OverrideStrict::Strict))
   }
 }
 
