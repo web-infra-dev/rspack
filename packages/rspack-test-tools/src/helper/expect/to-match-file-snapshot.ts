@@ -42,6 +42,10 @@ function getRuntimeModeSnapshotFilename(filename: string): string | undefined {
   }
 
   const normalized = toPosixPath(filename);
+  if (normalized.includes('/runtimeModeSnapshot/')) {
+    return;
+  }
+
   for (const marker of ['/__snapshot__/', '/__snapshots__/']) {
     const markerIndex = normalized.indexOf(marker);
     if (markerIndex >= 0) {

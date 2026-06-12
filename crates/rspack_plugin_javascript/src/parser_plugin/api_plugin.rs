@@ -230,6 +230,9 @@ fn static_require_member_chain(
         parser.parser_runtime_requirements.context,
         property_access(members.iter().map(Atom::as_ref), 0)
       );
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+        RuntimeGlobals::REQUIRE_SCOPE,
+      )));
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
         expr_span.into(),
         content.into(),
