@@ -75,6 +75,8 @@ jobs:
       test-runner: ${{ matrix.array.test-runner }}
       test: ${{ inputs.test }}
       profile: 'release'
+      # release artifacts must be built from scratch
+      force-rebuild: true
 
   release:
     name: Release
