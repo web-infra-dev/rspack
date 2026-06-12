@@ -409,6 +409,8 @@ pub struct BuildMeta {
   // same as is_async https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/Module.js#L107
   pub has_top_level_await: bool,
   pub esm: bool,
+  pub is_css_module: bool,
+  pub need_id_in_concatenation: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
   #[serde(skip_serializing_if = "Option::is_none")]
