@@ -64,12 +64,19 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
           - target: aarch64-apple-darwin
             runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+          # The wasm release build is the release wall-clock long pole. Split it
+          # into two parallel jobs (wasi + browser variants) so each runs on its
+          # own runner instead of building both variants serially.
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+            binding_postfix: '-browser'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      binding_postfix: ${{ matrix.array.binding_postfix }}
       test: ${{ inputs.test }}
       profile: 'release'
 
