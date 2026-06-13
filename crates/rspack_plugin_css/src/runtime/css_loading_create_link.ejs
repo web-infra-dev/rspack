@@ -1,7 +1,7 @@
 link = document.createElement("link");
-<% if (_with_script_nonce) { %>
-if (<%- SCRIPT_NONCE %>) link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
-<% } %>
+if (<%- SCRIPT_NONCE %>) {
+  link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+}
 <% if (_unique_name != "") { %>
 link.setAttribute("data-rspack", uniqueName + ":" + key);
 <% } %>

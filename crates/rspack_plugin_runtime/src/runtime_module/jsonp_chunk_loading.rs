@@ -251,7 +251,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &chunk_has_js,
       );
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
-    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
     let cross_origin_loading = &compilation.options.output.cross_origin_loading;
     let script_type = &compilation.options.output.script_type;
 
@@ -326,7 +325,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": cross_origin_loading.to_string(),
-          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 
@@ -361,7 +359,6 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_script_type": script_type.as_str(),
           "_cross_origin": cross_origin_loading.to_string(),
-          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 

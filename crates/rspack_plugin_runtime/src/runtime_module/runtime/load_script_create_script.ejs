@@ -3,9 +3,9 @@ script = document.createElement('script');
 script.type = '<%- _script_type %>';
 <% } %>
 script.timeout = <%- _chunk_load_timeout %>;
-<% if (_with_script_nonce) { %>
-if (<%- SCRIPT_NONCE %>) script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
-<% } %>
+if (<%- SCRIPT_NONCE %>) {
+  script.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+}
 <% if (_unique_prefix) { %>
 script.setAttribute("data-rspack", uniqueName + key);
 <% } %>

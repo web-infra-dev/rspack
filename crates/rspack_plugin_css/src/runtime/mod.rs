@@ -158,7 +158,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
         && !matches!(has_css_matcher, BooleanMatcher::Condition(false));
       let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
-      let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
 
       let initial_chunks =
         chunk.get_all_initial_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
@@ -220,7 +219,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
             CrossOriginLoading::Enable(cross_origin) => cross_origin.clone(),
           },
           "_unique_name": unique_name,
-          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 
@@ -315,7 +313,6 @@ installedChunks[chunkId] = 0;
           &self.template_id(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
-            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 
@@ -348,7 +345,6 @@ installedChunks[chunkId] = 0;
           &self.template_id(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
             "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
-            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 

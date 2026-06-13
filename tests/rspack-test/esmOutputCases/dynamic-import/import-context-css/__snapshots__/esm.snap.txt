@@ -228,7 +228,9 @@ linkTag.rel = "stylesheet";
 
 linkTag.type = "text/css";
 
-
+if (__webpack_require__.nc) {
+  linkTag.nonce = __webpack_require__.nc;
+}
 linkTag.href = fullhref;
 
 if (fetchPriority) {

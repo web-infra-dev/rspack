@@ -234,7 +234,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
-    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
 
     let is_neutral_platform = compilation.platform.is_neutral();
 
@@ -348,7 +347,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPrefetchLink),
           Some(serde_json::json!({
             "_cross_origin": cross_origin_loading.to_string(),
-            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 
@@ -382,7 +380,6 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           &self.template(TemplateId::WithPreloadLink),
           Some(serde_json::json!({
             "_cross_origin": cross_origin_loading.to_string(),
-            "_with_script_nonce": with_script_nonce,
           })),
         )?;
 

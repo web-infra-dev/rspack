@@ -97,6 +97,18 @@ pub async fn render_rspack_runtime_modules(
     render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
   let mut sources = ConcatSource::default();
   let mut metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey);
+  let script_nonce = RuntimeGlobals::SCRIPT_NONCE
+    .to_lexical_name()
+    .expect("script nonce should have lexical name");
+  if runtime_module_sources
+    .iter()
+    .any(|(source, _)| source.source().into_string_lossy().contains(script_nonce))
+  {
+    metadata
+      .get_or_insert_default()
+      .tree_runtime_requirements
+      .insert(RuntimeGlobals::SCRIPT_NONCE);
+  }
   let base_metadata = get_runtime_context_metadata(compilation, chunk_ukey);
   let should_render_context = base_metadata.is_some_and(|metadata| {
     metadata

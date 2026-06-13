@@ -205,7 +205,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_fetch_priority = runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY);
-    let with_script_nonce = runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE);
 
     if !with_hmr && !with_loading {
       return Ok(String::new());
@@ -240,7 +239,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         "_set_linktype": self.link_type.clone().unwrap_or_default(),
         "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
         "_with_fetch_priority": with_fetch_priority,
-        "_with_script_nonce": with_script_nonce,
       })),
     )?;
 
@@ -329,7 +327,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPrefetchLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
-          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 
@@ -364,7 +361,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         &self.template_id(TemplateId::WithPreloadLink),
         Some(serde_json::json!({
           "_cross_origin": compilation.options.output.cross_origin_loading.to_string(),
-          "_with_script_nonce": with_script_nonce,
         })),
       )?;
 
