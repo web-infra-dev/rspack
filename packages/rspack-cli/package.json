@@ -47,7 +47,7 @@
     "exit-hook": "^5.1.0",
     "jiti": "^2.7.0",
     "prebundle": "^1.6.5",
-    "rspack-merge": "0.1.1",
+    "rspack-merge": "1.0.1",
     "typescript": "^6.0.3"
   },
   "peerDependencies": {
