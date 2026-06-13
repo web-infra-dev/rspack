@@ -184,16 +184,22 @@ jobs:
           cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       # WASM Release (use profile = release-wasi) + wasm-opt
-      - name: Build wasm32-wasip1-threads(release-wasi) with linux
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+      # The wasi and browser variants are split into two parallel matrix jobs
+      # (see reusable-release-npm.yml) and selected here via binding_postfix.
+      - name: Build wasm32-wasip1-threads wasi variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '' }}
         run: |
-          pnpm --filter @rspack/binding build:release:browser
-          pnpm --filter @rspack/binding build:release:wasm
-
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
-          wait
+          pnpm --filter @rspack/binding build:release:wasm
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
+
+      - name: Build wasm32-wasip1-threads browser variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '-browser' }}
+        run: |
+          npm install -g binaryen
+          pnpm --filter @rspack/binding build:release:browser
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Diff artifact
