@@ -1004,18 +1004,15 @@ impl Module for ConcatenatedModule {
 
     let tmp = rspack_parallel::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
-        if !matches!(info, ModuleInfo::Concatenated(_)) {
-          return;
-        }
-
-        let module_to_info_map = arc_map.clone();
+        let module_to_info_map =
+          matches!(info, ModuleInfo::Concatenated(_)).then(|| arc_map.clone());
         let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
         s.spawn(|(module, compilation, runtime, id, info)| async move {
           let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
             let info = info.as_ref();
             Some(ConcatenationScope::new(
               module.id,
-              module_to_info_map,
+              module_to_info_map.expect("should have module_to_info_map for concatenated module"),
               ConcatenatedModuleInfo {
                 index: info.index,
                 module: info.module,
