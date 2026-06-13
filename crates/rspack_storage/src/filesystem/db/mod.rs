@@ -97,16 +97,8 @@ impl DB {
   /// - `Some(value)`: Set or update the key
   /// - `None`: Remove the key
   ///
-  /// `after_save` runs after the transaction commits. It also runs for an empty
-  /// change set so callers can refresh access metadata on cache hits.
-  ///
   /// No-op when the DB is in readonly mode.
-  pub fn save(
-    &self,
-    changes: BucketChanges,
-    max_pack_size: usize,
-    after_save: impl Future<Output = ()> + Send + 'static,
-  ) {
+  pub fn save(&self, changes: BucketChanges, max_pack_size: usize) {
     let fs = self.fs.clone();
     let buckets = self.buckets.clone();
     let readonly = self.readonly.clone();
@@ -117,7 +109,6 @@ impl DB {
       }
 
       if changes.is_empty() {
-        after_save.await;
         return;
       }
 
@@ -179,21 +170,22 @@ impl DB {
         Ok(())
       };
 
-      match task_fn().await {
-        Ok(()) => after_save.await,
-        Err(err) => {
-          // The cache may be in an indeterminate state. Switch to readonly so no
-          // further writes can make things worse. Restart the process to recover.
-          // The current build is not affected.
-          readonly.store(true, Ordering::Relaxed);
-          println!(
-            "Rspack persistent cache save failed: {err}\n  \
-             Persistent cache has been disabled for this session. \
-             Restart the process to re-enable it."
-          );
-        }
+      if let Err(err) = task_fn().await {
+        // The cache may be in an indeterminate state. Switch to readonly so no
+        // further writes can make things worse. Restart the process to recover.
+        // The current build is not affected.
+        readonly.store(true, Ordering::Relaxed);
+        println!(
+          "Rspack persistent cache save failed: {err}\n  \
+           Persistent cache has been disabled for this session. \
+           Restart the process to re-enable it."
+        );
       }
     });
+  }
+
+  pub(super) fn is_readonly(&self) -> bool {
+    self.readonly.load(Ordering::Relaxed)
   }
 
   /// Waits for all pending background save tasks to complete.
@@ -239,11 +231,6 @@ impl DB {
 
 #[cfg(test)]
 mod test {
-  use std::sync::{
-    Arc,
-    atomic::{AtomicBool, Ordering},
-  };
-
   use super::{DB, HashMap, Result, ScopeFileSystem};
 
   #[tokio::test]
@@ -255,14 +242,6 @@ mod test {
     let name_2 = "name2";
     assert!(db.bucket_names().await?.is_empty());
     assert!(db.load(name_1).await?.is_empty());
-
-    let no_op_completed = Arc::new(AtomicBool::new(false));
-    let no_op_completed_in_task = no_op_completed.clone();
-    db.save(HashMap::default(), 25, async move {
-      no_op_completed_in_task.store(true, Ordering::Relaxed);
-    });
-    db.flush().await;
-    assert!(no_op_completed.load(Ordering::Relaxed));
 
     let bucket_data: Vec<_> = (0..9)
       .map(|num| {
@@ -277,13 +256,8 @@ mod test {
     data.insert(String::from(name_1), bucket_data.clone());
     data.insert(String::from(name_2), bucket_data);
     // save data and wait finish
-    let save_completed = Arc::new(AtomicBool::new(false));
-    let save_completed_in_task = save_completed.clone();
-    db.save(data, 25, async move {
-      save_completed_in_task.store(true, Ordering::Relaxed);
-    });
+    db.save(data, 25);
     db.flush().await;
-    assert!(save_completed.load(Ordering::Relaxed));
 
     let mut data1 = db.load(name_1).await?;
     data1.sort();

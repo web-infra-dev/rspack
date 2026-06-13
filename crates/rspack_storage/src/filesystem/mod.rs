@@ -3,7 +3,10 @@ mod meta;
 mod options;
 mod scope_fs;
 
-use std::sync::{Arc, Mutex};
+use std::{
+  num::NonZeroU32,
+  sync::{Arc, Mutex},
+};
 
 use rustc_hash::FxHashMap as HashMap;
 
@@ -13,6 +16,44 @@ use crate::{Result, Storage};
 
 /// Type alias for in-memory update changes: key -> optional_value
 type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
+
+async fn refresh_metadata(
+  fs: ScopeFileSystem,
+  version: String,
+  expire: u64,
+  max_versions: Option<NonZeroU32>,
+  next_meta_refresh_time: Arc<Mutex<u64>>,
+) {
+  let now = Meta::current_timestamp();
+  if *next_meta_refresh_time.lock().expect("should get lock") > now {
+    return;
+  }
+
+  let mut meta = match Meta::load(&fs).await {
+    Ok(meta) => meta,
+    Err(error) if error.is_not_found() => Meta::default(),
+    Err(_) => return,
+  };
+  let versions = if max_versions.is_some() {
+    fs.list_child().await.unwrap_or_default()
+  } else {
+    Vec::new()
+  };
+  let Ok((removed_versions, next_refresh_time)) = meta
+    .refresh(&version, expire, max_versions, &versions)
+    .await
+  else {
+    return;
+  };
+  if meta.save(&fs).await.is_err() {
+    return;
+  }
+
+  for version in removed_versions {
+    let _ = fs.child_fs(&version).remove().await;
+  }
+  *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
+}
 
 /// File system-based persistent storage implementation
 #[derive(Debug)]
@@ -68,49 +109,23 @@ impl Storage for FileSystemStorage {
 
     // Enqueue the write to the background task queue; errors are reported internally.
     // Call flush() to wait until the write has fully completed.
-    let fs = self.fs.clone();
-    let version = self.options.version.clone();
-    let expire = self.options.expire;
-    let max_versions = self.options.max_versions;
-    let next_meta_refresh_time = self.next_meta_refresh_time.clone();
     self.db.save(
       updates
         .into_iter()
         .map(|(k, v)| (k, v.into_iter().collect()))
         .collect(),
       self.options.max_pack_size,
-      async move {
-        let now = Meta::current_timestamp();
-        if *next_meta_refresh_time.lock().expect("should get lock") > now {
-          return;
-        }
-
-        let mut meta = match Meta::load(&fs).await {
-          Ok(meta) => meta,
-          Err(error) if error.is_not_found() => Meta::default(),
-          Err(_) => return,
-        };
-        let versions = if max_versions.is_some() {
-          fs.list_child().await.unwrap_or_default()
-        } else {
-          Vec::new()
-        };
-        let Ok((removed_versions, next_refresh_time)) = meta
-          .refresh(&version, expire, max_versions, &versions)
-          .await
-        else {
-          return;
-        };
-        if meta.save(&fs).await.is_err() {
-          return;
-        }
-
-        for version in removed_versions {
-          let _ = fs.child_fs(&version).remove().await;
-        }
-        *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
-      },
     );
+
+    if self.options.max_versions.is_none() {
+      tokio::spawn(refresh_metadata(
+        self.fs.clone(),
+        self.options.version.clone(),
+        self.options.expire,
+        None,
+        self.next_meta_refresh_time.clone(),
+      ));
+    }
   }
 
   fn reset(&mut self, scope: &'static str) {
@@ -122,6 +137,16 @@ impl Storage for FileSystemStorage {
 
   async fn flush(&self) {
     self.db.flush().await;
+    if self.options.max_versions.is_some() && !self.db.is_readonly() {
+      refresh_metadata(
+        self.fs.clone(),
+        self.options.version.clone(),
+        self.options.expire,
+        self.options.max_versions,
+        self.next_meta_refresh_time.clone(),
+      )
+      .await;
+    }
   }
 
   async fn scopes(&self) -> Result<Vec<String>> {
