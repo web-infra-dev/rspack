@@ -198,19 +198,32 @@ impl ScopeInfoDB {
     }
   }
 
+  fn is_active_scope(&self, id: ScopeInfoId) -> bool {
+    let mut current = self.current;
+    while let Some(scope_id) = current {
+      if scope_id == id {
+        return true;
+      }
+      current = self.expect_get_scope(scope_id).parent;
+    }
+    false
+  }
+
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
+    debug_assert!(
+      self.is_active_scope(id),
+      "bindings can only be set in an active scope"
+    );
+    let stack = self.bindings.entry(key.clone()).or_default();
+    if let Some(binding) = stack.iter_mut().rev().find(|binding| binding.scope == id) {
+      binding.value = variable_info_id;
+      return;
+    }
     debug_assert_eq!(
       self.current,
       Some(id),
-      "bindings can only be set in the innermost active scope"
+      "new bindings can only be set in the innermost active scope"
     );
-    let stack = self.bindings.entry(key.clone()).or_default();
-    if let Some(top) = stack.last_mut()
-      && top.scope == id
-    {
-      top.value = variable_info_id;
-      return;
-    }
     stack.push(Binding {
       scope: id,
       value: variable_info_id,
@@ -416,6 +429,24 @@ mod tests {
 
     db.exit_scope(child);
     assert_eq!(db.get(root, &a), Some(outer));
+  }
+
+  #[test]
+  fn active_outer_binding_can_be_updated_from_inner_scope() {
+    let mut db = ScopeInfoDB::new();
+    let root = db.create();
+    let a = "a".into();
+
+    let outer = new_variable(&mut db, root);
+    db.set(root, "a".into(), outer);
+
+    let child = db.create_child(root);
+    let updated_outer = new_variable(&mut db, root);
+    db.set(root, "a".into(), updated_outer);
+    assert_eq!(db.get(child, &a), Some(updated_outer));
+
+    db.exit_scope(child);
+    assert_eq!(db.get(root, &a), Some(updated_outer));
   }
 
   #[test]
