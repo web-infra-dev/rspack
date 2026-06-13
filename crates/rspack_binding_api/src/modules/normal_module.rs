@@ -25,7 +25,7 @@ impl NormalModule {
     Self { module }
   }
 
-  pub(crate) fn custom_into_instance(
+  pub(crate) fn into_module_instance(
     mut self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {

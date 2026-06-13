@@ -76,8 +76,8 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
         let source = context.runtime_template.render(
           &self.id,
           Some(serde_json::json!({
-            "_chunk_ids": serde_json::to_string(&group_chunk_ids).expect("invalid json tostring"),
-            "_child_chunk_ids": serde_json::to_string(&child_chunk_ids).expect("invalid json tostring"),
+            "_chunk_ids": simd_json::to_string(&group_chunk_ids).expect("invalid json to_string"),
+            "_child_chunk_ids": simd_json::to_string(&child_chunk_ids).expect("invalid json to_string"),
           })),
         )?;
 

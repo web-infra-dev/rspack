@@ -164,7 +164,7 @@ impl HtmlTemplate {
         }
         TemplateParameters::Function(func) => {
           let func_res = (func.inner)(
-            serde_json::to_string(&res).unwrap_or_else(|_| panic!("invalid json to_string")),
+            simd_json::to_string(&res).unwrap_or_else(|_| panic!("invalid json to_string")),
           )
           .await;
           match func_res {
@@ -221,7 +221,7 @@ impl HtmlTemplate {
         .as_ref()
         .unwrap_or_else(|| unreachable!())
         .inner)(
-        serde_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
+        simd_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
       )
       .await
       .to_rspack_result_with_message(|e| {

@@ -383,6 +383,36 @@ Like `maxSize`, `maxInitialSize` can be applied globally (`splitChunks.maxInitia
 
 The difference between `maxInitialSize` and `maxSize` is that `maxInitialSize` will only affect initial load chunks.
 
+### splitChunks.fallbackCacheGroup
+
+- **Type:**
+
+```ts
+type FallbackCacheGroup = {
+  chunks?: 'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
+  minSize?: number;
+  maxSize?: number;
+  maxAsyncSize?: number;
+  maxInitialSize?: number;
+  automaticNameDelimiter?: string;
+};
+```
+
+Configures options for modules that are not selected by any cache group. The fallback cache group uses the same sizing behavior as the corresponding global `splitChunks` options, but only for the remaining modules after cache group matching.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      fallbackCacheGroup: {
+        minSize: 10_000,
+        maxSize: 50_000,
+      },
+    },
+  },
+};
+```
+
 ### splitChunks.automaticNameDelimiter
 
 - **Type:** `string`
@@ -664,6 +694,27 @@ If the setting of reuseExistingChunk is set to `false`, then the module B in chu
 - **Types:** `string | RegExp`
 
 Allows to assign modules to a cache group by module type.
+
+#### splitChunks.cacheGroups.\{cacheGroup\}.layer
+
+- **Type:** `string | RegExp | ((layer?: string) => boolean)`
+
+Assigns modules to a cache group by module layer. This is useful when [entry](/config/entry#entrydescriptionlayer) or [rule](/config/module-rules#ruleslayer) layers are used to separate modern, legacy, server, or client code paths.
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        modern: {
+          layer: 'modern',
+          chunks: 'all',
+        },
+      },
+    },
+  },
+};
+```
 
 ## FAQ
 

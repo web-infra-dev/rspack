@@ -741,7 +741,7 @@ impl ModuleCodeTemplate {
       .collect::<Vec<_>>();
 
     if chunks.len() == 1 {
-      let chunk_id = serde_json::to_string(chunks[0].id().expect("should have chunk.id"))
+      let chunk_id = simd_json::to_string(chunks[0].id().expect("should have chunk.id"))
         .expect("should able to json stringify");
 
       let fetch_priority = chunk_group
@@ -781,7 +781,7 @@ impl ModuleCodeTemplate {
           .map(|c| format!(
             "{}({}{})",
             self.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            serde_json::to_string(c.id().expect("should have chunk.id"))
+            simd_json::to_string(c.id().expect("should have chunk.id"))
               .expect("should able to json stringify"),
             fetch_priority
               .map(|x| format!(r#", "{x}""#))

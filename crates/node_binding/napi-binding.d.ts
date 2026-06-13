@@ -412,6 +412,7 @@ export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
+  getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
   getConnection(dependency: Dependency): ModuleGraphConnection | null

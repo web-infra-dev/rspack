@@ -57,7 +57,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
   ) -> Option<bool> {
     parser.last_esm_import_order += 1;
     let attributes = import_decl.with.as_ref().map(|obj| get_attributes(obj));
-    let phase = get_import_phase(parser, import_decl.phase, None, None);
+    let phase = get_import_phase(parser, import_decl.phase);
     check_import_phase(parser, phase);
     let import_span = import_decl.span;
     let dependency = ESMImportSideEffectDependency::new(
@@ -94,7 +94,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     name: &Atom,
   ) -> Option<bool> {
     let is_create_require = is_create_require_import(parser, source, id);
-    let phase = get_import_phase(parser, statement.phase, None, None);
+    let phase = get_import_phase(parser, statement.phase);
     parser.tag_variable::<ESMSpecifierData>(
       name.clone(),
       ESM_SPECIFIER_TAG,

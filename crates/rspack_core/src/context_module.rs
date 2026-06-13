@@ -272,13 +272,26 @@ impl ContextModule {
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
   ) -> Self {
+    Self::new_with_strict(resolve_dependencies, options, None)
+  }
+
+  pub(crate) fn new_with_strict(
+    resolve_dependencies: ResolveContextModuleDependencies,
+    options: ContextModuleOptions,
+    strict: Option<bool>,
+  ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn,
@@ -1623,7 +1636,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   };
   if let Some(attributes) = &options.context_options.attributes {
     id += "|importAttributes: ";
-    id += &serde_json::to_string(attributes).expect("json stringify failed");
+    id += &simd_json::to_string(attributes).expect("json stringify failed");
   }
   if let Some(phase) = &options.context_options.phase {
     id += "|importPhase: ";

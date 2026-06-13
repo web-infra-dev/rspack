@@ -54,7 +54,7 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
         (share_key.clone(), v)
       })
       .collect();
-    let used_exports_json = serde_json::to_string(&stable_map).map_err(|err| {
+    let used_exports_json = simd_json::to_string(&stable_map).map_err(|err| {
       error!(
         "OptimizeDependencyReferencedExportsRuntimeModule: failed to serialize used exports: {err}"
       )
