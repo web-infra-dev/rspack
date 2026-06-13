@@ -184,17 +184,22 @@ jobs:
           cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       # WASM Release (use profile = release-wasi) + wasm-opt
+      # The browser wasm-opt runs in the background to overlap with the wasi
+      # cargo build. The wasi variant runs in Node.js where size matters less,
+      # so it uses -O2 instead of the much slower -Oz.
       - name: Build wasm32-wasip1-threads(release-wasi) with linux
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         run: |
-          pnpm --filter @rspack/binding build:release:browser
-          pnpm --filter @rspack/binding build:release:wasm
-
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
-          wait
-          mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
+          pnpm --filter @rspack/binding build:release:browser
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
+          OPT_BROWSER=$!
+          pnpm --filter @rspack/binding build:release:wasm
+          wasm-opt -O2 crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
+          wait $OPT_BROWSER
+          ls -l crates/node_binding/rspack.browser.wasm crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
+          mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
 
       - name: Diff artifact
         run: |
