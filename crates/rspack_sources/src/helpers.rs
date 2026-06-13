@@ -10,7 +10,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   MapOptions, SourceMap,
   decoder::MappingsDecoder,
-  encoder::create_encoder,
+  encoder::{create_encoder, create_encoder_with_capacity},
   linear_map::LinearMap,
   object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
@@ -320,7 +320,7 @@ pub fn decode_mappings(source_map: &SourceMap) -> impl Iterator<Item = Mapping> 
 
 /// Encodes the given iterator of `Mapping` items into a `String`.
 pub fn encode_mappings(mappings: impl Iterator<Item = Mapping>) -> String {
-  let mut encoder = create_encoder(true);
+  let mut encoder = create_encoder_with_capacity(true, mappings.size_hint().0.saturating_mul(6));
   mappings.for_each(|mapping| encoder.encode(&mapping));
   encoder.drain()
 }
