@@ -22,7 +22,7 @@ use super::storage::Storage;
 ///
 /// `BuildDeps` and `Snapshot` are not occasions: they operate across multiple
 /// scopes and have more complex lifecycle semantics.
-pub trait Occasion {
+pub trait Occasion: Sync {
   /// The data produced/consumed by this occasion.
   type Artifact: Send;
 
