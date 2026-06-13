@@ -41,7 +41,9 @@ jobs:
       ref: ${{ inputs.ref }}
       binding_postfix: ${{ inputs.binding_postfix }}
   test:
-    if: inputs.test
+    # The wasm browser variant is a build-only artifact; the canonical wasm test
+    # job already covers both wasm files, so skip the redundant -browser test.
+    if: inputs.test && inputs.binding_postfix == ''
     needs: build
     uses: ./.github/workflows/reusable-build-test.yml
     with:
