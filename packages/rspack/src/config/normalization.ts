@@ -299,7 +299,9 @@ export const getNormalizedRspackOptions = (
             config.context || process.cwd(),
             cache.storage?.directory || 'node_modules/.cache/rspack',
           ),
-          maxVersions: cache.storage?.maxVersions,
+          ...(cache.storage?.maxVersions === undefined
+            ? {}
+            : { maxVersions: cache.storage.maxVersions }),
         },
         portable: cache.portable,
         readonly: cache.readonly,
