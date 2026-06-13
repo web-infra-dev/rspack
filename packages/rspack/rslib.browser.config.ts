@@ -91,7 +91,7 @@ export default defineConfig({
         // For CI
         {
           from: path.resolve(
-            '../../artifacts/bindings-wasm32-wasip1-threads/rspack.browser.wasm',
+            '../../artifacts/bindings-wasm32-wasip1-threads-browser/rspack.browser.wasm',
           ),
           to: 'rspack.wasm32-wasi.wasm',
           noErrorOnMissing: true,
