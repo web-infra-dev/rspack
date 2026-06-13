@@ -1830,9 +1830,14 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f467dd6dccf739c208452f8014c75c18bb8301b050ad1cfb27153803edb0f51"
+checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+dependencies = [
+ "allocator-api2",
+ "equivalent",
+ "foldhash 0.2.0",
+]
 
 [[package]]
 name = "hashlink"
@@ -2042,7 +2047,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d466e9454f08e4a911e14806c24e16fba1b4c121d1ea474396f396069cf949d9"
 dependencies = [
  "equivalent",
- "hashbrown 0.17.0",
+ "hashbrown 0.17.1",
  "rayon",
  "serde",
  "serde_core",
@@ -3477,7 +3482,7 @@ checksum = "73389e0c99e664f919275ab5b5b0471391fe9a8de61e1dff9b1eaf56a90f16e3"
 dependencies = [
  "bytecheck 0.8.0",
  "bytes",
- "hashbrown 0.17.0",
+ "hashbrown 0.17.1",
  "indexmap",
  "munge",
  "ptr_meta 0.3.0",
@@ -6747,16 +6752,19 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_allocator"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
+ "allocator-api2",
  "bumpalo",
+ "hashbrown 0.17.1",
+ "rustc-hash",
 ]
 
 [[package]]
 name = "swc_experimental_ast_macros"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6765,8 +6773,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_ast"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "num-bigint",
  "oxc_index",
@@ -6777,8 +6785,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_parser"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "bitflags 2.11.1",
  "either",
@@ -6794,8 +6802,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_semantic"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "oxc_index",
  "rustc-hash",
@@ -6806,8 +6814,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_transforms_base"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "indexmap",
  "rustc-hash",
@@ -6817,8 +6825,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_utils"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_semantic",
@@ -6826,8 +6834,8 @@ dependencies = [
 
 [[package]]
 name = "swc_experimental_ecma_visit"
-version = "0.10.1"
-source = "git+https://github.com/CPunisher/swc-experimental.git?rev=99850ee53fffa9a95c83232fed4049d9a63c7775#99850ee53fffa9a95c83232fed4049d9a63c7775"
+version = "0.10.2"
+source = "git+https://github.com/CPunisher/swc-experimental.git?rev=aa5472ced0c6c9ba944b30637bed8d8e508eae41#aa5472ced0c6c9ba944b30637bed8d8e508eae41"
 dependencies = [
  "swc_experimental_ecma_ast",
 ]
