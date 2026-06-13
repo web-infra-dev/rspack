@@ -9,6 +9,9 @@ on:
       runner: # Runner labels
         required: true
         type: string
+      profile: # Rust profile; release builds split the wasm artifact in two
+        required: false
+        type: string
       ref: # Git reference to checkout
         required: false
         type: string
@@ -32,6 +35,16 @@ jobs:
         uses: ./.github/actions/artifact/download
         with:
           name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      # Release builds split the wasm artifact: rspack.browser.wasm ships in a
+      # separate -browser artifact and is required by the @rspack/browser e2e
+      # test. CI builds keep both wasm files in the single artifact above.
+      - name: Download browser wasm binding
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}-browser
           path: crates/node_binding/
 
       - name: Setup Pnpm

@@ -47,4 +47,5 @@ jobs:
     with:
       target: ${{ inputs.target }}
       runner: ${{ inputs.test-runner || inputs.runner }}
+      profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
