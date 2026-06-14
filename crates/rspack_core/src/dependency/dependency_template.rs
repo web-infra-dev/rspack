@@ -91,13 +91,4 @@ pub trait DependencyTemplate: Debug + Sync + Send {
     source: &mut ReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
-
-  fn render_ast(
-    &self,
-    dep: &dyn DependencyCodeGeneration,
-    source: &mut ReplaceSource,
-    code_generatable_context: &mut TemplateContext,
-  ) {
-    self.render(dep, source, code_generatable_context);
-  }
 }

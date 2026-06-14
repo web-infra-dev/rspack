@@ -132,6 +132,10 @@ impl ESMExportImportedSpecifierDependency {
     self.phase
   }
 
+  pub fn source_order(&self) -> i32 {
+    self.source_order
+  }
+
   pub fn get_mode(
     &self,
     module_graph: &ModuleGraph,

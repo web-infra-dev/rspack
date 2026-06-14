@@ -1,11 +1,9 @@
 use std::{borrow::Cow, sync::Arc};
 
 use rspack_core::{
-  DependencyCodeGeneration, DependencyId, DependencyRange, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, ModuleType, NormalInitFragment, RuntimeGlobals, TemplateContext,
-  TemplateReplaceSource,
+  DependencyRange, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleType,
+  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_core::{
   common::{
@@ -25,46 +23,6 @@ use swc_core::{
     visit::{VisitMut, VisitMutWith},
   },
 };
-use swc_experimental_allocator::Allocator;
-use swc_experimental_ecma_ast::{
-  Expr as ExperimentalExpr, GetSpan, Ident, Lit, MemberExpr, ModuleDecl, ModuleItem, Program, Stmt,
-  Str, Visit, VisitWith,
-};
-use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
-
-#[derive(Debug, Clone, Copy)]
-pub enum AstDependencyRenderKey {
-  Dependency(DependencyId),
-  Presentational(usize),
-}
-
-pub struct AstDependencyRenderEntry {
-  pub key: AstDependencyRenderKey,
-  range: DependencyRange,
-  applied: bool,
-}
-
-impl AstDependencyRenderEntry {
-  pub fn new(
-    key: AstDependencyRenderKey,
-    dependency: &dyn DependencyCodeGeneration,
-  ) -> Option<Self> {
-    let range = dependency.ast_dependency_range()?;
-    if range.start >= range.end {
-      return None;
-    }
-
-    Some(Self {
-      key,
-      range,
-      applied: false,
-    })
-  }
-
-  pub fn applied(&self) -> bool {
-    self.applied
-  }
-}
 
 #[derive(Debug, Clone)]
 pub enum AstDependencySideEffect {
@@ -73,7 +31,6 @@ pub enum AstDependencySideEffect {
     identifier: Box<str>,
     content: Box<str>,
   },
-  RenderTemplate(AstDependencyRenderKey),
 }
 
 impl AstDependencySideEffect {
@@ -98,7 +55,6 @@ impl AstDependencySideEffect {
         )
         .boxed(),
       ),
-      Self::RenderTemplate(_) => {}
     }
   }
 }
@@ -787,7 +743,7 @@ pub fn render_ast_dependencies(
   plan: &AstDependencyRenderPlan,
 ) -> Option<String> {
   if !plan.has_actions() {
-    return None;
+    return Some(source_text.to_string());
   }
 
   validate_ast_dependency_actions(source_text, module_type, &plan.actions)?;
@@ -958,114 +914,6 @@ fn push_source_replacement(
   replacements.push((range, content));
 }
 
-struct AstDependencyMarker<'a> {
-  entries: &'a mut [AstDependencyRenderEntry],
-}
-
-impl AstDependencyMarker<'_> {
-  fn mark_span(&mut self, span: swc_experimental_ecma_ast::Span) {
-    let range = DependencyRange::new(span.real_lo(), span.real_hi());
-    if range.start >= range.end {
-      return;
-    }
-
-    for entry in self.entries.iter_mut() {
-      if !entry.applied && entry.range == range {
-        entry.applied = true;
-      }
-    }
-  }
-}
-
-impl<'ast> Visit<'ast> for AstDependencyMarker<'_> {
-  fn visit_module_item(&mut self, node: &ModuleItem<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_module_decl(&mut self, node: &ModuleDecl<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_stmt(&mut self, node: &Stmt<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_expr(&mut self, node: &ExperimentalExpr<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_member_expr(&mut self, node: &MemberExpr<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_ident(&mut self, node: &Ident<'ast>) {
-    self.mark_span(node.span);
-    node.visit_children_with(self);
-  }
-
-  fn visit_lit(&mut self, node: &Lit<'ast>) {
-    self.mark_span(node.span());
-    node.visit_children_with(self);
-  }
-
-  fn visit_str(&mut self, node: &Str<'ast>) {
-    self.mark_span(node.span);
-    node.visit_children_with(self);
-  }
-}
-
-pub fn mark_ast_dependencies(
-  source_text: &str,
-  module_type: &ModuleType,
-  entries: &mut [AstDependencyRenderEntry],
-) -> bool {
-  let allocator = Allocator::new();
-  let mut comments = Default::default();
-  let lexer = Lexer::new(
-    &allocator,
-    Syntax::Es(EsSyntax {
-      jsx: true,
-      allow_return_outside_function: matches!(
-        module_type,
-        ModuleType::JsDynamic | ModuleType::JsAuto
-      ),
-      explicit_resource_management: true,
-      import_attributes: true,
-      ..Default::default()
-    }),
-    swc_experimental_ecma_ast::EsVersion::EsNext,
-    StringSource::new(source_text),
-    Some(&mut comments),
-  );
-  let mut parser = Parser::new_from(&allocator, lexer);
-
-  let program = match match module_type {
-    ModuleType::JsEsm => parser
-      .parse_module()
-      .map(|module| Program::Module(allocator.boxed(module))),
-    ModuleType::JsDynamic => parser
-      .parse_commonjs()
-      .map(|script| Program::Script(allocator.boxed(script))),
-    _ => parser.parse_program(),
-  } {
-    Ok(program) => program,
-    Err(_) => return false,
-  };
-
-  if !parser.take_errors().is_empty() {
-    return false;
-  }
-  drop(parser);
-
-  program.visit_with(&mut AstDependencyMarker { entries });
-  true
-}
-
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -1095,6 +943,16 @@ mod tests {
       };
       DependencyRange::from(if_stmt.cons.span())
     })
+  }
+
+  #[test]
+  fn renders_original_source_for_empty_plan() {
+    let source = "console.log(1);\n";
+    let plan = AstDependencyRenderPlan::default();
+
+    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+
+    assert_eq!(output, source);
   }
 
   #[test]

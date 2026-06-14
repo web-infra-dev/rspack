@@ -45,6 +45,10 @@ impl ImportMetaRscDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn importer(&self) -> &str {
+    &self.importer
+  }
 }
 
 #[cacheable_dyn]
