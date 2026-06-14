@@ -253,3 +253,41 @@ impl FsWatcher {
     }
   }
 }
+
+/// Setup helpers exposed ONLY for `benches/collect_time_info.rs`. Not part of
+/// the public API — wraps the `pub(crate)` `PathManager::collect_time_info` so
+/// the bench can drive it without widening the real crate surface.
+#[doc(hidden)]
+pub mod bench_support {
+  use rspack_paths::ArcPath;
+
+  use crate::paths::PathManager;
+
+  /// Opaque handle over a pre-populated `PathManager`.
+  pub struct CollectTimeInfoBench(PathManager);
+
+  /// Register `files` and `directories` and seed their mtime baselines, mirroring
+  /// what `FsWatcher::watch` has done by the time an aggregate event fires.
+  pub fn setup(files: Vec<ArcPath>, directories: Vec<ArcPath>) -> CollectTimeInfoBench {
+    let pm = PathManager::default();
+    pm.update(
+      (files.iter().cloned(), std::iter::empty::<ArcPath>()),
+      (directories.into_iter(), std::iter::empty::<ArcPath>()),
+      (std::iter::empty::<ArcPath>(), std::iter::empty::<ArcPath>()),
+    )
+    .expect("register paths");
+    for file in &files {
+      if let Ok(mtime) = file.metadata().and_then(|m| m.modified()) {
+        pm.set_file_mtime_if_absent(file.clone(), mtime);
+      }
+    }
+    CollectTimeInfoBench(pm)
+  }
+
+  /// One `collect_time_info` over the registered set — the per-aggregate-event
+  /// cost the time-info feature adds. Returns the entry count to defeat DCE.
+  pub fn run(bench: &CollectTimeInfoBench) -> usize {
+    let (files, contexts) = bench.0.collect_time_info(&Default::default());
+    files.len() + contexts.len()
+  }
+}
