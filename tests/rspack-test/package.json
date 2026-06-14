@@ -21,7 +21,7 @@
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",
-    "@rspack/plugin-preact-refresh": "1.1.6",
+    "@rspack/plugin-preact-refresh": "2.0.1",
     "@rspack/plugin-react-refresh": "^2.0.2",
     "@rspack/test-tools": "workspace:*",
     "@rstest/core": "^0.10.3",
