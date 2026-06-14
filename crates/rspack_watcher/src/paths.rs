@@ -9,7 +9,8 @@ use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
 use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
-use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
+use super::{FsWatcherIgnored, TimeInfoEntry, ignored::IgnoredMatcher};
+use crate::time_info;
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -319,6 +320,118 @@ impl PathManager {
   }
 }
 
+impl PathManager {
+  /// Resolve a file's mtime in epoch-millis, preferring the cached
+  /// `file_mtimes` baseline (no syscall) and falling back to a fresh stat for
+  /// files with no baseline yet (e.g. registered-but-missing deps).
+  fn file_mtime_ms(&self, path: &ArcPath) -> Option<u64> {
+    if let Some(mtime) = self.file_mtimes.get(path) {
+      return Some(time_info::system_time_to_millis(*mtime));
+    }
+    Self::stat_mtime_ms(path)
+  }
+
+  /// Read a path's mtime in epoch-millis with a fresh stat (used for
+  /// directories, which have no baseline cache).
+  fn stat_mtime_ms(path: &ArcPath) -> Option<u64> {
+    path
+      .metadata()
+      .and_then(|m| m.modified().or_else(|_| m.created()))
+      .ok()
+      .map(time_info::system_time_to_millis)
+  }
+
+  /// Build the file and context time-info maps for all registered paths,
+  /// mirroring watchpack's `fileTimeInfoEntries` / `contextTimeInfoEntries`.
+  ///
+  /// Files reuse the `file_mtimes` baseline. A directory's safe time is the max
+  /// of its own mtime and the safe times of every registered file beneath it,
+  /// so an in-directory content change — which does NOT bump the directory
+  /// mtime — still advances it. Paths in `deleted` are forced to null, guarding
+  /// the stale-baseline case where a just-removed file is still registered with
+  /// an old cached mtime.
+  pub(crate) fn collect_time_info(
+    &self,
+    deleted: &rspack_util::fx_hash::FxHashSet<String>,
+  ) -> (Vec<TimeInfoEntry>, Vec<TimeInfoEntry>) {
+    let accessor = self.access();
+
+    // ---- files ----
+    let file_paths: Vec<ArcPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
+    let mut file_entries = Vec::with_capacity(file_paths.len());
+    let mut file_safe_times: Vec<(ArcPath, u64)> = Vec::new();
+    for path in &file_paths {
+      let key = path.to_string_lossy().to_string();
+      let mtime_ms = if deleted.contains(&key) {
+        None
+      } else {
+        self.file_mtime_ms(path)
+      };
+      match mtime_ms {
+        Some(ms) => {
+          let st = time_info::safe_time(ms);
+          file_safe_times.push((path.clone(), st));
+          file_entries.push(TimeInfoEntry {
+            path: key,
+            safe_time: Some(st),
+            timestamp: Some(ms),
+          });
+        }
+        None => file_entries.push(TimeInfoEntry {
+          path: key,
+          safe_time: None,
+          timestamp: None,
+        }),
+      }
+    }
+    // Registered-missing dependencies read as null in the file map. webpack
+    // registers `files` and `missing` as disjoint sets, so a null missing entry
+    // never clobbers a real file entry sharing the same key in the final map.
+    for path in accessor.missing().0.iter() {
+      file_entries.push(TimeInfoEntry {
+        path: path.to_string_lossy().to_string(),
+        safe_time: None,
+        timestamp: None,
+      });
+    }
+
+    // ---- contexts ----
+    let dir_paths: Vec<ArcPath> = accessor.directories().0.iter().map(|p| p.clone()).collect();
+    let mut dir_safe: rspack_util::fx_hash::FxHashMap<ArcPath, Option<u64>> =
+      rspack_util::fx_hash::FxHashMap::with_capacity_and_hasher(
+        dir_paths.len(),
+        Default::default(),
+      );
+    for dir in &dir_paths {
+      dir_safe.insert(
+        dir.clone(),
+        Self::stat_mtime_ms(dir).map(time_info::safe_time),
+      );
+    }
+    // Raise each registered ancestor directory by its descendant files' safe
+    // times (mirrors `Trigger::recurse_parent_directories`).
+    for (file, st) in &file_safe_times {
+      let mut cursor = file.parent().map(ArcPath::from);
+      while let Some(dir) = cursor {
+        if let Some(slot) = dir_safe.get_mut(&dir) {
+          *slot = Some(slot.map_or(*st, |cur| cur.max(*st)));
+        }
+        cursor = dir.parent().map(ArcPath::from);
+      }
+    }
+    let context_entries = dir_paths
+      .iter()
+      .map(|dir| TimeInfoEntry {
+        path: dir.to_string_lossy().to_string(),
+        safe_time: dir_safe.get(dir).and_then(|v| *v),
+        timestamp: None,
+      })
+      .collect();
+
+    (file_entries, context_entries)
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use rspack_paths::Utf8Path;
@@ -435,6 +548,69 @@ mod tests {
     for path in should_exist_paths {
       assert!(all_paths.iter().any(|p| p.ends_with(path)));
     }
+  }
+
+  /// `collect_time_info` reports an existing file with both safe_time and
+  /// timestamp, a registered-but-absent file as null (safe_time None), and a
+  /// directory whose safe_time is at least the max of its contained files
+  /// (watchpack's "max safeTime of children").
+  #[test]
+  fn collect_time_info_files_dirs_and_nulls() {
+    use rspack_util::fx_hash::FxHashSet;
+
+    let dir = tempfile::tempdir().expect("tempdir");
+    let ctx = ArcPath::from(dir.path());
+    let present = ArcPath::from(dir.path().join("present.js").as_path());
+    let gone = ArcPath::from(dir.path().join("gone.js").as_path());
+    std::fs::write(present.as_ref(), b"x").expect("write present");
+
+    let pm = PathManager::default();
+    pm.update(
+      (
+        vec![present.clone(), gone.clone()].into_iter(),
+        std::iter::empty(),
+      ),
+      (vec![ctx.clone()].into_iter(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("register paths");
+    // Seed the baseline the way a real `watch()` cycle does.
+    if let Ok(mtime) = present.as_ref().metadata().and_then(|m| m.modified()) {
+      pm.set_file_mtime_if_absent(present.clone(), mtime);
+    }
+
+    let deleted: FxHashSet<String> = FxHashSet::default();
+    let (files, contexts) = pm.collect_time_info(&deleted);
+
+    let find = |v: &[crate::TimeInfoEntry], p: &ArcPath| {
+      v.iter().find(|e| e.path == p.to_string_lossy()).cloned()
+    };
+
+    let present_entry = find(&files, &present).expect("present file entry");
+    assert!(
+      present_entry.safe_time.is_some(),
+      "present file has safe_time"
+    );
+    assert!(
+      present_entry.timestamp.is_some(),
+      "present file has timestamp"
+    );
+
+    let gone_entry = find(&files, &gone).expect("gone file entry");
+    assert!(
+      gone_entry.safe_time.is_none(),
+      "absent file -> null safe_time"
+    );
+
+    let ctx_entry = find(&contexts, &ctx).expect("context entry");
+    assert_eq!(
+      ctx_entry.timestamp, None,
+      "context entry carries no timestamp"
+    );
+    assert!(
+      ctx_entry.safe_time.unwrap() >= present_entry.safe_time.unwrap(),
+      "context safe_time >= contained file safe_time",
+    );
   }
 
   /// Regression for the FSEvents stale-event race: simulate two consecutive

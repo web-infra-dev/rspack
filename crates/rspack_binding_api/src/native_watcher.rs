@@ -8,7 +8,7 @@ use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_paths::ArcPath;
 use rspack_regex::RspackRegex;
-use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions};
+use rspack_watcher::{FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, TimeInfoEntry};
 
 type JsWatcherIgnored = Either3<String, Vec<String>, RspackRegex>;
 
@@ -38,10 +38,21 @@ pub struct NativeWatcherOptions {
   pub ignored: Option<JsWatcherIgnored>,
 }
 
-#[napi]
+#[napi(object)]
+pub struct NativeTimeInfoEntry {
+  pub path: String,
+  /// `None` => JS `null` (registered path absent on disk).
+  pub safe_time: Option<f64>,
+  /// `None` for directory/context entries.
+  pub timestamp: Option<f64>,
+}
+
+#[napi(object)]
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
+  pub file_time_info_entries: Vec<NativeTimeInfoEntry>,
+  pub context_time_info_entries: Vec<NativeTimeInfoEntry>,
 }
 
 #[napi]
@@ -200,12 +211,24 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
     &self,
     changed_files: rspack_util::fx_hash::FxHashSet<String>,
     deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+    file_time_info_entries: Vec<TimeInfoEntry>,
+    context_time_info_entries: Vec<TimeInfoEntry>,
   ) {
-    let changed_files_vec: Vec<String> = changed_files.into_iter().collect();
-    let deleted_files_vec: Vec<String> = deleted_files.into_iter().collect();
+    let to_native = |entries: Vec<TimeInfoEntry>| {
+      entries
+        .into_iter()
+        .map(|e| NativeTimeInfoEntry {
+          path: e.path,
+          safe_time: e.safe_time.map(|v| v as f64),
+          timestamp: e.timestamp.map(|v| v as f64),
+        })
+        .collect::<Vec<_>>()
+    };
     let result = NativeWatchResult {
-      changed_files: changed_files_vec,
-      removed_files: deleted_files_vec,
+      changed_files: changed_files.into_iter().collect(),
+      removed_files: deleted_files.into_iter().collect(),
+      file_time_info_entries: to_native(file_time_info_entries),
+      context_time_info_entries: to_native(context_time_info_entries),
     };
     self.inner.call(
       Ok(result),

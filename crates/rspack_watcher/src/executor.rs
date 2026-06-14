@@ -10,7 +10,7 @@ use tokio::sync::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::EventBatch;
+use crate::{EventBatch, paths::PathManager};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -124,6 +124,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
+    path_manager: Arc<PathManager>,
   ) {
     if !self.start_waiting {
       let files_data = Arc::clone(&self.files_data);
@@ -170,7 +171,7 @@ impl Executor {
     // abort the previous handlers if they exist
     self.abort().await;
 
-    self.run_execute_handler(event_aggregate_handler, event_handler);
+    self.run_execute_handler(event_aggregate_handler, event_handler, path_manager);
 
     // Flush events accumulated during the pause period.
     // Without this, events that arrived while paused would sit in files_data
@@ -186,6 +187,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
+    path_manager: Arc<PathManager>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
       event_aggregate_handler,
@@ -193,6 +195,7 @@ impl Executor {
       Arc::clone(&self.files_data),
       self.aggregate_timeout as u64,
       Arc::clone(&self.aggregate_running),
+      path_manager,
     ));
 
     self.execute_handle = Some(create_execute_task(
@@ -242,6 +245,7 @@ fn create_execute_aggregate_task(
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
+  path_manager: Arc<PathManager>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
@@ -270,8 +274,17 @@ fn create_execute_aggregate_task(
           std::mem::take(&mut *files)
         };
 
-        // Call the event handler with the changed and deleted files
-        event_handler.on_event_handle(files.changed, files.deleted);
+        // Snapshot the time-info maps AFTER the aggregate window, so they
+        // reflect post-change disk state. Borrow `&files.deleted` before the
+        // sets are moved into the handler.
+        let (file_time_info_entries, context_time_info_entries) =
+          path_manager.collect_time_info(&files.deleted);
+        event_handler.on_event_handle(
+          files.changed,
+          files.deleted,
+          file_time_info_entries,
+          context_time_info_entries,
+        );
         running.store(false, Ordering::Relaxed);
       }
     }

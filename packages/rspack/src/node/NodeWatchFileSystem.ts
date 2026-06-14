@@ -41,8 +41,11 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     options: Watchpack.WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore' | null>,
+      contextTimeInfoEntries: Map<
+        string,
+        FileSystemInfoEntry | 'ignore' | null
+      >,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
