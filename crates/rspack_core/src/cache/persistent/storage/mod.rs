@@ -1,10 +1,6 @@
 use std::{num::NonZeroU32, sync::Arc};
 
-use rspack_cacheable::{
-  cacheable,
-  utils::PortablePath,
-  with::{As, Skip},
-};
+use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
 pub use rspack_storage::{BoxStorage, MemoryStorage, Storage};
@@ -19,21 +15,17 @@ pub enum StorageOptions {
   FileSystem {
     #[cacheable(with=As<PortablePath>)]
     directory: Utf8PathBuf,
-    #[cacheable(with=Skip)]
-    max_versions: Option<NonZeroU32>,
   },
 }
 
 pub fn create_storage(
   options: StorageOptions,
   version: String,
+  max_versions: Option<NonZeroU32>,
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
-    StorageOptions::FileSystem {
-      directory,
-      max_versions,
-    } => {
+    StorageOptions::FileSystem { directory } => {
       let option = FileSystemOptions {
         directory,
         version,

@@ -59,9 +59,9 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
     let storage = create_storage(
       StorageOptions::FileSystem {
         directory: path.clone(),
-        max_versions: None,
       },
       v.clone(),
+      None,
       fs.clone(),
     );
 

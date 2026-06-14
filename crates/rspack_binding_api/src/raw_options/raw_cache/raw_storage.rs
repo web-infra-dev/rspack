@@ -13,21 +13,21 @@ pub struct RawStorageOptions {
   pub max_versions: Option<u32>,
 }
 
-impl TryFrom<RawStorageOptions> for StorageOptions {
-  type Error = rspack_error::Error;
-
-  fn try_from(value: RawStorageOptions) -> rspack_error::Result<Self> {
-    match value.r#type.as_str() {
-      "filesystem" => Ok(StorageOptions::FileSystem {
-        directory: value.directory.into(),
-        max_versions: value
+impl RawStorageOptions {
+  pub(super) fn normalize(self) -> rspack_error::Result<(StorageOptions, Option<NonZeroU32>)> {
+    match self.r#type.as_str() {
+      "filesystem" => Ok((
+        StorageOptions::FileSystem {
+          directory: self.directory.into(),
+        },
+        self
           .max_versions
           .map(|value| {
             NonZeroU32::new(value)
               .ok_or_else(|| error!("cache.storage.maxVersions must be greater than 0"))
           })
           .transpose()?,
-      }),
+      )),
       storage_type => Err(error!("unsupported storage type {storage_type}")),
     }
   }
@@ -39,11 +39,12 @@ mod tests {
 
   #[test]
   fn rejects_zero_max_versions() {
-    let result = StorageOptions::try_from(RawStorageOptions {
+    let result = RawStorageOptions {
       r#type: "filesystem".to_string(),
       directory: "cache".to_string(),
       max_versions: Some(0),
-    });
+    }
+    .normalize();
 
     assert!(
       result
