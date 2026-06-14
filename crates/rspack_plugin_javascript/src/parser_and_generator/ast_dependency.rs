@@ -13,8 +13,8 @@ use swc_core::{
   ecma::{
     ast::{
       EsVersion as StableEsVersion, Expr, Ident as StableIdent, Lit as StableLit,
-      ModuleItem as StableModuleItem, Program as StableProgram, PropName as StablePropName,
-      Stmt as StableStmt,
+      MemberExpr as StableMemberExpr, ModuleItem as StableModuleItem, Program as StableProgram,
+      PropName as StablePropName, Stmt as StableStmt,
     },
     parser::{
       EsSyntax as StableEsSyntax, Parser as StableParser, Syntax as StableSyntax,
@@ -305,6 +305,53 @@ impl AstDependencyAction {
       _ => vec![self.edit_range()],
     }
   }
+
+  fn source_replacement_ranges(&self) -> Vec<DependencyRange> {
+    match &self.replacement {
+      AstDependencyReplacement::WrappedSource { replacement, .. } => vec![
+        DependencyRange::new(self.range.start, replacement.start),
+        DependencyRange::new(replacement.end, self.range.end),
+      ],
+      AstDependencyReplacement::WrappedSourceWithReplacements {
+        replacement,
+        replacements,
+        ..
+      } => {
+        let mut ranges = vec![
+          DependencyRange::new(self.range.start, replacement.start),
+          DependencyRange::new(replacement.end, self.range.end),
+        ];
+        ranges.extend(
+          replacements
+            .iter()
+            .map(|(_, start, end)| DependencyRange::new(*start, *end)),
+        );
+        ranges
+      }
+      AstDependencyReplacement::ValidatedReplacements { replacements }
+      | AstDependencyReplacement::SourceWithReplacements { replacements, .. } => replacements
+        .iter()
+        .map(|(_, start, end)| DependencyRange::new(*start, *end))
+        .collect(),
+      _ => vec![self.edit_range()],
+    }
+  }
+
+  fn is_redundant_validated_replacement(
+    &self,
+    existing_ranges: &FxHashSet<DependencyRange>,
+  ) -> bool {
+    let AstDependencyReplacement::ValidatedReplacements { replacements } = &self.replacement else {
+      return false;
+    };
+    if replacements.is_empty() {
+      return false;
+    }
+
+    replacements
+      .iter()
+      .all(|(_, start, end)| existing_ranges.contains(&DependencyRange::new(*start, *end)))
+  }
 }
 
 fn apply_inner_replacements(
@@ -358,6 +405,15 @@ pub struct AstDependencyRenderPlan {
 
 impl AstDependencyRenderPlan {
   pub fn push_action(&mut self, action: AstDependencyAction) {
+    let existing_ranges = self
+      .actions
+      .iter()
+      .flat_map(AstDependencyAction::source_replacement_ranges)
+      .collect::<FxHashSet<_>>();
+    if action.is_redundant_validated_replacement(&existing_ranges) {
+      return;
+    }
+
     self.actions.push(action);
   }
 
@@ -488,6 +544,19 @@ impl StableAstDependencyApplier {
     action.expr_replacement.take()
   }
 
+  fn replacement_for_member_expr(&mut self, range: DependencyRange) -> Option<StableMemberExpr> {
+    let action = self.actions.iter_mut().find(|action| {
+      !action.applied
+        && action.range == range
+        && matches!(action.expr_replacement.as_deref(), Some(Expr::Member(_)))
+    })?;
+    action.applied = true;
+    let Some(Expr::Member(member)) = action.expr_replacement.take().map(|expr| *expr) else {
+      unreachable!()
+    };
+    Some(member)
+  }
+
   fn replacement_for_ident(&mut self, range: DependencyRange) -> bool {
     let Some(action) = self
       .actions
@@ -600,6 +669,17 @@ impl VisitMut for StableAstDependencyApplier {
     self.validate_node(range);
     if let Some(replacement) = self.replacement_for_expr(range) {
       *node = *replacement;
+      return;
+    }
+
+    node.visit_mut_children_with(self);
+  }
+
+  fn visit_mut_member_expr(&mut self, node: &mut StableMemberExpr) {
+    let range = DependencyRange::from(node.span());
+    self.validate_node(range);
+    if let Some(replacement) = self.replacement_for_member_expr(range) {
+      *node = replacement;
       return;
     }
 
@@ -969,6 +1049,28 @@ mod tests {
   }
 
   #[test]
+  fn replaces_member_expression_assignment_target_by_ast_range() {
+    let source = "Curve.create = function () {};\n";
+    let start = source.find("Curve.create").unwrap() as u32;
+    let end = start + "Curve.create".len() as u32;
+    let mut plan = AstDependencyRenderPlan::default();
+    plan.push_action(
+      AstDependencyAction::expr(
+        DependencyRange::new(start, end),
+        "_extras_core_Curve_js__rspack_import_10.Curve.create",
+      )
+      .unwrap(),
+    );
+
+    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+
+    assert_eq!(
+      output,
+      "_extras_core_Curve_js__rspack_import_10.Curve.create = function () {};\n"
+    );
+  }
+
+  #[test]
   fn deletes_top_level_statement_by_ast_range() {
     let source = "\"use strict\";\nconsole.log(1);\n";
     let mut plan = AstDependencyRenderPlan::default();
@@ -1025,6 +1127,46 @@ mod tests {
 
     assert!(!output.contains("export"));
     assert!(output.contains("const answer = 42"));
+  }
+
+  #[test]
+  fn replaces_export_default_template_with_leading_comment() {
+    let source = "export default /* glsl */`\nvoid main() {}\n`;\n";
+    let range_stmt = DependencyRange::new(0, source.find(';').unwrap() as u32 + 1);
+    let range = DependencyRange::new(
+      source.find('`').unwrap() as u32,
+      source.rfind('`').unwrap() as u32 + 1,
+    );
+    let mut plan = AstDependencyRenderPlan::default();
+    plan.push_action(
+      AstDependencyAction::source_with_replacements(
+        range_stmt,
+        range_stmt,
+        vec![
+          (
+            "/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (/* glsl */".to_string(),
+            range_stmt.start,
+            range.start,
+          ),
+          (");".to_string(), range.end, range_stmt.end),
+        ],
+      )
+      .unwrap(),
+    );
+    plan.push_action(
+      AstDependencyAction::validated_replacements(
+        range_stmt,
+        vec![(String::new(), range_stmt.start, range.start)],
+      )
+      .unwrap(),
+    );
+
+    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+
+    assert_eq!(
+      output,
+      "/* export default */ const __WEBPACK_DEFAULT_EXPORT__ = (/* glsl */`\nvoid main() {}\n`);\n"
+    );
   }
 
   #[test]
