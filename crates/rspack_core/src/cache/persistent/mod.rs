@@ -7,6 +7,7 @@ pub mod storage;
 
 use std::{
   hash::{DefaultHasher, Hash, Hasher},
+  num::NonZeroU32,
   sync::Arc,
 };
 
@@ -43,6 +44,9 @@ pub struct PersistentCacheOptions {
   pub portable: bool,
   #[cacheable(with=Skip)]
   pub readonly: bool,
+  /// Filesystem retention also participates in compiler-scoped version identity.
+  #[cacheable(with=Skip)]
+  pub max_versions: Option<NonZeroU32>,
 }
 
 /// Persistent cache implementation
@@ -74,13 +78,7 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    let max_versions = match &option.storage {
-      StorageOptions::FileSystem {
-        max_versions: Some(max_versions),
-        ..
-      } => Some(*max_versions),
-      _ => None,
-    };
+    let max_versions = option.max_versions;
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec
@@ -105,7 +103,12 @@ impl PersistentCache {
     } else {
       version
     };
-    let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
+    let storage = create_storage(
+      option.storage.clone(),
+      version,
+      max_versions,
+      intermediate_filesystem,
+    );
     let snapshot = Arc::new(Snapshot::new(
       option.snapshot.clone(),
       input_filesystem.clone(),
