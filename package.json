@@ -59,10 +59,10 @@
   },
   "devDependencies": {
     "@rslint/core": "0.6.1",
-    "@rstest/core": "^0.10.3",
+    "@rstest/core": "^0.10.4",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^20.19.42",
-    "@typescript/native-preview": "7.0.0-dev.20260607.1",
+    "@types/node": "^20.19.43",
+    "@typescript/native-preview": "7.0.0-dev.20260613.1",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
@@ -70,7 +70,7 @@
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "lint-staged": "^16.4.0",
-    "prettier": "3.8.3",
+    "prettier": "3.8.4",
     "typescript": "^6.0.3",
     "zx": "8.8.5"
   },
