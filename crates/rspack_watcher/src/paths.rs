@@ -397,33 +397,42 @@ impl PathManager {
 
     // ---- contexts ----
     let dir_paths: Vec<ArcPath> = accessor.directories().0.iter().map(|p| p.clone()).collect();
-    let mut dir_safe: rspack_util::fx_hash::FxHashMap<ArcPath, Option<u64>> =
+    // `dir_safe[i]` is the running safe time for `dir_paths[i]`, seeded from the
+    // directory's own mtime.
+    let mut dir_safe: Vec<Option<u64>> = dir_paths
+      .iter()
+      .map(|dir| Self::stat_mtime_ms(dir).map(time_info::safe_time))
+      .collect();
+    // Index registered directories by their raw path bytes so the ancestor walk
+    // can probe them without allocating an `ArcPath` per step. Byte matching is
+    // identical to the previous `ArcPath` keying, whose hash is `hash_path` over
+    // exactly these bytes.
+    let mut dir_index: rspack_util::fx_hash::FxHashMap<&std::ffi::OsStr, usize> =
       rspack_util::fx_hash::FxHashMap::with_capacity_and_hasher(
         dir_paths.len(),
         Default::default(),
       );
-    for dir in &dir_paths {
-      dir_safe.insert(
-        dir.clone(),
-        Self::stat_mtime_ms(dir).map(time_info::safe_time),
-      );
+    for (i, dir) in dir_paths.iter().enumerate() {
+      dir_index.insert(dir.as_os_str(), i);
     }
     // Raise each registered ancestor directory by its descendant files' safe
-    // times (mirrors `Trigger::recurse_parent_directories`).
+    // times (mirrors `Trigger::recurse_parent_directories`), walking borrowed
+    // `&Path`s so no per-step allocation happens.
     for (file, st) in &file_safe_times {
-      let mut cursor = file.parent().map(ArcPath::from);
+      let mut cursor = file.parent();
       while let Some(dir) = cursor {
-        if let Some(slot) = dir_safe.get_mut(&dir) {
-          *slot = Some(slot.map_or(*st, |cur| cur.max(*st)));
+        if let Some(&i) = dir_index.get(dir.as_os_str()) {
+          dir_safe[i] = Some(dir_safe[i].map_or(*st, |cur| cur.max(*st)));
         }
-        cursor = dir.parent().map(ArcPath::from);
+        cursor = dir.parent();
       }
     }
     let context_entries = dir_paths
       .iter()
-      .map(|dir| TimeInfoEntry {
+      .zip(&dir_safe)
+      .map(|(dir, &safe_time)| TimeInfoEntry {
         path: dir.to_string_lossy().to_string(),
-        safe_time: dir_safe.get(dir).and_then(|v| *v),
+        safe_time,
         timestamp: None,
       })
       .collect();
