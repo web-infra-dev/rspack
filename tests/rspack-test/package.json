@@ -34,7 +34,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@webdiscus/pug-loader": "^2.11.1",
-    "acorn": "^8.16.0",
+    "acorn": "^8.17.0",
     "babel-loader": "^10.1.1",
     "babel-plugin-import": "^1.13.8",
     "bundle-loader": "^0.5.6",
