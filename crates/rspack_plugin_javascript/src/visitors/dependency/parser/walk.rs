@@ -1,6 +1,6 @@
 use std::{borrow::Cow, cell::Cell};
 
-use rspack_core::{Dependency, DependencyId, DependencyRange};
+use rspack_core::{DependencyId, DependencyRange};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};

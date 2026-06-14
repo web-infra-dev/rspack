@@ -62,7 +62,7 @@ impl Dependency for AMDRequireArrayDependency {
 }
 
 impl AMDRequireArrayDependency {
-  fn get_content(&self, code_generatable_context: &mut TemplateContext) -> String {
+  pub fn content(&self, code_generatable_context: &mut TemplateContext) -> String {
     format!(
       "[{}]",
       self
@@ -108,6 +108,10 @@ impl AMDRequireArrayDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for AMDRequireArrayDependency {
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireArrayDependencyTemplate::template_type())
   }
@@ -141,7 +145,7 @@ impl DependencyTemplate for AMDRequireArrayDependencyTemplate {
         "AMDRequireArrayDependencyTemplate should only be used for AMDRequireArrayDependency",
       );
 
-    let content = dep.get_content(code_generatable_context);
+    let content = dep.content(code_generatable_context);
     source.replace(dep.range.start, dep.range.end, content, None);
   }
 }

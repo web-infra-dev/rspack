@@ -27,6 +27,18 @@ impl RequireEnsureDependency {
       error_handler_range,
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn content_range(&self) -> DependencyRange {
+    self.content_range
+  }
+
+  pub fn error_handler_range(&self) -> Option<DependencyRange> {
+    self.error_handler_range
+  }
 }
 
 #[cacheable_dyn]
@@ -58,6 +70,10 @@ impl AsModuleDependency for RequireEnsureDependency {}
 impl DependencyCodeGeneration for RequireEnsureDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(RequireEnsureDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

@@ -2,8 +2,8 @@ use rspack_cacheable::cacheable;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsType,
-  FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleDependency, ModuleGraph, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource, get_exports_type,
+  FakeNamespaceObjectMode, ModuleCodeTemplate, ModuleGraph, RuntimeGlobals, TemplateContext,
+  TemplateReplaceSource, get_exports_type,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
 use rspack_util::json_stringify_str;

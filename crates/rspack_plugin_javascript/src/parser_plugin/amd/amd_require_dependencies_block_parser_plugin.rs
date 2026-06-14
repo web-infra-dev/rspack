@@ -4,7 +4,7 @@ use either::Either;
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ContextDependency, ContextMode, ContextOptions,
-  Dependency, DependencyCategory, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency,
+  DependencyCategory, DependencyRange, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, atom::Atom};

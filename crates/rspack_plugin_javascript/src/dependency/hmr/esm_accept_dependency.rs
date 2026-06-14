@@ -10,6 +10,7 @@ use crate::dependency::import_emitted_runtime;
 #[derive(Debug, Clone)]
 pub struct ESMAcceptDependency {
   range: DependencyRange,
+  call_range: DependencyRange,
   has_callback: bool,
   dependency_ids: Vec<DependencyId>,
   loc: Option<DependencyLocation>,
@@ -18,12 +19,14 @@ pub struct ESMAcceptDependency {
 impl ESMAcceptDependency {
   pub fn new(
     range: DependencyRange,
+    call_range: DependencyRange,
     has_callback: bool,
     dependency_ids: Vec<DependencyId>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
       range,
+      call_range,
       has_callback,
       dependency_ids,
       loc,
@@ -33,12 +36,36 @@ impl ESMAcceptDependency {
   pub fn loc(&self) -> Option<DependencyLocation> {
     self.loc.clone()
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn call_range(&self) -> DependencyRange {
+    self.call_range
+  }
+
+  pub fn has_callback(&self) -> bool {
+    self.has_callback
+  }
+
+  pub fn dependency_ids(&self) -> &[DependencyId] {
+    &self.dependency_ids
+  }
 }
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMAcceptDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMAcceptDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(if self.has_callback {
+      self.range
+    } else {
+      self.call_range
+    })
   }
 }
 

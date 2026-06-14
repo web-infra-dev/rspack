@@ -133,6 +133,10 @@ impl DependencyCodeGeneration for RequireResolveDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(RequireResolveDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
 }
 
 impl AsContextDependency for RequireResolveDependency {}

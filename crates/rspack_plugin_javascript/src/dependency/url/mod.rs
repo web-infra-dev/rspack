@@ -48,6 +48,26 @@ impl URLDependency {
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn range_url(&self) -> DependencyRange {
+    self.range_url
+  }
+
+  pub fn mode(&self) -> Option<JavascriptParserUrl> {
+    self.mode
+  }
 }
 
 #[cacheable_dyn]
@@ -100,6 +120,13 @@ impl ModuleDependency for URLDependency {
 impl DependencyCodeGeneration for URLDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(URLDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    match self.mode {
+      Some(JavascriptParserUrl::Relative | JavascriptParserUrl::NewUrlRelative) => Some(self.range),
+      _ => None,
+    }
   }
 }
 

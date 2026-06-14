@@ -29,6 +29,14 @@ impl DependencyCodeGeneration for RuntimeRequirementsDependency {
     Some(RuntimeRequirementsDependencyTemplate::template_type())
   }
 
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    if matches!(self.mode, RuntimeRequirementsDependencyMode::AddOnly) {
+      None
+    } else {
+      Some(self.range)
+    }
+  }
+
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

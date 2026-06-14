@@ -25,6 +25,18 @@ impl ImportMetaHotDeclineDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn weak(&self) -> bool {
+    true
+  }
 }
 
 #[cacheable_dyn]
@@ -75,6 +87,10 @@ impl ModuleDependency for ImportMetaHotDeclineDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ImportMetaHotDeclineDependency {
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaHotDeclineDependencyTemplate::template_type())
   }

@@ -6,8 +6,8 @@ use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyRange,
+  DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
 pub struct TemplateContext<'a, 'b, 'c> {
@@ -56,6 +56,12 @@ pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     None
   }
+
+  /// Returns the source range that should be matched against a parsed AST node
+  /// before this dependency is rendered.
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    None
+  }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
@@ -85,4 +91,13 @@ pub trait DependencyTemplate: Debug + Sync + Send {
     source: &mut ReplaceSource,
     code_generatable_context: &mut TemplateContext,
   );
+
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    source: &mut ReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    self.render(dep, source, code_generatable_context);
+  }
 }

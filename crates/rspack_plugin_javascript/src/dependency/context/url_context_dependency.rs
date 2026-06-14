@@ -43,6 +43,14 @@ impl URLContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn value_range(&self) -> DependencyRange {
+    self.value_range
+  }
 }
 
 #[cacheable_dyn]

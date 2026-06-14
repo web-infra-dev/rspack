@@ -25,6 +25,17 @@ impl LocalModuleDependency {
       call_new,
     }
   }
+
+  pub fn module_instance(&self) -> String {
+    if self.call_new {
+      format!(
+        "new (function () {{ return {}; }})()",
+        self.local_module.variable_name()
+      )
+    } else {
+      self.local_module.variable_name().to_string()
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -46,6 +57,10 @@ impl Dependency for LocalModuleDependency {
 impl DependencyCodeGeneration for LocalModuleDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(LocalModuleDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    self.range
   }
 }
 
@@ -76,15 +91,7 @@ impl DependencyTemplate for LocalModuleDependencyTemplate {
       .expect("LocalModuleDependencyTemplate should only be used for LocalModuleDependency");
 
     if let Some(range) = &dep.range {
-      let module_instance = if dep.call_new {
-        format!(
-          "new (function () {{ return {}; }})()",
-          dep.local_module.variable_name()
-        )
-      } else {
-        dep.local_module.variable_name()
-      };
-      source.replace(range.start, range.end, module_instance, None);
+      source.replace(range.start, range.end, dep.module_instance(), None);
     }
   }
 }

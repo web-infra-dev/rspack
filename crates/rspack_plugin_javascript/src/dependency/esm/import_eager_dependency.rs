@@ -53,6 +53,18 @@ impl ImportEagerDependency {
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn phase(&self) -> ImportPhase {
+    self.phase
+  }
 }
 
 #[cacheable_dyn]
@@ -147,6 +159,10 @@ impl ModuleDependency for ImportEagerDependency {
 impl DependencyCodeGeneration for ImportEagerDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportEagerDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

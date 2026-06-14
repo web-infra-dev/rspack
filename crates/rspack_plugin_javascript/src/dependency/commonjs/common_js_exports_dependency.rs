@@ -80,6 +80,18 @@ impl CommonJsExportsDependency {
       names,
     }
   }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn value_range(&self) -> Option<DependencyRange> {
+    self.value_range
+  }
 }
 
 #[cacheable_dyn]
@@ -132,6 +144,10 @@ impl AsModuleDependency for CommonJsExportsDependency {}
 impl DependencyCodeGeneration for CommonJsExportsDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsExportsDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

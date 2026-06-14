@@ -4620,6 +4620,7 @@ dependencies = [
  "smallvec",
  "sugar_path",
  "swc_atoms",
+ "swc_core",
  "swc_experimental_allocator",
  "swc_experimental_ecma_ast",
  "swc_experimental_ecma_parser",

@@ -103,9 +103,67 @@ impl ESMImportSideEffectDependency {
     }
   }
 
-  fn missing_module_active(&self) -> bool {
+  pub fn missing_module_active(&self) -> bool {
     !self.lazy_make
   }
+
+  pub fn phase(&self) -> ImportPhase {
+    self.phase
+  }
+
+  pub fn source_order(&self) -> i32 {
+    self.source_order
+  }
+}
+
+pub fn esm_import_dependency_prime_import_var<T: ModuleDependency>(
+  module_dependency: &T,
+  phase: ImportPhase,
+  code_generatable_context: &TemplateContext,
+) -> Option<String> {
+  let compilation = code_generatable_context.compilation;
+  let module = code_generatable_context.module;
+  let runtime = code_generatable_context.runtime;
+  let module_graph = compilation.get_module_graph();
+  let module_graph_cache = &compilation.module_graph_cache_artifact;
+  let connection = module_graph.connection_by_dependency_id(module_dependency.id());
+  let is_target_active = if let Some(con) = connection {
+    con.is_target_active(
+      module_graph,
+      runtime,
+      module_graph_cache,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
+      &compilation.exports_info_artifact,
+    )
+  } else {
+    true
+  };
+  if !is_target_active {
+    return None;
+  }
+
+  let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
+  if module_dependency.weak() {
+    if target_module.is_none() {
+      return None;
+    }
+    if let Some(target_module) = target_module
+      && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
+        .is_none()
+    {
+      return None;
+    }
+  }
+
+  Some(compilation.get_import_var(
+    module.identifier(),
+    target_module,
+    module_dependency.user_request(),
+    phase,
+    runtime,
+  ))
 }
 
 pub fn esm_import_dependency_apply<T: ModuleDependency>(

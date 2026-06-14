@@ -94,6 +94,14 @@ impl CommonJsRequireDependency {
   pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
     self.branch_guards.get_or_insert_default().extend(guards);
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
 }
 
 #[cacheable_dyn]
@@ -192,6 +200,10 @@ impl ModuleDependency for CommonJsRequireDependency {
 impl DependencyCodeGeneration for CommonJsRequireDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsRequireDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

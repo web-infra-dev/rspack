@@ -4,8 +4,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, ExportProvided,
-  TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
+  DependencyCodeGeneration, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  ExportProvided, TemplateContext, TemplateReplaceSource, UsageState, UsedExports, UsedName,
 };
 use swc_atoms::Atom;
 
@@ -29,6 +29,10 @@ impl ExportInfoDependency {
       property,
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    DependencyRange::new(self.start, self.end)
+  }
 }
 
 #[cacheable_dyn]
@@ -36,10 +40,14 @@ impl DependencyCodeGeneration for ExportInfoDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ExportInfoDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range())
+  }
 }
 
 impl ExportInfoDependency {
-  fn get_property(&self, context: &TemplateContext) -> Option<String> {
+  pub fn get_property(&self, context: &TemplateContext) -> Option<String> {
     let TemplateContext {
       compilation,
       module,

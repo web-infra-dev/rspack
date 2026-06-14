@@ -1,7 +1,7 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
   DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ModuleDependency, TemplateContext, TemplateReplaceSource,
+  TemplateContext, TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::{URLDependency, URLDependencyTemplate};
 

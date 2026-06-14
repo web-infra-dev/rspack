@@ -8,9 +8,9 @@ Rspack x.x.x compiled successfully in X s
 
 asset b-runtime~main-60e1a9cacb740650.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset b-main-8680a888f1bf9eb6.js xx bytes [emitted] [immutable] (name: main)
-asset b-all-b_js-f856ef7ca71a0cbd.js xx bytes [emitted] [immutable] (id hint: all)
+asset b-all-b_js-b850fa6748efbccd.js xx bytes [emitted] [immutable] (id hint: all)
 asset b-vendors-node_modules_vendor_js-e936af1c5d692780.js xx bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main xx KiB = b-runtime~main-60e1a9cacb740650.js xx KiB b-vendors-node_modules_vendor_js-e936af1c5d692780.js xx bytes b-all-b_js-f856ef7ca71a0cbd.js xx bytes b-main-8680a888f1bf9eb6.js xx bytes
+Entrypoint main xx KiB = b-runtime~main-60e1a9cacb740650.js xx KiB b-vendors-node_modules_vendor_js-e936af1c5d692780.js xx bytes b-all-b_js-b850fa6748efbccd.js xx bytes b-main-8680a888f1bf9eb6.js xx bytes
 runtime modules xx KiB 5 modules
 cacheable modules xx bytes
   ./b.js xx bytes [built] [code generated]
@@ -18,12 +18,12 @@ cacheable modules xx bytes
 Rspack x.x.x compiled successfully in X s
 
 assets by chunk xx bytes (id hint: all)
-  asset c-all-b_js-ce41787ae6ff3759.js xx bytes [emitted] [immutable] (id hint: all)
-  asset c-all-c_js-305d7d7dfb13d2f8.js xx bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-f15de686b780a99d.js xx KiB [emitted] [immutable] (name: runtime~main)
+  asset c-all-b_js-24857901ee44690e.js xx bytes [emitted] [immutable] (id hint: all)
+  asset c-all-c_js-bf7ea2a1c513ca9a.js xx bytes [emitted] [immutable] (id hint: all)
+asset c-runtime~main-a747f07e4934bcce.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-cb74163fc8cc359b.js xx bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-e936af1c5d692780.js xx bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main xx KiB = c-runtime~main-f15de686b780a99d.js xx KiB c-all-c_js-305d7d7dfb13d2f8.js xx bytes c-main-cb74163fc8cc359b.js xx bytes
+Entrypoint main xx KiB = c-runtime~main-a747f07e4934bcce.js xx KiB c-all-c_js-bf7ea2a1c513ca9a.js xx bytes c-main-cb74163fc8cc359b.js xx bytes
 runtime modules xx KiB 13 modules
 cacheable modules xx bytes
   ./c.js xx bytes [built] [code generated]

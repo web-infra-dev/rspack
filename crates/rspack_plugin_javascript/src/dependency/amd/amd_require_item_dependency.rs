@@ -31,6 +31,14 @@ impl AMDRequireItemDependency {
   pub fn set_optional(&mut self, optional: bool) {
     self.optional = optional;
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
 }
 
 #[cacheable_dyn]
@@ -81,6 +89,10 @@ impl AsContextDependency for AMDRequireItemDependency {}
 impl DependencyCodeGeneration for AMDRequireItemDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireItemDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    self.range
   }
 }
 

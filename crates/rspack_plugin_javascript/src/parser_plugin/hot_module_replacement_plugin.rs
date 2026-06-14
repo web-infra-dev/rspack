@@ -86,6 +86,7 @@ impl JavascriptParser<'_> {
       let loc = self.to_dependency_location(call_range);
       self.add_presentational_dependency(Box::new(ESMAcceptDependency::new(
         range,
+        call_range,
         callback_arg.is_some(),
         dependency_ids,
         loc,

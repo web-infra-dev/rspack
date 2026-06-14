@@ -23,6 +23,13 @@ impl UnsupportedDependency {
       range,
     }
   }
+
+  pub fn content(&self) -> String {
+    format!(
+      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
+      self.request
+    )
+  }
 }
 
 #[cacheable_dyn]
@@ -53,6 +60,10 @@ impl DependencyCodeGeneration for UnsupportedDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(UnsupportedDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
 }
 
 impl AsModuleDependency for UnsupportedDependency {}
@@ -81,10 +92,6 @@ impl DependencyTemplate for UnsupportedDependencyTemplate {
       .downcast_ref::<UnsupportedDependency>()
       .expect("UnsupportedDependencyTemplate should only be used for UnsupportedDependency");
 
-    let content = format!(
-      "Object(function webpackMissingModule() {{var e = new Error(\"Cannot find module '{}'\"); e.code = 'MODULE_NOT_FOUND'; throw e;}}())",
-      dep.request
-    );
-    source.replace(dep.range.start, dep.range.end, content, None);
+    source.replace(dep.range.start, dep.range.end, dep.content(), None);
   }
 }

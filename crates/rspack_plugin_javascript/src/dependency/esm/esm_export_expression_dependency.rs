@@ -36,6 +36,18 @@ impl DeclarationInfo {
       suffix,
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn prefix(&self) -> &str {
+    &self.prefix
+  }
+
+  pub fn suffix(&self) -> &str {
+    &self.suffix
+  }
 }
 
 #[cacheable]
@@ -68,6 +80,22 @@ impl ESMExportExpressionDependency {
       prefix,
       loc,
     }
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn range_stmt(&self) -> DependencyRange {
+    self.range_stmt
+  }
+
+  pub fn prefix(&self) -> &str {
+    &self.prefix
+  }
+
+  pub fn declaration(&self) -> Option<&DeclarationId> {
+    self.declaration.as_ref()
   }
 }
 

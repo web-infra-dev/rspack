@@ -46,6 +46,10 @@ impl DependencyCodeGeneration for ImportMetaResolveHeaderDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaResolveHeaderDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
 }
 
 #[cacheable]
