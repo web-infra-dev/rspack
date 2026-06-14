@@ -33,7 +33,7 @@ impl LocalModuleDependency {
         self.local_module.variable_name()
       )
     } else {
-      self.local_module.variable_name().to_string()
+      self.local_module.variable_name()
     }
   }
 }

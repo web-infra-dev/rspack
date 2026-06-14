@@ -793,7 +793,7 @@ fn validate_ast_dependency_actions(
   GLOBALS.set(&globals, || {
     let cm = Arc::<SourceMap>::default();
     let comments = SingleThreadedComments::default();
-    let mut program = parse_stable_program(cm.clone(), source_text, module_type, &comments)?;
+    let mut program = parse_stable_program(cm, source_text, module_type, &comments)?;
     let mut applier = StableAstDependencyApplier::new(actions);
     program.visit_mut_with(&mut applier);
     applier.is_fully_applied().then_some(())
@@ -1016,7 +1016,7 @@ mod tests {
     plan.push_action(
       AstDependencyAction::validated_replacements(
         range,
-        vec![("".to_string(), range.start, replacement_start)],
+        vec![(String::new(), range.start, replacement_start)],
       )
       .unwrap(),
     );

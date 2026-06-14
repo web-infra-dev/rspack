@@ -221,12 +221,11 @@ impl JavaScriptParserAndGenerator {
       self.collect_ast_render_dependency(compilation, dependency_id, context, &mut plan)
     }) && module
       .get_presentational_dependencies()
-      .map(|dependencies| {
+      .is_none_or(|dependencies| {
         dependencies
           .iter()
           .all(|dependency| self.collect_ast_render_action(dependency.as_ref(), context, &mut plan))
       })
-      .unwrap_or(true)
       && module
         .get_blocks()
         .iter()
@@ -814,8 +813,7 @@ impl JavaScriptParserAndGenerator {
                 used
                   .iter()
                   .map(|i| i.to_string())
-                  .collect::<Vec<_>>()
-                  .join("")
+                  .collect::<String>()
                   .into(),
                 binding,
               )],
@@ -875,8 +873,7 @@ impl JavaScriptParserAndGenerator {
               used
                 .iter()
                 .map(|i| i.to_string())
-                .collect::<Vec<_>>()
-                .join("")
+                .collect::<String>()
                 .into(),
               ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}"))),
             )],
@@ -1505,7 +1502,7 @@ impl JavaScriptParserAndGenerator {
       let action = if let Some(range_decl) = dep.range_decl() {
         AstDependencyAction::validated_replacements(
           range,
-          vec![("".to_string(), range.start, range_decl.start)],
+          vec![(String::new(), range.start, range_decl.start)],
         )
       } else {
         AstDependencyAction::expr(range, "")
@@ -1679,34 +1676,30 @@ impl JavaScriptParserAndGenerator {
       .as_any()
       .downcast_ref::<PureExpressionDependency>()
     {
-      let (prefix, suffix, needs_side_effect) =
-        match dep.get_runtime_condition(context.compilation, context.runtime) {
-          RuntimeCondition::Boolean(true) => return true,
-          RuntimeCondition::Boolean(false) => (
-            "(/* unused pure expression or super */ null && (".to_string(),
-            "))",
-            false,
-          ),
-          RuntimeCondition::Spec(runtime_condition) => {
-            let mut runtime_template = context.runtime_template.clone();
-            let condition = runtime_template.runtime_condition_expression(
-              &context.compilation.build_chunk_graph_artifact.chunk_graph,
-              Some(&RuntimeCondition::Spec(runtime_condition)),
-              context.runtime,
-            );
-            (
-              format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
-              ") : null)",
-              true,
-            )
-          }
-        };
+      let (prefix, suffix) = match dep.get_runtime_condition(context.compilation, context.runtime) {
+        RuntimeCondition::Boolean(true) => return true,
+        RuntimeCondition::Boolean(false) => (
+          "(/* unused pure expression or super */ null && (".to_string(),
+          "))",
+        ),
+        RuntimeCondition::Spec(runtime_condition) => {
+          let mut runtime_template = context.runtime_template.clone();
+          let condition = runtime_template.runtime_condition_expression(
+            &context.compilation.build_chunk_graph_artifact.chunk_graph,
+            Some(&RuntimeCondition::Spec(runtime_condition)),
+            context.runtime,
+          );
+          (
+            format!("(/* runtime-dependent pure expression or super */ {condition} ? ("),
+            ") : null)",
+          )
+        }
+      };
 
       let Some(action) = AstDependencyAction::wrapped_source(range, range, prefix, suffix) else {
         return false;
       };
       plan.push_action(action);
-      if needs_side_effect {}
       return true;
     }
 
@@ -2226,7 +2219,7 @@ impl JavaScriptParserAndGenerator {
         )
       };
 
-      let ids = dep.get_ids(&module_graph);
+      let ids = dep.get_ids(module_graph);
       let (require_expr, uses_require) = if let Some(imported_module) =
         module_graph.get_module_by_dependency_id(dep.id())
         && let Some(used_imported) = context

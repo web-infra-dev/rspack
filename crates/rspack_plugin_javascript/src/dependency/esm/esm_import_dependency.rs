@@ -146,9 +146,7 @@ pub fn esm_import_dependency_prime_import_var<T: ModuleDependency>(
 
   let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
   if module_dependency.weak() {
-    if target_module.is_none() {
-      return None;
-    }
+    target_module?;
     if let Some(target_module) = target_module
       && ChunkGraph::get_module_id(&compilation.module_ids_artifact, target_module.identifier())
         .is_none()

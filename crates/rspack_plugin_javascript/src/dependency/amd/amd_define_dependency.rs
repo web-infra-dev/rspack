@@ -13,6 +13,9 @@ use rspack_util::{atom::Atom, json_stringify_str};
 
 use super::local_module::LocalModule;
 
+type AstDefineReplacement = (String, u32, u32);
+type AstDefineReplacements = (Option<String>, Vec<AstDefineReplacement>);
+
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
   struct Branch: u8 {
@@ -190,7 +193,7 @@ impl AMDDefineDependency {
   pub fn ast_define_replacements(
     &self,
     runtime_template: &mut ModuleCodeTemplate,
-  ) -> Option<(Option<String>, Vec<(String, u32, u32)>)> {
+  ) -> Option<AstDefineReplacements> {
     let branch = self.branch();
     if branch.is_empty() {
       return None;
