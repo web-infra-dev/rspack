@@ -8,6 +8,7 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
+import { EventEmitter } from 'node:events';
 import { createRequire } from 'node:module';
 import util from 'node:util';
 import type Watchpack from 'watchpack';
@@ -25,6 +26,10 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
   watcherOptions: Watchpack.WatchOptions;
   watcher?: Watchpack;
+  // Long-lived emitter backing the `on`/`once` API. `watch()` replaces
+  // `this.watcher` with a fresh Watchpack each cycle, so listeners must live
+  // here (and be fed from each new watcher) to survive across cycles.
+  #events = new EventEmitter();
 
   constructor(inputFileSystem: InputFileSystem) {
     this.inputFileSystem = inputFileSystem;
@@ -77,6 +82,15 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     if (callbackUndelayed) {
       this.watcher?.once('change', callbackUndelayed);
     }
+
+    // Forward this cycle's watchpack events to the long-lived emitter so
+    // `on`/`once` listeners keep working after the watcher is replaced.
+    this.watcher?.on('change', (filename, mtime) => {
+      this.#events.emit('change', filename, mtime);
+    });
+    this.watcher?.on('remove', (filename) => {
+      this.#events.emit('remove', filename);
+    });
 
     const fetchTimeInfo = () => {
       const fileTimeInfoEntries = new Map();
@@ -195,5 +209,52 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
         };
       },
     };
+  }
+
+  on(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  on(event: 'remove', listener: (filename: string) => void): this;
+  on(
+    event: 'change' | 'remove',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void),
+  ): this {
+    this.#events.on(event, listener as (...args: unknown[]) => void);
+    return this;
+  }
+
+  once(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  once(event: 'remove', listener: (filename: string) => void): this;
+  once(
+    event: 'change' | 'remove',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void),
+  ): this {
+    this.#events.once(event, listener as (...args: unknown[]) => void);
+    return this;
+  }
+
+  emit(event: 'change', filename: string, mtime: number): boolean;
+  emit(event: 'remove', filename: string): boolean;
+  emit(event: 'change' | 'remove', filename: string, mtime?: number): boolean {
+    if (!this.watcher) {
+      return false;
+    }
+    // `_onChange`/`_onRemove` emit the public `change`/`remove` events and feed
+    // the aggregated change/removal sets that drive the next rebuild, matching
+    // how watchpack reports a real filesystem event.
+    if (event === 'change') {
+      this.watcher._onChange(filename, mtime ?? Date.now(), filename, 'change');
+    } else {
+      this.watcher._onRemove(filename, filename, 'rename');
+    }
+    return true;
   }
 }

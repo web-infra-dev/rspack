@@ -1,3 +1,4 @@
+import { EventEmitter } from 'node:events';
 import binding from '@rspack/binding';
 import type Watchpack from 'watchpack';
 import type {
@@ -36,13 +37,60 @@ const toJsWatcherIgnored = (
   return undefined;
 };
 
+/**
+ * Minimal watchpack-compatible shim exposed as `NativeWatchFileSystem.watcher`.
+ *
+ * It proxies the watchpack-private surface that `ts-checker-rspack-plugin` and
+ * `fork-ts-checker-webpack-plugin` rely on — `on`/`once` for `change`/`remove`,
+ * plus `_onChange`/`_onRemove` to inject events — onto the native watcher, so
+ * those plugins keep working under `experiments.nativeWatcher` unmodified.
+ *
+ * APIs that iterate `fileWatchers`/`directoryWatchers` are intentionally not
+ * supported; plugins needing those should use `WatchFileSystem.emit` instead.
+ */
+class NativeWatcherShim extends EventEmitter {
+  #trigger: (kind: 'change' | 'remove', path: string) => void;
+
+  constructor(trigger: (kind: 'change' | 'remove', path: string) => void) {
+    super();
+    this.#trigger = trigger;
+  }
+
+  _onChange(
+    item: string,
+    _mtime?: number,
+    file?: string,
+    _type?: string,
+  ): void {
+    this.#trigger('change', file ?? item);
+  }
+
+  _onRemove(item: string, file?: string, _type?: string): void {
+    this.#trigger('remove', file ?? item);
+  }
+}
+
 export default class NativeWatchFileSystem implements WatchFileSystem {
   #inner: binding.NativeWatcher | undefined;
   #isFirstWatch = true;
   #inputFileSystem: InputFileSystem;
+  // Long-lived emitter backing the `on`/`once` API, so listeners registered
+  // once keep receiving events across watch cycles.
+  #events = new EventEmitter();
+  // Recreated on every `watch()` call to mirror watchpack's per-cycle watcher
+  // instance: consumers that re-attach to `.watcher` each cycle (ts-checker)
+  // don't accumulate listeners on a stale shim.
+  #watcher: NativeWatcherShim | undefined;
 
   constructor(inputFileSystem: InputFileSystem) {
     this.#inputFileSystem = inputFileSystem;
+  }
+
+  // Backward-compatible accessor: lets plugins that reach for the underlying
+  // watchpack instance (e.g. ts-checker) find a compatible event surface.
+  // `undefined` before the first `watch()`, like NodeWatchFileSystem.watcher.
+  get watcher(): NativeWatcherShim | undefined {
+    return this.#watcher;
   }
 
   watch(
@@ -98,6 +146,14 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
     const nativeWatcher = this.getNativeWatcher(options);
 
+    // Fresh shim per cycle (see field comment). Events are emitted to both the
+    // long-lived `#events` (the `on`/`once` API) and this cycle's shim (the
+    // `.watcher` surface).
+    const watcher = new NativeWatcherShim((kind, path) =>
+      this.#inner?.triggerEvent(kind, path),
+    );
+    this.#watcher = watcher;
+
     nativeWatcher.watch(
       this.formatWatchDependencies(files),
       this.formatWatchDependencies(directories),
@@ -129,9 +185,18 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           new Set(removedFiles),
         );
       },
-      (fileName: string) => {
-        // TODO: add real change time
-        callbackUndelayed(fileName, Date.now());
+      (event) => {
+        if (event.kind === 'change') {
+          // The native watcher reports paths without an mtime, so events are
+          // stamped with their arrival time.
+          const mtime = Date.now();
+          callbackUndelayed(event.path, mtime);
+          this.#events.emit('change', event.path, mtime);
+          watcher.emit('change', event.path, mtime);
+        } else {
+          this.#events.emit('remove', event.path);
+          watcher.emit('remove', event.path);
+        }
       },
     );
 
@@ -186,6 +251,52 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string) {
     this.#inner?.triggerEvent(kind, path);
+  }
+
+  on(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  on(event: 'remove', listener: (filename: string) => void): this;
+  on(
+    event: 'change' | 'remove',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void),
+  ): this {
+    this.#events.on(event, listener);
+    return this;
+  }
+
+  once(
+    event: 'change',
+    listener: (filename: string, mtime: number) => void,
+  ): this;
+  once(event: 'remove', listener: (filename: string) => void): this;
+  once(
+    event: 'change' | 'remove',
+    listener:
+      | ((filename: string, mtime: number) => void)
+      | ((filename: string) => void),
+  ): this {
+    this.#events.once(event, listener);
+    return this;
+  }
+
+  emit(event: 'change', filename: string, mtime: number): boolean;
+  emit(event: 'remove', filename: string): boolean;
+  // `mtime` is accepted for parity with the node implementation but cannot be
+  // carried through the native watcher pipeline, which re-stamps the event with
+  // its arrival time; the injected `change` is reported with that timestamp.
+  emit(event: 'change' | 'remove', filename: string, _mtime?: number): boolean {
+    if (!this.#inner) {
+      return false;
+    }
+    // Route through the native watcher so the injected event flows back through
+    // the normal pipeline (driving a rebuild and re-emitting `change`/`remove`),
+    // mirroring watchpack's `_onChange`/`_onRemove`.
+    this.#inner.triggerEvent(event, filename);
+    return true;
   }
 
   formatWatchDependencies(
