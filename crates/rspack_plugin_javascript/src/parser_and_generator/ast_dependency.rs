@@ -1,28 +1,16 @@
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use rspack_core::{
   DependencyRange, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleType,
   NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet;
-use swc_core::{
-  common::{
-    FileName, GLOBALS, Globals, SourceMap, Spanned, comments::SingleThreadedComments,
-    input::SourceFileInput,
-  },
-  ecma::{
-    ast::{
-      EsVersion as StableEsVersion, Expr, Ident as StableIdent, Lit as StableLit,
-      MemberExpr as StableMemberExpr, ModuleItem as StableModuleItem, Program as StableProgram,
-      PropName as StablePropName, Stmt as StableStmt,
-    },
-    parser::{
-      EsSyntax as StableEsSyntax, Parser as StableParser, Syntax as StableSyntax,
-      lexer::Lexer as StableLexer,
-    },
-    visit::{VisitMut, VisitMutWith},
-  },
+use swc_experimental_allocator::{Allocator, boxed::Box as AstBox, vec::Vec as AstVec};
+use swc_experimental_ecma_ast::{
+  EsVersion, Expr, GetSpan, Ident, Lit, MemberExpr, ModuleItem, Program, PropName, Stmt, VisitMut,
+  VisitMutWith,
 };
+use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
 
 #[derive(Debug, Clone)]
 pub enum AstDependencySideEffect {
@@ -430,22 +418,29 @@ impl AstDependencyRenderPlan {
   }
 }
 
-struct ParsedAstDependencyAction {
+struct ParsedAstDependencyAction<'ast> {
   range: DependencyRange,
-  expr_replacement: Option<Box<Expr>>,
+  expr_replacement: Option<Expr<'ast>>,
   ident_replacement: bool,
   validate_only: bool,
-  stmt_replacement: Option<Option<StableStmt>>,
-  module_item_replacement: Option<Option<StableModuleItem>>,
+  stmt_replacement: Option<Option<Stmt<'ast>>>,
+  module_item_replacement: Option<Option<ModuleItem<'ast>>>,
   applied: bool,
 }
 
-impl ParsedAstDependencyAction {
-  fn new(action: &AstDependencyAction, source_text: &str) -> Option<Self> {
+impl<'ast> ParsedAstDependencyAction<'ast> {
+  fn new(
+    action: &AstDependencyAction,
+    source_text: &str,
+    allocator: &'ast Allocator,
+  ) -> Option<Self> {
     if matches!(action.replacement, AstDependencyReplacement::RawExpr(_)) {
       return Some(Self {
         range: action.range,
-        expr_replacement: parse_replacement_expr("__rspack_ast_dependency_raw_replacement__"),
+        expr_replacement: parse_replacement_expr(
+          "__rspack_ast_dependency_raw_replacement__",
+          allocator,
+        ),
         ident_replacement: false,
         validate_only: false,
         stmt_replacement: None,
@@ -490,17 +485,17 @@ impl ParsedAstDependencyAction {
     let expr_replacement = if delete {
       None
     } else {
-      parse_replacement_expr(&content)
+      parse_replacement_expr(&content, allocator)
     };
     let stmt_replacement = if delete {
       Some(None)
     } else {
-      parse_replacement_stmt(&content).map(Some)
+      parse_replacement_stmt(&content, allocator).map(Some)
     };
     let module_item_replacement = if delete {
       Some(None)
     } else {
-      parse_replacement_module_item(&content).map(Some)
+      parse_replacement_module_item(&content, allocator).map(Some)
     };
 
     if !delete
@@ -523,20 +518,21 @@ impl ParsedAstDependencyAction {
   }
 }
 
-struct StableAstDependencyApplier {
-  actions: Vec<ParsedAstDependencyAction>,
+struct ExperimentalAstDependencyApplier<'ast> {
+  allocator: &'ast Allocator,
+  actions: Vec<ParsedAstDependencyAction<'ast>>,
 }
 
-impl StableAstDependencyApplier {
-  fn new(actions: Vec<ParsedAstDependencyAction>) -> Self {
-    Self { actions }
+impl<'ast> ExperimentalAstDependencyApplier<'ast> {
+  fn new(actions: Vec<ParsedAstDependencyAction<'ast>>, allocator: &'ast Allocator) -> Self {
+    Self { allocator, actions }
   }
 
   fn is_fully_applied(&self) -> bool {
     self.actions.iter().all(|action| action.applied)
   }
 
-  fn replacement_for_expr(&mut self, range: DependencyRange) -> Option<Box<Expr>> {
+  fn replacement_for_expr(&mut self, range: DependencyRange) -> Option<Expr<'ast>> {
     let action = self.actions.iter_mut().find(|action| {
       !action.applied && action.range == range && action.expr_replacement.is_some()
     })?;
@@ -544,17 +540,17 @@ impl StableAstDependencyApplier {
     action.expr_replacement.take()
   }
 
-  fn replacement_for_member_expr(&mut self, range: DependencyRange) -> Option<StableMemberExpr> {
+  fn replacement_for_member_expr(&mut self, range: DependencyRange) -> Option<MemberExpr<'ast>> {
     let action = self.actions.iter_mut().find(|action| {
       !action.applied
         && action.range == range
-        && matches!(action.expr_replacement.as_deref(), Some(Expr::Member(_)))
+        && matches!(action.expr_replacement.as_ref(), Some(Expr::Member(_)))
     })?;
     action.applied = true;
-    let Some(Expr::Member(member)) = action.expr_replacement.take().map(|expr| *expr) else {
+    let Some(Expr::Member(member)) = action.expr_replacement.take() else {
       unreachable!()
     };
-    Some(member)
+    Some(AstBox::into_inner(member))
   }
 
   fn replacement_for_ident(&mut self, range: DependencyRange) -> bool {
@@ -579,7 +575,7 @@ impl StableAstDependencyApplier {
     }
   }
 
-  fn replacement_for_stmt_list(&mut self, range: DependencyRange) -> Option<Option<StableStmt>> {
+  fn replacement_for_stmt_list(&mut self, range: DependencyRange) -> Option<Option<Stmt<'ast>>> {
     let action = self.actions.iter_mut().find(|action| {
       !action.applied && action.range == range && action.stmt_replacement.is_some()
     })?;
@@ -587,7 +583,7 @@ impl StableAstDependencyApplier {
     action.stmt_replacement.take()
   }
 
-  fn replacement_for_stmt_node(&mut self, range: DependencyRange) -> Option<StableStmt> {
+  fn replacement_for_stmt_node(&mut self, range: DependencyRange) -> Option<Stmt<'ast>> {
     let action = self.actions.iter_mut().find(|action| {
       !action.applied
         && action.range == range
@@ -603,7 +599,7 @@ impl StableAstDependencyApplier {
   fn replacement_for_module_item(
     &mut self,
     range: DependencyRange,
-  ) -> Option<Option<StableModuleItem>> {
+  ) -> Option<Option<ModuleItem<'ast>>> {
     let action = self.actions.iter_mut().find(|action| {
       !action.applied && action.range == range && action.module_item_replacement.is_some()
     })?;
@@ -612,11 +608,11 @@ impl StableAstDependencyApplier {
   }
 }
 
-impl VisitMut for StableAstDependencyApplier {
-  fn visit_mut_module_items(&mut self, node: &mut Vec<StableModuleItem>) {
-    let mut next = Vec::with_capacity(node.len());
+impl<'ast> VisitMut<'ast> for ExperimentalAstDependencyApplier<'ast> {
+  fn visit_mut_module_items(&mut self, node: &mut AstVec<'ast, ModuleItem<'ast>>) {
+    let mut next = AstVec::with_capacity_in(node.len(), self.allocator);
 
-    for mut item in std::mem::take(node) {
+    for mut item in std::mem::replace(node, AstVec::new_in(self.allocator)) {
       let range = DependencyRange::from(item.span());
       self.validate_node(range);
       if let Some(replacement) = self.replacement_for_module_item(range) {
@@ -633,10 +629,10 @@ impl VisitMut for StableAstDependencyApplier {
     *node = next;
   }
 
-  fn visit_mut_stmts(&mut self, node: &mut Vec<StableStmt>) {
-    let mut next = Vec::with_capacity(node.len());
+  fn visit_mut_stmts(&mut self, node: &mut AstVec<'ast, Stmt<'ast>>) {
+    let mut next = AstVec::with_capacity_in(node.len(), self.allocator);
 
-    for mut stmt in std::mem::take(node) {
+    for mut stmt in std::mem::replace(node, AstVec::new_in(self.allocator)) {
       let range = DependencyRange::from(stmt.span());
       self.validate_node(range);
       if let Some(replacement) = self.replacement_for_stmt_list(range) {
@@ -653,7 +649,7 @@ impl VisitMut for StableAstDependencyApplier {
     *node = next;
   }
 
-  fn visit_mut_stmt(&mut self, node: &mut StableStmt) {
+  fn visit_mut_stmt(&mut self, node: &mut Stmt<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if let Some(replacement) = self.replacement_for_stmt_node(range) {
@@ -664,18 +660,18 @@ impl VisitMut for StableAstDependencyApplier {
     node.visit_mut_children_with(self);
   }
 
-  fn visit_mut_expr(&mut self, node: &mut Expr) {
+  fn visit_mut_expr(&mut self, node: &mut Expr<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if let Some(replacement) = self.replacement_for_expr(range) {
-      *node = *replacement;
+      *node = replacement;
       return;
     }
 
     node.visit_mut_children_with(self);
   }
 
-  fn visit_mut_member_expr(&mut self, node: &mut StableMemberExpr) {
+  fn visit_mut_member_expr(&mut self, node: &mut MemberExpr<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if let Some(replacement) = self.replacement_for_member_expr(range) {
@@ -686,7 +682,7 @@ impl VisitMut for StableAstDependencyApplier {
     node.visit_mut_children_with(self);
   }
 
-  fn visit_mut_ident(&mut self, node: &mut StableIdent) {
+  fn visit_mut_ident(&mut self, node: &mut Ident<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if self.replacement_for_ident(range) {
@@ -696,7 +692,7 @@ impl VisitMut for StableAstDependencyApplier {
     node.visit_mut_children_with(self);
   }
 
-  fn visit_mut_lit(&mut self, node: &mut StableLit) {
+  fn visit_mut_lit(&mut self, node: &mut Lit<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if self.replacement_for_ident(range) {
@@ -706,7 +702,7 @@ impl VisitMut for StableAstDependencyApplier {
     node.visit_mut_children_with(self);
   }
 
-  fn visit_mut_prop_name(&mut self, node: &mut StablePropName) {
+  fn visit_mut_prop_name(&mut self, node: &mut PropName<'ast>) {
     let range = DependencyRange::from(node.span());
     self.validate_node(range);
     if self.replacement_for_ident(range) {
@@ -717,8 +713,8 @@ impl VisitMut for StableAstDependencyApplier {
   }
 }
 
-fn stable_syntax(module_type: &ModuleType) -> StableSyntax {
-  StableSyntax::Es(StableEsSyntax {
+fn ast_syntax(module_type: &ModuleType) -> Syntax {
+  Syntax::Es(EsSyntax {
     jsx: true,
     allow_return_outside_function: matches!(
       module_type,
@@ -730,26 +726,26 @@ fn stable_syntax(module_type: &ModuleType) -> StableSyntax {
   })
 }
 
-fn parse_stable_program(
-  cm: Arc<SourceMap>,
-  source_text: &str,
+fn parse_experimental_program<'ast>(
+  allocator: &'ast Allocator,
+  source_text: &'ast str,
   module_type: &ModuleType,
-  comments: &SingleThreadedComments,
-) -> Option<StableProgram> {
-  let fm = cm.new_source_file(
-    Arc::new(FileName::Custom("<rspack ast dependency>".to_string())),
-    source_text.to_string(),
+) -> Option<Program<'ast>> {
+  let lexer = Lexer::new(
+    allocator,
+    ast_syntax(module_type),
+    EsVersion::EsNext,
+    StringSource::new(source_text),
+    None,
   );
-  let lexer = StableLexer::new(
-    stable_syntax(module_type),
-    StableEsVersion::EsNext,
-    SourceFileInput::from(&*fm),
-    Some(comments),
-  );
-  let mut parser = StableParser::new_from(lexer);
+  let mut parser = Parser::new_from(allocator, lexer);
   let program = match module_type {
-    ModuleType::JsEsm => parser.parse_module().map(StableProgram::Module),
-    ModuleType::JsDynamic => parser.parse_commonjs().map(StableProgram::Script),
+    ModuleType::JsEsm => parser
+      .parse_module()
+      .map(|module| Program::Module(allocator.boxed(module))),
+    ModuleType::JsDynamic => parser
+      .parse_commonjs()
+      .map(|script| Program::Script(allocator.boxed(script))),
     _ => parser.parse_program(),
   }
   .ok()?;
@@ -757,61 +753,49 @@ fn parse_stable_program(
   parser.take_errors().is_empty().then_some(program)
 }
 
-fn parse_replacement_expr(content: &str) -> Option<Box<Expr>> {
-  let cm = Arc::<SourceMap>::default();
-  let fm = cm.new_source_file(
-    Arc::new(FileName::Custom(
-      "<rspack ast dependency replacement>".to_string(),
-    )),
-    content.to_string(),
-  );
-  let lexer = StableLexer::new(
-    stable_syntax(&ModuleType::JsAuto),
-    StableEsVersion::EsNext,
-    SourceFileInput::from(&*fm),
+fn parse_replacement_expr<'ast>(content: &str, allocator: &'ast Allocator) -> Option<Expr<'ast>> {
+  let content = allocator.alloc_str(content);
+  let lexer = Lexer::new(
+    allocator,
+    ast_syntax(&ModuleType::JsAuto),
+    EsVersion::EsNext,
+    StringSource::new(content),
     None,
   );
-  let mut parser = StableParser::new_from(lexer);
+  let mut parser = Parser::new_from(allocator, lexer);
   let expr = parser.parse_expr().ok()?;
 
   parser.take_errors().is_empty().then_some(expr)
 }
 
-fn parse_replacement_stmt(content: &str) -> Option<StableStmt> {
-  let cm = Arc::<SourceMap>::default();
-  let fm = cm.new_source_file(
-    Arc::new(FileName::Custom(
-      "<rspack ast dependency replacement>".to_string(),
-    )),
-    content.to_string(),
-  );
-  let lexer = StableLexer::new(
-    stable_syntax(&ModuleType::JsAuto),
-    StableEsVersion::EsNext,
-    SourceFileInput::from(&*fm),
+fn parse_replacement_stmt<'ast>(content: &str, allocator: &'ast Allocator) -> Option<Stmt<'ast>> {
+  let content = allocator.alloc_str(content);
+  let lexer = Lexer::new(
+    allocator,
+    ast_syntax(&ModuleType::JsAuto),
+    EsVersion::EsNext,
+    StringSource::new(content),
     None,
   );
-  let mut parser = StableParser::new_from(lexer);
+  let mut parser = Parser::new_from(allocator, lexer);
   let stmt = parser.parse_stmt().ok()?;
 
   parser.take_errors().is_empty().then_some(stmt)
 }
 
-fn parse_replacement_module_item(content: &str) -> Option<StableModuleItem> {
-  let cm = Arc::<SourceMap>::default();
-  let fm = cm.new_source_file(
-    Arc::new(FileName::Custom(
-      "<rspack ast dependency replacement>".to_string(),
-    )),
-    content.to_string(),
-  );
-  let lexer = StableLexer::new(
-    stable_syntax(&ModuleType::JsAuto),
-    StableEsVersion::EsNext,
-    SourceFileInput::from(&*fm),
+fn parse_replacement_module_item<'ast>(
+  content: &str,
+  allocator: &'ast Allocator,
+) -> Option<ModuleItem<'ast>> {
+  let content = allocator.alloc_str(content);
+  let lexer = Lexer::new(
+    allocator,
+    ast_syntax(&ModuleType::JsAuto),
+    EsVersion::EsNext,
+    StringSource::new(content),
     None,
   );
-  let mut parser = StableParser::new_from(lexer);
+  let mut parser = Parser::new_from(allocator, lexer);
   let module_item = parser.parse_module_item().ok()?;
 
   parser.take_errors().is_empty().then_some(module_item)
@@ -856,6 +840,7 @@ fn validate_ast_dependency_actions(
   module_type: &ModuleType,
   actions: &[AstDependencyAction],
 ) -> Option<()> {
+  let allocator = Allocator::new();
   let mut seen_ranges = FxHashSet::default();
   let actions = actions
     .iter()
@@ -865,19 +850,15 @@ fn validate_ast_dependency_actions(
           return None;
         }
       }
-      ParsedAstDependencyAction::new(action, source_text)
+      ParsedAstDependencyAction::new(action, source_text, &allocator)
     })
     .collect::<Option<Vec<_>>>()?;
 
-  let globals = Globals::new();
-  GLOBALS.set(&globals, || {
-    let cm = Arc::<SourceMap>::default();
-    let comments = SingleThreadedComments::default();
-    let mut program = parse_stable_program(cm, source_text, module_type, &comments)?;
-    let mut applier = StableAstDependencyApplier::new(actions);
-    program.visit_mut_with(&mut applier);
-    applier.is_fully_applied().then_some(())
-  })
+  let source_text = allocator.alloc_str(source_text);
+  let mut program = parse_experimental_program(&allocator, source_text, module_type)?;
+  let mut applier = ExperimentalAstDependencyApplier::new(actions, &allocator);
+  program.visit_mut_with(&mut applier);
+  applier.is_fully_applied().then_some(())
 }
 
 fn render_source_replacements(
@@ -999,30 +980,26 @@ mod tests {
   use super::*;
 
   fn first_top_level_range(source: &str, module_type: ModuleType) -> DependencyRange {
-    GLOBALS.set(&Globals::new(), || {
-      let cm = Arc::<SourceMap>::default();
-      let comments = SingleThreadedComments::default();
-      let program = parse_stable_program(cm, source, &module_type, &comments).unwrap();
-      match program {
-        StableProgram::Module(module) => DependencyRange::from(module.body[0].span()),
-        StableProgram::Script(script) => DependencyRange::from(script.body[0].span()),
-      }
-    })
+    let allocator = Allocator::new();
+    let source = allocator.alloc_str(source);
+    let program = parse_experimental_program(&allocator, source, &module_type).unwrap();
+    match program {
+      Program::Module(module) => DependencyRange::from(module.body[0].span()),
+      Program::Script(script) => DependencyRange::from(script.body[0].span()),
+    }
   }
 
   fn if_consequent_range(source: &str) -> DependencyRange {
-    GLOBALS.set(&Globals::new(), || {
-      let cm = Arc::<SourceMap>::default();
-      let comments = SingleThreadedComments::default();
-      let program = parse_stable_program(cm, source, &ModuleType::JsAuto, &comments).unwrap();
-      let StableProgram::Script(script) = program else {
-        unreachable!()
-      };
-      let StableStmt::If(if_stmt) = &script.body[0] else {
-        unreachable!()
-      };
-      DependencyRange::from(if_stmt.cons.span())
-    })
+    let allocator = Allocator::new();
+    let source = allocator.alloc_str(source);
+    let program = parse_experimental_program(&allocator, source, &ModuleType::JsAuto).unwrap();
+    let Program::Script(script) = program else {
+      unreachable!()
+    };
+    let Stmt::If(if_stmt) = &script.body[0] else {
+      unreachable!()
+    };
+    DependencyRange::from(if_stmt.cons.span())
   }
 
   #[test]

@@ -8,15 +8,16 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  CachedConstDependency, ChunkGraph, CodeGenerationData, CollectedTypeScriptInfo, Compilation,
-  ConstDependency, ContextDependency, ContextMode, DEFAULT_EXPORT, DependenciesBlock, Dependency,
+  CachedConstDependency, ChunkGraph, CollectedTypeScriptInfo, Compilation, ConstDependency,
+  ContextDependency, ContextMode, DEFAULT_EXPORT, DependenciesBlock, Dependency,
   DependencyCodeGeneration, DependencyId, DependencyRange, ESMExportBinding, ESMExportInitFragment,
   ExportMode, ExportsArgument, ExportsType, ExternalModuleInitFragment, GenerateContext,
   ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserUrl, Module,
   ModuleArgument, ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleType,
   NormalInitFragment, ParseContext, ParseResult, ParserAndGenerator, RuntimeCondition,
   RuntimeGlobals, RuntimeRequirementsDependency, RuntimeRequirementsDependencyMode,
-  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, UsageState, UsedName,
+  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   property_access, property_access_with_optional, remove_bom, render_init_fragments,
   rspack_sources::{
@@ -112,14 +113,6 @@ fn append_experimental_parse_errors(
   }));
 }
 
-fn ast_dependency_codegen_error(module: &dyn Module, reason: &str) -> Error {
-  rspack_error::error!(
-    "AST dependency code generation failed for module {}: {}",
-    module.identifier(),
-    reason
-  )
-}
-
 impl ParserRuntimeRequirementsData {
   pub fn new(runtime_template: &ModuleCodeTemplate) -> Self {
     let require_name =
@@ -170,6 +163,89 @@ impl std::fmt::Debug for JavaScriptParserAndGenerator {
 impl JavaScriptParserAndGenerator {
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
     self.parser_plugins.push(parser_plugin);
+  }
+
+  fn source_block(
+    &self,
+    compilation: &Compilation,
+    block_id: &AsyncDependenciesBlockIdentifier,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    let module_graph = compilation.get_module_graph();
+    let block = module_graph
+      .block_by_id(block_id)
+      .expect("should have block");
+    block.get_dependencies().iter().for_each(|dependency_id| {
+      self.source_dependency(compilation, dependency_id, source, context)
+    });
+    block
+      .get_blocks()
+      .iter()
+      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
+  }
+
+  fn source_dependency(
+    &self,
+    compilation: &Compilation,
+    dependency_id: &DependencyId,
+    source: &mut TemplateReplaceSource,
+    context: &mut TemplateContext,
+  ) {
+    if let Some(dependency) = compilation
+      .get_module_graph()
+      .dependency_by_id(dependency_id)
+      .as_dependency_code_generation()
+    {
+      if let Some(template) = dependency
+        .dependency_template()
+        .and_then(|template_type| compilation.get_dependency_template(template_type))
+      {
+        template.render(dependency, source, context)
+      } else {
+        panic!(
+          "Can not find dependency template of {:?}",
+          dependency.dependency_template()
+        );
+      }
+    }
+  }
+
+  fn render_dependency_templates(
+    &self,
+    source: &BoxSource,
+    compilation: &Compilation,
+    module: &dyn Module,
+    context: &mut TemplateContext,
+  ) -> BoxSource {
+    let mut source = ReplaceSource::new(source.clone());
+
+    module.get_dependencies().iter().for_each(|dependency_id| {
+      self.source_dependency(compilation, dependency_id, &mut source, context)
+    });
+
+    if let Some(dependencies) = module.get_presentational_dependencies() {
+      dependencies.iter().for_each(|dependency| {
+        if let Some(template) = dependency
+          .dependency_template()
+          .and_then(|template_type| compilation.get_dependency_template(template_type))
+        {
+          template.render(dependency.as_ref(), &mut source, context)
+        } else {
+          panic!(
+            "Can not find dependency template of {:?}",
+            dependency.dependency_template()
+          );
+        }
+      });
+    };
+
+    module
+      .get_blocks()
+      .iter()
+      .for_each(|block_id| self.source_block(compilation, block_id, &mut source, context));
+
+    source.boxed()
   }
 
   fn collect_ast_render_dependency(
@@ -327,7 +403,7 @@ impl JavaScriptParserAndGenerator {
 
   fn render_ast_esm_import_specifier(
     &self,
-    context: &TemplateContext,
+    context: &mut TemplateContext,
     dep: &ESMImportSpecifierDependency,
   ) -> Option<Option<String>> {
     let module_graph = context.compilation.get_module_graph();
@@ -354,34 +430,15 @@ impl JavaScriptParserAndGenerator {
       return Some(None);
     }
 
-    let mut init_fragments = Vec::new();
-    let mut data = CodeGenerationData::default();
-    let mut runtime_template = context.runtime_template.clone();
-    let mut concatenation_scope = context
-      .concatenation_scope
-      .as_ref()
-      .map(|scope| (**scope).clone());
-    let mut temp_context = TemplateContext {
-      compilation: context.compilation,
-      module: context.module,
-      init_fragments: &mut init_fragments,
-      runtime: context.runtime,
-      concatenation_scope: concatenation_scope.as_mut(),
-      data: &mut data,
-      runtime_template: &mut runtime_template,
-    };
     let template = ESMImportSpecifierDependencyTemplate::default();
     if dep.evaluated_in_operator {
       template
-        .get_evaluated_in_operator_code(ids, dep, connection, &mut temp_context)
+        .get_evaluated_in_operator_code(ids, dep, connection, context)
         .map(Some)
     } else {
-      Some(Some(template.get_code_for_ids(
-        ids,
-        dep,
-        connection,
-        &mut temp_context,
-      )))
+      Some(Some(
+        template.get_code_for_ids(ids, dep, connection, context),
+      ))
     }
   }
 
@@ -2406,18 +2463,11 @@ impl JavaScriptParserAndGenerator {
     source_text: &str,
     module: &dyn Module,
     context: &mut TemplateContext,
-  ) -> Result<BoxSource> {
-    let plan = self
-      .collect_ast_render_plan(module, context)
-      .ok_or_else(|| {
-        ast_dependency_codegen_error(module, "unsupported dependency in AST render plan")
-      })?;
-    let source =
-      render_ast_dependencies(source_text, module.module_type(), &plan).ok_or_else(|| {
-        ast_dependency_codegen_error(module, "failed to apply AST dependency replacements")
-      })?;
+  ) -> Option<BoxSource> {
+    let plan = self.collect_ast_render_plan(module, context)?;
+    let source = render_ast_dependencies(source_text, module.module_type(), &plan)?;
     self.apply_ast_dependency_side_effects(context, &plan);
-    Ok(RawStringSource::from(source).boxed())
+    Some(RawStringSource::from(source).boxed())
   }
 
   fn try_render_ast_dependencies_with_source_map(
@@ -2426,21 +2476,14 @@ impl JavaScriptParserAndGenerator {
     source: &BoxSource,
     module: &dyn Module,
     context: &mut TemplateContext,
-  ) -> Result<BoxSource> {
-    let plan = self
-      .collect_ast_render_plan(module, context)
-      .ok_or_else(|| {
-        ast_dependency_codegen_error(module, "unsupported dependency in AST render plan")
-      })?;
+  ) -> Option<BoxSource> {
+    let plan = self.collect_ast_render_plan(module, context)?;
     let mut source = ReplaceSource::new(source.clone());
     if !apply_ast_dependency_replacements(source_text, module.module_type(), &plan, &mut source) {
-      return Err(ast_dependency_codegen_error(
-        module,
-        "failed to apply AST dependency replacements with source map",
-      ));
+      return None;
     }
     self.apply_ast_dependency_side_effects(context, &plan);
-    Ok(source.boxed())
+    Some(source.boxed())
   }
 
   fn apply_ast_dependency_side_effects(
@@ -2660,6 +2703,61 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     ) {
       let source_text = source.source().into_string_lossy();
       let compilation = generate_context.compilation;
+      let has_source_map = source
+        .map(&ObjectPool::default(), &MapOptions::default())
+        .is_some();
+
+      let ast_result = {
+        let mut init_fragments = vec![];
+        let mut data = generate_context.data.clone();
+        let mut runtime_template = generate_context.runtime_template.clone();
+        let mut concatenation_scope = generate_context
+          .concatenation_scope
+          .as_ref()
+          .map(|scope| (**scope).clone());
+        let mut context = TemplateContext {
+          compilation,
+          module,
+          init_fragments: &mut init_fragments,
+          runtime: generate_context.runtime,
+          concatenation_scope: concatenation_scope.as_mut(),
+          data: &mut data,
+          runtime_template: &mut runtime_template,
+        };
+        let source = if has_source_map {
+          self.try_render_ast_dependencies_with_source_map(
+            &source_text,
+            source,
+            module,
+            &mut context,
+          )
+        } else {
+          self.try_render_ast_dependencies(&source_text, module, &mut context)
+        };
+        source.map(|source| {
+          (
+            source,
+            init_fragments,
+            data,
+            runtime_template,
+            concatenation_scope,
+          )
+        })
+      };
+
+      if let Some((source, init_fragments, data, runtime_template, concatenation_scope)) =
+        ast_result
+      {
+        *generate_context.data = data;
+        *generate_context.runtime_template = runtime_template;
+        if let Some(scope) = generate_context.concatenation_scope.as_deref_mut()
+          && let Some(concatenation_scope) = concatenation_scope
+        {
+          *scope = concatenation_scope;
+        }
+        return render_init_fragments(source, init_fragments, generate_context);
+      }
+
       let mut init_fragments = vec![];
       let mut context = TemplateContext {
         compilation,
@@ -2670,20 +2768,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         data: generate_context.data,
         runtime_template: generate_context.runtime_template,
       };
-
-      let has_source_map = source
-        .map(&ObjectPool::default(), &MapOptions::default())
-        .is_some();
-      let source = if has_source_map {
-        self.try_render_ast_dependencies_with_source_map(
-          &source_text,
-          source,
-          module,
-          &mut context,
-        )?
-      } else {
-        self.try_render_ast_dependencies(&source_text, module, &mut context)?
-      };
+      let source = self.render_dependency_templates(source, compilation, module, &mut context);
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source, init_fragments, generate_context)
     } else {

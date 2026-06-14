@@ -41,7 +41,6 @@ slotmap                               = { workspace = true }
 smallvec                              = { workspace = true }
 sugar_path                            = { workspace = true }
 swc_atoms                             = { workspace = true }
-swc_core                              = { workspace = true, features = ["__ecma", "__parser", "__visit", "ecma_ast", "ecma_codegen", "ecma_parser", "swc_ecma_ast", "swc_ecma_codegen", "swc_ecma_visit"] }
 swc_experimental_allocator            = { workspace = true }
 swc_experimental_ecma_ast             = { workspace = true }
 swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
