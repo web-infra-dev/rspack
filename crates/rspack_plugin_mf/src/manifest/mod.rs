@@ -85,6 +85,65 @@ fn get_remote_entry_name(compilation: &Compilation, container_name: &str) -> Opt
   }
   None
 }
+
+fn push_unique(candidates: &mut Vec<String>, candidate: String) {
+  if !candidate.is_empty() && !candidates.contains(&candidate) {
+    candidates.push(candidate);
+  }
+}
+
+fn normalize_expose_name_part(value: &str) -> String {
+  value
+    .chars()
+    .map(|c| {
+      if c.is_ascii_alphanumeric() || c == '_' || c == '-' {
+        c
+      } else {
+        '_'
+      }
+    })
+    .collect()
+}
+
+fn push_expose_chunk_name_candidates(candidates: &mut Vec<String>, value: &str) {
+  let value = value.trim_start_matches("./").trim_matches('/');
+  if value.is_empty() {
+    return;
+  }
+
+  let normalized = normalize_expose_name_part(value);
+  for part in [value, normalized.as_str()] {
+    for prefix in ["__federation_expose_", "_federation_expose_"] {
+      push_unique(candidates, format!("{prefix}{part}"));
+    }
+  }
+}
+
+fn expose_chunk_name_candidates(
+  expose_key: &str,
+  expose_name: &str,
+  import: &str,
+  configured_name: Option<&str>,
+) -> Vec<String> {
+  let mut candidates = Vec::new();
+
+  if let Some(name) = configured_name.filter(|name| !name.is_empty()) {
+    push_unique(&mut candidates, name.to_string());
+  }
+
+  push_expose_chunk_name_candidates(&mut candidates, expose_name);
+  push_expose_chunk_name_candidates(&mut candidates, expose_key);
+
+  if let Some(file_stem) = Path::new(import)
+    .file_stem()
+    .and_then(|file_stem| file_stem.to_str())
+  {
+    push_expose_chunk_name_candidates(&mut candidates, file_stem);
+  }
+
+  candidates
+}
+
 #[plugin_hook(CompilationProcessAssets for ModuleFederationManifestPlugin)]
 async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   // Prepare entrypoint names
@@ -213,7 +272,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
-    let mut expose_chunk_names: HashMap<String, String> = HashMap::default();
+    let mut expose_chunk_keys: HashMap<String, rspack_core::ChunkUkey> = HashMap::default();
+    let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
+      HashMap::default();
     let mut shared_map: HashMap<String, StatsShared> = HashMap::default();
     let mut shared_usage_links: Vec<(String, String)> = Vec::new();
     let mut shared_module_targets: HashMap<String, HashSet<ModuleIdentifier>> = HashMap::default();
@@ -267,7 +328,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               path: expose_key.clone(),
               file: String::new(),
               id: id_comp,
-              name: expose_name,
+              name: expose_name.clone(),
               requires: Vec::new(),
               assets: StatsAssetsGroup::default(),
             });
@@ -276,18 +337,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             && let Some(chunk_group) = compilation
               .chunk_graph
               .get_block_chunk_group(block_id, &compilation.chunk_group_by_ukey)
-            && let Some(chunk_key) = chunk_group.chunks.first()
-            && let Some(chunk) = compilation.chunk_by_ukey.get(chunk_key)
-            && let Some(name) = chunk.name()
           {
-            expose_chunk_names.insert(expose_file_key.clone(), name.to_string());
-          }
+            let candidates = expose_chunk_name_candidates(
+              expose_key,
+              &expose_name,
+              import,
+              options.name.as_deref(),
+            );
+            if let Some(chunk_key) = candidates
+              .iter()
+              .find_map(|name| compilation.named_chunks.get(name))
+              .filter(|chunk_key| chunk_group.chunks.contains(chunk_key))
+              .or_else(|| {
+                chunk_group.chunks.iter().find(|chunk_key| {
+                  compilation
+                    .chunk_by_ukey
+                    .get(chunk_key)
+                    .and_then(|chunk| chunk.name())
+                    .is_some_and(|name| candidates.iter().any(|candidate| candidate == name))
+                })
+              })
+            {
+              expose_chunk_keys.insert(expose_file_key.clone(), *chunk_key);
+            }
 
-          if !expose_chunk_names.contains_key(&expose_file_key)
-            && let Some(n) = &options.name
-            && !n.is_empty()
-          {
-            expose_chunk_names.insert(expose_file_key, n.clone());
+            if let Some(chunk_key) = chunk_group.chunks.iter().find(|chunk_key| {
+              compilation
+                .chunk_by_ukey
+                .get(chunk_key)
+                .and_then(|chunk| chunk.name())
+                .is_some()
+            }) {
+              expose_fallback_chunk_keys.insert(expose_file_key, *chunk_key);
+            }
           }
         }
         continue;
@@ -450,9 +532,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
     for (expose_file_key, expose) in exposes_map.iter_mut() {
       let mut assets = None;
-      if let Some(chunk_name) = expose_chunk_names.get(expose_file_key)
-        && let Some(chunk_key) = compilation.named_chunks.get(chunk_name)
-      {
+      if let Some(chunk_key) = expose_chunk_keys.get(expose_file_key) {
         assets = Some(collect_assets_from_chunk(
           compilation,
           chunk_key,
@@ -472,6 +552,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         && let Some(module_id) = module_ids_by_name.get(expose_file_key)
       {
         assets = collect_assets_for_module(compilation, module_id, &entry_files);
+      }
+      if assets.is_none()
+        && let Some(chunk_key) = expose_fallback_chunk_keys.get(expose_file_key)
+      {
+        assets = Some(collect_assets_from_chunk(
+          compilation,
+          chunk_key,
+          &entry_files,
+        ));
       }
       let mut assets = assets.unwrap_or_else(empty_assets_group);
       if let Some(path) = expose_module_paths.get(expose_file_key) {
