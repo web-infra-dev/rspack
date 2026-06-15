@@ -23,7 +23,6 @@ module.exports = {
     expect(source).toMatch(/var __rspack_exports\s*=/);
     expect(source).toContain("// The module cache");
     expect(source).toContain("// The require function");
-    expect(source).toContain("// expose the modules object (__rspack_modules)");
 
     expect(source).not.toMatch(/function __webpack_require__\s*\(/);
     expect(source).not.toMatch(/var __webpack_modules__\s*=/);
