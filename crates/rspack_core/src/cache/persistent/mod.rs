@@ -7,7 +7,6 @@ pub mod storage;
 
 use std::{
   hash::{DefaultHasher, Hash, Hasher},
-  num::NonZeroU32,
   sync::Arc,
 };
 
@@ -44,9 +43,12 @@ pub struct PersistentCacheOptions {
   pub portable: bool,
   #[cacheable(with=Skip)]
   pub readonly: bool,
-  /// Filesystem retention also participates in compiler-scoped version identity.
+  /// Filesystem cache max age in seconds. `None` uses the storage default.
   #[cacheable(with=Skip)]
-  pub max_versions: Option<NonZeroU32>,
+  pub max_age: Option<u64>,
+  /// Filesystem generation count also participates in compiler-scoped version identity.
+  #[cacheable(with=Skip)]
+  pub max_generations: Option<u32>,
 }
 
 /// Persistent cache implementation
@@ -78,7 +80,7 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    let max_versions = option.max_versions;
+    let max_generations = option.max_generations;
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec
@@ -93,8 +95,8 @@ impl PersistentCache {
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
-    let version = if max_versions.is_some() {
-      let scope = retention_scope(
+    let version = if max_generations.is_some() {
+      let scope = generation_scope(
         (!option.portable).then_some(compiler_options.context.as_str()),
         compiler_path,
         compiler_options.name.as_deref(),
@@ -106,7 +108,8 @@ impl PersistentCache {
     let storage = create_storage(
       option.storage.clone(),
       version,
-      max_versions,
+      option.max_age,
+      max_generations,
       intermediate_filesystem,
     );
     let snapshot = Arc::new(Snapshot::new(
@@ -150,7 +153,7 @@ impl PersistentCache {
   }
 }
 
-fn retention_scope(
+fn generation_scope(
   context: Option<&str>,
   compiler_path: &str,
   compiler_name: Option<&str>,
@@ -271,21 +274,21 @@ impl Cache for PersistentCache {
 
 #[cfg(test)]
 mod tests {
-  use super::retention_scope;
+  use super::generation_scope;
 
   #[test]
-  fn retention_scope_uses_typed_compiler_identity() {
+  fn generation_scope_uses_typed_compiler_identity() {
     assert_ne!(
-      retention_scope(Some("ab"), "c", Some("d")),
-      retention_scope(Some("a"), "bc", Some("d"))
+      generation_scope(Some("ab"), "c", Some("d")),
+      generation_scope(Some("a"), "bc", Some("d"))
     );
     assert_ne!(
-      retention_scope(Some("context"), "compiler", None),
-      retention_scope(Some("context"), "compiler", Some(""))
+      generation_scope(Some("context"), "compiler", None),
+      generation_scope(Some("context"), "compiler", Some(""))
     );
     assert_ne!(
-      retention_scope(Some("/project-a"), "compiler", Some("app")),
-      retention_scope(Some("/project-b"), "compiler", Some("app"))
+      generation_scope(Some("/project-a"), "compiler", Some("app")),
+      generation_scope(Some("/project-b"), "compiler", Some("app"))
     );
   }
 }

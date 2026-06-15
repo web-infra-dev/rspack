@@ -31,7 +31,8 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
-        maxVersions?: number;
+        maxAge?: number;
+        maxGenerations?: number;
       };
     };
 ```
@@ -215,7 +216,7 @@ Specifies paths within `snapshot.managedPaths` that should not be treated as man
 
 ### cache.storage
 
-- **Type:** `{ type: 'filesystem'; directory?: string; maxVersions?: number }`
+- **Type:** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
 
 - **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
 
@@ -236,16 +237,16 @@ export default {
 :::tip
 Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
 
-Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+Rspack will automatically clean up cache folders that have not been accessed longer than `cache.storage.maxAge`.
 :::
 
-#### cache.storage.maxVersions
+#### cache.storage.maxAge
 
-- **Type:** `number` (integer from `1` to `4294967295`)
+- **Type:** `number` (integer from `0` to `4294967295`, in seconds)
 
-- **Default:** No count limit; the existing 7-day age-based cleanup still applies
+- **Default:** `7 * 24 * 60 * 60` (7 days)
 
-The maximum number of cache versions retained for each compiler. When the limit is exceeded, Rspack removes the least recently accessed versions for that compiler. Other compilers using the same storage directory are not counted toward the limit.
+The maximum age of cache versions. Versions that have not been accessed within this time are removed during cache cleanup. Set it to `0` to disable age-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -253,7 +254,27 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      maxVersions: 1,
+      maxAge: 7 * 24 * 60 * 60,
+    },
+  },
+};
+```
+
+#### cache.storage.maxGenerations
+
+- **Type:** `number` (integer from `0` to `4294967295`)
+
+- **Default:** No generation count limit; age-based cleanup still applies
+
+The maximum number of cache generations retained for each compiler. When the limit is exceeded, Rspack removes the least recently accessed generations for that compiler. Other compilers using the same storage directory are not counted toward the limit. Set it to `0` to remove previous generations during cleanup.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxGenerations: 1,
     },
   },
 };
@@ -261,7 +282,7 @@ export default {
 
 Each compiler is counted independently, so compilers that share `storage.directory` do not consume each other's limit.
 
-Enabling `maxVersions` uses compiler-scoped cache version directories. Existing unscoped versions continue to use the 7-day age cleanup and are not counted toward the limit.
+Enabling `maxGenerations` uses compiler-scoped cache version directories. Existing unscoped versions continue to use age-based cleanup and are not counted toward the limit.
 
 :::warning
 Concurrent builds of the same compiler share this limit and may remove one another's older cache versions.

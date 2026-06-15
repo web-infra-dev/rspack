@@ -7,7 +7,7 @@ module.exports = {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      maxVersions: 1,
+      maxGenerations: 1,
     },
     snapshot: {
       immutablePaths: [path.resolve(__dirname, './file.js')],

@@ -18,7 +18,7 @@ const runCompiler = (context, cacheDirectory, name, version) =>
 				storage: {
 					type: "filesystem",
 					directory: cacheDirectory,
-					maxVersions: 1
+					maxGenerations: 1
 				}
 			}
 		});
@@ -42,7 +42,7 @@ const getVersions = directory =>
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
-	description: "should limit persistent cache versions per compiler",
+	description: "should limit persistent cache generations per compiler",
 	options(context) {
 		return {
 			context: context.getSource(),
@@ -52,7 +52,7 @@ module.exports = {
 	async build(context) {
 		const cacheDirectory = path.join(
 			context.getDist(),
-			"persistent-cache-max-versions"
+			"persistent-cache-max-generations"
 		);
 		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 

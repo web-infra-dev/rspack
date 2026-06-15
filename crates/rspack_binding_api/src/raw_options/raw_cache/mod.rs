@@ -27,7 +27,7 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawCacheOptionsPersistent) -> rspack_error::Result<Self> {
-    let (storage, max_versions) = value.storage.unwrap_or_default().normalize()?;
+    let (storage, max_age, max_generations) = value.storage.unwrap_or_default().normalize()?;
     Ok(Self {
       build_dependencies: value
         .build_dependencies
@@ -40,7 +40,8 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
       storage,
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
-      max_versions,
+      max_age,
+      max_generations,
     })
   }
 }

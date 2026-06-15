@@ -299,9 +299,12 @@ export const getNormalizedRspackOptions = (
             config.context || process.cwd(),
             cache.storage?.directory || 'node_modules/.cache/rspack',
           ),
-          ...(cache.storage?.maxVersions === undefined
+          ...(cache.storage?.maxAge === undefined
             ? {}
-            : { maxVersions: cache.storage.maxVersions }),
+            : { maxAge: cache.storage.maxAge }),
+          ...(cache.storage?.maxGenerations === undefined
+            ? {}
+            : { maxGenerations: cache.storage.maxGenerations }),
         },
         portable: cache.portable,
         readonly: cache.readonly,
@@ -610,7 +613,8 @@ export type CacheNormalized =
       storage: {
         type: 'filesystem';
         directory: string;
-        maxVersions?: number;
+        maxAge?: number;
+        maxGenerations?: number;
       };
       portable?: boolean;
     };

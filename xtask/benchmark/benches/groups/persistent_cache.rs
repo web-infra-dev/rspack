@@ -203,7 +203,8 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       },
       portable: false,
       readonly: false,
-      max_versions: None,
+      max_age: None,
+      max_generations: None,
     }))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(Arc::new(NoopFileSystem));

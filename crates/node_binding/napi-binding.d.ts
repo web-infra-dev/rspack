@@ -3084,7 +3084,9 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
-  maxVersions?: number
+  /** JavaScript config value in seconds. */
+  maxAge?: number
+  maxGenerations?: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

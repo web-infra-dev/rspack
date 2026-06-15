@@ -3,10 +3,7 @@ mod meta;
 mod options;
 mod scope_fs;
 
-use std::{
-  num::NonZeroU32,
-  sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
 
@@ -21,7 +18,7 @@ async fn refresh_metadata(
   fs: ScopeFileSystem,
   version: String,
   expire: u64,
-  max_versions: Option<NonZeroU32>,
+  max_generations: Option<u32>,
   next_meta_refresh_time: Arc<Mutex<u64>>,
 ) {
   let now = Meta::current_timestamp();
@@ -34,13 +31,13 @@ async fn refresh_metadata(
     Err(error) if error.is_not_found() => Meta::default(),
     Err(_) => return,
   };
-  let versions = if max_versions.is_some() {
+  let versions = if max_generations.is_some() {
     fs.list_child().await.unwrap_or_default()
   } else {
     Vec::new()
   };
   let Ok((removed_versions, next_refresh_time)) = meta
-    .refresh(&version, expire, max_versions, &versions)
+    .refresh(&version, expire, max_generations, &versions)
     .await
   else {
     return;
@@ -117,7 +114,7 @@ impl Storage for FileSystemStorage {
       self.options.max_pack_size,
     );
 
-    if self.options.max_versions.is_none() {
+    if self.options.max_generations.is_none() {
       tokio::spawn(refresh_metadata(
         self.fs.clone(),
         self.options.version.clone(),
@@ -137,12 +134,12 @@ impl Storage for FileSystemStorage {
 
   async fn flush(&self) {
     self.db.flush().await;
-    if self.options.max_versions.is_some() && !self.db.is_readonly() {
+    if self.options.max_generations.is_some() && !self.db.is_readonly() {
       refresh_metadata(
         self.fs.clone(),
         self.options.version.clone(),
         self.options.expire,
-        self.options.max_versions,
+        self.options.max_generations,
         self.next_meta_refresh_time.clone(),
       )
       .await;
@@ -157,7 +154,7 @@ impl Storage for FileSystemStorage {
 
 #[cfg(test)]
 mod tests {
-  use std::{num::NonZeroU32, sync::Arc};
+  use std::sync::Arc;
 
   use futures::future::join_all;
   use rspack_fs::MemoryFileSystem;
@@ -171,7 +168,7 @@ mod tests {
       version: version.into(),
       max_pack_size: 500 * 1024,
       expire: 0,
-      max_versions: NonZeroU32::new(2),
+      max_generations: Some(2),
       fs,
     });
     storage.set("scope", b"key".to_vec(), b"value".to_vec());
