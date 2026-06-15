@@ -8,16 +8,16 @@ use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
-  CachedConstDependency, ChunkGraph, CollectedTypeScriptInfo, Compilation, ConstDependency,
-  ContextDependency, ContextMode, DEFAULT_EXPORT, DependenciesBlock, Dependency,
-  DependencyCodeGeneration, DependencyId, DependencyRange, ESMExportBinding, ESMExportInitFragment,
-  ExportMode, ExportsArgument, ExportsType, ExternalModuleInitFragment, GenerateContext,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserUrl, Module,
-  ModuleArgument, ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleType,
-  NormalInitFragment, ParseContext, ParseResult, ParserAndGenerator, RuntimeCondition,
+  CachedConstDependency, ChunkGraph, CodeGenerationPublicPathAutoReplace, CollectedTypeScriptInfo,
+  Compilation, ConstDependency, ContextDependency, ContextMode, DEFAULT_EXPORT, DependenciesBlock,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyRange, ESMExportBinding,
+  ESMExportInitFragment, ExportMode, ExportsArgument, ExportsType, ExternalModuleInitFragment,
+  GenerateContext, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  JavascriptParserUrl, Module, ModuleArgument, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
+  ModuleType, NormalInitFragment, ParseContext, ParseResult, ParserAndGenerator, RuntimeCondition,
   RuntimeGlobals, RuntimeRequirementsDependency, RuntimeRequirementsDependencyMode,
-  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName,
+  RuntimeVariable, SideEffectsBailoutItem, SourceType, TemplateContext, URLStaticMode, UsageState,
+  UsedName,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   property_access, property_access_with_optional, remove_bom, render_init_fragments,
   rspack_sources::{
@@ -53,8 +53,9 @@ use crate::{
     ModuleHotAcceptDependency, ModuleHotDeclineDependency, ProvideDependency,
     PureExpressionDependency, RequireContextDependency, RequireEnsureDependency,
     RequireHeaderDependency, RequireMainDependency, RequireResolveContextDependency,
-    RequireResolveDependency, RequireResolveHeaderDependency, URLContextDependency, URLDependency,
-    WorkerDependency, amd_define_dependency::AMDDefineDependency,
+    RequireResolveDependency, RequireResolveHeaderDependency, URL_STATIC_PLACEHOLDER,
+    URLContextDependency, URLDependency, WorkerDependency,
+    amd_define_dependency::AMDDefineDependency,
     amd_require_array_dependency::AMDRequireArrayDependency,
     amd_require_dependency::AMDRequireDependency,
     amd_require_item_dependency::AMDRequireItemDependency, esm_import_dependency_apply,
@@ -63,6 +64,7 @@ use crate::{
   },
   is_export_inlined,
   parser_plugin::JS_DEFAULT_KEYWORD,
+  runtime::AUTO_PUBLIC_PATH_PLACEHOLDER,
   visitors::{ParsedJavaScriptAst, ScanDependenciesResult, scan_dependencies, semicolon},
 };
 
@@ -165,105 +167,27 @@ impl JavaScriptParserAndGenerator {
     self.parser_plugins.push(parser_plugin);
   }
 
-  fn source_block(
-    &self,
-    compilation: &Compilation,
-    block_id: &AsyncDependenciesBlockIdentifier,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    let module_graph = compilation.get_module_graph();
-    let block = module_graph
-      .block_by_id(block_id)
-      .expect("should have block");
-    block.get_dependencies().iter().for_each(|dependency_id| {
-      self.source_dependency(compilation, dependency_id, source, context)
-    });
-    block
-      .get_blocks()
-      .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, source, context));
-  }
-
-  fn source_dependency(
-    &self,
-    compilation: &Compilation,
-    dependency_id: &DependencyId,
-    source: &mut TemplateReplaceSource,
-    context: &mut TemplateContext,
-  ) {
-    if let Some(dependency) = compilation
-      .get_module_graph()
-      .dependency_by_id(dependency_id)
-      .as_dependency_code_generation()
-    {
-      if let Some(template) = dependency
-        .dependency_template()
-        .and_then(|template_type| compilation.get_dependency_template(template_type))
-      {
-        template.render(dependency, source, context)
-      } else {
-        panic!(
-          "Can not find dependency template of {:?}",
-          dependency.dependency_template()
-        );
-      }
-    }
-  }
-
-  fn render_dependency_templates(
-    &self,
-    source: &BoxSource,
-    compilation: &Compilation,
-    module: &dyn Module,
-    context: &mut TemplateContext,
-  ) -> BoxSource {
-    let mut source = ReplaceSource::new(source.clone());
-
-    module.get_dependencies().iter().for_each(|dependency_id| {
-      self.source_dependency(compilation, dependency_id, &mut source, context)
-    });
-
-    if let Some(dependencies) = module.get_presentational_dependencies() {
-      dependencies.iter().for_each(|dependency| {
-        if let Some(template) = dependency
-          .dependency_template()
-          .and_then(|template_type| compilation.get_dependency_template(template_type))
-        {
-          template.render(dependency.as_ref(), &mut source, context)
-        } else {
-          panic!(
-            "Can not find dependency template of {:?}",
-            dependency.dependency_template()
-          );
-        }
-      });
-    };
-
-    module
-      .get_blocks()
-      .iter()
-      .for_each(|block_id| self.source_block(compilation, block_id, &mut source, context));
-
-    source.boxed()
-  }
-
   fn collect_ast_render_dependency(
     &self,
     compilation: &Compilation,
     dependency_id: &DependencyId,
     context: &mut TemplateContext,
     plan: &mut AstDependencyRenderPlan,
-  ) -> bool {
+  ) {
     let Some(dependency) = compilation
       .get_module_graph()
       .dependency_by_id(dependency_id)
       .as_dependency_code_generation()
     else {
-      return true;
+      return;
     };
 
-    self.collect_ast_render_action(dependency, context, plan)
+    if !self.collect_ast_render_action(dependency, context, plan) {
+      panic!(
+        "Unsupported dependency in AST codegen: {:?}",
+        dependency.dependency_template()
+      );
+    }
   }
 
   fn collect_ast_render_block(
@@ -272,42 +196,45 @@ impl JavaScriptParserAndGenerator {
     block_id: &AsyncDependenciesBlockIdentifier,
     context: &mut TemplateContext,
     plan: &mut AstDependencyRenderPlan,
-  ) -> bool {
+  ) {
     let module_graph = compilation.get_module_graph();
     let block = module_graph
       .block_by_id(block_id)
       .expect("should have block");
-    block.get_dependencies().iter().all(|dependency_id| {
-      self.collect_ast_render_dependency(compilation, dependency_id, context, plan)
-    }) && block
-      .get_blocks()
-      .iter()
-      .all(|block_id| self.collect_ast_render_block(compilation, block_id, context, plan))
+    for dependency_id in block.get_dependencies() {
+      self.collect_ast_render_dependency(compilation, dependency_id, context, plan);
+    }
+    for block_id in block.get_blocks() {
+      self.collect_ast_render_block(compilation, block_id, context, plan);
+    }
   }
 
   fn collect_ast_render_plan(
     &self,
     module: &dyn Module,
     context: &mut TemplateContext,
-  ) -> Option<AstDependencyRenderPlan> {
+  ) -> AstDependencyRenderPlan {
     let mut plan = AstDependencyRenderPlan::default();
     let compilation = context.compilation;
 
-    let supported = module.get_dependencies().iter().all(|dependency_id| {
-      self.collect_ast_render_dependency(compilation, dependency_id, context, &mut plan)
-    }) && module
-      .get_presentational_dependencies()
-      .is_none_or(|dependencies| {
-        dependencies
-          .iter()
-          .all(|dependency| self.collect_ast_render_action(dependency.as_ref(), context, &mut plan))
-      })
-      && module
-        .get_blocks()
-        .iter()
-        .all(|block_id| self.collect_ast_render_block(compilation, block_id, context, &mut plan));
+    for dependency_id in module.get_dependencies() {
+      self.collect_ast_render_dependency(compilation, dependency_id, context, &mut plan);
+    }
+    if let Some(dependencies) = module.get_presentational_dependencies() {
+      for dependency in dependencies {
+        if !self.collect_ast_render_action(dependency.as_ref(), context, &mut plan) {
+          panic!(
+            "Unsupported dependency in AST codegen: {:?}",
+            dependency.dependency_template()
+          );
+        }
+      }
+    }
+    for block_id in module.get_blocks() {
+      self.collect_ast_render_block(compilation, block_id, context, &mut plan);
+    }
 
-    supported.then_some(plan)
+    plan
   }
 
   fn render_ast_amd_require_array(
@@ -327,6 +254,83 @@ impl JavaScriptParserAndGenerator {
     context
       .runtime_template
       .module_raw(context.compilation, dep.id(), dep.request(), weak)
+  }
+
+  fn render_ast_module_namespace_promise(
+    &self,
+    context: &mut TemplateContext,
+    dependency_id: &DependencyId,
+    request: &str,
+    dependency_type: &str,
+    weak: bool,
+    phase: ImportPhase,
+  ) -> String {
+    let module_graph = context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(dependency_id);
+    context.runtime_template.module_namespace_promise(
+      context.compilation,
+      context.module.identifier(),
+      dependency_id,
+      block,
+      request,
+      dependency_type,
+      weak,
+      phase,
+    )
+  }
+
+  fn render_ast_import_dependency(
+    &self,
+    context: &mut TemplateContext,
+    dep: &ImportDependency,
+  ) -> String {
+    let mut content = self.render_ast_module_namespace_promise(
+      context,
+      dep.id(),
+      dep.request(),
+      dep.dependency_type().as_str(),
+      false,
+      dep.phase(),
+    );
+    if dep.phase().is_source() {
+      content = format!(
+        "{content}.then({})",
+        context
+          .runtime_template
+          .returning_function("m[\"default\"]", "m")
+      );
+    }
+    content
+  }
+
+  fn render_ast_import_eager_dependency(
+    &self,
+    context: &mut TemplateContext,
+    dep: &ImportEagerDependency,
+  ) -> String {
+    self.render_ast_module_namespace_promise(
+      context,
+      dep.id(),
+      dep.request(),
+      dep.dependency_type().as_str(),
+      false,
+      dep.phase(),
+    )
+  }
+
+  fn render_ast_import_weak_dependency(
+    &self,
+    context: &mut TemplateContext,
+    dep: &ImportWeakDependency,
+  ) -> String {
+    self.render_ast_module_namespace_promise(
+      context,
+      dep.id(),
+      dep.request(),
+      dep.dependency_type().as_str(),
+      true,
+      dep.phase(),
+    )
   }
 
   fn collect_ast_context_require_call_action(
@@ -401,6 +405,68 @@ impl JavaScriptParserAndGenerator {
     true
   }
 
+  fn collect_ast_url_action(
+    &self,
+    context: &mut TemplateContext,
+    plan: &mut AstDependencyRenderPlan,
+    dep: &URLDependency,
+  ) -> bool {
+    let (range, content) = match dep.mode() {
+      Some(JavascriptParserUrl::Relative) => (
+        dep.range(),
+        format!(
+          "/* asset import */ new {}({}({}))",
+          context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::RELATIVE_URL),
+          context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          context
+            .runtime_template
+            .module_id(context.compilation, dep.id(), dep.request(), false),
+        ),
+      ),
+      Some(JavascriptParserUrl::NewUrlRelative) => {
+        context.data.insert(URLStaticMode);
+        context
+          .data
+          .insert(CodeGenerationPublicPathAutoReplace(true));
+        (
+          dep.range(),
+          format!(
+            "new URL({}, import.meta.url)",
+            rspack_util::json_stringify_str(&format!(
+              "{AUTO_PUBLIC_PATH_PLACEHOLDER}{URL_STATIC_PLACEHOLDER}{}",
+              dep.id().as_u32()
+            )),
+          ),
+        )
+      }
+      _ => (
+        dep.range_url(),
+        format!(
+          "/* asset import */{}({}), {}",
+          context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          context
+            .runtime_template
+            .module_id(context.compilation, dep.id(), dep.request(), false),
+          context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::BASE_URI)
+        ),
+      ),
+    };
+
+    let Some(action) = AstDependencyAction::expr(range, content) else {
+      return false;
+    };
+    plan.push_action(action);
+    true
+  }
+
   fn render_ast_esm_import_specifier(
     &self,
     context: &mut TemplateContext,
@@ -432,9 +498,7 @@ impl JavaScriptParserAndGenerator {
 
     let template = ESMImportSpecifierDependencyTemplate::default();
     if dep.evaluated_in_operator {
-      template
-        .get_evaluated_in_operator_code(ids, dep, connection, context)
-        .map(Some)
+      Some(template.get_evaluated_in_operator_code(ids, dep, connection, context))
     } else {
       Some(Some(
         template.get_code_for_ids(ids, dep, connection, context),
@@ -1343,6 +1407,61 @@ impl JavaScriptParserAndGenerator {
     }
   }
 
+  fn push_ast_dependency_replacements(
+    &self,
+    plan: &mut AstDependencyRenderPlan,
+    replacements: Vec<(DependencyRange, String)>,
+  ) -> bool {
+    if replacements.is_empty() {
+      return true;
+    }
+
+    let range = replacements
+      .iter()
+      .fold(None, |range: Option<DependencyRange>, (replacement, _)| {
+        Some(if let Some(range) = range {
+          DependencyRange::new(
+            range.start.min(replacement.start),
+            range.end.max(replacement.end),
+          )
+        } else {
+          *replacement
+        })
+      })
+      .expect("replacements is not empty");
+
+    let action = if replacements.len() == 1 {
+      let (range, content) = replacements.into_iter().next().expect("replacement exists");
+      AstDependencyAction::expr(range, content)
+    } else {
+      AstDependencyAction::range_replacements(
+        range,
+        replacements
+          .into_iter()
+          .map(|(range, content)| (content, range.start, range.end))
+          .collect(),
+      )
+    };
+    let Some(action) = action else {
+      return false;
+    };
+    plan.push_action(action);
+    true
+  }
+
+  fn apply_ast_template_side_effects(
+    &self,
+    dependency: &dyn DependencyCodeGeneration,
+    context: &mut TemplateContext,
+    init_fragments_start: usize,
+  ) {
+    if let Some(template_type) = dependency.dependency_template()
+      && let Some(template) = context.compilation.get_dependency_template(template_type)
+    {
+      template.after_ast_render(dependency, context, init_fragments_start);
+    }
+  }
+
   fn collect_ast_render_action(
     &self,
     dependency: &dyn DependencyCodeGeneration,
@@ -1353,11 +1472,24 @@ impl JavaScriptParserAndGenerator {
       return true;
     }
 
+    if let Some(replacements) = dependency.ast_dependency_replacements(context) {
+      return self.push_ast_dependency_replacements(plan, replacements);
+    }
+
+    if let Some(template_type) = dependency.dependency_template()
+      && let Some(template) = context.compilation.get_dependency_template(template_type)
+      && let Some(replacements) = template.render_ast(dependency, context)
+    {
+      return self.push_ast_dependency_replacements(plan, replacements);
+    }
+
     if let Some(dep) = dependency
       .as_any()
       .downcast_ref::<ESMImportSideEffectDependency>()
     {
+      let init_fragments_start = context.init_fragments.len();
       self.apply_ast_esm_import_side_effect(context, dep);
+      self.apply_ast_template_side_effects(dependency, context, init_fragments_start);
       return true;
     }
 
@@ -1479,13 +1611,8 @@ impl JavaScriptParserAndGenerator {
       return self.collect_ast_context_id_action(context, plan, dep, dep.range());
     }
 
-    if let Some(dep) = dependency.as_any().downcast_ref::<URLDependency>()
-      && !matches!(
-        dep.mode(),
-        Some(JavascriptParserUrl::Relative | JavascriptParserUrl::NewUrlRelative)
-      )
-    {
-      return false;
+    if let Some(dep) = dependency.as_any().downcast_ref::<URLDependency>() {
+      return self.collect_ast_url_action(context, plan, dep);
     }
 
     if let Some(dep) = dependency.as_any().downcast_ref::<AMDDefineDependency>() {
@@ -1501,8 +1628,7 @@ impl JavaScriptParserAndGenerator {
         };
         plan.push_action(action);
       }
-      let Some(action) = AstDependencyAction::validated_replacements(dep.range(), replacements)
-      else {
+      let Some(action) = AstDependencyAction::range_replacements(dep.range(), replacements) else {
         return false;
       };
       plan.push_action(action);
@@ -1518,10 +1644,12 @@ impl JavaScriptParserAndGenerator {
       .as_any()
       .downcast_ref::<ESMImportSpecifierDependency>()
     {
+      let init_fragments_start = context.init_fragments.len();
       let Some(content) = self.render_ast_esm_import_specifier(context, dep) else {
         return false;
       };
       let Some(content) = content else {
+        self.apply_ast_template_side_effects(dependency, context, init_fragments_start);
         return true;
       };
       let Some(range) = dep.range() else {
@@ -1539,6 +1667,7 @@ impl JavaScriptParserAndGenerator {
       if !self.collect_ast_esm_import_specifier_destructuring_actions(context, dep, plan) {
         return false;
       }
+      self.apply_ast_template_side_effects(dependency, context, init_fragments_start);
       return true;
     }
 
@@ -1555,7 +1684,7 @@ impl JavaScriptParserAndGenerator {
     {
       let range = dep.range();
       let action = if let Some(range_decl) = dep.range_decl() {
-        AstDependencyAction::validated_replacements(
+        AstDependencyAction::range_replacements(
           range,
           vec![(String::new(), range.start, range_decl.start)],
         )
@@ -1577,6 +1706,24 @@ impl JavaScriptParserAndGenerator {
       plan.push_side_effect(AstDependencySideEffect::RuntimeRequirements(
         dep.runtime_requirements,
       ));
+      return true;
+    }
+
+    if let Some(dep) = dependency
+      .as_any()
+      .downcast_ref::<AMDRequireItemDependency>()
+    {
+      let Some(range) = dep.ast_dependency_range() else {
+        return true;
+      };
+      let content =
+        context
+          .runtime_template
+          .module_raw(context.compilation, dep.id(), dep.request(), false);
+      let Some(action) = AstDependencyAction::expr(range, content.into_boxed_str()) else {
+        return false;
+      };
+      plan.push_action(action);
       return true;
     }
 
@@ -1618,21 +1765,6 @@ impl JavaScriptParserAndGenerator {
     if let Some(dep) = dependency.as_any().downcast_ref::<LocalModuleDependency>() {
       let Some(action) = AstDependencyAction::expr(range, dep.module_instance().into_boxed_str())
       else {
-        return false;
-      };
-      plan.push_action(action);
-      return true;
-    }
-
-    if let Some(dep) = dependency
-      .as_any()
-      .downcast_ref::<AMDRequireItemDependency>()
-    {
-      let content =
-        context
-          .runtime_template
-          .module_raw(context.compilation, dep.id(), dep.request(), false);
-      let Some(action) = AstDependencyAction::expr(range, content.into_boxed_str()) else {
         return false;
       };
       plan.push_action(action);
@@ -1791,7 +1923,9 @@ impl JavaScriptParserAndGenerator {
         }
       };
 
-      let Some(action) = AstDependencyAction::wrapped_source(range, range, prefix, suffix) else {
+      let Some(action) =
+        AstDependencyAction::wrapped_source_trim_trailing_semicolon(range, prefix, suffix)
+      else {
         return false;
       };
       plan.push_action(action);
@@ -2380,28 +2514,34 @@ impl JavaScriptParserAndGenerator {
       return true;
     }
 
-    if dependency
-      .as_any()
-      .downcast_ref::<ImportDependency>()
-      .is_some()
-    {
-      return false;
+    if let Some(dep) = dependency.as_any().downcast_ref::<ImportDependency>() {
+      let Some(action) =
+        AstDependencyAction::expr(range, self.render_ast_import_dependency(context, dep))
+      else {
+        return false;
+      };
+      plan.push_action(action);
+      return true;
     }
 
-    if dependency
-      .as_any()
-      .downcast_ref::<ImportEagerDependency>()
-      .is_some()
-    {
-      return false;
+    if let Some(dep) = dependency.as_any().downcast_ref::<ImportEagerDependency>() {
+      let Some(action) =
+        AstDependencyAction::expr(range, self.render_ast_import_eager_dependency(context, dep))
+      else {
+        return false;
+      };
+      plan.push_action(action);
+      return true;
     }
 
-    if dependency
-      .as_any()
-      .downcast_ref::<ImportWeakDependency>()
-      .is_some()
-    {
-      return false;
+    if let Some(dep) = dependency.as_any().downcast_ref::<ImportWeakDependency>() {
+      let Some(action) =
+        AstDependencyAction::expr(range, self.render_ast_import_weak_dependency(context, dep))
+      else {
+        return false;
+      };
+      plan.push_action(action);
+      return true;
     }
 
     if dependency
@@ -2503,32 +2643,30 @@ impl JavaScriptParserAndGenerator {
     false
   }
 
-  fn try_render_ast_dependencies(
+  fn render_ast_dependencies(
     &self,
     source_text: &str,
     module: &dyn Module,
     context: &mut TemplateContext,
-  ) -> Option<BoxSource> {
-    let plan = self.collect_ast_render_plan(module, context)?;
-    let source = render_ast_dependencies(source_text, module.module_type(), &plan)?;
+  ) -> BoxSource {
+    let plan = self.collect_ast_render_plan(module, context);
+    let source = render_ast_dependencies(source_text, &plan);
     self.apply_ast_dependency_side_effects(context, &plan);
-    Some(RawStringSource::from(source).boxed())
+    RawStringSource::from(source).boxed()
   }
 
-  fn try_render_ast_dependencies_with_source_map(
+  fn render_ast_dependencies_with_source_map(
     &self,
     source_text: &str,
     source: &BoxSource,
     module: &dyn Module,
     context: &mut TemplateContext,
-  ) -> Option<BoxSource> {
-    let plan = self.collect_ast_render_plan(module, context)?;
+  ) -> BoxSource {
+    let plan = self.collect_ast_render_plan(module, context);
     let mut source = ReplaceSource::new(source.clone());
-    if !apply_ast_dependency_replacements(source_text, module.module_type(), &plan, &mut source) {
-      return None;
-    }
+    apply_ast_dependency_replacements(source_text, &plan, &mut source);
     self.apply_ast_dependency_side_effects(context, &plan);
-    Some(source.boxed())
+    source.boxed()
   }
 
   fn apply_ast_dependency_side_effects(
@@ -2752,57 +2890,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         .map(&ObjectPool::default(), &MapOptions::default())
         .is_some();
 
-      let ast_result = {
-        let mut init_fragments = vec![];
-        let mut data = generate_context.data.clone();
-        let mut runtime_template = generate_context.runtime_template.clone();
-        let mut concatenation_scope = generate_context
-          .concatenation_scope
-          .as_ref()
-          .map(|scope| (**scope).clone());
-        let mut context = TemplateContext {
-          compilation,
-          module,
-          init_fragments: &mut init_fragments,
-          runtime: generate_context.runtime,
-          concatenation_scope: concatenation_scope.as_mut(),
-          data: &mut data,
-          runtime_template: &mut runtime_template,
-        };
-        let source = if has_source_map {
-          self.try_render_ast_dependencies_with_source_map(
-            &source_text,
-            source,
-            module,
-            &mut context,
-          )
-        } else {
-          self.try_render_ast_dependencies(&source_text, module, &mut context)
-        };
-        source.map(|source| {
-          (
-            source,
-            init_fragments,
-            data,
-            runtime_template,
-            concatenation_scope,
-          )
-        })
-      };
-
-      if let Some((source, init_fragments, data, runtime_template, concatenation_scope)) =
-        ast_result
-      {
-        *generate_context.data = data;
-        *generate_context.runtime_template = runtime_template;
-        if let Some(scope) = generate_context.concatenation_scope.as_deref_mut()
-          && let Some(concatenation_scope) = concatenation_scope
-        {
-          *scope = concatenation_scope;
-        }
-        return render_init_fragments(source, init_fragments, generate_context);
-      }
-
       let mut init_fragments = vec![];
       let mut context = TemplateContext {
         compilation,
@@ -2813,7 +2900,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         data: generate_context.data,
         runtime_template: generate_context.runtime_template,
       };
-      let source = self.render_dependency_templates(source, compilation, module, &mut context);
+      let source = if has_source_map {
+        self.render_ast_dependencies_with_source_map(&source_text, source, module, &mut context)
+      } else {
+        self.render_ast_dependencies(&source_text, module, &mut context)
+      };
       generate_context.concatenation_scope = context.concatenation_scope.take();
       render_init_fragments(source, init_fragments, generate_context)
     } else {

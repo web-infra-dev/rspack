@@ -1,17 +1,11 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  DependencyRange, InitFragmentExt, InitFragmentKey, InitFragmentStage, ModuleType,
-  NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
+  DependencyRange, InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment,
+  RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
-use swc_experimental_allocator::{Allocator, boxed::Box as AstBox, vec::Vec as AstVec};
-use swc_experimental_ecma_ast::{
-  EsVersion, Expr, GetSpan, Ident, Lit, MemberExpr, ModuleItem, Program, PropName, Stmt, VisitMut,
-  VisitMutWith,
-};
-use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
 
 #[derive(Debug, Clone)]
 pub enum AstDependencySideEffect {
@@ -108,7 +102,11 @@ enum AstDependencyReplacement {
     suffix: Box<str>,
     replacements: Vec<(Box<str>, u32, u32)>,
   },
-  ValidatedReplacements {
+  WrappedSourceTrimTrailingSemicolon {
+    prefix: Box<str>,
+    suffix: Box<str>,
+  },
+  RangeReplacements {
     replacements: Vec<(Box<str>, u32, u32)>,
   },
   SourceWithReplacements {
@@ -119,7 +117,7 @@ enum AstDependencyReplacement {
 
 impl AstDependencyAction {
   pub fn expr(range: DependencyRange, content: impl Into<Box<str>>) -> Option<Self> {
-    if range.start >= range.end {
+    if range.start > range.end {
       return None;
     }
 
@@ -130,7 +128,7 @@ impl AstDependencyAction {
   }
 
   pub fn raw_expr(range: DependencyRange, content: impl Into<Box<str>>) -> Option<Self> {
-    if range.start >= range.end {
+    if range.start > range.end {
       return None;
     }
 
@@ -141,7 +139,7 @@ impl AstDependencyAction {
   }
 
   pub fn raw_ident(range: DependencyRange, content: impl Into<Box<str>>) -> Option<Self> {
-    if range.start >= range.end {
+    if range.start > range.end {
       return None;
     }
 
@@ -155,7 +153,7 @@ impl AstDependencyAction {
     range: DependencyRange,
     suffix: impl Into<Box<str>>,
   ) -> Option<Self> {
-    if range.start >= range.end {
+    if range.start > range.end {
       return None;
     }
 
@@ -166,16 +164,16 @@ impl AstDependencyAction {
   }
 
   pub fn insert(
-    validate_range: DependencyRange,
+    range: DependencyRange,
     position: u32,
     content: impl Into<Box<str>>,
   ) -> Option<Self> {
-    if validate_range.start >= validate_range.end {
+    if range.start > range.end {
       return None;
     }
 
     Some(Self {
-      range: validate_range,
+      range,
       replacement: AstDependencyReplacement::Insert {
         position,
         content: content.into(),
@@ -189,7 +187,7 @@ impl AstDependencyAction {
     prefix: impl Into<Box<str>>,
     suffix: impl Into<Box<str>>,
   ) -> Option<Self> {
-    if range.start >= range.end || replacement.start > replacement.end {
+    if range.start > range.end || replacement.start > replacement.end {
       return None;
     }
 
@@ -210,7 +208,7 @@ impl AstDependencyAction {
     suffix: impl Into<Box<str>>,
     replacements: Vec<(String, u32, u32)>,
   ) -> Option<Self> {
-    if range.start >= range.end || replacement.start > replacement.end {
+    if range.start > range.end || replacement.start > replacement.end {
       return None;
     }
 
@@ -228,12 +226,30 @@ impl AstDependencyAction {
     })
   }
 
+  pub fn wrapped_source_trim_trailing_semicolon(
+    range: DependencyRange,
+    prefix: impl Into<Box<str>>,
+    suffix: impl Into<Box<str>>,
+  ) -> Option<Self> {
+    if range.start > range.end {
+      return None;
+    }
+
+    Some(Self {
+      range,
+      replacement: AstDependencyReplacement::WrappedSourceTrimTrailingSemicolon {
+        prefix: prefix.into(),
+        suffix: suffix.into(),
+      },
+    })
+  }
+
   pub fn source_with_replacements(
     range: DependencyRange,
     replacement: DependencyRange,
     replacements: Vec<(String, u32, u32)>,
   ) -> Option<Self> {
-    if range.start >= range.end
+    if range.start > range.end
       || replacement.start > replacement.end
       || replacement.start < range.start
       || replacement.end > range.end
@@ -253,17 +269,17 @@ impl AstDependencyAction {
     })
   }
 
-  pub fn validated_replacements(
-    validate_range: DependencyRange,
+  pub fn range_replacements(
+    range: DependencyRange,
     replacements: Vec<(String, u32, u32)>,
   ) -> Option<Self> {
-    if validate_range.start >= validate_range.end {
+    if range.start > range.end {
       return None;
     }
 
     Some(Self {
-      range: validate_range,
-      replacement: AstDependencyReplacement::ValidatedReplacements {
+      range,
+      replacement: AstDependencyReplacement::RangeReplacements {
         replacements: replacements
           .into_iter()
           .map(|(content, start, end)| (content.into_boxed_str(), start, end))
@@ -272,38 +288,47 @@ impl AstDependencyAction {
     })
   }
 
-  fn replacement_content<'a>(&'a self, source_text: &'a str) -> Option<Cow<'a, str>> {
+  fn replacement_content<'a>(&'a self, source_text: &'a str) -> Cow<'a, str> {
     match &self.replacement {
-      AstDependencyReplacement::Generated(content) => Some(Cow::Borrowed(content.as_ref())),
-      AstDependencyReplacement::RawExpr(content) => Some(Cow::Borrowed(content.as_ref())),
-      AstDependencyReplacement::RawIdent(content) => Some(Cow::Borrowed(content.as_ref())),
-      AstDependencyReplacement::RawIdentWithSuffix(suffix) => source_text
-        .get(self.range.start as usize..self.range.end as usize)
-        .map(|source| Cow::Owned(format!("{source}{suffix}"))),
-      AstDependencyReplacement::Insert { content, .. } => Some(Cow::Borrowed(content.as_ref())),
+      AstDependencyReplacement::Generated(content) => Cow::Borrowed(content.as_ref()),
+      AstDependencyReplacement::RawExpr(content) => Cow::Borrowed(content.as_ref()),
+      AstDependencyReplacement::RawIdent(content) => Cow::Borrowed(content.as_ref()),
+      AstDependencyReplacement::RawIdentWithSuffix(suffix) => {
+        let source = &source_text[self.range.start as usize..self.range.end as usize];
+        Cow::Owned(format!("{source}{suffix}"))
+      }
+      AstDependencyReplacement::Insert { content, .. } => Cow::Borrowed(content.as_ref()),
       AstDependencyReplacement::WrappedSource {
         replacement,
         prefix,
         suffix,
-      } => source_text
-        .get(replacement.start as usize..replacement.end as usize)
-        .map(|source| Cow::Owned(format!("{prefix}{source}{suffix}"))),
+      } => {
+        let source = &source_text[replacement.start as usize..replacement.end as usize];
+        Cow::Owned(format!("{prefix}{source}{suffix}"))
+      }
       AstDependencyReplacement::WrappedSourceWithReplacements {
         replacement,
         prefix,
         suffix,
         replacements,
-      } => apply_inner_replacements(source_text, *replacement, replacements)
-        .map(|source| Cow::Owned(format!("{prefix}{source}{suffix}"))),
-      AstDependencyReplacement::ValidatedReplacements { .. } => None,
+      } => {
+        let source = apply_inner_replacements(source_text, *replacement, replacements);
+        Cow::Owned(format!("{prefix}{source}{suffix}"))
+      }
+      AstDependencyReplacement::WrappedSourceTrimTrailingSemicolon { .. } => {
+        unreachable!("trimmed wrapped source is expanded by source_replacements")
+      }
+      AstDependencyReplacement::RangeReplacements { .. } => {
+        unreachable!("range replacements are expanded by source_replacements")
+      }
       AstDependencyReplacement::SourceWithReplacements {
         replacement,
         replacements,
       } => {
-        let prefix = source_text.get(self.range.start as usize..replacement.start as usize)?;
-        let suffix = source_text.get(replacement.end as usize..self.range.end as usize)?;
-        apply_inner_replacements(source_text, *replacement, replacements)
-          .map(|source| Cow::Owned(format!("{prefix}{source}{suffix}")))
+        let prefix = &source_text[self.range.start as usize..replacement.start as usize];
+        let suffix = &source_text[replacement.end as usize..self.range.end as usize];
+        let source = apply_inner_replacements(source_text, *replacement, replacements);
+        Cow::Owned(format!("{prefix}{source}{suffix}"))
       }
     }
   }
@@ -313,18 +338,9 @@ impl AstDependencyAction {
       AstDependencyReplacement::Insert { position, .. } => {
         DependencyRange::new(*position, *position)
       }
-      AstDependencyReplacement::ValidatedReplacements { .. } => self.range,
+      AstDependencyReplacement::RangeReplacements { .. } => self.range,
+      AstDependencyReplacement::WrappedSourceTrimTrailingSemicolon { .. } => self.range,
       _ => self.range,
-    }
-  }
-
-  fn edit_ranges(&self) -> Vec<DependencyRange> {
-    match &self.replacement {
-      AstDependencyReplacement::ValidatedReplacements { replacements } => replacements
-        .iter()
-        .map(|(_, start, end)| DependencyRange::new(*start, *end))
-        .collect(),
-      _ => vec![self.edit_range()],
     }
   }
 
@@ -350,20 +366,21 @@ impl AstDependencyAction {
         );
         ranges
       }
-      AstDependencyReplacement::ValidatedReplacements { replacements }
+      AstDependencyReplacement::RangeReplacements { replacements }
       | AstDependencyReplacement::SourceWithReplacements { replacements, .. } => replacements
         .iter()
         .map(|(_, start, end)| DependencyRange::new(*start, *end))
         .collect(),
+      AstDependencyReplacement::WrappedSourceTrimTrailingSemicolon { .. } => vec![
+        DependencyRange::new(self.range.start, self.range.start),
+        DependencyRange::new(self.range.end, self.range.end),
+      ],
       _ => vec![self.edit_range()],
     }
   }
 
-  fn is_redundant_validated_replacement(
-    &self,
-    existing_ranges: &FxHashSet<DependencyRange>,
-  ) -> bool {
-    let AstDependencyReplacement::ValidatedReplacements { replacements } = &self.replacement else {
+  fn is_redundant_range_replacement(&self, existing_ranges: &FxHashSet<DependencyRange>) -> bool {
+    let AstDependencyReplacement::RangeReplacements { replacements } = &self.replacement else {
       return false;
     };
     if replacements.is_empty() {
@@ -380,62 +397,39 @@ fn apply_inner_replacements(
   source_text: &str,
   range: DependencyRange,
   replacements: &[(Box<str>, u32, u32)],
-) -> Option<String> {
-  if range.start > range.end
-    || range.end as usize > source_text.len()
-    || !source_text.is_char_boundary(range.start as usize)
-    || !source_text.is_char_boundary(range.end as usize)
-  {
-    return None;
-  }
-
-  let mut replacements = replacements.to_vec();
+) -> String {
+  let mut replacements = replacements.iter().collect::<Vec<_>>();
   replacements.sort_by_key(|(_, start, _)| *start);
-
-  let mut last_end = range.start;
-  for (_, start, end) in &replacements {
-    if *start < last_end
-      || start > end
-      || *start < range.start
-      || *end > range.end
-      || !source_text.is_char_boundary(*start as usize)
-      || !source_text.is_char_boundary(*end as usize)
-    {
-      return None;
-    }
-    last_end = *end;
-  }
 
   let mut output = String::new();
   let mut cursor = range.start as usize;
   for (content, start, end) in replacements {
-    let start = start as usize;
-    let end = end as usize;
+    let start = *start as usize;
+    let end = *end as usize;
     output.push_str(&source_text[cursor..start]);
-    output.push_str(&content);
+    output.push_str(content.as_ref());
     cursor = end;
   }
   output.push_str(&source_text[cursor..range.end as usize]);
-  Some(output)
+  output
 }
 
 #[derive(Debug, Default)]
 pub struct AstDependencyRenderPlan {
   actions: Vec<AstDependencyAction>,
   side_effects: Vec<AstDependencySideEffect>,
+  source_replacement_ranges: FxHashSet<DependencyRange>,
 }
 
 impl AstDependencyRenderPlan {
   pub fn push_action(&mut self, action: AstDependencyAction) {
-    let existing_ranges = self
-      .actions
-      .iter()
-      .flat_map(AstDependencyAction::source_replacement_ranges)
-      .collect::<FxHashSet<_>>();
-    if action.is_redundant_validated_replacement(&existing_ranges) {
+    if action.is_redundant_range_replacement(&self.source_replacement_ranges) {
       return;
     }
 
+    for range in action.source_replacement_ranges() {
+      self.source_replacement_ranges.insert(range);
+    }
     self.actions.push(action);
   }
 
@@ -452,472 +446,51 @@ impl AstDependencyRenderPlan {
   }
 }
 
-struct ParsedAstDependencyAction<'ast> {
-  range: DependencyRange,
-  expr_replacement: Option<Expr<'ast>>,
-  ident_replacement: bool,
-  validate_only: bool,
-  stmt_replacement: Option<Option<Stmt<'ast>>>,
-  module_item_replacement: Option<Option<ModuleItem<'ast>>>,
-  applied: bool,
-}
-
-impl<'ast> ParsedAstDependencyAction<'ast> {
-  fn new(
-    action: &AstDependencyAction,
-    source_text: &str,
-    allocator: &'ast Allocator,
-  ) -> Option<Self> {
-    if matches!(action.replacement, AstDependencyReplacement::RawExpr(_)) {
-      return Some(Self {
-        range: action.range,
-        expr_replacement: parse_replacement_expr(
-          "__rspack_ast_dependency_raw_replacement__",
-          allocator,
-        ),
-        ident_replacement: false,
-        validate_only: false,
-        stmt_replacement: None,
-        module_item_replacement: None,
-        applied: false,
-      });
-    }
-
-    if matches!(
-      action.replacement,
-      AstDependencyReplacement::RawIdent(_) | AstDependencyReplacement::RawIdentWithSuffix(_)
-    ) {
-      return Some(Self {
-        range: action.range,
-        expr_replacement: None,
-        ident_replacement: true,
-        validate_only: false,
-        stmt_replacement: None,
-        module_item_replacement: None,
-        applied: false,
-      });
-    }
-
-    if matches!(
-      action.replacement,
-      AstDependencyReplacement::Insert { .. }
-        | AstDependencyReplacement::ValidatedReplacements { .. }
-    ) {
-      return Some(Self {
-        range: action.range,
-        expr_replacement: None,
-        ident_replacement: false,
-        validate_only: true,
-        stmt_replacement: None,
-        module_item_replacement: None,
-        applied: false,
-      });
-    }
-
-    let content = action.replacement_content(source_text)?;
-    let delete = content.trim().is_empty();
-    let expr_replacement = if delete {
-      None
-    } else {
-      parse_replacement_expr(&content, allocator)
-    };
-    let stmt_replacement = if delete {
-      Some(None)
-    } else {
-      parse_replacement_stmt(&content, allocator).map(Some)
-    };
-    let module_item_replacement = if delete {
-      Some(None)
-    } else {
-      parse_replacement_module_item(&content, allocator).map(Some)
-    };
-
-    if !delete
-      && expr_replacement.is_none()
-      && stmt_replacement.is_none()
-      && module_item_replacement.is_none()
-    {
-      return None;
-    }
-
-    Some(Self {
-      range: action.range,
-      expr_replacement,
-      ident_replacement: false,
-      validate_only: false,
-      stmt_replacement,
-      module_item_replacement,
-      applied: false,
-    })
-  }
-}
-
-struct ExperimentalAstDependencyApplier<'ast> {
-  allocator: &'ast Allocator,
-  actions: Vec<ParsedAstDependencyAction<'ast>>,
-}
-
-impl<'ast> ExperimentalAstDependencyApplier<'ast> {
-  fn new(actions: Vec<ParsedAstDependencyAction<'ast>>, allocator: &'ast Allocator) -> Self {
-    Self { allocator, actions }
-  }
-
-  fn is_fully_applied(&self) -> bool {
-    self.actions.iter().all(|action| action.applied)
-  }
-
-  fn replacement_for_expr(&mut self, range: DependencyRange) -> Option<Expr<'ast>> {
-    let action = self.actions.iter_mut().find(|action| {
-      !action.applied && action.range == range && action.expr_replacement.is_some()
-    })?;
-    action.applied = true;
-    action.expr_replacement.take()
-  }
-
-  fn replacement_for_member_expr(&mut self, range: DependencyRange) -> Option<MemberExpr<'ast>> {
-    let action = self.actions.iter_mut().find(|action| {
-      !action.applied
-        && action.range == range
-        && matches!(action.expr_replacement.as_ref(), Some(Expr::Member(_)))
-    })?;
-    action.applied = true;
-    let Some(Expr::Member(member)) = action.expr_replacement.take() else {
-      unreachable!()
-    };
-    Some(AstBox::into_inner(member))
-  }
-
-  fn replacement_for_ident(&mut self, range: DependencyRange) -> bool {
-    let Some(action) = self
-      .actions
-      .iter_mut()
-      .find(|action| !action.applied && action.range == range && action.ident_replacement)
-    else {
-      return false;
-    };
-    action.applied = true;
-    true
-  }
-
-  fn validate_node(&mut self, range: DependencyRange) {
-    for action in self
-      .actions
-      .iter_mut()
-      .filter(|action| !action.applied && action.range == range && action.validate_only)
-    {
-      action.applied = true;
-    }
-  }
-
-  fn replacement_for_stmt_list(&mut self, range: DependencyRange) -> Option<Option<Stmt<'ast>>> {
-    let action = self.actions.iter_mut().find(|action| {
-      !action.applied && action.range == range && action.stmt_replacement.is_some()
-    })?;
-    action.applied = true;
-    action.stmt_replacement.take()
-  }
-
-  fn replacement_for_stmt_node(&mut self, range: DependencyRange) -> Option<Stmt<'ast>> {
-    let action = self.actions.iter_mut().find(|action| {
-      !action.applied
-        && action.range == range
-        && action
-          .stmt_replacement
-          .as_ref()
-          .is_some_and(|replacement| replacement.is_some())
-    })?;
-    action.applied = true;
-    action.stmt_replacement.take().flatten()
-  }
-
-  fn replacement_for_module_item(
-    &mut self,
-    range: DependencyRange,
-  ) -> Option<Option<ModuleItem<'ast>>> {
-    let action = self.actions.iter_mut().find(|action| {
-      !action.applied && action.range == range && action.module_item_replacement.is_some()
-    })?;
-    action.applied = true;
-    action.module_item_replacement.take()
-  }
-}
-
-impl<'ast> VisitMut<'ast> for ExperimentalAstDependencyApplier<'ast> {
-  fn visit_mut_module_items(&mut self, node: &mut AstVec<'ast, ModuleItem<'ast>>) {
-    let mut next = AstVec::with_capacity_in(node.len(), self.allocator);
-
-    for mut item in std::mem::replace(node, AstVec::new_in(self.allocator)) {
-      let range = DependencyRange::from(item.span());
-      self.validate_node(range);
-      if let Some(replacement) = self.replacement_for_module_item(range) {
-        if let Some(replacement) = replacement {
-          next.push(replacement);
-        }
-        continue;
-      }
-
-      item.visit_mut_children_with(self);
-      next.push(item);
-    }
-
-    *node = next;
-  }
-
-  fn visit_mut_stmts(&mut self, node: &mut AstVec<'ast, Stmt<'ast>>) {
-    let mut next = AstVec::with_capacity_in(node.len(), self.allocator);
-
-    for mut stmt in std::mem::replace(node, AstVec::new_in(self.allocator)) {
-      let range = DependencyRange::from(stmt.span());
-      self.validate_node(range);
-      if let Some(replacement) = self.replacement_for_stmt_list(range) {
-        if let Some(replacement) = replacement {
-          next.push(replacement);
-        }
-        continue;
-      }
-
-      stmt.visit_mut_children_with(self);
-      next.push(stmt);
-    }
-
-    *node = next;
-  }
-
-  fn visit_mut_stmt(&mut self, node: &mut Stmt<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if let Some(replacement) = self.replacement_for_stmt_node(range) {
-      *node = replacement;
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_expr(&mut self, node: &mut Expr<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if let Some(replacement) = self.replacement_for_expr(range) {
-      *node = replacement;
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_member_expr(&mut self, node: &mut MemberExpr<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if let Some(replacement) = self.replacement_for_member_expr(range) {
-      *node = replacement;
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_ident(&mut self, node: &mut Ident<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if self.replacement_for_ident(range) {
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_lit(&mut self, node: &mut Lit<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if self.replacement_for_ident(range) {
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-
-  fn visit_mut_prop_name(&mut self, node: &mut PropName<'ast>) {
-    let range = DependencyRange::from(node.span());
-    self.validate_node(range);
-    if self.replacement_for_ident(range) {
-      return;
-    }
-
-    node.visit_mut_children_with(self);
-  }
-}
-
-fn ast_syntax(module_type: &ModuleType) -> Syntax {
-  Syntax::Es(EsSyntax {
-    jsx: true,
-    allow_return_outside_function: matches!(
-      module_type,
-      ModuleType::JsDynamic | ModuleType::JsAuto
-    ),
-    explicit_resource_management: true,
-    import_attributes: true,
-    ..Default::default()
-  })
-}
-
-fn parse_experimental_program<'ast>(
-  allocator: &'ast Allocator,
-  source_text: &'ast str,
-  module_type: &ModuleType,
-) -> Option<Program<'ast>> {
-  let lexer = Lexer::new(
-    allocator,
-    ast_syntax(module_type),
-    EsVersion::EsNext,
-    StringSource::new(source_text),
-    None,
-  );
-  let mut parser = Parser::new_from(allocator, lexer);
-  let program = match module_type {
-    ModuleType::JsEsm => parser
-      .parse_module()
-      .map(|module| Program::Module(allocator.boxed(module))),
-    ModuleType::JsDynamic => parser
-      .parse_commonjs()
-      .map(|script| Program::Script(allocator.boxed(script))),
-    _ => parser.parse_program(),
-  }
-  .ok()?;
-
-  parser.take_errors().is_empty().then_some(program)
-}
-
-fn parse_replacement_expr<'ast>(content: &str, allocator: &'ast Allocator) -> Option<Expr<'ast>> {
-  let content = allocator.alloc_str(content);
-  let lexer = Lexer::new(
-    allocator,
-    ast_syntax(&ModuleType::JsAuto),
-    EsVersion::EsNext,
-    StringSource::new(content),
-    None,
-  );
-  let mut parser = Parser::new_from(allocator, lexer);
-  let expr = parser.parse_expr().ok()?;
-
-  parser.take_errors().is_empty().then_some(expr)
-}
-
-fn parse_replacement_stmt<'ast>(content: &str, allocator: &'ast Allocator) -> Option<Stmt<'ast>> {
-  let content = allocator.alloc_str(content);
-  let lexer = Lexer::new(
-    allocator,
-    ast_syntax(&ModuleType::JsAuto),
-    EsVersion::EsNext,
-    StringSource::new(content),
-    None,
-  );
-  let mut parser = Parser::new_from(allocator, lexer);
-  let stmt = parser.parse_stmt().ok()?;
-
-  parser.take_errors().is_empty().then_some(stmt)
-}
-
-fn parse_replacement_module_item<'ast>(
-  content: &str,
-  allocator: &'ast Allocator,
-) -> Option<ModuleItem<'ast>> {
-  let content = allocator.alloc_str(content);
-  let lexer = Lexer::new(
-    allocator,
-    ast_syntax(&ModuleType::JsAuto),
-    EsVersion::EsNext,
-    StringSource::new(content),
-    None,
-  );
-  let mut parser = Parser::new_from(allocator, lexer);
-  let module_item = parser.parse_module_item().ok()?;
-
-  parser.take_errors().is_empty().then_some(module_item)
-}
-
-pub fn render_ast_dependencies(
-  source_text: &str,
-  module_type: &ModuleType,
-  plan: &AstDependencyRenderPlan,
-) -> Option<String> {
+pub fn render_ast_dependencies(source_text: &str, plan: &AstDependencyRenderPlan) -> String {
   if !plan.has_actions() {
-    return Some(source_text.to_string());
+    return source_text.to_string();
   }
 
-  validate_ast_dependency_actions(source_text, module_type, &plan.actions)?;
   render_source_replacements(source_text, &plan.actions)
 }
 
 pub fn apply_ast_dependency_replacements(
   source_text: &str,
-  module_type: &ModuleType,
   plan: &AstDependencyRenderPlan,
   source: &mut TemplateReplaceSource,
-) -> bool {
-  if validate_ast_dependency_actions(source_text, module_type, &plan.actions).is_none() {
-    return false;
-  }
-
-  let Some(replacements) = source_replacements(source_text, &plan.actions) else {
-    return false;
-  };
-
-  for (range, replacement) in replacements {
+) {
+  for (range, replacement, _) in source_replacements(source_text, &plan.actions) {
     source.replace(range.start, range.end, replacement, None);
   }
-
-  true
 }
 
-fn validate_ast_dependency_actions(
-  source_text: &str,
-  module_type: &ModuleType,
-  actions: &[AstDependencyAction],
-) -> Option<()> {
-  let allocator = Allocator::new();
-  let mut seen_ranges = FxHashSet::default();
-  let actions = actions
-    .iter()
-    .map(|action| {
-      for range in action.edit_ranges() {
-        if !seen_ranges.insert(range) {
-          return None;
-        }
-      }
-      ParsedAstDependencyAction::new(action, source_text, &allocator)
-    })
-    .collect::<Option<Vec<_>>>()?;
-
-  let source_text = allocator.alloc_str(source_text);
-  let mut program = parse_experimental_program(&allocator, source_text, module_type)?;
-  let mut applier = ExperimentalAstDependencyApplier::new(actions, &allocator);
-  program.visit_mut_with(&mut applier);
-  applier.is_fully_applied().then_some(())
-}
-
-fn render_source_replacements(
-  source_text: &str,
-  actions: &[AstDependencyAction],
-) -> Option<String> {
-  let replacements = source_replacements(source_text, actions)?;
+fn render_source_replacements(source_text: &str, actions: &[AstDependencyAction]) -> String {
+  let replacements = source_replacements(source_text, actions);
 
   let mut output = String::with_capacity(source_text.len());
   let mut cursor = 0usize;
-  for (range, replacement) in replacements {
+  let source_len = source_text.len();
+  for (range, replacement, _) in replacements {
     let start = range.start as usize;
     let end = range.end as usize;
-    output.push_str(&source_text[cursor..start]);
+    if start > cursor {
+      let prefix_end = start.min(source_len);
+      output.push_str(&source_text[cursor..prefix_end]);
+      cursor = prefix_end;
+    }
     output.push_str(&replacement);
-    cursor = end;
+    cursor = cursor.max(end.min(source_len));
   }
-  output.push_str(&source_text[cursor..]);
-  Some(output)
+  if cursor < source_len {
+    output.push_str(&source_text[cursor..]);
+  }
+  output
 }
 
 fn source_replacements(
   source_text: &str,
   actions: &[AstDependencyAction],
-) -> Option<Vec<(DependencyRange, String)>> {
+) -> Vec<(DependencyRange, String, i8)> {
   let mut replacements = Vec::new();
   for action in actions {
     match &action.replacement {
@@ -930,11 +503,13 @@ fn source_replacements(
           &mut replacements,
           DependencyRange::new(action.range.start, replacement.start),
           prefix.to_string(),
+          0,
         );
         push_source_replacement(
           &mut replacements,
           DependencyRange::new(replacement.end, action.range.end),
           suffix.to_string(),
+          0,
         );
         continue;
       }
@@ -948,27 +523,42 @@ fn source_replacements(
           &mut replacements,
           DependencyRange::new(action.range.start, replacement.start),
           prefix.to_string(),
+          0,
         );
-        replacements.extend(
-          inner_replacements
-            .iter()
-            .map(|(content, start, end)| (DependencyRange::new(*start, *end), content.to_string())),
-        );
+        replacements.extend(inner_replacements.iter().map(|(content, start, end)| {
+          (DependencyRange::new(*start, *end), content.to_string(), 0)
+        }));
         push_source_replacement(
           &mut replacements,
           DependencyRange::new(replacement.end, action.range.end),
           suffix.to_string(),
+          0,
         );
         continue;
       }
-      AstDependencyReplacement::ValidatedReplacements { replacements: r }
+      AstDependencyReplacement::WrappedSourceTrimTrailingSemicolon { prefix, suffix } => {
+        let suffix_position = trim_trailing_semicolon(source_text, action.range);
+        push_source_replacement(
+          &mut replacements,
+          DependencyRange::new(action.range.start, action.range.start),
+          prefix.to_string(),
+          0,
+        );
+        push_source_replacement(
+          &mut replacements,
+          DependencyRange::new(suffix_position, suffix_position),
+          suffix.to_string(),
+          -1,
+        );
+        continue;
+      }
+      AstDependencyReplacement::RangeReplacements { replacements: r }
       | AstDependencyReplacement::SourceWithReplacements {
         replacements: r, ..
       } => {
-        replacements
-          .extend(r.iter().map(|(content, start, end)| {
-            (DependencyRange::new(*start, *end), content.to_string())
-          }));
+        replacements.extend(r.iter().map(|(content, start, end)| {
+          (DependencyRange::new(*start, *end), content.to_string(), 0)
+        }));
         continue;
       }
       _ => {}
@@ -976,47 +566,96 @@ fn source_replacements(
 
     replacements.push((
       action.edit_range(),
-      action.replacement_content(source_text)?.into_owned(),
+      action.replacement_content(source_text).into_owned(),
+      0,
     ));
   }
 
-  replacements.sort_by_key(|(range, _)| (range.start, range.end));
-  let mut last_end = 0;
-  for (range, _) in &replacements {
-    if range.start < last_end
-      || range.start > range.end
-      || range.end as usize > source_text.len()
-      || !source_text.is_char_boundary(range.start as usize)
-      || !source_text.is_char_boundary(range.end as usize)
-    {
-      return None;
-    }
-    last_end = range.end;
-  }
+  replacements.sort_by_key(|(range, _, enforce)| (range.start, range.end, *enforce));
+  replacements
+}
 
-  Some(replacements)
+fn trim_trailing_semicolon(source_text: &str, range: DependencyRange) -> u32 {
+  let bytes = source_text.as_bytes();
+  let start = range.start as usize;
+  let mut end = range.end as usize;
+  while end > start && matches!(bytes[end - 1], b' ' | b'\t' | b'\n' | b'\r') {
+    end -= 1;
+  }
+  if end > start && bytes[end - 1] == b';' {
+    (end - 1) as u32
+  } else {
+    range.end
+  }
 }
 
 fn push_source_replacement(
-  replacements: &mut Vec<(DependencyRange, String)>,
+  replacements: &mut Vec<(DependencyRange, String, i8)>,
   range: DependencyRange,
   content: String,
+  enforce: i8,
 ) {
   if range.start == range.end && content.is_empty() {
     return;
   }
 
-  replacements.push((range, content));
+  replacements.push((range, content, enforce));
 }
 
 #[cfg(test)]
 mod tests {
+  use rspack_core::ModuleType;
+  use swc_experimental_allocator::Allocator;
+  use swc_experimental_ecma_ast::{EsVersion, GetSpan, Program, Stmt};
+  use swc_experimental_ecma_parser::{EsSyntax, Lexer, Parser, StringSource, Syntax};
+
   use super::*;
+
+  fn ast_syntax(module_type: &ModuleType) -> Syntax {
+    Syntax::Es(EsSyntax {
+      jsx: true,
+      allow_return_outside_function: matches!(
+        module_type,
+        ModuleType::JsDynamic | ModuleType::JsAuto
+      ),
+      explicit_resource_management: true,
+      import_attributes: true,
+      ..Default::default()
+    })
+  }
+
+  fn parse_program_for_test<'ast>(
+    allocator: &'ast Allocator,
+    source_text: &'ast str,
+    module_type: &ModuleType,
+  ) -> Program<'ast> {
+    let lexer = Lexer::new(
+      allocator,
+      ast_syntax(module_type),
+      EsVersion::EsNext,
+      StringSource::new(source_text),
+      None,
+    );
+    let mut parser = Parser::new_from(allocator, lexer);
+    let program = match module_type {
+      ModuleType::JsEsm => parser
+        .parse_module()
+        .map(|module| Program::Module(allocator.boxed(module))),
+      ModuleType::JsDynamic => parser
+        .parse_commonjs()
+        .map(|script| Program::Script(allocator.boxed(script))),
+      _ => parser.parse_program(),
+    }
+    .unwrap();
+
+    assert!(parser.take_errors().is_empty());
+    program
+  }
 
   fn first_top_level_range(source: &str, module_type: ModuleType) -> DependencyRange {
     let allocator = Allocator::new();
     let source = allocator.alloc_str(source);
-    let program = parse_experimental_program(&allocator, source, &module_type).unwrap();
+    let program = parse_program_for_test(&allocator, source, &module_type);
     match program {
       Program::Module(module) => DependencyRange::from(module.body[0].span()),
       Program::Script(script) => DependencyRange::from(script.body[0].span()),
@@ -1026,7 +665,7 @@ mod tests {
   fn if_consequent_range(source: &str) -> DependencyRange {
     let allocator = Allocator::new();
     let source = allocator.alloc_str(source);
-    let program = parse_experimental_program(&allocator, source, &ModuleType::JsAuto).unwrap();
+    let program = parse_program_for_test(&allocator, source, &ModuleType::JsAuto);
     let Program::Script(script) = program else {
       unreachable!()
     };
@@ -1041,7 +680,7 @@ mod tests {
     let source = "console.log(1);\n";
     let plan = AstDependencyRenderPlan::default();
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, source);
   }
@@ -1054,7 +693,7 @@ mod tests {
     let mut plan = AstDependencyRenderPlan::default();
     plan.push_action(AstDependencyAction::expr((start, end).into(), "\"production\"").unwrap());
 
-    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(output.contains("if (\"production\")"));
   }
@@ -1073,7 +712,7 @@ mod tests {
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(
       output,
@@ -1089,7 +728,7 @@ mod tests {
       AstDependencyAction::expr(first_top_level_range(source, ModuleType::JsAuto), "").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(!output.contains("use strict"));
     assert!(output.contains("console.log(1)"));
@@ -1101,7 +740,7 @@ mod tests {
     let mut plan = AstDependencyRenderPlan::default();
     plan.push_action(AstDependencyAction::expr(if_consequent_range(source), "{}").unwrap());
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(output.contains("if (true) {}"));
   }
@@ -1114,27 +753,27 @@ mod tests {
       AstDependencyAction::expr(first_top_level_range(source, ModuleType::JsEsm), "").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(!output.contains("import"));
     assert!(output.contains("console.log(1)"));
   }
 
   #[test]
-  fn deletes_module_item_prefix_after_validating_whole_item() {
+  fn deletes_module_item_prefix_with_replacements() {
     let source = "export const answer = 42;\n";
     let range = first_top_level_range(source, ModuleType::JsEsm);
     let replacement_start = source.find("const").unwrap() as u32;
     let mut plan = AstDependencyRenderPlan::default();
     plan.push_action(
-      AstDependencyAction::validated_replacements(
+      AstDependencyAction::range_replacements(
         range,
         vec![(String::new(), range.start, replacement_start)],
       )
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(!output.contains("export"));
     assert!(output.contains("const answer = 42"));
@@ -1165,14 +804,14 @@ mod tests {
       .unwrap(),
     );
     plan.push_action(
-      AstDependencyAction::validated_replacements(
+      AstDependencyAction::range_replacements(
         range_stmt,
         vec![(String::new(), range_stmt.start, range.start)],
       )
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsEsm, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(
       output,
@@ -1196,7 +835,7 @@ mod tests {
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert!(output.contains("new Worker(__webpack_require__.tu(workerUrl))"));
   }
@@ -1217,16 +856,17 @@ mod tests {
       .unwrap(),
     );
 
-    let replacements = source_replacements(source, &plan.actions).unwrap();
+    let replacements = source_replacements(source, &plan.actions);
 
     assert_eq!(
       replacements,
       vec![
         (
           DependencyRange::new(start, start),
-          "(/* unused pure expression or super */ null && (".to_string()
+          "(/* unused pure expression or super */ null && (".to_string(),
+          0
         ),
-        (DependencyRange::new(end, end), "))".to_string()),
+        (DependencyRange::new(end, end), "))".to_string(), 0),
       ]
     );
   }
@@ -1252,7 +892,7 @@ mod tests {
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(
       output,
@@ -1281,7 +921,7 @@ mod tests {
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(
       output,
@@ -1299,13 +939,13 @@ mod tests {
       AstDependencyAction::raw_expr((start, end).into(), "/*require.resolve*/").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "const id = /*require.resolve*/(\"./a\");\n");
   }
 
   #[test]
-  fn inserts_content_after_validating_outer_expression() {
+  fn inserts_content_around_outer_expression() {
     let source = "module.hot.accept(\"./a\");\n";
     let call_start = source.find("module.hot.accept").unwrap() as u32;
     let call_end = source.find(");").unwrap() as u32 + 1;
@@ -1328,7 +968,7 @@ mod tests {
       .unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(
       output,
@@ -1337,7 +977,7 @@ mod tests {
   }
 
   #[test]
-  fn inserts_prefix_while_replacing_the_same_validated_expression() {
+  fn inserts_prefix_while_replacing_the_same_expression() {
     let source = "foo(bar);\n";
     let call_start = source.find("foo").unwrap() as u32;
     let call_end = source.find(");").unwrap() as u32 + 1;
@@ -1349,13 +989,13 @@ mod tests {
       AstDependencyAction::expr(DependencyRange::new(call_start, call_end), "baz(bar)").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "var x;baz(bar);\n");
   }
 
   #[test]
-  fn applies_validated_disjoint_replacements_around_nested_action() {
+  fn applies_disjoint_replacements_around_nested_action() {
     let source = "define([\"a\"], function(a) {});\n";
     let call_start = source.find("define").unwrap() as u32;
     let call_end = source.find(");").unwrap() as u32 + 1;
@@ -1365,7 +1005,7 @@ mod tests {
     let function_end = source.find(");").unwrap() as u32;
     let mut plan = AstDependencyRenderPlan::default();
     plan.push_action(
-      AstDependencyAction::validated_replacements(
+      AstDependencyAction::range_replacements(
         DependencyRange::new(call_start, call_end),
         vec![
           ("wrap(".to_string(), call_start, array_start),
@@ -1379,7 +1019,7 @@ mod tests {
       AstDependencyAction::expr(DependencyRange::new(array_start, array_end), "deps").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "wrap(deps, function(a) {});\n");
   }
@@ -1394,7 +1034,7 @@ mod tests {
       AstDependencyAction::raw_ident_with_suffix((start, end).into(), ": replacement").unwrap(),
     );
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "const obj = { value: replacement };\n");
   }
@@ -1408,7 +1048,7 @@ mod tests {
     plan
       .push_action(AstDependencyAction::raw_ident((start, end).into(), "renamed: value").unwrap());
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "const { renamed: value } = source;\n");
   }
@@ -1421,7 +1061,7 @@ mod tests {
     let mut plan = AstDependencyRenderPlan::default();
     plan.push_action(AstDependencyAction::raw_ident((start, end).into(), "renamed").unwrap());
 
-    let output = render_ast_dependencies(source, &ModuleType::JsAuto, &plan).unwrap();
+    let output = render_ast_dependencies(source, &plan);
 
     assert_eq!(output, "const { renamed: local } = source;\n");
   }

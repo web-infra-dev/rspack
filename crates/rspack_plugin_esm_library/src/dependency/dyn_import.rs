@@ -3,12 +3,12 @@ use std::{borrow::Cow, sync::Arc};
 use atomic_refcell::AtomicRefCell;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  Dependency, DependencyId, DependencyTemplate, ExportsType, ExternalModule,
+  Dependency, DependencyId, DependencyRange, DependencyTemplate, ExportsType, ExternalModule,
   FakeNamespaceObjectMode, ModuleGraph, ModuleReferenceOptions, RuntimeGlobals, TemplateContext,
   get_exports_type, property_access,
 };
 use rspack_plugin_javascript::dependency::ImportDependency;
-use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module;
+use rspack_plugin_rslib::dyn_import_external::render_dyn_import_external_module_content;
 use rspack_util::atom::Atom;
 
 use crate::EsmLibraryPlugin;
@@ -203,17 +203,12 @@ pub struct DynamicImportDependencyTemplate {
   pub dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
-impl DependencyTemplate for DynamicImportDependencyTemplate {
-  fn render(
+impl DynamicImportDependencyTemplate {
+  fn render_content(
     &self,
-    dep: &dyn rspack_core::DependencyCodeGeneration,
-    source: &mut rspack_core::TemplateReplaceSource,
+    import_dep: &ImportDependency,
     code_generatable_context: &mut rspack_core::TemplateContext,
-  ) {
-    let import_dep = dep
-      .as_any()
-      .downcast_ref::<ImportDependency>()
-      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+  ) -> String {
     let dep = import_dep as &dyn Dependency;
     let dep_id = dep.id();
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -226,33 +221,20 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       let missing_promise = code_generatable_context
         .runtime_template
         .missing_module_promise(request);
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        missing_promise,
-        None,
-      );
-      return;
+      return missing_promise;
     };
 
     if let Some(external_module) = ref_module.as_external_module()
       && matches!(external_module.resolve_external_type(), "import" | "module")
     {
-      render_dyn_import_external_module(import_dep, external_module, source);
-      return;
+      return render_dyn_import_external_module_content(import_dep, external_module);
     }
     if let Some(external_module) = ref_module.as_external_module() {
       let fake_type = get_fake_namespace_object_mode(code_generatable_context, dep_id);
       if let Some(external_import) =
         render_lazy_commonjs_external_import(code_generatable_context, external_module, fake_type)
       {
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          external_import,
-          None,
-        );
-        return;
+        return external_import;
       }
     }
 
@@ -266,13 +248,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         let missing_promise = code_generatable_context
           .runtime_template
           .missing_module_promise(request);
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          missing_promise,
-          None,
-        );
-        return;
+        return missing_promise;
       }
     };
 
@@ -288,13 +264,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
         let missing_promise = code_generatable_context
           .runtime_template
           .missing_module_promise(request);
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          missing_promise,
-          None,
-        );
-        return;
+        return missing_promise;
       }
     };
 
@@ -335,16 +305,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!(
-          "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
-        ),
-        None,
+      return format!(
+        "{import_promise}{}",
+        then_expr(code_generatable_context, dep_id, request)
       );
-      return;
     };
 
     let is_ref_module_concatenated =
@@ -353,17 +317,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     if !is_ref_module_concatenated {
       // if target is not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __webpack_require__ to fetch module
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!(
-          "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
-        ),
-        None,
+      return format!(
+        "{import_promise}{}",
+        then_expr(code_generatable_context, dep_id, request)
       );
-
-      return;
     }
 
     if already_in_chunk {
@@ -381,13 +338,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
           ..Default::default()
         },
       );
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!("Promise.resolve({ns_ref})"),
-        None,
-      );
-      return;
+      return format!("Promise.resolve({ns_ref})");
     }
 
     // Cross-chunk: check if the module needs namespace remapping (exports were renamed or namespace access)
@@ -399,20 +350,45 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     if let Some(ns_name) = ns_name {
       // Module's exports were renamed in the chunk or accessed as namespace.
       // Use .then(m => m.<ns_name>) to get the correct module namespace.
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!("{import_promise}.then(m => m.{ns_name})"),
-        None,
-      );
+      format!("{import_promise}.then(m => m.{ns_name})")
     } else {
       // Module's exports are not renamed in the chunk — direct import works.
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        import_promise.into_owned(),
-        None,
-      );
+      import_promise.into_owned()
     }
+  }
+}
+
+impl DependencyTemplate for DynamicImportDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn rspack_core::DependencyCodeGeneration,
+    code_generatable_context: &mut rspack_core::TemplateContext,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let import_dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+    Some(vec![(
+      import_dep.range,
+      self.render_content(import_dep, code_generatable_context),
+    )])
+  }
+
+  fn render(
+    &self,
+    dep: &dyn rspack_core::DependencyCodeGeneration,
+    source: &mut rspack_core::TemplateReplaceSource,
+    code_generatable_context: &mut rspack_core::TemplateContext,
+  ) {
+    let import_dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+    source.replace(
+      import_dep.range.start,
+      import_dep.range.end,
+      self.render_content(import_dep, code_generatable_context),
+      None,
+    );
   }
 }

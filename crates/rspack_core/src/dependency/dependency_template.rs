@@ -62,6 +62,13 @@ pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   fn ast_dependency_range(&self) -> Option<DependencyRange> {
     None
   }
+
+  fn ast_dependency_replacements(
+    &self,
+    _context: &mut TemplateContext<'_, '_, '_>,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    None
+  }
 }
 
 pub type BoxDependencyTemplate = Box<dyn DependencyCodeGeneration>;
@@ -85,6 +92,22 @@ pub enum DependencyTemplateType {
 }
 
 pub trait DependencyTemplate: Debug + Sync + Send {
+  fn render_ast(
+    &self,
+    _dep: &dyn DependencyCodeGeneration,
+    _code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    None
+  }
+
+  fn after_ast_render(
+    &self,
+    _dep: &dyn DependencyCodeGeneration,
+    _code_generatable_context: &mut TemplateContext,
+    _init_fragments_start: usize,
+  ) {
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

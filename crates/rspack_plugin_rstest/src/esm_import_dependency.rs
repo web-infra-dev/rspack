@@ -20,6 +20,26 @@ impl RstestESMImportSideEffectDependencyTemplate {
 }
 
 impl DependencyTemplate for RstestESMImportSideEffectDependencyTemplate {
+  fn after_ast_render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    code_generatable_context: &mut TemplateContext,
+    init_fragments_start: usize,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMImportSideEffectDependency>()
+      .expect("RstestESMImportSideEffectDependencyTemplate should only be used for ESMImportSideEffectDependency");
+    if has_import_actual_attr(dep.get_attributes()) {
+      hoist_new_esm_import_fragments(
+        code_generatable_context,
+        init_fragments_start,
+        Some(dep.request()),
+        false,
+      );
+    }
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
@@ -54,6 +74,29 @@ impl RstestESMImportSpecifierDependencyTemplate {
 }
 
 impl DependencyTemplate for RstestESMImportSpecifierDependencyTemplate {
+  fn after_ast_render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    code_generatable_context: &mut TemplateContext,
+    init_fragments_start: usize,
+  ) {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ESMImportSpecifierDependency>()
+      .expect("RstestESMImportSpecifierDependencyTemplate should only be used for ESMImportSpecifierDependency");
+
+    if !has_import_actual_attr(dep.get_attributes()) {
+      return;
+    }
+
+    hoist_new_esm_import_fragments(
+      code_generatable_context,
+      init_fragments_start,
+      Some(dep.request()),
+      true,
+    );
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

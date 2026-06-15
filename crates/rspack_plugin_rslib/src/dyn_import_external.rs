@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildModuleGraphArtifact, Compilation, DependenciesBlock, Dependency, DependencyId,
-  DependencyTemplate, ExportsInfoArtifact, ExternalModule, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment,
+  DependencyRange, DependencyTemplate, ExportsInfoArtifact, ExternalModule, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, NormalInitFragment,
 };
 use rspack_plugin_javascript::dependency::{
   ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
@@ -197,6 +197,18 @@ pub fn render_dyn_import_external_module(
   external_module: &ExternalModule,
   source: &mut rspack_core::TemplateReplaceSource,
 ) {
+  source.replace(
+    import_dep.range.start,
+    import_dep.range.end,
+    render_dyn_import_external_module_content(import_dep, external_module),
+    None,
+  );
+}
+
+pub fn render_dyn_import_external_module_content(
+  import_dep: &ImportDependency,
+  external_module: &ExternalModule,
+) -> String {
   let request = external_module.get_request();
   let attributes_str = if let Some(attributes) = import_dep.get_attributes() {
     format!(
@@ -220,17 +232,12 @@ pub fn render_dyn_import_external_module(
     comments_string
   };
 
-  source.replace(
-    import_dep.range.start,
-    import_dep.range.end,
-    format!(
-      "import({}{}{})",
-      comments_str,
-      rspack_util::json_stringify_str(&request.primary),
-      attributes_str
-    ),
-    None,
-  );
+  format!(
+    "import({}{}{})",
+    comments_str,
+    rspack_util::json_stringify_str(&request.primary),
+    attributes_str
+  )
 }
 
 #[derive(Debug)]
@@ -239,6 +246,32 @@ pub(crate) struct ImportDependencyTemplate {
 }
 
 impl DependencyTemplate for ImportDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn rspack_core::DependencyCodeGeneration,
+    code_generatable_context: &mut rspack_core::TemplateContext,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("should be import dependency");
+    let mg = code_generatable_context.compilation.get_module_graph();
+    let ref_module = mg
+      .module_identifier_by_dependency_id(&dep.id)
+      .and_then(|module_id| mg.module_by_identifier(module_id));
+    if let Some(external) = ref_module.and_then(|m| m.as_external_module()) {
+      return Some(vec![(
+        dep.range,
+        render_dyn_import_external_module_content(dep, external),
+      )]);
+    }
+
+    self
+      .template
+      .as_ref()
+      .and_then(|template| template.render_ast(dep, code_generatable_context))
+  }
+
   fn render(
     &self,
     dep: &dyn rspack_core::DependencyCodeGeneration,

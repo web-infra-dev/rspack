@@ -19,6 +19,43 @@ impl ImportDependencyTemplate {
 }
 
 impl DependencyTemplate for ImportDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(rspack_core::DependencyRange, String)>> {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+    let range = dep.range().expect("ImportDependency should have range");
+    let module_graph = code_generatable_context.compilation.get_module_graph();
+    let block = module_graph.get_parent_block(dep.id());
+    let attributes = &dep.get_attributes();
+    let is_import_actual = if let Some(attrs) = attributes {
+      if let Some(actual) = attrs.get("rstest") {
+        actual == "importActual"
+      } else {
+        false
+      }
+    } else {
+      false
+    };
+
+    Some(vec![(
+      range,
+      module_namespace_promise_rstest(
+        code_generatable_context,
+        dep.id(),
+        block,
+        dep.request(),
+        dep.dependency_type().as_str(),
+        false,
+        is_import_actual,
+      ),
+    )])
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

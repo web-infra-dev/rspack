@@ -25,6 +25,23 @@ impl RstestUrlDependencyTemplate {
 }
 
 impl DependencyTemplate for RstestUrlDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(rspack_core::DependencyRange, String)>> {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<URLDependency>()
+      .expect("RstestUrlDependencyTemplate should be used for URLDependency");
+
+    if self.should_preserve(dep.request()) {
+      Some(Vec::new())
+    } else {
+      None
+    }
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,
@@ -36,22 +53,25 @@ impl DependencyTemplate for RstestUrlDependencyTemplate {
       .downcast_ref::<URLDependency>()
       .expect("RstestUrlDependencyTemplate should be used for URLDependency");
 
+    if self.should_preserve(dep.request()) {
+      return;
+    }
+
+    URLDependencyTemplate::default().render(dep, source, code_generatable_context);
+  }
+}
+
+impl RstestUrlDependencyTemplate {
+  fn should_preserve(&self, request: &str) -> bool {
     // Strip query string and fragment from request path before checking extension
-    let request = dep.request();
     let request_path = request.split(&['?', '#'][..]).next().unwrap_or(request);
 
-    let should_preserve = request_path.rsplit('.').next().is_some_and(|ext| {
+    request_path.rsplit('.').next().is_some_and(|ext| {
       self.preserve_extensions.iter().any(|preserve_ext| {
         // Support both ".ext" and "ext" formats
         let preserve_ext = preserve_ext.trim_start_matches('.');
         ext.eq_ignore_ascii_case(preserve_ext)
       })
-    });
-
-    if should_preserve {
-      return;
-    }
-
-    URLDependencyTemplate::default().render(dep, source, code_generatable_context);
+    })
   }
 }

@@ -113,6 +113,28 @@ impl DependencyCodeGeneration for MockModuleIdDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(MockModuleIdDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
+  fn ast_dependency_replacements(
+    &self,
+    code_generatable_context: &mut TemplateContext<'_, '_, '_>,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let module_id = module_id_rstest(
+      code_generatable_context.compilation,
+      code_generatable_context.runtime_template,
+      &self.id,
+      &self.request,
+      self.weak,
+    );
+
+    Some(vec![(
+      self.range,
+      format!("{}{}", module_id, self.suffix.as_deref().unwrap_or("")),
+    )])
+  }
 }
 
 impl AsContextDependency for MockModuleIdDependency {}
