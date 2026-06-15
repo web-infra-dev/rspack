@@ -396,10 +396,8 @@ pub(crate) async fn render_runtime_module_sources(
               .output
               .environment
               .supports_arrow_function();
-            let source = if !(module.full_hash()
-              || module.dependent_hash()
-              || (runtime_template.uses_runtime_context()
-                && !runtime_template.uses_lexical_runtime_globals()))
+            let source = if !runtime_template.uses_runtime_context()
+              || runtime_template.uses_lexical_runtime_globals()
             {
               if let Some(custom_source) = module.get_custom_source() {
                 RawStringSource::from(custom_source).boxed()
