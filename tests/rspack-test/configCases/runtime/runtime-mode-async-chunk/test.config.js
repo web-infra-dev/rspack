@@ -19,12 +19,26 @@ module.exports = {
     expect(mainSource).toContain("var __rspack_context={};");
     expect(mainSource).toContain("__rspack_context.r = __rspack_require;");
     expect(mainSource).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
+    expect(mainSource).toContain("__rspack_exports");
     expect(mainSource).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);
+    expect(mainSource).toContain(
+      "// expose the modules object (__rspack_modules)",
+    );
     expect(mainSource).not.toContain("__webpack_require__");
     expect(mainSource).not.toContain("__webpack_module_cache__");
+    expect(mainSource).not.toContain("__webpack_exports__");
+    expect(mainSource).not.toContain("__webpack_modules__");
+    expect(mainSource).not.toContain(
+      "// expose the modules object (__webpack_modules__)",
+    );
     expect(mainSource).toContain("module.exports, __rspack_context");
     expect(asyncChunkSource).toContain("__rspack_context.d");
     expect(asyncChunkSource).not.toContain("__rspack_install_runtime");
-    expect(asyncChunkSource).not.toContain("__webpack_require__.d");
+    expect(asyncChunkSource).not.toContain("__webpack_require__");
+    expect(asyncChunkSource).not.toContain("__webpack_module_cache__");
+    expect(asyncChunkSource).not.toContain("__webpack_modules__");
+    expect(asyncChunkSource).not.toContain(
+      "// expose the modules object (__webpack_modules__)",
+    );
   },
 };
