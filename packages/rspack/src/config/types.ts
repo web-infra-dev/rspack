@@ -1934,11 +1934,17 @@ export type CacheStorageOptions = {
    */
   directory?: string;
   /**
-   * Maximum number of cache versions to retain for each compiler. Must be an
-   * integer between 1 and 4294967295.
-   * @default No count limit; age-based cleanup still applies
+   * Maximum age of cache versions in seconds. Must be an integer between 0
+   * and 4294967295.
+   * @default 7 * 24 * 60 * 60
    */
-  maxVersions?: number;
+  maxAge?: number;
+  /**
+   * Maximum number of cache generations to retain for each compiler. Must be
+   * an integer between 0 and 4294967295.
+   * @default No generation count limit; age-based cleanup still applies
+   */
+  maxGenerations?: number;
 };
 
 /**

@@ -1,7 +1,4 @@
-use std::{
-  num::NonZeroU32,
-  time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rustc_hash::FxHashMap as HashMap;
 
@@ -74,12 +71,12 @@ impl Meta {
     Ok(())
   }
 
-  /// Updates the active version and removes versions rejected by age or count retention.
+  /// Updates the active version and removes versions rejected by age or generation limits.
   pub async fn refresh(
     &mut self,
     active_version: &str,
     expire_seconds: u64,
-    max_versions: Option<NonZeroU32>,
+    max_generations: Option<u32>,
     versions: &[String],
   ) -> Result<(Vec<String>, u64)> {
     let now = Self::current_timestamp();
@@ -103,7 +100,7 @@ impl Meta {
       });
     }
 
-    if let Some(max_versions) = max_versions
+    if let Some(max_generations) = max_generations
       && let Some((scope, _)) = active_version.split_once('-')
     {
       let prefix = format!("{scope}-");
@@ -117,7 +114,10 @@ impl Meta {
           )
         })
         .collect::<Vec<_>>();
-      let remove_count = (candidates.len() + 1).saturating_sub(max_versions.get() as usize);
+      let retained_inactive_generations = max_generations.saturating_sub(1) as usize;
+      let remove_count = candidates
+        .len()
+        .saturating_sub(retained_inactive_generations);
       candidates.sort_unstable_by(|(version_a, timestamp_a), (version_b, timestamp_b)| {
         timestamp_a
           .cmp(timestamp_b)
@@ -139,8 +139,6 @@ impl Meta {
 
 #[cfg(test)]
 mod test {
-  use std::num::NonZeroU32;
-
   use super::{Meta, Result, ScopeFileSystem};
 
   #[tokio::test]
@@ -195,9 +193,7 @@ mod test {
       "legacy".into(),
     ];
 
-    let (removed, _) = meta
-      .refresh("a-v3", 0, NonZeroU32::new(2), &versions)
-      .await?;
+    let (removed, _) = meta.refresh("a-v3", 0, Some(2), &versions).await?;
 
     assert_eq!(removed, vec![String::from("a-v0"), String::from("a-v1")]);
     assert!(meta.access_times.contains_key("a-v2"));
@@ -212,9 +208,7 @@ mod test {
       "b-v1".into(),
       "legacy".into(),
     ];
-    let (mut removed, _) = meta
-      .refresh("a-v4", 0, NonZeroU32::new(1), &versions)
-      .await?;
+    let (mut removed, _) = meta.refresh("a-v4", 0, Some(1), &versions).await?;
     removed.sort();
     assert_eq!(removed, vec![String::from("a-v2"), String::from("a-v3")]);
     assert!(meta.access_times.contains_key("a-v4"));

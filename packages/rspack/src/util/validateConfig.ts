@@ -6,6 +6,7 @@ import type {
 } from '../config';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const MAX_U32 = 0xffffffff;
 
 const validateContext = ({ context }: Configuration) => {
   if (context && !isAbsolute(context)) {
@@ -31,15 +32,25 @@ const validatePersistentCache = ({ cache }: Configuration) => {
     return;
   }
 
-  const maxVersions = cache.storage?.maxVersions;
+  const maxAge = cache.storage?.maxAge;
   if (
-    maxVersions !== undefined &&
-    (!Number.isSafeInteger(maxVersions) ||
-      maxVersions < 1 ||
-      maxVersions > 0xffffffff)
+    maxAge !== undefined &&
+    (!Number.isSafeInteger(maxAge) || maxAge < 0 || maxAge > MAX_U32)
   ) {
     throw new Error(
-      `${ERROR_PREFIX} "cache.storage.maxVersions" must be an integer between 1 and 4294967295, get \`${maxVersions}\`.`,
+      `${ERROR_PREFIX} "cache.storage.maxAge" must be an integer between 0 and ${MAX_U32}, get \`${maxAge}\`.`,
+    );
+  }
+
+  const maxGenerations = cache.storage?.maxGenerations;
+  if (
+    maxGenerations !== undefined &&
+    (!Number.isSafeInteger(maxGenerations) ||
+      maxGenerations < 0 ||
+      maxGenerations > MAX_U32)
+  ) {
+    throw new Error(
+      `${ERROR_PREFIX} "cache.storage.maxGenerations" must be an integer between 0 and ${MAX_U32}, get \`${maxGenerations}\`.`,
     );
   }
 };
