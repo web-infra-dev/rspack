@@ -121,13 +121,10 @@ impl DependencyCodeGeneration for MockMethodDependency {
     let hoist_marker = hoist_flag.map(|flag| format!("{flag}:{hoist_id}:{request}"));
     let mut replacements = Vec::new();
 
-    if should_hoist && self.statement_range.is_some() {
-      let stmt_range = self
-        .statement_range
-        .expect("statement_range should exist for statement hoist");
-      let hoist_marker = hoist_marker
-        .as_deref()
-        .expect("hoist marker should exist when should_hoist is true");
+    if should_hoist
+      && let Some(stmt_range) = self.statement_range
+      && let Some(hoist_marker) = hoist_marker.as_deref()
+    {
       replacements.push((
         DependencyRange::new(stmt_range.start, stmt_range.start),
         format!("/* RSTEST:{hoist_marker}:HOIST_START */"),
