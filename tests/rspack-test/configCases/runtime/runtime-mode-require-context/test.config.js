@@ -15,7 +15,15 @@ module.exports = {
     expect(source).not.toContain("__rspack_context.d");
     expect(source).not.toContain("__rspack_context.N");
     expect(source).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
+    expect(source).toMatch(/var __rspack_modules\s*=/);
+    expect(source).toMatch(/var __rspack_module_cache\s*=\s*\{\};/);
     expect(source).toContain("__rspack_context.r = __rspack_require;");
     expect(source).not.toContain("__webpack_require__");
+    expect(source).not.toContain("__webpack_module_cache__");
+    expect(source).not.toContain("__webpack_exports__");
+    expect(source).not.toContain("__webpack_modules__");
+    expect(source).not.toContain(
+      "// expose the modules object (__webpack_modules__)",
+    );
   },
 };
