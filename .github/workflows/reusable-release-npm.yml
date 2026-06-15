@@ -35,7 +35,7 @@ permissions:
 
 jobs:
   build:
-    name: Build ${{ matrix.array.target }}
+    name: Build ${{ matrix.array.target }}${{ matrix.array.binding_postfix }}
     strategy:
       fail-fast: false # for better utilize ci runners
       matrix:

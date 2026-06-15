@@ -31,7 +31,7 @@ env:
 
 jobs:
   build:
-    name: Build ${{ inputs.target }}
+    name: Build ${{ inputs.target }}${{ inputs.binding_postfix }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
