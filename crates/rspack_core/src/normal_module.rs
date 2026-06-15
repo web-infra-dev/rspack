@@ -660,6 +660,7 @@ impl Module for NormalModule {
 
     let module_graph = compilation.get_module_graph();
     for source_type in self.source_types(module_graph) {
+      let in_concatenation = concatenation_scope.is_some();
       let generation_result = self
         .parser_and_generator
         .generate(
@@ -677,7 +678,11 @@ impl Module for NormalModule {
           },
         )
         .await?;
-      code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      if in_concatenation {
+        code_generation_result.add(*source_type, generation_result);
+      } else {
+        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      }
     }
     code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)

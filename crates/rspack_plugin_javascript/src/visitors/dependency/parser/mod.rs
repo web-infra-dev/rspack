@@ -22,7 +22,7 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
+  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
   JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
   ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
 };
@@ -40,7 +40,7 @@ use swc_experimental_ecma_ast::{
 
 use crate::{
   BoxJavascriptParserPlugin,
-  dependency::{DependencyBranchGuard, local_module::LocalModule, set_dependency_branch_guards},
+  dependency::{DependencyBranchGuard, local_module::LocalModule},
   parser_and_generator::ParserRuntimeRequirementsData,
   parser_plugin::{
     self, ImportsReferencesState, InnerGraphParserPlugin, JavaScriptParserPluginDrive,
@@ -424,7 +424,8 @@ pub struct JavascriptParser<'parser> {
   pub(crate) is_renaming: Option<Atom>,
   pub(crate) location_advancer: DependencyLocationAdvancer,
   pub(crate) collecting_dependencies_for_block: Option<usize>,
-  pub(crate) dependency_branch_guards: Vec<DependencyBranchGuard>,
+  pub(crate) dependencies_in_branch_guard: Option<FxHashMap<DependencyRange, DependencyId>>,
+  pub(crate) current_branch_guard: Option<DependencyBranchGuard>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -617,7 +618,8 @@ impl<'parser> JavascriptParser<'parser> {
       is_renaming: None,
       location_advancer: DependencyLocationAdvancer::new(),
       collecting_dependencies_for_block: None,
-      dependency_branch_guards: Vec::new(),
+      dependencies_in_branch_guard: None,
+      current_branch_guard: None,
     }
   }
 
@@ -640,21 +642,20 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn add_dependency(&mut self, mut dep: BoxDependency) {
-    if !self.dependency_branch_guards.is_empty() {
-      set_dependency_branch_guards(dep.as_mut(), &self.dependency_branch_guards);
+    if let Some(guard) = &self.current_branch_guard {
+      guard.bind_dependency(dep.as_mut());
     }
     self.dependencies.push(dep);
   }
 
   pub fn add_dependencies(&mut self, deps: impl IntoIterator<Item = BoxDependency>) {
-    if self.dependency_branch_guards.is_empty() {
-      self.dependencies.extend(deps);
-    } else {
-      let branch_guards = self.dependency_branch_guards.clone();
+    if let Some(guard) = &self.current_branch_guard {
       self.dependencies.extend(deps.into_iter().map(|mut dep| {
-        set_dependency_branch_guards(dep.as_mut(), &branch_guards);
+        guard.bind_dependency(dep.as_mut());
         dep
       }));
+    } else {
+      self.dependencies.extend(deps);
     }
   }
 
@@ -687,6 +688,30 @@ impl<'parser> JavascriptParser<'parser> {
     std::mem::replace(&mut self.dependencies, old_deps)
   }
 
+  pub fn collect_dependencies_in_branch_guard<T>(
+    &mut self,
+    f: impl FnOnce(&mut JavascriptParser) -> T,
+  ) -> T {
+    let old_deps = self
+      .dependencies_in_branch_guard
+      .replace(Default::default());
+    let result = f(self);
+    self.dependencies_in_branch_guard = old_deps;
+    result
+  }
+
+  pub fn with_branch_guard(&mut self, guard: DependencyBranchGuard, f: impl FnOnce(&mut Self)) {
+    let guard = if let Some(old_guard) = self.current_branch_guard.clone() {
+      // handle for: if (A) { if (B) { import("./x") } }
+      DependencyBranchGuard::new(old_guard.into_inner().and(guard.into_inner()))
+    } else {
+      guard
+    };
+    let old_guard = self.current_branch_guard.replace(guard);
+    f(self);
+    self.current_branch_guard = old_guard;
+  }
+
   pub fn add_presentational_dependency(&mut self, dep: BoxDependencyTemplate) {
     self.presentational_dependencies.push(dep);
   }
@@ -710,9 +735,9 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn add_block(&mut self, mut block: Box<AsyncDependenciesBlock>) {
-    if !self.dependency_branch_guards.is_empty() {
+    if let Some(guard) = &self.current_branch_guard {
       for dep in block.dependencies_mut() {
-        set_dependency_branch_guards(dep.as_mut(), &self.dependency_branch_guards);
+        guard.bind_dependency(dep.as_mut());
       }
     }
     self.blocks.push(block);
@@ -1519,7 +1544,13 @@ impl<'parser> JavascriptParser<'parser> {
         let drive = self.plugin_drive.clone();
         name
           .call_hooks_name(self, |parser, name| {
-            drive.evaluate_identifier(parser, name, ident.span.real_lo(), ident.span.real_hi())
+            drive.evaluate_identifier(
+              parser,
+              name,
+              None,
+              ident.span.real_lo(),
+              ident.span.real_hi(),
+            )
           })
           .or_else(|| {
             let info = self.get_variable_info(&name);
@@ -1571,7 +1602,7 @@ impl<'parser> JavascriptParser<'parser> {
         let Some(info) = self.get_variable_info(&"this".into()) else {
           // use `ident.sym` as fallback for global variable(or maybe just a undefined variable)
           return drive
-            .evaluate_identifier(self, "this", this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, "this", None, this.span.real_lo(), this.span.real_hi())
             .or_else(default_eval);
         };
         if let Some(name) = &info.name
@@ -1579,7 +1610,7 @@ impl<'parser> JavascriptParser<'parser> {
         {
           let name = name.clone();
           return drive
-            .evaluate_identifier(self, &name, this.span.real_lo(), this.span.real_hi())
+            .evaluate_identifier(self, &name, None, this.span.real_lo(), this.span.real_hi())
             .or_else(default_eval);
         }
         None

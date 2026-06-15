@@ -1,7 +1,5 @@
 use std::{borrow::Cow, cell::Cell};
 
-use rspack_core::{Dependency, DependencyId, DependencyRange};
-use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{
@@ -11,9 +9,9 @@ use swc_experimental_ecma_ast::{
   ExprOrSpread, ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan,
   GetterProp, Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement,
   JSXElementChild, JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr,
-  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp,
-  MetaPropExpr, ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall,
-  OptChainExpr, Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
+  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr,
+  ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr,
+  Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
   SimpleAssignTarget, Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt,
   UnaryExpr, UnaryOp, UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
 };
@@ -24,7 +22,7 @@ use super::{
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
-  dependency::{DependencyBranchGuard, ESMImportSpecifierDependency, ESMImportedBooleanGuardNode},
+  dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
@@ -46,159 +44,7 @@ fn warp_ident_to_pat<'a>(ident: &Ident<'a>, allocator: &'a Allocator) -> Pat<'a>
   Pat::Ident(allocator.boxed(ident.clone_in(allocator).into_binding(allocator)))
 }
 
-#[derive(Debug)]
-enum ImportedBooleanConditionTemplate {
-  Constant(bool),
-  ESMImportedBoolean {
-    range: DependencyRange,
-    expected: bool,
-  },
-  All(
-    Box<ImportedBooleanConditionTemplate>,
-    Box<ImportedBooleanConditionTemplate>,
-  ),
-  Any(
-    Box<ImportedBooleanConditionTemplate>,
-    Box<ImportedBooleanConditionTemplate>,
-  ),
-}
-
-impl ImportedBooleanConditionTemplate {
-  fn into_branch_guard(
-    self,
-    dependencies: &[(DependencyRange, DependencyId)],
-  ) -> Option<DependencyBranchGuard> {
-    let mut nodes = Vec::new();
-    let root = self.push_branch_guard_node(dependencies, &mut nodes)?;
-    Some(DependencyBranchGuard::ESMImportedBooleanExpression { nodes, root })
-  }
-
-  fn push_branch_guard_node(
-    self,
-    dependencies: &[(DependencyRange, DependencyId)],
-    nodes: &mut Vec<ESMImportedBooleanGuardNode>,
-  ) -> Option<u32> {
-    let node = match self {
-      Self::Constant(value) => ESMImportedBooleanGuardNode::Constant(value),
-      Self::ESMImportedBoolean { range, expected } => {
-        let (_, dependency_id) = dependencies
-          .iter()
-          .find(|(dependency_range, _)| *dependency_range == range)?;
-        ESMImportedBooleanGuardNode::ESMImportedBoolean {
-          dependency_id: *dependency_id,
-          expected,
-        }
-      }
-      Self::All(left, right) => ESMImportedBooleanGuardNode::All {
-        left: left.push_branch_guard_node(dependencies, nodes)?,
-        right: right.push_branch_guard_node(dependencies, nodes)?,
-      },
-      Self::Any(left, right) => ESMImportedBooleanGuardNode::Any {
-        left: left.push_branch_guard_node(dependencies, nodes)?,
-        right: right.push_branch_guard_node(dependencies, nodes)?,
-      },
-    };
-    let index = u32::try_from(nodes.len()).ok()?;
-    nodes.push(node);
-    Some(index)
-  }
-}
-
 impl JavascriptParser<'_> {
-  fn with_dependency_branch_guards(
-    &mut self,
-    guards: impl IntoIterator<Item = DependencyBranchGuard>,
-    f: impl FnOnce(&mut Self),
-  ) {
-    let old_len = self.dependency_branch_guards.len();
-    self.dependency_branch_guards.extend(guards);
-    f(self);
-    self.dependency_branch_guards.truncate(old_len);
-  }
-
-  fn esm_import_condition_dependencies(
-    &self,
-    start: usize,
-  ) -> Vec<(DependencyRange, DependencyId)> {
-    self.dependencies[start..]
-      .iter()
-      .filter_map(|dependency| {
-        let dependency = dependency.downcast_ref::<ESMImportSpecifierDependency>()?;
-        Some((dependency.range()?, *dependency.id()))
-      })
-      .collect()
-  }
-
-  fn branch_condition_templates_for_imported_bool(
-    test: &Expr,
-  ) -> Option<(
-    ImportedBooleanConditionTemplate,
-    ImportedBooleanConditionTemplate,
-  )> {
-    match test {
-      Expr::Ident(ident) => {
-        let range = DependencyRange::new(ident.span.real_lo(), ident.span.real_hi());
-        Some((
-          ImportedBooleanConditionTemplate::ESMImportedBoolean {
-            range,
-            expected: true,
-          },
-          ImportedBooleanConditionTemplate::ESMImportedBoolean {
-            range,
-            expected: false,
-          },
-        ))
-      }
-      Expr::Lit(lit) if matches!(&**lit, Lit::Bool(_)) => {
-        let Lit::Bool(lit) = &**lit else {
-          unreachable!();
-        };
-        Some((
-          ImportedBooleanConditionTemplate::Constant(lit.value),
-          ImportedBooleanConditionTemplate::Constant(!lit.value),
-        ))
-      }
-      Expr::Paren(expr) => Self::branch_condition_templates_for_imported_bool(&expr.expr),
-      Expr::Unary(expr) if expr.op == UnaryOp::Bang => {
-        Self::branch_condition_templates_for_imported_bool(&expr.arg)
-          .map(|(consequent, alternate)| (alternate, consequent))
-      }
-      Expr::Bin(expr) if expr.op == BinaryOp::LogicalAnd => {
-        let (left_consequent, left_alternate) =
-          Self::branch_condition_templates_for_imported_bool(&expr.left)?;
-        let (right_consequent, right_alternate) =
-          Self::branch_condition_templates_for_imported_bool(&expr.right)?;
-        Some((
-          ImportedBooleanConditionTemplate::All(
-            Box::new(left_consequent),
-            Box::new(right_consequent),
-          ),
-          ImportedBooleanConditionTemplate::Any(
-            Box::new(left_alternate),
-            Box::new(right_alternate),
-          ),
-        ))
-      }
-      Expr::Bin(expr) if expr.op == BinaryOp::LogicalOr => {
-        let (left_consequent, left_alternate) =
-          Self::branch_condition_templates_for_imported_bool(&expr.left)?;
-        let (right_consequent, right_alternate) =
-          Self::branch_condition_templates_for_imported_bool(&expr.right)?;
-        Some((
-          ImportedBooleanConditionTemplate::Any(
-            Box::new(left_consequent),
-            Box::new(right_consequent),
-          ),
-          ImportedBooleanConditionTemplate::All(
-            Box::new(left_alternate),
-            Box::new(right_alternate),
-          ),
-        ))
-      }
-      _ => None,
-    }
-  }
-
   fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
   where
     F: FnOnce(&mut Self),
@@ -508,26 +354,23 @@ impl JavascriptParser<'_> {
         self.walk_nested_statement(alt);
       }
     } else {
-      let mut test_walked = false;
-      let branch_condition = Self::branch_condition_templates_for_imported_bool(&stmt.test)
-        .and_then(|(consequent, alternate)| {
-          let dep_start = self.next_dependency_idx();
-          self.walk_expression(&stmt.test);
-          test_walked = true;
-          let dependencies = self.esm_import_condition_dependencies(dep_start);
-          Some((
-            consequent.into_branch_guard(&dependencies)?,
-            alternate.into_branch_guard(&dependencies)?,
-          ))
-        });
-
       // Unknown or non-constant condition – walk the test for side effects and
       // both branches, only keeping termination when *both* are terminated.
-      if !test_walked {
-        self.walk_expression(&stmt.test);
-      }
-      if let Some((consequent_condition, _)) = &branch_condition {
-        self.with_dependency_branch_guards(std::iter::once(consequent_condition.clone()), |this| {
+      let guard = self.collect_dependencies_in_branch_guard(|parser| {
+        parser.walk_expression(&stmt.test);
+        let deps_in_guard = parser.dependencies_in_branch_guard.as_ref()?;
+        if deps_in_guard.is_empty() {
+          return None;
+        }
+        let evaluated = parser.evaluate_expression(&stmt.test);
+        if evaluated.is_dependency() {
+          return Some(evaluated.into_dependency());
+        }
+        None
+      });
+
+      if let Some(guard) = &guard {
+        self.with_branch_guard(DependencyBranchGuard::new(guard.clone()), |this| {
           this.walk_nested_statement(&stmt.cons)
         });
       } else {
@@ -536,11 +379,10 @@ impl JavascriptParser<'_> {
       let consequent_terminated = self.terminated;
       self.terminated = None;
       if let Some(alt) = &stmt.alt {
-        if let Some((_, alternate_condition)) = &branch_condition {
-          self
-            .with_dependency_branch_guards(std::iter::once(alternate_condition.clone()), |this| {
-              this.walk_nested_statement(alt)
-            });
+        if let Some(guard) = guard {
+          self.with_branch_guard(DependencyBranchGuard::new(guard.not()), |this| {
+            this.walk_nested_statement(alt)
+          });
         } else {
           self.walk_nested_statement(alt);
         }
@@ -1267,9 +1109,33 @@ impl JavascriptParser<'_> {
         self.walk_expression(&expr.alt);
       }
     } else {
-      self.walk_expression(&expr.test);
-      self.walk_expression(&expr.cons);
-      self.walk_expression(&expr.alt);
+      let guard = self.collect_dependencies_in_branch_guard(|parser| {
+        parser.walk_expression(&expr.test);
+        let deps_in_guard = parser.dependencies_in_branch_guard.as_ref()?;
+        if deps_in_guard.is_empty() {
+          return None;
+        }
+        let evaluated = parser.evaluate_expression(&expr.test);
+        if evaluated.is_dependency() {
+          return Some(evaluated.into_dependency());
+        }
+        None
+      });
+
+      if let Some(guard) = &guard {
+        self.with_branch_guard(DependencyBranchGuard::new(guard.clone()), |this| {
+          this.walk_expression(&expr.cons)
+        });
+      } else {
+        self.walk_expression(&expr.cons);
+      }
+      if let Some(guard) = guard {
+        self.with_branch_guard(DependencyBranchGuard::new(guard.not()), |this| {
+          this.walk_expression(&expr.alt)
+        });
+      } else {
+        self.walk_expression(&expr.alt);
+      }
     }
   }
 

@@ -166,8 +166,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
-    Statement, VariableDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo,
+    ExpressionExpressionInfo, JavascriptParser, Statement, VariableDeclaration,
   },
 };
 
@@ -320,6 +320,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     &self,
     _parser: &mut JavascriptParser<'p>,
     _for_name: &str,
+    _member_expr_info: Option<&ExpressionExpressionInfo>,
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
