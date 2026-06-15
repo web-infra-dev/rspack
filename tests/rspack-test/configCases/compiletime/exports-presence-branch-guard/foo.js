@@ -9,3 +9,5 @@ export function b() {
 export function c() {
   return "c";
 }
+
+export * as obj from "./obj";

@@ -24,6 +24,7 @@ pub enum JavascriptParserPluginHook {
   EvaluateTypeof,
   EvaluateCallExpression,
   EvaluateCallExpressionMember,
+  EvaluateBinaryExpression,
   EvaluateIdentifier,
   CanCollectDestructuringAssignmentProperties,
   Pattern,
@@ -88,6 +89,7 @@ impl JavascriptParserPluginHook {
     Self::EvaluateTypeof,
     Self::EvaluateCallExpression,
     Self::EvaluateCallExpressionMember,
+    Self::EvaluateBinaryExpression,
     Self::EvaluateIdentifier,
     Self::CanCollectDestructuringAssignmentProperties,
     Self::Pattern,
@@ -309,6 +311,18 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _expr: &'a UnaryExpr<'a>,
     _for_name: &str,
+  ) -> Option<BasicEvaluatedExpression<'a>>
+  where
+    'p: 'a,
+  {
+    None
+  }
+
+  fn evaluate_binary_expression(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _expr: &'a BinExpr<'a>,
+    _left: &BasicEvaluatedExpression<'a>,
   ) -> Option<BasicEvaluatedExpression<'a>>
   where
     'p: 'a,
