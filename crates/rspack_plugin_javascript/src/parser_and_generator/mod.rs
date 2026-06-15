@@ -33,6 +33,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct ParserRuntimeRequirementsData {
+  pub context: String,
   pub module: String,
   pub rspack_module: String,
   pub exports: String,
@@ -83,9 +84,11 @@ impl ParserRuntimeRequirementsData {
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::MODULE_CACHE);
     let entry_module_id_name =
       runtime_template.render_runtime_globals_without_adding(&RuntimeGlobals::ENTRY_MODULE_ID);
+    let context_name = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
     let rspack_module_name = runtime_template.render_runtime_variable(&RuntimeVariable::Module);
     Self {
       require_regex: &LEGACY_REQUIRE_REGEX,
+      context: context_name,
       module: module_name,
       rspack_module: rspack_module_name,
       exports: exports_name,

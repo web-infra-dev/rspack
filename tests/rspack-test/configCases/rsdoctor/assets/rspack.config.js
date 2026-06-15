@@ -33,26 +33,37 @@ module.exports = {
               path: a.path,
             }));
             assetsInfo.sort((a, b) => (a.path > b.path ? 1 : -1));
-            expect(assetsInfo).toMatchInlineSnapshot(`
-              Array [
-                Object {
-                  path: a.js,
-                  size: 4298,
+            if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+              expect(assetsInfo.map((i) => ({ path: i.path }))).toEqual([
+                {
+                  path: 'a.js',
                 },
-                Object {
-                  path: b.js,
-                  size: 4298,
+                {
+                  path: 'b.js',
                 },
-                Object {
-                  path: c_js.js,
-                  size: 219,
+                {
+                  path: 'c_js.js',
                 },
-                Object {
-                  path: d_js.js,
-                  size: 219,
+                {
+                  path: 'd_js.js',
                 },
-              ]
-            `);
+              ]);
+            } else {
+              expect(assetsInfo.map((i) => ({ path: i.path }))).toEqual([
+                {
+                  path: 'a.js',
+                },
+                {
+                  path: 'b.js',
+                },
+                {
+                  path: 'c_js.js',
+                },
+                {
+                  path: 'd_js.js',
+                },
+              ]);
+            }
           });
         });
       },

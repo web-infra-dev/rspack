@@ -12,7 +12,7 @@ mod eval_unary_expr;
 
 use bitflags::bitflags;
 use num_bigint::BigInt;
-use rspack_core::DependencyRange;
+use rspack_core::{DependencyId, DependencyRange};
 use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, CloneIn};
 use swc_experimental_ecma_ast::{Expr, Span};
@@ -62,22 +62,55 @@ struct TemplateStringData<'a> {
   kind: TemplateStringKind,
 }
 
+#[rspack_cacheable::cacheable]
+#[derive(Debug, Clone)]
+pub enum DependencyData {
+  Dependency(DependencyId),
+  Or(
+    #[cacheable(omit_bounds)] Box<DependencyData>,
+    #[cacheable(omit_bounds)] Box<DependencyData>,
+  ),
+  And(
+    #[cacheable(omit_bounds)] Box<DependencyData>,
+    #[cacheable(omit_bounds)] Box<DependencyData>,
+  ),
+  Not(#[cacheable(omit_bounds)] Box<DependencyData>),
+}
+
+impl DependencyData {
+  pub fn or(self, other: DependencyData) -> Self {
+    DependencyData::Or(Box::new(self), Box::new(other))
+  }
+
+  pub fn and(self, other: DependencyData) -> Self {
+    DependencyData::And(Box::new(self), Box::new(other))
+  }
+
+  #[allow(clippy::should_implement_trait)]
+  pub fn not(self) -> Self {
+    DependencyData::Not(Box::new(self))
+  }
+}
+
 #[derive(Debug)]
 enum Payload<'a> {
-  Unknown,
+  // Compile time value
   Undefined,
   Null,
   String(String),
   Number(Number),
   Boolean(Boolean),
   RegExp(Box<Regexp>),
+  ConstArray(Vec<String>),
+  BigInt(Bigint),
+  // Non-compile time value
   Conditional(Vec<BasicEvaluatedExpression<'a>>),
   Array(Vec<BasicEvaluatedExpression<'a>>),
   Wrapped(Box<WrappedData<'a>>),
-  ConstArray(Vec<String>),
-  BigInt(Bigint),
   Identifier(Box<IdentifierData>),
+  Dependency(DependencyData),
   TemplateString(Box<TemplateStringData<'a>>),
+  Unknown,
 }
 
 #[derive(Debug)]
@@ -178,6 +211,7 @@ impl<'alloc: 'a, 'a> CloneIn<'alloc> for Payload<'a> {
       Self::ConstArray(value) => Self::ConstArray(value.clone()),
       Self::BigInt(value) => Self::BigInt(value.clone()),
       Self::Identifier(value) => Self::Identifier(Box::new(value.clone_in(allocator))),
+      Self::Dependency(value) => Self::Dependency(value.clone()),
       Self::TemplateString(value) => Self::TemplateString(Box::new(value.clone_in(allocator))),
     }
   }
@@ -229,6 +263,10 @@ impl<'a> BasicEvaluatedExpression<'a> {
 
   pub fn is_identifier(&self) -> bool {
     matches!(self.payload, Payload::Identifier(_))
+  }
+
+  pub fn is_dependency(&self) -> bool {
+    matches!(self.payload, Payload::Dependency(_))
   }
 
   pub fn is_null(&self) -> bool {
@@ -520,6 +558,11 @@ impl<'a> BasicEvaluatedExpression<'a> {
     self.side_effects = true;
   }
 
+  pub fn set_dependency(&mut self, dep_data: DependencyData) {
+    self.payload = Payload::Dependency(dep_data);
+    self.side_effects = true;
+  }
+
   pub fn set_bool(&mut self, boolean: Boolean) {
     self.payload = Payload::Boolean(boolean);
     self.side_effects = false
@@ -618,6 +661,20 @@ impl<'a> BasicEvaluatedExpression<'a> {
     match &self.payload {
       Payload::Identifier(identifier) => identifier.member_ranges.as_ref(),
       _ => panic!("make sure identifier exist"),
+    }
+  }
+
+  pub fn dependency(&self) -> &DependencyData {
+    match &self.payload {
+      Payload::Dependency(dep_data) => dep_data,
+      _ => panic!("make sure dependency exist"),
+    }
+  }
+
+  pub fn into_dependency(self) -> DependencyData {
+    match self.payload {
+      Payload::Dependency(dep_data) => dep_data,
+      _ => panic!("make sure dependency exist"),
     }
   }
 

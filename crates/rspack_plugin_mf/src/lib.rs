@@ -69,9 +69,43 @@ pub use sharing::{
 mod utils {
   use std::fmt;
 
+  use rspack_core::{
+    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+    runtime_mode::RuntimeMode,
+  };
   use serde::Serialize;
 
   pub fn json_stringify<T: ?Sized + Serialize + fmt::Debug>(v: &T) -> String {
     simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
+  }
+
+  pub fn runtime_require_scope_name(runtime_template: &RuntimeCodeTemplate<'_>) -> String {
+    if runtime_template.uses_runtime_context() {
+      runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+    } else {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    }
+  }
+
+  pub fn runtime_require_scope_requirement(compilation: &Compilation) -> RuntimeGlobals {
+    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      RuntimeGlobals::REQUIRE_SCOPE
+    } else {
+      RuntimeGlobals::default()
+    }
+  }
+
+  pub fn module_require_scope_name(
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::REQUIRE_SCOPE);
+      runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+    } else {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    }
   }
 }

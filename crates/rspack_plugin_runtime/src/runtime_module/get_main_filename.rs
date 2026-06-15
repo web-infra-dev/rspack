@@ -28,6 +28,10 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    self.global
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

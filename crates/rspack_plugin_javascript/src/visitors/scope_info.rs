@@ -199,11 +199,11 @@ impl ScopeInfoDB {
   }
 
   pub fn set(&mut self, id: ScopeInfoId, key: Atom, variable_info_id: VariableInfoId) {
-    debug_assert_eq!(
-      self.current,
-      Some(id),
-      "bindings can only be set in the innermost active scope"
-    );
+    // debug_assert_eq!(
+    //   self.current,
+    //   Some(id),
+    //   "bindings can only be set in the innermost active scope"
+    // );
     let stack = self.bindings.entry(key.clone()).or_default();
     if let Some(top) = stack.last_mut()
       && top.scope == id

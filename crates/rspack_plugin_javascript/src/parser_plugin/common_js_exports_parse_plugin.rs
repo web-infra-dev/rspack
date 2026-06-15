@@ -273,6 +273,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     parser: &mut JavascriptParser<'p>,
     assign_expr: &AssignExpr,
     remaining: &[Atom],
+    _member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if self.should_skip_handler(parser) {

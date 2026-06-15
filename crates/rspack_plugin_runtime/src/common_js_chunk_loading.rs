@@ -113,6 +113,11 @@ async fn runtime_requirements_in_tree(
     if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       runtime_requirements_mut
         .extend(ReadFileChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr());
+      if compilation.options.experiments.runtime_mode
+        == rspack_core::runtime_mode::RuntimeMode::Rspack
+      {
+        runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      }
     }
     if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       runtime_requirements_mut
@@ -141,6 +146,11 @@ async fn runtime_requirements_in_tree(
     if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       runtime_requirements_mut
         .extend(RequireChunkLoadingRuntimeModule::get_runtime_requirements_with_hmr());
+      if compilation.options.experiments.runtime_mode
+        == rspack_core::runtime_mode::RuntimeMode::Rspack
+      {
+        runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      }
     }
     if all_runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       runtime_requirements_mut

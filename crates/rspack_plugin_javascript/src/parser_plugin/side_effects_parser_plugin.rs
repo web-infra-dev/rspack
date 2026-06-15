@@ -8,10 +8,10 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind, Comments, Decl,
-  DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName, ScopeId, Span,
-  Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
+  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
+  ScopeId, Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -922,6 +922,31 @@ fn is_pure_call_args(
   true
 }
 
+fn is_pure_array_lit<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  array_lit: &'a ArrayLit,
+  unresolved_ctxt: ScopeId,
+  comments: &'a Comments<'a>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  for elem in array_lit.elems.iter().flatten() {
+    if elem.spread.is_some()
+      || !is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        &elem.expr,
+        unresolved_ctxt,
+        comments,
+        callees.as_deref_mut(),
+      )
+    {
+      return false;
+    }
+  }
+  true
+}
+
 enum ExplicitSideEffectsFreeCallee {
   Direct,
   Deferred,
@@ -962,7 +987,17 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
+  if let Some((declared_scope, is_free)) = parser
+    .get_variable_info(ident)
+    .map(|info| (info.declared_scope, info.is_free()))
+  {
+    if !is_free && declared_scope == parser.definitions {
+      return ExplicitSideEffectsFreeCallee::Direct;
+    }
+    return ExplicitSideEffectsFreeCallee::Invalid;
+  }
+
+  if allow_unresolved_marked {
     return ExplicitSideEffectsFreeCallee::Direct;
   }
 
@@ -1591,6 +1626,14 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
+      Expr::Array(array_lit) => is_pure_array_lit(
+        parser,
+        analyze_side_effects_free,
+        array_lit,
+        unresolved_ctxt,
+        comments,
+        callees.as_deref_mut(),
+      ),
       Expr::Call(_) => is_pure_call_expr(
         parser,
         analyze_side_effects_free,

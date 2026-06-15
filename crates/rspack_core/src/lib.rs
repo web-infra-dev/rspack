@@ -43,6 +43,8 @@ pub use parser_and_generator::*;
 mod runtime_globals;
 pub use normal_module::*;
 pub use runtime_globals::{MODULE_GLOBALS, REQUIRE_SCOPE_GLOBALS, RuntimeGlobals, RuntimeVariable};
+mod runtime_module_source;
+pub use runtime_module_source::render_runtime_module_source;
 mod plugin;
 pub use plugin::*;
 mod context_module;

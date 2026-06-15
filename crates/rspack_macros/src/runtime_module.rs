@@ -94,7 +94,12 @@ pub fn impl_runtime_module(
           use ::rspack_collections::Identifiable;
           use ::rspack_core::rspack_sources::SourceExt;
 
-          let source_str = self.generate_with_custom(compilation).await?;
+          let runtime_template = compilation.runtime_template.create_runtime_code_template();
+          let context = ::rspack_core::RuntimeModuleGenerateContext {
+            compilation,
+            runtime_template: &runtime_template,
+          };
+          let source_str = self.generate_with_custom(&context).await?;
           let source_map_kind = self.get_source_map_kind();
           Ok(if source_map_kind.enabled() {
             ::rspack_core::rspack_sources::OriginalSource::new(
@@ -222,7 +227,8 @@ pub fn impl_runtime_module(
         code_generation_context: &mut ::rspack_core::ModuleCodeGenerationContext,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
         let mut result = ::rspack_core::CodeGenerationResult::default();
-        result.add(::rspack_core::SourceType::Runtime, self.get_generated_code(code_generation_context.compilation).await?);
+        let source = self.get_generated_code(code_generation_context.compilation).await?;
+        result.add(::rspack_core::SourceType::Runtime, source);
         Ok(result)
       }
 
@@ -238,7 +244,12 @@ pub fn impl_runtime_module(
         self.stage().dyn_hash(&mut hasher);
         if self.full_hash() || self.dependent_hash() {
           use std::hash::Hash;
-          self.generate_with_custom(compilation).await?.hash(&mut hasher);
+          let runtime_template = compilation.runtime_template.create_runtime_code_template();
+          let context = ::rspack_core::RuntimeModuleGenerateContext {
+            compilation,
+            runtime_template: &runtime_template,
+          };
+          self.generate_with_custom(&context).await?.hash(&mut hasher);
         } else {
           self.get_generated_code(compilation).await?.dyn_hash(&mut hasher);
         }

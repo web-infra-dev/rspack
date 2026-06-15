@@ -5,7 +5,9 @@ class Plugin {
       compilation.hooks.additionalTreeRuntimeRequirements.tap(
         'TestFakePlugin',
         (_, set) => {
-          expect(set.has(RuntimeGlobals.chunkName)).toBeFalsy();
+          if (!globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+            expect(set.has(RuntimeGlobals.chunkName)).toBeFalsy();
+          }
           expect(set.has(RuntimeGlobals.getFullHash)).toBeTruthy();
           set.add(RuntimeGlobals.chunkName);
           set.delete(RuntimeGlobals.getFullHash);

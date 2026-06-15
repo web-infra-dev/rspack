@@ -1,4 +1,7 @@
-use rspack_core::{BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange};
+use rspack_core::{
+  BoxDependencyTemplate, ConstDependency, ContextDependency, DependencyRange,
+  runtime_mode::RuntimeMode,
+};
 use rspack_util::{SpanExt, itoa};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, Program, VarDeclarator};
@@ -22,6 +25,14 @@ pub struct NestedRequireData {
 pub struct CompatibilityPlugin;
 
 impl CompatibilityPlugin {
+  fn nested_require_name<'a>(&self, parser: &'a JavascriptParser) -> &'a str {
+    if parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack {
+      parser.parser_runtime_requirements.context.as_str()
+    } else {
+      parser.parser_runtime_requirements.require.as_str()
+    }
+  }
+
   pub fn browserify_require_handler(
     &self,
     parser: &mut JavascriptParser,
@@ -95,7 +106,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     let ident = decl.name.as_ident()?;
 
-    if ident.id.sym.as_str() == parser.parser_runtime_requirements.require {
+    if ident.id.sym.as_str() == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
@@ -146,7 +157,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         ident.span().real_hi(),
       );
       return Some(true);
-    } else if for_name == parser.parser_runtime_requirements.require {
+    } else if for_name == self.nested_require_name(parser) {
       let span = ident.span();
       let start = span.real_lo();
       let end = span.real_hi();
@@ -175,7 +186,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
     let fn_decl = stmt.as_function_decl()?;
     let ident = fn_decl.ident()?;
     let name = &ident.sym;
-    if name.as_str() != parser.parser_runtime_requirements.require {
+    if name.as_str() != self.nested_require_name(parser) {
       None
     } else {
       self.tag_nested_require_data(
@@ -202,7 +213,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     if let Some(ident) = declarator.name.as_ident()
       && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
-        || ident.id.sym.as_str() == parser.parser_runtime_requirements.require)
+        || ident.id.sym.as_str() == self.nested_require_name(parser))
     {
       let data = parser.get_tag_data_mut::<NestedRequireData>(
         &Atom::from(ident.id.sym.as_str()),
