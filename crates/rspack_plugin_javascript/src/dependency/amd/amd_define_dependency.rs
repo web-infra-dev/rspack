@@ -13,6 +13,9 @@ use rspack_util::{atom::Atom, json_stringify_str};
 
 use super::local_module::LocalModule;
 
+type AstDefineReplacement = (String, u32, u32);
+type AstDefineReplacements = (Option<String>, Vec<AstDefineReplacement>);
+
 bitflags! {
   #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
   struct Branch: u8 {
@@ -182,6 +185,65 @@ impl AMDDefineDependency {
   pub fn set_local_module(&mut self, local_module: LocalModule) {
     self.local_module = Some(local_module);
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn ast_define_replacements(
+    &self,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> Option<AstDefineReplacements> {
+    let branch = self.branch();
+    if branch.is_empty() {
+      return None;
+    }
+
+    let local_module_var = self.local_module_var();
+    let text = branch.get_content(&local_module_var, &self.named_module, runtime_template);
+    let definition = branch.get_definition(&local_module_var);
+    let mut texts = text.split('#');
+    let mut replacements = Vec::new();
+    let mut current = self.range.start;
+
+    if let Some(array_range) = self.array_range {
+      replacements.push((
+        texts.next().unwrap_or("").to_string(),
+        current,
+        array_range.start,
+      ));
+      current = array_range.end;
+    }
+
+    if let Some(object_range) = self.object_range {
+      replacements.push((
+        texts.next().unwrap_or("").to_string(),
+        current,
+        object_range.start,
+      ));
+      current = object_range.end;
+    } else if let Some(function_range) = self.function_range {
+      replacements.push((
+        texts.next().unwrap_or("").to_string(),
+        current,
+        function_range.start,
+      ));
+      current = function_range.end;
+    } else {
+      return None;
+    }
+
+    replacements.push((
+      texts.next().unwrap_or("").to_string(),
+      current,
+      self.range.end,
+    ));
+    if texts.next().is_some() {
+      return None;
+    }
+
+    Some(((!definition.is_empty()).then_some(definition), replacements))
+  }
 }
 
 #[cacheable_dyn]
@@ -244,6 +306,10 @@ impl AsContextDependency for AMDDefineDependency {}
 impl DependencyCodeGeneration for AMDDefineDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDDefineDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

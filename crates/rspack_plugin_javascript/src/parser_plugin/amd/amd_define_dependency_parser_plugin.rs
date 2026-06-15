@@ -2,8 +2,7 @@ use std::borrow::Cow;
 
 use rspack_core::{
   BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
-  ContextMode, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  ContextMode, ContextOptions, DependencyCategory, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;

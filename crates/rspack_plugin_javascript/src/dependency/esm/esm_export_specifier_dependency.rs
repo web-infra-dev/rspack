@@ -46,6 +46,22 @@ impl ESMExportSpecifierDependency {
       id: DependencyId::new(),
     }
   }
+
+  pub fn name(&self) -> &Atom {
+    &self.name
+  }
+
+  pub fn value(&self) -> &Atom {
+    &self.value
+  }
+
+  pub fn const_value(&self) -> Option<&ConstValue> {
+    self.const_value.as_ref()
+  }
+
+  pub fn enum_value(&self) -> Option<&TSEnumValue> {
+    self.enum_value.as_ref()
+  }
 }
 
 #[cacheable_dyn]

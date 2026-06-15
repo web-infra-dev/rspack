@@ -26,6 +26,18 @@ impl ExternalModuleDependency {
       default_import,
     }
   }
+
+  pub fn module(&self) -> &str {
+    &self.module
+  }
+
+  pub fn import_specifier(&self) -> &[(String, String)] {
+    &self.import_specifier
+  }
+
+  pub fn default_import(&self) -> Option<&String> {
+    self.default_import.as_ref()
+  }
 }
 
 #[cacheable_dyn]

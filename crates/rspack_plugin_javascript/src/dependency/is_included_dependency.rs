@@ -81,6 +81,10 @@ impl DependencyCodeGeneration for IsIncludeDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(IsIncludedDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
 }
 
 #[cacheable]

@@ -51,6 +51,28 @@ impl RstestRequireResolveOriginDependencyTemplate {
 }
 
 impl DependencyTemplate for RstestRequireResolveOriginDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RstestRequireResolveOriginDependency>()
+      .expect(
+        "RstestRequireResolveOriginDependencyTemplate can only be applied to \
+         RstestRequireResolveOriginDependency",
+      );
+
+    Some(vec![
+      (dep.callee_range, self.function_name.clone()),
+      (
+        DependencyRange::new(dep.args_end, dep.args_end),
+        format!(", {}", json_stringify_str(&dep.origin_path)),
+      ),
+    ])
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

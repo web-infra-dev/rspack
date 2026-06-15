@@ -41,6 +41,26 @@ impl WorkerDependency {
       need_new_url,
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn public_path(&self) -> &str {
+    &self.public_path
+  }
+
+  pub fn range_path(&self) -> DependencyRange {
+    self.range_path
+  }
+
+  pub fn need_new_url(&self) -> bool {
+    self.need_new_url
+  }
 }
 
 #[cacheable_dyn]
@@ -99,6 +119,10 @@ impl ModuleDependency for WorkerDependency {
 impl DependencyCodeGeneration for WorkerDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(WorkerDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range_path)
   }
 
   fn update_hash(

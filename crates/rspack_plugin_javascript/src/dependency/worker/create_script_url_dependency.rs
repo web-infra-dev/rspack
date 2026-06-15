@@ -21,6 +21,10 @@ impl CreateScriptUrlDependency {
       range_path,
     }
   }
+
+  pub fn range_path(&self) -> DependencyRange {
+    self.range_path
+  }
 }
 
 #[cacheable_dyn]
@@ -50,6 +54,10 @@ impl Dependency for CreateScriptUrlDependency {
 impl DependencyCodeGeneration for CreateScriptUrlDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CreateScriptUrlDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range_path)
   }
 }
 

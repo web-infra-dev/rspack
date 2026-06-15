@@ -1,6 +1,5 @@
 use rspack_core::{
-  BoxDependency, Dependency, DependencyId, DependencyRange, UsedByExports,
-  UsedByExportsDeferredPureCheck,
+  BoxDependency, DependencyId, DependencyRange, UsedByExports, UsedByExportsDeferredPureCheck,
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};

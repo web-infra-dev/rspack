@@ -54,6 +54,26 @@ impl CommonJsFullRequireDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn asi_safe(&self) -> bool {
+    self.asi_safe
+  }
 }
 
 #[cacheable_dyn]
@@ -150,6 +170,10 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 impl DependencyCodeGeneration for CommonJsFullRequireDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsFullRequireDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

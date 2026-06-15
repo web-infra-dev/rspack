@@ -89,6 +89,10 @@ impl DependencyCodeGeneration for ImportMetaResolveDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaResolveDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
 }
 
 impl AsContextDependency for ImportMetaResolveDependency {}

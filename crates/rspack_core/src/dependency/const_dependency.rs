@@ -27,6 +27,17 @@ impl DependencyCodeGeneration for ConstDependency {
     Some(ConstDependencyTemplate::template_type())
   }
 
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
+  fn ast_dependency_replacements(
+    &self,
+    _context: &mut TemplateContext<'_, '_, '_>,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    Some(vec![(self.range, self.content.to_string())])
+  }
+
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

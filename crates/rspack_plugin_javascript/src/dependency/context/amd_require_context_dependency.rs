@@ -36,6 +36,10 @@ impl AMDRequireContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
 }
 
 #[cacheable_dyn]

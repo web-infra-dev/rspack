@@ -26,6 +26,10 @@ impl ModuleDecoratorDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn decorator(&self) -> RuntimeGlobals {
+    self.decorator
+  }
 }
 
 #[cacheable_dyn]

@@ -37,6 +37,22 @@ impl AMDRequireDependency {
       error_callback_bind_this: false,
     }
   }
+
+  pub fn outer_range(&self) -> DependencyRange {
+    self.outer_range
+  }
+
+  pub fn array_range(&self) -> Option<DependencyRange> {
+    self.array_range
+  }
+
+  pub fn function_range(&self) -> Option<DependencyRange> {
+    self.function_range
+  }
+
+  pub fn error_callback_range(&self) -> Option<DependencyRange> {
+    self.error_callback_range
+  }
 }
 
 #[cacheable_dyn]
@@ -70,6 +86,10 @@ impl AsContextDependency for AMDRequireDependency {}
 impl DependencyCodeGeneration for AMDRequireDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(AMDRequireDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.outer_range)
   }
 }
 

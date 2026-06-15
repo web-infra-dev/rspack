@@ -91,6 +91,92 @@ impl DependencyCodeGeneration for MockMethodDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(MockMethodDependencyTemplate::template_type())
   }
+
+  fn ast_dependency_replacements(
+    &self,
+    code_generatable_context: &mut TemplateContext<'_, '_, '_>,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let TemplateContext {
+      init_fragments,
+      runtime_template,
+      ..
+    } = code_generatable_context;
+    let request = &self.request;
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let hoist_id = self.hoist_id();
+    let hoist_flag = MockMethodDependencyTemplate::get_hoist_flag(&self.method);
+    let mock_method = MockMethodDependencyTemplate::get_mock_method(&self.method);
+
+    if let Some(flag) = hoist_flag {
+      MockMethodDependencyTemplate::add_placeholder_fragment(
+        init_fragments,
+        flag,
+        &hoist_id,
+        request,
+      );
+    }
+    MockMethodDependencyTemplate::hoist_rstest_core_import(init_fragments);
+
+    let should_hoist = hoist_flag.is_some() && self.hoist;
+    let hoist_marker = hoist_flag.map(|flag| format!("{flag}:{hoist_id}:{request}"));
+    let mut replacements = Vec::new();
+
+    if should_hoist
+      && let Some(stmt_range) = self.statement_range
+      && let Some(hoist_marker) = hoist_marker.as_deref()
+    {
+      replacements.push((
+        DependencyRange::new(stmt_range.start, stmt_range.start),
+        format!("/* RSTEST:{hoist_marker}:HOIST_START */"),
+      ));
+      replacements.push((
+        DependencyRange::new(stmt_range.end, stmt_range.end),
+        format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
+      ));
+      replacements.push((
+        DependencyRange::new(self.callee_range.start, self.callee_range.start),
+        "/* ".to_string(),
+      ));
+      replacements.push((
+        DependencyRange::new(self.callee_range.end, self.callee_range.end),
+        format!(" */ {require_name}.{mock_method}"),
+      ));
+    } else if should_hoist {
+      let hoist_marker = hoist_marker
+        .as_deref()
+        .expect("hoist marker should exist when should_hoist is true");
+      replacements.push((
+        DependencyRange::new(self.callee_range.start, self.callee_range.start),
+        "/* ".to_string(),
+      ));
+      replacements.push((
+        DependencyRange::new(self.callee_range.end, self.callee_range.end),
+        format!(" */ /* RSTEST:{hoist_marker}:HOIST_START */{require_name}.{mock_method}"),
+      ));
+      replacements.push((
+        DependencyRange::new(self.call_expr_range.end, self.call_expr_range.end),
+        format!("\n/* RSTEST:{hoist_marker}:HOIST_END */"),
+      ));
+    } else {
+      replacements.push((
+        DependencyRange::new(self.callee_range.start, self.callee_range.start),
+        "/* ".to_string(),
+      ));
+      replacements.push((
+        DependencyRange::new(self.callee_range.end, self.callee_range.end),
+        format!(" */ {require_name}.{mock_method}"),
+      ));
+    }
+
+    if let Some(end) = self.args_request_end {
+      replacements.push((
+        DependencyRange::new(end, end),
+        format!(", {}", json_stringify_str(request)),
+      ));
+    }
+
+    Some(replacements)
+  }
 }
 
 impl AsModuleDependency for MockMethodDependency {}

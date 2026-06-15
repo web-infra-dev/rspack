@@ -45,6 +45,14 @@ impl ProvideDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn identifier(&self) -> &str {
+    &self.identifier
+  }
+
+  pub fn ids(&self) -> &[Atom] {
+    &self.ids
+  }
 }
 
 #[cacheable_dyn]
@@ -107,6 +115,10 @@ impl ModuleDependency for ProvideDependency {
 impl DependencyCodeGeneration for ProvideDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ProvideDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn update_hash(

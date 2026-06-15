@@ -43,13 +43,10 @@ impl ModulePathNameDependencyTemplate {
   pub fn template_type() -> DependencyTemplateType {
     DependencyTemplateType::Dependency(DependencyType::RstestModulePath)
   }
-}
 
-impl DependencyTemplate for ModulePathNameDependencyTemplate {
-  fn render(
+  fn apply(
     &self,
     dep: &dyn DependencyCodeGeneration,
-    _source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
   ) {
     let TemplateContext {
@@ -102,5 +99,25 @@ impl DependencyTemplate for ModulePathNameDependencyTemplate {
         init_fragments.push(init.boxed());
       }
     }
+  }
+}
+
+impl DependencyTemplate for ModulePathNameDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(rspack_core::DependencyRange, String)>> {
+    self.apply(dep, code_generatable_context);
+    Some(Vec::new())
+  }
+
+  fn render(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    self.apply(dep, code_generatable_context);
   }
 }

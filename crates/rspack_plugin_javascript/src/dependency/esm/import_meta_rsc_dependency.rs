@@ -45,6 +45,10 @@ impl ImportMetaRscDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn importer(&self) -> &str {
+    &self.importer
+  }
 }
 
 #[cacheable_dyn]
@@ -105,6 +109,10 @@ impl ModuleDependency for ImportMetaRscDependency {
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ImportMetaRscDependency {
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    self.range
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportMetaRscDependencyTemplate::template_type())
   }

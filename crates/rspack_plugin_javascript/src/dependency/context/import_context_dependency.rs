@@ -59,6 +59,14 @@ impl ImportContextDependency {
     self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier = create_resource_identifier(&self.options);
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn value_range(&self) -> DependencyRange {
+    self.value_range
+  }
 }
 
 #[cacheable_dyn]

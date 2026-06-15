@@ -34,6 +34,18 @@ impl RequireContextDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.options.request
+  }
+
+  pub fn optional(&self) -> bool {
+    self.optional
+  }
 }
 
 #[cacheable_dyn]
@@ -117,6 +129,10 @@ impl ContextDependency for RequireContextDependency {
 impl DependencyCodeGeneration for RequireContextDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(RequireContextDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

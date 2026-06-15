@@ -73,6 +73,18 @@ impl ImportMetaContextDependency {
       ImportMetaContextDependencyKind::Glob => DependencyType::ImportMetaGlob,
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.options.request
+  }
+
+  pub fn optional(&self) -> bool {
+    self.optional
+  }
 }
 
 #[cacheable_dyn]
@@ -158,6 +170,10 @@ impl DependencyCodeGeneration for ImportMetaContextDependency {
     Some(DependencyTemplateType::Dependency(
       self.dependency_type_value(),
     ))
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

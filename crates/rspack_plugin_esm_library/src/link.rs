@@ -4,19 +4,19 @@ use std::{
   sync::{Arc, LazyLock},
 };
 
-use rayon::{iter::Either, prelude::*};
+use rayon::prelude::*;
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
-  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  ConcatenatedModuleSource, ConditionalInitFragment, DependencyType, ExportInfo, ExportMode,
+  ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  PathData, RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
   get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
   get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -65,6 +65,13 @@ pub(crate) struct ExportsContext {
   exports: FxHashMap<Atom, FxIndexSet<Atom>>,
   exported_symbols: FxHashSet<Atom>,
   re_exports: FxIndexMap<ReExportFrom, FxHashMap<Atom, FxHashSet<Atom>>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum StarReExport {
+  Export(Atom),
+  Module(ModuleIdentifier),
+  BeforeSourceModuleExternal(ModuleIdentifier),
 }
 
 enum ExternalImportBinding {
@@ -1606,8 +1613,9 @@ var {} = {{}};
                 concate_info.all_used_names = all_used_names;
                 concate_info.binding_to_ref = binding_to_ref;
                 concate_info.has_ast = true;
-                concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
-                concate_info.internal_source = Some(render_source.source.clone());
+                let source = render_source.source.clone();
+                let source_code = source.source().into_string_lossy().into_owned();
+                concate_info.source = Some(ConcatenatedModuleSource::new(source, source_code));
                 concate_info.runtime_requirements = codegen_res.runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
                   .data
@@ -1703,8 +1711,8 @@ var {} = {{}};
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     collect_own_exports: bool,
-    cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
-  ) -> FxIndexSet<Either<Atom, ModuleIdentifier>> {
+    cache: &mut IdentifierMap<FxIndexSet<StarReExport>>,
+  ) -> FxIndexSet<StarReExport> {
     // Memoize recursive calls to avoid redundant traversals of the same
     // module's export * chains (hot path: conn.is_active + dep.get_mode).
     if collect_own_exports && let Some(cached) = cache.get(&module_id) {
@@ -1716,7 +1724,7 @@ var {} = {{}};
       .expect("should have module");
 
     if module.as_external_module().is_some() {
-      let result: FxIndexSet<_> = std::iter::once(Either::Right(module_id)).collect();
+      let result: FxIndexSet<_> = std::iter::once(StarReExport::Module(module_id)).collect();
       if collect_own_exports {
         cache.insert(module_id, result.clone());
       }
@@ -1729,7 +1737,7 @@ var {} = {{}};
         .exports()
         .iter()
         .filter(|(_, export_info)| matches!(export_info.provided(), Some(ExportProvided::Provided)))
-        .map(|(name, _)| Either::Left(name.clone()))
+        .map(|(name, _)| StarReExport::Export(name.clone()))
         .collect()
     } else {
       FxIndexSet::default()
@@ -1740,17 +1748,37 @@ var {} = {{}};
         continue;
       };
 
-      if !conn.is_active(
+      let dep = module_graph.dependency_by_id(dep);
+      let mut force_resolve_module_external_star = false;
+      if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
+        && dep.name.is_none()
+      {
+        let mode = dep.get_mode(
+          module_graph,
+          None,
+          module_graph_cache,
+          exports_info_artifact,
+        );
+        force_resolve_module_external_star = matches!(
+          mode,
+          ExportMode::DynamicReexport(_) | ExportMode::EmptyStar(_)
+        ) && module_graph
+          .module_by_identifier(conn.module_identifier())
+          .and_then(|module| module.as_external_module())
+          .is_some_and(|external| external.resolve_external_type() == "module");
+      }
+
+      let connection_active = conn.is_active(
         module_graph,
         None,
         module_graph_cache,
         side_effects_state_artifact,
         exports_info_artifact,
-      ) {
+      );
+      if !connection_active && !force_resolve_module_external_star {
         continue;
       }
 
-      let dep = module_graph.dependency_by_id(dep);
       if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
         && dep.name.is_none()
       {
@@ -1761,10 +1789,14 @@ var {} = {{}};
           exports_info_artifact,
         );
 
-        if matches!(mode, ExportMode::DynamicReexport(_)) {
-          let ref_module = conn.module_identifier();
+        if !connection_active && force_resolve_module_external_star {
+          exports.insert(StarReExport::BeforeSourceModuleExternal(
+            *conn.module_identifier(),
+          ));
+        } else if matches!(mode, ExportMode::DynamicReexport(_)) {
+          let ref_module = *conn.module_identifier();
           exports.extend(Self::resolve_re_export_star_from_unknown(
-            *ref_module,
+            ref_module,
             module_graph,
             module_graph_cache,
             side_effects_state_artifact,
@@ -1789,7 +1821,7 @@ var {} = {{}};
     module_graph_cache: &ModuleGraphCacheArtifact,
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-    cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
+    cache: &mut IdentifierMap<FxIndexSet<StarReExport>>,
   ) -> Option<ModuleIdentifier> {
     let mut star_target = None;
     for export in Self::resolve_re_export_star_from_unknown(
@@ -1801,8 +1833,11 @@ var {} = {{}};
       false,
       cache,
     ) {
-      let Either::Right(module_id) = export else {
-        continue;
+      let module_id = match export {
+        StarReExport::Module(module_id) | StarReExport::BeforeSourceModuleExternal(module_id) => {
+          module_id
+        }
+        StarReExport::Export(_) => continue,
       };
 
       match star_target {
@@ -1961,7 +1996,7 @@ var {} = {{}};
     escaped_identifiers: &FxHashMap<String, Vec<Atom>>,
     allow_rename: bool,
     filter_unused: bool,
-    re_export_star_cache: &mut IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>>,
+    re_export_star_cache: &mut IdentifierMap<FxIndexSet<StarReExport>>,
   ) -> Vec<Diagnostic> {
     let mut errors = vec![];
     let context = &compilation.options.context;
@@ -1972,7 +2007,7 @@ var {} = {{}};
       .get_exports_info_data(&entry_module);
 
     // detect reexport star
-    let mut star_re_exports_modules = IdentifierIndexSet::default();
+    let mut star_re_exports_modules = IdentifierIndexMap::<bool>::default();
     let keep_export_name =
       !allow_rename && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk));
 
@@ -2003,8 +2038,15 @@ var {} = {{}};
     .iter()
     .for_each(|either| {
       match either {
-        Either::Left(atom) => entry_exports.insert(atom.clone()),
-        Either::Right(module_id) => star_re_exports_modules.insert(*module_id),
+        StarReExport::Export(atom) => {
+          entry_exports.insert(atom.clone());
+        }
+        StarReExport::Module(module_id) => {
+          star_re_exports_modules.entry(*module_id).or_insert(false);
+        }
+        StarReExport::BeforeSourceModuleExternal(module_id) => {
+          star_re_exports_modules.insert(*module_id, true);
+        }
       };
     });
 
@@ -2250,7 +2292,7 @@ var {} = {{}};
 
     let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
 
-    for id in star_re_exports_modules {
+    for (id, render_before_source) in star_re_exports_modules {
       let external_module = module_graph
         .module_by_identifier(&id)
         .expect("should have module")
@@ -2259,11 +2301,19 @@ var {} = {{}};
       if external_module.resolve_external_type() != "module" {
         continue;
       }
+      let source = external_module.get_request().primary().to_string();
       entry_chunk_link
         .raw_star_exports
-        .entry(external_module.get_request().primary().into())
+        .entry(source.clone())
         .or_default()
         .insert(START_EXPORTS.clone());
+      if render_before_source {
+        entry_chunk_link
+          .raw_star_exports_before_source
+          .entry(source)
+          .or_default()
+          .insert(START_EXPORTS.clone());
+      }
     }
 
     if concate_modules_map[&entry_module].is_external() {
@@ -2295,7 +2345,7 @@ var {} = {{}};
 
     // Cache for resolve_re_export_star_from_unknown to avoid redundant
     // traversals of the same module's export * chains across entry modules.
-    let mut re_export_star_cache: IdentifierMap<FxIndexSet<Either<Atom, ModuleIdentifier>>> =
+    let mut re_export_star_cache: IdentifierMap<FxIndexSet<StarReExport>> =
       IdentifierMap::default();
 
     // we don't modify exports and imports in chunk_link directly unless,

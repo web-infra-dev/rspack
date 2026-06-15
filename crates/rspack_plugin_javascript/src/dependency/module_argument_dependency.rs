@@ -21,12 +21,24 @@ impl ModuleArgumentDependency {
   pub fn loc(&self) -> Option<DependencyLocation> {
     self.loc.clone()
   }
+
+  pub fn id(&self) -> Option<&str> {
+    self.id.as_deref()
+  }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
 }
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ModuleArgumentDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ModuleArgumentDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn update_hash(

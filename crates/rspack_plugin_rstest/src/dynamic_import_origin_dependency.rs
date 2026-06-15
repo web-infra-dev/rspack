@@ -67,6 +67,31 @@ impl RstestDynamicImportOriginDependencyTemplate {
 }
 
 impl DependencyTemplate for RstestDynamicImportOriginDependencyTemplate {
+  fn render_ast(
+    &self,
+    dep: &dyn DependencyCodeGeneration,
+    _code_generatable_context: &mut TemplateContext,
+  ) -> Option<Vec<(DependencyRange, String)>> {
+    let dep = dep
+      .as_any()
+      .downcast_ref::<RstestDynamicImportOriginDependency>()
+      .expect(
+        "RstestDynamicImportOriginDependencyTemplate can only be applied to \
+         RstestDynamicImportOriginDependency",
+      );
+
+    let tail = if dep.has_attributes {
+      format!(", {}", json_stringify_str(&dep.origin_path))
+    } else {
+      format!(", void 0, {}", json_stringify_str(&dep.origin_path))
+    };
+
+    Some(vec![
+      (dep.callee_range, self.function_name.clone()),
+      (DependencyRange::new(dep.args_end, dep.args_end), tail),
+    ])
+  }
+
   fn render(
     &self,
     dep: &dyn DependencyCodeGeneration,

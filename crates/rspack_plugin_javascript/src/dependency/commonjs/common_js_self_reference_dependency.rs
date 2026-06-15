@@ -43,6 +43,22 @@ impl CommonJsSelfReferenceDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
+
+  pub fn names_optionals(&self) -> &[bool] {
+    &self.names_optionals
+  }
 }
 
 #[cacheable_dyn]
@@ -113,6 +129,10 @@ impl AsContextDependency for CommonJsSelfReferenceDependency {}
 impl DependencyCodeGeneration for CommonJsSelfReferenceDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsSelfReferenceDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

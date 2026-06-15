@@ -58,6 +58,22 @@ impl CommonJsExportRequireDependency {
       factorize_info: Default::default(),
     }
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn base(&self) -> ExportsBase {
+    self.base
+  }
+
+  pub fn names(&self) -> &[Atom] {
+    &self.names
+  }
 }
 
 impl CommonJsExportRequireDependency {
@@ -418,6 +434,10 @@ impl AsContextDependency for CommonJsExportRequireDependency {}
 impl DependencyCodeGeneration for CommonJsExportRequireDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsExportRequireDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

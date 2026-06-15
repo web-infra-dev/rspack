@@ -33,7 +33,7 @@ pub use self::{
   },
   esm_import_dependency::{
     ESMImportSideEffectDependency, ESMImportSideEffectDependencyTemplate,
-    esm_import_dependency_apply, import_emitted_runtime,
+    esm_import_dependency_apply, esm_import_dependency_prime_import_var, import_emitted_runtime,
   },
   esm_import_specifier_dependency::{
     ESMImportSpecifierDependency, ESMImportSpecifierDependencyTemplate,

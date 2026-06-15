@@ -70,6 +70,18 @@ impl ImportDependency {
   pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
     self.branch_guards.get_or_insert_default().extend(guards);
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn request(&self) -> &str {
+    &self.request
+  }
+
+  pub fn phase(&self) -> ImportPhase {
+    self.phase
+  }
 }
 
 #[cacheable_dyn]
@@ -172,6 +184,10 @@ impl ModuleDependency for ImportDependency {
 impl DependencyCodeGeneration for ImportDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ImportDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 }
 

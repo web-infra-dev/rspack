@@ -176,6 +176,28 @@ impl ESMImportSpecifierDependency {
   pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
     self.branch_guards.get_or_insert_default().extend(guards);
   }
+
+  pub fn id(&self) -> &DependencyId {
+    &self.id
+  }
+
+  pub fn range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
+  pub fn shorthand(&self) -> bool {
+    self.shorthand
+  }
+
+  pub fn has_referenced_properties_in_destructuring(&self) -> bool {
+    self.referenced_properties_in_destructuring.is_some()
+  }
+
+  pub fn referenced_properties_in_destructuring(
+    &self,
+  ) -> Option<&DestructuringAssignmentProperties> {
+    self.referenced_properties_in_destructuring.as_ref()
+  }
 }
 
 #[cacheable_dyn]
@@ -411,7 +433,7 @@ impl ESMImportSpecifierDependencyTemplate {
     DependencyTemplateType::Dependency(DependencyType::EsmImportSpecifier)
   }
 
-  fn get_code_for_ids(
+  pub(crate) fn get_code_for_ids(
     &self,
     ids: &[Atom],
     dep: &ESMImportSpecifierDependency,
@@ -514,17 +536,14 @@ impl ESMImportSpecifierDependencyTemplate {
     }
   }
 
-  fn render_evaluated_in_operator(
+  pub(crate) fn get_evaluated_in_operator_code(
     &self,
     ids: &[Atom],
     dep: &ESMImportSpecifierDependency,
     connection: Option<&ModuleGraphConnection>,
-    source: &mut TemplateReplaceSource,
     code_generatable_context: &mut TemplateContext,
-  ) {
-    let Some(con) = connection else {
-      return;
-    };
+  ) -> Option<String> {
+    let con = connection?;
     let TemplateContext {
       runtime,
       module: self_module,
@@ -532,9 +551,7 @@ impl ESMImportSpecifierDependencyTemplate {
     } = code_generatable_context;
     let compilation = code_generatable_context.compilation;
     let mg = compilation.get_module_graph();
-    let Some(module) = mg.get_module_by_dependency_id(&dep.id) else {
-      return;
-    };
+    let module = mg.get_module_by_dependency_id(&dep.id)?;
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(con.module_identifier());
@@ -580,12 +597,8 @@ impl ESMImportSpecifierDependencyTemplate {
       ExportsType::DefaultOnly => None,
     };
     match value {
-      Some(ExportProvided::Provided) => {
-        source.replace_static(dep.range.start, dep.range.end, " true", None);
-      }
-      Some(ExportProvided::NotProvided) => {
-        source.replace_static(dep.range.start, dep.range.end, " false", None)
-      }
+      Some(ExportProvided::Provided) => Some(" true".to_string()),
+      Some(ExportProvided::NotProvided) => Some(" false".to_string()),
       _ => {
         let used_name_ids = if matches!(exports_type, ExportsType::DefaultWithNamed)
           && first == "default"
@@ -595,28 +608,38 @@ impl ESMImportSpecifierDependencyTemplate {
         } else {
           ids
         };
-        let Some(used_name) = exports_info
+        let used_name = exports_info
           .get_used_name(&compilation.exports_info_artifact, *runtime, used_name_ids)
           .and_then(|used_name| match used_name {
             UsedName::Normal(names) => names.last().cloned(),
             UsedName::Inlined(_) => unreachable!("Inlined must be provided"),
-          })
-        else {
-          return;
-        };
+          })?;
         let code = self.get_code_for_ids(
           &ids[..(ids.len() - 1)],
           dep,
           connection,
           code_generatable_context,
         );
-        source.replace(
-          dep.range.start,
-          dep.range.end,
-          format!("{} in {code}", json_stringify_str(used_name.as_str())),
-          None,
-        )
+        Some(format!(
+          "{} in {code}",
+          json_stringify_str(used_name.as_str())
+        ))
       }
+    }
+  }
+
+  fn render_evaluated_in_operator(
+    &self,
+    ids: &[Atom],
+    dep: &ESMImportSpecifierDependency,
+    connection: Option<&ModuleGraphConnection>,
+    source: &mut TemplateReplaceSource,
+    code_generatable_context: &mut TemplateContext,
+  ) {
+    if let Some(code) =
+      self.get_evaluated_in_operator_code(ids, dep, connection, code_generatable_context)
+    {
+      source.replace(dep.range.start, dep.range.end, code, None);
     }
   }
 }

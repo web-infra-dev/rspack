@@ -23,6 +23,10 @@ impl DependencyCodeGeneration for RequireMainDependency {
     Some(RequireMainDependencyTemplate::template_type())
   }
 
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
+  }
+
   fn update_hash(
     &self,
     hasher: &mut dyn std::hash::Hasher,

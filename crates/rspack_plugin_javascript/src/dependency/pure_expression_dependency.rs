@@ -30,7 +30,7 @@ impl PureExpressionDependency {
     }
   }
 
-  fn get_runtime_condition(
+  pub fn get_runtime_condition(
     &self,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
@@ -80,6 +80,10 @@ impl AsModuleDependency for PureExpressionDependency {}
 impl DependencyCodeGeneration for PureExpressionDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(PureExpressionDependencyTemplate::template_type())
+  }
+
+  fn ast_dependency_range(&self) -> Option<DependencyRange> {
+    Some(self.range)
   }
 
   fn update_hash(

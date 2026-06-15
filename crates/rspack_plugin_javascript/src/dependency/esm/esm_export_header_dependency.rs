@@ -30,6 +30,14 @@ impl ESMExportHeaderDependency {
       id: DependencyId::default(),
     }
   }
+
+  pub fn range(&self) -> DependencyRange {
+    self.range
+  }
+
+  pub fn range_decl(&self) -> Option<DependencyRange> {
+    self.range_decl
+  }
 }
 
 #[cacheable_dyn]

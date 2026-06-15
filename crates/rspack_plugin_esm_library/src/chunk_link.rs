@@ -278,6 +278,11 @@ pub struct ChunkLinkContext {
   pub raw_star_exports: FxIndexMap<String, FxIndexSet<Atom>>,
 
   /**
+   * raw star exports that should be rendered before module source.
+   */
+  pub raw_star_exports_before_source: FxIndexMap<String, FxIndexSet<Atom>>,
+
+  /**
   import order matters, it affects execution order
   */
   pub imports: IdentifierIndexMap<FxHashMap<Atom, Atom>>,
@@ -362,6 +367,7 @@ impl ChunkLinkContext {
       raw_import_stmts: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
+      raw_star_exports_before_source: Default::default(),
       exports_require_via_runtime_module: false,
     }
   }
