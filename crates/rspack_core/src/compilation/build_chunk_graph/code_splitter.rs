@@ -1248,8 +1248,13 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       .expect("chunk must in mask_by_chunk");
     chunk_mask.set_bit(module_ordinal, true);
 
-    self.add_and_enter_module(
-      &AddAndEnterModule {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .connect_chunk_and_module(item.chunk, item.module);
+
+    self.enter_module(
+      &EnterModule {
         module: item.module,
         chunk_group_info: item.chunk_group_info,
         chunk: item.chunk,
