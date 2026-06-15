@@ -9,9 +9,6 @@ on:
       runner: # Runner labels
         required: true
         type: string
-      profile: # Rust profile; release builds split the wasm artifact in two
-        required: false
-        type: string
       ref: # Git reference to checkout
         required: false
         type: string
@@ -37,17 +34,14 @@ jobs:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
 
-      # Release builds split the wasm artifact: rspack.browser.wasm ships in a
-      # separate -browser artifact and is required by the @rspack/browser e2e
-      # test. CI builds keep both wasm files in the single artifact above.
-      # The release caller (test-wasm) needs both wasm builds, so this artifact
-      # is guaranteed available here.
-      - name: Download browser wasm binding
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
-        uses: ./.github/actions/artifact/download
-        with:
-          name: bindings-${{ inputs.target }}-browser
-          path: crates/node_binding/
+      # The @rspack/browser e2e needs rspack.browser.wasm. The wasi (node)
+      # artifact only ships rspack.wasm32-wasi.wasm, so reuse it under the
+      # browser name — the e2e runs against the wasi build, same as CI. The real
+      # browser variant is built and published by the separate -browser build
+      # job; it is intentionally not e2e-tested here.
+      - name: Provide browser wasm for e2e
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: cp -f crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Setup Pnpm
         timeout-minutes: 5

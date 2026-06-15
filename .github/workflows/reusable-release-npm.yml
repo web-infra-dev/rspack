@@ -67,26 +67,10 @@ jobs:
           - target: aarch64-apple-darwin
             runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
             test-runner: '"macos-latest"'
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: ${{ matrix.array.target }}
-      runner: ${{ matrix.array.runner }}
-      test-runner: ${{ matrix.array.test-runner }}
-      test: ${{ inputs.test }}
-      profile: 'release'
-      # release artifacts must be built from scratch
-      force-rebuild: true
-
-  # The wasm release build is the release wall-clock long pole. Build the wasi
-  # and browser variants as two parallel jobs (one variant per runner) instead
-  # of building both serially. The combined wasm test runs in test-wasm, which
-  # needs both builds so both artifacts are guaranteed available (no polling).
-  build-wasm:
-    name: Build ${{ matrix.array.target }}
-    strategy:
-      fail-fast: false
-      matrix:
-        array:
+          # The wasm release build is the release wall-clock long pole. Build the
+          # wasi and browser variants as two parallel jobs (one variant per
+          # runner). Only the wasi (node) variant runs the wasm tests; the
+          # browser variant is build-only (see reusable-build / build-test).
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: wasm32-wasip1-threads
@@ -96,20 +80,12 @@ jobs:
     with:
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
+      test-runner: ${{ matrix.array.test-runner }}
       binding_postfix: ${{ matrix.array.binding_postfix }}
-      test: false
+      test: ${{ inputs.test }}
       profile: 'release'
+      # release artifacts must be built from scratch
       force-rebuild: true
-
-  test-wasm:
-    name: Test wasm32-wasip1-threads
-    if: ${{ inputs.test }}
-    needs: build-wasm
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: wasm32-wasip1-threads
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      profile: 'release'
 
   release:
     name: Release
@@ -119,15 +95,8 @@ jobs:
       # To publish packages with provenance
       id-token: write
     runs-on: ubuntu-latest
-    needs: [build, build-wasm, test-wasm]
-    # test-wasm is skipped when test=false; require builds to succeed and the
-    # wasm test to not have failed (success or skipped both allow the release).
-    if: >-
-      ${{ !cancelled()
-          && github.event_name == 'workflow_dispatch'
-          && needs.build.result == 'success'
-          && needs.build-wasm.result == 'success'
-          && needs.test-wasm.result != 'failure' }}
+    needs: build
+    if: ${{ github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Checkout Repo
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6

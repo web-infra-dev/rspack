@@ -47,11 +47,12 @@ jobs:
       force-rebuild: ${{ inputs.force-rebuild }}
   test:
     name: Test ${{ inputs.target }}
-    if: inputs.test
+    # The wasm browser variant is a build-only artifact; the wasi (node) variant
+    # already runs the wasm tests (node + browser e2e via a renamed copy).
+    if: inputs.test && inputs.binding_postfix != '-browser'
     needs: build
     uses: ./.github/workflows/reusable-build-test.yml
     with:
       target: ${{ inputs.target }}
       runner: ${{ inputs.test-runner || inputs.runner }}
-      profile: ${{ inputs.profile }}
       ref: ${{ inputs.ref }}
