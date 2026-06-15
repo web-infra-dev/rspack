@@ -1009,7 +1009,7 @@ impl SourceMapDevToolPlugin {
         source_map_asset_info,
       );
       Ok(MappedAsset {
-        asset: (asset_filename.clone(), asset),
+        asset: (asset_filename, asset),
         source_map: Some((source_map_filename.clone(), source_map_asset)),
       })
     } else {
@@ -1040,7 +1040,7 @@ impl SourceMapDevToolPlugin {
         .boxed(),
       );
       Ok(MappedAsset {
-        asset: (asset_filename.clone(), asset),
+        asset: (asset_filename, asset),
         source_map: None,
       })
     }
