@@ -235,12 +235,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let ExportedVariableInfo::VariableInfo(root) = right.root_info() else {
       return None;
     };
-    if parser
-      .get_variable_tag_data::<ESMSpecifierData>(*root, ESM_SPECIFIER_TAG)
-      .is_none()
-    {
-      return None;
-    }
+    parser.get_variable_tag_data::<ESMSpecifierData>(*root, ESM_SPECIFIER_TAG)?;
     let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
     res.set_dependency(DependencyData::Dependency(dep_id));
     res.set_side_effects(left.could_have_side_effects());

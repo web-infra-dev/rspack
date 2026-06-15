@@ -32,52 +32,98 @@ impl DependencyBranchGuard {
   }
 }
 
-pub fn is_dependency_guarded(
+pub fn is_dependency_export_presence_guarded(
   guard: &DependencyBranchGuard,
   dependency: &ESMImportSpecifierDependency,
   module_graph: &ModuleGraph,
 ) -> bool {
-  fn inner(
-    data: &DependencyData,
-    dependency: &ESMImportSpecifierDependency,
-    module_graph: &ModuleGraph,
-  ) -> bool {
-    match data {
-      DependencyData::Dependency(guard_dep) => {
-        let Some(guard_dep) = module_graph
-          .dependency_by_id(guard_dep)
-          .downcast_ref::<ESMImportSpecifierDependency>()
-        else {
-          return false;
-        };
-        if !guard_dep.evaluated_in_operator {
-          return false;
-        }
-        if guard_dep.name() != dependency.name() {
-          return false;
-        }
-        if module_graph.module_identifier_by_dependency_id(guard_dep.id())
-          != module_graph.module_identifier_by_dependency_id(dependency.id())
-        {
-          return false;
-        }
-        let guard_ids = guard_dep.get_ids(module_graph);
-        if guard_ids.is_empty() {
-          return false;
-        }
-        guard_ids == dependency.get_ids(module_graph)
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  enum KnownValue {
+    Truthy,
+    Falsy,
+  }
+
+  impl KnownValue {
+    fn negate(self) -> Self {
+      match self {
+        Self::Truthy => Self::Falsy,
+        Self::Falsy => Self::Truthy,
       }
-      DependencyData::And(left, right) => {
-        inner(left, dependency, module_graph) || inner(right, dependency, module_graph)
-      }
-      DependencyData::Or(left, right) => {
-        inner(left, dependency, module_graph) && inner(right, dependency, module_graph)
-      }
-      DependencyData::Not(data) => !inner(data, dependency, module_graph),
     }
   }
 
-  inner(&guard.0, dependency, module_graph)
+  fn dependency_guards_export_presence(
+    guard_dep: &DependencyId,
+    dependency: &ESMImportSpecifierDependency,
+    module_graph: &ModuleGraph,
+  ) -> bool {
+    let Some(guard_dep) = module_graph
+      .dependency_by_id(guard_dep)
+      .downcast_ref::<ESMImportSpecifierDependency>()
+    else {
+      return false;
+    };
+    if !guard_dep.evaluated_in_operator {
+      return false;
+    }
+    if guard_dep.name() != dependency.name() {
+      return false;
+    }
+    if module_graph.module_identifier_by_dependency_id(guard_dep.id())
+      != module_graph.module_identifier_by_dependency_id(dependency.id())
+    {
+      return false;
+    }
+    let guard_ids = guard_dep.get_ids(module_graph);
+    if guard_ids.is_empty() {
+      return false;
+    }
+    guard_ids == dependency.get_ids(module_graph)
+  }
+
+  fn implies_export_presence(
+    data: &DependencyData,
+    dependency: &ESMImportSpecifierDependency,
+    module_graph: &ModuleGraph,
+    known: KnownValue,
+  ) -> bool {
+    match data {
+      DependencyData::Dependency(guard_dep) => {
+        known == KnownValue::Truthy
+          && dependency_guards_export_presence(guard_dep, dependency, module_graph)
+      }
+      DependencyData::And(left, right) => match known {
+        // If `A && B` is truthy, both sides are truthy; either side can prove the export exists.
+        KnownValue::Truthy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Truthy)
+            || implies_export_presence(right, dependency, module_graph, KnownValue::Truthy)
+        }
+        // If `A && B` is falsy, at least one side is falsy; both falsy cases must prove it.
+        KnownValue::Falsy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Falsy)
+            && implies_export_presence(right, dependency, module_graph, KnownValue::Falsy)
+        }
+      },
+      DependencyData::Or(left, right) => match known {
+        // If `A || B` is truthy, only one side may be truthy; both truthy cases must prove it.
+        KnownValue::Truthy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Truthy)
+            && implies_export_presence(right, dependency, module_graph, KnownValue::Truthy)
+        }
+        // If `A || B` is falsy, both sides are falsy; either side can prove the export exists.
+        KnownValue::Falsy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Falsy)
+            || implies_export_presence(right, dependency, module_graph, KnownValue::Falsy)
+        }
+      },
+      // If `!A` is known, reason about `A` with the opposite known value.
+      DependencyData::Not(data) => {
+        implies_export_presence(data, dependency, module_graph, known.negate())
+      }
+    }
+  }
+
+  implies_export_presence(&guard.0, dependency, module_graph, KnownValue::Truthy)
 }
 
 pub fn compose_dependency_condition(

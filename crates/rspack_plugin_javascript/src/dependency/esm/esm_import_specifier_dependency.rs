@@ -24,7 +24,9 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  dependency::{DependencyBranchGuard, compose_dependency_condition, is_dependency_guarded},
+  dependency::{
+    DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
+  },
   is_export_inlined,
   visitors::DestructuringAssignmentProperties,
 };
@@ -244,7 +246,7 @@ impl Dependency for ESMImportSpecifierDependency {
       .get_effective_export_presence(module.as_ref())?;
 
     if let Some(branch_guard) = &self.branch_guard
-      && is_dependency_guarded(branch_guard, self, module_graph)
+      && is_dependency_export_presence_guarded(branch_guard, self, module_graph)
     {
       return None;
     }

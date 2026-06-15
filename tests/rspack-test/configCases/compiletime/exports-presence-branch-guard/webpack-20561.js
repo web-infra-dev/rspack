@@ -25,6 +25,7 @@ if (0 || "a" in ns) {
 
 if (!("a" in ns)) {
   fn(ns.a);
+  fn(ns.b);
 }
 
 if (!!("a" in ns)) {
