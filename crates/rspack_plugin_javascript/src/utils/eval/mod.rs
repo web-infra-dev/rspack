@@ -86,6 +86,7 @@ impl DependencyData {
     DependencyData::And(Box::new(self), Box::new(other))
   }
 
+  #[allow(clippy::should_implement_trait)]
   pub fn not(self) -> Self {
     DependencyData::Not(Box::new(self))
   }

@@ -9,9 +9,9 @@ use swc_experimental_ecma_ast::{
   ExprOrSpread, ExprStmt, FnExpr, ForHead, ForInStmt, ForOfStmt, ForStmt, Function, GetSpan,
   GetterProp, Ident, IdentName, IfStmt, JSXAttr, JSXAttrOrSpread, JSXAttrValue, JSXElement,
   JSXElementChild, JSXElementName, JSXExpr, JSXExprContainer, JSXFragment, JSXMemberExpr,
-  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, Lit, MemberExpr, MemberProp,
-  MetaPropExpr, ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall,
-  OptChainExpr, Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
+  JSXNamespacedName, JSXObject, KeyValueProp, LabeledStmt, MemberExpr, MemberProp, MetaPropExpr,
+  ModuleDecl, ModuleItem, NewExpr, ObjectLit, ObjectPat, ObjectPatProp, OptCall, OptChainExpr,
+  Param, Pat, Prop, PropName, PropOrSpread, RestPat, ReturnStmt, SeqExpr, SetterProp,
   SimpleAssignTarget, Stmt, SwitchCase, SwitchStmt, TaggedTpl, ThisExpr, ThrowStmt, Tpl, TryStmt,
   UnaryExpr, UnaryOp, UpdateExpr, VarDeclOrExpr, WhileStmt, WithStmt, YieldExpr,
 };
@@ -22,7 +22,7 @@ use super::{
   estree::{ClassDeclOrExpr, MaybeNamedClassDecl, MaybeNamedFunctionDecl, Statement},
 };
 use crate::{
-  dependency::{DependencyBranchGuard, ESMImportSpecifierDependency},
+  dependency::DependencyBranchGuard,
   parser_plugin::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,

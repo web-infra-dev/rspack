@@ -692,23 +692,16 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     f: impl FnOnce(&mut JavascriptParser) -> T,
   ) -> T {
-    let old_deps = std::mem::replace(
-      &mut self.dependencies_in_branch_guard,
-      Some(Default::default()),
-    );
+    let old_deps = self
+      .dependencies_in_branch_guard
+      .replace(Default::default());
     let result = f(self);
     self.dependencies_in_branch_guard = old_deps;
     result
   }
 
   pub fn with_branch_guard(&mut self, guard: DependencyBranchGuard, f: impl FnOnce(&mut Self)) {
-    let guard = if let Some(old_guard) = self.current_branch_guard.clone() {
-      // handle for: if (A) { if (B) { import("./x") } }
-      old_guard.and(guard)
-    } else {
-      guard
-    };
-    let old_guard = std::mem::replace(&mut self.current_branch_guard, Some(guard));
+    let old_guard = self.current_branch_guard.replace(guard);
     f(self);
     self.current_branch_guard = old_guard;
   }

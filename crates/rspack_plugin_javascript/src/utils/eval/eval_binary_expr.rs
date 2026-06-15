@@ -210,10 +210,7 @@ fn handle_logical_or<'parser: 'a, 'a>(
         } else if right.is_dependency() {
           let mut res =
             BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-          res.set_dependency(DependencyData::or(
-            left.into_dependency(),
-            right.into_dependency(),
-          ));
+          res.set_dependency(left.into_dependency().or(right.into_dependency()));
           Some(res)
         } else {
           None
@@ -261,10 +258,7 @@ fn handle_logical_and<'parser: 'a, 'a>(
         } else if right.is_dependency() {
           let mut res =
             BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
-          res.set_dependency(DependencyData::and(
-            left.into_dependency(),
-            right.into_dependency(),
-          ));
+          res.set_dependency(left.into_dependency().and(right.into_dependency()));
           Some(res)
         } else {
           None
