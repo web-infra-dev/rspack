@@ -58,36 +58,65 @@ jobs:
             runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
           - target: aarch64-apple-darwin
             runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
-          # Split the wasm release build into two parallel jobs (wasi + browser
-          # variants) so each runs on its own runner instead of building both
-          # variants serially. This is the release wall-clock long pole.
-          #
-          # Published wasm must always be the optimized release-wasi build with
-          # both variants compiled separately (matching the real release), so
-          # the wasm targets pin profile=release regardless of the canary
-          # profile input — otherwise a non-release profile would fall back to
-          # the CI shortcut that just copies the wasi binary to browser.wasm.
+    uses: ./.github/workflows/reusable-build.yml
+    with:
+      ref: ${{inputs.commit || github.sha}}
+      target: ${{ matrix.array.target }}
+      runner: ${{ matrix.array.runner }}
+      profile: ${{ inputs.profile || 'release'}}
+      test: ${{inputs.test || false}}
+
+  # Build the wasi and browser wasm variants as two parallel jobs (one variant
+  # per runner) instead of building both serially — the wasm build is the
+  # release wall-clock long pole. Published wasm always uses the optimized
+  # release-wasi build with both variants compiled separately, so pin
+  # profile=release regardless of the canary profile input. The combined wasm
+  # test runs in test-wasm, which needs both builds so both artifacts are
+  # guaranteed available (no polling).
+  build-wasm:
+    name: Build Canary
+    if: ${{ github.repository == 'web-infra-dev/rspack' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        array:
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-            profile: release
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
             binding_postfix: '-browser'
-            profile: release
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
       binding_postfix: ${{ matrix.array.binding_postfix }}
-      profile: ${{ matrix.array.profile || inputs.profile || 'release'}}
-      test: ${{inputs.test || false}}
+      profile: release
+      test: false
+
+  test-wasm:
+    name: Test Canary wasm32-wasip1-threads
+    if: ${{ github.repository == 'web-infra-dev/rspack' && (inputs.test || false) }}
+    needs: build-wasm
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      ref: ${{inputs.commit || github.sha}}
+      target: wasm32-wasip1-threads
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      profile: release
 
   release:
     name: Release Canary
-    if: ${{ github.repository == 'web-infra-dev/rspack' }}
+    # test-wasm is skipped when test=false; require builds to succeed and the
+    # wasm test to not have failed (success or skipped both allow the release).
+    if: >-
+      ${{ !cancelled()
+          && github.repository == 'web-infra-dev/rspack'
+          && needs.build.result == 'success'
+          && needs.build-wasm.result == 'success'
+          && needs.test-wasm.result != 'failure' }}
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, build-wasm, test-wasm]
     environment: npm-canary
     steps:
       - name: Checkout Branch
