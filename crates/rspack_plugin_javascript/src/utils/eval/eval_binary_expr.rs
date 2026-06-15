@@ -2,10 +2,7 @@ use rspack_core::DependencyRange;
 use rspack_util::SpanExt;
 use swc_experimental_ecma_ast::{BinExpr, BinaryOp, GetSpan};
 
-use crate::{
-  utils::eval::{BasicEvaluatedExpression, DependencyData},
-  visitors::JavascriptParser,
-};
+use crate::{utils::eval::BasicEvaluatedExpression, visitors::JavascriptParser};
 
 #[inline]
 fn handle_template_string_compare<'a>(

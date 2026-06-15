@@ -701,6 +701,12 @@ impl<'parser> JavascriptParser<'parser> {
   }
 
   pub fn with_branch_guard(&mut self, guard: DependencyBranchGuard, f: impl FnOnce(&mut Self)) {
+    let guard = if let Some(old_guard) = self.current_branch_guard.clone() {
+      // handle for: if (A) { if (B) { import("./x") } }
+      DependencyBranchGuard::new(old_guard.into_inner().and(guard.into_inner()))
+    } else {
+      guard
+    };
     let old_guard = self.current_branch_guard.replace(guard);
     f(self);
     self.current_branch_guard = old_guard;
