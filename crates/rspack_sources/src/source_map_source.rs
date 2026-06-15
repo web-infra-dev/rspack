@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  BoxSource, MapOptions, Source, SourceMap, SourceValue,
+  MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
     stream_chunks_of_source_map,
@@ -21,11 +21,11 @@ pub struct SourceMapSourceOptions<V, N> {
   /// Name of the file.
   pub name: N,
   /// The source map of the source code.
-  pub source_map: SourceMap,
+  pub source_map: SourceMap<'static>,
   /// The original source code.
   pub original_source: Option<Arc<str>>,
   /// The original source map.
-  pub inner_source_map: Option<SourceMap>,
+  pub inner_source_map: Option<SourceMap<'static>>,
   /// Whether remove the original source.
   pub remove_original_source: bool,
 }
@@ -39,7 +39,7 @@ pub struct WithoutOriginalOptions<V, N> {
   /// Name of the file.
   pub name: N,
   /// The source map of the source code.
-  pub source_map: SourceMap,
+  pub source_map: SourceMap<'static>,
 }
 
 impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
@@ -63,9 +63,9 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 pub struct SourceMapSource {
   value: Arc<str>,
   name: Box<str>,
-  source_map: SourceMap,
+  source_map: SourceMap<'static>,
   original_source: Option<Arc<str>>,
-  inner_source_map: Option<SourceMap>,
+  inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
 }
 
@@ -99,7 +99,7 @@ impl SourceMapSource {
   }
 
   /// Get the source map.
-  pub fn source_map(&self) -> &SourceMap {
+  pub fn source_map(&self) -> &SourceMap<'static> {
     &self.source_map
   }
 
@@ -109,7 +109,7 @@ impl SourceMapSource {
   }
 
   /// Get the inner source map.
-  pub fn inner_source_map(&self) -> Option<&SourceMap> {
+  pub fn inner_source_map(&self) -> Option<&SourceMap<'static>> {
     self.inner_source_map.as_ref()
   }
 
@@ -136,17 +136,24 @@ impl Source for SourceMapSource {
     self.value.len()
   }
 
-  fn map_with_source(
-    &self,
-    source: BoxSource,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap> {
+  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
     if self.inner_source_map.is_none() {
-      return Some(self.source_map.clone());
+      return Some(self.source_map.as_borrowed());
     }
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options, Some(source))
+    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap<'static>> {
+    let owner = self.clone();
+    self
+      .as_ref()
+      .map(object_pool, options)
+      .map(|map| map.into_static(owner))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -218,24 +225,24 @@ impl std::fmt::Debug for SourceMapSource {
 
 struct SourceMapSourceChunks<'source>(&'source SourceMapSource);
 
-impl Chunks for SourceMapSourceChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'a>,
-    on_source: crate::helpers::OnSource<'_, 'a>,
-    on_name: crate::helpers::OnName<'_, 'a>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
     if let Some(inner_source_map) = &self.0.inner_source_map {
       stream_chunks_of_combined_source_map(
         options,
         object_pool,
         &self.0.value,
-        &self.0.source_map,
+        self.0.source_map.fields(),
         &self.0.name,
         self.0.original_source.as_deref(),
-        inner_source_map,
+        inner_source_map.fields(),
         self.0.remove_original_source,
         on_chunk,
         on_source,
@@ -246,7 +253,7 @@ impl Chunks for SourceMapSourceChunks<'_> {
         options,
         object_pool,
         TextSpan::new(self.0.value.as_ref()),
-        &self.0.source_map,
+        self.0.source_map.fields(),
         on_chunk,
         on_source,
         on_name,
@@ -256,7 +263,7 @@ impl Chunks for SourceMapSourceChunks<'_> {
 }
 
 impl StreamChunks for SourceMapSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(SourceMapSourceChunks(self))
   }
 }
@@ -286,7 +293,8 @@ mod tests {
         "mappings": "YAAAA,K,CAAMC;AACNC,O,MAAU;AACC,O,CAAM",
         "file": "translated.txt",
         "sourcesContent": [ "Hello World\nis a test string\n" ]
-      }"#,
+      }"#
+        .to_string(),
     )
     .unwrap();
     let sms1 = SourceMapSource::new(SourceMapSourceOptions {
@@ -294,7 +302,7 @@ mod tests {
       name: "text",
       source_map: source_r_map.clone(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.map(&ObjectPool::default(), &MapOptions::default()),
+      inner_source_map: inner_source.map_static(&ObjectPool::default(), &MapOptions::default()),
       remove_original_source: false,
     });
     let sms2 = SourceMapSource::new(SourceMapSourceOptions {
@@ -302,7 +310,7 @@ mod tests {
       name: "text",
       source_map: source_r_map,
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.map(&ObjectPool::default(), &MapOptions::default()),
+      inner_source_map: inner_source.map_static(&ObjectPool::default(), &MapOptions::default()),
       remove_original_source: true,
     });
     let expected_content = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
@@ -323,6 +331,7 @@ mod tests {
           ],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap(),
     );
@@ -338,6 +347,7 @@ mod tests {
           "sourcesContent": ["Hello World\nis a test string\n"],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap(),
     );
@@ -391,6 +401,7 @@ mod tests {
           "sourcesContent": [null,"hello world\n"],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -406,6 +417,7 @@ mod tests {
           "sourcesContent": [null,"hello world\n"],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -417,10 +429,13 @@ mod tests {
       env!("CARGO_MANIFEST_DIR"),
       "/tests/fixtures/es6-promise.js"
     ));
-    let map = SourceMap::from_json(include_str!(concat!(
-      env!("CARGO_MANIFEST_DIR"),
-      "/tests/fixtures/es6-promise.map"
-    )))
+    let map = SourceMap::from_json(
+      include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/tests/fixtures/es6-promise.map"
+      ))
+      .to_string(),
+    )
     .unwrap();
     let inner = SourceMapSource::new(WithoutOriginalOptions {
       value: code,
@@ -508,13 +523,13 @@ mod tests {
       .source()
       .into_string_lossy()
       .into_owned());
-    test_cached!(source, |s: BoxSource| s.as_ref().map_with_source(
-      s.clone(),
+    test_cached!(source, |s: BoxSource| Source::map_static(
+      s,
       &ObjectPool::default(),
       &MapOptions::default()
     ));
-    test_cached!(source, |s: BoxSource| s.as_ref().map_with_source(
-      s.clone(),
+    test_cached!(source, |s: BoxSource| Source::map_static(
+      s,
       &ObjectPool::default(),
       &MapOptions::new(false)
     ));
@@ -531,7 +546,8 @@ mod tests {
           "sources": ["hello.txt"],
           "mappings": "AAAAA",
           "names": ["hello"]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
       original_source: Some("hello".into()),
@@ -541,7 +557,8 @@ mod tests {
           "version": 3,
           "sources": ["hello world.txt"],
           "mappings": "AAAA"
-        }"#,
+        }"#
+            .to_string(),
         )
         .unwrap(),
       ),
@@ -558,6 +575,7 @@ mod tests {
           "sources": ["hello world.txt"],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -574,7 +592,8 @@ mod tests {
           "sources": ["messages.txt", "HELLO_WORLD.txt"],
           "mappings": "AAAAA,SCAAC,EAAMC,C",
           "names": ["Message", "hello", "world"]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
       original_source: Some("HELLO WORLD".into()),
@@ -585,7 +604,8 @@ mod tests {
             "mappings": "AAAAA,M",
             "sources": ["hello world.txt"],
             "sourcesContent": ["hello world"]
-          }"#,
+          }"#
+            .to_string(),
         )
         .unwrap(),
       ),
@@ -608,6 +628,7 @@ mod tests {
           "sourcesContent": [null, "hello world", "HELLO WORLD"],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -624,7 +645,7 @@ mod tests {
           "sources": ["main.js"],
           "mappings": "CAAC,IAAM,CAEL,SAASA,GAAK,CACZ,GAAG,MAAM,CACX,CAGA,SAASC,GAAK,CACZD,EAAG,MAAM,CACX,CACAC,EAAG,CACL,GAAG",
           "names": ["b0", "a0"]
-        }"#,
+        }"#.to_string(),
       ).unwrap(),
       original_source: Some(r#"(() => {
   // b.js
@@ -646,7 +667,7 @@ mod tests {
           "sourcesContent": ["export function b0() {\n\tb1(\"*b0*\");\n}\n", "import { b0 } from \"./b.js\";\nfunction a0() {\n\tb0(\"*a0*\");\n}\na0()\n"],
           "mappings": ";;AAAO,WAAS,KAAK;AACpB,OAAG,MAAM;AAAA,EACV;;;ACDA,WAAS,KAAK;AACb,OAAG,MAAM;AAAA,EACV;AACA,KAAG;",
           "names": []
-        }"#
+        }"#.to_string()
       ).unwrap()),
       remove_original_source: true,
     });
@@ -662,7 +683,7 @@ mod tests {
           "sourcesContent": ["export function b0() {\n\tb1(\"*b0*\");\n}\n", "import { b0 } from \"./b.js\";\nfunction a0() {\n\tb0(\"*a0*\");\n}\na0()\n"],
           "names": ["b0", "a0"],
           "mappings": "MAAO,SAASA,GAAK,CACpB,GAAG,MAAM,CACV,CCDA,SAASC,GAAK,CACbD,EAAG,MAAM,CACV,CACAC,EAAG,C"
-        }"#
+        }"#.to_string()
       ).unwrap()
     );
   }
@@ -674,7 +695,7 @@ mod tests {
       value: "console.log('a')\n",
       name: "a.js",
       source_map: original
-        .map(&ObjectPool::default(), &MapOptions::new(false))
+        .map_static(&ObjectPool::default(), &MapOptions::new(false))
         .unwrap(),
     });
     let source = ConcatSource::new([
@@ -706,11 +727,12 @@ mod tests {
         "mappings": "YAAAA,K,CAAMC;AACNC,O,MAAU;AACC,O,CAAM",
         "file": "translated.txt",
         "sourcesContent": [ "Hello World\nis a test string\n" ]
-      }"#,
+      }"#
+        .to_string(),
     )
     .unwrap();
     let inner_source_map = inner_source
-      .map(&ObjectPool::default(), &MapOptions::default())
+      .map_static(&ObjectPool::default(), &MapOptions::default())
       .map(|mut map| {
         map.set_source_root(Some("/path/to/folder/".to_string()));
         map
@@ -738,6 +760,7 @@ mod tests {
           ],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap(),
     );
@@ -754,7 +777,8 @@ mod tests {
           "sources": ["hello.txt"],
           "mappings": "AAAAA",
           "names": ["hello"]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
       original_source: Some("hello".into()),
@@ -766,7 +790,8 @@ mod tests {
           "mappings": "AAAA",
           "names": [],
           "sourcesContent": ["hello, world!"]
-        }"#,
+        }"#
+            .to_string(),
         )
         .unwrap(),
       ),
@@ -784,6 +809,7 @@ mod tests {
           "version": 3,
           "sourcesContent": ["hello, world!"]
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -799,7 +825,8 @@ mod tests {
           "version": 3,
           "sources": ["hello.txt"],
           "mappings": "AAAA,MAAG"
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
       original_source: Some("你好 世界".into()),
@@ -810,7 +837,8 @@ mod tests {
           "sources": ["hello world.txt"],
           "mappings": "AAAA,EAAE",
           "sourcesContent": ["你好✋世界"]
-        }"#,
+        }"#
+            .to_string(),
         )
         .unwrap(),
       ),
@@ -827,6 +855,7 @@ mod tests {
           "sources": ["hello world.txt"],
           "sourcesContent": ["你好✋世界"]
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -842,7 +871,8 @@ mod tests {
           "version": 3,
           "sources": ["hello.txt"],
           "mappings": "AAAA,MAAG"
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
       original_source: Some("你好 世界".into()),
@@ -853,7 +883,8 @@ mod tests {
           "sources": ["hello world.txt"],
           "mappings": "AAAA,EAAE",
           "sourcesContent": ["你好✋世界"]
-        }"#,
+        }"#
+            .to_string(),
         )
         .unwrap(),
       ),
@@ -865,9 +896,9 @@ mod tests {
       r#"SourceMapSource::new(SourceMapSourceOptions {
   value: "hello world",
   name: "hello.txt",
-  source_map: SourceMap::from_json("{\"version\":3,\"sources\":[\"hello.txt\"],\"names\":[],\"mappings\":\"AAAA,MAAG\"}").unwrap(),
+  source_map: SourceMap::from_json("{\"version\":3,\"sources\":[\"hello.txt\"],\"names\":[],\"mappings\":\"AAAA,MAAG\"}".to_string()).unwrap(),
   original_source: Some("你好 世界".to_string()),
-  inner_source_map: Some(SourceMap::from_json("{\"version\":3,\"sources\":[\"hello world.txt\"],\"sourcesContent\":[\"你好✋世界\"],\"names\":[],\"mappings\":\"AAAA,EAAE\"}").unwrap()),
+  inner_source_map: Some(SourceMap::from_json("{\"version\":3,\"sources\":[\"hello world.txt\"],\"sourcesContent\":[\"你好✋世界\"],\"names\":[],\"mappings\":\"AAAA,EAAE\"}".to_string()).unwrap()),
   remove_original_source: false,
 }).boxed()"#
     );

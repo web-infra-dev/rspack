@@ -130,7 +130,7 @@ pub(crate) fn merge_loader_context(
     .map(|s| {
       rspack_core::rspack_sources::SourceMap::from_json(
         // SAFETY: `sourceMap` is serialized by JavaScript from a JSON object. This is an invariant should be followed on the JavaScript side.
-        unsafe { str::from_utf8_unchecked(s) },
+        unsafe { String::from_utf8_unchecked(s.to_vec()) },
       )
     })
     .transpose()

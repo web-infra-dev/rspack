@@ -1,16 +1,15 @@
 #![allow(missing_docs)]
-use std::{borrow::Cow, hash::Hash};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use rspack_sources::{
-  BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
-  SourceValue,
+  ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   stream_chunks::{
     Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, stream_chunks_default,
   },
 };
 
 #[derive(Debug, Eq)]
-struct CompatSource(&'static str, Option<SourceMap>);
+struct CompatSource(&'static str, Option<SourceMap<'static>>);
 
 impl Source for CompatSource {
   fn source(&self) -> SourceValue<'_> {
@@ -29,12 +28,15 @@ impl Source for CompatSource {
     42
   }
 
-  fn map_with_source(
-    &self,
-    _source: BoxSource,
+  fn map(&self, _object_pool: &ObjectPool, _options: &MapOptions) -> Option<SourceMap<'_>> {
+    self.1.as_ref().map(SourceMap::as_borrowed)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
     _object_pool: &ObjectPool,
     _options: &MapOptions,
-  ) -> Option<SourceMap> {
+  ) -> Option<SourceMap<'static>> {
     self.1.clone()
   }
 
@@ -43,7 +45,7 @@ impl Source for CompatSource {
   }
 }
 
-struct CompatSourceChunks<'source>(&'static str, Option<&'source SourceMap>);
+struct CompatSourceChunks<'source>(&'static str, Option<&'source SourceMap<'static>>);
 
 impl<'source> CompatSourceChunks<'source> {
   pub fn new(source: &'source CompatSource) -> Self {
@@ -51,14 +53,14 @@ impl<'source> CompatSourceChunks<'source> {
   }
 }
 
-impl Chunks for CompatSourceChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for CompatSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: OnChunk<'_, 'a>,
-    on_source: OnSource<'_, 'a>,
-    on_name: OnName<'_, 'a>,
+    on_chunk: OnChunk<'_, 'chunk>,
+    on_source: OnSource<'_, 'source>,
+    on_name: OnName<'_, 'source>,
   ) -> GeneratedInfo {
     stream_chunks_default(
       options,
@@ -73,7 +75,7 @@ impl Chunks for CompatSourceChunks<'_> {
 }
 
 impl StreamChunks for CompatSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(CompatSourceChunks::new(self))
   }
 }
@@ -120,7 +122,8 @@ fn should_generate_correct_source_map() {
       "sourcesContent": ["Line1\n\nLine3\n"],
       "mappings": "AAAA;AACA;AACA",
       "names": []
-    }"#,
+    }"#
+      .to_string(),
   )
   .unwrap();
 
@@ -142,7 +145,8 @@ fn should_generate_correct_source_map() {
       "sourcesContent": ["Line1\n\nLine3\n"],
       "mappings": ";AAAA;AACA;AACA",
       "names": []
-    }"#,
+    }"#
+      .to_string(),
   )
   .unwrap();
 

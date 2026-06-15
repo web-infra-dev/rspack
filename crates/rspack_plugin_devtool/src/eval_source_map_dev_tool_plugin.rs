@@ -140,11 +140,10 @@ async fn render_module_content(
   if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) = origin_source.as_ref().map_with_source(
-    origin_source.clone(),
-    &ObjectPool::default(),
-    &MapOptions::new(self.columns),
-  ) {
+  } else if let Some(mut map) = origin_source
+    .clone()
+    .map(&ObjectPool::default(), &MapOptions::new(self.columns))
+  {
     let source = {
       let source = origin_source.source().into_string_lossy();
 

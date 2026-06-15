@@ -19,7 +19,7 @@ use rustc_hash::FxHashSet;
 #[derive(Debug, Clone)]
 pub struct ExtractSourceMapResult {
   pub source: String,
-  pub source_map: Option<SourceMap>,
+  pub source_map: Option<SourceMap<'static>>,
   pub file_dependencies: Option<FxHashSet<PathBuf>>,
 }
 
@@ -286,8 +286,8 @@ pub async fn extract_source_map(
   };
 
   // Create SourceMap directly from JSON
-  let mut source_map =
-    SourceMap::from_json(content).map_err(|e| format!("Failed to parse source map: {e}"))?;
+  let mut source_map = SourceMap::from_json(content.to_string())
+    .map_err(|e| format!("Failed to parse source map: {e}"))?;
 
   let context = if !source_url.is_empty() {
     Utf8Path::new(&source_url).parent().unwrap_or(base_context)
@@ -305,7 +305,11 @@ pub async fn extract_source_map(
   };
 
   // Get sources from SourceMap and take ownership
-  let sources = source_map.sources().to_vec();
+  let sources = source_map
+    .sources()
+    .iter()
+    .map(|source| source.to_string())
+    .collect::<Vec<_>>();
   let source_root = source_map.source_root().map(|s| s.to_string());
 
   // Pre-collect all source content to avoid borrowing issues

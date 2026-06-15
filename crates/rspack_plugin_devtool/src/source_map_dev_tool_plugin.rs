@@ -114,7 +114,7 @@ fn relative_source_name_from_url(
 /// Compute source references from a source map's sources list.
 fn compute_source_references(
   compilation: &Compilation,
-  source_map: &SourceMap,
+  source_map: &SourceMap<'_>,
 ) -> Vec<SourceReference> {
   source_map
     .sources()
@@ -212,7 +212,7 @@ enum SourceMappingUrlCommentRef<'a> {
 struct SourceMapTask {
   pub asset_filename: Arc<str>,
   pub source: BoxSource,
-  pub source_map: SourceMap,
+  pub source_map: SourceMap<'static>,
   pub unresolved_source_map_path: Option<Utf8PathBuf>,
   pub source_references: Vec<SourceReference>,
 }
@@ -479,10 +479,7 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source
-                  .as_ref()
-                  .map_with_source(source.clone(), object_pool, &map_options)
-                {
+                match source.clone().map_static(object_pool, &map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -587,10 +584,7 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source
-                  .as_ref()
-                  .map_with_source(source.clone(), object_pool, &map_options)
-                {
+                match source.clone().map_static(object_pool, &map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -822,7 +816,7 @@ impl SourceMapDevToolPlugin {
     reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     asset_filename: Arc<str>,
     source: BoxSource,
-    mut source_map: SourceMap,
+    mut source_map: SourceMap<'static>,
     unresolved_source_map_path: Option<Utf8PathBuf>,
     source_references: Vec<SourceReference>,
   ) -> Result<MappedAsset> {

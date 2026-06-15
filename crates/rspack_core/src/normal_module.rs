@@ -870,7 +870,11 @@ impl Diagnosable for NormalModule {
 }
 
 impl NormalModule {
-  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+  fn create_source(
+    &self,
+    content: Content,
+    source_map: Option<SourceMap<'static>>,
+  ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }

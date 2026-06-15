@@ -177,8 +177,8 @@ pub fn from_cacheable(cacheable: CacheableSource) -> BoxSource {
       inner_source_map,
       remove_original_source,
     } => {
-      let source_map = SourceMap::from_json(&source_map).expect("invalid source map JSON");
-      let inner_source_map = inner_source_map.and_then(|json| SourceMap::from_json(&json).ok());
+      let source_map = SourceMap::from_json(source_map).expect("invalid source map JSON");
+      let inner_source_map = inner_source_map.and_then(|json| SourceMap::from_json(json).ok());
       SourceMapSource::new(SourceMapSourceOptions {
         value,
         name,

@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-  BoxSource, MapOptions, Source, SourceMap, SourceValue,
+  MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
     split_into_lines, split_into_potential_tokens,
@@ -78,14 +78,21 @@ impl Source for OriginalSource {
     self.value.len()
   }
 
-  fn map_with_source(
-    &self,
-    source: BoxSource,
+  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
+    let chunks = self.stream_chunks();
+    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
     object_pool: &ObjectPool,
     options: &MapOptions,
-  ) -> Option<SourceMap> {
-    let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options, Some(source))
+  ) -> Option<SourceMap<'static>> {
+    let owner = self.clone();
+    self
+      .as_ref()
+      .map(object_pool, options)
+      .map(|map| map.into_static(owner))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -127,14 +134,14 @@ impl<'source> OriginalSourceChunks<'source> {
   }
 }
 
-impl Chunks for OriginalSourceChunks<'_> {
-  fn stream<'b>(
-    &'b self,
-    _object_pool: &'b ObjectPool,
+impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'b>,
-    on_source: crate::helpers::OnSource<'_, 'b>,
-    _on_name: crate::helpers::OnName<'_, 'b>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    _on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
     let source = TextSpan::new(self.0.value.as_ref());
@@ -257,7 +264,7 @@ impl Chunks for OriginalSourceChunks<'_> {
 }
 
 impl StreamChunks for OriginalSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(OriginalSourceChunks::new(self))
   }
 }
