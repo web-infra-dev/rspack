@@ -4,7 +4,7 @@ use std::{
   convert::{TryFrom, TryInto},
   fmt,
   hash::{Hash, Hasher},
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 
 use dyn_clone::DynClone;
@@ -283,7 +283,7 @@ fn is_all_empty(val: &[Arc<str>]) -> bool {
 }
 
 /// The source map created by [Source::map].
-#[derive(Clone, PartialEq, Eq, Serialize)]
+#[derive(Clone, Serialize)]
 pub struct SourceMap {
   version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -299,6 +299,14 @@ pub struct SourceMap {
   debug_id: Option<Arc<str>>,
   #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
   ignore_list: Option<Arc<Vec<u32>>>,
+  // Runtime-only cache of the decoded `mappings`. Producers that already hold
+  // the decoded segments (e.g. codegen via `with_decoded_mappings`) populate
+  // this so consumers skip re-parsing the VLQ string. Never serialized, and
+  // intentionally excluded from `PartialEq`/`Hash` since it is derived from
+  // `mappings`. `mappings` is immutable after construction, so it never goes
+  // stale.
+  #[serde(skip)]
+  decoded: OnceLock<Box<[Mapping]>>,
 }
 
 impl std::fmt::Debug for SourceMap {
@@ -327,6 +335,24 @@ impl Hash for SourceMap {
   }
 }
 
+impl PartialEq for SourceMap {
+  fn eq(&self, other: &Self) -> bool {
+    // `decoded` is a cache derived from `mappings`; exclude it. All other
+    // fields are compared, matching the previous derived behavior.
+    self.version == other.version
+      && self.file == other.file
+      && self.sources == other.sources
+      && self.sources_content == other.sources_content
+      && self.names == other.names
+      && self.mappings == other.mappings
+      && self.source_root == other.source_root
+      && self.debug_id == other.debug_id
+      && self.ignore_list == other.ignore_list
+  }
+}
+
+impl Eq for SourceMap {}
+
 impl SourceMap {
   /// Create a [SourceMap].
   pub fn new<Mappings, Sources, SourcesContent, Names>(
@@ -351,7 +377,20 @@ impl SourceMap {
       source_root: None,
       debug_id: None,
       ignore_list: None,
+      decoded: OnceLock::new(),
     }
+  }
+
+  /// Cache the decoded form of `mappings`.
+  ///
+  /// Producers that already hold the decoded segments (for example codegen,
+  /// which builds `Mapping`s before encoding them to the VLQ string) can call
+  /// this so later consumers — e.g. [`SourceMap::decoded_mappings`] during
+  /// source-map merging — skip re-parsing the VLQ string. The caller must
+  /// ensure `decoded` matches `mappings`; mismatched input yields wrong maps.
+  pub fn with_decoded_mappings(self, decoded: impl Into<Box<[Mapping]>>) -> Self {
+    let _ = self.decoded.set(decoded.into());
+    self
   }
 
   /// Get the file field in [SourceMap].
@@ -375,8 +414,16 @@ impl SourceMap {
   }
 
   /// Get the decoded mappings in [SourceMap].
+  ///
+  /// The decoded segments are cached on first use (or pre-populated via
+  /// [`SourceMap::with_decoded_mappings`]) so repeated merges and producers
+  /// that already hold the segments avoid re-parsing the VLQ string.
   pub fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
-    decode_mappings(self)
+    self
+      .decoded
+      .get_or_init(|| decode_mappings(self).collect())
+      .iter()
+      .copied()
   }
 
   /// Get the mappings string in [SourceMap].
@@ -618,6 +665,7 @@ impl TryFrom<RawSourceMap> for SourceMap {
       source_root,
       debug_id,
       ignore_list,
+      decoded: OnceLock::new(),
     })
   }
 }

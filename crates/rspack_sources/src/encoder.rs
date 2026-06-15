@@ -41,8 +41,11 @@ pub(crate) enum MappingsEncoder {
 }
 
 impl MappingsEncoder {
+  /// Encode a mapping. Returns `true` when the mapping was written (kept) and
+  /// `false` when it was skipped as redundant, so callers can collect exactly
+  /// the set of mappings that decoding the result would yield.
   #[inline(always)]
-  pub fn encode(&mut self, mapping: &Mapping) {
+  pub fn encode(&mut self, mapping: &Mapping) -> bool {
     match self {
       MappingsEncoder::Full(enc) => enc.encode(mapping),
       MappingsEncoder::LinesOnly(enc) => enc.encode(mapping),
@@ -98,7 +101,7 @@ impl FullMappingsEncoder {
 
 impl FullMappingsEncoder {
   #[inline(always)]
-  fn encode(&mut self, mapping: &Mapping) {
+  fn encode(&mut self, mapping: &Mapping) -> bool {
     if self.active_mapping && self.current_line == mapping.generated_line {
       // A mapping is still active
       if mapping.original.as_ref().is_some_and(|original| {
@@ -109,13 +112,13 @@ impl FullMappingsEncoder {
           && original.name_index.is_none()
       }) {
         // avoid repeating the same original mapping
-        return;
+        return false;
       }
     } else {
       // No mapping is active
       if mapping.original.is_none() {
         // avoid writing unnecessary generated mappings
-        return;
+        return false;
       }
     }
 
@@ -179,6 +182,7 @@ impl FullMappingsEncoder {
     } else {
       self.active_mapping = false;
     }
+    true
   }
 
   #[allow(unsafe_code)]
@@ -213,11 +217,11 @@ impl LinesOnlyMappingsEncoder {
 
 impl LinesOnlyMappingsEncoder {
   #[inline(always)]
-  fn encode(&mut self, mapping: &Mapping) {
+  fn encode(&mut self, mapping: &Mapping) -> bool {
     if let Some(original) = &mapping.original {
       if self.last_written_line == mapping.generated_line {
         // avoid writing multiple original mappings per line
-        return;
+        return false;
       }
       self.last_written_line = mapping.generated_line;
 
@@ -260,6 +264,9 @@ impl LinesOnlyMappingsEncoder {
         self.current_original_line = original.original_line;
         self.mappings.push(b'A');
       }
+      true
+    } else {
+      false
     }
   }
 

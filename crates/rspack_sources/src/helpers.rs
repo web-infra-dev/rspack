@@ -321,8 +321,28 @@ pub fn decode_mappings(source_map: &SourceMap) -> impl Iterator<Item = Mapping> 
 /// Encodes the given iterator of `Mapping` items into a `String`.
 pub fn encode_mappings(mappings: impl Iterator<Item = Mapping>) -> String {
   let mut encoder = create_encoder(true);
-  mappings.for_each(|mapping| encoder.encode(&mapping));
+  mappings.for_each(|mapping| {
+    encoder.encode(&mapping);
+  });
   encoder.drain()
+}
+
+/// Like [`encode_mappings`], but also returns exactly the set of mappings that
+/// were written — i.e. the same sequence that decoding the result would yield.
+/// Producers that already hold the mappings can feed the returned vector into
+/// [`crate::SourceMap::with_decoded_mappings`] to let later consumers skip
+/// re-parsing the VLQ string.
+pub fn encode_mappings_and_collect(
+  mappings: impl Iterator<Item = Mapping>,
+) -> (String, Vec<Mapping>) {
+  let mut encoder = create_encoder(true);
+  let mut kept = Vec::new();
+  mappings.for_each(|mapping| {
+    if encoder.encode(&mapping) {
+      kept.push(mapping);
+    }
+  });
+  (encoder.drain(), kept)
 }
 
 /// Compute the number of UTF-16 code units for a UTF-8 string, using SIMD.

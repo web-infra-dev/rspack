@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
+use rspack_sources::{Mapping, OriginalLocation, encode_mappings_and_collect};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -137,24 +137,31 @@ impl JavaScriptCompiler {
       let combined_source_map =
         source_map.build_source_map(&src_map_buf, input_source_map.cloned(), source_map_config);
 
-      let mappings = encode_mappings(combined_source_map.tokens().map(|token| Mapping {
-        generated_line: token.get_dst_line() + 1,
-        generated_column: token.get_dst_col(),
-        original: if token.has_source() {
-          Some(OriginalLocation {
-            source_index: token.get_src_id(),
-            original_line: token.get_src_line() + 1,
-            original_column: token.get_src_col(),
-            name_index: if token.has_name() {
-              Some(token.get_name_id())
-            } else {
-              None
-            },
-          })
-        } else {
-          None
-        },
-      }));
+      // Encode the mappings to the VLQ string and, in the same pass, collect
+      // exactly the segments that were written. Those segments are handed to
+      // the `SourceMap` as its decoded cache so a later merge (concatenation /
+      // minification source-map chaining) skips re-parsing the VLQ string —
+      // the decoder showed up as a hot path in bundle benchmarks.
+      let (mappings, decoded_mappings) = encode_mappings_and_collect(
+        combined_source_map.tokens().map(|token| Mapping {
+          generated_line: token.get_dst_line() + 1,
+          generated_column: token.get_dst_col(),
+          original: if token.has_source() {
+            Some(OriginalLocation {
+              source_index: token.get_src_id(),
+              original_line: token.get_src_line() + 1,
+              original_column: token.get_src_col(),
+              name_index: if token.has_name() {
+                Some(token.get_name_id())
+              } else {
+                None
+              },
+            })
+          } else {
+            None
+          },
+        }),
+      );
 
       let mut rspack_source_map = rspack_sources::SourceMap::new(
         mappings,
@@ -170,7 +177,8 @@ impl JavaScriptCompiler {
           .names()
           .map(ToString::to_string)
           .collect::<Vec<_>>(),
-      );
+      )
+      .with_decoded_mappings(decoded_mappings);
       rspack_source_map.set_file(combined_source_map.get_file().map(ToString::to_string));
 
       Some(rspack_source_map)
