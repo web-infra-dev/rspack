@@ -65,6 +65,8 @@ class EnvironmentPlugin {
 
       definitions[`process.env.${key}`] =
         value === undefined ? 'undefined' : JSON.stringify(value);
+      definitions[`import.meta.env.${key}`] =
+        value === undefined ? 'undefined' : JSON.stringify(value);
     }
     new DefinePlugin(definitions).apply(compiler);
   }

@@ -1087,12 +1087,20 @@ const applyNodeDefaults = (
     return 'warn';
   });
   F(node, '__dirname', () => {
-    if (targetProperties && targetProperties.node)
+    if (
+      targetProperties &&
+      (targetProperties.node ||
+        (outputModule && targetProperties.node === null))
+    )
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });
   F(node, '__filename', () => {
-    if (targetProperties && targetProperties.node)
+    if (
+      targetProperties &&
+      (targetProperties.node ||
+        (outputModule && targetProperties.node === null))
+    )
       return outputModule ? 'node-module' : 'eval-only';
     return 'warn-mock';
   });

@@ -1,0 +1,35 @@
+import {fileURLToPath as __rspack_fileURLToPath} from "url";
+var __filename = __rspack_fileURLToPath(import.meta.url);
+it("should work import.meta.env with EnvironmentPlugin", () => {
+	expect({"AAA":"aaa","WEBPACK_API_URL":"https://api.example.com","NODE_ENV":"production"}.AAA).toBe("aaa");
+});
+
+it("should work import.meta.env with DotenvPlugin", () => {
+	expect({"AAA":"aaa","WEBPACK_API_URL":"https://api.example.com","NODE_ENV":"production"}.WEBPACK_API_URL).toBe("https://api.example.com");
+});
+
+it("import.meta.env behaves like process.env", async done => {
+	try {
+		const importMetaEnv = {"AAA":"aaa","WEBPACK_API_URL":"https://api.example.com","NODE_ENV":"production"};
+		importMetaEnv;
+		const processEnv = process.env;
+		processEnv;
+		const UNKNOWN_PROPERTY = {"AAA":"aaa","WEBPACK_API_URL":"https://api.example.com","NODE_ENV":"production"}.UNKNOWN_PROPERTY;
+		UNKNOWN_PROPERTY;
+		const UNKNOWN_PROPERTY_2 = process.env.UNKNOWN_PROPERTY_2;
+		UNKNOWN_PROPERTY_2;
+		typeof {"AAA":"aaa","WEBPACK_API_URL":"https://api.example.com","NODE_ENV":"production"};
+		typeof process.env;
+
+		const { env } = ({["env"]: import.meta.env});
+		env;
+	} catch (_e) {
+		// ignore
+	}
+	const fs = await eval("import('fs')");
+	const path = await eval("import('path')");
+	expect(fs.readFileSync(__filename, "utf-8")).toMatchFileSnapshotSync(
+		path.join(__SNAPSHOT__, "index.mjs.txt")
+	);
+	done();
+});
