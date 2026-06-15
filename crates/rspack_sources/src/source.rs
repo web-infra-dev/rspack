@@ -253,7 +253,7 @@ pub trait SourceExt {
   where
     Self: Clone + Sized + Source + 'static,
   {
-    Source::map_static(Arc::new(self.clone()), object_pool, options)
+    Source::map_static(Arc::from(self.clone()), object_pool, options)
   }
 }
 
@@ -262,7 +262,7 @@ impl<T: Source + 'static> SourceExt for T {
     if let Some(source) = self.as_any().downcast_ref::<BoxSource>() {
       return source.clone();
     }
-    Arc::new(self)
+    Arc::from(self)
   }
 }
 
@@ -294,8 +294,7 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &Cow<'_, [Cow<'_, str>]>) -> bool {
-  let val = val.as_ref();
+fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
   }

@@ -257,7 +257,7 @@ impl LightningCssLoader {
         parcel_source_map
           .get_names()
           .iter()
-          .map(|name| Cow::Owned(name.to_string()))
+          .map(|name| Cow::Owned(name.clone()))
           .collect::<Vec<_>>(),
       );
 

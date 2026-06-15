@@ -269,7 +269,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 .to_rspack_result()?,
             )
             .expect("should be able to generate source-map"),
-            original_source: Some(Arc::from(input)),
+            original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
           })

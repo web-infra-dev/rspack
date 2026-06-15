@@ -61,7 +61,7 @@ pub fn get_map<'a>(
     },
   );
   let mappings = mappings_encoder.drain();
-  (!mappings.is_empty()).then(|| SourceMapFields {
+  (!mappings.is_empty()).then_some(SourceMapFields {
     version: 3,
     file: None,
     mappings: Cow::Owned(mappings),

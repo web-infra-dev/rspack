@@ -23,7 +23,7 @@ pub struct SourceMapSourceOptions<V, N> {
   /// The source map of the source code.
   pub source_map: SourceMap<'static>,
   /// The original source code.
-  pub original_source: Option<Arc<str>>,
+  pub original_source: Option<Box<str>>,
   /// The original source map.
   pub inner_source_map: Option<SourceMap<'static>>,
   /// Whether remove the original source.
@@ -61,10 +61,10 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
 #[derive(Eq)]
 pub struct SourceMapSource {
-  value: Arc<str>,
+  value: Box<str>,
   name: Box<str>,
   source_map: SourceMap<'static>,
-  original_source: Option<Arc<str>>,
+  original_source: Option<Box<str>>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
 }
@@ -79,7 +79,7 @@ impl SourceMapSource {
   {
     let options = options.into();
     Self {
-      value: Arc::from(options.value.into()),
+      value: Box::from(options.value.into()),
       name: Box::from(options.name.into()),
       source_map: options.source_map,
       original_source: options.original_source,
@@ -89,7 +89,7 @@ impl SourceMapSource {
   }
 
   /// Get the value as a shared string reference.
-  pub fn value(&self) -> &Arc<str> {
+  pub fn value(&self) -> &str {
     &self.value
   }
 
@@ -104,8 +104,8 @@ impl SourceMapSource {
   }
 
   /// Get the original source code.
-  pub fn original_source(&self) -> Option<&Arc<str>> {
-    self.original_source.as_ref()
+  pub fn original_source(&self) -> Option<&str> {
+    self.original_source.as_deref()
   }
 
   /// Get the inner source map.

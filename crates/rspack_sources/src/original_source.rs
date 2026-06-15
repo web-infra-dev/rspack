@@ -37,13 +37,13 @@ use crate::{
 /// ```
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
-  value: Arc<str>,
+  value: Box<str>,
   name: Box<str>,
 }
 
 impl OriginalSource {
   /// Create a [OriginalSource].
-  pub fn new(value: impl Into<Arc<str>>, name: impl Into<Box<str>>) -> Self {
+  pub fn new(value: impl Into<Box<str>>, name: impl Into<Box<str>>) -> Self {
     Self {
       value: value.into(),
       name: name.into(),
@@ -56,7 +56,7 @@ impl OriginalSource {
   }
 
   /// Get the value as a shared string reference.
-  pub fn value(&self) -> &Arc<str> {
+  pub fn value(&self) -> &str {
     &self.value
   }
 }

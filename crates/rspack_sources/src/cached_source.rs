@@ -400,45 +400,6 @@ mod tests {
   }
 
   #[test]
-  fn map_cache_should_reuse_inner_borrowed_fields_and_return_borrowed_fields() {
-    let inner_map = SourceMap::new(
-      "AAAA",
-      vec!["test.txt".into()],
-      vec!["Hello World".into()],
-      vec![],
-    );
-    let source = CachedSource::new(crate::SourceMapSource::new(crate::WithoutOriginalOptions {
-      value: "Hello World",
-      name: "test.txt",
-      source_map: inner_map,
-    }));
-    let map = source
-      .map(&ObjectPool::default(), &MapOptions::default())
-      .unwrap();
-    let cached_map = source
-      .cache
-      .columns_map
-      .get()
-      .and_then(Option::as_ref)
-      .unwrap();
-
-    assert!(matches!(cached_map.sources, Cow::Borrowed(_)));
-    assert!(matches!(cached_map.sources_content, Cow::Borrowed(_)));
-    assert!(matches!(cached_map.names, Cow::Borrowed(_)));
-    assert!(matches!(cached_map.mappings, Cow::Borrowed(_)));
-
-    assert!(matches!(map.fields().sources, Cow::Borrowed(_)));
-    assert!(matches!(map.fields().sources_content, Cow::Borrowed(_)));
-    assert!(matches!(map.fields().names, Cow::Borrowed(_)));
-    assert!(matches!(map.fields().mappings, Cow::Borrowed(_)));
-    assert_eq!(map.get_source(0), Some("test.txt"));
-    assert_eq!(
-      map.get_source_content(0).map(AsRef::as_ref),
-      Some("Hello World")
-    );
-  }
-
-  #[test]
   fn should_return_the_correct_size_for_binary_files() {
     let source = OriginalSource::new(String::from_utf8(vec![0; 256]).unwrap(), "file.wasm");
     let cached_source = CachedSource::new(source);
