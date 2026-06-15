@@ -16,6 +16,7 @@ use rspack_core::{
   RuntimeModule, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
+  resolver::ResolveInnerError,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -249,8 +250,12 @@ impl RstestPlugin {
     data.add_file_dependencies(manual_mock_dependencies.file_dependencies);
     data.add_missing_dependencies(manual_mock_dependencies.missing_dependencies);
 
-    if manual_mock_result.is_err() && has_missing_module_fallback {
-      return Some(false);
+    match manual_mock_result {
+      Err(ResolveInnerError::RspackResolver(
+        rspack_resolver::ResolveError::NotFound(_)
+        | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _),
+      )) if has_missing_module_fallback => return Some(false),
+      _ => {}
     }
 
     if let Some(dep) = data
