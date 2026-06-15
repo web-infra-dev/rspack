@@ -416,15 +416,49 @@ impl PathManager {
       dir_index.insert(dir.as_os_str(), i);
     }
     // Raise each registered ancestor directory by its descendant files' safe
-    // times (mirrors `Trigger::recurse_parent_directories`), walking borrowed
-    // `&Path`s so no per-step allocation happens.
+    // times (mirrors `Trigger::recurse_parent_directories`). On unix the
+    // ancestors are byte prefixes of the path truncated at `/`, found with a
+    // vectorized reverse scan — no per-step `Path::parent` component re-parse and
+    // no allocation. Matching stays byte-identical to the `dir_index` keys.
     for (file, st) in &file_safe_times {
-      let mut cursor = file.parent();
-      while let Some(dir) = cursor {
-        if let Some(&i) = dir_index.get(dir.as_os_str()) {
-          dir_safe[i] = Some(dir_safe[i].map_or(*st, |cur| cur.max(*st)));
+      let mut raise = |i: usize| {
+        dir_safe[i] = Some(dir_safe[i].map_or(*st, |cur| cur.max(*st)));
+      };
+
+      #[cfg(unix)]
+      {
+        use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+        let bytes = file.as_os_str().as_bytes();
+        let mut end = bytes.len();
+        while let Some(pos) = memchr::memrchr(b'/', &bytes[..end]) {
+          if pos == 0 {
+            // Reached the root; the parent is "/" unless the file IS "/".
+            if end > 1
+              && let Some(&i) = dir_index.get(OsStr::from_bytes(b"/"))
+            {
+              raise(i);
+            }
+            break;
+          }
+          if let Some(&i) = dir_index.get(OsStr::from_bytes(&bytes[..pos])) {
+            raise(i);
+          }
+          end = pos;
         }
-        cursor = dir.parent();
+      }
+
+      // Non-unix path semantics (drive prefixes, UNC, verbatim paths) are
+      // intricate; keep the exact `Path::parent` walk there — correctness over
+      // speed on a platform that is not the watcher's performance hot path.
+      #[cfg(not(unix))]
+      {
+        let mut cursor = file.parent();
+        while let Some(dir) = cursor {
+          if let Some(&i) = dir_index.get(dir.as_os_str()) {
+            raise(i);
+          }
+          cursor = dir.parent();
+        }
       }
     }
     let context_entries = dir_paths

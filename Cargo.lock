@@ -5317,6 +5317,7 @@ dependencies = [
  "cow-utils",
  "dashmap",
  "fast-glob",
+ "memchr",
  "notify",
  "regex",
  "rspack_error",
