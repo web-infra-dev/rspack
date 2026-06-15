@@ -118,7 +118,7 @@ pub enum Binding {
   Symbol(SymbolBinding),
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq)]
 struct ConcatenatedModuleReplacement {
   start: u32,
   end: u32,
@@ -141,17 +141,6 @@ impl PartialOrd for ConcatenatedModuleReplacement {
     Some(self.cmp(other))
   }
 }
-
-impl PartialEq for ConcatenatedModuleReplacement {
-  fn eq(&self, other: &Self) -> bool {
-    self.start == other.start
-      && self.end == other.end
-      && self.content == other.content
-      && self.insertion_order == other.insertion_order
-  }
-}
-
-impl Eq for ConcatenatedModuleReplacement {}
 
 #[derive(Debug, Clone)]
 pub struct ConcatenatedModuleSource {
@@ -636,8 +625,9 @@ impl stream_chunks::Chunks for ConcatenatedModuleSourceChunks<'_> {
 
           let next_replacement_start = replacements
             .get(replacement_idx)
-            .map(|replacement| (replacement.start as usize).min(source_len))
-            .unwrap_or(source_len);
+            .map_or(source_len, |replacement| {
+              (replacement.start as usize).min(source_len)
+            });
           let emit_end = next_replacement_start.min(chunk_end);
           if emit_end <= current_pos {
             continue;
@@ -2649,7 +2639,7 @@ impl Module for ConcatenatedModule {
 
             if condition != "true" {
               is_conditional = true;
-              write!(result, "if ({condition}) {{\n").expect("write to string");
+              writeln!(result, "if ({condition}) {{").expect("write to string");
             }
 
             write!(
