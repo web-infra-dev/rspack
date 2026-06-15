@@ -57,8 +57,7 @@ pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
     None
   }
 
-  /// Returns the source range that should be matched against a parsed AST node
-  /// before this dependency is rendered.
+  /// Returns the source range this dependency rewrites in the AST codegen plan.
   fn ast_dependency_range(&self) -> Option<DependencyRange> {
     None
   }
