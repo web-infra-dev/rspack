@@ -53,6 +53,10 @@ impl MockModuleIdDependency {
     self.missing_module_fallback = Some(fallback);
     self
   }
+
+  pub fn has_missing_module_fallback(&self) -> bool {
+    self.missing_module_fallback.is_some()
+  }
 }
 
 #[cacheable_dyn]
