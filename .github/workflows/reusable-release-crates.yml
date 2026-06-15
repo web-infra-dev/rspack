@@ -61,7 +61,6 @@ jobs:
         id: auth
 
       - name: Publish Crates
-        # Pass the token via CARGO_REGISTRY_TOKEN env instead of `--token`, which cargo deprecated.
         run: |
           ./x crate-publish ${{ inputs.dry_run && '--dry-run' || '' }} ${{ inputs.push_tags && '--push-tags' || '' }}
         env:
