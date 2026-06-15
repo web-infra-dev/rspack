@@ -40,6 +40,26 @@ jobs:
       # Release builds split the wasm artifact: rspack.browser.wasm ships in a
       # separate -browser artifact and is required by the @rspack/browser e2e
       # test. CI builds keep both wasm files in the single artifact above.
+      #
+      # The -browser artifact is produced by a separate matrix build job that
+      # this test does not depend on, so wait for it to be uploaded before
+      # downloading to avoid a race when the canonical build finishes first.
+      - name: Wait for browser wasm artifact
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 40); do
+            count=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=bindings-${{ inputs.target }}-browser" --jq '.total_count' 2>/dev/null || echo 0)
+            if [ "${count:-0}" -gt 0 ]; then
+              echo "browser wasm artifact is ready"
+              exit 0
+            fi
+            echo "waiting for bindings-${{ inputs.target }}-browser artifact ($i/40)..."
+            sleep 30
+          done
+          echo "::error::browser wasm artifact not available after timeout"
+          exit 1
       - name: Download browser wasm binding
         if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
         uses: ./.github/actions/artifact/download
