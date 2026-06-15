@@ -110,7 +110,7 @@ Rspack 和 Turbopack 都是基于 Rust 实现的 bundler，且都发挥了 Rust 
 
 ### 和 Rollup 的区别
 
-Rspack 和 Rollup 虽然都是打包工具，但是两者的侧重领域不同，Rollup 更适合用于打包库，而 Rspack 适合用于打包应用。因此 Rspack 对打包应用进行了很多优化，如 HMR、Bundle splitting 等功能，而 Rollup 则比 Rspack 的编译产物对库更为友好，如更好的 ESM 产物支持。 社区上也有很多的工具在 Rollup 基础上进行了一定的封装，提供了对应用打包更友好的支持，如 Vite, 目前 Rspack 比 Rollup 有更好的生产环境构建性能。
+Rollup 以 ES Modules 为基础，同时支持多种输出格式。Rspack 则覆盖更广泛的构建场景，包括 ESM、CJS 等库产物以及应用打包产物，并持续优化构建性能和内存使用。
 
 ### 和 Parcel 的区别
 
