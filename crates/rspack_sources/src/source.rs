@@ -6,6 +6,7 @@ use std::{
   sync::Arc,
 };
 
+#[cfg(feature = "napi")]
 use napi::bindgen_prelude::Buffer;
 use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
@@ -385,6 +386,7 @@ impl Hash for SourceMapFields<'_> {
 #[allow(dead_code)]
 enum SourceMapOwner {
   Bytes(Vec<u8>),
+  #[cfg(feature = "napi")]
   Buffer(Buffer),
   Source(BoxSource),
 }
@@ -428,10 +430,6 @@ impl<'a> SourceMap<'a> {
 
   pub(crate) fn fields(&self) -> &SourceMapFields<'a> {
     &self.fields
-  }
-
-  pub(crate) fn into_fields(self) -> SourceMapFields<'a> {
-    self.fields
   }
 }
 
@@ -479,6 +477,7 @@ impl SourceMap<'static> {
   }
 
   /// Create a [SourceMap] from a napi buffer.
+  #[cfg(feature = "napi")]
   pub fn from_buffer(mut buffer: Buffer) -> Result<Self> {
     let fields = {
       let borrowed_value = simd_json::to_borrowed_value(buffer.as_mut())?;
