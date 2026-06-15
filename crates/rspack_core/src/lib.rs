@@ -108,7 +108,10 @@ pub use rspack_loader_runner::{
   get_scheme, parse_resource,
 };
 pub use rspack_macros::{impl_runtime_module, impl_source_map_config};
-pub use rspack_sources;
+pub use rspack_sources::{
+  self, BoxSource, MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceExt, SourceMap,
+  SourceValue, encode_mappings, stream_chunks, utf16_len,
+};
 
 #[cfg(debug_assertions)]
 pub mod debug_info;

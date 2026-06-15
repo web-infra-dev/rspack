@@ -372,7 +372,7 @@ var {} = {{}};
         &mut already_required,
         runtime_template,
       ));
-      render_source.add(source);
+      render_source.add(RawStringSource::from(source));
       render_source.add(RawStringSource::from_static("\n"));
 
       chunk_init_fragments.extend(info.chunk_init_fragments.clone());
@@ -929,7 +929,7 @@ var {} = {{}};
   pub fn render_module(
     info: &ConcatenatedModuleInfo,
     chunk_link: &ChunkLinkContext,
-  ) -> Result<ReplaceSource> {
+  ) -> Result<String> {
     let Some(mut source) = info.source.clone() else {
       return Err(rspack_error::Error::error(format!(
         "module: {} has no source",
@@ -956,7 +956,6 @@ var {} = {{}};
             ident.id.span.real_lo(),
             ident.id.span.real_hi() + 2,
             name.into_owned(),
-            None,
           );
         }
       }
@@ -973,11 +972,13 @@ var {} = {{}};
         } else {
           internal_name.to_string()
         };
-        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name, None);
+        source.replace(ident.id.span.real_lo(), ident.id.span.real_hi(), name);
       }
     }
 
-    Ok(source)
+    let mut rendered = String::new();
+    source.render_into(&mut rendered);
+    Ok(rendered)
   }
 
   pub fn render_external_required(

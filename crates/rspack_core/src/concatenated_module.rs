@@ -1,8 +1,9 @@
 use std::{
   borrow::Cow,
+  cell::RefCell,
   collections::{BTreeMap, VecDeque},
-  fmt::Debug,
-  hash::Hasher,
+  fmt::{Debug, Write},
+  hash::{Hash, Hasher},
   mem,
   sync::{Arc, LazyLock},
 };
@@ -16,9 +17,6 @@ use rspack_collections::{
 use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
-use rspack_sources::{
-  BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
-};
 use rspack_util::{
   SpanExt,
   ext::DynHash,
@@ -42,23 +40,25 @@ use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
-  BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
+  BoxModuleDependency, BoxSource, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
   CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
   ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
   DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
   ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
+  InitFragment, InitFragmentStage, LibIdentOptions, MapOptions, Mapping, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
+  ObjectPool, OriginalLocation, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SideEffectsStateArtifact, Source, SourceExt, SourceMap, SourceType, SourceValue,
+  URLStaticMode, UsageState, UsedName, UsedNameItem, encode_mappings, escape_identifier, fast_set,
   filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
   merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
-  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
+  stream_chunks::{self, StreamChunks},
+  subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment, utf16_len,
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
@@ -116,6 +116,751 @@ pub struct SymbolBinding {
 pub enum Binding {
   Raw(RawBinding),
   Symbol(SymbolBinding),
+}
+
+#[derive(Debug, Clone, Hash)]
+struct ConcatenatedModuleReplacement {
+  start: u32,
+  end: u32,
+  content: String,
+  insertion_order: u32,
+}
+
+impl Ord for ConcatenatedModuleReplacement {
+  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+    (self.start, self.end, self.insertion_order).cmp(&(
+      other.start,
+      other.end,
+      other.insertion_order,
+    ))
+  }
+}
+
+impl PartialOrd for ConcatenatedModuleReplacement {
+  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+    Some(self.cmp(other))
+  }
+}
+
+impl PartialEq for ConcatenatedModuleReplacement {
+  fn eq(&self, other: &Self) -> bool {
+    self.start == other.start
+      && self.end == other.end
+      && self.content == other.content
+      && self.insertion_order == other.insertion_order
+  }
+}
+
+impl Eq for ConcatenatedModuleReplacement {}
+
+#[derive(Debug, Clone)]
+pub struct ConcatenatedModuleSource {
+  source: BoxSource,
+  source_code: String,
+  replacements: Vec<ConcatenatedModuleReplacement>,
+}
+
+impl ConcatenatedModuleSource {
+  pub fn new(source: BoxSource, source_code: String) -> Self {
+    Self {
+      source,
+      source_code,
+      replacements: Vec::new(),
+    }
+  }
+
+  pub fn insert(&mut self, start: u32, content: String) {
+    self.replace(start, start, content);
+  }
+
+  pub fn replace(&mut self, start: u32, end: u32, content: String) {
+    let replacement = ConcatenatedModuleReplacement {
+      start,
+      end,
+      content,
+      insertion_order: self.replacements.len() as u32,
+    };
+
+    if let Some(last) = self.replacements.last() {
+      if replacement >= *last {
+        self.replacements.push(replacement);
+      } else {
+        let insert_at = self
+          .replacements
+          .binary_search(&replacement)
+          .unwrap_or_else(|index| index);
+        self.replacements.insert(insert_at, replacement);
+      }
+    } else {
+      self.replacements.push(replacement);
+    }
+  }
+
+  fn rendered_size(&self) -> usize {
+    let source_len = self.source_code.len();
+    if self.replacements.is_empty() {
+      return source_len;
+    }
+
+    let mut size = source_len;
+    let mut cursor = 0usize;
+    for replacement in &self.replacements {
+      let start = (replacement.start as usize).min(source_len);
+      let end = (replacement.end as usize).min(source_len).max(start);
+
+      if start >= source_len {
+        size += replacement.content.len();
+        continue;
+      }
+
+      let removed_len = end.saturating_sub(start.max(cursor));
+      size = size
+        .saturating_sub(removed_len)
+        .saturating_add(replacement.content.len());
+      cursor = cursor.max(end);
+    }
+    size
+  }
+
+  pub fn render_into(&self, output: &mut String) {
+    if self.replacements.is_empty() {
+      output.push_str(&self.source_code);
+      return;
+    }
+
+    let source_len = self.source_code.len();
+    let mut cursor = 0usize;
+    for replacement in &self.replacements {
+      let start = (replacement.start as usize).min(source_len);
+      let end = (replacement.end as usize).min(source_len).max(start);
+
+      if start > cursor {
+        output.push_str(&self.source_code[cursor..start]);
+        cursor = start;
+      }
+
+      output.push_str(&replacement.content);
+      if end > cursor {
+        cursor = end;
+      }
+    }
+
+    if cursor < source_len {
+      output.push_str(&self.source_code[cursor..]);
+    }
+  }
+}
+
+impl PartialEq for ConcatenatedModuleSource {
+  fn eq(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.source, &other.source)
+      && self.source_code == other.source_code
+      && self.replacements == other.replacements
+  }
+}
+
+impl Eq for ConcatenatedModuleSource {}
+
+impl Source for ConcatenatedModuleSource {
+  fn source(&self) -> SourceValue<'_> {
+    if self.replacements.is_empty() {
+      return SourceValue::String(Cow::Borrowed(&self.source_code));
+    }
+
+    let mut string = String::with_capacity(self.rendered_size());
+    self.render_into(&mut string);
+    SourceValue::String(Cow::Owned(string))
+  }
+
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+    if self.replacements.is_empty() {
+      on_chunk(&self.source_code);
+      return;
+    }
+
+    let source_len = self.source_code.len();
+    let mut cursor = 0usize;
+    for replacement in &self.replacements {
+      let start = (replacement.start as usize).min(source_len);
+      let end = (replacement.end as usize).min(source_len).max(start);
+
+      if start > cursor {
+        on_chunk(&self.source_code[cursor..start]);
+        cursor = start;
+      }
+
+      on_chunk(&replacement.content);
+      if end > cursor {
+        cursor = end;
+      }
+    }
+
+    if cursor < source_len {
+      on_chunk(&self.source_code[cursor..]);
+    }
+  }
+
+  fn buffer(&self) -> Cow<'_, [u8]> {
+    self.source().into_bytes()
+  }
+
+  fn size(&self) -> usize {
+    self.rendered_size()
+  }
+
+  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+    if self.replacements.is_empty() {
+      return self.source.map(object_pool, options);
+    }
+    let chunks = self.stream_chunks();
+    source_map_from_chunks(object_pool, chunks.as_ref(), options)
+  }
+
+  fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    let mut result = Ok(());
+    self.rope(&mut |chunk| {
+      if result.is_ok() {
+        result = std::io::Write::write_all(writer, chunk.as_bytes());
+      }
+    });
+    result
+  }
+}
+
+impl Hash for ConcatenatedModuleSource {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    "ConcatenatedModuleSource".hash(state);
+    self.source.hash(state);
+    self.source_code.hash(state);
+    self.replacements.hash(state);
+  }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum ConcatenatedModuleOutputPart {
+  Raw(String),
+  Source(ConcatenatedModuleSource),
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct ConcatenatedModuleOutputSource {
+  parts: Vec<ConcatenatedModuleOutputPart>,
+  size: usize,
+}
+
+impl ConcatenatedModuleOutputSource {
+  fn with_capacity(capacity: usize) -> Self {
+    Self {
+      parts: vec![ConcatenatedModuleOutputPart::Raw(String::with_capacity(
+        capacity,
+      ))],
+      size: 0,
+    }
+  }
+
+  fn push_str(&mut self, content: &str) {
+    if content.is_empty() {
+      return;
+    }
+
+    self.size += content.len();
+    if let Some(ConcatenatedModuleOutputPart::Raw(raw)) = self.parts.last_mut() {
+      raw.push_str(content);
+    } else {
+      self
+        .parts
+        .push(ConcatenatedModuleOutputPart::Raw(content.to_string()));
+    }
+  }
+
+  fn push_source(&mut self, source: ConcatenatedModuleSource) {
+    self.size += source.rendered_size();
+    self
+      .parts
+      .push(ConcatenatedModuleOutputPart::Source(source));
+  }
+}
+
+impl Write for ConcatenatedModuleOutputSource {
+  fn write_str(&mut self, s: &str) -> std::fmt::Result {
+    self.push_str(s);
+    Ok(())
+  }
+}
+
+impl Source for ConcatenatedModuleOutputSource {
+  fn source(&self) -> SourceValue<'_> {
+    let mut string = String::with_capacity(self.size);
+    self.rope(&mut |chunk| {
+      string.push_str(chunk);
+    });
+    SourceValue::String(Cow::Owned(string))
+  }
+
+  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
+    for part in &self.parts {
+      match part {
+        ConcatenatedModuleOutputPart::Raw(raw) => on_chunk(raw),
+        ConcatenatedModuleOutputPart::Source(source) => source.rope(on_chunk),
+      }
+    }
+  }
+
+  fn buffer(&self) -> Cow<'_, [u8]> {
+    let mut buffer = Vec::with_capacity(self.size);
+    self.to_writer(&mut buffer).expect("write to vec");
+    Cow::Owned(buffer)
+  }
+
+  fn size(&self) -> usize {
+    self.size
+  }
+
+  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+    let chunks = self.stream_chunks();
+    source_map_from_chunks(object_pool, chunks.as_ref(), options)
+  }
+
+  fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+    for part in &self.parts {
+      match part {
+        ConcatenatedModuleOutputPart::Raw(raw) => {
+          std::io::Write::write_all(writer, raw.as_bytes())?
+        }
+        ConcatenatedModuleOutputPart::Source(source) => source.to_writer(writer)?,
+      }
+    }
+    Ok(())
+  }
+}
+
+impl Hash for ConcatenatedModuleOutputSource {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    "ConcatenatedModuleOutputSource".hash(state);
+    self.parts.hash(state);
+  }
+}
+
+fn source_map_from_chunks(
+  object_pool: &ObjectPool,
+  chunks: &dyn stream_chunks::Chunks,
+  options: &MapOptions,
+) -> Option<SourceMap> {
+  let mut mappings = Vec::new();
+  let mut sources: Vec<String> = Vec::new();
+  let mut sources_content: Vec<Arc<str>> = Vec::new();
+  let mut names: Vec<String> = Vec::new();
+  let mut has_original_mapping = false;
+  let map_options = MapOptions::new(options.columns);
+
+  chunks.stream(
+    object_pool,
+    &map_options,
+    &mut |_, mapping| {
+      has_original_mapping |= mapping.original.is_some();
+      mappings.push(mapping);
+    },
+    &mut |source_index, source, source_content| {
+      let source_index = source_index as usize;
+      if sources.len() <= source_index {
+        sources.resize(source_index + 1, String::new());
+      }
+      sources[source_index] = source.to_string();
+      if let Some(source_content) = source_content {
+        if sources_content.len() <= source_index {
+          sources_content.resize(source_index + 1, "".into());
+        }
+        sources_content[source_index] = source_content.clone();
+      }
+    },
+    &mut |name_index, name| {
+      let name_index = name_index as usize;
+      if names.len() <= name_index {
+        names.resize(name_index + 1, String::new());
+      }
+      names[name_index] = name.to_string();
+    },
+  );
+
+  if !has_original_mapping {
+    return None;
+  }
+
+  let mappings = encode_mappings(mappings.into_iter());
+  (!mappings.is_empty()).then(|| SourceMap::new(mappings, sources, sources_content, names))
+}
+
+#[inline]
+fn advance_generated_position(line: &mut u32, column: &mut u32, content: &str) {
+  if content.is_empty() {
+    return;
+  }
+
+  for segment in content.split_inclusive('\n') {
+    if segment.ends_with('\n') {
+      *line += 1;
+      *column = 0;
+    } else {
+      *column += utf16_len(segment) as u32;
+    }
+  }
+}
+
+#[inline]
+fn advance_original_location(mut original: OriginalLocation, prefix: &str) -> OriginalLocation {
+  if prefix.is_empty() {
+    return original;
+  }
+
+  original.name_index = None;
+  for segment in prefix.split_inclusive('\n') {
+    if segment.ends_with('\n') {
+      original.original_line += 1;
+      original.original_column = 0;
+    } else {
+      original.original_column += utf16_len(segment) as u32;
+    }
+  }
+  original
+}
+
+struct ConcatenatedModuleSourceChunks<'a> {
+  source: &'a ConcatenatedModuleSource,
+  chunks: Box<dyn stream_chunks::Chunks + 'a>,
+}
+
+impl<'a> ConcatenatedModuleSourceChunks<'a> {
+  fn new(source: &'a ConcatenatedModuleSource) -> Self {
+    Self {
+      source,
+      chunks: source.source.stream_chunks(),
+    }
+  }
+
+  fn emit_chunk<'b>(
+    generated_line: &mut u32,
+    generated_column: &mut u32,
+    content: stream_chunks::TextSpan<'b>,
+    original: Option<OriginalLocation>,
+    on_chunk: stream_chunks::OnChunk<'_, 'b>,
+  ) {
+    if content.is_empty() {
+      return;
+    }
+
+    on_chunk(
+      Some(content),
+      Mapping {
+        generated_line: *generated_line,
+        generated_column: *generated_column,
+        original,
+      },
+    );
+    advance_generated_position(generated_line, generated_column, content.as_str());
+  }
+}
+
+impl stream_chunks::Chunks for ConcatenatedModuleSourceChunks<'_> {
+  fn stream<'a>(
+    &'a self,
+    object_pool: &'a ObjectPool,
+    options: &MapOptions,
+    mut on_chunk: stream_chunks::OnChunk<'_, 'a>,
+    on_source: stream_chunks::OnSource<'_, 'a>,
+    on_name: stream_chunks::OnName<'_, 'a>,
+  ) -> stream_chunks::GeneratedInfo {
+    let source_code = self.source.source_code.as_str();
+    let source_len = source_code.len();
+    let replacements = &self.source.replacements;
+    let mut replacement_idx = 0usize;
+    let mut replacement_end = 0usize;
+    let mut source_pos = 0usize;
+    let mut generated_line = 1u32;
+    let mut generated_column = 0u32;
+    let inner_options = MapOptions::new(options.columns);
+
+    let emit_pending_replacements =
+      |current_pos: usize,
+       replacement_idx: &mut usize,
+       replacement_end: &mut usize,
+       generated_line: &mut u32,
+       generated_column: &mut u32,
+       on_chunk: &mut stream_chunks::OnChunk<'_, 'a>| {
+        while let Some(replacement) = replacements.get(*replacement_idx) {
+          let start = (replacement.start as usize).min(source_len);
+          if start > current_pos {
+            break;
+          }
+
+          let end = (replacement.end as usize).min(source_len).max(start);
+          Self::emit_chunk(
+            generated_line,
+            generated_column,
+            stream_chunks::TextSpan::new(&replacement.content),
+            None,
+            on_chunk,
+          );
+          *replacement_end = (*replacement_end).max(end);
+          *replacement_idx += 1;
+        }
+      };
+
+    self.chunks.stream(
+      object_pool,
+      &inner_options,
+      &mut |chunk, mapping| {
+        let Some(chunk) = chunk else {
+          return;
+        };
+
+        let chunk_start = source_pos;
+        let chunk_end = chunk_start + chunk.len();
+        let mut chunk_pos = 0usize;
+
+        while chunk_pos < chunk.len() {
+          let current_pos = chunk_start + chunk_pos;
+          emit_pending_replacements(
+            current_pos,
+            &mut replacement_idx,
+            &mut replacement_end,
+            &mut generated_line,
+            &mut generated_column,
+            &mut on_chunk,
+          );
+
+          if current_pos < replacement_end {
+            chunk_pos +=
+              (replacement_end.min(chunk_end) - current_pos).min(chunk.len() - chunk_pos);
+            continue;
+          }
+
+          let next_replacement_start = replacements
+            .get(replacement_idx)
+            .map(|replacement| (replacement.start as usize).min(source_len))
+            .unwrap_or(source_len);
+          let emit_end = next_replacement_start.min(chunk_end);
+          if emit_end <= current_pos {
+            continue;
+          }
+
+          let local_end = emit_end - chunk_start;
+          let prefix = chunk.slice_to(chunk_pos);
+          let original = mapping
+            .original
+            .map(|original| advance_original_location(original, prefix.as_str()));
+          Self::emit_chunk(
+            &mut generated_line,
+            &mut generated_column,
+            chunk.slice(chunk_pos, local_end),
+            original,
+            &mut on_chunk,
+          );
+          chunk_pos = local_end;
+        }
+
+        source_pos = chunk_end;
+      },
+      on_source,
+      on_name,
+    );
+
+    emit_pending_replacements(
+      source_len,
+      &mut replacement_idx,
+      &mut replacement_end,
+      &mut generated_line,
+      &mut generated_column,
+      &mut on_chunk,
+    );
+
+    stream_chunks::GeneratedInfo {
+      generated_line,
+      generated_column,
+    }
+  }
+}
+
+impl stream_chunks::StreamChunks for ConcatenatedModuleSource {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn stream_chunks::Chunks + 'a> {
+    Box::new(ConcatenatedModuleSourceChunks::new(self))
+  }
+}
+
+struct RawOutputChunks<'a>(&'a str);
+
+impl stream_chunks::Chunks for RawOutputChunks<'_> {
+  fn stream<'a>(
+    &'a self,
+    object_pool: &'a ObjectPool,
+    options: &MapOptions,
+    on_chunk: stream_chunks::OnChunk<'_, 'a>,
+    on_source: stream_chunks::OnSource<'_, 'a>,
+    on_name: stream_chunks::OnName<'_, 'a>,
+  ) -> stream_chunks::GeneratedInfo {
+    stream_chunks::stream_chunks_default(
+      options,
+      object_pool,
+      self.0,
+      None,
+      on_chunk,
+      on_source,
+      on_name,
+    )
+  }
+}
+
+enum ConcatenatedModuleOutputPartChunk<'a> {
+  Raw(RawOutputChunks<'a>),
+  Source(Box<dyn stream_chunks::Chunks + 'a>),
+}
+
+struct ConcatenatedModuleOutputSourceChunks<'a> {
+  part_chunks: Vec<ConcatenatedModuleOutputPartChunk<'a>>,
+}
+
+impl<'a> ConcatenatedModuleOutputSourceChunks<'a> {
+  fn new(source: &'a ConcatenatedModuleOutputSource) -> Self {
+    let part_chunks = source
+      .parts
+      .iter()
+      .map(|part| match part {
+        ConcatenatedModuleOutputPart::Raw(raw) => {
+          ConcatenatedModuleOutputPartChunk::Raw(RawOutputChunks(raw))
+        }
+        ConcatenatedModuleOutputPart::Source(source) => {
+          ConcatenatedModuleOutputPartChunk::Source(source.stream_chunks())
+        }
+      })
+      .collect();
+    Self { part_chunks }
+  }
+}
+
+impl stream_chunks::Chunks for ConcatenatedModuleOutputSourceChunks<'_> {
+  fn stream<'a>(
+    &'a self,
+    object_pool: &'a ObjectPool,
+    options: &MapOptions,
+    on_chunk: stream_chunks::OnChunk<'_, 'a>,
+    mut on_source: stream_chunks::OnSource<'_, 'a>,
+    mut on_name: stream_chunks::OnName<'_, 'a>,
+  ) -> stream_chunks::GeneratedInfo {
+    let mut current_line_offset = 0;
+    let mut current_column_offset = 0;
+    let mut source_mapping: HashMap<String, u32> = HashMap::default();
+    let mut name_mapping: HashMap<String, u32> = HashMap::default();
+
+    for part in &self.part_chunks {
+      let source_index_mapping: RefCell<HashMap<u32, u32>> = RefCell::new(HashMap::default());
+      let name_index_mapping: RefCell<HashMap<u32, u32>> = RefCell::new(HashMap::default());
+
+      let stream_chunks::GeneratedInfo {
+        generated_line,
+        generated_column,
+      } = match part {
+        ConcatenatedModuleOutputPartChunk::Raw(raw) => raw.stream(
+          object_pool,
+          options,
+          &mut |chunk, mapping| {
+            let line = mapping.generated_line + current_line_offset;
+            let column = if mapping.generated_line == 1 {
+              mapping.generated_column + current_column_offset
+            } else {
+              mapping.generated_column
+            };
+            on_chunk(
+              chunk,
+              Mapping {
+                generated_line: line,
+                generated_column: column,
+                original: None,
+              },
+            );
+          },
+          &mut on_source,
+          &mut on_name,
+        ),
+        ConcatenatedModuleOutputPartChunk::Source(chunks) => chunks.stream(
+          object_pool,
+          options,
+          &mut |chunk, mapping| {
+            let line = mapping.generated_line + current_line_offset;
+            let column = if mapping.generated_line == 1 {
+              mapping.generated_column + current_column_offset
+            } else {
+              mapping.generated_column
+            };
+            let original = mapping.original.as_ref().and_then(|original| {
+              let source_index = source_index_mapping
+                .borrow()
+                .get(&original.source_index)
+                .copied()?;
+              Some(OriginalLocation {
+                source_index,
+                original_line: original.original_line,
+                original_column: original.original_column,
+                name_index: original
+                  .name_index
+                  .and_then(|name_index| name_index_mapping.borrow().get(&name_index).copied()),
+              })
+            });
+            on_chunk(
+              chunk,
+              Mapping {
+                generated_line: line,
+                generated_column: column,
+                original,
+              },
+            );
+          },
+          &mut |index, source, source_content| {
+            let source_key = source.to_string();
+            let global_index = if let Some(index) = source_mapping.get(&source_key) {
+              *index
+            } else {
+              let index = source_mapping.len() as u32;
+              source_mapping.insert(source_key, index);
+              on_source(index, source, source_content);
+              index
+            };
+            source_index_mapping
+              .borrow_mut()
+              .insert(index, global_index);
+          },
+          &mut |index, name| {
+            let name_key = name.to_string();
+            let global_index = if let Some(index) = name_mapping.get(&name_key) {
+              *index
+            } else {
+              let index = name_mapping.len() as u32;
+              name_mapping.insert(name_key, index);
+              on_name(index, name);
+              index
+            };
+            name_index_mapping.borrow_mut().insert(index, global_index);
+          },
+        ),
+      };
+
+      if generated_line > 1 {
+        current_column_offset = generated_column;
+      } else {
+        current_column_offset += generated_column;
+      }
+      current_line_offset += generated_line - 1;
+    }
+
+    stream_chunks::GeneratedInfo {
+      generated_line: current_line_offset + 1,
+      generated_column: current_column_offset,
+    }
+  }
+}
+
+impl stream_chunks::StreamChunks for ConcatenatedModuleOutputSource {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn stream_chunks::Chunks + 'a> {
+    Box::new(ConcatenatedModuleOutputSourceChunks::new(self))
+  }
 }
 
 #[derive(Debug)]
@@ -298,8 +1043,7 @@ pub struct ConcatenatedModuleInfo {
   pub global_ctxt: SyntaxContext,
   pub runtime_requirements: RuntimeGlobals,
   pub has_ast: bool,
-  pub source: Option<ReplaceSource>,
-  pub internal_source: Option<Arc<dyn Source>>,
+  pub source: Option<ConcatenatedModuleSource>,
   pub internal_names: HashMap<Atom, Atom>,
   pub export_map: Option<HashMap<Atom, String>>,
   pub raw_export_map: Option<HashMap<Atom, String>>,
@@ -995,9 +1739,7 @@ impl Module for ConcatenatedModule {
     let mut needed_namespace_objects = IdentifierIndexSet::default();
     let mut needed_namespace_objects_queue = VecDeque::new();
 
-    // Generate source code and analyze scopes
-    // Prepare a ReplaceSource for the final source
-    //
+    // Generate source code and analyze scopes.
     let mut all_used_names: HashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
 
     let arc_map = Arc::new(module_to_info_map);
@@ -1201,11 +1943,11 @@ impl Module for ConcatenatedModule {
                 let low = span.real_lo();
                 let high = span.real_hi();
                 if identifier.shorthand {
-                  source.insert(high, format!(": {new_name}"), None);
+                  source.insert(high, format!(": {new_name}"));
                   continue;
                 }
 
-                source.replace(low, high, new_name.to_string(), None);
+                source.replace(low, high, new_name.to_string());
               }
             } else {
               // Handle the case when the name is not already used
@@ -1514,7 +2256,7 @@ impl Module for ConcatenatedModule {
           .and_then(|info| info.try_as_concatenated_mut())
           .expect("should have concatenate module info");
         let source = info.source.as_mut().expect("should have source");
-        source.replace(low, high, name_result.name, None);
+        source.replace(low, high, name_result.name);
       }
     }
 
@@ -1592,7 +2334,8 @@ impl Module for ConcatenatedModule {
       });
     }
 
-    let mut result: ConcatSource = ConcatSource::default();
+    let estimated_size = self.modules.iter().map(|m| m.size as usize).sum::<usize>() + 1024;
+    let mut result = ConcatenatedModuleOutputSource::with_capacity(estimated_size);
     let mut should_add_esm_flag = false;
     let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
 
@@ -1654,35 +2397,40 @@ impl Module for ConcatenatedModule {
 
       if !matches!(should_skip_render_definitions, Some(true)) {
         if should_add_esm_flag {
-          result.add(RawStringSource::from_static("// ESM COMPAT FLAG\n"));
-          result.add(RawStringSource::from(
-            runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
-          ));
+          result.push_str("// ESM COMPAT FLAG\n");
+          result.push_str(
+            &runtime_template.define_es_module_flag_statement(self.get_exports_argument()),
+          );
         }
 
-        result.add(RawStringSource::from_static("\n// EXPORTS\n"));
-        result.add(RawStringSource::from(format!(
-          "{}({}, {{{}\n}});\n",
+        write!(
+          result,
+          "\n// EXPORTS\n{}({}, {{{}\n}});\n",
           runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
           runtime_template.render_exports_argument(exports_argument),
           definitions.join(",")
-        )));
+        )
+        .expect("write to string");
       }
     }
 
     // List unused exports
     if !unused_exports.is_empty() {
-      result.add(RawStringSource::from(format!(
+      write!(
+        result,
         "\n// UNUSED EXPORTS: {}\n",
         join_atom(unused_exports.iter(), ", ")
-      )));
+      )
+      .expect("write to string");
     }
     // List inlined exports
     if !inlined_exports.is_empty() {
-      result.add(RawStringSource::from(format!(
+      write!(
+        result,
         "\n// INLINED EXPORTS: {}\n",
         join_atom(inlined_exports.iter(), ", ")
-      )));
+      )
+      .expect("write to string");
     }
 
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
@@ -1781,7 +2529,7 @@ impl Module for ConcatenatedModule {
       if let Some(info) = info.try_as_concatenated()
         && let Some(source) = namespace_object_sources.get(&info.module)
       {
-        result.add(RawStringSource::from(source.as_str()));
+        result.push_str(source);
       }
 
       // Define deferred modules namespace objects
@@ -1812,13 +2560,15 @@ impl Module for ConcatenatedModule {
           // an async module will opt-out of the concat module optimization.
           Default::default(),
         );
-        result.add(RawStringSource::from(format!(
+        write!(
+          result,
           "\n// DEFERRED EXTERNAL MODULE: {module_readable_identifier}\nvar {} = {loader};",
           info
             .deferred_name
             .as_ref()
             .expect("should have deferred_name"),
-        )));
+        )
+        .expect("write to string");
         if info.deferred_namespace_object_used {
           let module_id = json_stringify(
             ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
@@ -1827,7 +2577,8 @@ impl Module for ConcatenatedModule {
           let module = module_graph
             .module_by_identifier(&info.module)
             .expect("should have module");
-          result.add(RawStringSource::from(format!(
+          write!(
+            result,
             "\nvar {} = /*#__PURE__*/{}({}, {});",
             info
               .deferred_namespace_object_name
@@ -1842,7 +2593,8 @@ impl Module for ConcatenatedModule {
               &compilation.exports_info_artifact,
               root_module.build_meta().strict_esm_module,
             )),
-          )));
+          )
+          .expect("write to string");
         }
       }
     }
@@ -1864,12 +2616,15 @@ impl Module for ConcatenatedModule {
 
       match info {
         ModuleInfo::Concatenated(info) => {
-          result.add(RawStringSource::from(
-            format!("\n;// CONCATENATED MODULE: {module_readable_identifier}\n").as_str(),
-          ));
+          write!(
+            result,
+            "\n;// CONCATENATED MODULE: {module_readable_identifier}\n"
+          )
+          .expect("write to string");
 
           // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1582
-          result.add(info.source.take().expect("should have source"));
+          let source = info.source.take().expect("should have source");
+          result.push_source(source);
           chunk_init_fragments.extend(mem::take(&mut info.chunk_init_fragments));
 
           runtime_template
@@ -1880,9 +2635,11 @@ impl Module for ConcatenatedModule {
         ModuleInfo::External(info) => {
           // Deferred modules namespace objects is hoisted up at above loop
           if !info.deferred {
-            result.add(RawStringSource::from(format!(
+            write!(
+              result,
               "\n// EXTERNAL MODULE: {module_readable_identifier}\n"
-            )));
+            )
+            .expect("write to string");
 
             let condition = runtime_template.runtime_condition_expression(
               &compilation.build_chunk_graph_artifact.chunk_graph,
@@ -1892,10 +2649,11 @@ impl Module for ConcatenatedModule {
 
             if condition != "true" {
               is_conditional = true;
-              result.add(RawStringSource::from(format!("if ({condition}) {{\n")));
+              write!(result, "if ({condition}) {{\n").expect("write to string");
             }
 
-            result.add(RawStringSource::from(format!(
+            write!(
+              result,
               "var {} = {}({});",
               info.name.as_ref().expect("should have name"),
               runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -1903,7 +2661,8 @@ impl Module for ConcatenatedModule {
                 ChunkGraph::get_module_id(&compilation.module_ids_artifact, info.module)
                   .expect("should have module id")
               )
-            )));
+            )
+            .expect("write to string");
 
             name.clone_from(&info.name);
           }
@@ -1911,7 +2670,8 @@ impl Module for ConcatenatedModule {
           // the module itself will be emitted as mod_deferred (in the case "external"),
           // we need to emit an extra import declaration to evaluate it in order.
           if info.deferred && reference_info.non_defer_access == NonDeferAccess(true) {
-            result.add(RawStringSource::from(format!(
+            write!(
+              result,
               "\n// non-deferred import to a deferred module ({})\nvar {} = {}.a;",
               get_cached_readable_identifier(
                 &info.module,
@@ -1924,46 +2684,53 @@ impl Module for ConcatenatedModule {
                 .deferred_name
                 .as_ref()
                 .expect("should have deferred_name"),
-            )));
+            )
+            .expect("write to string");
           }
         }
       }
 
       if info.get_interop_namespace_object_used() {
-        result.add(RawStringSource::from(format!(
+        write!(
+          result,
           "\nvar {} = /*#__PURE__*/{}({}, 2);",
           info
             .get_interop_namespace_object_name()
             .expect("should have interop_namespace_object_name"),
           runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
-        )));
+        )
+        .expect("write to string");
       }
 
       if info.get_interop_namespace_object2_used() {
-        result.add(RawStringSource::from(format!(
+        write!(
+          result,
           "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_namespace_object2_name()
             .expect("should have interop_namespace_object2_name"),
           runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
           name.as_ref().expect("should have name")
-        )));
+        )
+        .expect("write to string");
       }
 
       if info.get_interop_default_access_used() {
-        result.add(RawStringSource::from(format!(
+        write!(
+          result,
           "\nvar {} = /*#__PURE__*/{}({});",
           info
             .get_interop_default_access_name()
             .expect("should have interop_default_access_name"),
           runtime_template.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
           name.expect("should have name")
-        )));
+        )
+        .expect("write to string");
       }
 
       if is_conditional {
-        result.add(RawStringSource::from_static("\n}"));
+        result.push_str("\n}");
       }
     }
 
@@ -1971,7 +2738,7 @@ impl Module for ConcatenatedModule {
     fast_set(&mut module_to_info_map, IdentifierIndexMap::default());
 
     let mut code_generation_result = CodeGenerationResult::default();
-    code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
+    code_generation_result.add(SourceType::JavaScript, result.boxed());
     code_generation_result.chunk_init_fragments = chunk_init_fragments;
 
     if public_path_auto_replace {
@@ -2554,7 +3321,7 @@ impl ConcatenatedModule {
       let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
-      let source_code = source.source().into_string_lossy();
+      let source_code = source.source().into_string_lossy().into_owned();
       let mut module_info = concatenation_scope.current_module;
 
       let jsx = module
@@ -2576,7 +3343,7 @@ impl ConcatenatedModule {
           ..Default::default()
         }),
         EsVersion::EsNext,
-        StringSource::new(source_code.as_ref()),
+        StringSource::new(source_code.as_str()),
         None,
       );
       let mut p = Parser::new_from(&allocator, lexer);
@@ -2587,7 +3354,7 @@ impl ConcatenatedModule {
         Err(err) => {
           // return empty error as we already push error to compilation.diagnostics
           return Err(Error::from_string(
-            Some(source_code.into_owned()),
+            Some(source_code.clone()),
             err.span().start.saturating_sub(1) as usize,
             err.span().end.saturating_sub(1) as usize,
             "JavaScript parse error:\n".to_string(),
@@ -2641,11 +3408,9 @@ impl ConcatenatedModule {
       }
       module_info.all_used_names = all_used_names;
       module_info.binding_to_ref = binding_to_ref;
-      let result_source = ReplaceSource::new(source.clone());
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;
-      module_info.internal_source = Some(source);
-      module_info.source = Some(result_source);
+      module_info.source = Some(ConcatenatedModuleSource::new(source, source_code));
       module_info.chunk_init_fragments = chunk_init_fragments;
       if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
         .data

@@ -9,14 +9,14 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
-  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  ConcatenatedModuleSource, ConditionalInitFragment, DependencyType, ExportInfo, ExportMode,
+  ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  PathData, RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
   get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
   get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -1613,8 +1613,9 @@ var {} = {{}};
                 concate_info.all_used_names = all_used_names;
                 concate_info.binding_to_ref = binding_to_ref;
                 concate_info.has_ast = true;
-                concate_info.source = Some(ReplaceSource::new(render_source.source.clone()));
-                concate_info.internal_source = Some(render_source.source.clone());
+                let source = render_source.source.clone();
+                let source_code = source.source().into_string_lossy().into_owned();
+                concate_info.source = Some(ConcatenatedModuleSource::new(source, source_code));
                 concate_info.runtime_requirements = codegen_res.runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
                   .data
