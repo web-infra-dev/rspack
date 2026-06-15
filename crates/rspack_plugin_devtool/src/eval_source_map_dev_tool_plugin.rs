@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use derive_more::Debug;
 use futures::future::join_all;
@@ -230,17 +230,17 @@ async fn render_module_content(
       }
 
       if self.no_sources {
-        map.set_sources_content(Vec::<String>::new());
+        map.set_sources_content(vec![]);
       }
 
-      map.set_source_root(self.source_root.clone());
-      map.set_file(Some(module.identifier().to_string()));
+      map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
+      map.set_file(Some(Cow::Borrowed(module.identifier().as_str())));
 
       if self.debug_ids {
-        map.set_debug_id(Some(generate_debug_id(
+        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
           module.identifier().as_str(),
           source.as_bytes(),
-        )));
+        ))));
       }
 
       let module_ids = &compilation.module_ids_artifact;

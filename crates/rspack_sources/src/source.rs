@@ -298,16 +298,16 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub(crate) file: Option<Arc<str>>,
+  pub(crate) file: Option<Cow<'a, str>>,
   pub(crate) sources: Cow<'a, [Cow<'a, str>]>,
   #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
   pub(crate) sources_content: Cow<'a, [Cow<'a, str>]>,
   pub(crate) names: Cow<'a, [Cow<'a, str>]>,
   pub(crate) mappings: Cow<'a, str>,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
-  pub(crate) source_root: Option<Arc<str>>,
+  pub(crate) source_root: Option<Cow<'a, str>>,
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
-  pub(crate) debug_id: Option<Arc<str>>,
+  pub(crate) debug_id: Option<Cow<'a, str>>,
   #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
   pub(crate) ignore_list: Option<Vec<u32>>,
 }
@@ -491,8 +491,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the file field in [SourceMap].
-  pub fn set_file<T: Into<Arc<str>>>(&mut self, file: Option<T>) {
-    self.fields.file = file.map(|file| file.into());
+  pub fn set_file(&mut self, file: Option<Cow<'a, str>>) {
+    self.fields.file = file.map(|file| Cow::Owned(file.into()));
   }
 
   /// Get the ignoreList field in [SourceMap].
@@ -501,8 +501,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the ignoreList field in [SourceMap].
-  pub fn set_ignore_list<T: Into<Vec<u32>>>(&mut self, ignore_list: Option<T>) {
-    self.fields.ignore_list = ignore_list.map(|ignore_list| ignore_list.into());
+  pub fn set_ignore_list(&mut self, ignore_list: Option<Vec<u32>>) {
+    self.fields.ignore_list = ignore_list;
   }
 
   /// Get the decoded mappings in [SourceMap].
@@ -545,17 +545,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the sourcesContent field in [SourceMap].
-  pub fn set_sources_content<T, I>(&mut self, sources_content: I)
-  where
-    T: Into<String>,
-    I: IntoIterator<Item = T>,
-  {
-    self.fields.sources_content = Cow::Owned(
-      sources_content
-        .into_iter()
-        .map(|source_content| Cow::Owned(source_content.into()))
-        .collect(),
-    );
+  pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
+    self.fields.sources_content = Cow::Owned(sources_content);
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
@@ -593,13 +584,13 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the source_root field in [SourceMap].
-  pub fn set_source_root<T: Into<Arc<str>>>(&mut self, source_root: Option<T>) {
-    self.fields.source_root = source_root.map(|source_root| source_root.into());
+  pub fn set_source_root(&mut self, source_root: Option<Cow<'a, str>>) {
+    self.fields.source_root = source_root;
   }
 
   /// Set the debug_id field in [SourceMap].
-  pub fn set_debug_id<T: Into<Arc<str>>>(&mut self, debug_id: Option<T>) {
-    self.fields.debug_id = debug_id.map(|debug_id| debug_id.into());
+  pub fn set_debug_id(&mut self, debug_id: Option<Cow<'a, str>>) {
+    self.fields.debug_id = debug_id;
   }
 
   /// Get the debug_id field in [SourceMap].
@@ -754,7 +745,7 @@ fn required_string_field<'a>(
 fn optional_string_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Option<Arc<str>>> {
+) -> Result<Option<Cow<'a, str>>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -763,7 +754,7 @@ fn optional_string_field<'a>(
   }
   value
     .as_str()
-    .map(|value| Some(Arc::from(value)))
+    .map(|value| Some(Cow::Borrowed(value)))
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 

@@ -358,16 +358,16 @@ pub async fn extract_source_map(
   }
 
   // Build the final SourceMap using setter methods - consume resolved_sources to avoid cloning
-  let (sources_vec, sources_content_vec): (Vec<String>, Vec<String>) = resolved_sources
+  let (sources_vec, sources_content_vec): (Vec<String>, Vec<Cow<'_, str>>) = resolved_sources
     .into_iter()
-    .map(|(url, content)| (url, content.unwrap_or_default()))
+    .map(|(url, content)| (url, Cow::Owned(content.unwrap_or_default())))
     .unzip();
 
   source_map.set_sources(sources_vec);
   source_map.set_sources_content(sources_content_vec);
 
   // Remove source_root as per original logic
-  source_map.set_source_root(None::<String>);
+  source_map.set_source_root(None);
 
   // Optimize string replacement to avoid unnecessary cloning
   let new_source = if replacement_string.is_empty() {

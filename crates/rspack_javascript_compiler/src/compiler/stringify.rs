@@ -171,7 +171,11 @@ impl JavaScriptCompiler {
           .map(|name| Cow::Owned(name.to_string()))
           .collect::<Vec<_>>(),
       );
-      rspack_source_map.set_file(combined_source_map.get_file().map(ToString::to_string));
+      rspack_source_map.set_file(
+        combined_source_map
+          .get_file()
+          .map(|s| Cow::Owned(s.to_string())),
+      );
 
       Some(rspack_source_map)
     } else {
