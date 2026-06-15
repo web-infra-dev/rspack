@@ -5,6 +5,7 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rustc_hash::FxHashSet;
+use swc_atoms::Atom;
 use swc_experimental_allocator::{Allocator, boxed::Box as AstBox, vec::Vec as AstVec};
 use swc_experimental_ecma_ast::{
   EsVersion, Expr, GetSpan, Ident, Lit, MemberExpr, ModuleItem, Program, PropName, Stmt, VisitMut,
@@ -18,6 +19,11 @@ pub enum AstDependencySideEffect {
   CachedConst {
     identifier: Box<str>,
     content: Box<str>,
+  },
+  CommonJsExportsVar(Box<str>),
+  ProvidedDependency {
+    identifier: Box<str>,
+    expression: Box<str>,
   },
 }
 
@@ -41,6 +47,34 @@ impl AstDependencySideEffect {
           InitFragmentKey::Const(identifier.to_string()),
           None,
         )
+        .boxed(),
+      ),
+      Self::CommonJsExportsVar(identifier) => context.init_fragments.push(
+        NormalInitFragment::new(
+          format!("var {};\n", identifier.as_ref()),
+          InitFragmentStage::StageConstants,
+          0,
+          InitFragmentKey::CommonJsExports(identifier.to_string()),
+          None,
+        )
+        .boxed(),
+      ),
+      Self::ProvidedDependency {
+        identifier,
+        expression,
+      } => context.init_fragments.push(
+        NormalInitFragment::new(
+          format!(
+            "/* provided dependency */ var {} = {};\n",
+            identifier.as_ref(),
+            expression.as_ref()
+          ),
+          InitFragmentStage::StageProvides,
+          1,
+          InitFragmentKey::ModuleExternal(format!("provided {}", identifier.as_ref())),
+          None,
+        )
+        .with_top_level_decl_symbols(vec![Atom::from(identifier.as_ref())])
         .boxed(),
       ),
     }

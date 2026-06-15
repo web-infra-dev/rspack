@@ -616,23 +616,37 @@ var {} = {{}};
       final_source.add(RawStringSource::from(format!("{directive}\n")));
     }
     final_source.add(import_source.boxed());
-    final_source.add(render_init_fragments(
-      ConcatSource::new([
-        runtime_source.boxed(),
-        decl_source.boxed(),
-        render_source.boxed(),
-      ])
-      .boxed(),
-      chunk_init_fragments,
-      &mut ChunkRenderContext {},
-    )?);
+
+    let mut raw_star_content_before_source = String::new();
+    let mut raw_star_content_after_source = String::new();
+    for (source, export_names) in &chunk_link.raw_star_exports {
+      for name in export_names {
+        let content = if name == "*" {
+          format!(
+            "export * from {};\n",
+            rspack_util::json_stringify_str(source)
+          )
+        } else {
+          let name_str = export_name(name).expect("should have export_name");
+          format!(
+            "export * as {name_str} from {};\n",
+            rspack_util::json_stringify_str(source)
+          )
+        };
+        if chunk_link
+          .raw_star_exports_before_source
+          .get(source)
+          .is_some_and(|export_names| export_names.contains(name))
+        {
+          raw_star_content_before_source.push_str(&content);
+        } else {
+          raw_star_content_after_source.push_str(&content);
+        }
+      }
+    }
 
     let mut exports = chunk_link.exports().iter().collect::<Vec<_>>();
     exports.sort_by(|a, b| a.0.cmp(b.0));
-    for decl_before_export in chunk_link.decl_before_exports.iter() {
-      final_source.add(RawStringSource::from(decl_before_export.clone()));
-    }
-
     for (raw_symbol, exports) in exports {
       let mut exports = exports.iter().collect::<Vec<_>>();
       exports.sort_unstable();
@@ -666,11 +680,27 @@ var {} = {{}};
       }
     }
 
-    // Keep side-effect-only Node chunks explicitly in ESM form.
-    // We only emit `export {};` when the chunk would otherwise render no export syntax at all.
+    final_source.add(render_init_fragments(
+      ConcatSource::new([
+        RawStringSource::from(raw_star_content_before_source).boxed(),
+        runtime_source.boxed(),
+        decl_source.boxed(),
+        render_source.boxed(),
+      ])
+      .boxed(),
+      chunk_init_fragments,
+      &mut ChunkRenderContext {},
+    )?);
+
+    for decl_before_export in chunk_link.decl_before_exports.iter() {
+      final_source.add(RawStringSource::from(decl_before_export.clone()));
+    }
+
+    // Keep Node chunks without local export specifiers explicitly in ESM form.
+    // Raw star reexports are rendered above and do not replace this marker.
     let should_render_empty_export = compilation.platform.is_node()
       && export_specifiers.is_empty()
-      && chunk_link.raw_star_exports.is_empty()
+      && raw_star_content_after_source.is_empty()
       && chunk_link.re_exports().is_empty()
       && export_default.is_none();
 
@@ -687,22 +717,8 @@ var {} = {{}};
       final_source.add(RawStringSource::from(export_str));
     }
 
-    // render star exports
-    for (source, export_names) in &chunk_link.raw_star_exports {
-      for name in export_names {
-        if name == "*" {
-          final_source.add(RawStringSource::from(format!(
-            "export * from {};\n",
-            rspack_util::json_stringify_str(source)
-          )));
-        } else {
-          let name_str = export_name(name).expect("should have export_name");
-          final_source.add(RawStringSource::from(format!(
-            "export * as {name_str} from {};\n",
-            rspack_util::json_stringify_str(source)
-          )));
-        }
-      }
+    if !raw_star_content_after_source.is_empty() {
+      final_source.add(RawStringSource::from(raw_star_content_after_source));
     }
 
     // render re-exports

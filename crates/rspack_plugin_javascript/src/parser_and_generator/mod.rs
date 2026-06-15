@@ -1053,10 +1053,7 @@ impl JavaScriptParserAndGenerator {
     let block = module_graph.get_parent_block(dep.id());
     let mut runtime_template = context.runtime_template.clone();
     let promise = runtime_template.block_promise(block, context.compilation, "AMD require");
-    context
-      .runtime_template
-      .runtime_requirements_mut()
-      .insert(*runtime_template.runtime_requirements());
+    let mut runtime_requirements = *runtime_template.runtime_requirements();
     let uncaught_error_handler = context
       .runtime_template
       .render_runtime_globals_without_adding(&RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
@@ -1072,10 +1069,7 @@ impl JavaScriptParserAndGenerator {
       dep.error_callback_range(),
     ) {
       (Some(array_range), None, _) => {
-        context
-          .runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
+        runtime_requirements.insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
         replacements.push((
           format!("{promise}.then(function() {{"),
           outer_range.start,
@@ -1088,12 +1082,8 @@ impl JavaScriptParserAndGenerator {
         ));
       }
       (None, Some(function_range), _) => {
-        let mut runtime_requirements = RuntimeGlobals::REQUIRE;
+        runtime_requirements.insert(RuntimeGlobals::REQUIRE);
         runtime_requirements.insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
-        context
-          .runtime_template
-          .runtime_requirements_mut()
-          .insert(runtime_requirements);
         replacements.push((
           format!("{promise}.then(("),
           outer_range.start,
@@ -1144,10 +1134,7 @@ impl JavaScriptParserAndGenerator {
         ));
       }
       (Some(array_range), Some(function_range), None) => {
-        context
-          .runtime_template
-          .runtime_requirements_mut()
-          .insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
+        runtime_requirements.insert(RuntimeGlobals::UNCAUGHT_ERROR_HANDLER);
         replacements.push((
           format!("{promise}.then(function() {{ "),
           outer_range.start,
@@ -1186,6 +1173,11 @@ impl JavaScriptParserAndGenerator {
       return false;
     };
     plan.push_action(action);
+    if !runtime_requirements.is_empty() {
+      plan.push_side_effect(AstDependencySideEffect::RuntimeRequirements(
+        runtime_requirements,
+      ));
+    }
     true
   }
 
@@ -1502,6 +1494,7 @@ impl JavaScriptParserAndGenerator {
       else {
         return false;
       };
+      let runtime_requirements = *runtime_template.runtime_requirements();
       if let Some(definition) = definition {
         let Some(action) = AstDependencyAction::insert(dep.range(), 0, definition) else {
           return false;
@@ -1513,6 +1506,11 @@ impl JavaScriptParserAndGenerator {
         return false;
       };
       plan.push_action(action);
+      if !runtime_requirements.is_empty() {
+        plan.push_side_effect(AstDependencySideEffect::RuntimeRequirements(
+          runtime_requirements,
+        ));
+      }
       return true;
     }
 
@@ -1700,12 +1698,52 @@ impl JavaScriptParserAndGenerator {
     }
 
     if let Some(dep) = dependency.as_any().downcast_ref::<ProvideDependency>() {
+      let module_graph = context.compilation.get_module_graph();
+      let Some(connection) = module_graph.connection_by_dependency_id(dep.id()) else {
+        return true;
+      };
+      let exports_info = context
+        .compilation
+        .exports_info_artifact
+        .get_exports_info_data(connection.module_identifier());
+      let used_name = exports_info.get_used_name(
+        &context.compilation.exports_info_artifact,
+        context.runtime,
+        dep.ids(),
+      );
+      let mut runtime_template = context.runtime_template.clone();
+      let module_raw =
+        runtime_template.module_raw(context.compilation, dep.id(), dep.request(), dep.weak());
+      let runtime_requirements = *runtime_template.runtime_requirements();
+      let provided_expr = match used_name {
+        Some(UsedName::Normal(used_name)) => {
+          format!("{module_raw}{}", property_access(used_name, 0))
+        }
+        Some(UsedName::Inlined(inlined)) => format!(
+          "({}, {})",
+          module_raw,
+          inlined.render(&to_normal_comment(&format!(
+            "inlined export {}",
+            property_access(dep.ids(), 0)
+          )))
+        ),
+        None => module_raw,
+      };
       let Some(action) =
         AstDependencyAction::expr(range, dep.identifier().to_string().into_boxed_str())
       else {
         return false;
       };
       plan.push_action(action);
+      plan.push_side_effect(AstDependencySideEffect::ProvidedDependency {
+        identifier: dep.identifier().into(),
+        expression: provided_expr.into_boxed_str(),
+      });
+      if !runtime_requirements.is_empty() {
+        plan.push_side_effect(AstDependencySideEffect::RuntimeRequirements(
+          runtime_requirements,
+        ));
+      }
       return true;
     }
 
@@ -2140,15 +2178,18 @@ impl JavaScriptParserAndGenerator {
         unreachable!();
       };
 
+      let mut common_js_exports_var = None;
       let action = if dep.base().is_expression() {
         let content = match used {
           Some(UsedName::Normal(used)) => format!("{}{}", base, property_access(used, 0)),
           used => {
             let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
-            format!(
+            let placeholder_var = format!(
               "__webpack_{}_export__",
               if is_inlined { "inlined" } else { "unused" }
-            )
+            );
+            common_js_exports_var = Some(placeholder_var.clone().into_boxed_str());
+            placeholder_var
           }
         };
         AstDependencyAction::expr(range, content.into_boxed_str())
@@ -2179,6 +2220,7 @@ impl JavaScriptParserAndGenerator {
             ("))".to_string(), value_range.end, range.end),
           ]
         } else {
+          common_js_exports_var = Some("__webpack_unused_export__".into());
           vec![
             (
               "__webpack_unused_export__ = (".to_string(),
@@ -2196,6 +2238,9 @@ impl JavaScriptParserAndGenerator {
         return false;
       };
       plan.push_action(action);
+      if let Some(identifier) = common_js_exports_var {
+        plan.push_side_effect(AstDependencySideEffect::CommonJsExportsVar(identifier));
+      }
       if !base_runtime_requirements.is_empty() {
         plan.push_side_effect(AstDependencySideEffect::RuntimeRequirements(
           base_runtime_requirements,

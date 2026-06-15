@@ -49,6 +49,10 @@ impl ProvideDependency {
   pub fn identifier(&self) -> &str {
     &self.identifier
   }
+
+  pub fn ids(&self) -> &[Atom] {
+    &self.ids
+  }
 }
 
 #[cacheable_dyn]
