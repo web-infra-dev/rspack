@@ -269,7 +269,8 @@ impl LightningCssLoader {
         original_source: None,
         inner_source_map: loader_context.take_source_map(),
         remove_original_source: false,
-      });
+      })
+      .boxed();
       let source_map = source_map_source.map_static(&ObjectPool::default(), &MapOptions::default());
       loader_context.finish_with((content.code, source_map));
     } else {

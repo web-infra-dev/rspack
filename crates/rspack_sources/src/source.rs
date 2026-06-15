@@ -3,13 +3,11 @@ use std::{
   borrow::Cow,
   fmt,
   hash::{Hash, Hasher},
-  io::Read,
   sync::Arc,
 };
 
-use dyn_clone::DynClone;
 use serde::{Serialize, Serializer};
-use simd_json::{BorrowedValue, ErrorType, prelude::*, to_borrowed_value};
+use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
   Result,
@@ -109,9 +107,7 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
-pub trait Source:
-  StreamChunks + DynHash + AsAny + DynEq + DynClone + fmt::Debug + Sync + Send
-{
+pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
 
@@ -183,8 +179,6 @@ impl Source for BoxSource {
     self.as_ref().to_writer(writer)
   }
 }
-
-dyn_clone::clone_trait_object!(Source);
 
 impl StreamChunks for BoxSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
@@ -396,22 +390,24 @@ impl Hash for SourceMapFields<'_> {
   }
 }
 
+#[allow(dead_code)]
 enum SourceMapOwner {
-  None,
-  Json(Arc<Vec<u8>>),
+  Json(Arc<[u8]>),
   Source(BoxSource),
 }
 
 /// The source map created by [Source::map].
 pub struct SourceMap<'a> {
-  owner: SourceMapOwner,
+  // Kept to retain data borrowed by `fields`; it is intentionally not read.
+  #[allow(dead_code)]
+  owner: Option<SourceMapOwner>,
   fields: SourceMapFields<'a>,
 }
 
 impl<'a> SourceMap<'a> {
   pub(crate) fn from_fields(fields: SourceMapFields<'a>) -> Self {
     Self {
-      owner: SourceMapOwner::None,
+      owner: None,
       fields,
     }
   }
@@ -424,7 +420,7 @@ impl<'a> SourceMap<'a> {
     let fields =
       unsafe { std::mem::transmute::<SourceMapFields<'a>, SourceMapFields<'static>>(self.fields) };
     SourceMap {
-      owner: SourceMapOwner::Source(owner),
+      owner: Some(SourceMapOwner::Source(owner)),
       fields,
     }
   }
@@ -432,13 +428,17 @@ impl<'a> SourceMap<'a> {
   /// Return a source map view borrowing all fields from this source map.
   pub fn as_borrowed(&self) -> SourceMap<'_> {
     SourceMap {
-      owner: SourceMapOwner::None,
+      owner: None,
       fields: self.fields.as_borrowed(),
     }
   }
 
   pub(crate) fn fields(&self) -> &SourceMapFields<'a> {
     &self.fields
+  }
+
+  pub(crate) fn into_fields(self) -> SourceMapFields<'a> {
+    self.fields
   }
 }
 
@@ -451,7 +451,7 @@ impl SourceMap<'static> {
     names: Vec<Cow<'static, str>>,
   ) -> Self {
     Self {
-      owner: SourceMapOwner::None,
+      owner: None,
       fields: SourceMapFields {
         version: 3,
         file: None,
@@ -466,27 +466,11 @@ impl SourceMap<'static> {
     }
   }
 
-  /// Create a [SourceMap] from json string.
-  pub fn from_json(s: String) -> Result<Self> {
-    Self::from_bytes(s.into_bytes())
-  }
-
-  /// Create a [SourceMap] from [&[u8]].
-  pub fn from_slice(s: &[u8]) -> Result<Self> {
-    Self::from_json(std::str::from_utf8(s)?.to_string())
-  }
-
-  /// Create a [SourceMap] from reader.
-  pub fn from_reader<R: Read>(mut s: R) -> Result<Self> {
-    let mut json = String::new();
-    s.read_to_string(&mut json)?;
-    Self::from_json(json)
-  }
-
-  fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
+  /// Create a [SourceMap] from [Vec<u8>].
+  pub fn from_slice(mut bytes: Vec<u8>) -> Result<Self> {
     let fields = {
-      let value = to_borrowed_value(bytes.as_mut_slice())?;
-      let fields = parse_borrowed_source_map(&value)?;
+      let borrowed_value = simd_json::to_borrowed_value(&mut bytes)?;
+      let fields = deserialize_source_map_fields(&borrowed_value)?;
       #[allow(unsafe_code)]
       // SAFETY: All borrowed strings in `fields` point into `bytes`; the
       // returned SourceMap stores `bytes` in SourceMapOwner::Json.
@@ -495,9 +479,15 @@ impl SourceMap<'static> {
       }
     };
     Ok(Self {
-      owner: SourceMapOwner::Json(Arc::new(bytes)),
+      owner: Some(SourceMapOwner::Json(Arc::from(bytes))),
       fields,
     })
+  }
+
+  /// Create a [SourceMap] from json string.
+  pub fn from_json(s: String) -> Result<Self> {
+    let bytes: Vec<u8> = s.into_bytes();
+    Self::from_slice(bytes)
   }
 }
 
@@ -710,39 +700,6 @@ impl Serialize for SourceMap<'_> {
   }
 }
 
-impl Clone for SourceMap<'static> {
-  fn clone(&self) -> Self {
-    match &self.owner {
-      SourceMapOwner::None => Self {
-        owner: SourceMapOwner::None,
-        fields: clone_source_map_fields(&self.fields),
-      },
-      SourceMapOwner::Source(source) => Self {
-        owner: SourceMapOwner::Source(source.clone()),
-        fields: clone_source_map_fields(&self.fields),
-      },
-      SourceMapOwner::Json(owner) => Self {
-        owner: SourceMapOwner::Json(owner.clone()),
-        fields: clone_source_map_fields(&self.fields),
-      },
-    }
-  }
-}
-
-fn clone_source_map_fields(fields: &SourceMapFields<'static>) -> SourceMapFields<'static> {
-  SourceMapFields {
-    version: fields.version,
-    file: fields.file.clone(),
-    sources: fields.sources.clone(),
-    sources_content: fields.sources_content.clone(),
-    names: fields.names.clone(),
-    mappings: fields.mappings.clone(),
-    source_root: fields.source_root.clone(),
-    debug_id: fields.debug_id.clone(),
-    ignore_list: fields.ignore_list.clone(),
-  }
-}
-
 impl<'a, 'b> PartialEq<SourceMap<'b>> for SourceMap<'a> {
   fn eq(&self, other: &SourceMap<'b>) -> bool {
     self.fields == other.fields
@@ -772,7 +729,7 @@ impl Hash for SourceMap<'_> {
   }
 }
 
-fn parse_borrowed_source_map<'a>(value: &'a BorrowedValue<'a>) -> Result<SourceMapFields<'a>> {
+fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<SourceMapFields<'a>> {
   let object = value
     .as_object()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;

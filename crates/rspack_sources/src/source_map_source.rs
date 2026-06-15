@@ -14,7 +14,7 @@ use crate::{
 };
 
 /// Options for [SourceMapSource::new].
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct SourceMapSourceOptions<V, N> {
   /// The source code.
   pub value: V,
@@ -32,7 +32,7 @@ pub struct SourceMapSourceOptions<V, N> {
 
 /// An convenient options for [SourceMapSourceOptions], `original_source` and
 /// `inner_source_map` will be `None`, `remove_original_source` will be false.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct WithoutOriginalOptions<V, N> {
   /// The source code.
   pub value: V,
@@ -59,7 +59,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
-#[derive(Clone, Eq)]
+#[derive(Eq)]
 pub struct SourceMapSource {
   value: Arc<str>,
   name: Box<str>,

@@ -8,7 +8,7 @@ use std::{
 use rustc_hash::FxHasher;
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
+  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap, SourceMapFields,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
     stream_chunks_of_raw_source, stream_chunks_of_source_map,
@@ -23,8 +23,8 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: OnceLock<Vec<&'static str>>,
-  columns_map: OnceLock<Option<SourceMap<'static>>>,
-  line_only_map: OnceLock<Option<SourceMap<'static>>>,
+  columns_map: OnceLock<Option<SourceMapFields<'static>>>,
+  line_only_map: OnceLock<Option<SourceMapFields<'static>>>,
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -109,6 +109,41 @@ impl CachedSource {
       self.inner.source().as_bytes().is_ascii()
     })
   }
+
+  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMapFields<'static>>> {
+    if options.columns {
+      &self.cache.columns_map
+    } else {
+      &self.cache.line_only_map
+    }
+  }
+
+  fn get_or_init_map(
+    &self,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> &Option<SourceMapFields<'static>> {
+    self.map_cache(options).get_or_init(|| {
+      let fields = self
+        .inner
+        .map(object_pool, options)
+        .map(SourceMap::into_fields);
+      transmute_map_fields(fields)
+    })
+  }
+}
+
+fn transmute_map_fields<'a>(
+  fields: Option<SourceMapFields<'a>>,
+) -> Option<SourceMapFields<'static>> {
+  #[allow(unsafe_code)]
+  // SAFETY: CachedSource stores fields produced from `inner.map()`. Those fields
+  // either own their data or borrow from `CachedSource::inner`, and every
+  // CachedSource clone carries the same cache together with an `inner` clone.
+  // Static maps built from this cache use CachedSource itself as the owner.
+  unsafe {
+    std::mem::transmute::<Option<SourceMapFields<'a>>, Option<SourceMapFields<'static>>>(fields)
+  }
 }
 
 impl Source for CachedSource {
@@ -161,16 +196,10 @@ impl Source for CachedSource {
   }
 
   fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    let cell = if options.columns {
-      &self.cache.columns_map
-    } else {
-      &self.cache.line_only_map
-    };
-
-    cell
-      .get_or_init(|| self.inner.clone().map_static(object_pool, options))
+    self
+      .get_or_init_map(object_pool, options)
       .as_ref()
-      .map(SourceMap::as_borrowed)
+      .map(|fields| SourceMap::from_fields(fields.as_borrowed()))
   }
 
   fn map_static(
@@ -178,15 +207,10 @@ impl Source for CachedSource {
     object_pool: &ObjectPool,
     options: &MapOptions,
   ) -> Option<SourceMap<'static>> {
-    let cell = if options.columns {
-      &self.cache.columns_map
-    } else {
-      &self.cache.line_only_map
-    };
-
-    cell
-      .get_or_init(|| self.inner.clone().map_static(object_pool, options))
-      .clone()
+    self
+      .get_or_init_map(object_pool, options)
+      .as_ref()
+      .map(|fields| SourceMap::from_fields(fields.as_borrowed()).into_static(self.clone()))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -247,7 +271,7 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
             options,
             object_pool,
             source,
-            map.fields(),
+            map,
             on_chunk,
             on_source,
             on_name,
@@ -265,10 +289,7 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
           on_source,
           on_name,
         );
-        let map = map.map(|fields| {
-          SourceMap::from_fields(fields).into_static(self.cache_source.inner.clone())
-        });
-        cell.get_or_init(|| map);
+        cell.get_or_init(|| transmute_map_fields(map));
         generated_info
       }
     }
@@ -368,10 +389,14 @@ mod tests {
     source.size();
     source.map(&ObjectPool::default(), &map_options);
 
-    assert_eq!(
-      *clone.cache.columns_map.get().unwrap(),
-      source.map_static(&ObjectPool::default(), &map_options)
-    );
+    let cached_map = clone
+      .cache
+      .columns_map
+      .get()
+      .and_then(Option::as_ref)
+      .unwrap();
+    let map = source.map(&ObjectPool::default(), &map_options).unwrap();
+    assert!(cached_map == map.fields());
   }
 
   #[test]
@@ -397,13 +422,10 @@ mod tests {
       .and_then(Option::as_ref)
       .unwrap();
 
-    assert!(matches!(cached_map.fields().sources, Cow::Borrowed(_)));
-    assert!(matches!(
-      cached_map.fields().sources_content,
-      Cow::Borrowed(_)
-    ));
-    assert!(matches!(cached_map.fields().names, Cow::Borrowed(_)));
-    assert!(matches!(cached_map.fields().mappings, Cow::Borrowed(_)));
+    assert!(matches!(cached_map.sources, Cow::Borrowed(_)));
+    assert!(matches!(cached_map.sources_content, Cow::Borrowed(_)));
+    assert!(matches!(cached_map.names, Cow::Borrowed(_)));
+    assert!(matches!(cached_map.mappings, Cow::Borrowed(_)));
 
     assert!(matches!(map.fields().sources, Cow::Borrowed(_)));
     assert!(matches!(map.fields().sources_content, Cow::Borrowed(_)));

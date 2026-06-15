@@ -5177,7 +5177,6 @@ dependencies = [
 name = "rspack_sources"
 version = "0.100.8"
 dependencies = [
- "dyn-clone",
  "memchr",
  "regex",
  "rkyv 0.8.16",

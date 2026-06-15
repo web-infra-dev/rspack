@@ -16,7 +16,7 @@ use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
 
 /// Source map extractor result
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ExtractSourceMapResult {
   pub source: String,
   pub source_map: Option<SourceMap<'static>>,
