@@ -160,7 +160,7 @@ async fn render_module_content(
               None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(Arc::from(source.clone()))
+            SourceReference::Source(Arc::from(source.as_ref()))
           }
         });
         let path_data = PathData::default()

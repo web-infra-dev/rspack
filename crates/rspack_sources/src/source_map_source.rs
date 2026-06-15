@@ -283,34 +283,35 @@ mod tests {
       OriginalSource::new(inner_source_code, "hello-world.txt").boxed(),
       OriginalSource::new("Translate: ", "header.txt").boxed(),
       RawStringSource::from("Other text").boxed(),
-    ]);
+    ])
+    .boxed();
     let source_r_code = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
-    let source_r_map = SourceMap::from_json(
-      r#"{
-        "version": 3,
-        "sources": [ "text" ],
-        "names": [ "Hello", "World", "nope" ],
-        "mappings": "YAAAA,K,CAAMC;AACNC,O,MAAU;AACC,O,CAAM",
-        "file": "translated.txt",
-        "sourcesContent": [ "Hello World\nis a test string\n" ]
-      }"#
-        .to_string(),
-    )
-    .unwrap();
+    let source_map_str = r#"{
+      "version": 3,
+      "sources": [ "text" ],
+      "names": [ "Hello", "World", "nope" ],
+      "mappings": "YAAAA,K,CAAMC;AACNC,O,MAAU;AACC,O,CAAM",
+      "file": "translated.txt",
+      "sourcesContent": [ "Hello World\nis a test string\n" ]
+    }"#;
     let sms1 = SourceMapSource::new(SourceMapSourceOptions {
       value: source_r_code,
       name: "text",
-      source_map: source_r_map.clone(),
+      source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.map_static(&ObjectPool::default(), &MapOptions::default()),
+      inner_source_map: inner_source
+        .clone()
+        .map_static(&ObjectPool::default(), &MapOptions::default()),
       remove_original_source: false,
     });
     let sms2 = SourceMapSource::new(SourceMapSourceOptions {
       value: source_r_code,
       name: "text",
-      source_map: source_r_map,
+      source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.map_static(&ObjectPool::default(), &MapOptions::default()),
+      inner_source_map: inner_source
+        .clone()
+        .map_static(&ObjectPool::default(), &MapOptions::default()),
       remove_original_source: true,
     });
     let expected_content = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
@@ -441,7 +442,8 @@ mod tests {
       value: code,
       name: "es6-promise.js",
       source_map: map,
-    });
+    })
+    .boxed();
     let source = ConcatSource::new([inner.clone(), inner]);
     assert_eq!(source.source().into_string_lossy(), format!("{code}{code}"));
   }
@@ -457,7 +459,8 @@ mod tests {
         vec![],
         vec![],
       ),
-    });
+    })
+    .boxed();
     let b = SourceMapSource::new(WithoutOriginalOptions {
       value: "hi",
       name: "b",
@@ -467,7 +470,8 @@ mod tests {
         vec![],
         vec![],
       ),
-    });
+    })
+    .boxed();
     let b2 = SourceMapSource::new(WithoutOriginalOptions {
       value: "hi",
       name: "b",
@@ -477,12 +481,14 @@ mod tests {
         vec![],
         vec![],
       ),
-    });
+    })
+    .boxed();
     let c = SourceMapSource::new(WithoutOriginalOptions {
       value: "",
       name: "c",
       source_map: SourceMap::new("AAAA".to_string(), vec!["hello4".into()], vec![], vec![]),
-    });
+    })
+    .boxed();
     let source = ConcatSource::new([
       a.clone(),
       a.clone(),
@@ -690,11 +696,11 @@ mod tests {
 
   #[test]
   fn should_have_map_when_columns_is_false_and_last_line_start_is_none() {
-    let original = OriginalSource::new("console.log('a')\n", "a.js");
     let source = SourceMapSource::new(WithoutOriginalOptions {
       value: "console.log('a')\n",
       name: "a.js",
-      source_map: original
+      source_map: OriginalSource::new("console.log('a')\n", "a.js")
+        .boxed()
         .map_static(&ObjectPool::default(), &MapOptions::new(false))
         .unwrap(),
     });
@@ -717,7 +723,8 @@ mod tests {
       OriginalSource::new(inner_source_code, "hello-world.txt").boxed(),
       OriginalSource::new("Translate: ", "header.txt").boxed(),
       RawStringSource::from("Other text").boxed(),
-    ]);
+    ])
+    .boxed();
     let source_r_code = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
     let source_r_map = SourceMap::from_json(
       r#"{
@@ -732,6 +739,7 @@ mod tests {
     )
     .unwrap();
     let inner_source_map = inner_source
+      .clone()
       .map_static(&ObjectPool::default(), &MapOptions::default())
       .map(|mut map| {
         map.set_source_root(Some("/path/to/folder/".to_string()));
@@ -740,7 +748,7 @@ mod tests {
     let sms = SourceMapSource::new(SourceMapSourceOptions {
       value: source_r_code,
       name: "text",
-      source_map: source_r_map.clone(),
+      source_map: source_r_map,
       original_source: Some(inner_source.source().into_string_lossy().into()),
       inner_source_map,
       remove_original_source: false,

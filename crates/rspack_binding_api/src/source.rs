@@ -68,10 +68,11 @@ impl TryFrom<&BoxSource> for JsSourceToJs {
   fn try_from(value: &BoxSource) -> Result<Self> {
     match value.source() {
       SourceValue::String(string) => {
-        let map = to_map(value.clone());
+        let map = value.map(&ObjectPool::default(), &MapOptions::default());
+        let json = map.map(|m| m.to_json());
         Ok(JsSourceToJs {
           source: Either::A(string.into_owned()),
-          map,
+          map: json,
         })
       }
       SourceValue::Buffer(bytes) => Ok(JsSourceToJs {
@@ -98,9 +99,4 @@ impl From<JsSourceToJs> for BoxSource {
       Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
     }
   }
-}
-
-fn to_map(source: BoxSource) -> Option<String> {
-  let map = source.map(&ObjectPool::default(), &MapOptions::default());
-  map.map(|m| m.to_json())
 }

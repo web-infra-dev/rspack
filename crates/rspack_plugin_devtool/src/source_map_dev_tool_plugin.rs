@@ -131,7 +131,7 @@ fn compute_source_references(
           None => SourceReference::Source(Arc::from(source_name)),
         }
       } else {
-        SourceReference::Source(Arc::from(source_name.clone()))
+        SourceReference::Source(Arc::from(source_name.as_ref()))
       }
     })
     .collect()
@@ -835,8 +835,7 @@ impl SourceMapDevToolPlugin {
               )
             })
             .render_for_source_map(source_map_path)
-        })
-        .collect::<Vec<_>>(),
+        }),
     );
 
     if let Some(asset_conditions) = &plugin.ignore_list {
