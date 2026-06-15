@@ -15,7 +15,7 @@
       "types": "./dist/browser/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./wasi-worker-browser.mjs": "./wasi-worker-browser.mjs",
+    "./wasi-worker-browser.mjs": "./dist/wasi-worker-browser.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {
