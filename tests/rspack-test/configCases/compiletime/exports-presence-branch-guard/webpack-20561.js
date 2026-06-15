@@ -1,10 +1,14 @@
 import * as ns from "./stub";
+import * as nsAlias from "./stub";
 
 function fn() {}
 
 if ("a" in ns) {
   fn(ns.a);
   ns.a();
+}
+if ("alias" in ns) {
+  fn(nsAlias.alias);
 }
 if ("b" in ns && "c" in ns) {
   fn(ns.b, ns.c);

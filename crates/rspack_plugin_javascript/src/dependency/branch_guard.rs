@@ -66,9 +66,6 @@ pub fn is_dependency_export_presence_guarded(
     if !guard_dep.evaluated_in_operator {
       return false;
     }
-    if guard_dep.name() != dependency.name() {
-      return false;
-    }
     if module_graph.module_identifier_by_dependency_id(guard_dep.id())
       != module_graph.module_identifier_by_dependency_id(dependency.id())
     {

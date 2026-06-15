@@ -17,31 +17,31 @@ module.exports = [
   {
     moduleName: /webpack-20561/,
     message: /export 'a'.*was not found in '\.\/stub'/,
-    loc: /27:6-10/,
+    loc: /31:6-10/,
   },
   {
     moduleName: /webpack-20561/,
     message: /export 'b'.*was not found in '\.\/stub'/,
-    loc: /28:6-10/,
+    loc: /32:6-10/,
   },
   {
     moduleName: /webpack-20561/,
     message: /export 'a'.*was not found in '\.\/stub'/,
-    loc: /50:5-9/,
+    loc: /54:5-9/,
   },
   {
     moduleName: /webpack-20561/,
     message: /export 'a'.*was not found in '\.\/stub'/,
-    loc: /51:15-19/,
+    loc: /55:15-19/,
   },
   {
     moduleName: /webpack-20561/,
     message: /export 'a'.*was not found in '\.\/stub'/,
-    loc: /53:5-9/,
+    loc: /57:5-9/,
   },
   {
     moduleName: /webpack-20561/,
     message: /export 'a'.*was not found in '\.\/stub'/,
-    loc: /54:15-19/,
+    loc: /58:15-19/,
   },
 ];
