@@ -392,7 +392,7 @@ impl Hash for SourceMapFields<'_> {
 
 #[allow(dead_code)]
 enum SourceMapOwner {
-  Json(Arc<[u8]>),
+  Bytes(Box<dyn Any + Send + Sync>),
   Source(BoxSource),
 }
 
@@ -466,28 +466,30 @@ impl SourceMap<'static> {
     }
   }
 
-  /// Create a [SourceMap] from [Vec<u8>].
-  pub fn from_slice(mut bytes: Vec<u8>) -> Result<Self> {
+  /// Create a [SourceMap] from a mutable bytes.
+  pub fn from_bytes<B>(mut bytes: B) -> Result<Self>
+  where
+    B: AsMut<[u8]> + Send + Sync + 'static,
+  {
     let fields = {
-      let borrowed_value = simd_json::to_borrowed_value(&mut bytes)?;
+      let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut())?;
       let fields = deserialize_source_map_fields(&borrowed_value)?;
       #[allow(unsafe_code)]
       // SAFETY: All borrowed strings in `fields` point into `bytes`; the
-      // returned SourceMap stores `bytes` in SourceMapOwner::Json.
+      // returned SourceMap stores `bytes` in SourceMapOwner::Bytes.
       unsafe {
         std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'static>>(fields)
       }
     };
     Ok(Self {
-      owner: Some(SourceMapOwner::Json(Arc::from(bytes))),
+      owner: Some(SourceMapOwner::Bytes(Box::new(bytes))),
       fields,
     })
   }
 
   /// Create a [SourceMap] from json string.
   pub fn from_json(s: String) -> Result<Self> {
-    let bytes: Vec<u8> = s.into_bytes();
-    Self::from_slice(bytes)
+    Self::from_bytes(s.into_bytes())
   }
 }
 
