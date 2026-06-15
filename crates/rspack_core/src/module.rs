@@ -898,6 +898,25 @@ impl BoxModule {
     }
   }
 
+  /// The module identifier. Implemented as an inherent static-dispatch method
+  /// so hot call sites resolve directly to the concrete variant instead of
+  /// going through `Deref` to `dyn Module` (which rebuilds a fat pointer in
+  /// `as_module` and then performs a vtable call). This matters because
+  /// `Identifiable` is not in scope at several hot iteration sites (e.g. the
+  /// module-ids plugins), where `identifier()` would otherwise dispatch
+  /// dynamically.
+  pub fn identifier(&self) -> Identifier {
+    match self {
+      Self::Normal(module) => module.identifier(),
+      Self::Context(module) => module.identifier(),
+      Self::External(module) => module.identifier(),
+      Self::Raw(module) => module.identifier(),
+      Self::SelfModule(module) => module.identifier(),
+      Self::Concatenated(module) => module.identifier(),
+      Self::Custom(module) => module.identifier(),
+    }
+  }
+
   pub async fn build(
     self,
     build_context: BuildContext,
