@@ -14,5 +14,8 @@ module.exports = {
     expect(source).toContain("module.exports, __rspack_context");
     expect(source).not.toContain("__rspack_context.d");
     expect(source).not.toContain("__rspack_context.N");
+    expect(source).toMatch(/function __rspack_require\s*\(\s*moduleId\s*\)/);
+    expect(source).toContain("__rspack_context.r = __rspack_require;");
+    expect(source).not.toContain("__webpack_require__");
   },
 };
