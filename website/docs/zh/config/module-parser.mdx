@@ -141,6 +141,38 @@ const x = require(/* rspackIgnore: true */ 'x');
 const y = require(/* webpackIgnore: true */ 'y');
 ```
 
+### javascript.createRequire
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[
+    { defaultValue: 'Node-like target 默认为 true，其他 target 默认为 false' },
+  ]}
+/>
+
+启用对 Node.js `module.createRequire()`，以及从 `module` 或 `node:module` 导入的 `createRequire()` 的解析。
+
+开启后，Rspack 会对静态的 `createRequire()` 参数求值，并追踪生成的 `require()` 函数，包括相对于传入路径的 `require.resolve()` 和 `require.cache`。
+
+支持的静态参数包括绝对路径字符串、file URL 字符串、`import.meta.url`、`new URL("./file.js", import.meta.url)` 和 `new URL("./file.js", "file:///path/to/base.js")`。
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+将 `createRequire` 设置为 `false` 可以关闭这项 parser 行为。你也可以传入字符串来自定义识别的 import 来源。默认会识别来自 `module` 的 `createRequire`，并且也支持 `node:module`。
+
+如果参数无法在构建时解析为绝对路径或 file URL，Rspack 会保留运行时表达式，并输出 unsupported feature 警告。
+
 ### javascript.dynamicImportMode
 
 <PropertyType

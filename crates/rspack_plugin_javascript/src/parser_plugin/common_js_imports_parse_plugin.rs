@@ -196,6 +196,18 @@ fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bo
 
 #[cold]
 #[inline(never)]
+fn is_create_require_module_object_import(settings: &ESMSpecifierData) -> bool {
+  settings.namespace_import
+    || (!settings.namespace_import
+      && settings.ids.len() == 1
+      && settings
+        .ids
+        .first()
+        .is_some_and(|id| id.as_ref() == "default"))
+}
+
+#[cold]
+#[inline(never)]
 pub(crate) fn is_create_require_namespace_member(
   parser: &mut JavascriptParser,
   expr: &Expr,
@@ -211,12 +223,11 @@ pub(crate) fn is_create_require_namespace_member(
   else {
     return false;
   };
-  let namespace_import = settings.namespace_import;
   let source = settings.source.clone();
   let Some(member) = static_member_name(member_expr) else {
     return false;
   };
-  namespace_import
+  is_create_require_module_object_import(&settings)
     && create_require_import_specifier(parser, &source).is_some_and(|specifier| member == specifier)
 }
 
@@ -238,7 +249,7 @@ fn is_create_require_namespace_member_param(
   else {
     return false;
   };
-  settings.namespace_import
+  is_create_require_module_object_import(settings)
     && create_require_import_specifier(parser, &settings.source)
       .is_some_and(|specifier| property == specifier.as_ref())
 }
@@ -363,7 +374,30 @@ fn dirname(path: &str) -> Option<&str> {
 
 #[cold]
 #[inline(never)]
+fn evaluate_new_url_with_static_base(
+  parser: &mut JavascriptParser,
+  args: &[ExprOrSpread],
+  request: &str,
+) -> Option<Url> {
+  let base = args.get(1)?;
+  if base.spread.is_some() {
+    return None;
+  }
+  let base = parser.evaluate_expression(&base.expr).as_string()?;
+  Url::parse(&base).ok()?.join(request).ok()
+}
+
+#[cold]
+#[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  if let Some(member) = arg.as_member()
+    && is_meta_url(parser, member)
+  {
+    return Url::from_file_path(parser.resource_data.resource())
+      .ok()
+      .map(|url| url.to_string());
+  }
+
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
@@ -379,14 +413,23 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     && !args.is_empty()
     && args[0].spread.is_none()
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
-    && value.starts_with("file:/")
   {
-    if let Some(base) = args.get(1)
-      && !is_valid_ignored_url_base_arg(parser, base)
-    {
-      return None;
+    if value.starts_with("file:/") {
+      if let Some(base) = args.get(1)
+        && !is_valid_ignored_url_base_arg(parser, base)
+      {
+        return None;
+      }
+      return file_url_to_path(&value).map(|(path, _)| path);
     }
-    return file_url_to_path(&value).map(|(path, _)| path);
+    if let Some(url) = evaluate_new_url_with_static_base(parser, args, &value) {
+      if url.scheme() != "file" {
+        return Some(url.to_string());
+      }
+      return file_url_to_path(url.as_str())
+        .map(|(path, _)| path)
+        .or_else(|| Some(url.to_string()));
+    }
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("//") {
@@ -917,9 +960,10 @@ fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
       VariableInfoFlags::NORMAL,
       None,
     );
-    parser
+    let updated = parser
       .definitions_db
-      .set(declared_scope, name.clone(), info);
+      .update_existing(declared_scope, name, info);
+    debug_assert!(updated);
   }
 }
 
