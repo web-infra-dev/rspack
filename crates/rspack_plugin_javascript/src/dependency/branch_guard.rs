@@ -21,6 +21,10 @@ impl DependencyBranchGuard {
     self.0
   }
 
+  pub fn and(self, other: DependencyBranchGuard) -> Self {
+    Self(self.0.and(other.0))
+  }
+
   pub fn bind_dependency(&self, dep: &mut dyn Dependency) {
     if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
       dep.set_branch_guard(self.clone());

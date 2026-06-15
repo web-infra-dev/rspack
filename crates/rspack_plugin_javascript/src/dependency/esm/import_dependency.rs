@@ -66,7 +66,10 @@ impl ImportDependency {
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
-    self.branch_guard = Some(guard);
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
