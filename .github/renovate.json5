@@ -52,6 +52,11 @@
       groupName: 'napi',
       matchPackagePrefixes: ['napi', '@napi-rs/'],
     },
+    {
+      groupName: 'emnapi',
+      matchManagers: ['npm'],
+      matchPackageNames: ['emnapi', '/^@emnapi\\//'],
+    },
     // Rspack npm packages
     {
       groupName: 'Rspack',

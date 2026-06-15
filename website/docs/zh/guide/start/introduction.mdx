@@ -93,9 +93,7 @@ Rspack 比 webpack 快得益于如下几方面：
 
 ### 和 Vite 的区别
 
-[Vite](https://vitejs.dev/) 提供了很好的开发者体验，但 Vite 在生产构建中依赖了 [Rollup](https://rollupjs.org/) ，因此与其他基于 JavaScript 的工具链一样，面临着生产环境的构建性能问题。
-
-另外，Rollup 相较于 webpack 做了一些平衡取舍，在这里同样适用。比如，Rollup 缺失了 webpack 对于拆包的灵活性，即缺失了 [optimization.splitChunks](/config/optimization#optimizationsplitchunks) 提供的很多功能。
+如果你正在寻找类似 Vite 的开箱即用开发体验，推荐使用 [Rsbuild](https://rsbuild.rs/)，一个由 Rspack 驱动的构建工具。关于 Rsbuild 与 Vite 的差异，可以参考 [Rsbuild 文档](https://rsbuild.rs/zh/guide/start/#vite)。
 
 ### 和 esbuild 的区别
 
