@@ -195,9 +195,7 @@ impl RstestPlugin {
   }
 
   async fn resolve_mock_request(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
-    let Some(dep) = data.dependencies.first() else {
-      return None;
-    };
+    let dep = data.dependencies.first()?;
     let dependency_category = *dep.category();
     let has_missing_module_fallback = dep
       .downcast_ref::<MockModuleIdDependency>()
@@ -357,10 +355,10 @@ impl RstestPlugin {
 
 #[plugin_hook(NormalModuleFactoryBeforeResolve for RstestPlugin)]
 async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  if Self::synthetic_mock_dep(data) {
-    if let Some(result) = self.resolve_mock_request(data).await {
-      return Ok(Some(result));
-    }
+  if Self::synthetic_mock_dep(data)
+    && let Some(result) = self.resolve_mock_request(data).await
+  {
+    return Ok(Some(result));
   }
 
   Ok(None)
