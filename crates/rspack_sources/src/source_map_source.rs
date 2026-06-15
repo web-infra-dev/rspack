@@ -742,7 +742,7 @@ mod tests {
       .clone()
       .map_static(&ObjectPool::default(), &MapOptions::default())
       .map(|mut map| {
-        map.set_source_root(Some("/path/to/folder/".to_string()));
+        map.set_source_root(Some("/path/to/folder/".to_string().into()));
         map
       });
     let sms = SourceMapSource::new(SourceMapSourceOptions {

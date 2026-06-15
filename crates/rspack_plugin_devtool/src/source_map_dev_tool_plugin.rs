@@ -838,7 +838,7 @@ impl SourceMapDevToolPlugin {
           }
         })
         .collect::<Vec<_>>();
-      source_map.set_ignore_list(Some(ignore_list));
+      source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
     }
 
     if self.no_sources {

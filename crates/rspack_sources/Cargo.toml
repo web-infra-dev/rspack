@@ -18,6 +18,7 @@ rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
 memchr            = { workspace = true, features = ["std"] }
+napi              = { workspace = true }
 rkyv              = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }
 serde             = { workspace = true, features = ["rc", "std"] }

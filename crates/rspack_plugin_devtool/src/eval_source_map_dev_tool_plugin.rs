@@ -226,7 +226,7 @@ async fn render_module_content(
             }
           })
           .collect::<Vec<_>>();
-        map.set_ignore_list(Some(ignore_list));
+        map.set_ignore_list(Some(Cow::Owned(ignore_list)));
       }
 
       if self.no_sources {

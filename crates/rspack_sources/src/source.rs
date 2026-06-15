@@ -6,6 +6,7 @@ use std::{
   sync::Arc,
 };
 
+use napi::bindgen_prelude::Buffer;
 use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
@@ -309,7 +310,7 @@ pub(crate) struct SourceMapFields<'a> {
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
   pub(crate) debug_id: Option<Cow<'a, str>>,
   #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
-  pub(crate) ignore_list: Option<Vec<u32>>,
+  pub(crate) ignore_list: Option<Cow<'a, [u32]>>,
 }
 
 impl<'a> SourceMapFields<'a> {
@@ -317,14 +318,14 @@ impl<'a> SourceMapFields<'a> {
   pub(crate) fn as_borrowed(&self) -> SourceMapFields<'_> {
     SourceMapFields {
       version: self.version,
-      file: self.file.clone(),
+      file: self.file.as_ref().map(|f| Cow::Borrowed(f.as_ref())),
       sources: Cow::Borrowed(self.sources.as_ref()),
       sources_content: Cow::Borrowed(self.sources_content.as_ref()),
       names: Cow::Borrowed(self.names.as_ref()),
       mappings: Cow::Borrowed(self.mappings.as_ref()),
-      source_root: self.source_root.clone(),
-      debug_id: self.debug_id.clone(),
-      ignore_list: self.ignore_list.clone(),
+      source_root: self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
+      debug_id: self.debug_id.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
+      ignore_list: self.ignore_list.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
     }
   }
 
@@ -383,7 +384,8 @@ impl Hash for SourceMapFields<'_> {
 
 #[allow(dead_code)]
 enum SourceMapOwner {
-  Bytes(Box<dyn Any + Send + Sync>),
+  Bytes(Vec<u8>),
+  Buffer(Buffer),
   Source(BoxSource),
 }
 
@@ -457,23 +459,40 @@ impl SourceMap<'static> {
     }
   }
 
-  /// Create a [SourceMap] from a mutable bytes.
-  pub fn from_bytes<B>(mut bytes: B) -> Result<Self>
-  where
-    B: AsMut<[u8]> + Send + Sync + 'static,
-  {
+  /// Create a [SourceMap] from bytes.
+  pub fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
     let fields = {
-      let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut())?;
+      let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut_slice())?;
       let fields = deserialize_source_map_fields(&borrowed_value)?;
       #[allow(unsafe_code)]
-      // SAFETY: All borrowed strings in `fields` point into `bytes`; the
-      // returned SourceMap stores `bytes` in SourceMapOwner::Bytes.
+      // SAFETY: All borrowed strings in `fields` point into the stable backing
+      // allocation of `bytes`; the returned SourceMap stores `bytes` in
+      // SourceMapOwner::Bytes.
       unsafe {
         std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'static>>(fields)
       }
     };
     Ok(Self {
-      owner: Some(SourceMapOwner::Bytes(Box::new(bytes))),
+      owner: Some(SourceMapOwner::Bytes(bytes)),
+      fields,
+    })
+  }
+
+  /// Create a [SourceMap] from a napi buffer.
+  pub fn from_buffer(mut buffer: Buffer) -> Result<Self> {
+    let fields = {
+      let borrowed_value = simd_json::to_borrowed_value(buffer.as_mut())?;
+      let fields = deserialize_source_map_fields(&borrowed_value)?;
+      #[allow(unsafe_code)]
+      // SAFETY: All borrowed strings in `fields` point into the stable backing
+      // allocation of `buffer`; the returned SourceMap stores `buffer` in
+      // SourceMapOwner::Buffer.
+      unsafe {
+        std::mem::transmute::<SourceMapFields<'_>, SourceMapFields<'static>>(fields)
+      }
+    };
+    Ok(Self {
+      owner: Some(SourceMapOwner::Buffer(buffer)),
       fields,
     })
   }
@@ -501,7 +520,7 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the ignoreList field in [SourceMap].
-  pub fn set_ignore_list(&mut self, ignore_list: Option<Vec<u32>>) {
+  pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'a, [u32]>>) {
     self.fields.ignore_list = ignore_list;
   }
 
@@ -786,10 +805,10 @@ fn optional_string_array_field<'a>(
     .collect()
 }
 
-fn optional_u32_array_field(
-  object: &simd_json::borrowed::Object<'_>,
+fn optional_u32_array_field<'a>(
+  object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Option<Vec<u32>>> {
+) -> Result<Option<Cow<'a, [u32]>>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -807,7 +826,7 @@ fn optional_u32_array_field(
         .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
     })
     .collect::<Result<Vec<_>>>()
-    .map(Some)
+    .map(|v| Some(Cow::Owned(v)))
 }
 
 /// Represent a [Mapping] information of source map.
