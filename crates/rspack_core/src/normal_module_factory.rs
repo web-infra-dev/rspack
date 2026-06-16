@@ -12,14 +12,14 @@ use crate::{
   AssetInlineGeneratorOptions, AssetResourceGeneratorOptions, BoxLoader, BoxModule,
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
-  GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
-  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
-  ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
-  ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  GeneratorOptions, MODULE_RULE_ID_UNASSIGNED, MatchContext, ModuleExt, ModuleFactory,
+  ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleIds, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -378,6 +378,52 @@ fn resolve_module_options(
   }
 }
 
+fn module_rule_ids(module_rules: &[&ModuleRuleEffect]) -> ModuleRuleIds {
+  module_rules
+    .iter()
+    .map(|rule| {
+      debug_assert_ne!(
+        rule.id, MODULE_RULE_ID_UNASSIGNED,
+        "module rule id has not been assigned"
+      );
+      rule.id
+    })
+    .collect::<ModuleRuleIds>()
+}
+
+fn calculate_resolve_options(module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
+  let mut resolved: Option<Resolve> = None;
+  for rule in module_rules {
+    if let Some(rule_resolve) = &rule.resolve {
+      if let Some(r) = resolved {
+        resolved = Some(r.merge(rule_resolve.to_owned()));
+      } else {
+        resolved = Some(rule_resolve.to_owned());
+      }
+    }
+  }
+  resolved.map(Arc::new)
+}
+
+fn resolve_rule_resolve_options(
+  options_cache: &FxDashMap<ModuleRuleIds, Option<Arc<Resolve>>>,
+  module_rules: &[&ModuleRuleEffect],
+) -> Option<Arc<Resolve>> {
+  let cache_key = module_rule_ids(module_rules);
+  if let Some(options) = options_cache.get(&cache_key) {
+    return options.clone();
+  }
+
+  match options_cache.entry(cache_key) {
+    dashmap::mapref::entry::Entry::Occupied(entry) => entry.get().clone(),
+    dashmap::mapref::entry::Entry::Vacant(entry) => {
+      let options = calculate_resolve_options(module_rules);
+      entry.insert(options.clone());
+      options
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
@@ -403,6 +449,7 @@ pub struct NormalModuleFactory {
   global_parser_options: HashMap<String, ParserOptions>,
   global_generator_options: HashMap<String, GeneratorOptions>,
   resolved_module_options: FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
+  resolved_rule_resolve_options: FxDashMap<ModuleRuleIds, Option<Arc<Resolve>>>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
 }
@@ -555,6 +602,38 @@ mod tests {
   }
 
   #[test]
+  fn lazily_reuse_resolve_options_for_rule_ids() {
+    let mut module_options = crate::ModuleOptions {
+      rules: vec![crate::ModuleRule {
+        effect: ModuleRuleEffect {
+          resolve: Some(Resolve {
+            prefer_relative: Some(true),
+            ..Default::default()
+          }),
+          ..Default::default()
+        },
+        ..Default::default()
+      }],
+      ..Default::default()
+    };
+    module_options
+      .assign_rule_ids()
+      .expect("should assign rule ids");
+    let rule = &module_options.rules[0].effect;
+    let resolve_options_cache = FxDashMap::default();
+    let module_rules = [rule];
+
+    let first = resolve_rule_resolve_options(&resolve_options_cache, &module_rules)
+      .expect("resolve options should exist");
+    let second = resolve_rule_resolve_options(&resolve_options_cache, &module_rules)
+      .expect("resolve options should exist");
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(resolve_options_cache.len(), 1);
+    assert_eq!(first.prefer_relative, Some(true));
+  }
+
+  #[test]
   fn reuse_global_generator_options_when_local_options_are_empty() {
     let options_cache = FxDashMap::default();
     let module_rules: [&ModuleRuleEffect; 0] = [];
@@ -676,6 +755,7 @@ impl NormalModuleFactory {
       global_parser_options,
       global_generator_options,
       resolved_module_options: FxDashMap::default(),
+      resolved_rule_resolve_options: FxDashMap::default(),
       loader_resolver_factory,
       plugin_driver,
     }
@@ -1088,7 +1168,7 @@ module.exports = "data:,";
     let resolved_module_layer =
       self.calculate_module_layer(data.issuer_layer.as_ref(), &matched_module_rules);
 
-    let resolved_resolve_options = self.calculate_resolve_options(&matched_module_rules);
+    let resolved_resolve_options = self.resolve_rule_resolve_options(&matched_module_rules);
     let resolved_options =
       self.resolve_module_options(&resolved_module_type, &matched_module_rules);
     let resolved_side_effects = self.calculate_side_effects(&matched_module_rules);
@@ -1204,18 +1284,11 @@ module.exports = "data:,";
     Ok(rules)
   }
 
-  fn calculate_resolve_options(&self, module_rules: &[&ModuleRuleEffect]) -> Option<Arc<Resolve>> {
-    let mut resolved: Option<Resolve> = None;
-    for rule in module_rules {
-      if let Some(rule_resolve) = &rule.resolve {
-        if let Some(r) = resolved {
-          resolved = Some(r.merge(rule_resolve.to_owned()));
-        } else {
-          resolved = Some(rule_resolve.to_owned());
-        }
-      }
-    }
-    resolved.map(Arc::new)
+  fn resolve_rule_resolve_options(
+    &self,
+    module_rules: &[&ModuleRuleEffect],
+  ) -> Option<Arc<Resolve>> {
+    resolve_rule_resolve_options(&self.resolved_rule_resolve_options, module_rules)
   }
 
   fn calculate_side_effects(&self, module_rules: &[&ModuleRuleEffect]) -> Option<bool> {
