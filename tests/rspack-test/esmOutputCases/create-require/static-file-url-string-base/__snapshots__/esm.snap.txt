@@ -4,30 +4,27 @@ import { __webpack_require__ } from "./runtime.mjs";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 __webpack_require__.add({
-"./a.js"
-/*!**************!*\
-  !*** ./a.js ***!
-  \**************/
+"./foo/a.js"
+/*!******************!*\
+  !*** ./foo/a.js ***!
+  \******************/
 (module) {
-module.exports = "root";
+module.exports = "foo";
 
 
 },
 });
 // module
 const external_module_namespaceObject = __rspack_createRequire_require("module");
+// ./static-base.generated.js
+
+
+it("should create require from relative URL object with file URL string base in ESM output", () => {
+	expect(__webpack_require__(/*! ./a */ "./foo/a.js")).toBe("foo");
+});
+
 // ./index.js
 
-
-
-
-it("should parse createRequire import.meta.url when importMeta parser is disabled", () => {
-	const require = external_module_namespaceObject.createRequire("<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-disabled/index.js");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-});
 
 export {};
 

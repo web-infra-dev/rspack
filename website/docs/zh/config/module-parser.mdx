@@ -154,7 +154,7 @@ const y = require(/* webpackIgnore: true */ 'y');
 
 开启后，Rspack 会对静态的 `createRequire()` 参数求值，并追踪生成的 `require()` 函数，包括相对于传入路径的 `require.resolve()` 和 `require.cache`。
 
-支持的静态参数包括绝对路径字符串、file URL 字符串、`import.meta.url` 和 `new URL("./file.js", import.meta.url)`。
+支持的静态参数包括绝对路径字符串、file URL 字符串、`import.meta.url`、`new URL("./file.js", import.meta.url)` 和 `new URL("./file.js", "file:///path/to/base.js")`。
 
 ```js title="rspack.config.mjs"
 export default {
