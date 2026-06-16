@@ -3068,7 +3068,6 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
-  /** JavaScript config value in seconds. */
   maxAge?: number
   maxGenerations?: number
 }

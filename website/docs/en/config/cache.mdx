@@ -237,7 +237,9 @@ export default {
 :::tip
 Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
 
-Rspack will automatically clean up cache folders that have not been accessed longer than `cache.storage.maxAge`.
+Rspack stores filesystem cache in compiler-scoped directories. Cleanup options only affect cache entries for the current compiler, even when multiple compilers share the same `cache.storage.directory`.
+
+Rspack will automatically clean up cache folders for the current compiler that have not been accessed longer than `cache.storage.maxAge`.
 :::
 
 #### cache.storage.maxAge
@@ -282,7 +284,7 @@ export default {
 
 Each compiler is counted independently, so compilers that share `storage.directory` do not consume each other's limit.
 
-Enabling `maxGenerations` uses compiler-scoped cache version directories. Existing unscoped versions continue to use age-based cleanup and are not counted toward the limit.
+Filesystem cache entries are scoped by compiler, so this limit only counts generations for the current compiler.
 
 :::warning
 Concurrent builds of the same compiler share this limit and may remove one another's older cache versions.

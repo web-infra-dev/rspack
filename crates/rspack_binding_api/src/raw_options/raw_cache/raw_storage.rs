@@ -7,7 +7,6 @@ pub struct RawStorageOptions {
   #[napi(ts_type = r#""filesystem""#)]
   pub r#type: String,
   pub directory: String,
-  /// JavaScript config value in seconds.
   #[napi(ts_type = "number")]
   pub max_age: Option<u32>,
   pub max_generations: Option<u32>,

@@ -6,8 +6,10 @@ use rspack_paths::Utf8PathBuf;
 /// File system storage configuration options
 #[derive(Debug)]
 pub struct FileSystemOptions {
-  /// Storage root directory path (contains all DB versions)
+  /// Storage root directory path (contains compiler-scoped cache directories)
   pub directory: Utf8PathBuf,
+  /// Compiler-scoped cache directory name
+  pub compiler_scope: String,
   /// Version identifier for the specific DB instance within directory
   pub version: String,
   /// Maximum pack file size (bytes), creates new pack file when exceeded

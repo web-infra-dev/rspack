@@ -100,13 +100,10 @@ impl Meta {
       });
     }
 
-    if let Some(max_generations) = max_generations
-      && let Some((scope, _)) = active_version.split_once('-')
-    {
-      let prefix = format!("{scope}-");
+    if let Some(max_generations) = max_generations {
       let mut candidates = versions
         .iter()
-        .filter(|version| version.as_str() != active_version && version.starts_with(&prefix))
+        .filter(|version| version.as_str() != active_version && !version.starts_with(['_', '.']))
         .map(|version| {
           (
             version.clone(),
