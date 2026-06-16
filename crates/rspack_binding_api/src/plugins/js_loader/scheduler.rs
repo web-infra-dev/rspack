@@ -1,4 +1,4 @@
-use napi::Either;
+use napi::bindgen_prelude::Either3;
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext,
@@ -7,7 +7,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State as LoaderState;
 
-use super::{JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderContextOutput, JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 impl JsLoaderRspackPlugin {
   async fn update_loaders_without_pitch(&self, list: Vec<String>) {
@@ -82,33 +82,15 @@ pub(crate) async fn loader_yield(
 
 pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
-  mut from: JsLoaderContext,
+  mut from: JsLoaderContextOutput,
 ) -> Result<()> {
-  to.cacheable = from.cacheable;
-  to.file_dependencies = from.file_dependencies.into_iter().map(Into::into).collect();
-  to.context_dependencies = from
-    .context_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
-  to.missing_dependencies = from
-    .missing_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
-  to.build_dependencies = from
-    .build_dependencies
-    .into_iter()
-    .map(Into::into)
-    .collect();
-
   if let Some(error) = from.error {
     return Err(error.with_parent_error_name("ModuleBuildError").into());
   }
 
   let content = match from.content {
-    Either::A(_) => None,
-    Either::B(c) => {
+    Either3::A(s) => Some(rspack_core::Content::from(s)),
+    Either3::B(c) => {
       // perf: Ignore UTF-8 check when JavaScript passed in an UTF-8 encoded value
       let content = if let Some(utf8_hint) = from.utf8_hint
         && utf8_hint
@@ -123,6 +105,7 @@ pub(crate) fn merge_loader_context(
 
       Some(content)
     }
+    Either3::C(_) => None,
   };
   let source_map = from
     .source_map
@@ -160,20 +143,13 @@ pub(crate) fn merge_loader_context(
       to
     })
     .collect();
-  to.loader_index = from.loader_index;
-  to.parse_meta.extend(
-    from
-      .parse_meta
-      .into_iter()
-      .map(|(k, v)| (k, Box::new(v) as _)),
-  );
 
   Ok(())
 }
 
 fn collect_loaders_without_pitch(
   ctx: &LoaderContext<RunnerContext>,
-  js_ctx: &JsLoaderContext,
+  js_ctx: &JsLoaderContextOutput,
 ) -> Vec<String> {
   let mut list = Vec::new();
   for (js_loader_item, loader_item) in js_ctx.loader_items.iter().zip(ctx.loader_items.iter()) {

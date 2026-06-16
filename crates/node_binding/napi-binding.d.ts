@@ -950,29 +950,38 @@ export interface JsLinkPreloadData {
   chunk: Chunk
 }
 
-export interface JsLoaderContext {
-  resource: string
-  _module: Module
-  hot: Readonly<boolean>
+export declare class JsLoaderContext {
   /** Content maybe empty in pitching stage */
-  content: null | Buffer
-  additionalData?: any
-  __internal__parseMeta: Record<string, string>
-  sourceMap?: Buffer
-  cacheable: boolean
-  fileDependencies: Array<string>
-  contextDependencies: Array<string>
-  missingDependencies: Array<string>
-  buildDependencies: Array<string>
-  loaderItems: Array<JsLoaderItem>
-  loaderIndex: number
-  loaderState: Readonly<JsLoaderState>
-  __internal__error?: RspackError
-  /**
-   * UTF-8 hint for `content`
-   * - Some(true): `content` is a `UTF-8` encoded sequence
-   */
-  __internal__utf8Hint?: boolean
+  get content(): string | Buffer | null
+  set content(content: string | Buffer | null)
+  get additionalData(): any
+  set additionalData(additionalData: any)
+  get sourceMap(): Buffer | undefined
+  set sourceMap(sourceMap: Buffer | undefined)
+  get loaderItems(): Array<JsLoaderItem>
+  set loaderItems(loaderItems: Array<JsLoaderItem>)
+  set __internal__error(__internal__error: RspackError | undefined)
+  set __internal__utf8Hint(__internal__utf8Hint: boolean | undefined)
+  get resource(): string
+  get _module(): Module
+  get hot(): Readonly<boolean>
+  get resourcePath(): string | undefined
+  get resourceQuery(): string | undefined
+  get resourceFragment(): string | undefined
+  get context(): string | undefined
+  get loaderIndex(): number
+  set loaderIndex(loaderIndex: number)
+  get loaderState(): Readonly<JsLoaderState>
+  addDependency(file: string): void
+  addContextDependency(context: string): void
+  addMissingDependency(missing: string): void
+  addBuildDependency(file: string): void
+  getDependencies(): Array<string>
+  getContextDependencies(): Array<string>
+  getMissingDependencies(): Array<string>
+  clearDependencies(): void
+  setCacheable(cacheable: boolean): void
+  __internal__setParseMeta(key: string, value: string): void
 }
 
 export interface JsLoaderItem {
