@@ -21,7 +21,7 @@ pub use crate::plugin::{infer_async_modules_plugin::InferAsyncModulesPlugin, *};
 #[derive(Debug)]
 pub struct TransformOutput {
   pub code: String,
-  pub map: Option<SourceMap>,
+  pub map: Option<SourceMap<'static>>,
 }
 
 #[derive(Debug)]

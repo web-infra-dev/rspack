@@ -24,7 +24,9 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  dependency::{DependencyBranchGuard, compose_dependency_condition},
+  dependency::{
+    DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
+  },
   is_export_inlined,
   visitors::DestructuringAssignmentProperties,
 };
@@ -239,20 +241,26 @@ impl Dependency for ESMImportSpecifierDependency {
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
-    if let Some(should_error) = self
+    let should_error = self
       .export_presence_mode
-      .get_effective_export_presence(module.as_ref())
-      && let Some(diagnostic) = esm_import_dependency_get_linking_error(
-        self,
-        self.get_ids(module_graph),
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-        &self.name,
-        false,
-        should_error,
-      )
+      .get_effective_export_presence(module.as_ref())?;
+
+    if let Some(branch_guard) = &self.branch_guard
+      && is_dependency_export_presence_guarded(branch_guard, self, module_graph)
     {
+      return None;
+    }
+
+    if let Some(diagnostic) = esm_import_dependency_get_linking_error(
+      self,
+      self.get_ids(module_graph),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.name,
+      false,
+      should_error,
+    ) {
       return Some(vec![diagnostic]);
     }
     None

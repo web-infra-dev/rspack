@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_error::Result;
 use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
@@ -160,18 +160,22 @@ impl JavaScriptCompiler {
         mappings,
         combined_source_map
           .sources()
-          .map(ToString::to_string)
+          .map(|source| Cow::Owned(source.to_string()))
           .collect::<Vec<_>>(),
         combined_source_map
           .source_contents()
-          .map(|byte_str| Arc::from(byte_str.map(ToString::to_string).unwrap_or_default()))
+          .map(|byte_str| Cow::Owned(byte_str.map(ToString::to_string).unwrap_or_default()))
           .collect::<Vec<_>>(),
         combined_source_map
           .names()
-          .map(ToString::to_string)
+          .map(|name| Cow::Owned(name.to_string()))
           .collect::<Vec<_>>(),
       );
-      rspack_source_map.set_file(combined_source_map.get_file().map(ToString::to_string));
+      rspack_source_map.set_file(
+        combined_source_map
+          .get_file()
+          .map(|s| Cow::Owned(s.to_string())),
+      );
 
       Some(rspack_source_map)
     } else {

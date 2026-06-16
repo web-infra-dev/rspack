@@ -179,7 +179,7 @@ fn parse_benchmark_program(
 ) -> PreparedScanDependenciesProgram {
   let source_text = Box::leak(source_text.to_string().into_boxed_str());
   let allocator = Box::leak(Box::new(Allocator::default()));
-  let comments = Box::leak(Box::new(Comments::default()));
+  let comments = Box::leak(Box::new(Comments::new_in(allocator)));
   let parser_lexer = Lexer::new(
     allocator,
     Syntax::Es(EsSyntax {

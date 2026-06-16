@@ -34,7 +34,13 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>> {
+  ) -> Result<
+    Option<(
+      Content,
+      Option<SourceMap<'static>>,
+      HashSet<std::path::PathBuf>,
+    )>,
+  > {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver

@@ -55,16 +55,16 @@ fn benchmark_concat_generate_string(b: &mut Bencher) {
   let sms_minify = SourceMapSource::new(SourceMapSourceOptions {
     value: HELLOWORLD_MIN_JS,
     name: "helloworld.min.js",
-    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP.to_string()).unwrap(),
     original_source: Some(HELLOWORLD_JS.to_string().into()),
-    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP).unwrap()),
+    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP.to_string()).unwrap()),
     remove_original_source: false,
   });
 
   let sms_rollup = SourceMapSource::new(SourceMapSourceOptions {
     value: BUNDLE_JS,
     name: "bundle.js",
-    source_map: SourceMap::from_json(BUNDLE_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(BUNDLE_JS_MAP.to_string()).unwrap(),
     original_source: None,
     inner_source_map: None,
     remove_original_source: false,
@@ -84,15 +84,15 @@ fn benchmark_concat_generate_string_with_cache(b: &mut Bencher) {
   let sms_minify = SourceMapSource::new(SourceMapSourceOptions {
     value: HELLOWORLD_MIN_JS,
     name: "helloworld.min.js",
-    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP.to_string()).unwrap(),
     original_source: Some(HELLOWORLD_JS.to_string().into()),
-    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP).unwrap()),
+    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP.to_string()).unwrap()),
     remove_original_source: false,
   });
   let sms_rollup = SourceMapSource::new(SourceMapSourceOptions {
     value: BUNDLE_JS,
     name: "bundle.js",
-    source_map: SourceMap::from_json(BUNDLE_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(BUNDLE_JS_MAP.to_string()).unwrap(),
     original_source: None,
     inner_source_map: None,
     remove_original_source: false,
@@ -112,15 +112,15 @@ fn benchmark_cached_source_hash(b: &mut Bencher) {
   let sms_minify = SourceMapSource::new(SourceMapSourceOptions {
     value: HELLOWORLD_MIN_JS,
     name: "helloworld.min.js",
-    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(HELLOWORLD_MIN_JS_MAP.to_string()).unwrap(),
     original_source: Some(HELLOWORLD_JS.to_string().into()),
-    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP).unwrap()),
+    inner_source_map: Some(SourceMap::from_json(HELLOWORLD_JS_MAP.to_string()).unwrap()),
     remove_original_source: false,
   });
   let sms_rollup = SourceMapSource::new(SourceMapSourceOptions {
     value: BUNDLE_JS,
     name: "bundle.js",
-    source_map: SourceMap::from_json(BUNDLE_JS_MAP).unwrap(),
+    source_map: SourceMap::from_json(BUNDLE_JS_MAP.to_string()).unwrap(),
     original_source: None,
     inner_source_map: None,
     remove_original_source: false,

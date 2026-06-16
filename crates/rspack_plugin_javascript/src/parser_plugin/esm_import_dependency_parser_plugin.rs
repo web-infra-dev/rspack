@@ -2,6 +2,7 @@ use rspack_core::{
   ConstDependency, Dependency, DependencyRange, DependencyType, ExportPresenceMode,
   ImportAttributes, ImportPhase,
 };
+use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   BinExpr, BinaryOp, CallExpr, Callee, Expr, GetSpan, Ident, ImportDecl, MemberExpr, Span,
@@ -147,23 +148,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       return None;
     }
     let root_info = right.root_info();
-    let (source, name, source_order, phase, attributes, namespace_import, mut ids) =
-      if let ExportedVariableInfo::VariableInfo(variable) = root_info
-        && let Some(settings) =
-          parser.get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)
-      {
-        (
-          settings.source.clone(),
-          settings.name.clone(),
-          settings.source_order,
-          settings.phase,
-          settings.attributes.clone(),
-          settings.namespace_import,
-          settings.ids.clone(),
-        )
-      } else {
-        return None;
-      };
+    let ESMSpecifierData {
+      source,
+      name,
+      mut ids,
+      namespace_import,
+      source_order,
+      phase,
+      attributes,
+    } = if let ExportedVariableInfo::VariableInfo(variable) = root_info {
+      parser
+        .get_variable_tag_data::<ESMSpecifierData>(*variable, ESM_SPECIFIER_TAG)?
+        .clone()
+    } else {
+      return None;
+    };
     let left = parser.evaluate_expression(&expr.left);
     if left.could_have_side_effects() {
       return None;
@@ -210,6 +209,37 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     );
 
     Some(true)
+  }
+
+  fn evaluate_binary_expression(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a BinExpr<'a>,
+    left: &BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>>
+  where
+    'p: 'a,
+  {
+    if expr.op != BinaryOp::In {
+      return None;
+    }
+    let dep_id = parser
+      .dependencies_in_branch_guard
+      .as_ref()?
+      .get(&DependencyRange::from(expr.span))
+      .copied()?;
+    let right = parser.evaluate_expression(&expr.right);
+    if !right.is_identifier() {
+      return None;
+    }
+    let ExportedVariableInfo::VariableInfo(root) = right.root_info() else {
+      return None;
+    };
+    parser.get_variable_tag_data::<ESMSpecifierData>(*root, ESM_SPECIFIER_TAG)?;
+    let mut res = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+    res.set_dependency(DependencyData::Dependency(dep_id));
+    res.set_side_effects(left.could_have_side_effects());
+    Some(res)
   }
 
   fn can_collect_destructuring_assignment_properties(

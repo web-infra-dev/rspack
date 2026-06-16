@@ -485,7 +485,7 @@ despite it was not able to fulfill desired ordering with these modules:
           source.add(SourceMapSource::new(WithoutOriginalOptions {
             value: content.to_string(),
             name: readable_identifier,
-            source_map: SourceMap::from_json(source_map).expect("invalid sourcemap"),
+            source_map: SourceMap::from_json(source_map.clone()).expect("invalid sourcemap"),
           }))
         } else {
           source.add(RawStringSource::from(content.to_string()));

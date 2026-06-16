@@ -245,7 +245,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       .unwrap_or(false);
 
     let allocator = Allocator::new();
-    let mut comments = Comments::default();
+    let mut comments = Comments::new_in(&allocator);
     let parser_lexer = Lexer::new(
       &allocator,
       Syntax::Es(EsSyntax {

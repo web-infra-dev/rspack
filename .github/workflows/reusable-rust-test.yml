@@ -61,7 +61,7 @@ jobs:
 
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
-        run: cargo workspaces exec cargo check --all-targets --locked
+        run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets --tests -- -D warnings

@@ -559,6 +559,22 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     None
   }
 
+  fn evaluate_binary_expression(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a BinExpr<'a>,
+    left: &BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateBinaryExpression) {
+      let res = plugin.evaluate_binary_expression(parser, expr, left);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
   fn evaluate_call_expression(
     &self,
     parser: &mut JavascriptParser<'p>,
