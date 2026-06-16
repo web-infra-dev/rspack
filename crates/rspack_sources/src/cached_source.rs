@@ -5,10 +5,7 @@ use std::{
   sync::{Arc, OnceLock},
 };
 
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{As, AsConverter},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rustc_hash::FxHasher;
 
 use crate::{
@@ -64,37 +61,11 @@ struct CachedData {
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// ```
-#[cacheable(with=As::<CachedSourceSerde>)]
+#[cacheable]
 pub struct CachedSource {
   inner: BoxSource,
+  #[cacheable(with=Skip)]
   cache: Arc<CachedData>,
-}
-
-#[cacheable]
-#[doc(hidden)]
-pub struct CachedSourceSerde {
-  inner: BoxSource,
-}
-
-#[doc(hidden)]
-pub type ArchivedCachedSource = ArchivedCachedSourceSerde;
-
-impl AsConverter<CachedSource> for CachedSourceSerde {
-  fn serialize(
-    data: &CachedSource,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self {
-      inner: data.inner.clone(),
-    })
-  }
-
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<CachedSource> {
-    Ok(CachedSource::new(self.inner))
-  }
 }
 
 impl CachedSource {
