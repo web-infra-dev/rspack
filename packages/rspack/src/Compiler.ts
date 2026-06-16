@@ -135,6 +135,40 @@ export type CompilerHooks = {
 
 export const GET_COMPILER_ID = Symbol('getCompilerId');
 
+const IMPORT_META_ENV_PREFIX = 'import.meta.env.';
+
+function withImportMetaEnvDefinePlugin(
+  builtinPlugins: binding.BuiltinPlugin[],
+  definePluginName: binding.BuiltinPluginName,
+): binding.BuiltinPlugin[] {
+  const envDefinitions: Record<string, unknown> = {};
+  for (const plugin of builtinPlugins) {
+    if (plugin.name !== definePluginName) continue;
+    if (!plugin.options || typeof plugin.options !== 'object') continue;
+    if (Array.isArray(plugin.options)) continue;
+
+    for (const [key, value] of Object.entries(plugin.options)) {
+      if (key.startsWith(IMPORT_META_ENV_PREFIX)) {
+        envDefinitions[key.slice(IMPORT_META_ENV_PREFIX.length)] = value;
+      }
+    }
+  }
+
+  if (Object.keys(envDefinitions).length === 0) {
+    return builtinPlugins;
+  }
+
+  return [
+    ...builtinPlugins,
+    {
+      name: definePluginName,
+      options: {
+        'import.meta.env': envDefinitions,
+      },
+    },
+  ];
+}
+
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
@@ -961,10 +995,15 @@ class Compiler {
         : undefined;
 
     try {
+      const builtinPlugins = withImportMetaEnvDefinePlugin(
+        this.#builtinPlugins,
+        instanceBinding.BuiltinPluginName.DefinePlugin,
+      );
+
       this.#instance = new instanceBinding.JsCompiler(
         this.compilerPath,
         this.#rawOptions,
-        this.#builtinPlugins,
+        builtinPlugins,
         this.#registers,
         ThreadsafeOutputNodeFS.__to_binding(this.outputFileSystem!),
         this.intermediateFileSystem

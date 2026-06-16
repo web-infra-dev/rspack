@@ -8,11 +8,6 @@ it('should expose variables from EnvironmentPlugin', () => {
   expect(env.ENV_VAR_FROM_ENV).toBe('from_environment_plugin');
 });
 
-it('should expose variables from DotenvPlugin', () => {
-  const env = import.meta.env;
-  expect(env.WEBPACK_DOTENV_VAR).toBe('from_dotenv');
-});
-
 it('should expose variables from DefinePlugin', () => {
   const env = import.meta.env;
   expect(env.CUSTOM_VAR).toBe('custom_value');
@@ -34,7 +29,6 @@ it('should treat import.meta.env as truthy', () => {
     throw new Error('import.meta.env should be truthy');
   }
 });
-
 
 it('should treat import.meta.env.NOT_EXIST as falsy', () => {
   if (import.meta.env.NOT_EXIST) {

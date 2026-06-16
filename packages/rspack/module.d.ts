@@ -227,7 +227,12 @@ declare namespace Rspack {
   }
 }
 
+interface ImportMetaEnv {
+  [key: string]: string | boolean | undefined;
+}
+
 interface ImportMeta {
+  env: ImportMetaEnv;
   url: string;
   webpackHot?: Rspack.Hot;
   webpackContext: (

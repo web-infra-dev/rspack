@@ -63,10 +63,10 @@ class EnvironmentPlugin {
         );
       }
 
-      definitions[`process.env.${key}`] =
+      const defValue =
         value === undefined ? 'undefined' : JSON.stringify(value);
-      definitions[`import.meta.env.${key}`] =
-        value === undefined ? 'undefined' : JSON.stringify(value);
+      definitions[`process.env.${key}`] = defValue;
+      definitions[`import.meta.env.${key}`] = defValue;
     }
     new DefinePlugin(definitions).apply(compiler);
   }
