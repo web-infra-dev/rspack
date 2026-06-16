@@ -79,7 +79,7 @@ impl PathTree {
 
   fn rel(p: &ArcPath) -> String {
     let s = p.to_string_lossy();
-    match s.find("missing-module") {
+    match s.find("rspack-test") {
       Some(i) => s[i..].to_string(),
       None => s.to_string(),
     }
@@ -124,7 +124,6 @@ impl PathTree {
     let mut lines: Vec<String> = self
       .inner
       .iter()
-      .filter(|e| e.key().to_string_lossy().contains("missing-module"))
       .map(|e| {
         let p = e.key();
         format!(
