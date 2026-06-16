@@ -462,13 +462,28 @@ impl Source for ReplaceSource {
     size
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &crate::MapOptions) -> Option<SourceMap> {
+  fn map(&self, object_pool: &ObjectPool, options: &crate::MapOptions) -> Option<SourceMap<'_>> {
     let replacements = &self.replacements;
     if replacements.is_empty() {
       return self.inner.map(object_pool, options);
     }
     let chunks = self.stream_chunks();
-    get_map(object_pool, chunks.as_ref(), options)
+    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
+    object_pool: &ObjectPool,
+    options: &crate::MapOptions,
+  ) -> Option<SourceMap<'static>> {
+    if self.replacements.is_empty() {
+      return self.inner.clone().map_static(object_pool, options);
+    }
+    let owner = self.clone();
+    self
+      .as_ref()
+      .map(object_pool, options)
+      .map(|map| map.into_static(owner))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -522,9 +537,9 @@ impl std::fmt::Debug for ReplaceSource {
   }
 }
 
-enum SourceContent<'object_pool> {
-  Raw(Arc<str>),
-  Lines(SourceContentLines<'object_pool>),
+enum SourceContent<'object_pool, 'source> {
+  Raw(Cow<'source, str>),
+  Lines(SourceContentLines<'object_pool, 'source>),
 }
 
 fn check_content_at_position(
@@ -570,7 +585,7 @@ fn for_each_line<'a>(source: &'a str, mut on_line: impl FnMut(&'a str, bool)) {
 
 struct ReplaceSourceChunks<'a> {
   is_original_source: bool,
-  chunks: Box<dyn Chunks + 'a>,
+  chunks: Box<dyn Chunks<'a> + 'a>,
   replacements: &'a [Replacement],
 }
 
@@ -585,14 +600,14 @@ impl<'a> ReplaceSourceChunks<'a> {
   }
 }
 
-impl Chunks for ReplaceSourceChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'a>,
-    on_source: crate::helpers::OnSource<'_, 'a>,
-    on_name: crate::helpers::OnName<'_, 'a>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
     let on_name = RefCell::new(on_name);
     let repls = &self.replacements;
@@ -603,7 +618,7 @@ impl Chunks for ReplaceSourceChunks<'_> {
     let mut generated_line_offset: i64 = 0;
     let mut generated_column_offset: i64 = 0;
     let mut generated_column_offset_line = 0;
-    let source_content_lines: RefCell<LinearMap<Option<SourceContent>>> =
+    let source_content_lines: RefCell<LinearMap<Option<SourceContent<'_, 'source>>>> =
       RefCell::new(LinearMap::default());
     let name_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
     let name_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
@@ -945,7 +960,7 @@ impl Chunks for ReplaceSourceChunks<'_> {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
           let lines =
-            source_content.map(|source_content| SourceContent::Raw(source_content.clone()));
+            source_content.map(|source_content| SourceContent::Raw(Cow::Borrowed(source_content)));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
@@ -1021,7 +1036,7 @@ impl Chunks for ReplaceSourceChunks<'_> {
 }
 
 impl StreamChunks for ReplaceSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(ReplaceSourceChunks::new(self))
   }
 }
@@ -1068,7 +1083,7 @@ mod tests {
     SourceMapSourceOptions, source_map_source::WithoutOriginalOptions,
   };
 
-  fn with_readable_mappings(sourcemap: &SourceMap) -> String {
+  fn with_readable_mappings(sourcemap: &SourceMap<'_>) -> String {
     let mut first = true;
     let mut last_line = 0;
     sourcemap
@@ -1330,7 +1345,7 @@ Line 2"#
 
   #[test]
   fn should_allow_replacements_at_the_start() {
-    let map = SourceMap::from_slice(
+    let map = SourceMap::from_json(
       r#"{
         "version":3,
         "sources":["abc"],
@@ -1338,7 +1353,7 @@ Line 2"#
         "mappings":";;AAAA,eAAe,SAASA,UAAT,OAA8B;AAAA,MAARC,IAAQ,QAARA,IAAQ;AAC3C,sBAAO;AAAA,cAAMA,IAAI,CAACC;AAAX,IAAP;AACD",
         "sourcesContent":["export default function StaticPage({ data }) {\nreturn <div>{data.foo}</div>\n}\n"],
         "file":"x"
-      }"#.as_bytes(),
+      }"#.to_string(),
     ).unwrap();
 
     let code = r#"import { jsx as _jsx } from "react/jsx-runtime";
@@ -1675,7 +1690,7 @@ return <div>{data.foo}</div>
       SourceMapSource::new(SourceMapSourceOptions {
           value: "var i18n = JSON.parse('{\"魑魅魍魉\":{\"en-US\":\"Evil spirits\",\"zh-CN\":\"魑魅魍魉\"}}');\nvar __webpack_exports___ = i18n[\"魑魅魍魉\"];\nexport { __webpack_exports___ as 魑魅魍魉 };\n",
           name: "main.js",
-          source_map: SourceMap::from_json("{\"version\":3,\"sources\":[\"i18n.js\"],\"sourcesContent\":[\"var i18n = JSON.parse('{\\\"魑魅魍魉\\\":{\\\"en-US\\\":\\\"Evil spirits\\\",\\\"zh-CN\\\":\\\"魑魅魍魉\\\"}}');\\nvar __webpack_exports___ = i18n[\\\"魑魅魍魉\\\"];\\nexport { __webpack_exports___ as 魑魅魍魉 };\\n\"],\"names\":[\"i18n\",\"JSON\",\"__webpack_exports___\",\"魑魅魍魉\"],\"mappings\":\"AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACvC,SAASE,wBAAwBC,IAAI,GAAG\"}").unwrap(),
+          source_map: SourceMap::from_json("{\"version\":3,\"sources\":[\"i18n.js\"],\"sourcesContent\":[\"var i18n = JSON.parse('{\\\"魑魅魍魉\\\":{\\\"en-US\\\":\\\"Evil spirits\\\",\\\"zh-CN\\\":\\\"魑魅魍魉\\\"}}');\\nvar __webpack_exports___ = i18n[\\\"魑魅魍魉\\\"];\\nexport { __webpack_exports___ as 魑魅魍魉 };\\n\"],\"names\":[\"i18n\",\"JSON\",\"__webpack_exports___\",\"魑魅魍魉\"],\"mappings\":\"AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACvC,SAASE,wBAAwBC,IAAI,GAAG\"}".to_string()).unwrap(),
           original_source: None,
           inner_source_map: None,
           remove_original_source: false,
@@ -1694,7 +1709,7 @@ return <div>{data.foo}</div>
           "mappings": "AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACC",
           "names": ["i18n", "JSON", "__webpack_exports___", "魑魅魍魉"],
           "sourcesContent": ["var i18n = JSON.parse('{\"魑魅魍魉\":{\"en-US\":\"Evil spirits\",\"zh-CN\":\"魑魅魍魉\"}}');\nvar __webpack_exports___ = i18n[\"魑魅魍魉\"];\nexport { __webpack_exports___ as 魑魅魍魉 };\n"]
-        }"#
+        }"#.to_string()
     ).unwrap());
   }
 

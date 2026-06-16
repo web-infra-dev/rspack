@@ -436,7 +436,12 @@ impl JsCompiler {
     let compiler =
       unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
 
+    let wait_idle = self.state.wait_idle();
     let spawn_future_result = env.spawn_future(async move {
+      // An in-flight build/rebuild still calls back into JS through compiler-scoped
+      // TSFNs; closing mid-build would release them and fail those calls. Wait until
+      // the compiler is idle before shutting down.
+      wait_idle.await;
       let result = compiler
         .close()
         .await

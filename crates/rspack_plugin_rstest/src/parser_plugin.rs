@@ -981,6 +981,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RstestParserPlugin {
     &self,
     parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    _member_expr_info: Option<&rspack_plugin_javascript::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<eval::BasicEvaluatedExpression<'p>> {

@@ -7,7 +7,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
-  Pat, Program, ScopeId, Span, ThisExpr, VarDeclarator,
+  Pat, Program, Span, ThisExpr, VarDeclarator,
 };
 
 use super::state::{
@@ -41,22 +41,16 @@ fn class_member_is_static(member: &ClassMember<'_>) -> bool {
 
 #[derive(Debug)]
 pub struct InnerGraphParserPlugin {
-  unresolved_scope_id: ScopeId,
   analyze_pure_annotation: bool,
 }
 
 pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
 
 impl InnerGraphParserPlugin {
-  pub fn new(unresolved_scope_id: ScopeId, analyze_pure_annotation: bool) -> Self {
+  pub fn new(analyze_pure_annotation: bool) -> Self {
     Self {
-      unresolved_scope_id,
       analyze_pure_annotation,
     }
-  }
-
-  fn unresolved_context(&self) -> ScopeId {
-    self.unresolved_scope_id
   }
 
   pub fn for_each_expression(parser: &mut JavascriptParser, for_name: &str) {
@@ -444,7 +438,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         parser,
         self.analyze_pure_annotation,
         class_decl.class(),
-        self.unresolved_context(),
         parser.ast.comments,
         None,
       )
@@ -481,7 +474,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &class_expr.class,
-          self.unresolved_context(),
           parser.ast.comments,
           None,
         )
@@ -496,7 +488,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &fn_expr.function,
-          self.unresolved_context(),
           parser.ast.comments,
           None,
         )
@@ -518,7 +509,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         parser,
         self.analyze_pure_annotation,
         &default_expr.expr,
-        self.unresolved_context(),
         parser.ast.comments,
         Some(&mut callees),
       )
@@ -568,7 +558,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &init.as_class().expect("should be class").class,
-          self.unresolved_context(),
           parser.ast.comments,
           None,
         )
@@ -583,7 +572,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
         parser,
         self.analyze_pure_annotation,
         init,
-        self.unresolved_context(),
         parser.ast.comments,
         Some(&mut callees),
       ) {
@@ -683,7 +671,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       parser,
       self.analyze_pure_annotation,
       super_class,
-      self.unresolved_context(),
       parser.ast.comments,
       None,
     );
@@ -772,7 +759,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
       parser,
       self.analyze_pure_annotation,
       element,
-      self.unresolved_context(),
       parser.ast.comments,
       None,
     );

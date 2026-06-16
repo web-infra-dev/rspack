@@ -51,7 +51,7 @@ jobs:
         run: pnpm run build:js
 
       - name: Run benchmark binding
-        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
+        uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
         timeout-minutes: 30
         env:
           RAYON_NUM_THREADS: 1
@@ -60,4 +60,5 @@ jobs:
           mode: 'simulation'
           run: pnpm --filter bench run bench
           token: ${{ secrets.CODSPEED_TOKEN }}
-          runner-version: 4.13.0
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
+          skip-hash-check-warning: true

@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
 use bitflags::bitflags;
+use heck::ToLowerCamelCase;
 use rustc_hash::FxHashMap;
 
 use crate::CompilerOptions;
@@ -314,96 +315,58 @@ impl Default for RuntimeGlobals {
 }
 
 pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  RuntimeGlobals::REQUIRE_SCOPE
-    | RuntimeGlobals::MODULE_CACHE
-    | RuntimeGlobals::ENSURE_CHUNK
-    | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-    | RuntimeGlobals::PUBLIC_PATH
-    | RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME
-    | RuntimeGlobals::GET_CHUNK_CSS_FILENAME
-    | RuntimeGlobals::LOAD_SCRIPT
-    | RuntimeGlobals::HAS_OWN_PROPERTY
-    | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
-    | RuntimeGlobals::ON_CHUNKS_LOADED
-    | RuntimeGlobals::MODULE_FACTORIES
-    | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
-    | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-    | RuntimeGlobals::HMR_MODULE_DATA
-    | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
-    | RuntimeGlobals::GET_UPDATE_MANIFEST_FILENAME
-    | RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME
-    | RuntimeGlobals::GET_CHUNK_UPDATE_CSS_FILENAME
-    | RuntimeGlobals::AMD_DEFINE
-    | RuntimeGlobals::AMD_OPTIONS
-    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
-    | RuntimeGlobals::GET_FULL_HASH
-    | RuntimeGlobals::GLOBAL
-    | RuntimeGlobals::INSTANTIATE_WASM
-    | RuntimeGlobals::COMPILE_WASM
-    | RuntimeGlobals::ASYNC_MODULE
-    | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
-    | RuntimeGlobals::BASE_URI
-    | RuntimeGlobals::STARTUP_ENTRYPOINT
-    | RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES
-    | RuntimeGlobals::CREATE_SCRIPT_URL
-    | RuntimeGlobals::CREATE_SCRIPT
-    | RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
-    | RuntimeGlobals::DEFINE_PROPERTY_GETTERS
-    | RuntimeGlobals::ENTRY_MODULE_ID
-    | RuntimeGlobals::STARTUP_NO_DEFAULT
-    | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
-    | RuntimeGlobals::STARTUP
-    | RuntimeGlobals::MAKE_NAMESPACE_OBJECT
-    | RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT
-    | RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
-    | RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT
-    | RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT
-    | RuntimeGlobals::ESM_MODULE_DECORATOR
-    | RuntimeGlobals::NODE_MODULE_DECORATOR
-    | RuntimeGlobals::SYSTEM_CONTEXT
-    | RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
-    | RuntimeGlobals::SHARE_SCOPE_MAP
-    | RuntimeGlobals::INITIALIZE_SHARING
-    | RuntimeGlobals::SCRIPT_NONCE
-    | RuntimeGlobals::RELATIVE_URL
-    | RuntimeGlobals::CHUNK_NAME
-    | RuntimeGlobals::RUNTIME_ID
-    | RuntimeGlobals::PREFETCH_CHUNK
-    | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
-    | RuntimeGlobals::PRELOAD_CHUNK
-    | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
-    | RuntimeGlobals::UNCAUGHT_ERROR_HANDLER
-    | RuntimeGlobals::RSPACK_VERSION
-    | RuntimeGlobals::RSPACK_UNIQUE_ID
-    | RuntimeGlobals::ASYNC_STARTUP
-    | RuntimeGlobals::RSC_MANIFEST
-    | RuntimeGlobals::TO_BINARY
-    | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES
-    | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL
+  let mut runtime_globals = RuntimeGlobals::all();
+  runtime_globals.remove(
+    RuntimeGlobals::MODULE
+      | RuntimeGlobals::MODULE_ID
+      | RuntimeGlobals::CHUNK_CALLBACK
+      | RuntimeGlobals::RETURN_EXPORTS_FROM_RUNTIME
+      | RuntimeGlobals::MODULE_LOADED
+      | RuntimeGlobals::EXPORTS
+      | RuntimeGlobals::THIS_AS_EXPORTS
+      | RuntimeGlobals::HAS_CSS_MODULES
+      | RuntimeGlobals::HAS_FETCH_PRIORITY,
+  );
+  runtime_globals
 });
 
 pub static MODULE_GLOBALS: LazyLock<RuntimeGlobals> =
   LazyLock::new(|| RuntimeGlobals::MODULE_ID | RuntimeGlobals::MODULE_LOADED);
 
-pub fn runtime_globals_to_string(
-  runtime_globals: &RuntimeGlobals,
-  compiler_options: &CompilerOptions,
-) -> String {
-  if runtime_globals == &RuntimeGlobals::EXPORTS {
-    return runtime_variable_to_string(&RuntimeVariable::Exports, compiler_options);
-  }
+pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::REQUIRE
+    | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+    | RuntimeGlobals::MODULE
+    | RuntimeGlobals::MODULE_FACTORIES
+    | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+    | RuntimeGlobals::MODULE_CACHE
+    | RuntimeGlobals::ON_CHUNKS_LOADED
+    | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+    | RuntimeGlobals::STARTUP_ENTRYPOINT
+    | RuntimeGlobals::STARTUP
+});
 
-  if runtime_globals == &RuntimeGlobals::REQUIRE {
-    return runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
-  }
+pub static HOT_RUNTIME_WRITE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+    | RuntimeGlobals::HMR_MODULE_DATA
+});
 
-  if runtime_globals == &RuntimeGlobals::MODULE {
-    return "module".to_string();
-  }
+pub static INITIALIZE_OBJECT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
+  RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS
+    | RuntimeGlobals::PRELOAD_CHUNK_HANDLERS
+    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+    | RuntimeGlobals::HMR_MODULE_DATA
+});
 
-  let name = match *runtime_globals {
+pub static INITIALIZE_ARRAY_GLOBALS: LazyLock<RuntimeGlobals> =
+  LazyLock::new(|| RuntimeGlobals::INTERCEPT_MODULE_EXECUTION);
+
+pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option<&'static str> {
+  Some(match *runtime_globals {
     RuntimeGlobals::REQUIRE_SCOPE => "*",
     RuntimeGlobals::MODULE_ID => "id",
     RuntimeGlobals::MODULE_LOADED => "loaded",
@@ -481,12 +444,29 @@ pub fn runtime_globals_to_string(
 
     RuntimeGlobals::RSC_MANIFEST => "rscM",
     RuntimeGlobals::TO_BINARY => "tb",
-    _ => unreachable!(),
-  };
+    _ => return None,
+  })
+}
+
+pub fn runtime_globals_to_string(runtime_globals: &RuntimeGlobals) -> String {
+  if runtime_globals == &RuntimeGlobals::EXPORTS {
+    return runtime_variable_name(&RuntimeVariable::Exports).to_string();
+  }
+
+  if runtime_globals == &RuntimeGlobals::REQUIRE {
+    return runtime_variable_name(&RuntimeVariable::Require).to_string();
+  }
+
+  if runtime_globals == &RuntimeGlobals::MODULE {
+    return "module".to_string();
+  }
+
+  let name = runtime_globals_property_name(runtime_globals)
+    .expect("runtime global should have a property name");
   if REQUIRE_SCOPE_GLOBALS.contains(*runtime_globals) {
-    let require = runtime_variable_to_string(&RuntimeVariable::Require, compiler_options);
+    let require = runtime_variable_name(&RuntimeVariable::Require);
     let mut result = String::with_capacity(require.len() + 1 + name.len());
-    result.push_str(&require);
+    result.push_str(require);
     result.push('.');
     result.push_str(name);
     return result;
@@ -504,6 +484,7 @@ pub fn runtime_globals_to_string(
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub enum RuntimeVariable {
   Require,
+  Context,
   Modules,
   ModuleCache,
   Module,
@@ -516,36 +497,114 @@ pub fn runtime_variable_to_string(
   _compiler_options: &CompilerOptions,
 ) -> String {
   // TODO: use compiler options to get runtime variable names
+  runtime_variable_name(runtime_variable).to_string()
+}
+
+pub fn runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
   match *runtime_variable {
-    RuntimeVariable::Require => "__webpack_require__".to_string(),
-    RuntimeVariable::Modules => "__webpack_modules__".to_string(),
-    RuntimeVariable::ModuleCache => "__webpack_module_cache__".to_string(),
-    RuntimeVariable::Exports => "__webpack_exports__".to_string(),
-    RuntimeVariable::Module => "__webpack_module__".to_string(),
-    RuntimeVariable::StartupExec => "__webpack_exec__".to_string(),
+    RuntimeVariable::Require => "__webpack_require__",
+    RuntimeVariable::Context => "__rspack_context",
+    RuntimeVariable::Modules => "__webpack_modules__",
+    RuntimeVariable::ModuleCache => "__webpack_module_cache__",
+    RuntimeVariable::Exports => "__webpack_exports__",
+    RuntimeVariable::Module => "__webpack_module__",
+    RuntimeVariable::StartupExec => "__webpack_exec__",
   }
 }
 
 type RuntimeGlobalMap = (
   FxHashMap<RuntimeGlobals, &'static str>,
   FxHashMap<&'static str, RuntimeGlobals>,
+  FxHashMap<&'static str, RuntimeGlobals>,
+  FxHashMap<RuntimeGlobals, String>,
 );
 
 static RUNTIME_GLOBAL_MAP: LazyLock<RuntimeGlobalMap> = LazyLock::new(|| {
-  let mut to_js_map = FxHashMap::default();
-  let mut from_js_map = FxHashMap::default();
+  let mut to_flag_name_map = FxHashMap::default();
+  let mut from_flag_name_map = FxHashMap::default();
+  let mut from_property_name_map = FxHashMap::default();
+  let mut to_lexical_name_map = FxHashMap::default();
 
   for (name, value) in RuntimeGlobals::all().iter_names() {
-    to_js_map.insert(value, name);
-    from_js_map.insert(name, value);
+    to_flag_name_map.insert(value, name);
+    from_flag_name_map.insert(name, value);
+    to_lexical_name_map.insert(value, name.to_lower_camel_case());
+    if let Some(property_name) = runtime_globals_property_name(&value) {
+      from_property_name_map.insert(property_name, value);
+    }
   }
 
-  to_js_map.shrink_to_fit();
-  from_js_map.shrink_to_fit();
-  (to_js_map, from_js_map)
+  to_flag_name_map.shrink_to_fit();
+  from_flag_name_map.shrink_to_fit();
+  from_property_name_map.shrink_to_fit();
+  to_lexical_name_map.shrink_to_fit();
+  (
+    to_flag_name_map,
+    from_flag_name_map,
+    from_property_name_map,
+    to_lexical_name_map,
+  )
 });
 
 impl RuntimeGlobals {
+  pub fn property_name(&self) -> Option<&'static str> {
+    runtime_globals_property_name(self)
+  }
+
+  pub fn rspack_context_property_name(&self) -> Option<&'static str> {
+    if *self == RuntimeGlobals::MAKE_NAMESPACE_OBJECT {
+      Some("N")
+    } else {
+      self.property_name()
+    }
+  }
+
+  pub fn name(&self) -> Option<&'static str> {
+    RUNTIME_GLOBAL_MAP.0.get(self).copied()
+  }
+
+  pub fn from_property_name(property_name: &str) -> Option<Self> {
+    RUNTIME_GLOBAL_MAP.2.get(property_name).copied()
+  }
+
+  pub fn from_rspack_context_property_name(property_name: &str) -> Option<Self> {
+    if property_name == "N" {
+      return Some(RuntimeGlobals::MAKE_NAMESPACE_OBJECT);
+    }
+    let runtime_global = Self::from_property_name(property_name)?;
+    (runtime_global != RuntimeGlobals::MAKE_NAMESPACE_OBJECT).then_some(runtime_global)
+  }
+
+  pub fn renderable_require_scope(self) -> Self {
+    self.intersection(*REQUIRE_SCOPE_GLOBALS)
+  }
+
+  pub fn with_require_scope(self) -> Self {
+    if !self.renderable_require_scope().is_empty() {
+      self | RuntimeGlobals::REQUIRE_SCOPE
+    } else {
+      self
+    }
+  }
+
+  pub fn to_lexical_name(&self) -> Option<&str> {
+    RUNTIME_GLOBAL_MAP.3.get(self).map(String::as_str)
+  }
+
+  pub fn should_initialize_as_object(&self) -> bool {
+    !self.intersection(*INITIALIZE_OBJECT_GLOBALS).is_empty()
+  }
+
+  pub fn should_initialize_as_array(&self) -> bool {
+    !self.intersection(*INITIALIZE_ARRAY_GLOBALS).is_empty()
+  }
+
+  pub fn needs_bootstrap_runtime_context(&self) -> bool {
+    !self
+      .intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS)
+      .is_empty()
+  }
+
   pub fn to_names(&self) -> Vec<&'static str> {
     let mut res = vec![];
 

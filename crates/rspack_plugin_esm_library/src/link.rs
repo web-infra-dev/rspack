@@ -1376,7 +1376,7 @@ var {} = {{}};
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     external_module_init_fragments: &mut IdentifierMap<ChunkInitFragments>,
   ) -> Result<()> {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation.runtime_template.create_chunk_code_template();
     let mut outputs = FxHashMap::<ChunkUkey, String>::default();
     let module_keys: Vec<ModuleIdentifier> = orig_concate_modules_map.keys().copied().collect();
     for m in &module_keys {
@@ -2616,10 +2616,8 @@ var {} = {{}};
         let info = &concate_modules_map[m];
         let runtime_requirements = info.get_runtime_requirements();
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
-          let runtime_template = compilation.runtime_template.create_runtime_code_template();
-          let require_symbol: Atom = runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into();
+          let runtime_template = compilation.runtime_template.create_chunk_code_template();
+          let require_symbol: Atom = runtime_template.render_runtime_argument().into();
           if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {
             Self::add_chunk_export(
               runtime_chunk,

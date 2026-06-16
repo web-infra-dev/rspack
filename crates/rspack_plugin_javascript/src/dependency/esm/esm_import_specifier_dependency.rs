@@ -24,7 +24,9 @@ use super::{
 };
 use crate::{
   connection_active_inline_value_for_esm_import_specifier, connection_active_used_by_exports,
-  dependency::{DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition},
+  dependency::{
+    DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
+  },
   is_export_inlined,
   visitors::DestructuringAssignmentProperties,
 };
@@ -47,7 +49,7 @@ pub struct ESMImportSpecifierDependency {
   direct_import: bool,
   used_by_exports: Option<UsedByExports>,
   #[cacheable(with=AsOption<AsCacheable>)]
-  branch_guards: Option<Box<DependencyBranchGuards>>,
+  branch_guard: Option<DependencyBranchGuard>,
   #[cacheable(with=AsOption<AsCacheable>)]
   referenced_properties_in_destructuring: Option<DestructuringAssignmentProperties>,
   resource_identifier: ResourceIdentifier,
@@ -95,7 +97,7 @@ impl ESMImportSpecifierDependency {
       direct_import,
       export_presence_mode,
       used_by_exports: None,
-      branch_guards: None,
+      branch_guard: None,
       evaluated_in_operator: false,
       namespace_object_as_context: false,
       ns_access,
@@ -173,8 +175,11 @@ impl ESMImportSpecifierDependency {
     self.used_by_exports = used_by_exports;
   }
 
-  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
-    self.branch_guards.get_or_insert_default().extend(guards);
+  pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
@@ -236,20 +241,26 @@ impl Dependency for ESMImportSpecifierDependency {
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
     let module = module_graph.module_by_identifier(module)?;
-    if let Some(should_error) = self
+    let should_error = self
       .export_presence_mode
-      .get_effective_export_presence(module.as_ref())
-      && let Some(diagnostic) = esm_import_dependency_get_linking_error(
-        self,
-        self.get_ids(module_graph),
-        module_graph,
-        module_graph_cache,
-        exports_info_artifact,
-        &self.name,
-        false,
-        should_error,
-      )
+      .get_effective_export_presence(module.as_ref())?;
+
+    if let Some(branch_guard) = &self.branch_guard
+      && is_dependency_export_presence_guarded(branch_guard, self, module_graph)
     {
+      return None;
+    }
+
+    if let Some(diagnostic) = esm_import_dependency_get_linking_error(
+      self,
+      self.get_ids(module_graph),
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+      &self.name,
+      false,
+      should_error,
+    ) {
       return Some(vec![diagnostic]);
     }
     None
@@ -352,7 +363,7 @@ impl ModuleDependency for ESMImportSpecifierDependency {
       Some(DependencyCondition::new(
         ESMImportSpecifierDependencyCondition,
       )),
-      self.branch_guards.as_deref(),
+      self.branch_guard.as_ref(),
     )
   }
 

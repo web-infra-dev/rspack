@@ -11,7 +11,7 @@ use napi::{
   Either, Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
   BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
@@ -1243,7 +1243,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
   async fn run(
     &self,
     entry: &ModuleIdentifier,
-    runtime_modules: &IdentifierSet,
+    runtime_modules: &[Identifier],
     code_generation_results: &BindingCell<rspack_core::CodeGenerationResults>,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {

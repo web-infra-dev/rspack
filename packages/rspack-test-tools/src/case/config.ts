@@ -2,7 +2,10 @@ import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
 import { parseResource } from '../helper/legacy/parseResource';
-import { BasicCaseCreator } from '../test/creator';
+import {
+  BasicCaseCreator,
+  type IBasicCaseCreatorOptions,
+} from '../test/creator';
 import type {
   ITestContext,
   ITestEnv,
@@ -18,11 +21,18 @@ import {
   findMultiCompilerBundle,
   run,
 } from './common';
+import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
 export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
+type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
+  rspackOptions?: RspackOptions;
+};
 
-export function createConfigProcessor(name: string): ITestProcessor {
+export function createConfigProcessor(
+  name: string,
+  rspackOptions?: RspackOptions,
+): ITestProcessor {
   return {
     config: (context: ITestContext) => {
       configMultiCompiler(
@@ -30,7 +40,11 @@ export function createConfigProcessor(name: string): ITestProcessor {
         name,
         ['rspack.config.cjs', 'rspack.config.js', 'webpack.config.js'],
         defaultOptions,
-        overrideOptions,
+        (index, context, options) => {
+          overrideOptions(index, context, options);
+          mergeRspackOptions(options, rspackOptions);
+          applyRuntimeModeTestDefines(options);
+        },
       );
     },
     compiler: async (context: ITestContext) => {
@@ -75,8 +89,18 @@ const creator = new BasicCaseCreator({
   concurrent: true,
 });
 
-export function createConfigCase(name: string, src: string, dist: string) {
-  creator.create(name, src, dist);
+export function createConfigCase(
+  name: string,
+  src: string,
+  dist: string,
+  rspackOptions?: RspackOptions,
+) {
+  creator.create(name, src, dist, undefined, {
+    rspackOptions,
+    steps: ({ name, rspackOptions }) => [
+      createConfigProcessor(name, rspackOptions as RspackOptions | undefined),
+    ],
+  } satisfies TConfigCaseOptions);
 }
 
 export function defaultOptions(
@@ -138,6 +162,19 @@ export function overrideOptions(
   if (!global.printLogger) {
     options.infrastructureLogging = {
       level: 'error',
+    };
+  }
+}
+
+function mergeRspackOptions(options: RspackOptions, override?: RspackOptions) {
+  if (!override) return;
+
+  const { experiments, ...rest } = override;
+  Object.assign(options, rest);
+  if (experiments) {
+    options.experiments = {
+      ...options.experiments,
+      ...experiments,
     };
   }
 }

@@ -6,11 +6,11 @@ use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
-  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
-  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
+  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
+  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
+  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -21,7 +21,10 @@ use rustc_hash::FxHashSet;
 use super::{
   container_exposed_dependency::ContainerExposedDependency, container_plugin::ExposeOptions,
 };
-use crate::{ShareScope, utils::json_stringify};
+use crate::{
+  ShareScope,
+  utils::{json_stringify, module_require_scope_name},
+};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -254,7 +257,8 @@ impl Module for ContainerEntryModule {
     } = code_generation_context;
 
     let mut code_generation_result = CodeGenerationResult::default();
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = module_require_scope_name(compilation, runtime_template);
+    let runtime_argument = require_name.clone();
 
     if self.dependency_type == DependencyType::ShareContainerEntry {
       let module_graph = compilation.get_module_graph();
@@ -272,10 +276,7 @@ impl Module for ContainerEntryModule {
         }
       }
 
-      let federation_global = format!(
-        "{}.federation",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
+      let federation_global = format!("{require_name}.federation");
 
       // Generate installInitialConsumes function using returning_function
       let install_initial_consumes_call = format!(
@@ -283,7 +284,7 @@ impl Module for ContainerEntryModule {
             installedModules: localInstalledModules, 
             initialConsumes: {require_name}.consumesLoadingData.initialConsumes, 
             moduleToHandlerMapping: {require_name}.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
-            webpackRequire: {require_name}, 
+            webpackRequire: {runtime_argument}, 
             asyncLoad: true 
           }})"#,
       );
@@ -345,14 +346,8 @@ impl Module for ContainerEntryModule {
     let source = if self.enhanced {
       let define_property_getters =
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
-      let get_container = format!(
-        "{}.getContainer",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
-      let init_container = format!(
-        "{}.initContainer",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-      );
+      let get_container = format!("{require_name}.getContainer");
+      let init_container = format!("{require_name}.initContainer");
 
       format!(
         r#"
@@ -418,6 +413,13 @@ var init = function(shareScope, initScope) {{
     code_generation_result =
       code_generation_result.with_javascript(RawStringSource::from(source).boxed());
     code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
+    if !self.enhanced {
+      code_generation_result
+        .data
+        .insert(CodeGenerationRuntimeRequirementsWrite {
+          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+        });
+    }
     if self.enhanced {
       code_generation_result
         .data

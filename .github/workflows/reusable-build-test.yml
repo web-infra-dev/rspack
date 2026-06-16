@@ -34,6 +34,15 @@ jobs:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
 
+      # The @rspack/browser e2e needs rspack.browser.wasm. The wasi (node)
+      # artifact only ships rspack.wasm32-wasi.wasm, so reuse it under the
+      # browser name — the e2e runs against the wasi build, same as CI. The real
+      # browser variant is built and published by the separate -browser build
+      # job; it is intentionally not e2e-tested here.
+      - name: Provide browser wasm for e2e
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: cp -f crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
+
       - name: Setup Pnpm
         timeout-minutes: 5
         uses: ./.github/actions/pnpm/setup

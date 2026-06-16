@@ -57,4 +57,8 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT
+  }
 }

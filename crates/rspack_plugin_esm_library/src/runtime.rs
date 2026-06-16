@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
+  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, impl_runtime_module, property_access,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
@@ -14,6 +14,17 @@ impl EsmRegisterModuleRuntimeModule {
     Self::with_default(runtime_template)
   }
   pub(crate) fn runtime_id(runtime_template: &RuntimeCodeTemplate) -> String {
+    if runtime_template.uses_runtime_context() {
+      let modules_key = RuntimeGlobals::MODULE_FACTORIES
+        .property_name()
+        .expect("module factories should have a property name");
+      return format!(
+        "{}{}.add",
+        runtime_template.render_runtime_variable(&RuntimeVariable::Context),
+        property_access([modules_key], 0)
+      );
+    }
+
     format!(
       "{}.add",
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
@@ -73,6 +84,10 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+  }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
   }
 }
 
@@ -163,5 +178,9 @@ var chunkMap = {{
 
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::REQUIRE_SCOPE
+  }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
   }
 }

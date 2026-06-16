@@ -738,18 +738,9 @@ export default {
 
 ```ts
 type RuleSetUse =
-  | RuleSetUseItem[]
   | RuleSetUseItem
+  | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem =
-  | { loader: string; options: Record<string, any>; parallel?: boolean }
-  | string;
-interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
-}
 ```
 
 用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。

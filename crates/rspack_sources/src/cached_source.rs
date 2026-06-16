@@ -23,8 +23,8 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: OnceLock<Vec<&'static str>>,
-  columns_map: OnceLock<Option<SourceMap>>,
-  line_only_map: OnceLock<Option<SourceMap>>,
+  columns_map: OnceLock<Option<SourceMap<'static>>>,
+  line_only_map: OnceLock<Option<SourceMap<'static>>>,
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -109,6 +109,24 @@ impl CachedSource {
       self.inner.source().as_bytes().is_ascii()
     })
   }
+
+  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
+    if options.columns {
+      &self.cache.columns_map
+    } else {
+      &self.cache.line_only_map
+    }
+  }
+
+  fn get_or_init_map(
+    &self,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> &Option<SourceMap<'static>> {
+    self
+      .map_cache(options)
+      .get_or_init(|| self.inner.clone().map_static(object_pool, options))
+  }
 }
 
 impl Source for CachedSource {
@@ -160,20 +178,22 @@ impl Source for CachedSource {
     })
   }
 
-  fn map(&self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap> {
-    if options.columns {
-      self
-        .cache
-        .columns_map
-        .get_or_init(|| self.inner.map(object_pool, options))
-        .clone()
-    } else {
-      self
-        .cache
-        .line_only_map
-        .get_or_init(|| self.inner.map(object_pool, options))
-        .clone()
-    }
+  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
+    self
+      .get_or_init_map(object_pool, options)
+      .as_ref()
+      .map(SourceMap::as_borrowed)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap<'static>> {
+    self
+      .get_or_init_map(object_pool, options)
+      .as_ref()
+      .map(|map| map.as_borrowed().into_static(self.clone()))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -183,7 +203,7 @@ impl Source for CachedSource {
 
 struct CachedSourceChunks<'source> {
   cache_source: &'source CachedSource,
-  chunks: OnceCell<Box<dyn Chunks + 'source>>,
+  chunks: OnceCell<Box<dyn Chunks<'source> + 'source>>,
   source: OnceCell<Cow<'source, str>>,
 }
 
@@ -196,7 +216,7 @@ impl<'source> CachedSourceChunks<'source> {
     }
   }
 
-  fn get_or_init_chunks(&self) -> &dyn Chunks {
+  fn get_or_init_chunks(&self) -> &dyn Chunks<'source> {
     self
       .chunks
       .get_or_init(|| self.cache_source.inner.stream_chunks())
@@ -212,14 +232,14 @@ impl<'source> CachedSourceChunks<'source> {
   }
 }
 
-impl Chunks for CachedSourceChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'a>,
-    on_source: crate::helpers::OnSource<'_, 'a>,
-    on_name: crate::helpers::OnName<'_, 'a>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     let cell = if options.columns {
       &self.cache_source.cache.columns_map
@@ -234,7 +254,7 @@ impl Chunks for CachedSourceChunks<'_> {
             options,
             object_pool,
             source,
-            map,
+            map.fields(),
             on_chunk,
             on_source,
             on_name,
@@ -252,7 +272,9 @@ impl Chunks for CachedSourceChunks<'_> {
           on_source,
           on_name,
         );
-        cell.get_or_init(|| map);
+        cell.get_or_init(|| {
+          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
+        });
         generated_info
       }
     }
@@ -260,7 +282,7 @@ impl Chunks for CachedSourceChunks<'_> {
 }
 
 impl StreamChunks for CachedSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(CachedSourceChunks::new(self))
   }
 }
@@ -352,10 +374,14 @@ mod tests {
     source.size();
     source.map(&ObjectPool::default(), &map_options);
 
-    assert_eq!(
-      *clone.cache.columns_map.get().unwrap(),
-      source.map(&ObjectPool::default(), &map_options)
-    );
+    let cached_map = clone
+      .cache
+      .columns_map
+      .get()
+      .and_then(Option::as_ref)
+      .unwrap();
+    let map = source.map(&ObjectPool::default(), &map_options).unwrap();
+    assert!(cached_map.fields() == map.fields());
   }
 
   #[test]

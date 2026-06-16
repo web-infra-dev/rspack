@@ -1,0 +1,10 @@
+import "external1-alias";
+
+
+
+const foo = 2
+
+
+const bar = 1
+
+export { bar, foo };

@@ -45,8 +45,18 @@ module.exports = {
               /** @type {Record<string, import("webpack-sources").Source>} */ assets,
             ) => {
               const source = assets['entry.mjs'].source();
+              let snapshotDir;
+              if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+                snapshotDir = path.join(
+                  __dirname,
+                  '__snapshots__',
+                  'runtimeModeSnapshot',
+                );
+              } else {
+                snapshotDir = path.join(__dirname, '__snapshots__');
+              }
               expect(source).toMatchFileSnapshotSync(
-                path.join(__dirname, '__snapshots__', `entry.mjs.txt`),
+                path.join(snapshotDir, `entry.mjs.txt`),
               );
             },
           );

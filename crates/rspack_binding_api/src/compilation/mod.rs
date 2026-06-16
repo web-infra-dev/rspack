@@ -104,7 +104,8 @@ impl JsCompilation {
           let new_source = match new_source_or_function {
             Either::A(new_source) => new_source.try_into()?,
             Either::B(new_source_fn) => {
-              let js_compat_source = new_source_fn.call(original_source.as_ref().try_into()?)?;
+              let js_compat_source =
+                new_source_fn.call(JsSourceToJs::try_from(&original_source)?)?;
               js_compat_source.try_into()?
             }
           };
@@ -191,11 +192,7 @@ impl JsCompilation {
     compilation
       .assets()
       .get(&name)
-      .and_then(|v| {
-        v.source
-          .as_ref()
-          .map(|s| JsSourceToJs::try_from(s.as_ref()))
-      })
+      .and_then(|v| v.source.as_ref().map(JsSourceToJs::try_from))
       .transpose()
   }
 

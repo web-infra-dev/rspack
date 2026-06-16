@@ -1004,21 +1004,28 @@ impl Module for ConcatenatedModule {
 
     let tmp = rspack_parallel::scope::<_, Result<_>>(|token| {
       arc_map.iter().for_each(|(id, info)| {
-        let concatenation_scope = if let ModuleInfo::Concatenated(info) = &info {
-          let concatenation_scope =
-            ConcatenationScope::new(self.id, arc_map.clone(), info.as_ref().clone());
-
-          Some(concatenation_scope)
-        } else {
-          None
-        };
-
+        let module_to_info_map =
+          matches!(info, ModuleInfo::Concatenated(_)).then(|| arc_map.clone());
         let s = unsafe { token.used((&self, &compilation, runtime, id, info)) };
         s.spawn(|(module, compilation, runtime, id, info)| async move {
+          let concatenation_scope = if let ModuleInfo::Concatenated(info) = info {
+            let info = info.as_ref();
+            Some(ConcatenationScope::new(
+              module.id,
+              module_to_info_map.expect("should have module_to_info_map for concatenated module"),
+              ConcatenatedModuleInfo {
+                index: info.index,
+                module: info.module,
+                ..Default::default()
+              },
+            ))
+          } else {
+            None
+          };
           let updated_module_info = module
             .analyze_module(compilation, info, runtime, concatenation_scope)
             .await?;
-          Ok((*id, updated_module_info))
+          Ok((*id, Box::new(updated_module_info)))
         });
       })
     })
@@ -1035,7 +1042,7 @@ impl Module for ConcatenatedModule {
     let mut module_to_info_map = Arc::into_inner(arc_map).expect("reference count should be one");
 
     for (id, module_info) in updated_pairs {
-      module_to_info_map.insert(id, module_info);
+      module_to_info_map.insert(id, *module_info);
     }
 
     let mut top_level_declarations: HashSet<Atom> = HashSet::default();

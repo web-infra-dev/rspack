@@ -8,10 +8,10 @@ use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
 use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind, Comments, Decl,
-  DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan, ImportSpecifier, ModuleDecl,
-  ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName, ScopeId, Span,
-  Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
+  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
+  Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -26,14 +26,12 @@ static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
   regex::Regex::new("(?s)^\\s*(#|@)__PURE__(?:\\s|$)").expect("Should create the regex")
 });
 pub struct SideEffectsParserPlugin {
-  unresolved_scope_id: ScopeId,
   analyze_side_effects_free: bool,
 }
 
 impl SideEffectsParserPlugin {
-  pub fn new(unresolved_scope_id: ScopeId, analyze_side_effects_free: bool) -> Self {
+  pub fn new(analyze_side_effects_free: bool) -> Self {
     Self {
-      unresolved_scope_id,
       analyze_side_effects_free,
     }
   }
@@ -381,7 +379,6 @@ fn try_mark_auto_side_effects_free_var_decl(
   analyze_side_effects_free: bool,
   var_decl: &VarDecl,
   export_name: Option<&Atom>,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
@@ -413,16 +410,11 @@ fn try_mark_auto_side_effects_free_var_decl(
         parser,
         analyze_side_effects_free,
         &fn_expr.function,
-        unresolved_ctxt,
         comments,
       ),
-      Some(Expr::Arrow(arrow_expr)) => is_side_effects_free_arrow_body(
-        parser,
-        analyze_side_effects_free,
-        arrow_expr,
-        unresolved_ctxt,
-        comments,
-      ),
+      Some(Expr::Arrow(arrow_expr)) => {
+        is_side_effects_free_arrow_body(parser, analyze_side_effects_free, arrow_expr, comments)
+      }
       _ => false,
     };
 
@@ -436,7 +428,6 @@ fn try_mark_auto_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Stmt,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
@@ -458,7 +449,6 @@ fn try_mark_auto_side_effects_free_stmt(
           parser,
           analyze_side_effects_free,
           &fn_decl.function,
-          unresolved_ctxt,
           comments,
         ) {
           mark_side_effects_free(parser, &ident, None);
@@ -469,7 +459,6 @@ fn try_mark_auto_side_effects_free_stmt(
         analyze_side_effects_free,
         var_decl,
         None,
-        unresolved_ctxt,
         comments,
         duplicate_names,
       ),
@@ -482,7 +471,6 @@ fn try_mark_auto_side_effects_free_module_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   decl: &ModuleDecl,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
@@ -509,7 +497,6 @@ fn try_mark_auto_side_effects_free_module_decl(
         parser,
         analyze_side_effects_free,
         &fn_expr.function,
-        unresolved_ctxt,
         comments,
       ) {
         mark_side_effects_free(parser, &ident, Some(&export_name));
@@ -537,7 +524,6 @@ fn try_mark_auto_side_effects_free_module_decl(
         parser,
         analyze_side_effects_free,
         &fn_expr.function,
-        unresolved_ctxt,
         comments,
       ) {
         mark_side_effects_free(parser, &ident, Some(&export_name));
@@ -561,7 +547,6 @@ fn try_mark_auto_side_effects_free_module_decl(
           parser,
           analyze_side_effects_free,
           &fn_decl.function,
-          unresolved_ctxt,
           comments,
         ) {
           mark_side_effects_free(parser, &compat_atom(&fn_decl.ident.sym), None);
@@ -572,7 +557,6 @@ fn try_mark_auto_side_effects_free_module_decl(
         analyze_side_effects_free,
         var_decl,
         None,
-        unresolved_ctxt,
         comments,
         duplicate_names,
       ),
@@ -586,7 +570,6 @@ fn mark_auto_side_effects_free_program(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   program: &Program,
-  unresolved_scope_id: ScopeId,
   comments: &Comments<'_>,
   duplicate_names: &FxHashSet<Atom>,
 ) {
@@ -598,7 +581,6 @@ fn mark_auto_side_effects_free_program(
             parser,
             analyze_side_effects_free,
             stmt,
-            unresolved_scope_id,
             comments,
             duplicate_names,
           ),
@@ -606,7 +588,6 @@ fn mark_auto_side_effects_free_program(
             parser,
             analyze_side_effects_free,
             decl,
-            unresolved_scope_id,
             comments,
             duplicate_names,
           ),
@@ -619,7 +600,6 @@ fn mark_auto_side_effects_free_program(
           parser,
           analyze_side_effects_free,
           stmt,
-          unresolved_scope_id,
           comments,
           duplicate_names,
         );
@@ -674,7 +654,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           ast,
-          self.unresolved_scope_id,
           parser.ast.comments,
           &duplicate_names,
         );
@@ -704,7 +683,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &expr.expr,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -742,7 +720,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &decl.decl,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -824,7 +801,6 @@ fn is_pure_call_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &Expr,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -840,7 +816,6 @@ fn is_pure_call_expr(
       parser,
       analyze_side_effects_free,
       call_expr,
-      unresolved_ctxt,
       comments,
       callees,
     );
@@ -856,7 +831,6 @@ fn is_pure_call_expr(
           parser,
           analyze_side_effects_free,
           call_expr,
-          unresolved_ctxt,
           comments,
           callees,
         );
@@ -870,7 +844,6 @@ fn is_pure_call_expr(
           parser,
           analyze_side_effects_free,
           call_expr,
-          unresolved_ctxt,
           comments,
           Some(callees),
         );
@@ -885,7 +858,6 @@ fn is_pure_call_expr(
         parser,
         analyze_side_effects_free,
         call_expr,
-        unresolved_ctxt,
         comments,
         Some(callees),
       );
@@ -900,7 +872,6 @@ fn is_pure_call_args(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   call_expr: &CallExpr,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -912,10 +883,32 @@ fn is_pure_call_args(
       parser,
       analyze_side_effects_free,
       &arg.expr,
-      unresolved_ctxt,
       comments,
       callees.as_deref_mut(),
     ) {
+      return false;
+    }
+  }
+  true
+}
+
+fn is_pure_array_lit<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  array_lit: &'a ArrayLit,
+  comments: &'a Comments<'a>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  for elem in array_lit.elems.iter().flatten() {
+    if elem.spread.is_some()
+      || !is_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        &elem.expr,
+        comments,
+        callees.as_deref_mut(),
+      )
+    {
       return false;
     }
   }
@@ -962,7 +955,17 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if parser.get_variable_info(ident).is_some() || allow_unresolved_marked {
+  if let Some((declared_scope, is_free)) = parser
+    .get_variable_info(ident)
+    .map(|info| (info.declared_scope, info.is_free()))
+  {
+    if !is_free && declared_scope == parser.definitions {
+      return ExplicitSideEffectsFreeCallee::Direct;
+    }
+    return ExplicitSideEffectsFreeCallee::Invalid;
+  }
+
+  if allow_unresolved_marked {
     return ExplicitSideEffectsFreeCallee::Direct;
   }
 
@@ -1014,7 +1017,6 @@ fn is_pure_new_expr(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &Expr,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   let Expr::New(new_expr) = expr else {
@@ -1028,7 +1030,6 @@ fn is_pure_new_expr(
       parser,
       analyze_side_effects_free,
       new_expr.args.as_deref().unwrap_or(&[]),
-      unresolved_ctxt,
       comments,
     )
   }
@@ -1046,21 +1047,13 @@ fn are_pure_args<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   args: &'a [ExprOrSpread],
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
 ) -> bool {
   args.iter().all(|arg| {
     if arg.spread.is_some() {
       false
     } else {
-      is_pure_expression(
-        parser,
-        analyze_side_effects_free,
-        &arg.expr,
-        unresolved_ctxt,
-        comments,
-        None,
-      )
+      is_pure_expression(parser, analyze_side_effects_free, &arg.expr, comments, None)
     }
   })
 }
@@ -1077,7 +1070,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &if_stmt.test,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1095,7 +1087,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &while_stmt.test,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1113,7 +1104,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &do_while_stmt.test,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1133,7 +1123,6 @@ impl SideEffectsParserPlugin {
               parser,
               self.analyze_side_effects_free,
               decl,
-              self.unresolved_scope_id,
               parser.ast.comments,
               Some(&mut callees),
             ),
@@ -1141,7 +1130,6 @@ impl SideEffectsParserPlugin {
               parser,
               self.analyze_side_effects_free,
               expr,
-              self.unresolved_scope_id,
               parser.ast.comments,
               Some(&mut callees),
             ),
@@ -1165,7 +1153,6 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             test,
-            self.unresolved_scope_id,
             parser.ast.comments,
             Some(&mut callees),
           ),
@@ -1188,7 +1175,6 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             expr,
-            self.unresolved_scope_id,
             parser.ast.comments,
             Some(&mut callees),
           ),
@@ -1210,7 +1196,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &expr_stmt.expr,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1228,7 +1213,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           &switch_stmt.discriminant,
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1246,7 +1230,6 @@ impl SideEffectsParserPlugin {
           parser,
           self.analyze_side_effects_free,
           class_stmt.class(),
-          self.unresolved_scope_id,
           parser.ast.comments,
           Some(&mut callees),
         ) {
@@ -1265,7 +1248,6 @@ impl SideEffectsParserPlugin {
             parser,
             self.analyze_side_effects_free,
             var_decl,
-            self.unresolved_scope_id,
             parser.ast.comments,
             Some(&mut callees),
           ) {
@@ -1329,7 +1311,6 @@ pub fn is_pure_pat<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   pat: &'a Pat,
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1341,7 +1322,6 @@ pub fn is_pure_pat<'a>(
           parser,
           analyze_side_effects_free,
           pat,
-          unresolved_ctxt,
           comments,
           callees.as_deref_mut(),
         ) {
@@ -1352,14 +1332,9 @@ pub fn is_pure_pat<'a>(
     }
     Pat::Rest(_) => true,
     Pat::Invalid(_) | Pat::Assign(_) | Pat::Object(_) => false,
-    Pat::Expr(expr) => is_pure_expression(
-      parser,
-      analyze_side_effects_free,
-      expr,
-      unresolved_ctxt,
-      comments,
-      callees,
-    ),
+    Pat::Expr(expr) => {
+      is_pure_expression(parser, analyze_side_effects_free, expr, comments, callees)
+    }
   }
 }
 
@@ -1372,7 +1347,6 @@ fn is_side_effects_free_var_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   var_decl: &VarDecl,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   for declarator in &var_decl.decls {
@@ -1381,14 +1355,7 @@ fn is_side_effects_free_var_decl(
     }
 
     if let Some(init) = declarator.init.as_ref()
-      && !is_pure_expression(
-        parser,
-        analyze_side_effects_free,
-        init,
-        unresolved_ctxt,
-        comments,
-        None,
-      )
+      && !is_pure_expression(parser, analyze_side_effects_free, init, comments, None)
     {
       return false;
     }
@@ -1425,7 +1392,6 @@ fn is_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Stmt,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   if !stmt_may_have_side_effects(parser, stmt) {
@@ -1437,28 +1403,17 @@ fn is_side_effects_free_stmt(
       parser,
       analyze_side_effects_free,
       &expr_stmt.expr,
-      unresolved_ctxt,
       comments,
       None,
     ),
-    Stmt::Return(return_stmt) => return_stmt.arg.as_ref().is_none_or(|arg| {
-      is_pure_expression(
-        parser,
-        analyze_side_effects_free,
-        arg,
-        unresolved_ctxt,
-        comments,
-        None,
-      )
-    }),
+    Stmt::Return(return_stmt) => return_stmt
+      .arg
+      .as_ref()
+      .is_none_or(|arg| is_pure_expression(parser, analyze_side_effects_free, arg, comments, None)),
     Stmt::Decl(decl) => match &**decl {
-      Decl::Var(var_decl) => is_side_effects_free_var_decl(
-        parser,
-        analyze_side_effects_free,
-        var_decl,
-        unresolved_ctxt,
-        comments,
-      ),
+      Decl::Var(var_decl) => {
+        is_side_effects_free_var_decl(parser, analyze_side_effects_free, var_decl, comments)
+      }
       _ => false,
     },
     _ => false,
@@ -1470,17 +1425,10 @@ fn is_side_effects_free_block_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   block_stmt: &BlockStmt,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   for stmt in &block_stmt.stmts {
-    if !is_side_effects_free_stmt(
-      parser,
-      analyze_side_effects_free,
-      stmt,
-      unresolved_ctxt,
-      comments,
-    ) {
+    if !is_side_effects_free_stmt(parser, analyze_side_effects_free, stmt, comments) {
       return false;
     }
   }
@@ -1493,7 +1441,6 @@ fn is_side_effects_free_function_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   function: &Function,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   if !function
@@ -1505,13 +1452,7 @@ fn is_side_effects_free_function_body(
   }
 
   function.body.as_ref().is_none_or(|body| {
-    is_side_effects_free_block_stmt(
-      parser,
-      analyze_side_effects_free,
-      body,
-      unresolved_ctxt,
-      comments,
-    )
+    is_side_effects_free_block_stmt(parser, analyze_side_effects_free, body, comments)
   })
 }
 
@@ -1520,7 +1461,6 @@ fn is_side_effects_free_arrow_body(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   arrow_expr: &ArrowExpr,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
 ) -> bool {
   if !arrow_expr.params.iter().all(is_side_effects_free_param) {
@@ -1528,21 +1468,12 @@ fn is_side_effects_free_arrow_body(
   }
 
   match &arrow_expr.body {
-    BlockStmtOrExpr::BlockStmt(block_stmt) => is_side_effects_free_block_stmt(
-      parser,
-      analyze_side_effects_free,
-      block_stmt,
-      unresolved_ctxt,
-      comments,
-    ),
-    BlockStmtOrExpr::Expr(expr) => is_pure_expression(
-      parser,
-      analyze_side_effects_free,
-      expr,
-      unresolved_ctxt,
-      comments,
-      None,
-    ),
+    BlockStmtOrExpr::BlockStmt(block_stmt) => {
+      is_side_effects_free_block_stmt(parser, analyze_side_effects_free, block_stmt, comments)
+    }
+    BlockStmtOrExpr::Expr(expr) => {
+      is_pure_expression(parser, analyze_side_effects_free, expr, comments, None)
+    }
   }
 }
 
@@ -1550,7 +1481,6 @@ pub fn is_pure_function<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   function: &'a Function,
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1559,7 +1489,6 @@ pub fn is_pure_function<'a>(
       parser,
       analyze_side_effects_free,
       &param.pat,
-      unresolved_ctxt,
       comments,
       callees.as_deref_mut(),
     ) {
@@ -1574,7 +1503,6 @@ pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   expr: &'a Expr,
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1582,7 +1510,6 @@ pub fn is_pure_expression<'a>(
     parser: &mut JavascriptParser,
     analyze_side_effects_free: bool,
     expr: &'a Expr,
-    unresolved_ctxt: ScopeId,
     comments: &'a Comments<'a>,
     mut callees: Option<&mut Vec<(Atom, Span)>>,
   ) -> bool {
@@ -1591,21 +1518,17 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-      Expr::Call(_) => is_pure_call_expr(
+      Expr::Array(array_lit) => is_pure_array_lit(
         parser,
         analyze_side_effects_free,
-        expr,
-        unresolved_ctxt,
+        array_lit,
         comments,
-        callees,
+        callees.as_deref_mut(),
       ),
-      Expr::New(_) => is_pure_new_expr(
-        parser,
-        analyze_side_effects_free,
-        expr,
-        unresolved_ctxt,
-        comments,
-      ),
+      Expr::Call(_) => {
+        is_pure_call_expr(parser, analyze_side_effects_free, expr, comments, callees)
+      }
+      Expr::New(_) => is_pure_new_expr(parser, analyze_side_effects_free, expr, comments),
       Expr::Paren(_) => unreachable!(),
       Expr::Seq(seq_expr) => {
         for expr in &seq_expr.exprs {
@@ -1613,7 +1536,6 @@ pub fn is_pure_expression<'a>(
             parser,
             analyze_side_effects_free,
             expr,
-            unresolved_ctxt,
             comments,
             callees.as_deref_mut(),
           ) {
@@ -1632,14 +1554,7 @@ pub fn is_pure_expression<'a>(
       }
     }
   }
-  _is_pure_expression(
-    parser,
-    analyze_side_effects_free,
-    expr,
-    unresolved_ctxt,
-    comments,
-    callees,
-  )
+  _is_pure_expression(parser, analyze_side_effects_free, expr, comments, callees)
 }
 
 #[inline(never)]
@@ -1647,7 +1562,6 @@ pub fn is_pure_class_member<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   member: &'a ClassMember,
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1659,7 +1573,6 @@ pub fn is_pure_class_member<'a>(
       parser,
       analyze_side_effects_free,
       &computed.expr,
-      unresolved_ctxt,
       comments,
       callees.as_deref_mut(),
     ),
@@ -1680,7 +1593,6 @@ pub fn is_pure_class_member<'a>(
           parser,
           analyze_side_effects_free,
           value,
-          unresolved_ctxt,
           comments,
           callees.as_deref_mut(),
         )
@@ -1690,14 +1602,7 @@ pub fn is_pure_class_member<'a>(
     }
     ClassMember::PrivateProp(prop) => {
       if let Some(ref value) = prop.value {
-        is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          value,
-          unresolved_ctxt,
-          comments,
-          callees,
-        )
+        is_pure_expression(parser, analyze_side_effects_free, value, comments, callees)
       } else {
         true
       }
@@ -1717,7 +1622,6 @@ pub fn is_pure_decl(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   stmt: &Decl,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1726,19 +1630,11 @@ pub fn is_pure_decl(
       parser,
       analyze_side_effects_free,
       &class.class,
-      unresolved_ctxt,
       comments,
       callees,
     ),
     Decl::Fn(_) => true,
-    Decl::Var(var) => is_pure_var_decl(
-      parser,
-      analyze_side_effects_free,
-      var,
-      unresolved_ctxt,
-      comments,
-      callees,
-    ),
+    Decl::Var(var) => is_pure_var_decl(parser, analyze_side_effects_free, var, comments, callees),
     Decl::Using(_) => false,
   }
 }
@@ -1748,7 +1644,6 @@ pub fn is_pure_class(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   class: &Class,
-  unresolved_ctxt: ScopeId,
   comments: &Comments<'_>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1757,7 +1652,6 @@ pub fn is_pure_class(
       parser,
       analyze_side_effects_free,
       super_class,
-      unresolved_ctxt,
       comments,
       callees.as_deref_mut(),
     )
@@ -1774,7 +1668,6 @@ pub fn is_pure_class(
         parser,
         analyze_side_effects_free,
         &computed.expr,
-        unresolved_ctxt,
         comments,
         callees,
       ),
@@ -1789,7 +1682,6 @@ pub fn is_pure_class(
         parser,
         analyze_side_effects_free,
         &Expr::PrivateName(method.key.clone_in(parser.ast.allocator)),
-        unresolved_ctxt,
         comments,
         callees.as_deref_mut(),
       ),
@@ -1801,7 +1693,6 @@ pub fn is_pure_class(
                 parser,
                 analyze_side_effects_free,
                 value,
-                unresolved_ctxt,
                 comments,
                 callees.as_deref_mut(),
               )
@@ -1814,7 +1705,6 @@ pub fn is_pure_class(
           parser,
           analyze_side_effects_free,
           &Expr::PrivateName(prop.key.clone_in(parser.ast.allocator)),
-          unresolved_ctxt,
           comments,
           callees.as_deref_mut(),
         ) && (!prop.is_static
@@ -1823,7 +1713,6 @@ pub fn is_pure_class(
               parser,
               analyze_side_effects_free,
               value,
-              unresolved_ctxt,
               comments,
               callees.as_deref_mut(),
             )
@@ -1847,7 +1736,6 @@ fn is_pure_var_decl<'a>(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   var: &'a VarDecl,
-  unresolved_ctxt: ScopeId,
   comments: &'a Comments<'a>,
   mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
@@ -1857,7 +1745,6 @@ fn is_pure_var_decl<'a>(
         parser,
         analyze_side_effects_free,
         init,
-        unresolved_ctxt,
         comments,
         callees.as_deref_mut(),
       )

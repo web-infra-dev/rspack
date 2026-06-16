@@ -140,6 +140,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for AMDParserPlugin {
     &self,
     _parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {

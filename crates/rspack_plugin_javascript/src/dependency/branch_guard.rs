@@ -1,101 +1,145 @@
-use rspack_cacheable::{
-  cacheable,
-  with::{AsCacheable, AsVec},
-};
+use rspack_cacheable::{cacheable, with::AsCacheable};
 use rspack_core::{
   ConnectionState, Dependency, DependencyCondition, DependencyConditionFn, DependencyId,
-  EvaluatedInlinableValue, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
+  EvaluatedInlinableValue, ExportProvided, ExportsInfoArtifact, ExportsType, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
 };
 
 use super::{CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency};
+use crate::utils::eval::DependencyData;
 
 #[cacheable]
 #[derive(Debug, Clone)]
-pub enum DependencyBranchGuard {
-  ESMImportedBoolean {
-    dependency_id: DependencyId,
-    expected: bool,
-  },
-  ESMImportedBooleanExpression {
-    #[cacheable(with=AsVec<AsCacheable>)]
-    nodes: Vec<ESMImportedBooleanGuardNode>,
-    root: u32,
-  },
-}
+pub struct DependencyBranchGuard(#[cacheable(with=AsCacheable)] DependencyData);
 
-#[cacheable]
-#[derive(Debug, Clone)]
-pub enum ESMImportedBooleanGuardNode {
-  Constant(bool),
-  ESMImportedBoolean {
-    dependency_id: DependencyId,
-    expected: bool,
-  },
-  All {
-    left: u32,
-    right: u32,
-  },
-  Any {
-    left: u32,
-    right: u32,
-  },
-}
-
-#[cacheable]
-#[derive(Debug, Clone, Default)]
-pub struct DependencyBranchGuards {
-  // Multiple entries are accumulated from nested branch guards, so the top-level list is conjunctive.
-  // A single entry may contain its own expression tree for compound tests like `a && b` or `a || b`.
-  #[cacheable(with=AsVec<AsCacheable>)]
-  guards: Vec<DependencyBranchGuard>,
-}
-
-impl DependencyBranchGuards {
-  pub fn extend(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
-    self.guards.extend(guards);
+impl DependencyBranchGuard {
+  pub fn new(data: DependencyData) -> Self {
+    Self(data)
   }
 
-  fn is_empty(&self) -> bool {
-    self.guards.is_empty()
+  pub fn and(self, other: DependencyBranchGuard) -> Self {
+    Self(self.0.and(other.0))
   }
 
-  fn iter(&self) -> impl Iterator<Item = &DependencyBranchGuard> {
-    self.guards.iter()
+  pub fn bind_dependency(&self, dep: &mut dyn Dependency) {
+    if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
+      dep.set_branch_guard(self.clone());
+    } else if let Some(dep) = dep.downcast_mut::<ImportDependency>() {
+      dep.set_branch_guard(self.clone());
+    } else if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
+      dep.set_branch_guard(self.clone());
+    }
   }
 }
 
-pub fn set_dependency_branch_guards(dep: &mut dyn Dependency, guards: &[DependencyBranchGuard]) {
-  if guards.is_empty() {
-    return;
+pub fn is_dependency_export_presence_guarded(
+  guard: &DependencyBranchGuard,
+  dependency: &ESMImportSpecifierDependency,
+  module_graph: &ModuleGraph,
+) -> bool {
+  #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+  enum KnownValue {
+    Truthy,
+    Falsy,
   }
 
-  if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
-    dep.add_branch_guards(guards.iter().cloned());
-  } else if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
-    dep.add_branch_guards(guards.iter().cloned());
-  } else if let Some(dep) = dep.downcast_mut::<ImportDependency>() {
-    dep.add_branch_guards(guards.iter().cloned());
+  impl KnownValue {
+    fn negate(self) -> Self {
+      match self {
+        Self::Truthy => Self::Falsy,
+        Self::Falsy => Self::Truthy,
+      }
+    }
   }
+
+  fn dependency_guards_export_presence(
+    guard_dep: &DependencyId,
+    dependency: &ESMImportSpecifierDependency,
+    module_graph: &ModuleGraph,
+  ) -> bool {
+    let Some(guard_dep) = module_graph
+      .dependency_by_id(guard_dep)
+      .downcast_ref::<ESMImportSpecifierDependency>()
+    else {
+      return false;
+    };
+    if !guard_dep.evaluated_in_operator {
+      return false;
+    }
+    if module_graph.module_identifier_by_dependency_id(guard_dep.id())
+      != module_graph.module_identifier_by_dependency_id(dependency.id())
+    {
+      return false;
+    }
+    let guard_ids = guard_dep.get_ids(module_graph);
+    if guard_ids.is_empty() {
+      return false;
+    }
+    guard_ids == dependency.get_ids(module_graph)
+  }
+
+  fn implies_export_presence(
+    data: &DependencyData,
+    dependency: &ESMImportSpecifierDependency,
+    module_graph: &ModuleGraph,
+    known: KnownValue,
+  ) -> bool {
+    match data {
+      DependencyData::Dependency(guard_dep) => {
+        known == KnownValue::Truthy
+          && dependency_guards_export_presence(guard_dep, dependency, module_graph)
+      }
+      DependencyData::And(left, right) => match known {
+        // If `A && B` is truthy, both sides are truthy; either side can prove the export exists.
+        KnownValue::Truthy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Truthy)
+            || implies_export_presence(right, dependency, module_graph, KnownValue::Truthy)
+        }
+        // If `A && B` is falsy, at least one side is falsy; both falsy cases must prove it.
+        KnownValue::Falsy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Falsy)
+            && implies_export_presence(right, dependency, module_graph, KnownValue::Falsy)
+        }
+      },
+      DependencyData::Or(left, right) => match known {
+        // If `A || B` is truthy, only one side may be truthy; both truthy cases must prove it.
+        KnownValue::Truthy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Truthy)
+            && implies_export_presence(right, dependency, module_graph, KnownValue::Truthy)
+        }
+        // If `A || B` is falsy, both sides are falsy; either side can prove the export exists.
+        KnownValue::Falsy => {
+          implies_export_presence(left, dependency, module_graph, KnownValue::Falsy)
+            || implies_export_presence(right, dependency, module_graph, KnownValue::Falsy)
+        }
+      },
+      // If `!A` is known, reason about `A` with the opposite known value.
+      DependencyData::Not(data) => {
+        implies_export_presence(data, dependency, module_graph, known.negate())
+      }
+    }
+  }
+
+  implies_export_presence(&guard.0, dependency, module_graph, KnownValue::Truthy)
 }
 
 pub fn compose_dependency_condition(
   base: Option<DependencyCondition>,
-  branch_guards: Option<&DependencyBranchGuards>,
+  branch_guard: Option<&DependencyBranchGuard>,
 ) -> Option<DependencyCondition> {
-  let Some(branch_guards) = branch_guards.filter(|guards| !guards.is_empty()) else {
+  let Some(branch_guard) = branch_guard else {
     return base;
   };
 
   Some(DependencyCondition::new(BranchGuardDependencyCondition {
     base,
-    branch_guards: branch_guards.clone(),
+    branch_guard: branch_guard.clone(),
   }))
 }
 
 struct BranchGuardDependencyCondition {
   base: Option<DependencyCondition>,
-  branch_guards: DependencyBranchGuards,
+  branch_guard: DependencyBranchGuard,
 }
 
 impl DependencyConditionFn for BranchGuardDependencyCondition {
@@ -108,13 +152,17 @@ impl DependencyConditionFn for BranchGuardDependencyCondition {
     side_effects_state_artifact: &SideEffectsStateArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
   ) -> ConnectionState {
-    for condition in self.branch_guards.iter() {
-      if matches!(
-        resolve_branch_guard(condition, runtime, module_graph, exports_info_artifact),
-        Some(false)
-      ) {
-        return ConnectionState::Active(false);
-      }
+    if matches!(
+      resolve_branch_guard(
+        &self.branch_guard,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact
+      ),
+      Some(false)
+    ) {
+      return ConnectionState::Active(false);
     }
 
     if let Some(condition) = &self.base {
@@ -136,91 +184,49 @@ fn resolve_branch_guard(
   condition: &DependencyBranchGuard,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
-  match condition {
-    DependencyBranchGuard::ESMImportedBoolean {
-      dependency_id,
-      expected,
-    } => resolve_esm_imported_boolean_guard(
-      dependency_id,
-      *expected,
-      runtime,
-      module_graph,
-      exports_info_artifact,
-    ),
-    DependencyBranchGuard::ESMImportedBooleanExpression { nodes, root } => {
-      resolve_esm_imported_boolean_guard_expression(
-        nodes,
-        *root,
-        runtime,
-        module_graph,
-        exports_info_artifact,
-      )
-    }
-  }
+  resolve_dependency_data(
+    &condition.0,
+    runtime,
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+  )
 }
 
-fn resolve_esm_imported_boolean_guard_expression(
-  nodes: &[ESMImportedBooleanGuardNode],
-  root: u32,
+fn resolve_dependency_data(
+  data: &DependencyData,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
-  let node = nodes.get(root as usize)?;
-  match node {
-    ESMImportedBooleanGuardNode::Constant(value) => Some(*value),
-    ESMImportedBooleanGuardNode::ESMImportedBoolean {
+  match data {
+    DependencyData::Dependency(dependency_id) => resolve_esm_imported_boolean_guard(
       dependency_id,
-      expected,
-    } => resolve_esm_imported_boolean_guard(
-      dependency_id,
-      *expected,
       runtime,
       module_graph,
+      module_graph_cache,
       exports_info_artifact,
     ),
-    ESMImportedBooleanGuardNode::All { left, right } => {
-      let left = resolve_esm_imported_boolean_guard_expression(
-        nodes,
-        *left,
+    DependencyData::Or(left, right) => {
+      let left = resolve_dependency_data(
+        left,
         runtime,
         module_graph,
-        exports_info_artifact,
-      );
-      if matches!(left, Some(false)) {
-        return Some(false);
-      }
-      let right = resolve_esm_imported_boolean_guard_expression(
-        nodes,
-        *right,
-        runtime,
-        module_graph,
-        exports_info_artifact,
-      );
-      match (left, right) {
-        (Some(true), Some(true)) => Some(true),
-        (Some(false), _) | (_, Some(false)) => Some(false),
-        _ => None,
-      }
-    }
-    ESMImportedBooleanGuardNode::Any { left, right } => {
-      let left = resolve_esm_imported_boolean_guard_expression(
-        nodes,
-        *left,
-        runtime,
-        module_graph,
+        module_graph_cache,
         exports_info_artifact,
       );
       if matches!(left, Some(true)) {
         return Some(true);
       }
-      let right = resolve_esm_imported_boolean_guard_expression(
-        nodes,
-        *right,
+      let right = resolve_dependency_data(
+        right,
         runtime,
         module_graph,
+        module_graph_cache,
         exports_info_artifact,
       );
       match (left, right) {
@@ -229,19 +235,61 @@ fn resolve_esm_imported_boolean_guard_expression(
         _ => None,
       }
     }
+    DependencyData::And(left, right) => {
+      let left = resolve_dependency_data(
+        left,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      );
+      if matches!(left, Some(false)) {
+        return Some(false);
+      }
+      let right = resolve_dependency_data(
+        right,
+        runtime,
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+      );
+      match (left, right) {
+        (Some(true), Some(true)) => Some(true),
+        (Some(false), _) | (_, Some(false)) => Some(false),
+        _ => None,
+      }
+    }
+    DependencyData::Not(data) => resolve_dependency_data(
+      data,
+      runtime,
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    )
+    .map(|value| !value),
   }
 }
 
 fn resolve_esm_imported_boolean_guard(
   dependency_id: &DependencyId,
-  expected: bool,
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> Option<bool> {
   let dependency = module_graph
     .dependency_by_id(dependency_id)
     .downcast_ref::<ESMImportSpecifierDependency>()?;
+  if dependency.evaluated_in_operator {
+    return resolve_esm_imported_in_operator_guard(
+      dependency,
+      dependency_id,
+      module_graph,
+      module_graph_cache,
+      exports_info_artifact,
+    );
+  }
+
   let ids = dependency.get_ids(module_graph);
   if ids.is_empty() {
     return None;
@@ -255,7 +303,66 @@ fn resolve_esm_imported_boolean_guard(
   };
 
   match inlined.inlined_value() {
-    EvaluatedInlinableValue::Boolean(value) => Some(*value == expected),
+    EvaluatedInlinableValue::Boolean(value) => Some(*value),
     _ => None,
+  }
+}
+
+fn resolve_esm_imported_in_operator_guard(
+  dependency: &ESMImportSpecifierDependency,
+  dependency_id: &DependencyId,
+  module_graph: &ModuleGraph,
+  module_graph_cache: &ModuleGraphCacheArtifact,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> Option<bool> {
+  let ids = dependency.get_ids(module_graph);
+  let first = ids.first()?;
+  let module = module_graph.get_module_by_dependency_id(dependency_id)?;
+  let parent_module_identifier = module_graph.get_parent_module(dependency_id)?;
+  let parent_module = module_graph.module_by_identifier(parent_module_identifier)?;
+  let exports_info = exports_info_artifact.get_exports_info_data(&module.identifier());
+  let exports_type = module.get_exports_type(
+    module_graph,
+    module_graph_cache,
+    exports_info_artifact,
+    parent_module.build_meta().strict_esm_module,
+  );
+  let provided = match exports_type {
+    ExportsType::DefaultWithNamed => {
+      if first == "default" {
+        if ids.len() == 1 {
+          Some(ExportProvided::Provided)
+        } else {
+          exports_info.is_export_provided(exports_info_artifact, &ids[1..])
+        }
+      } else {
+        exports_info.is_export_provided(exports_info_artifact, ids)
+      }
+    }
+    ExportsType::Namespace => {
+      if first == "__esModule" {
+        if ids.len() == 1 {
+          Some(ExportProvided::Provided)
+        } else {
+          None
+        }
+      } else {
+        exports_info.is_export_provided(exports_info_artifact, ids)
+      }
+    }
+    ExportsType::Dynamic => {
+      if first != "default" {
+        exports_info.is_export_provided(exports_info_artifact, ids)
+      } else {
+        None
+      }
+    }
+    ExportsType::DefaultOnly => None,
+  }?;
+
+  match provided {
+    ExportProvided::Provided => Some(true),
+    ExportProvided::NotProvided => Some(false),
+    ExportProvided::Unknown => None,
   }
 }
