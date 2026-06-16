@@ -22,11 +22,14 @@ impl Analyzer for WatcherRootAnalyzer {
     let (_, added_directories, removed_directories) = path_accessor.directories();
     let (_, added_missing, removed_missing) = path_accessor.missing();
 
-    self.path_tree.update_paths(added_files, removed_files);
-    self
-      .path_tree
-      .update_paths(added_directories, removed_directories);
-    self.path_tree.update_paths(added_missing, removed_missing);
+    // [FIX ①] Cancel cross-set migration: union the three sets' added/removed,
+    // then update with adds-removes / removes-adds, so a path migrating
+    // missing->directory in one cycle is not deleted by the stray removed.
+    let adds = union3(added_files, added_directories, added_missing);
+    let removes = union3(removed_files, removed_directories, removed_missing);
+    let added = difference(&adds, &removes);
+    let removed = difference(&removes, &adds);
+    self.path_tree.update_paths(&added, &removed);
 
     let common_root = self.path_tree.find_common_root();
 
@@ -38,6 +41,28 @@ impl Analyzer for WatcherRootAnalyzer {
       None => vec![],
     }
   }
+}
+
+/// Union of three path sets into a fresh set.
+fn union3(a: &ArcPathDashSet, b: &ArcPathDashSet, c: &ArcPathDashSet) -> ArcPathDashSet {
+  let out = ArcPathDashSet::default();
+  for set in [a, b, c] {
+    for path in set.iter() {
+      out.insert(path.deref().clone());
+    }
+  }
+  out
+}
+
+/// Set difference `a - b` into a fresh set.
+fn difference(a: &ArcPathDashSet, b: &ArcPathDashSet) -> ArcPathDashSet {
+  let out = ArcPathDashSet::default();
+  for path in a.iter() {
+    if !b.contains(path.deref()) {
+      out.insert(path.deref().clone());
+    }
+  }
+  out
 }
 
 #[derive(Debug, Default)]
@@ -58,17 +83,16 @@ impl PathTree {
   }
 
   fn find_common_root_recursive(&self, path: ArcPath, depth: usize) -> ArcPath {
-    // [FIX] The disk watcher can only subscribe to an existing path. Tree paths
-    // may be missing/orphaned, so fall back to the nearest existing ancestor
-    // instead of panicking. Dump kept so CI shows whether the forest is gone.
+    let node = self
+      .inner
+      .get(&path)
+      .expect("Path should exist in the tree");
+    // [DEBUG] With fix ① the tree stays connected and this never fires; if it
+    // does, dump the tree right before the original assert so CI shows why.
     if !path.exists() {
       self.debug_dump(&path, depth);
-      return Self::nearest_existing_ancestor(path);
     }
-
-    let Some(node) = self.inner.get(&path) else {
-      return path;
-    };
+    assert!(path.exists(), "Path should exist");
 
     if let Some(child) = node
       .only_child()
@@ -79,16 +103,6 @@ impl PathTree {
     } else {
       path // Return the current path if it has no single child
     }
-  }
-
-  fn nearest_existing_ancestor(mut path: ArcPath) -> ArcPath {
-    while !path.exists() {
-      let Some(parent) = path.parent().map(ArcPath::from) else {
-        break;
-      };
-      path = parent;
-    }
-    path
   }
 
   fn parent_in_tree(&self, path: &ArcPath) -> Option<bool> {
@@ -170,19 +184,9 @@ impl PathTree {
   }
 
   pub fn remove_path(&self, path: &ArcPath) {
-    // [FIX] A node that still has children is an ancestor of other watched
-    // paths; deleting it orphans them into a disconnected subtree (the root
-    // cause of the Windows `find_root` panic). Keep it until its last child goes.
-    if self
-      .inner
-      .get(path)
-      .is_some_and(|node| !node.children.is_empty())
-    {
-      return;
-    }
     self.inner.remove(path);
-    // Detach from the PARENT's child set (the old code removed `path` from its
-    // own set, leaving a stale child reference on the parent).
+    // [FIX ③] Detach from the PARENT's child set (the old code removed `path`
+    // from its own set, a no-op, leaving a stale child reference on the parent).
     if let Some(parent) = path.parent().map(ArcPath::from)
       && let Some(parent_node) = self.inner.get(&parent)
     {
