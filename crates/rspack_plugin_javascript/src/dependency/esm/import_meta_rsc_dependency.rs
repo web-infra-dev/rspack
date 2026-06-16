@@ -136,7 +136,7 @@ impl ImportMetaRscDependencyTemplate {
 //
 // var __rspack_import_meta_rsc__ = {
 //   loadCss: function() {
-//     return ((__webpack_require__.rscM.entryCssFiles["/path/to/component.js"] || []).map(...));
+//     return ((__rspack_require.rscM.entryCssFiles["/path/to/component.js"] || []).map(...));
 //   }
 // };
 //
