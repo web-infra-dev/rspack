@@ -9,7 +9,7 @@ module.exports = {
       "utf-8",
     );
 
-    expect(source).toContain("__rspack_context.rstest_original_modules || {}");
+    expect(source).toContain("__rspack_require.rstest_original_modules || {}");
     expect(source).not.toContain("__webpack_require__.rstest_original_modules");
   },
 };

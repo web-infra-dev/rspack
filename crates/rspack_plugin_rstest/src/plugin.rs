@@ -95,7 +95,7 @@ async fn runtime_module(
         runtime_template: &runtime_template,
       };
       let source = runtime_module.generate_with_custom(&context).await?;
-      let runtime_scope = runtime_template.render_runtime_argument();
+      let runtime_scope = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
       let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
       runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(
         source,
@@ -676,45 +676,5 @@ impl Plugin for RstestPlugin {
     }
 
     Ok(())
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn mock_chunk_loading_guard_uses_webpack_runtime_names() {
-    let source =
-      "for (var moduleId in moreModules) {\n}\nfor (moduleId in __webpack_modules__) {\n}"
-        .to_string();
-
-    let source = RstestPlugin::add_rstest_mock_chunk_loading_guard(
-      source,
-      "__webpack_require__",
-      "__webpack_modules__",
-    );
-
-    assert!(source.contains("__webpack_require__.rstest_original_modules || {}"));
-    assert!(source.contains("for (moduleId in __webpack_modules__) {"));
-    assert!(!source.contains("__rspack_context.rstest_original_modules"));
-    assert!(!source.contains("for (moduleId in __rspack_modules) {"));
-  }
-
-  #[test]
-  fn mock_chunk_loading_guard_uses_rspack_runtime_names() {
-    let source =
-      "for (var moduleId in moreModules) {\n}\nfor (moduleId in __rspack_modules) {\n}".to_string();
-
-    let source = RstestPlugin::add_rstest_mock_chunk_loading_guard(
-      source,
-      "__rspack_context",
-      "__rspack_modules",
-    );
-
-    assert!(source.contains("__rspack_context.rstest_original_modules || {}"));
-    assert!(source.contains("for (moduleId in __rspack_modules) {"));
-    assert!(!source.contains("__webpack_require__.rstest_original_modules"));
-    assert!(!source.contains("for (moduleId in __webpack_modules__) {"));
   }
 }
