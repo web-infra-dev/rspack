@@ -8,6 +8,7 @@ pub mod parser_and_generator;
 mod parser_plugin;
 mod plugin;
 pub mod runtime;
+mod runtime_context;
 pub mod utils;
 pub mod visitors;
 pub use magic_comment::{RspackCommentMap, try_extract_magic_comment};

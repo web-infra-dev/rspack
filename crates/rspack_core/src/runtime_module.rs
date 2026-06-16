@@ -35,19 +35,20 @@ pub trait RuntimeModule:
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String>;
-  async fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate_with_custom(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
       Ok(custom_source)
     } else {
-      let runtime_template = compilation.runtime_template.create_runtime_code_template();
-      let context = RuntimeModuleGenerateContext {
-        compilation,
-        runtime_template: &runtime_template,
-      };
-      self.generate(&context).await
+      self.generate(context).await
     }
   }
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::default()
+  }
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::default()
   }
 }

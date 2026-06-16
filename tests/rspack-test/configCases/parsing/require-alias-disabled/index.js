@@ -28,12 +28,15 @@ it("should NOT rename require when requireAlias is false", function () {
 
 	const content = fs.readFileSync(path.join(__dirname, "./bundle0.js"), "utf-8");
 	const filename = "./file";
-	const requireName = "__webpack_require__(641)";
 	const ok = "ok";
 
 	expect(content).toContain(`cjsRequire("${filename}")`);
 	expect(content).toContain(`cjsRequire2("${filename}")`);
 	expect(content).toContain(`cjsRequire3("${filename}")`);
-	expect(content).toContain(`var cjsRequire = ${requireName}, cjsRequire2 =  true && ${requireName};`);
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		expect(content).toContain(`var cjsRequire = __rspack_context.r(641), cjsRequire2 =  true && __rspack_context.r(641);`);
+	} else {
+		expect(content).toContain(`var cjsRequire = __webpack_require__(641), cjsRequire2 =  true && __webpack_require__(641);`);
+	}
 	expect(content).not.toContain(`module.exports = "${ok}";`);
 });

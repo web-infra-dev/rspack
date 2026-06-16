@@ -1753,7 +1753,13 @@ impl JavascriptParser<'_> {
         && expr_name
           .root_info
           .call_hooks_name(self, |parser, for_name| {
-            drive.assign_member_chain(parser, expr, &expr_name.members, for_name)
+            drive.assign_member_chain(
+              parser,
+              expr,
+              &expr_name.members,
+              &expr_name.member_ranges,
+              for_name,
+            )
           })
           .unwrap_or_default()
       {

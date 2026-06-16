@@ -324,10 +324,11 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
     parser: &mut JavascriptParser<'p>,
     expr: &AssignExpr,
     members: &[Atom],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::AssignMemberChain) {
-      let res = plugin.assign_member_chain(parser, expr, members, for_name);
+      let res = plugin.assign_member_chain(parser, expr, members, member_ranges, for_name);
       // `SyncBailHook`
       if res.is_some() {
         return res;
@@ -550,6 +551,22 @@ impl<'p: 'a, 'a> JavascriptParserPlugin<'p, 'a> for JavaScriptParserPluginDrive 
   ) -> Option<BasicEvaluatedExpression<'a>> {
     for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateTypeof) {
       let res = plugin.evaluate_typeof(parser, expr, for_name);
+      // `SyncBailHook`
+      if res.is_some() {
+        return res;
+      }
+    }
+    None
+  }
+
+  fn evaluate_binary_expression(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a BinExpr<'a>,
+    left: &BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>> {
+    for plugin in self.plugins_for(JavascriptParserPluginHook::EvaluateBinaryExpression) {
+      let res = plugin.evaluate_binary_expression(parser, expr, left);
       // `SyncBailHook`
       if res.is_some() {
         return res;

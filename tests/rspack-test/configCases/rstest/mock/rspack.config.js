@@ -85,7 +85,11 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
       __webpack_exports__,
       __webpack_require__,
     ) {
-      __webpack_require__.r(__webpack_exports__);
+      if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+        __webpack_require__.N(__webpack_exports__);
+      } else {
+        __webpack_require__.r(__webpack_exports__);
+      }
       const res = modFactory();
       for (const key in res) {
         __webpack_require__.d(__webpack_exports__, {
@@ -114,7 +118,11 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
     const exports = modFactory();
-    __webpack_require__.r(exports);
+    if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+      __rspack_context.N(exports);
+    } else {
+      __webpack_require__.r(exports);
+    }
     __webpack_module_cache__[id] = { exports, id, loaded: true };
   }
 };

@@ -36,7 +36,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 pub use runtime_requirements_dependency::{
-  RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
+  RuntimeRequirementsDependencyTemplate,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
