@@ -18,8 +18,7 @@ const runCompiler = (context, cacheDirectory, name, version) =>
 				storage: {
 					type: "filesystem",
 					directory: cacheDirectory,
-					maxAge: 1,
-					maxGenerations: 10
+					maxAge: 1
 				}
 			}
 		});

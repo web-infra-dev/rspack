@@ -2,13 +2,14 @@ mod db;
 mod meta;
 mod options;
 mod scope_fs;
+mod task_queue;
 
 use std::sync::{Arc, Mutex};
 
 use rustc_hash::FxHashMap as HashMap;
 
 pub use self::options::FileSystemOptions;
-use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem};
+use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
 use crate::{Result, Storage};
 
 /// Type alias for in-memory update changes: key -> optional_value
@@ -26,11 +27,13 @@ async fn refresh_metadata(
     return;
   }
 
+  // Missing metadata is normal for a newly-created cache scope.
   let mut meta = match Meta::load(&fs).await {
     Ok(meta) => meta,
     Err(error) if error.is_not_found() => Meta::default(),
     Err(_) => return,
   };
+  // Generation cleanup needs the current compiler scope's version directories.
   let versions = if max_generations.is_some() {
     fs.list_child().await.unwrap_or_default()
   } else {
@@ -46,6 +49,8 @@ async fn refresh_metadata(
     return;
   }
 
+  // Persist metadata before deleting directories so concurrent refreshes can
+  // recover even if removal is interrupted.
   for version in removed_versions {
     let _ = fs.child_fs(&version).remove().await;
   }
@@ -59,6 +64,8 @@ pub struct FileSystemStorage {
   fs: ScopeFileSystem,
   /// Underlying database responsible for pack file read/write
   db: DB,
+  /// Sequential queue for filesystem writes and follow-up maintenance
+  task_queue: TaskQueue,
   /// In-memory staged update operations, grouped by scope
   /// Value of Some(value) indicates write, None indicates deletion
   updates: HashMap<String, BucketChangesMap>,
@@ -71,11 +78,14 @@ pub struct FileSystemStorage {
 impl FileSystemStorage {
   /// Creates a new file system storage instance
   pub fn new(options: FileSystemOptions) -> Self {
+    // All metadata and DB operations are scoped to the current compiler, so
+    // cleanup never touches cache entries owned by another compiler.
     let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone())
       .child_fs(&options.compiler_scope);
 
     Self {
       db: DB::new(fs.child_fs(&options.version)),
+      task_queue: TaskQueue::default(),
       updates: Default::default(),
       next_meta_refresh_time: Default::default(),
       fs,
@@ -105,46 +115,39 @@ impl Storage for FileSystemStorage {
     // Take all pending updates and clear the memory buffer
     let updates = std::mem::take(&mut self.updates);
 
-    // Enqueue the write to the background task queue; errors are reported internally.
-    // Call flush() to wait until the write has fully completed.
-    self.db.save(
-      updates
-        .into_iter()
-        .map(|(k, v)| (k, v.into_iter().collect()))
-        .collect(),
-      self.options.max_pack_size,
-    );
+    // Queue the write and metadata refresh together so cleanup observes the
+    // latest version without blocking `save()`.
+    let db = self.db.clone();
+    let changes = updates
+      .into_iter()
+      .map(|(k, v)| (k, v.into_iter().collect()))
+      .collect();
+    let max_pack_size = self.options.max_pack_size;
+    let fs = self.fs.clone();
+    let version = self.options.version.clone();
+    let expire = self.options.expire;
+    let max_generations = self.options.max_generations;
+    let next_meta_refresh_time = self.next_meta_refresh_time.clone();
 
-    if self.options.max_generations.is_none() {
-      tokio::spawn(refresh_metadata(
-        self.fs.clone(),
-        self.options.version.clone(),
-        self.options.expire,
-        None,
-        self.next_meta_refresh_time.clone(),
-      ));
-    }
+    self.task_queue.add_task(async move {
+      if db.save(changes, max_pack_size).await {
+        refresh_metadata(fs, version, expire, max_generations, next_meta_refresh_time).await;
+      }
+    });
   }
 
   fn reset(&mut self, scope: &'static str) {
     // Discard any pending writes for this scope so they don't race with the reset
     self.updates.remove(scope);
-    // Enqueue the directory deletion immediately into the task queue
-    self.db.reset(scope);
+    // Queue the directory deletion so it is sequenced with saves.
+    let db = self.db.clone();
+    self.task_queue.add_task(async move {
+      db.reset(scope).await;
+    });
   }
 
   async fn flush(&self) {
-    self.db.flush().await;
-    if self.options.max_generations.is_some() && !self.db.is_readonly() {
-      refresh_metadata(
-        self.fs.clone(),
-        self.options.version.clone(),
-        self.options.expire,
-        self.options.max_generations,
-        self.next_meta_refresh_time.clone(),
-      )
-      .await;
-    }
+    self.task_queue.flush().await;
   }
 
   async fn scopes(&self) -> Result<Vec<String>> {

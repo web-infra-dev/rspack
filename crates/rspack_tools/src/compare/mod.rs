@@ -47,6 +47,7 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
     return storages;
   };
 
+  // Cache directories are laid out as `<compiler_scope>/<version>`.
   for compiler_scope in compiler_scopes {
     if compiler_scope.starts_with(['.', '_']) {
       continue;

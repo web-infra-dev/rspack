@@ -149,6 +149,10 @@ impl PersistentCache {
   }
 }
 
+/// Stable directory name for compiler-local filesystem cache.
+///
+/// Portable cache intentionally omits `context`, so moving the same project to
+/// another directory keeps using the same compiler cache scope.
 fn compiler_cache_scope(
   context: Option<&str>,
   compiler_path: &str,

@@ -7,8 +7,12 @@ use crate::{Error, Result};
 
 /// Metadata for tracking last access times of all DB versions.
 ///
-/// The two-column `_meta` format is shared with older Rspack releases and must
-/// remain backward compatible.
+/// Each compiler cache scope has its own `_meta` file. The file uses a
+/// two-column line format:
+/// ```text
+/// version1 timestamp1
+/// version2 timestamp2
+/// ```
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct Meta {
   /// Map of DB version -> last access timestamp (seconds since UNIX_EPOCH)
@@ -72,6 +76,10 @@ impl Meta {
   }
 
   /// Updates the active version and removes versions rejected by age or generation limits.
+  ///
+  /// Returns `(removed_versions, next_check_time)`.
+  /// - `removed_versions`: version directories that should be deleted.
+  /// - `next_check_time`: the earliest time the metadata needs another refresh.
   pub async fn refresh(
     &mut self,
     active_version: &str,
@@ -86,6 +94,8 @@ impl Meta {
     let mut removed_versions = vec![];
 
     if expire_seconds != 0 {
+      // Check again after roughly a quarter of the configured max age, unless
+      // an existing version expires earlier.
       next_check_time = now + (expire_seconds >> 2);
       self.access_times.retain(|version, time| {
         let expiry_time = *time + expire_seconds;
@@ -101,6 +111,8 @@ impl Meta {
     }
 
     if let Some(max_generations) = max_generations {
+      // `versions` is already scoped to the current compiler cache directory,
+      // so every non-hidden, non-active entry is a generation candidate.
       let mut candidates = versions
         .iter()
         .filter(|version| version.as_str() != active_version && !version.starts_with(['_', '.']))

@@ -6,7 +6,8 @@ use rspack_paths::Utf8PathBuf;
 /// File system storage configuration options
 #[derive(Debug)]
 pub struct FileSystemOptions {
-  /// Storage root directory path (contains compiler-scoped cache directories)
+  /// Storage root directory path. Filesystem cache entries are stored under
+  /// `<directory>/<compiler_scope>/<version>`.
   pub directory: Utf8PathBuf,
   /// Compiler-scoped cache directory name
   pub compiler_scope: String,
