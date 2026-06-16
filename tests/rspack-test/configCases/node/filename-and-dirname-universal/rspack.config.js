@@ -1,16 +1,10 @@
 'use strict';
 
-const node = {
-  __dirname: 'eval-only',
-  __filename: 'eval-only',
-};
-
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = [
   {
     name: 'web',
     target: ['node', 'web'],
-    node,
     output: {
       module: true,
     },
@@ -18,7 +12,6 @@ module.exports = [
   {
     name: 'node',
     target: ['node', 'web'],
-    node,
     output: {
       module: true,
     },
@@ -27,7 +20,6 @@ module.exports = [
     name: 'web',
     devtool: 'eval',
     target: ['node', 'web'],
-    node,
     output: {
       module: true,
     },
@@ -36,7 +28,6 @@ module.exports = [
     name: 'node',
     devtool: 'eval',
     target: ['node', 'web'],
-    node,
     output: {
       module: true,
     },

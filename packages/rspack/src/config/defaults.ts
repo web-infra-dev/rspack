@@ -1086,24 +1086,20 @@ const applyNodeDefaults = (
     if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
-  F(node, '__dirname', () => {
-    if (
-      targetProperties &&
-      (targetProperties.node ||
-        (outputModule && targetProperties.node === null))
-    )
-      return outputModule ? 'node-module' : 'eval-only';
+  const handlerForNames = () => {
+    if (targetProperties) {
+      if (targetProperties.node) return 'eval-only';
+      if (
+        outputModule &&
+        targetProperties.node === null &&
+        targetProperties.web === null
+      )
+        return 'eval-only';
+    }
     return 'warn-mock';
-  });
-  F(node, '__filename', () => {
-    if (
-      targetProperties &&
-      (targetProperties.node ||
-        (outputModule && targetProperties.node === null))
-    )
-      return outputModule ? 'node-module' : 'eval-only';
-    return 'warn-mock';
-  });
+  };
+  F(node, '__dirname', handlerForNames);
+  F(node, '__filename', handlerForNames);
 };
 
 const applyPerformanceDefaults = (
