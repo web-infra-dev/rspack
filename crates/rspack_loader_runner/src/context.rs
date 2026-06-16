@@ -42,7 +42,7 @@ pub struct LoaderContext<Context: Send> {
   pub parse_meta: ParseMeta,
 
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap<'static>>,
+  pub(crate) source_map: Option<Box<SourceMap<'static>>>,
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
@@ -124,7 +124,7 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn source_map(&self) -> Option<&SourceMap<'static>> {
-    self.source_map.as_ref()
+    self.source_map.as_deref()
   }
 
   pub fn additional_data(&self) -> Option<&AdditionalData> {
@@ -136,7 +136,7 @@ impl<Context: Send> LoaderContext<Context> {
   }
 
   pub fn take_source_map(&mut self) -> Option<SourceMap<'static>> {
-    self.source_map.take()
+    self.source_map.take().map(|source_map| *source_map)
   }
 
   pub fn take_additional_data(&mut self) -> Option<AdditionalData> {
@@ -152,7 +152,7 @@ impl<Context: Send> LoaderContext<Context> {
   ) {
     (
       self.content.take(),
-      self.source_map.take(),
+      self.take_source_map(),
       self.additional_data.take(),
     )
   }
@@ -178,7 +178,7 @@ impl<Context: Send> LoaderContext<Context> {
   pub fn __finish_with(&mut self, patch: impl Into<LoaderPatch>) {
     let patch = patch.into();
     self.content = patch.content;
-    self.source_map = patch.source_map;
+    self.source_map = patch.source_map.map(Box::new);
     self.additional_data = patch.additional_data;
   }
 }

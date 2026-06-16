@@ -41,7 +41,7 @@ async fn process_resource<Context: Send>(
       .await?
   {
     loader_context.content = Some(content);
-    loader_context.source_map = source_map;
+    loader_context.source_map = source_map.map(Box::new);
     loader_context.file_dependencies.extend(file_dependencies);
     return Ok(());
   }
@@ -220,7 +220,7 @@ pub struct LoaderResult<Context> {
   pub build_dependencies: HashSet<PathBuf>,
   pub diagnostics: Vec<Diagnostic>,
   pub content: Content,
-  pub source_map: Option<SourceMap<'static>>,
+  pub source_map: Option<Box<SourceMap<'static>>>,
   pub additional_data: Option<AdditionalData>,
   pub parse_meta: ParseMeta,
   pub current_loader: Option<Utf8PathBuf>,

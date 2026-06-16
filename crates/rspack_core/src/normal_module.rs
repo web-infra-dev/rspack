@@ -504,7 +504,10 @@ impl Module for NormalModule {
     } else {
       Content::String(loader_result.content.into_string_lossy())
     };
-    let source = self.create_source(content, loader_result.source_map)?;
+    let source = self.create_source(
+      content,
+      loader_result.source_map.map(|source_map| *source_map),
+    )?;
 
     self.build_info.cacheable = loader_result.cacheable;
     self.build_info.file_dependencies = loader_result
