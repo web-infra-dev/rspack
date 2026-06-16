@@ -1,4 +1,4 @@
-use core::str;
+use core::{mem::size_of, str};
 use std::{
   borrow::{BorrowMut, Cow},
   cell::{OnceCell, RefCell},
@@ -387,11 +387,7 @@ impl<'a> Iterator for PotentialTokens<'a> {
     let bytes = self.text.as_bytes();
     let mut split_idx = bytes.len();
 
-    let primary = memchr::memchr3(b'\n', b';', b'{', bytes);
-    let limit = primary.unwrap_or(bytes.len());
-    let closing_brace = memchr::memchr(b'}', &bytes[..limit]);
-
-    if let Some(boundary) = closing_brace.or(primary) {
+    if let Some(boundary) = find_potential_token_boundary(bytes) {
       split_idx = boundary;
 
       for &b in &bytes[boundary..] {
@@ -411,6 +407,80 @@ impl<'a> Iterator for PotentialTokens<'a> {
 
     Some(text)
   }
+}
+
+#[inline]
+fn is_potential_token_boundary_byte(b: u8) -> bool {
+  matches!(b, b'\n' | b';' | b'{' | b'}')
+}
+
+#[inline]
+fn repeat_byte(byte: u8) -> usize {
+  (usize::MAX / 0xff) * byte as usize
+}
+
+#[inline]
+fn contains_zero_byte(word: usize) -> bool {
+  const LOW_BITS: usize = usize::MAX / 0xff;
+  const HIGH_BITS: usize = LOW_BITS * 0x80;
+
+  word.wrapping_sub(LOW_BITS) & !word & HIGH_BITS != 0
+}
+
+#[inline]
+fn contains_byte(word: usize, byte: u8) -> bool {
+  contains_zero_byte(word ^ repeat_byte(byte))
+}
+
+#[inline]
+fn contains_potential_token_boundary(word: usize) -> bool {
+  contains_byte(word, b'\n')
+    || contains_byte(word, b';')
+    || contains_byte(word, b'{')
+    || contains_byte(word, b'}')
+}
+
+fn find_potential_token_boundary(bytes: &[u8]) -> Option<usize> {
+  const WORD_SIZE: usize = size_of::<usize>();
+  // Short tokens are faster with memchr's tuned 3-byte search plus a bounded
+  // search for `}`. Only switch to the single-pass SWAR scan for long spans
+  // where avoiding the second scan pays for the extra per-word checks.
+  const SWAR_MIN_LEN: usize = 128;
+
+  if bytes.len() < SWAR_MIN_LEN {
+    return find_potential_token_boundary_with_memchr(bytes);
+  }
+
+  let mut offset = 0;
+  while offset + WORD_SIZE <= bytes.len() {
+    // SAFETY: `offset + WORD_SIZE <= bytes.len()` guarantees a fully
+    // initialized word-sized range. Unaligned reads are intentional here
+    // because source bytes are not guaranteed to be word-aligned.
+    #[allow(unsafe_code)]
+    let word = unsafe { bytes.as_ptr().add(offset).cast::<usize>().read_unaligned() };
+    if contains_potential_token_boundary(word) {
+      return bytes[offset..offset + WORD_SIZE]
+        .iter()
+        .position(|&b| is_potential_token_boundary_byte(b))
+        .map(|pos| offset + pos);
+    }
+
+    offset += WORD_SIZE;
+  }
+
+  bytes[offset..]
+    .iter()
+    .position(|&b| is_potential_token_boundary_byte(b))
+    .map(|pos| offset + pos)
+}
+
+#[inline]
+fn find_potential_token_boundary_with_memchr(bytes: &[u8]) -> Option<usize> {
+  let primary = memchr::memchr3(b'\n', b';', b'{', bytes);
+  let limit = primary.unwrap_or(bytes.len());
+  let closing_brace = memchr::memchr(b'}', &bytes[..limit]);
+
+  closing_brace.or(primary)
 }
 
 // /[^\n;{}]+[;{} \r\t]*\n?|[;{} \r\t]+\n?|\n/g
@@ -1761,5 +1831,17 @@ mod tests {
   fn test_split_into_potential_tokens_ascii_boundaries() {
     let tokens = split_into_potential_tokens("\nfoo();\nbar { baz }\n{};\n").collect::<Vec<_>>();
     assert_eq!(tokens, vec!["\n", "foo();\n", "bar { ", "baz }\n", "{};\n"]);
+  }
+
+  #[test]
+  fn test_split_into_potential_tokens_preserves_boundary_priority() {
+    let tokens = split_into_potential_tokens("foo{bar}baz;\n} qux").collect::<Vec<_>>();
+    assert_eq!(tokens, vec!["foo{", "bar}", "baz;\n", "} ", "qux"]);
+
+    let tokens = split_into_potential_tokens("identifier").collect::<Vec<_>>();
+    assert_eq!(tokens, vec!["identifier"]);
+
+    let tokens = split_into_potential_tokens("; {}\t\r\nnext").collect::<Vec<_>>();
+    assert_eq!(tokens, vec!["; {}\t\r\n", "next"]);
   }
 }

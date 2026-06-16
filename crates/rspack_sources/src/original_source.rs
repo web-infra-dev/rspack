@@ -39,14 +39,18 @@ use crate::{
 pub struct OriginalSource {
   value: Box<str>,
   name: Box<str>,
+  is_ascii: bool,
 }
 
 impl OriginalSource {
   /// Create a [OriginalSource].
   pub fn new(value: impl Into<Box<str>>, name: impl Into<Box<str>>) -> Self {
+    let value = value.into();
+    let is_ascii = value.is_ascii();
     Self {
-      value: value.into(),
+      value,
       name: name.into(),
+      is_ascii,
     }
   }
 
@@ -144,7 +148,11 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
     _on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
-    let source = TextSpan::new(self.0.value.as_ref());
+    let source = if self.0.is_ascii {
+      TextSpan::with_known(self.0.value.as_ref(), true)
+    } else {
+      TextSpan::new(self.0.value.as_ref())
+    };
     if options.columns {
       // With column info we need to read all lines and split them
       let mut line = 1;
