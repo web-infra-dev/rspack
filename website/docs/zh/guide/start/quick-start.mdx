@@ -34,20 +34,23 @@ Rspack 支持使用 [Node.js](https://nodejs.org/)、[Deno](https://deno.com/) �
 
 :::
 
-> [!DETAILS] 针对不支持的平台
-> 如果你在使用不支持的平台，请手动安装 `@rspack/binding-wasm32-wasi` 包作为备用（fallback）方案。WebAssembly (Wasm) 构建版本可以在任何平台上运行。
-> 
-> 当前支持的平台：
-> - `darwin-arm64`
-> - `darwin-x64`
-> - `linux-arm64-gnu`
-> - `linux-arm64-musl`
-> - `linux-x64-gnu`
-> - `linux-x64-musl`
-> - `win32-arm64-msvc`
-> - `win32-ia32-msvc`
-> - `win32-x64-msvc`
+:::details 针对不支持的平台
 
+如果您正在使用小众平台，rspack 可能没有提供针对该平台的原生支持，此时请手动安装 `@rspack/binding-wasm32-wasi` 作为备用（fallback）方案。WebAssembly（Wasm）版本可以在任何平台上运行，因此可作为通用替代方案使用。
+
+当前支持的平台：
+
+- `darwin-arm64`
+- `darwin-x64`
+- `linux-arm64-gnu`
+- `linux-arm64-musl`
+- `linux-x64-gnu`
+- `linux-x64-musl`
+- `win32-arm64-msvc`
+- `win32-ia32-msvc`
+- `win32-x64-msvc`
+
+:::
 
 ## 创建新项目
 
