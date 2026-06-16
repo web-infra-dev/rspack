@@ -1,6 +1,6 @@
 const path = require("path");
 const { describeByWalk, createNativeWatcher } = require("@rspack/test-tools");
-const tempDir = path.resolve(__dirname, `./js/native-watcher/temp`);
+const tempDir = path.resolve(__dirname, `./js/temp`);
 
 // Part 2: Test cases starting with cp-p (9 dirs, 28.1%)
 describeByWalk(
