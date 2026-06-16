@@ -13,7 +13,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{queue::Queue, swc::join_atom};
+use rspack_util::{atom::Atom, queue::Queue};
 use rustc_hash::FxHashMap as HashMap;
 
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, Option<RuntimeSpec>, bool);
@@ -27,7 +27,7 @@ enum ModuleOrAsyncDependenciesBlock {
 
 #[derive(Debug, Clone)]
 enum ProcessModuleReferencedExports {
-  Map(HashMap<String, ExtendedReferencedExport>),
+  Map(HashMap<Vec<Atom>, ExtendedReferencedExport>),
   ExtendRef(Vec<ExtendedReferencedExport>),
 }
 #[allow(unused)]
@@ -214,7 +214,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       // preserving the original rayon work shape.
       let non_nested_res = {
         let mg = self.build_module_graph_artifact.get_module_graph();
-        non_nested_tasks
+        let non_nested_tasks = non_nested_tasks
           .into_iter()
           .map(|(module_id, tasks)| {
             let exports_info_id = self.exports_info_artifact.get_exports_info(&module_id);
@@ -230,7 +230,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             );
             (module_id, (tasks, exports_info))
           })
-          .collect::<IdentifierMap<_>>()
+          .collect::<Vec<_>>();
+        non_nested_tasks
           .into_par_iter()
           .map(|(module_id, (tasks, mut exports_info))| {
             let module = mg
@@ -308,7 +309,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     force_side_effects: bool,
     global: bool,
   ) -> (
-    IdentifierMap<Vec<ExtendedReferencedExport>>,
+    Vec<(ModuleIdentifier, Vec<ExtendedReferencedExport>)>,
     Vec<ProcessBlockTask>,
   ) {
     let compilation = self.compilation;
@@ -386,7 +387,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             },
           )
         })
-        .collect::<IdentifierMap<_>>(),
+        .collect::<Vec<_>>(),
       q,
     )
   }
@@ -647,50 +648,51 @@ fn merge_referenced_exports(
       ProcessModuleReferencedExports::ExtendRef(ref_items) => ref_items
         .into_iter()
         .map(|item| {
-          let key = match &item {
-            ExtendedReferencedExport::Array(arr) => join_atom(arr.iter(), "\n"),
-            ExtendedReferencedExport::Export(export) => join_atom(export.name.iter(), "\n"),
-          };
+          let key = referenced_export_key(&item);
           (key, item)
         })
         .collect::<HashMap<_, _>>(),
     };
 
     for mut item in referenced_exports {
+      let key = referenced_export_key(&item);
       match item {
-        ExtendedReferencedExport::Array(ref arr) => {
-          let key = join_atom(arr.iter(), "\n");
+        ExtendedReferencedExport::Array(_) => {
           exports_map.entry(key).or_insert(item);
         }
-        ExtendedReferencedExport::Export(ref mut export) => {
-          let key = join_atom(export.name.iter(), "\n");
-          match exports_map.entry(key) {
-            Entry::Occupied(mut occ) => {
-              let old_item = occ.get();
-              match old_item {
-                ExtendedReferencedExport::Array(_) => {
-                  occ.insert(item);
-                }
-                ExtendedReferencedExport::Export(old_item) => {
-                  occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
-                    name: std::mem::take(&mut export.name),
-                    can_mangle: export.can_mangle && old_item.can_mangle,
-                    can_inline: export.can_inline && old_item.can_inline,
-                    ns_access: export.ns_access || old_item.ns_access,
-                  }));
-                }
+        ExtendedReferencedExport::Export(ref mut export) => match exports_map.entry(key) {
+          Entry::Occupied(mut occ) => {
+            let old_item = occ.get();
+            match old_item {
+              ExtendedReferencedExport::Array(_) => {
+                occ.insert(item);
+              }
+              ExtendedReferencedExport::Export(old_item) => {
+                occ.insert(ExtendedReferencedExport::Export(ReferencedExport {
+                  name: std::mem::take(&mut export.name),
+                  can_mangle: export.can_mangle && old_item.can_mangle,
+                  can_inline: export.can_inline && old_item.can_inline,
+                  ns_access: export.ns_access || old_item.ns_access,
+                }));
               }
             }
-            Entry::Vacant(vac) => {
-              vac.insert(item);
-            }
           }
-        }
+          Entry::Vacant(vac) => {
+            vac.insert(item);
+          }
+        },
       }
     }
     return Some(ProcessModuleReferencedExports::Map(exports_map));
   }
   None
+}
+
+fn referenced_export_key(item: &ExtendedReferencedExport) -> Vec<Atom> {
+  match item {
+    ExtendedReferencedExport::Array(arr) => arr.clone(),
+    ExtendedReferencedExport::Export(export) => export.name.clone(),
+  }
 }
 
 fn collect_active_dependencies(

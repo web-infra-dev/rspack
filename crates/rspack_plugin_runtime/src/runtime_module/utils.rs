@@ -1,7 +1,8 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, SourceType,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals,
+  SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -59,6 +60,21 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
   }
   result.push('}');
   result
+}
+
+pub fn render_hmr_runtime_state_expression(
+  runtime_template: &RuntimeCodeTemplate<'_>,
+  key: &str,
+) -> String {
+  let state_prefix = if runtime_template.uses_lexical_runtime_globals() {
+    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
+      .property_name()
+      .expect("hmr runtime state prefix should have property name")
+      .to_string()
+  } else {
+    runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+  };
+  format!("{state_prefix}_{key}")
 }
 
 pub fn chunk_has_css(chunk: &ChunkUkey, compilation: &Compilation) -> bool {

@@ -3,9 +3,9 @@ use std::{borrow::Cow, hash::Hash};
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals,
+  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -92,7 +92,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(&origin_source) {

@@ -5,6 +5,8 @@ import {
   __from_binding_runtime_globals,
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
+  renderRuntimeVariables,
+  RuntimeVariable,
 } from '../RuntimeGlobals';
 import { createRenderedRuntimeModule } from '../RuntimeModule';
 import { createHash } from '../util/createHash';
@@ -203,6 +205,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         }: binding.JsExecuteModuleArg) {
           try {
             const RuntimeGlobals = getCompiler().rspack.RuntimeGlobals;
+            const runtimeContext: any = {};
             const moduleRequireFn: any = (id: string) => {
               const cached = moduleCache[id];
               if (cached !== undefined) {
@@ -238,7 +241,13 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                       codeGenerationResult: new CodeGenerationResult(result),
                       moduleObject,
                     },
-                    { [RuntimeGlobals.require]: moduleRequireFn },
+                    {
+                      [RuntimeGlobals.require]: moduleRequireFn,
+                      [renderRuntimeVariables(
+                        RuntimeVariable.Context,
+                        getCompiler().options,
+                      )]: runtimeContext,
+                    },
                   ),
                 'Compilation.hooks.executeModule',
               );
@@ -259,9 +268,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                   '',
                 )
               ] = []);
-
+            moduleRequireFn.r = moduleRequireFn;
+            runtimeContext.r = moduleRequireFn;
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
+            }
+            for (const key of Reflect.ownKeys(moduleRequireFn)) {
+              runtimeContext[key] =
+                moduleRequireFn[key as keyof typeof moduleRequireFn];
             }
 
             const executeResult = moduleRequireFn(entry);

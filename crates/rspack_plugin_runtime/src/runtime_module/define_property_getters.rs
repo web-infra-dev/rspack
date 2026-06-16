@@ -23,6 +23,10 @@ impl DefinePropertyGettersRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for DefinePropertyGettersRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::DEFINE_PROPERTY_GETTERS
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

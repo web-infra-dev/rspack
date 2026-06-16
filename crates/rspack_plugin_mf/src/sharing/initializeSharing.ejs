@@ -17,7 +17,7 @@ var initTokens = {};
 	var warn = function (msg) {
 		if (typeof console !== "undefined" && console.warn) console.warn(msg);
 	};
-	var uniqueName = <%- REQUIRE %>.initializeSharingData.uniqueName;
+	var uniqueName = <%- REQUIRE_SCOPE %>.initializeSharingData.uniqueName;
 	var register = function (name, version, factory, eager) {
 		var versions = (scope[name] = scope[name] || {});
 		var activeVersion = versions[version];
@@ -53,7 +53,7 @@ var initTokens = {};
 		}
 	};
 	var promises = [];
-	var scopeToSharingDataMapping = <%- REQUIRE %>.initializeSharingData.scopeToSharingDataMapping;
+	var scopeToSharingDataMapping = <%- REQUIRE_SCOPE %>.initializeSharingData.scopeToSharingDataMapping;
 	if (scopeToSharingDataMapping[name]) {
 		scopeToSharingDataMapping[name].forEach(function (stage) {
 			if (typeof stage === "object") register(stage.name, stage.version, stage.factory, stage.eager);

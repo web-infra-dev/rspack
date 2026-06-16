@@ -13,6 +13,8 @@ use rspack_core::{
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
+use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
+
 #[impl_runtime_module]
 #[derive(Debug)]
 pub struct FederationDataRuntimeModule {}
@@ -37,6 +39,10 @@ impl RuntimeModule for FederationDataRuntimeModule {
       .expect_get(&self.chunk.expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
   }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    runtime_require_scope_requirement(compilation)
+  }
 }
 
 pub async fn federation_runtime_template(
@@ -46,7 +52,7 @@ pub async fn federation_runtime_template(
 ) -> String {
   let federation_global = format!(
     "{}.federation",
-    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    runtime_require_scope_name(runtime_template)
   );
 
   let condition_map = compilation

@@ -7,7 +7,7 @@ var leafPrototypes;
 // mode & 16: return value when it's Promise-like
 // mode & 8|1: behave like require
 <%- CREATE_FAKE_NAMESPACE_OBJECT %> = function(value, mode) {
-	if(mode & 1) value = this(value);
+	if(mode & 1) value = <%- __this %>(value);
 	if(mode & 8) return value;
 	if(typeof value === 'object' && value) {
 		if((mode & 4) && value.__esModule) return value;

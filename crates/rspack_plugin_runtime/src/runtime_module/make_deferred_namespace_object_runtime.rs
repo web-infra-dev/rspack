@@ -55,4 +55,8 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *MAKE_DEFERRED_NAMESPACE_OBJECT_RUNTIME_REQUIREMENTS
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT
+  }
 }

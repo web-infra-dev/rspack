@@ -6,10 +6,10 @@ use std::{
 use cow_utils::CowUtils;
 use pathdiff::diff_paths;
 use rspack_core::{
-  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkUkey, Compilation, CompilationAsset,
-  CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
+  AssetEmittedInfo, AssetInfo, BuildModuleGraphArtifact, ChunkCodeTemplate, ChunkUkey, Compilation,
+  CompilationAsset, CompilationOptimizeDependencies, CompilationParams, CompilationProcessAssets,
   CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
   SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
@@ -249,7 +249,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   // NOTE: This function handles hashbang and directives for non new ESM library formats.
   // Similar logic exists in rspack_plugin_esm_library/src/render.rs for ESM format,

@@ -179,7 +179,10 @@ async fn runtime_requirements_in_tree(
     runtime_requirements_mut.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
   }
 
-  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK)
+    || (!compilation.options.output.module
+      && runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS))
+  {
     let c = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -204,7 +207,6 @@ async fn runtime_requirements_in_tree(
       .map(|library| library.library_type.clone())
   };
 
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
   #[allow(clippy::collapsible_match)]
   for runtime_requirement in runtime_requirements.iter() {
     match runtime_requirement {
@@ -250,6 +252,7 @@ async fn runtime_requirements_in_tree(
         }
       }
       RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => {
+        let runtime_template = compilation.runtime_template.create_runtime_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
@@ -273,6 +276,7 @@ async fn runtime_requirements_in_tree(
         ));
       }
       RuntimeGlobals::GET_CHUNK_CSS_FILENAME => {
+        let runtime_template = compilation.runtime_template.create_runtime_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(

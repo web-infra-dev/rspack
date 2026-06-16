@@ -3,9 +3,9 @@ use std::{hash::Hash, sync::Arc};
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -102,7 +102,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
   let chunk = compilation

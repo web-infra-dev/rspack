@@ -1,3 +1,5 @@
+const rspack = require('@rspack/core');
+
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   entry: {
@@ -17,4 +19,11 @@ module.exports = {
   node: {
     __dirname: false,
   },
+  plugins: [
+    new rspack.DefinePlugin({
+      __RSPACK_TEST_RUNTIME_MODE_RSPACK__: JSON.stringify(
+        Boolean(globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK),
+      ),
+    }),
+  ],
 };
