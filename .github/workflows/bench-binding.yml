@@ -60,5 +60,5 @@ jobs:
           mode: 'simulation'
           run: pnpm --filter bench run bench
           token: ${{ secrets.CODSPEED_TOKEN }}
-          runner-version: rev:ddb6dbed2445bd209e7ca83f218c2176967bb1d8
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
           skip-hash-check-warning: true
