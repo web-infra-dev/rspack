@@ -154,7 +154,7 @@ Enable parsing for Node.js `module.createRequire()` and `createRequire()` import
 
 When enabled, Rspack evaluates static `createRequire()` arguments and tracks the generated `require()` function, including `require.resolve()` and `require.cache`, relative to the supplied path.
 
-Supported static arguments include absolute path strings, file URL strings, `import.meta.url`, `new URL("./file.js", import.meta.url)`, and `new URL("./file.js", "file:///path/to/base.js")`.
+Supported static arguments include absolute path strings, file URL strings, `import.meta.url`, and `new URL("./file.js", import.meta.url)`.
 
 ```js title="rspack.config.mjs"
 export default {

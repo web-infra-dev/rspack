@@ -1,9 +1,6 @@
-```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
-import { createRequire as __rspack_createRequire } from "node:module";
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-__webpack_require__.add({
+```js title=main.js
+(() => {
+var __webpack_modules__ = ({
 "./a.js"
 /*!**************!*\
   !*** ./a.js ***!
@@ -13,33 +10,14 @@ module.exports = "root";
 
 
 },
+
 });
-// module
-const external_module_namespaceObject = __rspack_createRequire_require("module");
-// ./index.js
-
-
-
-
-it("should parse createRequire import.meta.url in ESM output", () => {
-	const require = external_module_namespaceObject.createRequire("<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-enabled/index.js");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
-});
-
-export {};
-
-```
-
-```mjs title=runtime.mjs
-
-var __webpack_modules__ = {};
 // The module cache
 var __webpack_module_cache__ = {};
+
 // The require function
 function __webpack_require__(moduleId) {
+
 // Check if module is in cache
 var cachedModule = __webpack_module_cache__[moduleId];
 if (cachedModule !== undefined) {
@@ -54,16 +32,36 @@ __webpack_modules__[moduleId](module, module.exports, __webpack_require__);
 
 // Return the exports of the module
 return module.exports;
-}
-// expose the modules object (__webpack_modules__)
-__webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/esm_register_module
+}
+
+var __webpack_exports__ = {};
+// This entry needs to be wrapped in an IIFE because it needs to be in strict mode.
 (() => {
-__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+"use strict";
+
+/*!******************************!*\
+  !*** ./index.js + 1 modules ***!
+  \******************************/
+
+;// CONCATENATED MODULE: external "module"
+const external_module_namespaceObject = require("module");
+;// CONCATENATED MODULE: ./index.js
+
+
+
+
+it("should parse createRequire import.meta.url in CJS output", () => {
+	const require = external_module_namespaceObject.createRequire("<ROOT>/tests/rspack-test/esmOutputCases/create-require/import-meta-enabled/index.js");
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+	expect(__webpack_require__(/*! ./a */ "./a.js")).toBe("root");
+});
 
 })();
 
-export { __webpack_require__ };
-
+module.exports = __webpack_exports__;
+})()
+;
 ```

@@ -374,21 +374,6 @@ fn dirname(path: &str) -> Option<&str> {
 
 #[cold]
 #[inline(never)]
-fn evaluate_new_url_with_static_base(
-  parser: &mut JavascriptParser,
-  args: &[ExprOrSpread],
-  request: &str,
-) -> Option<Url> {
-  let base = args.get(1)?;
-  if base.spread.is_some() {
-    return None;
-  }
-  let base = parser.evaluate_expression(&base.expr).as_string()?;
-  Url::parse(&base).ok()?.join(request).ok()
-}
-
-#[cold]
-#[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
   if let Some(member) = arg.as_member()
     && is_meta_url(parser, member)
@@ -413,23 +398,14 @@ fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -
     && !args.is_empty()
     && args[0].spread.is_none()
     && let Some(value) = parser.evaluate_expression(&args[0].expr).as_string()
+    && value.starts_with("file:/")
   {
-    if value.starts_with("file:/") {
-      if let Some(base) = args.get(1)
-        && !is_valid_ignored_url_base_arg(parser, base)
-      {
-        return None;
-      }
-      return file_url_to_path(&value).map(|(path, _)| path);
+    if let Some(base) = args.get(1)
+      && !is_valid_ignored_url_base_arg(parser, base)
+    {
+      return None;
     }
-    if let Some(url) = evaluate_new_url_with_static_base(parser, args, &value) {
-      if url.scheme() != "file" {
-        return Some(url.to_string());
-      }
-      return file_url_to_path(url.as_str())
-        .map(|(path, _)| path)
-        .or_else(|| Some(url.to_string()));
-    }
+    return file_url_to_path(&value).map(|(path, _)| path);
   }
   let (request, _, _) = get_url_request(parser, new_expr)?;
   if request.starts_with("//") {
