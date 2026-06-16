@@ -393,10 +393,8 @@ export class RspackOptionsApply {
       }
     }
     if (options.optimization.nodeEnv) {
-      const defValue = JSON.stringify(options.optimization.nodeEnv);
       new DefinePlugin({
-        'process.env.NODE_ENV': defValue,
-        'import.meta.env.NODE_ENV': defValue,
+        'process.env.NODE_ENV': JSON.stringify(options.optimization.nodeEnv),
       }).apply(compiler);
     }
     const { minimize, minimizer } = options.optimization;

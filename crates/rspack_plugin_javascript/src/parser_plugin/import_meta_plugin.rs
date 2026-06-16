@@ -516,23 +516,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             });
 
           let dep = if let Some(members) = members {
-            if members
-              .members
-              .first()
-              .is_some_and(|member| member == "env")
-            {
-              let content = if members.members.get(1).is_some() {
-                "undefined"
-              } else {
-                "{}"
-              };
-              parser.add_presentational_dependency(Box::new(ConstDependency::new(
-                expr.span().into(),
-                content.into(),
-              )));
-              return Some(true);
-            }
-
             if members.members.get(1).is_some()
               && members
                 .members_optionals
