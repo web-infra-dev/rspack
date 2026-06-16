@@ -3029,7 +3029,7 @@ export type Experiments = {
    */
   pureFunctions?: boolean;
   /**
-   * Select runtime proxy context behavior. `webpack` keeps `__webpack_require__.x`,
+   * Select runtime proxy context behavior. `webpack` keeps the webpack startup hook,
    * while `rspack` uses `__rspack_context`.
    * @default "webpack"
    */
