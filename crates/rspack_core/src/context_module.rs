@@ -1496,7 +1496,7 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: ArcPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.context_dependencies = context_dependencies;
+      self.build_info.context_dependencies = context_dependencies.into();
     }
 
     Ok(BuildResult {

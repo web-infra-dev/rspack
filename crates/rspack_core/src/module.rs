@@ -16,7 +16,7 @@ use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet}
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
 use rspack_hash::RspackHashDigest;
-use rspack_paths::ArcPathSet;
+use rspack_paths::{ArcPath, ArcPathSet};
 use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
@@ -253,6 +253,55 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct BuildInfoDependencySet {
+  inner: Option<ArcPathSet>,
+}
+
+impl BuildInfoDependencySet {
+  pub fn is_allocated(&self) -> bool {
+    self.inner.is_some()
+  }
+
+  pub fn as_ref(&self) -> Option<&ArcPathSet> {
+    self.inner.as_ref()
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &ArcPath> {
+    self.inner.iter().flat_map(|set| set.iter())
+  }
+
+  pub fn clone_inner(&self) -> ArcPathSet {
+    self.inner.clone().unwrap_or_default()
+  }
+}
+
+impl From<ArcPathSet> for BuildInfoDependencySet {
+  fn from(value: ArcPathSet) -> Self {
+    if value.is_empty() {
+      Self::default()
+    } else {
+      Self { inner: Some(value) }
+    }
+  }
+}
+
+impl FromIterator<ArcPath> for BuildInfoDependencySet {
+  fn from_iter<T: IntoIterator<Item = ArcPath>>(iter: T) -> Self {
+    let inner = ArcPathSet::from_iter(iter);
+    inner.into()
+  }
+}
+
+impl Extend<ArcPath> for BuildInfoDependencySet {
+  fn extend<T: IntoIterator<Item = ArcPath>>(&mut self, iter: T) {
+    for item in iter {
+      self.inner.get_or_insert_default().insert(item);
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
@@ -261,10 +310,10 @@ pub struct BuildInfo {
   pub strict: bool,
   pub module_argument: ModuleArgument,
   pub exports_argument: ExportsArgument,
-  pub file_dependencies: ArcPathSet,
-  pub context_dependencies: ArcPathSet,
-  pub missing_dependencies: ArcPathSet,
-  pub build_dependencies: ArcPathSet,
+  pub file_dependencies: BuildInfoDependencySet,
+  pub context_dependencies: BuildInfoDependencySet,
+  pub missing_dependencies: BuildInfoDependencySet,
+  pub build_dependencies: BuildInfoDependencySet,
   pub value_dependencies: HashMap<String, String>,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
@@ -302,10 +351,10 @@ impl Default for BuildInfo {
       strict: false,
       module_argument: Default::default(),
       exports_argument: Default::default(),
-      file_dependencies: ArcPathSet::default(),
-      context_dependencies: ArcPathSet::default(),
-      missing_dependencies: ArcPathSet::default(),
-      build_dependencies: ArcPathSet::default(),
+      file_dependencies: BuildInfoDependencySet::default(),
+      context_dependencies: BuildInfoDependencySet::default(),
+      missing_dependencies: BuildInfoDependencySet::default(),
+      build_dependencies: BuildInfoDependencySet::default(),
       value_dependencies: HashMap::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
@@ -326,6 +375,36 @@ impl Default for BuildInfo {
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::path::PathBuf;
+
+  use rspack_paths::ArcPath;
+
+  use super::*;
+
+  #[test]
+  fn build_info_dependency_sets_are_created_lazily() {
+    let mut build_info = BuildInfo::default();
+
+    assert!(!build_info.file_dependencies.is_allocated());
+    assert_eq!(build_info.file_dependencies.iter().count(), 0);
+
+    let dependency: ArcPath = PathBuf::from("fixture.js").into();
+    build_info.file_dependencies.extend([dependency.clone()]);
+
+    assert!(build_info.file_dependencies.is_allocated());
+    assert_eq!(
+      build_info
+        .file_dependencies
+        .iter()
+        .cloned()
+        .collect::<ArcPathSet>(),
+      ArcPathSet::from_iter([dependency])
+    );
   }
 }
 

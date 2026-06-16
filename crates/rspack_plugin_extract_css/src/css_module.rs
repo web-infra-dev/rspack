@@ -72,10 +72,10 @@ impl CssModule {
       build_info: BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
-        file_dependencies: dep.file_dependencies,
-        context_dependencies: dep.context_dependencies,
-        missing_dependencies: dep.missing_dependencies,
-        build_dependencies: dep.build_dependencies,
+        file_dependencies: dep.file_dependencies.into(),
+        context_dependencies: dep.context_dependencies.into(),
+        missing_dependencies: dep.missing_dependencies.into(),
+        build_dependencies: dep.build_dependencies.into(),
         ..Default::default()
       },
       build_meta: Default::default(),

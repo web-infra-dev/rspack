@@ -121,22 +121,30 @@ impl Task<TaskContext> for BuildResultTask {
       .get_optimization_bailout_mut(&module.identifier())
       .extend(build_result.optimization_bailouts);
     let resource_id = ResourceId::from(module.identifier());
-    context
-      .artifact
-      .file_dependencies
-      .add_files(&resource_id, &build_info.file_dependencies);
-    context
-      .artifact
-      .context_dependencies
-      .add_files(&resource_id, &build_info.context_dependencies);
-    context
-      .artifact
-      .missing_dependencies
-      .add_files(&resource_id, &build_info.missing_dependencies);
-    context
-      .artifact
-      .build_dependencies
-      .add_files(&resource_id, &build_info.build_dependencies);
+    if let Some(file_dependencies) = build_info.file_dependencies.as_ref() {
+      context
+        .artifact
+        .file_dependencies
+        .add_files(&resource_id, file_dependencies);
+    }
+    if let Some(context_dependencies) = build_info.context_dependencies.as_ref() {
+      context
+        .artifact
+        .context_dependencies
+        .add_files(&resource_id, context_dependencies);
+    }
+    if let Some(missing_dependencies) = build_info.missing_dependencies.as_ref() {
+      context
+        .artifact
+        .missing_dependencies
+        .add_files(&resource_id, missing_dependencies);
+    }
+    if let Some(build_dependencies) = build_info.build_dependencies.as_ref() {
+      context
+        .artifact
+        .build_dependencies
+        .add_files(&resource_id, build_dependencies);
+    }
 
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
