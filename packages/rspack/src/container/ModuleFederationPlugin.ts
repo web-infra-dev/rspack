@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import type { Compiler } from '../Compiler';
-import { RuntimeVariable, renderRuntimeVariables } from '../RuntimeGlobals';
+import { createCompilerRuntimeGlobals } from '../RuntimeGlobals';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
@@ -368,29 +368,22 @@ function getDefaultEntryRuntimeSource(
   const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
     require('./moduleFederationDefaultRuntime.js').default,
   );
-  const requireName = renderRuntimeVariables(
-    RuntimeVariable.Require,
-    compiler.options,
-  );
-  const runtimeContextName = renderRuntimeVariables(
-    RuntimeVariable.Context,
-    compiler.options,
-  );
+  const compilerRuntimeGlobals = createCompilerRuntimeGlobals(compiler.options);
   const runtimeSource = getDefaultRuntimeSource(
     defaultRuntimeSource,
     compiler.options.experiments.runtimeMode === 'rspack'
       ? `new Proxy(function (moduleId) {
-  return ${runtimeContextName}.r(moduleId);
+  return ${compilerRuntimeGlobals.require}(moduleId);
 }, {
   get(_target, key) {
-    return ${runtimeContextName}[key];
+    return ${compilerRuntimeGlobals.requireScope}[key];
   },
   set(_target, key, value) {
-    ${runtimeContextName}[key] = value;
+    ${compilerRuntimeGlobals.requireScope}[key] = value;
     return true;
   }
 })`
-      : requireName,
+      : compilerRuntimeGlobals.require,
   );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(
@@ -431,11 +424,10 @@ function getPublicPathRuntimeSource(compiler: Compiler) {
   if (typeof publicPath !== 'string' || publicPath === 'auto') {
     return undefined;
   }
-  const requireName = renderRuntimeVariables(
-    RuntimeVariable.Require,
+  const publicPathRuntimeGlobal = createCompilerRuntimeGlobals(
     compiler.options,
-  );
-  return `if (typeof ${requireName}.p === "undefined") ${requireName}.p = ${JSON.stringify(
+  ).publicPath;
+  return `if (typeof ${publicPathRuntimeGlobal} === "undefined") ${publicPathRuntimeGlobal} = ${JSON.stringify(
     publicPath,
   )}`;
 }
