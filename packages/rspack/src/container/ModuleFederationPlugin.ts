@@ -368,21 +368,29 @@ function getDefaultEntryRuntimeSource(
   const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
     require('./moduleFederationDefaultRuntime.js').default,
   );
+  const requireName = renderRuntimeVariables(
+    RuntimeVariable.Require,
+    compiler.options,
+  );
+  const runtimeContextName = renderRuntimeVariables(
+    RuntimeVariable.Context,
+    compiler.options,
+  );
   const runtimeSource = getDefaultRuntimeSource(
     defaultRuntimeSource,
     compiler.options.experiments.runtimeMode === 'rspack'
       ? `new Proxy(function (moduleId) {
-  return __rspack_context.r(moduleId);
+  return ${runtimeContextName}.r(moduleId);
 }, {
   get(_target, key) {
-    return __rspack_context[key];
+    return ${runtimeContextName}[key];
   },
   set(_target, key, value) {
-    __rspack_context[key] = value;
+    ${runtimeContextName}[key] = value;
     return true;
   }
 })`
-      : '__webpack_require__',
+      : requireName,
   );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(

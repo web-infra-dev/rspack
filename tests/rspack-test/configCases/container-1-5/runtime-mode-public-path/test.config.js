@@ -9,7 +9,7 @@ module.exports = {
       "utf-8",
     );
 
-    expect(source).toContain("__rspack_context.p =");
+    expect(source).toContain("__rspack_require.p =");
     expect(source).not.toContain("__webpack_require__.p =");
   },
 };

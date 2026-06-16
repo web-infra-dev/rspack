@@ -244,6 +244,10 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                     {
                       [RuntimeGlobals.require]: moduleRequireFn,
                       [renderRuntimeVariables(
+                        RuntimeVariable.Require,
+                        getCompiler().options,
+                      )]: moduleRequireFn,
+                      [renderRuntimeVariables(
                         RuntimeVariable.Context,
                         getCompiler().options,
                       )]: runtimeContext,
