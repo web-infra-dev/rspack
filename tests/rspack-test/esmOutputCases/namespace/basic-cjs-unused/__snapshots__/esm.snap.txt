@@ -7,8 +7,8 @@ __webpack_require__.add({
   !*** ./foo.js ***!
   \****************/
 (__unused_rspack_module, exports) {
-var __webpack_unused_export__;
-__webpack_unused_export__ = 123;
+var __rspack_unused_export;
+__rspack_unused_export = 123;
 
 
 },

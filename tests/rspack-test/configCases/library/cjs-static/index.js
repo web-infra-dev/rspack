@@ -6,5 +6,7 @@ export default bar
 
 it("should success compile and work",()=>{
 	const output = fs.readFileSync(__filename).toString();
-	expect(output.match(/exports(\[|\.)/g).length).toBe(4)
+	expect(output.match(/exports(\[|\.)/g).length).toBe(
+		globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ? 8 : 4
+	)
 })

@@ -208,7 +208,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         // Export a inlinable const from cjs is not possible for now but we compat it here
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
         let placeholder_var = format!(
-          "__webpack_{}_export__",
+          "__rspack_{}_export",
           if is_inlined { "inlined" } else { "unused" }
         );
         source.replace(
@@ -250,10 +250,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         } else {
           init_fragments.push(
             NormalInitFragment::new(
-              "var __webpack_unused_export__;\n".to_string(),
+              "var __rspack_unused_export;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
+              InitFragmentKey::CommonJsExports("__rspack_unused_export".to_owned()),
               None,
             )
             .boxed(),
@@ -261,7 +261,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           source.replace_static(
             dep.range.start,
             value_range.start,
-            "__webpack_unused_export__ = (",
+            "__rspack_unused_export = (",
             None,
           );
           source.replace_static(value_range.end, dep.range.end, ")", None);
