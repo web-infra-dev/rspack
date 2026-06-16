@@ -126,7 +126,7 @@ pub(crate) fn merge_loader_context(
   };
   let source_map = from
     .source_map
-    .map(rspack_core::rspack_sources::SourceMap::from_buffer)
+    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
     .transpose()
     .to_rspack_result()?;
   let additional_data = from.additional_data.take().map(|data| {

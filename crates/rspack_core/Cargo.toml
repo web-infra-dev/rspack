@@ -86,4 +86,4 @@ workspace = true
 codspeed   = ["rspack_parallel/codspeed"]
 debug_tool = ["rspack_util/debug_tool"]
 default    = []
-napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv", "rspack_sources/napi"]
+napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
