@@ -48,15 +48,22 @@ struct PathTree {
 impl PathTree {
   pub fn find_common_root(&self) -> Option<ArcPath> {
     let root = self.find_root()?;
-    Some(self.find_common_root_recursive(root))
+    self.debug_report(&root);
+    Some(self.find_common_root_recursive(root, 0))
   }
 
-  fn find_common_root_recursive(&self, path: ArcPath) -> ArcPath {
+  fn find_common_root_recursive(&self, path: ArcPath, depth: usize) -> ArcPath {
     let node = self
       .inner
       .get(&path)
       .expect("Path should exist in the tree");
-    // We need make sure the path is exists
+    // [MAIN-DIAG] capture the trigger if we are about to assert on a missing path
+    if !path.exists() {
+      eprintln!(
+        "[MAIN-DIAG] PANIC-trigger rel={:?} depth={depth}",
+        Self::rel(&path)
+      );
+    }
     assert!(path.exists(), "Path should exist");
 
     if let Some(child) = node
@@ -64,9 +71,75 @@ impl PathTree {
       // Check if the child exists in the tree
       .and_then(|child| if child.is_dir() { Some(child) } else { None })
     {
-      self.find_common_root_recursive(child)
+      self.find_common_root_recursive(child, depth + 1)
     } else {
       path // Return the current path if it has no single child
+    }
+  }
+
+  fn rel(p: &ArcPath) -> String {
+    let s = p.to_string_lossy();
+    match s.find("missing-module") {
+      Some(i) => s[i..].to_string(),
+      None => s.to_string(),
+    }
+  }
+
+  fn parent_in_tree(&self, path: &ArcPath) -> Option<bool> {
+    path
+      .parent()
+      .map(|parent| self.inner.contains_key(&ArcPath::from(parent)))
+  }
+
+  // [MAIN-DIAG] On every cycle that involves the `missing-module` test, print a
+  // summary plus the full `missing-module` subtree so it can be diffed against
+  // the #14427 dump to find what changed.
+  fn debug_report(&self, root: &ArcPath) {
+    if !self
+      .inner
+      .iter()
+      .any(|e| e.key().to_string_lossy().contains("missing-module"))
+    {
+      return;
+    }
+    let total = self.inner.len();
+    let mut missing = 0usize;
+    let mut orphans = 0usize;
+    for e in self.inner.iter() {
+      if !e.key().exists() {
+        missing += 1;
+      }
+      if matches!(self.parent_in_tree(e.key()), Some(false)) {
+        orphans += 1;
+      }
+    }
+    let sm_in_tree = self.inner.iter().any(|e| {
+      let s = e.key().to_string_lossy();
+      s.ends_with("node_modules/some-module") || s.ends_with("node_modules\\some-module")
+    });
+    eprintln!(
+      "[MAIN-DIAG] cycle total={total} missing={missing} orphans={orphans} some_module_node_in_tree={sm_in_tree} find_root_rel={:?}",
+      Self::rel(root)
+    );
+    let mut lines: Vec<String> = self
+      .inner
+      .iter()
+      .filter(|e| e.key().to_string_lossy().contains("missing-module"))
+      .map(|e| {
+        let p = e.key();
+        format!(
+          "[MAIN-DIAG]   {} exists={} is_dir={} children={} parent_in_tree={:?}",
+          Self::rel(p),
+          p.exists(),
+          p.is_dir(),
+          e.value().children.len(),
+          self.parent_in_tree(p)
+        )
+      })
+      .collect();
+    lines.sort();
+    for l in lines {
+      eprintln!("{l}");
     }
   }
 
