@@ -424,9 +424,7 @@ function getPublicPathRuntimeSource(compiler: Compiler) {
   if (typeof publicPath !== 'string' || publicPath === 'auto') {
     return undefined;
   }
-  const publicPathRuntimeGlobal = createCompilerRuntimeGlobals(
-    compiler.options,
-  ).publicPath;
+  const publicPathRuntimeGlobal = createCompilerRuntimeGlobals().publicPath;
   return `if (typeof ${publicPathRuntimeGlobal} === "undefined") ${publicPathRuntimeGlobal} = ${JSON.stringify(
     publicPath,
   )}`;
