@@ -643,9 +643,7 @@ impl JavascriptParser<'_> {
           VariableInfoFlags::NORMAL,
           None,
         );
-        self
-          .definitions_db
-          .set_visible(self.definitions, name.clone(), info);
+        self.definitions_db.set(declared_scope, name.clone(), info);
       }
     }
   }
