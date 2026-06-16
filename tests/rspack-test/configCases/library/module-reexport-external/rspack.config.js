@@ -30,9 +30,10 @@ module.exports = {
       const handler = (compilation) => {
         compilation.hooks.afterProcessAssets.tap('testcase', (assets) => {
           const source = assets['test.js'].source();
-          expect(source).toContain(
-            'export { __webpack_exports__value as value };',
-          );
+          const exportsName = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+            ? '__rspack_exportsvalue'
+            : '__webpack_exports__value';
+          expect(source).toContain(`export { ${exportsName} as value };`);
         });
       };
       this.hooks.compilation.tap('testcase', handler);

@@ -23,18 +23,28 @@ export default class ExecuteModulePlugin {
           try {
             const isRspackRuntimeMode =
               compiler.options.experiments?.runtimeMode === 'rspack';
-            const runtimeContext =
-              context[
-                renderRuntimeVariables(
-                  RuntimeVariable.Context,
-                  compiler.options,
-                )
-              ];
-            const runtimeContextArgument = isRspackRuntimeMode
-              ? `, ${renderRuntimeVariables(RuntimeVariable.Context, compiler.options)}`
+            const moduleArgument = renderRuntimeVariables(
+              RuntimeVariable.Module,
+              compiler.options,
+            );
+            const exportsArgument = renderRuntimeVariables(
+              RuntimeVariable.Exports,
+              compiler.options,
+            );
+            const requireArgument = renderRuntimeVariables(
+              RuntimeVariable.Require,
+              compiler.options,
+            );
+            const runtimeContextArgument = renderRuntimeVariables(
+              RuntimeVariable.Context,
+              compiler.options,
+            );
+            const runtimeContext = context[runtimeContextArgument];
+            const runtimeModeArguments = isRspackRuntimeMode
+              ? `, ${runtimeContextArgument}`
               : '';
             const fn = vm.runInThisContext(
-              `(function(module, ${renderRuntimeVariables(RuntimeVariable.Module, compiler.options)}, ${renderRuntimeVariables(RuntimeVariable.Exports, compiler.options)}, exports, ${renderRuntimeVariables(RuntimeVariable.Require, compiler.options)}${runtimeContextArgument}) {\n${code}\n})`,
+              `(function(module, ${moduleArgument}, ${exportsArgument}, exports, ${requireArgument}${runtimeModeArguments}) {\n${code}\n})`,
               {
                 filename: moduleObject.id,
               },
@@ -46,12 +56,7 @@ export default class ExecuteModulePlugin {
               moduleObject,
               moduleObject.exports,
               moduleObject.exports,
-              context[
-                renderRuntimeVariables(
-                  RuntimeVariable.Require,
-                  compiler.options,
-                )
-              ],
+              context[requireArgument],
               runtimeContext,
             );
           } catch (e: any) {
