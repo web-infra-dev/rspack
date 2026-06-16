@@ -5182,6 +5182,7 @@ dependencies = [
 name = "rspack_sources"
 version = "0.100.8"
 dependencies = [
+ "json-escape-simd",
  "memchr",
  "regex",
  "rkyv 0.8.16",

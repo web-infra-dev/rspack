@@ -591,7 +591,98 @@ impl<'a> SourceMap<'a> {
   pub fn get_debug_id(&self) -> Option<&str> {
     self.fields.debug_id.as_deref()
   }
+}
 
+#[inline]
+fn write_json_field_name(buffer: &mut Vec<u8>, first: &mut bool, name: &str) {
+  if *first {
+    *first = false;
+  } else {
+    buffer.push(b',');
+  }
+  buffer.push(b'"');
+  buffer.extend_from_slice(name.as_bytes());
+  buffer.extend_from_slice(b"\":");
+}
+
+#[inline]
+fn write_u32(buffer: &mut Vec<u8>, mut value: u32) {
+  let mut digits = [0; 10];
+  let mut index = digits.len();
+
+  loop {
+    index -= 1;
+    digits[index] = b'0' + (value % 10) as u8;
+    value /= 10;
+    if value == 0 {
+      break;
+    }
+  }
+
+  buffer.extend_from_slice(&digits[index..]);
+}
+
+#[inline]
+fn write_json_u32_field(buffer: &mut Vec<u8>, first: &mut bool, name: &str, value: u32) {
+  write_json_field_name(buffer, first, name);
+  write_u32(buffer, value);
+}
+
+#[inline]
+fn is_raw_json_string_safe(value: &str) -> bool {
+  value.bytes().all(|b| b >= 0x20 && b != b'"' && b != b'\\')
+}
+
+#[inline]
+fn write_json_string(buffer: &mut Vec<u8>, value: &str) {
+  if is_raw_json_string_safe(value) {
+    buffer.push(b'"');
+    buffer.extend_from_slice(value.as_bytes());
+    buffer.push(b'"');
+  } else {
+    buffer.reserve(value.len().saturating_mul(6).saturating_add(35));
+    json_escape_simd::escape_into(value, buffer);
+  }
+}
+
+#[inline]
+fn write_json_string_field(buffer: &mut Vec<u8>, first: &mut bool, name: &str, value: &str) {
+  write_json_field_name(buffer, first, name);
+  write_json_string(buffer, value);
+}
+
+#[inline]
+fn write_json_string_array_field<T: AsRef<str>>(
+  buffer: &mut Vec<u8>,
+  first: &mut bool,
+  name: &str,
+  values: &[T],
+) {
+  write_json_field_name(buffer, first, name);
+  buffer.push(b'[');
+  for (index, value) in values.iter().enumerate() {
+    if index > 0 {
+      buffer.push(b',');
+    }
+    write_json_string(buffer, value.as_ref());
+  }
+  buffer.push(b']');
+}
+
+#[inline]
+fn write_json_u32_array_field(buffer: &mut Vec<u8>, first: &mut bool, name: &str, values: &[u32]) {
+  write_json_field_name(buffer, first, name);
+  buffer.push(b'[');
+  for (index, value) in values.iter().enumerate() {
+    if index > 0 {
+      buffer.push(b',');
+    }
+    write_u32(buffer, *value);
+  }
+  buffer.push(b']');
+}
+
+impl<'a> SourceMap<'a> {
   /// Estimate the JSON string size for pre-allocation.
   ///
   /// This estimation aims to be accurate in ~90% of cases to avoid reallocation.
@@ -658,9 +749,41 @@ impl<'a> SourceMap<'a> {
   pub fn to_json(&self) -> String {
     let mut buffer = Vec::with_capacity(self.json_size_hint());
 
-    simd_json::to_writer(&mut buffer, self).unwrap();
+    buffer.push(b'{');
+    let mut first = true;
+    write_json_u32_field(
+      &mut buffer,
+      &mut first,
+      "version",
+      self.fields.version as u32,
+    );
+    if let Some(file) = &self.fields.file {
+      write_json_string_field(&mut buffer, &mut first, "file", file);
+    }
+    write_json_string_array_field(&mut buffer, &mut first, "sources", &self.fields.sources);
+    if !is_all_empty(&self.fields.sources_content) {
+      write_json_string_array_field(
+        &mut buffer,
+        &mut first,
+        "sourcesContent",
+        &self.fields.sources_content,
+      );
+    }
+    write_json_string_array_field(&mut buffer, &mut first, "names", &self.fields.names);
+    write_json_string_field(&mut buffer, &mut first, "mappings", &self.fields.mappings);
+    if let Some(source_root) = &self.fields.source_root {
+      write_json_string_field(&mut buffer, &mut first, "sourceRoot", source_root);
+    }
+    if let Some(debug_id) = &self.fields.debug_id {
+      write_json_string_field(&mut buffer, &mut first, "debugId", debug_id);
+    }
+    if let Some(ignore_list) = &self.fields.ignore_list {
+      write_json_u32_array_field(&mut buffer, &mut first, "ignoreList", ignore_list);
+    }
+    buffer.push(b'}');
 
-    // SAFETY: simd_json always produces valid UTF-8 JSON
+    // SAFETY: escaped strings are emitted as UTF-8, and raw string fast paths
+    // only append bytes from existing UTF-8 strings when no escaping is needed.
     #[allow(unsafe_code)]
     unsafe {
       String::from_utf8_unchecked(buffer)
@@ -882,6 +1005,42 @@ mod tests {
     )
     .to_json();
     assert!(!map.contains("sourcesContent"));
+  }
+
+  #[test]
+  fn source_map_to_json_matches_serde_serializer() {
+    let mut source_map = SourceMap::new(
+      "AAAA,MAAM;AACA",
+      vec!["src/a.js".into(), "src/\"b\".js".into()],
+      vec![
+        "console.log(\"a\");\n".into(),
+        "const b = '\\\\';\nconsole.log('魑魅魍魉');\n".into(),
+      ],
+      vec!["console".into(), "log".into(), "魑魅魍魉".into()],
+    );
+    source_map.set_file(Some("dist/bundle.js".into()));
+    source_map.set_source_root(Some("webpack://root".into()));
+    source_map.set_debug_id(Some("debug-id".into()));
+    source_map.set_ignore_list(Some(vec![0, 1].into()));
+
+    let expected = simd_json::to_string(&source_map).expect("source map should serialize");
+    let actual = source_map.to_json();
+
+    assert_eq!(actual, expected);
+    assert_eq!(SourceMap::from_json(actual).unwrap(), source_map);
+  }
+
+  #[test]
+  fn source_map_to_json_escapes_non_raw_safe_mappings() {
+    let source_map = SourceMap::from_json(
+      r#"{"version":3,"sources":["a.js"],"names":[],"mappings":"AA\"\\\n"}"#.to_string(),
+    )
+    .unwrap();
+
+    let serialized = source_map.to_json();
+    let reparsed = SourceMap::from_json(serialized).unwrap();
+
+    assert_eq!(reparsed.mappings(), source_map.mappings());
   }
 
   #[test]
