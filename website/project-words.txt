@@ -54,8 +54,8 @@ externalstypecommonjs
 faga295
 fansenze
 fargs
-fetchcompileasyncwasmplugin
 feishu
+fetchcompileasyncwasmplugin
 fi3ework
 fnames
 funs
@@ -76,8 +76,8 @@ intlify
 IWANABETHATGUY
 jantimon
 JavaScript
-Jiahan
 jerrykingxyz
+Jiahan
 jkzing
 jridgewell
 jscexperimentalplugins
@@ -155,6 +155,8 @@ quininer
 qwertyui
 recognise
 resolvepnp
+riscv
+riscv64gc
 Rollup
 rome
 rsbuild

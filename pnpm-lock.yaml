@@ -94,6 +94,12 @@ importers:
       '@rspack/binding-linux-arm64-musl':
         specifier: workspace:*
         version: link:../../npm/linux-arm64-musl
+      '@rspack/binding-linux-riscv64-gnu':
+        specifier: workspace:*
+        version: link:../../npm/linux-riscv64-gnu
+      '@rspack/binding-linux-riscv64-musl':
+        specifier: workspace:*
+        version: link:../../npm/linux-riscv64-musl
       '@rspack/binding-linux-x64-gnu':
         specifier: workspace:*
         version: link:../../npm/linux-x64-gnu
@@ -202,6 +208,10 @@ importers:
   npm/linux-arm64-gnu: {}
 
   npm/linux-arm64-musl: {}
+
+  npm/linux-riscv64-gnu: {}
+
+  npm/linux-riscv64-musl: {}
 
   npm/linux-x64-gnu: {}
 

@@ -129,6 +129,12 @@ jobs:
         env:
           TARGET_CC: clang
 
+      - name: Build riscv64gc-unknown-linux-gnu
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
+        run: RUST_TARGET=riscv64gc-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
       - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
         run: RUST_TARGET=x86_64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
@@ -138,6 +144,12 @@ jobs:
       - name: Build aarch64-unknown-linux-musl
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
         run: RUST_TARGET=aarch64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
+      - name: Build riscv64gc-unknown-linux-musl
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-musl' }}
+        run: RUST_TARGET=riscv64gc-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 
