@@ -1271,10 +1271,7 @@ export type JavascriptParserOptions = {
   commonjsMagicComments?: boolean;
 
   /**
-   * Enable or disable parsing `import { createRequire } from "module"` and evaluating `createRequire()`.
-   *
-   * When enabled, Rspack tracks created `require()` functions and collects dependencies relative to
-   * the static absolute path or file URL passed to `createRequire()`.
+   * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
    * @default true for Node-like targets, false otherwise
    */
   createRequire?: boolean | string;

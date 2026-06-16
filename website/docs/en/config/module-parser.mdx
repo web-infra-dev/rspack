@@ -141,38 +141,6 @@ const x = require(/* rspackIgnore: true */ 'x');
 const y = require(/* webpackIgnore: true */ 'y');
 ```
 
-### javascript.createRequire
-
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[
-    { defaultValue: 'true for Node-like targets, false otherwise' },
-  ]}
-/>
-
-Enable parsing for Node.js `module.createRequire()` and `createRequire()` imported from `module` or `node:module`.
-
-When enabled, Rspack evaluates static `createRequire()` arguments and tracks the generated `require()` function, including `require.resolve()` and `require.cache`, relative to the supplied path.
-
-Supported static arguments include absolute path strings, file URL strings, `import.meta.url`, `new URL("./file.js", import.meta.url)`, and `new URL("./file.js", "file:///path/to/base.js")`.
-
-```js title="rspack.config.mjs"
-export default {
-  target: 'node',
-  module: {
-    parser: {
-      javascript: {
-        createRequire: true,
-      },
-    },
-  },
-};
-```
-
-Set `createRequire` to `false` to disable this parser behavior. You can also pass a string to customize the recognized import source. The default recognizes `createRequire` from `module`, and also supports `node:module`.
-
-If the argument cannot be resolved to an absolute path or file URL at build time, Rspack keeps the runtime expression and emits an unsupported feature warning.
-
 ### javascript.dynamicImportMode
 
 <PropertyType

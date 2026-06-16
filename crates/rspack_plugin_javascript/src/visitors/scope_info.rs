@@ -218,26 +218,6 @@ impl ScopeInfoDB {
     self.expect_get_mut_scope(id).defined.push(key);
   }
 
-  pub fn update_existing(
-    &mut self,
-    id: ScopeInfoId,
-    key: &Atom,
-    variable_info_id: VariableInfoId,
-  ) -> bool {
-    debug_assert!(
-      self.is_active_scope(id),
-      "bindings can only be updated in an active scope"
-    );
-    let Some(stack) = self.bindings.get_mut(key) else {
-      return false;
-    };
-    let Some(binding) = stack.iter_mut().rev().find(|binding| binding.scope == id) else {
-      return false;
-    };
-    binding.value = variable_info_id;
-    true
-  }
-
   pub fn delete(&mut self, id: ScopeInfoId, key: &Atom) {
     self.set(id, key.clone(), VariableInfoId::tombstone());
   }
@@ -255,17 +235,6 @@ impl ScopeInfoDB {
         .find(|binding| binding.scope == id)?;
       (binding.value != VariableInfoId::tombstone()).then_some((name.as_str(), binding.value))
     })
-  }
-
-  fn is_active_scope(&self, id: ScopeInfoId) -> bool {
-    let mut current = self.current;
-    while let Some(current_id) = current {
-      if current_id == id {
-        return true;
-      }
-      current = self.expect_get_scope(current_id).parent;
-    }
-    false
   }
 }
 
