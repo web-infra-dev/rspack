@@ -66,6 +66,16 @@ pub fn create_encoder(columns: bool) -> MappingsEncoder {
   }
 }
 
+pub fn create_encoder_with_capacity(columns: bool, capacity: usize) -> MappingsEncoder {
+  if columns {
+    MappingsEncoder::Full(FullMappingsEncoder::with_capacity(
+      capacity.max(INITIAL_MAPPINGS_CAPACITY),
+    ))
+  } else {
+    MappingsEncoder::LinesOnly(LinesOnlyMappingsEncoder::new())
+  }
+}
+
 pub(crate) struct FullMappingsEncoder {
   current_line: u32,
   current_column: u32,
@@ -81,6 +91,10 @@ pub(crate) struct FullMappingsEncoder {
 
 impl FullMappingsEncoder {
   pub fn new() -> Self {
+    Self::with_capacity(INITIAL_MAPPINGS_CAPACITY)
+  }
+
+  pub fn with_capacity(capacity: usize) -> Self {
     Self {
       current_line: 1,
       current_column: 0,
@@ -91,7 +105,7 @@ impl FullMappingsEncoder {
       active_mapping: false,
       active_name: false,
       initial: true,
-      mappings: Vec::with_capacity(INITIAL_MAPPINGS_CAPACITY),
+      mappings: Vec::with_capacity(capacity),
     }
   }
 }

@@ -292,7 +292,7 @@ pub struct SourceMap {
   #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
   sources_content: Arc<[Arc<str>]>,
   names: Arc<[String]>,
-  mappings: Arc<str>,
+  mappings: String,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
   source_root: Option<Arc<str>>,
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
@@ -336,7 +336,7 @@ impl SourceMap {
     names: Names,
   ) -> Self
   where
-    Mappings: Into<Arc<str>>,
+    Mappings: Into<String>,
     Sources: Into<Arc<[String]>>,
     SourcesContent: Into<Vec<Arc<str>>>,
     Names: Into<Arc<[String]>>,
