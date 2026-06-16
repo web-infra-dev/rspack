@@ -33,6 +33,11 @@ impl CompatibilityPlugin {
     }
   }
 
+  fn nested_module_name<'a>(&self, parser: &'a JavascriptParser) -> Option<&'a str> {
+    (parser.compiler_options.experiments.runtime_mode == RuntimeMode::Rspack)
+      .then_some("__rspack_module")
+  }
+
   pub fn browserify_require_handler(
     &self,
     parser: &mut JavascriptParser,
@@ -136,6 +141,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
         span.real_hi(),
       );
       return Some(true);
+    } else if Some(ident.id.sym.as_str()) == self.nested_module_name(parser) {
+      let span = ident.span();
+      self.tag_nested_require_data(
+        parser,
+        Atom::from(ident.id.sym.as_str()),
+        "__nested_rspack_module__".to_string(),
+        parser.in_short_hand,
+        span.real_lo(),
+        span.real_hi(),
+      );
+      return Some(true);
     }
 
     None
@@ -178,6 +194,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
       if !parser.is_top_level_scope() {
         return Some(true);
       }
+    } else if Some(for_name) == self.nested_module_name(parser) {
+      self.tag_nested_require_data(
+        parser,
+        Atom::from(ident.sym.as_str()),
+        "__nested_rspack_module__".to_string(),
+        parser.in_short_hand,
+        ident.span().real_lo(),
+        ident.span().real_hi(),
+      );
+      return Some(true);
     }
     None
   }
@@ -213,7 +239,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CompatibilityPlugin {
   ) -> Option<bool> {
     if let Some(ident) = declarator.name.as_ident()
       && (ident.id.sym.as_str() == parser.parser_runtime_requirements.exports
-        || ident.id.sym.as_str() == self.nested_require_name(parser))
+        || ident.id.sym.as_str() == self.nested_require_name(parser)
+        || Some(ident.id.sym.as_str()) == self.nested_module_name(parser))
     {
       let data = parser.get_tag_data_mut::<NestedRequireData>(
         &Atom::from(ident.id.sym.as_str()),

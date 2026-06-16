@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import type { Compiler } from '../Compiler';
+import { RuntimeVariable, renderRuntimeVariables } from '../RuntimeGlobals';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
@@ -422,7 +423,11 @@ function getPublicPathRuntimeSource(compiler: Compiler) {
   if (typeof publicPath !== 'string' || publicPath === 'auto') {
     return undefined;
   }
-  return `if (typeof __webpack_require__.p === "undefined") __webpack_require__.p = ${JSON.stringify(
+  const requireName = renderRuntimeVariables(
+    RuntimeVariable.Require,
+    compiler.options,
+  );
+  return `if (typeof ${requireName}.p === "undefined") ${requireName}.p = ${JSON.stringify(
     publicPath,
   )}`;
 }
