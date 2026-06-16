@@ -453,7 +453,6 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(64);
     let presentational_dependencies = Vec::with_capacity(64);
     let parser_exports_state: Option<bool> = None;
-    let unresolved_scope_id = ast.semantic.unresolved_scope_id();
 
     let mut plugins: Vec<BoxJavascriptParserPlugin> = Vec::with_capacity(32 + parser_plugins.len());
 
@@ -558,14 +557,12 @@ impl<'parser> JavascriptParser<'parser> {
     )));
     if compiler_options.optimization.inner_graph {
       plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        unresolved_scope_id,
         compiler_options.experiments.pure_functions,
       )));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
       plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        unresolved_scope_id,
         compiler_options.experiments.pure_functions,
       )));
     }
