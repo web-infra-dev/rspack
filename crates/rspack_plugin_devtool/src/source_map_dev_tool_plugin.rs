@@ -128,10 +128,10 @@ fn compute_source_references(
           .module_by_identifier(&identifier)
         {
           Some(module) => SourceReference::Module(module.identifier()),
-          None => SourceReference::Source(Arc::from(source_name)),
+          None => SourceReference::Source(source_name),
         }
       } else {
-        SourceReference::Source(Arc::from(source_name.clone()))
+        SourceReference::Source(source_name.clone())
       }
     })
     .collect()
@@ -1105,7 +1105,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .expect_get_mut(ukey)
       });
       if let Some(chunk) = chunk {
-        chunk.add_auxiliary_file(source_map_filename.clone());
+        chunk.add_auxiliary_file(source_map_filename);
       }
     }
   }

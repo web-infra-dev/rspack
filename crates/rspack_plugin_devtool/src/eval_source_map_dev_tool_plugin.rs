@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::hash::Hash;
 
 use derive_more::Debug;
 use futures::future::join_all;
@@ -156,10 +156,10 @@ async fn render_module_content(
               .module_by_identifier(&identifier)
             {
               Some(module) => SourceReference::Module(module.identifier()),
-              None => SourceReference::Source(Arc::from(source)),
+              None => SourceReference::Source(source),
             }
           } else {
-            SourceReference::Source(Arc::from(source.clone()))
+            SourceReference::Source(source.clone())
           }
         });
         let path_data = PathData::default()
