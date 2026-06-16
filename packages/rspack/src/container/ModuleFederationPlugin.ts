@@ -364,6 +364,25 @@ function getDefaultEntryRuntimeSource(
     );
   }
 
+  const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
+    require('./moduleFederationDefaultRuntime.js').default,
+  );
+  const runtimeSource = getDefaultRuntimeSource(
+    defaultRuntimeSource,
+    compiler.options.experiments.runtimeMode === 'rspack'
+      ? `new Proxy(function (moduleId) {
+  return __rspack_context.r(moduleId);
+}, {
+  get(_target, key) {
+    return __rspack_context[key];
+  },
+  set(_target, key, value) {
+    __rspack_context[key] = value;
+    return true;
+  }
+})`
+      : '__webpack_require__',
+  );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(
       paths.bundlerRuntime,
@@ -386,13 +405,16 @@ function getDefaultEntryRuntimeSource(
       treeShakingShareFallbacks,
     )}`,
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
-    IS_BROWSER
-      ? MF_RUNTIME_CODE
-      : compiler.rspack.Template.getFunctionContent(
-          require('./moduleFederationDefaultRuntime.js').default,
-        ),
+    IS_BROWSER ? MF_RUNTIME_CODE : runtimeSource,
   ].join(';');
   return content;
+}
+
+function getDefaultRuntimeSource(source: string, runtimeRequire: string) {
+  return source.replace(
+    '__module_federation_runtime_require__',
+    runtimeRequire,
+  );
 }
 
 function getPublicPathRuntimeSource(compiler: Compiler) {

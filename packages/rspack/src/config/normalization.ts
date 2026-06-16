@@ -621,6 +621,7 @@ export interface ExperimentsNormalized {
   deferImport?: boolean;
   sourceImport?: boolean;
   pureFunctions?: boolean;
+  runtimeMode?: 'webpack' | 'rspack';
 }
 
 export type IgnoreWarningsNormalized = ((

@@ -13,9 +13,7 @@ use rspack_core::{
 use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
-use crate::dependency::{
-  DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition,
-};
+use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -33,7 +31,7 @@ pub struct ImportDependency {
   factorize_info: FactorizeInfo,
   optional: bool,
   #[cacheable(with=AsOption<AsCacheable>)]
-  branch_guards: Option<Box<DependencyBranchGuards>>,
+  branch_guard: Option<DependencyBranchGuard>,
 }
 
 impl ImportDependency {
@@ -59,7 +57,7 @@ impl ImportDependency {
       factorize_info: Default::default(),
       optional,
       comments,
-      branch_guards: None,
+      branch_guard: None,
     }
   }
 
@@ -67,8 +65,11 @@ impl ImportDependency {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
-  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
-    self.branch_guards.get_or_insert_default().extend(guards);
+  pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
@@ -164,7 +165,7 @@ impl ModuleDependency for ImportDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guards.as_deref())
+    compose_dependency_condition(None, self.branch_guard.as_ref())
   }
 }
 

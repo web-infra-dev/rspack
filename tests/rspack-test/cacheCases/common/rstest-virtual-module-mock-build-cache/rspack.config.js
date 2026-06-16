@@ -54,10 +54,11 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
       __webpack_exports__,
       __webpack_require__,
     ) {
-      __webpack_require__.r(__webpack_exports__);
+      const __rspack_runtime = __webpack_require__;
+      (__rspack_runtime.N || __rspack_runtime.r)(__webpack_exports__);
       const res = modFactory();
       for (const key in res) {
-        __webpack_require__.d(__webpack_exports__, {
+        __rspack_runtime.d(__webpack_exports__, {
           [key]: () => res[key],
         });
       }

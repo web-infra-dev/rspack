@@ -91,7 +91,12 @@ async fn runtime_module(
       );
     }
     "webpack/runtime/require_chunk_loading" | "webpack/runtime/module_chunk_loading" => {
-      let source = runtime_module.generate_with_custom(compilation).await?;
+      let runtime_template = compilation.runtime_template.create_runtime_code_template();
+      let context = rspack_core::RuntimeModuleGenerateContext {
+        compilation,
+        runtime_template: &runtime_template,
+      };
+      let source = runtime_module.generate_with_custom(&context).await?;
       runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(source));
     }
     _ => {}

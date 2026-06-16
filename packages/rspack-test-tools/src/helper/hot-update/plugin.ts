@@ -168,7 +168,8 @@ export class HotUpdatePlugin {
         PLUGIN_NAME,
         (module: any, _set: any) => {
           if (
-            module.constructor.name === 'DefinePropertyGettersRuntimeModule'
+            module.constructor.name === 'DefinePropertyGettersRuntimeModule' &&
+            compiler.options.experiments?.runtimeMode !== 'rspack'
           ) {
             // HMR tests re-execute modules and redefine the same export keys, so
             // the test-only runtime keeps export descriptors configurable (`configurable: true`).

@@ -281,16 +281,16 @@ function applyHandler(options) {
 			// run new runtime modules
 			for (var i = 0; i < currentUpdateRuntime.length; i++) {
 				<% if (_is_hot_test) { %>
-				currentUpdateRuntime[i](new Proxy(<%- REQUIRE %>, {
+				currentUpdateRuntime[i](new Proxy(<%- REQUIRE_SCOPE %>, {
 					set(target, prop, value, receiver) {
 						if (self.__HMR_UPDATED_RUNTIME__) {
-							self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`<%- REQUIRE %>.${prop}`);
+							self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`<%- REQUIRE_SCOPE %>.${prop}`);
 						}
 						return Reflect.set(target, prop, value, receiver);
 					}
 				}));
 				<% } else { %>
-				currentUpdateRuntime[i](<%- REQUIRE %>);
+				currentUpdateRuntime[i](<%- REQUIRE_SCOPE %>);
 				<% } %>
 			}
 

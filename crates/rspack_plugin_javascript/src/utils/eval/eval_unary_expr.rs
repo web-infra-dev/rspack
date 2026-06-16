@@ -118,6 +118,14 @@ pub fn eval_unary_expression<'parser: 'a, 'a>(
     UnaryOp::TypeOf => eval_typeof(scanner, expr),
     UnaryOp::Bang => {
       let arg = scanner.evaluate_expression(&expr.arg);
+      if arg.is_dependency() {
+        let side_effects = arg.could_have_side_effects();
+        let mut eval =
+          BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
+        eval.set_dependency(arg.into_dependency().not());
+        eval.set_side_effects(side_effects);
+        return Some(eval);
+      }
       let boolean = arg.as_bool()?;
       let mut eval = BasicEvaluatedExpression::with_range(expr.span.real_lo(), expr.span.real_hi());
       eval.set_bool(!boolean);

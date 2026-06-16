@@ -1,6 +1,9 @@
 const fs = __non_webpack_require__("fs");
 const path = __non_webpack_require__("path");
 
+const isRspackRuntimeMode =
+	globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK ||
+	__dirname.includes("runtime-mode-config");
 
 function createWorker() {
 	new Worker(new URL("./worker.js", import.meta.url), {
@@ -12,8 +15,11 @@ createWorker;
 
 it("should generate correct new Worker statement", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
-	const method = "__webpack_require__.tu";
-	expect(content).toContain(`new Worker(${method}(new URL(`)
+	if (isRspackRuntimeMode) {
+		expect(content).toContain(`new Worker(__rspack_context.tu(new URL(`)
+	} else {
+		expect(content).toContain(`new Worker(__webpack_require__.tu(new URL(`)
+	}
 });
 
 
@@ -26,7 +32,11 @@ createWorkerWithChunkName
 it("should generate correct new Worker statement with magic comments", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	const chunkName = "someChunkName";
-	expect(content).toContain(`new Worker(/* webpackChunkName: "${chunkName}" */__webpack_require__.tu(new URL(`)
+	if (isRspackRuntimeMode) {
+		expect(content).toContain(`new Worker(/* webpackChunkName: "${chunkName}" */__rspack_context.tu(new URL(`)
+	} else {
+		expect(content).toContain(`new Worker(/* webpackChunkName: "${chunkName}" */__webpack_require__.tu(new URL(`)
+	}
 	expect(fs.existsSync(path.join(__dirname, `${chunkName}.js`))).toBeTruthy();
 });
 
@@ -40,6 +50,10 @@ createWorkerWithChunkNameInnner
 it("should generate correct new Worker statement with magic comments", async () => {
 	const content = fs.readFileSync(__filename, "utf-8");
 	const chunkName = "someChunkName2";
-	expect(content).toContain(`new Worker(__webpack_require__.tu(new URL(/* webpackChunkName: "${chunkName}" */`)
+	if (isRspackRuntimeMode) {
+		expect(content).toContain(`new Worker(__rspack_context.tu(new URL(/* webpackChunkName: "${chunkName}" */`)
+	} else {
+		expect(content).toContain(`new Worker(__webpack_require__.tu(new URL(/* webpackChunkName: "${chunkName}" */`)
+	}
 	expect(fs.existsSync(path.join(__dirname, `${chunkName}.js`))).toBeTruthy();
 });

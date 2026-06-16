@@ -1,0 +1,11 @@
+import { __rspack_context } from "./runtime~0.js";
+
+__rspack_context.m.add({
+917(module) {
+module.exports = 'b'
+
+},
+});
+__rspack_context.r("917");
+
+export {};
