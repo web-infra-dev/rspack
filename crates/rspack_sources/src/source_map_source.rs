@@ -1,14 +1,14 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
+  sync::{Arc, OnceLock},
 };
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
-    stream_chunks_of_source_map,
+    Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
+    stream_chunks_of_combined_source_map, stream_chunks_of_source_map_with_generated_info,
   },
   object_pool::ObjectPool,
 };
@@ -59,7 +59,6 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
-#[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
   name: Box<str>,
@@ -67,6 +66,7 @@ pub struct SourceMapSource {
   original_source: Option<Box<str>>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
+  generated_info: OnceLock<GeneratedInfo>,
 }
 
 impl SourceMapSource {
@@ -85,6 +85,7 @@ impl SourceMapSource {
       original_source: options.original_source,
       inner_source_map: options.inner_source_map,
       remove_original_source: options.remove_original_source,
+      generated_info: OnceLock::new(),
     }
   }
 
@@ -116,6 +117,12 @@ impl SourceMapSource {
   /// Whether to remove the original source.
   pub fn remove_original_source(&self) -> bool {
     self.remove_original_source
+  }
+
+  fn generated_info(&self) -> GeneratedInfo {
+    *self
+      .generated_info
+      .get_or_init(|| get_generated_source_info(TextSpan::new(&self.value)))
   }
 }
 
@@ -183,6 +190,8 @@ impl PartialEq for SourceMapSource {
   }
 }
 
+impl Eq for SourceMapSource {}
+
 impl std::fmt::Debug for SourceMapSource {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
     let indent = f.width().unwrap_or(0);
@@ -234,11 +243,13 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
     on_source: crate::helpers::OnSource<'_, 'source>,
     on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
+    let generated_info = options.final_source.then(|| self.0.generated_info());
     if let Some(inner_source_map) = &self.0.inner_source_map {
       stream_chunks_of_combined_source_map(
         options,
         object_pool,
         &self.0.value,
+        generated_info,
         self.0.source_map.fields(),
         &self.0.name,
         self.0.original_source.as_deref(),
@@ -249,11 +260,12 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
         on_name,
       )
     } else {
-      stream_chunks_of_source_map(
+      stream_chunks_of_source_map_with_generated_info(
         options,
         object_pool,
         TextSpan::new(self.0.value.as_ref()),
         self.0.source_map.fields(),
+        generated_info,
         on_chunk,
         on_source,
         on_name,

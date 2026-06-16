@@ -337,7 +337,7 @@ pub(crate) fn stream_chunks_default_fields<'chunk, 'source>(
 }
 
 /// `GeneratedSourceInfo` abstraction, see [webpack-sources GeneratedSourceInfo](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/getGeneratedSourceInfo.js)
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GeneratedInfo {
   /// Generated line
   pub generated_line: u32,
@@ -452,18 +452,17 @@ pub fn split_into_lines(source: &str) -> impl Iterator<Item = &str> {
 }
 
 pub(crate) fn get_generated_source_info(source: TextSpan<'_>) -> GeneratedInfo {
-  let (generated_line, generated_column) = if source.ends_with('\n') {
-    (split_into_lines(source.as_str()).count() + 1, 0)
+  let source_str = source.as_str();
+  let mut generated_line = 1;
+  let mut last_line_start = 0;
+  for newline_pos in memchr::memchr_iter(b'\n', source_str.as_bytes()) {
+    generated_line += 1;
+    last_line_start = newline_pos + 1;
+  }
+  let generated_column = if last_line_start == source_str.len() {
+    0
   } else {
-    let mut line_count = 0;
-    let mut last_line = "";
-
-    for line in split_into_lines(source.as_str()) {
-      line_count += 1;
-      last_line = line;
-    }
-
-    (line_count.max(1), source.utf16_len_of(last_line))
+    source.utf16_len_of(&source_str[last_line_start..])
   };
   GeneratedInfo {
     generated_line: generated_line as u32,
@@ -518,12 +517,41 @@ pub fn stream_chunks_of_source_map<'chunk, 'source>(
   on_source: OnSource<'_, 'source>,
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
+  stream_chunks_of_source_map_with_generated_info(
+    options,
+    object_pool,
+    source,
+    source_map,
+    None,
+    on_chunk,
+    on_source,
+    on_name,
+  )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn stream_chunks_of_source_map_with_generated_info<'chunk, 'source>(
+  options: &MapOptions,
+  object_pool: &ObjectPool,
+  source: TextSpan<'chunk>,
+  source_map: &'source SourceMapFields<'_>,
+  generated_info: Option<GeneratedInfo>,
+  on_chunk: OnChunk<'_, 'chunk>,
+  on_source: OnSource<'_, 'source>,
+  on_name: OnName<'_, 'source>,
+) -> GeneratedInfo {
   match options {
     MapOptions {
       columns: true,
       final_source: true,
       ..
-    } => stream_chunks_of_source_map_final(source, source_map, on_chunk, on_source, on_name),
+    } => stream_chunks_of_source_map_final(
+      generated_info.unwrap_or_else(|| get_generated_source_info(source)),
+      source_map,
+      on_chunk,
+      on_source,
+      on_name,
+    ),
     MapOptions {
       columns: true,
       final_source: false,
@@ -540,7 +568,13 @@ pub fn stream_chunks_of_source_map<'chunk, 'source>(
       columns: false,
       final_source: true,
       ..
-    } => stream_chunks_of_source_map_lines_final(source, source_map, on_chunk, on_source, on_name),
+    } => stream_chunks_of_source_map_lines_final(
+      generated_info.unwrap_or_else(|| get_generated_source_info(source)),
+      source_map,
+      on_chunk,
+      on_source,
+      on_name,
+    ),
     MapOptions {
       columns: false,
       final_source: false,
@@ -559,14 +593,13 @@ fn get_source<'a>(source_map: &SourceMapFields, source: &'a str) -> Cow<'a, str>
   }
 }
 
-fn stream_chunks_of_source_map_final<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+fn stream_chunks_of_source_map_final<'source>(
+  result: GeneratedInfo,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk,
   on_source: OnSource<'_, 'source>,
   on_name: OnName<'_, 'source>,
 ) -> GeneratedInfo {
-  let result = get_generated_source_info(source);
   if result.generated_line == 1 && result.generated_column == 0 {
     return result;
   }
@@ -759,14 +792,13 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
   }
 }
 
-fn stream_chunks_of_source_map_lines_final<'chunk, 'source>(
-  source: TextSpan<'chunk>,
+fn stream_chunks_of_source_map_lines_final<'source>(
+  result: GeneratedInfo,
   source_map: &'source SourceMapFields<'_>,
   on_chunk: OnChunk,
   on_source: OnSource<'_, 'source>,
   _on_name: OnName,
 ) -> GeneratedInfo {
-  let result = get_generated_source_info(source);
   if result.generated_line == 1 && result.generated_column == 0 {
     return GeneratedInfo {
       generated_line: 1,
@@ -904,6 +936,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
   options: &MapOptions,
   object_pool: &'object_pool ObjectPool,
   source: &'chunk str,
+  generated_info: Option<GeneratedInfo>,
   source_map: &'source SourceMapFields<'_>,
   inner_source_name: &'source str,
   inner_source: Option<&'source str>,
@@ -956,11 +989,12 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
     Some(l as u32 - 1)
   };
 
-  stream_chunks_of_source_map(
+  stream_chunks_of_source_map_with_generated_info(
     options,
     object_pool,
     TextSpan::new(source),
     source_map,
+    generated_info,
     &mut |chunk, mapping| {
       let source_index = mapping
         .original
@@ -1420,9 +1454,9 @@ mod tests {
   use std::sync::LazyLock;
 
   use super::{
-    GeneratedInfo, TextSpan, split_into_potential_tokens, stream_chunks_of_source_map_final,
-    stream_chunks_of_source_map_full, stream_chunks_of_source_map_lines_final,
-    stream_chunks_of_source_map_lines_full,
+    GeneratedInfo, TextSpan, get_generated_source_info, split_into_potential_tokens,
+    stream_chunks_of_source_map_final, stream_chunks_of_source_map_full,
+    stream_chunks_of_source_map_lines_final, stream_chunks_of_source_map_lines_full,
   };
   use crate::{Mapping, ObjectPool, OriginalLocation, SourceMap};
 
@@ -1431,6 +1465,29 @@ mod tests {
   static UTF16_SOURCE_MAP: LazyLock<SourceMap<'static>> = LazyLock::new(|| {
     SourceMap::from_json("{\"version\":3,\"sources\":[\"i18.js\"],\"sourcesContent\":[\"var i18n = JSON.parse('{\\\"魑魅魍魉\\\":{\\\"en-US\\\":\\\"Evil spirits\\\",\\\"zh-CN\\\":\\\"魑魅魍魉\\\"}}');\\nvar __webpack_exports___ = i18n[\\\"魑魅魍魉\\\"];\\nexport { __webpack_exports___ as 魑魅魍魉 };\\n\"],\"names\":[\"i18n\",\"JSON\",\"__webpack_exports___\",\"魑魅魍魉\"],\"mappings\":\"AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACvC,SAASE,wBAAwBC,IAAI,GAAG\"}".to_string()).unwrap()
   });
+
+  #[test]
+  fn test_get_generated_source_info() {
+    let cases = [
+      ("", 1, 0),
+      ("a", 1, 1),
+      ("a\n", 2, 0),
+      ("a\nb", 2, 1),
+      ("\n\n", 3, 0),
+      ("a\n😀z", 2, 3),
+    ];
+
+    for (source, generated_line, generated_column) in cases {
+      assert_eq!(
+        get_generated_source_info(TextSpan::new(source)),
+        GeneratedInfo {
+          generated_line,
+          generated_column
+        },
+        "{source:?}"
+      );
+    }
+  }
 
   #[test]
   fn test_stream_chunks_of_source_map_full_handles_multi_unit_utf16() {
@@ -1680,7 +1737,7 @@ mod tests {
     let source_map = UTF16_SOURCE_MAP.fields();
 
     let generated_info = stream_chunks_of_source_map_final(
-      TextSpan::new(source),
+      get_generated_source_info(TextSpan::new(source)),
       source_map,
       &mut |_chunk, _mapping| {},
       &mut |_i, _source, _source_content| {},
@@ -1702,7 +1759,7 @@ mod tests {
     let source_map = UTF16_SOURCE_MAP.fields();
 
     let generated_info = stream_chunks_of_source_map_lines_final(
-      TextSpan::new(source),
+      get_generated_source_info(TextSpan::new(source)),
       source_map,
       &mut |_chunk, _mapping| {},
       &mut |_i, _source, _source_content| {},
