@@ -763,11 +763,24 @@ export interface WatchFileSystem {
     listener: (filename: string, mtime: number) => void,
   ): this;
   on?(event: 'remove', listener: (filename: string) => void): this;
+  on?(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
   once?(
     event: 'change',
     listener: (filename: string, mtime: number) => void,
   ): this;
   once?(event: 'remove', listener: (filename: string) => void): this;
+  once?(
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
   emit?(event: 'change', filename: string, mtime: number): boolean;
   emit?(event: 'remove', filename: string): boolean;
+  emit?(
+    event: 'aggregated',
+    changes: Set<string>,
+    removals: Set<string>,
+  ): boolean;
 }

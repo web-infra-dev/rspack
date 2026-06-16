@@ -177,13 +177,14 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           }
         }
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
-        callback(
-          err,
-          new Map(),
-          new Map(),
-          new Set(changedFiles),
-          new Set(removedFiles),
-        );
+        const changes = new Set(changedFiles);
+        const removals = new Set(removedFiles);
+        callback(err, new Map(), new Map(), changes, removals);
+        // Mirror watchpack's public `aggregated` event (the batched summary
+        // delivered after the aggregate timeout) on both the standard
+        // `on`/`once` API and the watchpack-compatible `.watcher` shim.
+        this.#events.emit('aggregated', changes, removals);
+        watcher.emit('aggregated', changes, removals);
       },
       (event) => {
         if (event.kind === 'change') {
@@ -259,10 +260,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   ): this;
   on(event: 'remove', listener: (filename: string) => void): this;
   on(
-    event: 'change' | 'remove',
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  on(
+    event: 'change' | 'remove' | 'aggregated',
     listener:
       | ((filename: string, mtime: number) => void)
-      | ((filename: string) => void),
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
     this.#events.on(event, listener);
     return this;
@@ -274,10 +280,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
   ): this;
   once(event: 'remove', listener: (filename: string) => void): this;
   once(
-    event: 'change' | 'remove',
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  once(
+    event: 'change' | 'remove' | 'aggregated',
     listener:
       | ((filename: string, mtime: number) => void)
-      | ((filename: string) => void),
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
     this.#events.once(event, listener);
     return this;
@@ -285,17 +296,37 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
 
   emit(event: 'change', filename: string, mtime: number): boolean;
   emit(event: 'remove', filename: string): boolean;
+  emit(
+    event: 'aggregated',
+    changes: Set<string>,
+    removals: Set<string>,
+  ): boolean;
   // `mtime` is accepted for parity with the node implementation but cannot be
   // carried through the native watcher pipeline, which re-stamps the event with
   // its arrival time; the injected `change` is reported with that timestamp.
-  emit(event: 'change' | 'remove', filename: string, _mtime?: number): boolean {
+  emit(
+    event: 'change' | 'remove' | 'aggregated',
+    arg1: string | Set<string>,
+    arg2?: number | Set<string>,
+  ): boolean {
+    if (event === 'aggregated') {
+      const changes = arg1 as Set<string>;
+      const removals = arg2 as Set<string>;
+      // `aggregated` is a summary event with no native injection primitive, so
+      // this re-broadcasts it to listeners (standard API + `.watcher` shim)
+      // rather than driving a rebuild.
+      const notified = this.#events.emit('aggregated', changes, removals);
+      const shimNotified =
+        this.#watcher?.emit('aggregated', changes, removals) ?? false;
+      return notified || shimNotified;
+    }
     if (!this.#inner) {
       return false;
     }
     // Route through the native watcher so the injected event flows back through
     // the normal pipeline (driving a rebuild and re-emitting `change`/`remove`),
     // mirroring watchpack's `_onChange`/`_onRemove`.
-    this.#inner.triggerEvent(event, filename);
+    this.#inner.triggerEvent(event, arg1 as string);
     return true;
   }
 

@@ -91,6 +91,9 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
     this.watcher?.on('remove', (filename) => {
       this.#events.emit('remove', filename);
     });
+    this.watcher?.on('aggregated', (changes, removals) => {
+      this.#events.emit('aggregated', changes, removals);
+    });
 
     const fetchTimeInfo = () => {
       const fileTimeInfoEntries = new Map();
@@ -217,10 +220,15 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
   ): this;
   on(event: 'remove', listener: (filename: string) => void): this;
   on(
-    event: 'change' | 'remove',
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  on(
+    event: 'change' | 'remove' | 'aggregated',
     listener:
       | ((filename: string, mtime: number) => void)
-      | ((filename: string) => void),
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
     this.#events.on(event, listener as (...args: unknown[]) => void);
     return this;
@@ -232,10 +240,15 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
   ): this;
   once(event: 'remove', listener: (filename: string) => void): this;
   once(
-    event: 'change' | 'remove',
+    event: 'aggregated',
+    listener: (changes: Set<string>, removals: Set<string>) => void,
+  ): this;
+  once(
+    event: 'change' | 'remove' | 'aggregated',
     listener:
       | ((filename: string, mtime: number) => void)
-      | ((filename: string) => void),
+      | ((filename: string) => void)
+      | ((changes: Set<string>, removals: Set<string>) => void),
   ): this {
     this.#events.once(event, listener as (...args: unknown[]) => void);
     return this;
@@ -243,15 +256,41 @@ export default class NodeWatchFileSystem implements WatchFileSystem {
 
   emit(event: 'change', filename: string, mtime: number): boolean;
   emit(event: 'remove', filename: string): boolean;
-  emit(event: 'change' | 'remove', filename: string, mtime?: number): boolean {
+  emit(
+    event: 'aggregated',
+    changes: Set<string>,
+    removals: Set<string>,
+  ): boolean;
+  emit(
+    event: 'change' | 'remove' | 'aggregated',
+    arg1: string | Set<string>,
+    arg2?: number | Set<string>,
+  ): boolean {
+    if (event === 'aggregated') {
+      // `aggregated` is a summary event, not a primitive filesystem event:
+      // notify standard `on`/`once` listeners without re-dispatching it through
+      // watchpack (which would trigger a rebuild), keeping it consistent with
+      // the native side, where no aggregated-injection primitive exists.
+      return this.#events.emit(
+        'aggregated',
+        arg1 as Set<string>,
+        arg2 as Set<string>,
+      );
+    }
     if (!this.watcher) {
       return false;
     }
+    const filename = arg1 as string;
     // `_onChange`/`_onRemove` emit the public `change`/`remove` events and feed
     // the aggregated change/removal sets that drive the next rebuild, matching
     // how watchpack reports a real filesystem event.
     if (event === 'change') {
-      this.watcher._onChange(filename, mtime ?? Date.now(), filename, 'change');
+      this.watcher._onChange(
+        filename,
+        (arg2 as number) ?? Date.now(),
+        filename,
+        'change',
+      );
     } else {
       this.watcher._onRemove(filename, filename, 'rename');
     }

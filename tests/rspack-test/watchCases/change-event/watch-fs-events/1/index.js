@@ -18,3 +18,10 @@ it('emits the same `change` through the watchpack-compatible watcher shim', () =
   );
   expect(watcherChanged.some(endsWith('/index.js'))).toBe(true);
 });
+
+it('emits an `aggregated` event including the edited file', () => {
+  const { aggregatedChanges } = JSON.parse(
+    fs.readFileSync(path.join(__dirname, 'recorded-events.json'), 'utf-8'),
+  );
+  expect(aggregatedChanges.some(endsWith('/index.js'))).toBe(true);
+});
