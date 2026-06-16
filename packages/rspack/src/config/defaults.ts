@@ -1088,13 +1088,16 @@ const applyNodeDefaults = (
   });
   const handlerForNames = () => {
     if (targetProperties) {
-      if (targetProperties.node) return 'eval-only';
+      if (targetProperties.node) {
+        return outputModule ? 'node-module' : 'eval-only';
+      }
       if (
         outputModule &&
         targetProperties.node === null &&
         targetProperties.web === null
-      )
+      ) {
         return 'eval-only';
+      }
     }
     return 'warn-mock';
   };
