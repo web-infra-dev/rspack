@@ -237,52 +237,17 @@ class JsSourceMap {
   }
 }
 
-function toLoaderContent(
-  content: string | Buffer | Uint8Array | null | undefined,
-) {
-  if (isNil(content)) return null;
-  return typeof content === 'string' ? content : toBuffer(content);
-}
-
-function materializeContextValueProperties(context: JsLoaderContext) {
-  Object.defineProperties(context, {
-    content: {
-      configurable: true,
-      enumerable: true,
-      value: context.content,
-      writable: true,
-    },
-    sourceMap: {
-      configurable: true,
-      enumerable: true,
-      value: context.sourceMap,
-      writable: true,
-    },
-    additionalData: {
-      configurable: true,
-      enumerable: true,
-      value: context.additionalData,
-      writable: true,
-    },
-    loaderItems: {
-      configurable: true,
-      enumerable: true,
-      value: context.loaderItems,
-      writable: true,
-    },
-    __internal__error: {
-      configurable: true,
-      enumerable: true,
-      value: undefined,
-      writable: true,
-    },
-    __internal__utf8Hint: {
-      configurable: true,
-      enumerable: true,
-      value: undefined,
-      writable: true,
-    },
-  });
+function dirname(path: string) {
+  if (path === '/') return '/';
+  const i = path.lastIndexOf('/');
+  const j = path.lastIndexOf('\\');
+  const i2 = path.indexOf('/');
+  const j2 = path.indexOf('\\');
+  const idx = i > j ? i : j;
+  const idx2 = i > j ? i2 : j2;
+  if (idx < 0) return path;
+  if (idx === idx2) return path.slice(0, idx + 1);
+  return path.slice(0, idx);
 }
 
 function getCurrentLoader(
@@ -307,8 +272,7 @@ export async function runLoaders(
   const loaderState = context.loaderState;
   const pitch = loaderState === JsLoaderState.Pitching;
 
-  const resource = context.resource;
-  const module = context._module;
+  const { resource } = context;
   const uuid = JavaScriptTracer.uuid();
 
   JavaScriptTracer.startAsync({
@@ -321,88 +285,59 @@ export async function runLoaders(
       resource: resource,
     },
   });
-  materializeContextValueProperties(context);
+  const splittedResource = resource && parsePathQueryFragment(resource);
+  const resourcePath = splittedResource ? splittedResource.path : undefined;
+  const resourceQuery = splittedResource ? splittedResource.query : undefined;
+  const resourceFragment = splittedResource
+    ? splittedResource.fragment
+    : undefined;
+  const contextDirectory = resourcePath ? dirname(resourcePath) : null;
+
+  // execution state
+  const fileDependencies = context.fileDependencies;
+  const contextDependencies = context.contextDependencies;
+  const missingDependencies = context.missingDependencies;
+  const buildDependencies = context.buildDependencies;
+
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
-  let contextActive = true;
-  const assertContextActive = () => {
-    if (!contextActive) {
-      throw new Error(
-        'Loader context is no longer valid after the loader runner has finished',
-      );
-    }
-  };
 
   loaderContext.loaders = context.loaderItems.map((item) => {
     return LoaderObject.__from_binding(item, compiler);
   });
 
   loaderContext.hot = context.hot;
-  let resourceDataOverride:
-    | { path: string | undefined; query: string; fragment: string }
-    | undefined;
-  let contextOverride: string | null | undefined;
-  const getResourcePath = () => {
-    assertContextActive();
-    return resourceDataOverride
-      ? resourceDataOverride.path
-      : context.resourcePath;
-  };
-  const getResourceQuery = () => {
-    assertContextActive();
-    return resourceDataOverride
-      ? resourceDataOverride.query
-      : context.resourceQuery || '';
-  };
-  const getResourceFragment = () => {
-    assertContextActive();
-    return resourceDataOverride
-      ? resourceDataOverride.fragment
-      : context.resourceFragment || '';
-  };
-  const ensureResourceDataOverride = () => {
-    assertContextActive();
-    if (!resourceDataOverride) {
-      resourceDataOverride = {
-        path: context.resourcePath,
-        query: context.resourceQuery || '',
-        fragment: context.resourceFragment || '',
-      };
-    }
-    return resourceDataOverride;
-  };
+  loaderContext.context = contextDirectory;
+  loaderContext.resourcePath = resourcePath!;
+  loaderContext.resourceQuery = resourceQuery!;
+  loaderContext.resourceFragment = resourceFragment!;
   loaderContext.dependency = loaderContext.addDependency =
     function addDependency(file) {
-      assertContextActive();
-      context.addDependency(file);
+      fileDependencies.push(file);
     };
-  loaderContext.addContextDependency = function addContextDependency(dep) {
-    assertContextActive();
-    context.addContextDependency(dep);
+  loaderContext.addContextDependency = function addContextDependency(context) {
+    contextDependencies.push(context);
   };
-  loaderContext.addMissingDependency = function addMissingDependency(dep) {
-    assertContextActive();
-    context.addMissingDependency(dep);
+  loaderContext.addMissingDependency = function addMissingDependency(context) {
+    missingDependencies.push(context);
   };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
-    assertContextActive();
-    context.addBuildDependency(file);
+    buildDependencies.push(file);
   };
   loaderContext.getDependencies = function getDependencies() {
-    assertContextActive();
-    return context.getDependencies();
+    return fileDependencies.slice();
   };
   loaderContext.getContextDependencies = function getContextDependencies() {
-    assertContextActive();
-    return context.getContextDependencies();
+    return contextDependencies.slice();
   };
   loaderContext.getMissingDependencies = function getMissingDependencies() {
-    assertContextActive();
-    return context.getMissingDependencies();
+    return missingDependencies.slice();
   };
   loaderContext.clearDependencies = function clearDependencies() {
-    assertContextActive();
-    context.clearDependencies();
+    fileDependencies.length = 0;
+    contextDependencies.length = 0;
+    missingDependencies.length = 0;
+    context.cacheable = true;
   };
 
   loaderContext.importModule = function importModule(
@@ -410,7 +345,6 @@ export async function runLoaders(
     userOptions,
     callback,
   ) {
-    assertContextActive();
     JavaScriptTracer.startAsync({
       name: 'importModule',
       processName: LOADER_PROCESS_NAME,
@@ -506,60 +440,24 @@ export async function runLoaders(
   Object.defineProperty(loaderContext, 'resource', {
     enumerable: true,
     get: () => {
-      assertContextActive();
-      if (!resourceDataOverride) return resource || undefined;
-      const resourcePath = resourceDataOverride.path;
-      if (resourcePath === undefined) return undefined;
+      if (loaderContext.resourcePath === undefined) return undefined;
       return (
-        resourcePath.replace(/#/g, '\u200b#') +
-        resourceDataOverride.query.replace(/#/g, '\u200b#') +
-        resourceDataOverride.fragment
+        loaderContext.resourcePath.replace(/#/g, '\u200b#') +
+        loaderContext.resourceQuery.replace(/#/g, '\u200b#') +
+        loaderContext.resourceFragment
       );
     },
     set: (value) => {
-      assertContextActive();
       const splittedResource = value && parsePathQueryFragment(value);
-      resourceDataOverride = splittedResource
-        ? {
-            path: splittedResource.path,
-            query: splittedResource.query,
-            fragment: splittedResource.fragment,
-          }
-        : { path: undefined, query: '', fragment: '' };
-    },
-  });
-  Object.defineProperty(loaderContext, 'resourcePath', {
-    enumerable: true,
-    get: () => getResourcePath(),
-    set: (value) => {
-      ensureResourceDataOverride().path = value;
-    },
-  });
-  Object.defineProperty(loaderContext, 'resourceQuery', {
-    enumerable: true,
-    get: () => getResourceQuery(),
-    set: (value) => {
-      ensureResourceDataOverride().query = value || '';
-    },
-  });
-  Object.defineProperty(loaderContext, 'resourceFragment', {
-    enumerable: true,
-    get: () => getResourceFragment(),
-    set: (value) => {
-      ensureResourceDataOverride().fragment = value || '';
-    },
-  });
-  Object.defineProperty(loaderContext, 'context', {
-    enumerable: true,
-    get: () => {
-      assertContextActive();
-      return contextOverride === undefined
-        ? context.context || null
-        : contextOverride;
-    },
-    set: (value) => {
-      assertContextActive();
-      contextOverride = value;
+      loaderContext.resourcePath = splittedResource
+        ? splittedResource.path
+        : undefined;
+      loaderContext.resourceQuery = splittedResource
+        ? splittedResource.query
+        : undefined;
+      loaderContext.resourceFragment = splittedResource
+        ? splittedResource.fragment
+        : undefined;
     },
   });
   Object.defineProperty(loaderContext, 'request', {
@@ -614,7 +512,7 @@ export async function runLoaders(
   loaderContext.version = 2;
   loaderContext.sourceMap = compiler.options.devtool
     ? isUseSourceMap(compiler.options.devtool)
-    : (module.useSourceMap ?? false);
+    : (context._module.useSourceMap ?? false);
   loaderContext.mode = compiler.options.mode;
   Object.assign(loaderContext, compiler.options.loader);
 
@@ -643,16 +541,13 @@ export async function runLoaders(
   });
 
   loaderContext.resolve = function resolve(context, request, callback) {
-    assertContextActive();
     getResolver().resolve({}, context, request, getResolveContext(), callback);
   };
 
   loaderContext.getResolve = function getResolve(options) {
-    assertContextActive();
     const resolver = getResolver();
     const child = options ? resolver.withOptions(options) : resolver;
     return (context, request, callback) => {
-      assertContextActive();
       if (callback) {
         child.resolve({}, context, request, getResolveContext(), callback);
         return;
@@ -673,14 +568,12 @@ export async function runLoaders(
     };
   };
   loaderContext.getLogger = function getLogger(name) {
-    assertContextActive();
     return compiler._lastCompilation!.getLogger(
       [name, resource].filter(Boolean).join('|'),
     );
   };
   loaderContext.rootContext = compiler.context;
   loaderContext.emitError = function emitError(e) {
-    assertContextActive();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -696,7 +589,6 @@ export async function runLoaders(
     });
   };
   loaderContext.emitWarning = function emitWarning(e) {
-    assertContextActive();
     if (!(e instanceof Error)) {
       e = new NonErrorEmittedError(e);
     }
@@ -717,7 +609,6 @@ export async function runLoaders(
     sourceMap?,
     assetInfo?,
   ) {
-    assertContextActive();
     let source: Source | undefined;
     if (sourceMap) {
       if (
@@ -728,7 +619,7 @@ export async function runLoaders(
       ) {
         source = new OriginalSource(
           content,
-          makePathsRelative(loaderContext.context!, sourceMap, compiler),
+          makePathsRelative(contextDirectory!, sourceMap, compiler),
         );
       }
 
@@ -736,7 +627,7 @@ export async function runLoaders(
         source = new SourceMapSource(
           content,
           name,
-          makePathsRelative(loaderContext.context!, sourceMap, compiler),
+          makePathsRelative(contextDirectory!, sourceMap, compiler),
         );
       }
     } else {
@@ -747,13 +638,12 @@ export async function runLoaders(
   loaderContext.fs = compiler.inputFileSystem;
   loaderContext.experiments = {
     emitDiagnostic: (diagnostic: Diagnostic) => {
-      assertContextActive();
       const d = Object.assign({}, diagnostic, {
         message:
           diagnostic.severity === 'warning'
             ? `ModuleWarning: ${diagnostic.message}`
             : `ModuleError: ${diagnostic.message}`,
-        moduleIdentifier: module.identifier(),
+        moduleIdentifier: context._module.identifier(),
       });
       compiler._lastCompilation!.__internal__pushDiagnostic(
         formatDiagnostic(d),
@@ -763,21 +653,21 @@ export async function runLoaders(
 
   const getAbsolutify = memoize(() => absolutify.bindCache(compiler.root));
   const getAbsolutifyInContext = memoize(() =>
-    absolutify.bindContextCache(loaderContext.context!, compiler.root),
+    absolutify.bindContextCache(contextDirectory!, compiler.root),
   );
   const getContextify = memoize(() => contextify.bindCache(compiler.root));
   const getContextifyInContext = memoize(() =>
-    contextify.bindContextCache(loaderContext.context!, compiler.root),
+    contextify.bindContextCache(contextDirectory!, compiler.root),
   );
 
   loaderContext.utils = {
     absolutify: (context, request) => {
-      return context === loaderContext.context
+      return context === contextDirectory
         ? getAbsolutifyInContext()(request)
         : getAbsolutify()(context, request);
     },
     contextify: (context, request) => {
-      return context === loaderContext.context
+      return context === contextDirectory
         ? getContextifyInContext()(request)
         : getContextify()(context, request);
     },
@@ -790,7 +680,7 @@ export async function runLoaders(
 
   loaderContext._compiler = compiler;
   loaderContext._compilation = compiler._lastCompilation!;
-  loaderContext._module = module;
+  loaderContext._module = context._module;
 
   loaderContext.getOptions = () => {
     const loader = getCurrentLoader(loaderContext);
@@ -836,21 +726,14 @@ export async function runLoaders(
   /// Sync with `context`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
-    get: () => {
-      assertContextActive();
-      return context.loaderIndex;
-    },
-    set: (loaderIndex) => {
-      assertContextActive();
-      context.loaderIndex = loaderIndex;
-    },
+    get: () => context.loaderIndex,
+    set: (loaderIndex) => (context.loaderIndex = loaderIndex),
   });
   Object.defineProperty(loaderContext, 'cacheable', {
     enumerable: true,
     get: () => (cacheable?: boolean) => {
-      assertContextActive();
       if (cacheable === false) {
-        context.setCacheable(cacheable);
+        context.cacheable = cacheable;
       }
     },
   });
@@ -863,8 +746,7 @@ export async function runLoaders(
 
   /// Rspack private
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
-    assertContextActive();
-    context.__internal__setParseMeta(key, value);
+    context.__internal__parseMeta[key] = value;
   };
 
   const getWorkerLoaderContext = () => {
@@ -1166,7 +1048,7 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = toLoaderContent(content);
+            context.content = isNil(content) ? null : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
             context.additionalData = additionalData || undefined;
             break;
@@ -1206,7 +1088,7 @@ export async function runLoaders(
           ]);
         }
 
-        context.content = toLoaderContent(content);
+        context.content = isNil(content) ? null : toBuffer(content);
         context.sourceMap = JsSourceMap.__to_binding(sourceMap);
         context.additionalData = additionalData || undefined;
         context.__internal__utf8Hint = typeof content === 'string';
@@ -1241,9 +1123,8 @@ export async function runLoaders(
     },
   });
 
-  contextActive = false;
   if (compiler.options?.cache) {
-    commitCustomFieldsToRust(module.buildInfo);
+    commitCustomFieldsToRust(context._module.buildInfo);
   }
 
   return context;
