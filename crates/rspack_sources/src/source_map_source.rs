@@ -6,7 +6,7 @@ use std::{
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsOption, AsRefStr},
+  with::{AsOption, AsRefStr},
 };
 
 use crate::{
@@ -16,7 +16,6 @@ use crate::{
     stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
-  source::SourceMapSerde,
 };
 
 /// Options for [SourceMapSource::new].
@@ -72,11 +71,9 @@ pub struct SourceMapSource {
   value: Arc<str>,
   #[cacheable(with=AsRefStr)]
   name: Box<str>,
-  #[cacheable(with=As<SourceMapSerde>)]
   source_map: SourceMap<'static>,
   #[cacheable(with=AsOption<AsRefStr>)]
   original_source: Option<Arc<str>>,
-  #[cacheable(with=AsOption<As<SourceMapSerde>>)]
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
 }

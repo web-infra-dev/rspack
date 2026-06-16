@@ -7,10 +7,7 @@ use std::{
 };
 
 use dyn_clone::DynClone;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{As, AsConverter},
-};
+use rspack_cacheable::cacheable_dyn;
 use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
@@ -549,28 +546,37 @@ impl Clone for SourceMap<'static> {
   }
 }
 
-#[cacheable]
 #[doc(hidden)]
-pub struct SourceMapSerde {
-  json: String,
+pub struct SourceMapResolver {
+  resolver: rspack_cacheable::__private::rkyv::vec::VecResolver,
+  len: usize,
 }
 
-impl AsConverter<SourceMap<'static>> for SourceMapSerde {
-  fn serialize(
-    data: &SourceMap<'static>,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self {
-      json: data.to_json(),
-    })
+struct SourceMapJsonWriter<'a, S: ?Sized> {
+  serializer: &'a mut S,
+  error: Option<rspack_cacheable::Error>,
+  len: usize,
+}
+
+impl<S> std::io::Write for SourceMapJsonWriter<'_, S>
+where
+  S: rspack_cacheable::__private::rkyv::ser::Writer<rspack_cacheable::Error> + ?Sized,
+{
+  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+    match rspack_cacheable::__private::rkyv::ser::Writer::write(self.serializer, buf) {
+      Ok(()) => {
+        self.len += buf.len();
+        Ok(buf.len())
+      }
+      Err(error) => {
+        self.error = Some(error);
+        Err(std::io::Error::other("failed to write source map JSON"))
+      }
+    }
   }
 
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<SourceMap<'static>> {
-    SourceMap::from_json(self.json)
-      .map_err(|_| rspack_cacheable::Error::MessageError("failed to deserialize source map"))
+  fn flush(&mut self) -> std::io::Result<()> {
+    Ok(())
   }
 }
 
@@ -579,47 +585,62 @@ const _: () = {
   use rkyv::{
     Archive, Deserialize, Place, Serialize,
     rancor::Fallible,
-    with::{ArchiveWith, DeserializeWith, SerializeWith},
+    ser::{Writer, WriterExt},
+    vec::ArchivedVec,
   };
   use rspack_cacheable::__private::rkyv;
 
   impl Archive for SourceMap<'static> {
-    type Archived = <As<SourceMapSerde> as ArchiveWith<SourceMap<'static>>>::Archived;
-    type Resolver = <As<SourceMapSerde> as ArchiveWith<SourceMap<'static>>>::Resolver;
+    type Archived = ArchivedVec<u8>;
+    type Resolver = SourceMapResolver;
 
     #[inline]
     fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
-      <As<SourceMapSerde> as ArchiveWith<SourceMap<'static>>>::resolve_with(self, resolver, out)
+      ArchivedVec::resolve_from_len(resolver.len, resolver.resolver, out)
     }
   }
 
   impl<__S> Serialize<__S> for SourceMap<'static>
   where
-    __S: Fallible + ?Sized,
-    As<SourceMapSerde>: SerializeWith<SourceMap<'static>, __S>,
+    __S: Fallible<Error = rspack_cacheable::Error> + Writer<rspack_cacheable::Error> + ?Sized,
   {
     #[inline]
     fn serialize(&self, serializer: &mut __S) -> std::result::Result<Self::Resolver, __S::Error> {
-      As::<SourceMapSerde>::serialize_with(self, serializer)
+      let pos = serializer.align_for::<u8>()?;
+      let mut writer = SourceMapJsonWriter {
+        serializer,
+        error: None,
+        len: 0,
+      };
+
+      if simd_json::to_writer(&mut writer, self).is_err() {
+        return Err(
+          writer
+            .error
+            .unwrap_or(rspack_cacheable::Error::MessageError(
+              "failed to serialize source map",
+            )),
+        );
+      }
+
+      Ok(SourceMapResolver {
+        resolver: rkyv::vec::VecResolver::from_pos(pos),
+        len: writer.len,
+      })
     }
   }
 
-  impl<__D> Deserialize<SourceMap<'static>, __D>
-    for <As<SourceMapSerde> as ArchiveWith<SourceMap<'static>>>::Archived
+  impl<__D> Deserialize<SourceMap<'static>, __D> for ArchivedVec<u8>
   where
-    __D: Fallible + ?Sized,
-    As<SourceMapSerde>: DeserializeWith<
-        <As<SourceMapSerde> as ArchiveWith<SourceMap<'static>>>::Archived,
-        SourceMap<'static>,
-        __D,
-      >,
+    __D: Fallible<Error = rspack_cacheable::Error> + ?Sized,
   {
     #[inline]
     fn deserialize(
       &self,
-      deserializer: &mut __D,
+      _deserializer: &mut __D,
     ) -> std::result::Result<SourceMap<'static>, __D::Error> {
-      As::<SourceMapSerde>::deserialize_with(self, deserializer)
+      SourceMap::from_bytes(self.as_slice().to_vec())
+        .map_err(|_| rspack_cacheable::Error::MessageError("failed to deserialize source map"))
     }
   }
 };
