@@ -264,6 +264,11 @@ impl SwcLoader {
     }
 
     if let Some(collected_ts_info) = collected_ts_info {
+      loader_context
+        .context
+        .module
+        .build_info_mut()
+        .collected_typescript_info = Some(collected_ts_info.clone());
       loader_context.parse_meta.insert(
         COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY.to_string(),
         Box::new(collected_ts_info),

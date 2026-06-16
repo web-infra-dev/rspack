@@ -4,6 +4,12 @@ import type { Source } from 'webpack-sources';
 
 const $assets: unique symbol = Symbol('assets');
 
+type CollectedTypeScriptInfo = {
+  typeExports: Set<string>;
+  exports: Set<string>;
+  importedModules: Set<string>;
+};
+
 declare module '@rspack/binding' {
   interface Assets {
     [$assets]: Record<string, Source>;
@@ -15,6 +21,7 @@ declare module '@rspack/binding' {
     contextDependencies: Set<string>;
     missingDependencies: Set<string>;
     buildDependencies: Set<string>;
+    collectedTypeScriptInfo?: CollectedTypeScriptInfo;
   }
 }
 
@@ -29,6 +36,7 @@ Object.defineProperty(binding.KnownBuildInfo.prototype, util.inspect.custom, {
       contextDependencies: this.contextDependencies,
       missingDependencies: this.missingDependencies,
       buildDependencies: this.buildDependencies,
+      collectedTypeScriptInfo: this.collectedTypeScriptInfo,
     };
   },
 });
@@ -92,6 +100,27 @@ Object.defineProperty(binding.KnownBuildInfo.prototype, 'buildDependencies', {
   },
 });
 
+Object.defineProperty(
+  binding.KnownBuildInfo.prototype,
+  'collectedTypeScriptInfo',
+  {
+    enumerable: true,
+    configurable: true,
+    get(this: binding.KnownBuildInfo): CollectedTypeScriptInfo | undefined {
+      const collectedTypeScriptInfo =
+        this[binding.BUILD_INFO_COLLECTED_TYPESCRIPT_INFO_SYMBOL];
+      if (collectedTypeScriptInfo === undefined) {
+        return undefined;
+      }
+      return {
+        typeExports: new Set(collectedTypeScriptInfo.typeExports),
+        exports: new Set(collectedTypeScriptInfo.exports),
+        importedModules: new Set(collectedTypeScriptInfo.importedModules),
+      };
+    },
+  },
+);
+
 export type { BuildInfo } from '@rspack/binding';
 
 const knownBuildInfoFields: Set<string> = new Set([
@@ -100,6 +129,7 @@ const knownBuildInfoFields: Set<string> = new Set([
   'contextDependencies',
   'missingDependencies',
   'buildDependencies',
+  'collectedTypeScriptInfo',
 ]);
 
 export const commitCustomFieldsToRust = (buildInfo: binding.BuildInfo) => {
