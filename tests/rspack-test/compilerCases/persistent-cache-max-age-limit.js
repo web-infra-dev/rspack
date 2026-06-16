@@ -18,7 +18,8 @@ const runCompiler = (context, cacheDirectory, name, version) =>
 				storage: {
 					type: "filesystem",
 					directory: cacheDirectory,
-					maxGenerations: 1
+					maxAge: 1,
+					maxGenerations: 10
 				}
 			}
 		});
@@ -40,9 +41,13 @@ const getCacheEntries = directory =>
 		.readdirSync(directory)
 		.filter(name => !name.startsWith("_") && !name.startsWith("."));
 
+const expireVersion = (cacheDirectory, compilerScope, version) => {
+	fs.writeFileSync(path.join(cacheDirectory, compilerScope, "_meta"), `${version} 1\n`);
+};
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig} */
 module.exports = {
-	description: "should limit persistent cache generations per compiler",
+	description: "should only expire persistent cache versions for the current compiler",
 	options(context) {
 		return {
 			context: context.getSource(),
@@ -52,7 +57,7 @@ module.exports = {
 	async build(context) {
 		const cacheDirectory = path.join(
 			context.getDist(),
-			"persistent-cache-max-generations"
+			"persistent-cache-max-age"
 		);
 		fs.rmSync(cacheDirectory, { recursive: true, force: true });
 
@@ -65,6 +70,9 @@ module.exports = {
 			scope => scope !== appScope
 		);
 		const [workerV1] = getCacheEntries(path.join(cacheDirectory, workerScope));
+
+		expireVersion(cacheDirectory, appScope, appV1);
+		expireVersion(cacheDirectory, workerScope, workerV1);
 
 		await runCompiler(context, cacheDirectory, "app", "v2");
 		const appVersions = getCacheEntries(path.join(cacheDirectory, appScope));

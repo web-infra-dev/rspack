@@ -37,35 +37,44 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
   relative_paths
 }
 
-/// Load all version storages from a directory path
-/// Returns a HashMap where key is version name and value is BoxStorage
+/// Load all compiler-scoped version storages from a directory path.
+/// Returns a HashMap where key is `<compiler_scope>/<version>` and value is BoxStorage.
 pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage> {
   let fs = Arc::new(NativeFileSystem::new(false));
   let mut storages = HashMap::default();
 
-  // Read directory entries
-  let Ok(versions) = fs.read_dir_sync(path.as_path()) else {
+  let Ok(compiler_scopes) = fs.read_dir_sync(path.as_path()) else {
     return storages;
   };
 
-  // Collect version directories (skip hidden files)
-  for v in versions {
-    // Skip hidden files (starting with .)
-    if v.starts_with('.') {
+  for compiler_scope in compiler_scopes {
+    if compiler_scope.starts_with(['.', '_']) {
       continue;
     }
 
-    // Create storage for this version
-    let storage = create_storage(
-      StorageOptions::FileSystem {
-        directory: path.clone(),
-      },
-      v.clone(),
-      None,
-      fs.clone(),
-    );
+    let scope_path = path.join(&compiler_scope);
+    let Ok(versions) = fs.read_dir_sync(scope_path.as_path()) else {
+      continue;
+    };
 
-    storages.insert(v, storage);
+    for version in versions {
+      if version.starts_with(['.', '_']) {
+        continue;
+      }
+
+      let storage = create_storage(
+        StorageOptions::FileSystem {
+          directory: path.clone(),
+        },
+        compiler_scope.clone(),
+        version.clone(),
+        None,
+        None,
+        fs.clone(),
+      );
+
+      storages.insert(format!("{compiler_scope}/{version}"), storage);
+    }
   }
 
   storages

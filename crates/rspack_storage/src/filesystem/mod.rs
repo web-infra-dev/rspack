@@ -55,7 +55,7 @@ async fn refresh_metadata(
 /// File system-based persistent storage implementation
 #[derive(Debug)]
 pub struct FileSystemStorage {
-  /// Root filesystem for metadata operations
+  /// Compiler-scoped filesystem for metadata operations
   fs: ScopeFileSystem,
   /// Underlying database responsible for pack file read/write
   db: DB,
@@ -71,7 +71,8 @@ pub struct FileSystemStorage {
 impl FileSystemStorage {
   /// Creates a new file system storage instance
   pub fn new(options: FileSystemOptions) -> Self {
-    let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone());
+    let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone())
+      .child_fs(&options.compiler_scope);
 
     Self {
       db: DB::new(fs.child_fs(&options.version)),
@@ -162,9 +163,10 @@ mod tests {
   use super::{FileSystemOptions, FileSystemStorage, ScopeFileSystem};
   use crate::Storage;
 
-  async fn save_version(fs: Arc<MemoryFileSystem>, version: &str) {
+  async fn save_version(fs: Arc<MemoryFileSystem>, compiler_scope: &str, version: &str) {
     let mut storage = FileSystemStorage::new(FileSystemOptions {
       directory: "/cache".into(),
+      compiler_scope: compiler_scope.into(),
       version: version.into(),
       max_pack_size: 500 * 1024,
       expire: 0,
@@ -181,16 +183,28 @@ mod tests {
   async fn should_remove_old_versions_for_the_same_compiler() {
     let fs = Arc::new(MemoryFileSystem::default());
 
-    save_version(fs.clone(), "a-v1").await;
-    save_version(fs.clone(), "b-v1").await;
-    save_version(fs.clone(), "a-v2").await;
-    save_version(fs.clone(), "a-v3").await;
+    save_version(fs.clone(), "a", "v1").await;
+    save_version(fs.clone(), "b", "v1").await;
+    save_version(fs.clone(), "a", "v2").await;
+    save_version(fs.clone(), "a", "v3").await;
 
     let root = ScopeFileSystem::new("/cache".into(), fs);
-    let mut versions = root.list_child().await.expect("cache root should exist");
-    versions.retain(|version| !version.starts_with(['_', '.']));
-    versions.sort();
-    assert_eq!(versions, vec!["a-v2", "a-v3", "b-v1"]);
+    let mut a_versions = root
+      .child_fs("a")
+      .list_child()
+      .await
+      .expect("compiler cache scope should exist");
+    a_versions.retain(|version| !version.starts_with(['_', '.']));
+    a_versions.sort();
+    assert_eq!(a_versions, vec!["v2", "v3"]);
+
+    let mut b_versions = root
+      .child_fs("b")
+      .list_child()
+      .await
+      .expect("compiler cache scope should exist");
+    b_versions.retain(|version| !version.starts_with(['_', '.']));
+    assert_eq!(b_versions, vec!["v1"]);
   }
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -200,23 +214,30 @@ mod tests {
 
     join_all((0..8).map(|index| {
       let fs = fs.clone();
-      async move { save_version(fs, &format!("scope{index}-v1")).await }
+      async move { save_version(fs, &format!("scope{index}"), "v1").await }
     }))
     .await;
 
     for index in 0..8 {
-      save_version(fs.clone(), &format!("scope{index}-v2")).await;
-      save_version(fs.clone(), &format!("scope{index}-v3")).await;
+      save_version(fs.clone(), &format!("scope{index}"), "v2").await;
+      save_version(fs.clone(), &format!("scope{index}"), "v3").await;
     }
 
     let root = ScopeFileSystem::new("/cache".into(), fs);
-    let versions = root.list_child().await.expect("cache root should exist");
-    assert_eq!(
-      versions
-        .iter()
-        .filter(|version| !version.starts_with(['_', '.']))
-        .count(),
-      8 * 2
-    );
+    for index in 0..8 {
+      let scope = format!("scope{index}");
+      let versions = root
+        .child_fs(&scope)
+        .list_child()
+        .await
+        .expect("compiler cache scope should exist");
+      assert_eq!(
+        versions
+          .iter()
+          .filter(|version| !version.starts_with(['_', '.']))
+          .count(),
+        2
+      );
+    }
   }
 }

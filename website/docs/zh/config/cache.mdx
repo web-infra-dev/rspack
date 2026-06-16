@@ -245,7 +245,9 @@ export default {
 :::tip
 Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/config/mode#mode)、[buildDependencies](#cachebuilddependencies) 中的文件内容和 [version](#cacheversion) 在 `storage.directory` 中生成缓存文件夹。
 
-Rspack 会自动清理超过 `cache.storage.maxAge` 未访问的缓存文件夹。
+Rspack 会将 filesystem cache 存放在按 compiler 划分的目录中。即使多个 compiler 共享同一个 `cache.storage.directory`，清理选项也只会影响当前 compiler 的缓存。
+
+Rspack 会自动清理当前 compiler 下超过 `cache.storage.maxAge` 未访问的缓存文件夹。
 :::
 
 #### cache.storage.maxAge
@@ -290,7 +292,7 @@ export default {
 
 每个编译器会单独计数，因此共享 `storage.directory` 的编译器不会占用彼此的限额。
 
-启用 `maxGenerations` 后会使用按编译器划分的缓存版本目录。现有的未划分版本不会计入此限制，并继续使用基于时间的清理机制。
+filesystem cache 会按 compiler 划分，因此该限制只会统计当前 compiler 的 generation。
 
 :::warning
 同一编译器的并发构建共享此限制，因此可能会删除彼此较旧的缓存版本。

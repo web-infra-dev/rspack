@@ -22,6 +22,7 @@ pub enum StorageOptions {
 
 pub fn create_storage(
   options: StorageOptions,
+  compiler_scope: String,
   version: String,
   max_age: Option<u64>,
   max_generations: Option<u32>,
@@ -31,6 +32,7 @@ pub fn create_storage(
     StorageOptions::FileSystem { directory } => {
       let option = FileSystemOptions {
         directory,
+        compiler_scope,
         version,
         max_generations,
         max_pack_size: 500 * 1024,

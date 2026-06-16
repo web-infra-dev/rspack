@@ -46,7 +46,7 @@ pub struct PersistentCacheOptions {
   /// Filesystem cache max age in seconds. `None` uses the storage default.
   #[cacheable(with=Skip)]
   pub max_age: Option<u64>,
-  /// Filesystem generation count also participates in compiler-scoped version identity.
+  /// Filesystem generation count limit for the current compiler cache scope.
   #[cacheable(with=Skip)]
   pub max_generations: Option<u32>,
 }
@@ -80,6 +80,11 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
+    let compiler_scope = compiler_cache_scope(
+      (!option.portable).then_some(compiler_options.context.as_str()),
+      compiler_path,
+      compiler_options.name.as_deref(),
+    );
     let max_generations = option.max_generations;
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
@@ -95,18 +100,9 @@ impl PersistentCache {
       compiler_options.mode.hash(&mut hasher);
       hex::encode(hasher.finish().to_ne_bytes())
     };
-    let version = if max_generations.is_some() {
-      let scope = generation_scope(
-        (!option.portable).then_some(compiler_options.context.as_str()),
-        compiler_path,
-        compiler_options.name.as_deref(),
-      );
-      format!("{scope}-{version}")
-    } else {
-      version
-    };
     let storage = create_storage(
       option.storage.clone(),
+      compiler_scope,
       version,
       option.max_age,
       max_generations,
@@ -153,7 +149,7 @@ impl PersistentCache {
   }
 }
 
-fn generation_scope(
+fn compiler_cache_scope(
   context: Option<&str>,
   compiler_path: &str,
   compiler_name: Option<&str>,
@@ -269,26 +265,5 @@ impl Cache for PersistentCache {
 
   async fn close(&self) {
     self.ctx.flush_storage().await;
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use super::generation_scope;
-
-  #[test]
-  fn generation_scope_uses_typed_compiler_identity() {
-    assert_ne!(
-      generation_scope(Some("ab"), "c", Some("d")),
-      generation_scope(Some("a"), "bc", Some("d"))
-    );
-    assert_ne!(
-      generation_scope(Some("context"), "compiler", None),
-      generation_scope(Some("context"), "compiler", Some(""))
-    );
-    assert_ne!(
-      generation_scope(Some("/project-a"), "compiler", Some("app")),
-      generation_scope(Some("/project-b"), "compiler", Some("app"))
-    );
   }
 }
