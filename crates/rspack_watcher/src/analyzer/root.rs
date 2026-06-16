@@ -58,15 +58,17 @@ impl PathTree {
   }
 
   fn find_common_root_recursive(&self, path: ArcPath, depth: usize) -> ArcPath {
-    let node = self
-      .inner
-      .get(&path)
-      .expect("Path should exist in the tree");
-    // We need make sure the path is exists
+    // [FIX] The disk watcher can only subscribe to an existing path. Tree paths
+    // may be missing/orphaned, so fall back to the nearest existing ancestor
+    // instead of panicking. Dump kept so CI shows whether the forest is gone.
     if !path.exists() {
       self.debug_dump(&path, depth);
+      return Self::nearest_existing_ancestor(path);
     }
-    assert!(path.exists(), "Path should exist");
+
+    let Some(node) = self.inner.get(&path) else {
+      return path;
+    };
 
     if let Some(child) = node
       .only_child()
@@ -77,6 +79,16 @@ impl PathTree {
     } else {
       path // Return the current path if it has no single child
     }
+  }
+
+  fn nearest_existing_ancestor(mut path: ArcPath) -> ArcPath {
+    while !path.exists() {
+      let Some(parent) = path.parent().map(ArcPath::from) else {
+        break;
+      };
+      path = parent;
+    }
+    path
   }
 
   fn parent_in_tree(&self, path: &ArcPath) -> Option<bool> {
@@ -158,10 +170,24 @@ impl PathTree {
   }
 
   pub fn remove_path(&self, path: &ArcPath) {
-    if let Some(node) = self.inner.get(path) {
-      node.children.remove(path);
+    // [FIX] A node that still has children is an ancestor of other watched
+    // paths; deleting it orphans them into a disconnected subtree (the root
+    // cause of the Windows `find_root` panic). Keep it until its last child goes.
+    if self
+      .inner
+      .get(path)
+      .is_some_and(|node| !node.children.is_empty())
+    {
+      return;
     }
     self.inner.remove(path);
+    // Detach from the PARENT's child set (the old code removed `path` from its
+    // own set, leaving a stale child reference on the parent).
+    if let Some(parent) = path.parent().map(ArcPath::from)
+      && let Some(parent_node) = self.inner.get(&parent)
+    {
+      parent_node.children.remove(path);
+    }
   }
 
   fn find_root(&self) -> Option<ArcPath> {
