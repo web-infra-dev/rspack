@@ -260,8 +260,8 @@ importers:
         specifier: 1.1.2
         version: 1.1.2
       '@swc/types':
-        specifier: 0.1.26
-        version: 0.1.26
+        specifier: 0.1.27
+        version: 0.1.27
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
@@ -317,8 +317,8 @@ importers:
         specifier: 1.1.2
         version: 1.1.2
       '@swc/types':
-        specifier: 0.1.26
-        version: 0.1.26
+        specifier: 0.1.27
+        version: 0.1.27
       memfs:
         specifier: 4.57.7
         version: 4.57.7
@@ -3038,8 +3038,8 @@ packages:
   '@swc/plugin-remove-console@12.9.0':
     resolution: {integrity: sha512-Ve64fWHghdhMHMYAmKlIdyV0aIbj8PX6mlUwXyf1dJXsBirkDm3HYtGw+XIpyNtIUfg1Rojyqc+TXATrqgRdhg==}
 
-  '@swc/types@0.1.26':
-    resolution: {integrity: sha512-lyMwd7WGgG79RS7EERZV3T8wMdmPq3xwyg+1nmAM64kIhx5yl+juO2PYIHb7vTiPgPCj8LYjsNV2T5wiQHUEaw==}
+  '@swc/types@0.1.27':
+    resolution: {integrity: sha512-K6h3iUlqeM946U4sXFYeahefR1YBbXJvko+hv8WS8/0BNJ4OHiHRywMnQUJCqkR7Y9+hqQ1TvEpiKqUhz7NEFg==}
 
   '@tailwindcss/node@4.3.1':
     resolution: {integrity: sha512-6NDaqRoAMSXD1mr/RXu0HBvNE9a2n5tHPsxu9XHLws8o4Twes5rBM2205SUUiJ9goAtadrN6xTGX0UDEwp/N4A==}
@@ -9391,7 +9391,7 @@ snapshots:
     dependencies:
       '@swc/counter': 0.1.3
 
-  '@swc/types@0.1.26':
+  '@swc/types@0.1.27':
     dependencies:
       '@swc/counter': 0.1.3
 

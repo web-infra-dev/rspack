@@ -36,7 +36,7 @@
     "@emnapi/runtime": "1.11.1",
     "@napi-rs/wasm-runtime": "1.1.5",
     "@rspack/lite-tapable": "1.1.2",
-    "@swc/types": "0.1.26",
+    "@swc/types": "0.1.27",
     "memfs": "4.57.7",
     "webpack-sources": "3.3.4"
   },
