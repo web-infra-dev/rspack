@@ -11,8 +11,8 @@ use std::{borrow::Cow, hash::Hash, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
-  BoxModule, ChunkUkey, Compilation, CompilerOptions, DEFAULT_DELIMITER, Module, ModuleIdentifier,
-  SourceType, incremental::Mutation,
+  BoxModule, ChunkUkey, Compilation, CompilerOptions, Module, ModuleIdentifier, SourceType,
+  incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -634,9 +634,7 @@ impl SplitChunksPlugin {
           .build_chunk_graph_artifact
           .chunk_by_ukey
           .expect_get_mut(&info.chunk);
-        let delimiter = max_size_setting_map
-          .get(&chunk.ukey())
-          .map_or(DEFAULT_DELIMITER, |s| s.automatic_name_delimiter.as_str());
+        let delimiter = info.automatic_name_delimiter.as_str();
         let mut name = chunk
           .name()
           .map(|name| format!("{name}{delimiter}{group_key}"));

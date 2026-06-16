@@ -1,4 +1,10 @@
-const chunkLoadingSpy = rstest.spyOn(__webpack_require__, "e");
+let runtime;
+if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+	runtime = __rspack_context;
+} else {
+	runtime = __webpack_require__;
+}
+const chunkLoadingSpy = rstest.spyOn(runtime, "e");
 
 it("should not have duplicate chunks in blocks", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());

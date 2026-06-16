@@ -134,7 +134,11 @@ export default {
 };
 ```
 
-目前仅支持 `rspackIgnore` 和 `webpackIgnore` 注释。**从 Rspack 2.0.7 开始**，推荐使用 `rspackIgnore`；`webpackIgnore` 仍会被兼容支持：
+目前仅支持 `rspackIgnore` 和 `webpackIgnore` 注释。
+
+:::tip
+从 Rspack 2.1.0 开始，推荐使用 `rspackIgnore`。`webpackIgnore` 仍会被兼容支持。
+:::
 
 ```js
 const x = require(/* rspackIgnore: true */ 'x');
@@ -148,7 +152,7 @@ const y = require(/* webpackIgnore: true */ 'y');
   defaultValueList={[{ defaultValue: "'lazy'" }]}
 />
 
-指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
+指定动态导入的全局模式，详见 [`rspackMode`](/api/runtime-api/module-methods#rspackmode)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -169,7 +173,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
+指定动态导入的全局 prefetch，详见 [`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -190,7 +194,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
+指定动态导入的全局 preload，详见 [`rspackPreload`](/api/runtime-api/module-methods#rspackpreload)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -213,7 +217,7 @@ export default {
   defaultValueList={[{ defaultValue: "'auto'" }]}
 />
 
-指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
+指定动态导入的全局 `fetchPriority`，详见 [`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority)。
 
 ```js title="rspack.config.mjs"
 export default {

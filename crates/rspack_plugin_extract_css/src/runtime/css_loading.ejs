@@ -44,7 +44,7 @@ var findStylesheet = function (href, fullhref) {
 
 var loadStylesheet = function (chunkId, fetchPriority) {
 	return new Promise(function (resolve, reject) {
-		var href = <%- REQUIRE %>.miniCssF(chunkId);
+		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (findStylesheet(href, fullhref)) return resolve();
 		createStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);

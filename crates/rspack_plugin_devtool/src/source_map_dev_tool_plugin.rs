@@ -114,7 +114,7 @@ fn relative_source_name_from_url(
 /// Compute source references from a source map's sources list.
 fn compute_source_references(
   compilation: &Compilation,
-  source_map: &SourceMap,
+  source_map: &SourceMap<'_>,
 ) -> Vec<SourceReference> {
   source_map
     .sources()
@@ -131,7 +131,7 @@ fn compute_source_references(
           None => SourceReference::Source(Arc::from(source_name)),
         }
       } else {
-        SourceReference::Source(Arc::from(source_name.clone()))
+        SourceReference::Source(Arc::from(source_name.as_ref()))
       }
     })
     .collect()
@@ -212,7 +212,7 @@ enum SourceMappingUrlCommentRef<'a> {
 struct SourceMapTask {
   pub asset_filename: Arc<str>,
   pub source: BoxSource,
-  pub source_map: SourceMap,
+  pub source_map: SourceMap<'static>,
   pub unresolved_source_map_path: Option<Utf8PathBuf>,
   pub source_references: Vec<SourceReference>,
 }
@@ -234,16 +234,6 @@ impl SourceName {
     }
 
     Self::Verbatim(source_name)
-  }
-
-  fn render_for_source_map(&self, source_map_path: Option<&Utf8Path>) -> String {
-    match self {
-      SourceName::Verbatim(source_name) => source_name.clone(),
-      SourceName::CanonicalResourceUrl(source_url) => {
-        relative_source_name_from_url(source_url, source_map_path)
-          .unwrap_or_else(|| source_url.clone())
-      }
-    }
   }
 
   fn push(&mut self, ch: char) {
@@ -273,8 +263,14 @@ impl SourceNameWithBaseUrl {
     }
   }
 
-  fn render_for_source_map(&self, source_map_path: Option<&Utf8Path>) -> String {
-    self.source_name.render_for_source_map(source_map_path)
+  fn render_for_source_map<'a>(&'a self, source_map_path: Option<&Utf8Path>) -> Cow<'a, str> {
+    match &self.source_name {
+      SourceName::Verbatim(source_name) => Cow::Borrowed(source_name),
+      SourceName::CanonicalResourceUrl(source_url) => {
+        relative_source_name_from_url(source_url, source_map_path)
+          .map_or_else(|| Cow::Borrowed(source_url.as_str()), Cow::Owned)
+      }
+    }
   }
 }
 
@@ -479,7 +475,7 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source.map(object_pool, &map_options) {
+                match source.clone().map_static(object_pool, &map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -584,7 +580,7 @@ impl SourceMapDevToolPlugin {
             |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
               let source_map = {
                 let object_pool = tls.get_or(ObjectPool::default);
-                match source.map(object_pool, &map_options) {
+                match source.clone().map_static(object_pool, &map_options) {
                   Some(sm) => sm,
                   None => return Ok(None),
                 }
@@ -807,39 +803,29 @@ impl SourceMapDevToolPlugin {
     mapped_assets.into_iter().collect::<Result<Vec<_>>>()
   }
 
-  /// Create a single MappedAsset: update the source map and emit asset + optional source map file.
-  #[allow(clippy::too_many_arguments)]
-  async fn create_mapped_asset(
-    plugin: &SourceMapDevToolPlugin,
-    compilation: &Compilation,
-    file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
-    asset_filename: Arc<str>,
-    source: BoxSource,
-    mut source_map: SourceMap,
-    unresolved_source_map_path: Option<Utf8PathBuf>,
-    source_references: Vec<SourceReference>,
-  ) -> Result<MappedAsset> {
+  fn source_map_to_json<'a>(
+    &'a self,
+    mut source_map: SourceMap<'a>,
+    reference_to_source_name_mapping: &'a ReferenceToSourceNameMapping,
+    asset_filename: &'a str,
+    source_map_path: Option<&'a Utf8Path>,
+    source_references: &'a [SourceReference],
+    debug_id: Option<&'a str>,
+  ) -> String {
     // Update source_map with deduplicated source names
-    source_map.set_file(Some(asset_filename.clone()));
-    let source_map_path = unresolved_source_map_path.as_ref().map(|p| p.as_path());
-    source_map.set_sources(
-      source_references
-        .iter()
-        .map(|source_reference| {
-          reference_to_source_name_mapping
-            .get(source_reference)
-            .unwrap_or_else(|| {
-              panic!(
-                "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
-              )
-            })
-            .render_for_source_map(source_map_path)
+    source_map.set_file(Some(Cow::Borrowed(asset_filename)));
+    source_map.set_sources(source_references.iter().map(|source_reference| {
+      reference_to_source_name_mapping
+        .get(source_reference)
+        .unwrap_or_else(|| {
+          panic!(
+            "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
+          )
         })
-        .collect::<Vec<_>>(),
-    );
+        .render_for_source_map(source_map_path)
+    }));
 
-    if let Some(asset_conditions) = &plugin.ignore_list {
+    if let Some(asset_conditions) = &self.ignore_list {
       let ignore_list = source_map
         .sources()
         .iter()
@@ -852,23 +838,51 @@ impl SourceMapDevToolPlugin {
           }
         })
         .collect::<Vec<_>>();
-      source_map.set_ignore_list(Some(ignore_list));
+      source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
     }
 
-    if plugin.no_sources {
-      source_map.set_sources_content([]);
-    }
-    if let Some(source_root) = &plugin.source_root {
-      source_map.set_source_root(Some(source_root.clone()));
+    if self.no_sources {
+      source_map.set_sources_content(vec![]);
     }
 
+    if let Some(source_root) = &self.source_root {
+      source_map.set_source_root(Some(Cow::Borrowed(source_root.as_ref())));
+    }
+
+    if let Some(debug_id) = debug_id {
+      source_map.set_debug_id(Some(Cow::Borrowed(debug_id)));
+    }
+
+    source_map.to_json()
+  }
+
+  /// Create a single MappedAsset: update the source map and emit asset + optional source map file.
+  #[allow(clippy::too_many_arguments)]
+  async fn create_mapped_asset(
+    plugin: &SourceMapDevToolPlugin,
+    compilation: &Compilation,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
+    asset_filename: Arc<str>,
+    source: BoxSource,
+    source_map: SourceMap<'static>,
+    unresolved_source_map_path: Option<Utf8PathBuf>,
+    source_references: Vec<SourceReference>,
+  ) -> Result<MappedAsset> {
     // Generate debug ID and serialize source map
-    let debug_id = plugin.debug_ids.then(|| {
-      let debug_id = generate_debug_id(&asset_filename, &source.buffer());
-      source_map.set_debug_id(Some(debug_id.clone()));
-      debug_id
-    });
-    let source_map_json = source_map.to_json();
+    let debug_id = plugin
+      .debug_ids
+      .then(|| generate_debug_id(&asset_filename, &source.buffer()));
+    let asset_filename_ref = asset_filename.as_ref();
+
+    let source_map_json = plugin.source_map_to_json(
+      source_map.as_borrowed(),
+      reference_to_source_name_mapping,
+      asset_filename_ref,
+      unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+      &source_references,
+      debug_id.as_deref(),
+    );
 
     let mut asset = compilation
       .assets()

@@ -24,6 +24,7 @@ pub enum JavascriptParserPluginHook {
   EvaluateTypeof,
   EvaluateCallExpression,
   EvaluateCallExpressionMember,
+  EvaluateBinaryExpression,
   EvaluateIdentifier,
   CanCollectDestructuringAssignmentProperties,
   Pattern,
@@ -88,6 +89,7 @@ impl JavascriptParserPluginHook {
     Self::EvaluateTypeof,
     Self::EvaluateCallExpression,
     Self::EvaluateCallExpressionMember,
+    Self::EvaluateBinaryExpression,
     Self::EvaluateIdentifier,
     Self::CanCollectDestructuringAssignmentProperties,
     Self::Pattern,
@@ -166,8 +168,8 @@ use crate::{
   utils::eval::BasicEvaluatedExpression,
   visitors::{
     ClassDeclOrExpr, DestructuringAssignmentProperty, ExportDefaultDeclaration,
-    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo, JavascriptParser,
-    Statement, VariableDeclaration,
+    ExportDefaultExpression, ExportImport, ExportLocal, ExportedVariableInfo,
+    ExpressionExpressionInfo, JavascriptParser, Statement, VariableDeclaration,
   },
 };
 
@@ -316,10 +318,23 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     None
   }
 
+  fn evaluate_binary_expression(
+    &self,
+    _parser: &mut JavascriptParser<'p>,
+    _expr: &'a BinExpr<'a>,
+    _left: &BasicEvaluatedExpression<'a>,
+  ) -> Option<BasicEvaluatedExpression<'a>>
+  where
+    'p: 'a,
+  {
+    None
+  }
+
   fn evaluate_identifier(
     &self,
     _parser: &mut JavascriptParser<'p>,
     _for_name: &str,
+    _member_expr_info: Option<&ExpressionExpressionInfo>,
     _start: u32,
     _end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
@@ -563,6 +578,7 @@ Please annotate your `impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ...` block
     _parser: &mut JavascriptParser<'p>,
     _expr: &AssignExpr,
     _members: &[Atom],
+    _member_ranges: &[Span],
     _for_name: &str,
   ) -> Option<bool> {
     None

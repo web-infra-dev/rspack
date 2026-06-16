@@ -37,7 +37,8 @@ fn test_rspack_source() {
           "sourcesContent": ["const answer: number = 42;\n"],
           "names": [],
           "mappings": "AAAA"
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap(),
     })

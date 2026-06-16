@@ -33,17 +33,9 @@ permissions:
   issues: write
 
 jobs:
-  get-runner-labels:
-    name: Get Runner Labels
-    if: ${{ github.repository == 'web-infra-dev/rspack' }}
-    uses: ./.github/workflows/get-runner-labels.yml
-    with:
-      force-use-github-runner: true
-
   build:
     name: Build Canary
     if: ${{ github.repository == 'web-infra-dev/rspack' }}
-    needs: [get-runner-labels]
     strategy:
       fail-fast: false
       matrix:
@@ -57,23 +49,34 @@ jobs:
           - target: aarch64-unknown-linux-musl
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
           - target: i686-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
           - target: x86_64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
           - target: aarch64-pc-windows-msvc
-            runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+            runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
           - target: x86_64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+            runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
           - target: aarch64-apple-darwin
-            runner: ${{ needs.get-runner-labels.outputs.MACOS_RUNNER_LABELS }}
+            runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+          # Build the wasi and browser wasm variants as two parallel jobs (one
+          # variant per runner). Only the wasi (node) variant runs the wasm
+          # tests; the browser variant is build-only. Published wasm always uses
+          # the optimized release-wasi build with both variants compiled
+          # separately, so pin profile=release regardless of the canary profile.
           - target: wasm32-wasip1-threads
             runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            profile: release
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            binding_postfix: '-browser'
+            profile: release
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{inputs.commit || github.sha}}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: ${{inputs.profile || 'release'}}
+      binding_postfix: ${{ matrix.array.binding_postfix }}
+      profile: ${{ matrix.array.profile || inputs.profile || 'release'}}
       test: ${{inputs.test || false}}
 
   release:

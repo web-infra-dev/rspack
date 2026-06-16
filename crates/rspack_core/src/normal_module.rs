@@ -504,7 +504,10 @@ impl Module for NormalModule {
     } else {
       Content::String(loader_result.content.into_string_lossy())
     };
-    let source = self.create_source(content, loader_result.source_map)?;
+    let source = self.create_source(
+      content,
+      loader_result.source_map.map(|source_map| *source_map),
+    )?;
 
     self.build_info.cacheable = loader_result.cacheable;
     self.build_info.file_dependencies = loader_result
@@ -660,6 +663,7 @@ impl Module for NormalModule {
 
     let module_graph = compilation.get_module_graph();
     for source_type in self.source_types(module_graph) {
+      let in_concatenation = concatenation_scope.is_some();
       let generation_result = self
         .parser_and_generator
         .generate(
@@ -677,7 +681,11 @@ impl Module for NormalModule {
           },
         )
         .await?;
-      code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      if in_concatenation {
+        code_generation_result.add(*source_type, generation_result);
+      } else {
+        code_generation_result.add(*source_type, CachedSource::new(generation_result).boxed());
+      }
     }
     code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
     Ok(code_generation_result)
@@ -870,7 +878,11 @@ impl Diagnosable for NormalModule {
 }
 
 impl NormalModule {
-  fn create_source(&self, content: Content, source_map: Option<SourceMap>) -> Result<BoxSource> {
+  fn create_source(
+    &self,
+    content: Content,
+    source_map: Option<SourceMap<'static>>,
+  ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }

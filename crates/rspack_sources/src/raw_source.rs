@@ -1,7 +1,7 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::OnceLock,
+  sync::{Arc, OnceLock},
 };
 
 use rspack_cacheable::{
@@ -23,7 +23,7 @@ use crate::{
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawStringSource, Source};
+/// use rspack_sources::{MapOptions, ObjectPool, RawStringSource, Source, SourceExt};
 ///
 /// let code = "some source code";
 /// let s = RawStringSource::from(code.to_string());
@@ -83,7 +83,11 @@ impl Source for RawStringSource {
     self.0.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
+  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
+    None
+  }
+
+  fn map_static(self: Arc<Self>, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'static>> {
     None
   }
 
@@ -119,14 +123,14 @@ impl<'source> RawStringChunks<'source> {
   }
 }
 
-impl Chunks for RawStringChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    _object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for RawStringChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'a>,
-    on_source: crate::helpers::OnSource<'_, 'a>,
-    on_name: crate::helpers::OnName<'_, 'a>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> crate::helpers::GeneratedInfo {
     let source = TextSpan::new(self.0);
     if options.final_source {
@@ -138,7 +142,7 @@ impl Chunks for RawStringChunks<'_> {
 }
 
 impl StreamChunks for RawStringSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(RawStringChunks::new(self))
   }
 }
@@ -148,7 +152,7 @@ impl StreamChunks for RawStringSource {
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#rawsource).
 ///
 /// ```
-/// use rspack_sources::{MapOptions, ObjectPool, RawBufferSource, Source};
+/// use rspack_sources::{MapOptions, ObjectPool, RawBufferSource, Source, SourceExt};
 ///
 /// let code = "some source code".as_bytes();
 /// let s = RawBufferSource::from(code);
@@ -230,7 +234,11 @@ impl Source for RawBufferSource {
     self.value.len()
   }
 
-  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap> {
+  fn map(&self, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'_>> {
+    None
+  }
+
+  fn map_static(self: Arc<Self>, _: &ObjectPool, _: &MapOptions) -> Option<SourceMap<'static>> {
     None
   }
 
@@ -260,14 +268,14 @@ impl Hash for RawBufferSource {
 
 struct RawBufferSourceChunks<'a>(&'a RawBufferSource);
 
-impl Chunks for RawBufferSourceChunks<'_> {
-  fn stream<'a>(
-    &'a self,
-    _object_pool: &'a ObjectPool,
+impl<'source> Chunks<'source> for RawBufferSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'a>,
-    on_source: crate::helpers::OnSource<'_, 'a>,
-    on_name: crate::helpers::OnName<'_, 'a>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     let code = self.0.get_or_init_value_as_string();
     let source = TextSpan::new(code);
@@ -280,7 +288,7 @@ impl Chunks for RawBufferSourceChunks<'_> {
 }
 
 impl StreamChunks for RawBufferSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(RawBufferSourceChunks(self))
   }
 }

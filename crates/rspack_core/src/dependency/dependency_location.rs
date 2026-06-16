@@ -8,8 +8,8 @@ use rspack_util::SpanExt;
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Default)]
 pub struct DependencyRange {
-  pub end: u32,
   pub start: u32,
+  pub end: u32,
 }
 
 impl From<(u32, u32)> for DependencyRange {
@@ -41,6 +41,6 @@ impl From<swc_experimental_ecma_ast::Span> for DependencyRange {
 
 impl DependencyRange {
   pub fn new(start: u32, end: u32) -> Self {
-    DependencyRange { end, start }
+    DependencyRange { start, end }
   }
 }

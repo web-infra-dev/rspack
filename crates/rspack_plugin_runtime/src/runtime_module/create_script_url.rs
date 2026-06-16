@@ -15,6 +15,10 @@ impl CreateScriptUrlRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateScriptUrlRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::CREATE_SCRIPT_URL
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

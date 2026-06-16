@@ -13,6 +13,9 @@ pub enum RuntimeRequirementsDependencyMode {
   Normal,
   Call,
   AddOnly,
+  Write,
+  WriteOnly,
+  UnsupportedRequireProperty,
 }
 
 #[cacheable]
@@ -63,6 +66,41 @@ impl RuntimeRequirementsDependency {
       mode: RuntimeRequirementsDependencyMode::AddOnly,
     }
   }
+  pub fn write(range: DependencyRange, runtime_requirements: RuntimeGlobals) -> Self {
+    Self {
+      range,
+      runtime_requirements,
+      mode: RuntimeRequirementsDependencyMode::Write,
+    }
+  }
+  pub fn write_only(runtime_requirements: RuntimeGlobals) -> Self {
+    Self {
+      range: DependencyRange::default(),
+      runtime_requirements,
+      mode: RuntimeRequirementsDependencyMode::WriteOnly,
+    }
+  }
+  pub fn unsupported_require_property(
+    range: DependencyRange,
+    runtime_requirements: RuntimeGlobals,
+  ) -> Self {
+    Self {
+      range,
+      runtime_requirements,
+      mode: RuntimeRequirementsDependencyMode::UnsupportedRequireProperty,
+    }
+  }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct CodeGenerationRuntimeRequirementsWrite {
+  pub runtime_requirements: RuntimeGlobals,
+}
+
+impl CodeGenerationRuntimeRequirementsWrite {
+  pub fn insert(&mut self, runtime_requirements: RuntimeGlobals) {
+    self.runtime_requirements.insert(runtime_requirements);
+  }
 }
 
 #[cacheable]
@@ -94,6 +132,46 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
         .runtime_template
         .runtime_requirements_mut()
         .insert(dep.runtime_requirements);
+      return;
+    }
+
+    if matches!(
+      dep.mode,
+      RuntimeRequirementsDependencyMode::UnsupportedRequireProperty
+    ) {
+      source.replace(dep.range.start, dep.range.end, "undefined".into(), None);
+      return;
+    }
+
+    if matches!(
+      dep.mode,
+      RuntimeRequirementsDependencyMode::Write | RuntimeRequirementsDependencyMode::WriteOnly
+    ) {
+      code_generatable_context
+        .runtime_template
+        .runtime_requirements_mut()
+        .insert(dep.runtime_requirements);
+      if code_generatable_context
+        .data
+        .get::<CodeGenerationRuntimeRequirementsWrite>()
+        .is_none()
+      {
+        code_generatable_context
+          .data
+          .insert(CodeGenerationRuntimeRequirementsWrite::default());
+      }
+      code_generatable_context
+        .data
+        .get_mut::<CodeGenerationRuntimeRequirementsWrite>()
+        .expect("should have runtime requirements write metadata")
+        .insert(dep.runtime_requirements);
+      if matches!(dep.mode, RuntimeRequirementsDependencyMode::WriteOnly) {
+        return;
+      }
+      let content = code_generatable_context
+        .runtime_template
+        .render_runtime_globals(&dep.runtime_requirements);
+      source.replace(dep.range.start, dep.range.end, content, None);
       return;
     }
 

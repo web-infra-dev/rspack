@@ -73,6 +73,14 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    match self.source_type {
+      SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+      SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
+      _ => RuntimeGlobals::default(),
+    }
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

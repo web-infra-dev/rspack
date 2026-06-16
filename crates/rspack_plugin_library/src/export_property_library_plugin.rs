@@ -1,11 +1,11 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
+  AsyncModulesArtifact, CanInlineUse, ChunkCodeTemplate, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportsInfoArtifact, LibraryExport, LibraryOptions, LibraryType,
-  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  SideEffectsStateArtifact, UsageState, get_entry_runtime, property_access,
+  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -77,7 +77,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());

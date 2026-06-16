@@ -45,7 +45,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset, AsVec},
 };
-use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -83,9 +83,9 @@ use crate::{
   ImportedByDeferModulesArtifact, MemoryGCStorage, ModuleFactory, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
   ProcessRuntimeRequirementsCacheArtifact, ResolverFactory, RuntimeGlobals, RuntimeKeyMap,
-  RuntimeMode, RuntimeModule, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
-  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
-  StealCell, ValueCacheVersions,
+  RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap,
+  RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact, SideEffectsStateArtifact,
+  SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   cache::persistent::occasion::minimize::MinimizePersistentCacheArtifact,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, update_module_graph,
@@ -102,7 +102,7 @@ define_hook!(CompilationRevokedModules: Series(compilation: &Compilation, revoke
 define_hook!(CompilationStillValidModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule));
 define_hook!(CompilationSucceedModule: Series(compiler_id: CompilerId, compilation_id: CompilationId, module: &mut BoxModule),tracing=false);
 define_hook!(CompilationExecuteModule:
-  Series(module: &ModuleIdentifier, runtime_modules: &IdentifierSet, code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
+  Series(module: &ModuleIdentifier, runtime_modules: &[Identifier], code_generation_results: &BindingCell<CodeGenerationResults>, execute_module_id: &ExecuteModuleId));
 define_hook!(CompilationFinishModules: Series(compilation: &Compilation, async_modules_artifact: &mut AsyncModulesArtifact, exports_info_artifact: &mut ExportsInfoArtifact, side_effects_state_artifact: &mut SideEffectsStateArtifact));
 define_hook!(CompilationSeal: Series(compilation: &Compilation, diagnostics: &mut Vec<Diagnostic>));
 define_hook!(CompilationDependencyReferencedExports: Sync(
@@ -258,6 +258,8 @@ pub struct Compilation {
   pub cgm_runtime_requirements_artifact: StealCell<CgmRuntimeRequirementsArtifact>,
   // artifact for process_chunks_runtime_requirements
   pub cgc_runtime_requirements_artifact: StealCell<CgcRuntimeRequirementsArtifact>,
+  // artifact for rspack runtime proxy metadata
+  pub runtime_proxy_metadata_artifact: StealCell<RuntimeProxyMetadataArtifact>,
   // artifact for create_hash
   pub chunk_hashes_artifact: StealCell<ChunkHashesArtifact>,
   // artifact for create_chunk_assets
@@ -393,6 +395,7 @@ impl Compilation {
       cgm_hash_artifact: StealCell::new(Default::default()),
       cgm_runtime_requirements_artifact: StealCell::new(Default::default()),
       cgc_runtime_requirements_artifact: StealCell::new(Default::default()),
+      runtime_proxy_metadata_artifact: StealCell::new(Default::default()),
       chunk_hashes_artifact: StealCell::new(Default::default()),
       chunk_render_artifact: StealCell::new(Default::default()),
       module_graph_cache_artifact: StealCell::new(Default::default()),

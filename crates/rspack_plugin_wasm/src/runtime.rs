@@ -1,7 +1,8 @@
 use cow_utils::CowUtils;
 use rspack_core::{
-  PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, get_filename_without_hash_length, impl_runtime_module,
+  Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  get_filename_without_hash_length, impl_runtime_module,
 };
 use rspack_util::itoa;
 
@@ -89,6 +90,10 @@ impl AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmCompileRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::COMPILE_WASM
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -125,6 +130,10 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::INSTANTIATE_WASM
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

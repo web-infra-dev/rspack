@@ -12,7 +12,11 @@ it("should work", () => {
 		// ./a.css
 		// and it still output two runtime module:
 		// 	 'webpack/runtime/css loading'
-		expect(stats.modules.length).toBe(3);
+		if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+			expect(stats.modules.length).toBe(4);
+		} else {
+			expect(stats.modules.length).toBe(3);
+		}
 	} else if (__STATS_I__ === 1) {
 		stats.modules
 			.filter(module => module.moduleType === "css/auto")

@@ -474,6 +474,7 @@ export function renderModulePrefix(
 
 export enum RuntimeVariable {
   Require,
+  Context,
   Modules,
   ModuleCache,
   Module,
@@ -488,6 +489,8 @@ export function renderRuntimeVariables(
   switch (variable) {
     case RuntimeVariable.Require:
       return '__webpack_require__';
+    case RuntimeVariable.Context:
+      return '__rspack_context';
     case RuntimeVariable.Modules:
       return '__webpack_modules__';
     case RuntimeVariable.ModuleCache:
@@ -505,19 +508,26 @@ function renderRuntimeGlobals(
   runtimeGlobals: RuntimeGlobals,
   _compilerOptions?: RspackOptionsNormalized,
 ): string {
-  const scope_name = renderRuntimeVariables(
+  const require_name = renderRuntimeVariables(
     RuntimeVariable.Require,
     _compilerOptions,
   );
+  const context_name = renderRuntimeVariables(
+    RuntimeVariable.Context,
+    _compilerOptions,
+  );
+  const usesRuntimeContext =
+    _compilerOptions?.experiments.runtimeMode === 'rspack';
+  const scope_name = usesRuntimeContext ? context_name : require_name;
   const exports_name = renderRuntimeVariables(
     RuntimeVariable.Exports,
     _compilerOptions,
   );
   switch (runtimeGlobals) {
     case RuntimeGlobals.require:
-      return scope_name;
+      return usesRuntimeContext ? `${context_name}.r` : require_name;
     case RuntimeGlobals.requireScope:
-      return `${scope_name}.*`;
+      return usesRuntimeContext ? context_name : `${require_name}.*`;
     case RuntimeGlobals.exports:
       return exports_name;
     case RuntimeGlobals.thisAsExports:
@@ -557,7 +567,7 @@ function renderRuntimeGlobals(
     case RuntimeGlobals.definePropertyGetters:
       return `${scope_name}.d`;
     case RuntimeGlobals.makeNamespaceObject:
-      return `${scope_name}.r`;
+      return usesRuntimeContext ? `${context_name}.N` : `${require_name}.r`;
     case RuntimeGlobals.createFakeNamespaceObject:
       return `${scope_name}.t`;
     case RuntimeGlobals.compatGetDefaultExport:

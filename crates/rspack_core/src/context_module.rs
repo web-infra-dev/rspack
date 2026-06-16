@@ -272,13 +272,26 @@ impl ContextModule {
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
   ) -> Self {
+    Self::new_with_strict(resolve_dependencies, options, None)
+  }
+
+  pub(crate) fn new_with_strict(
+    resolve_dependencies: ResolveContextModuleDependencies,
+    options: ContextModuleOptions,
+    strict: Option<bool>,
+  ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn,
@@ -1115,8 +1128,8 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -1124,7 +1137,7 @@ impl ContextModule {
         }}
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -1132,10 +1145,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      __rspack_context.id = {id};
-      {module}.exports = __rspack_context;
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      __rspack_context_module.id = {id};
+      {module}.exports = __rspack_context_module;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -1227,11 +1240,11 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -1239,10 +1252,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      {module}.exports = __rspack_context;
-      __rspack_context.id = {id};
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      {module}.exports = __rspack_context_module;
+      __rspack_context_module.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),

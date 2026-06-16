@@ -188,6 +188,8 @@ export class TestCompilerManager implements ITestCompilerManager {
       // want to watch all files, which aligns with webpack's default behavior
       ignored: [],
       aggregateTimeout: timeout,
+      // A case may override any of the above (e.g. `ignored`) via its config.
+      ...this.compilerInstance.options.watchOptions,
     };
     if (__DEBUG__) {
       context.setValue(DEBUG_SCOPES.BuildMethod, {

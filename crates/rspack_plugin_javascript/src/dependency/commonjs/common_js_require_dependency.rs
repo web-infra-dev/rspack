@@ -12,9 +12,7 @@ use rspack_core::{
 };
 
 use super::create_resource_identifier_for_contextual_commonjs_dependency;
-use crate::dependency::{
-  DependencyBranchGuard, DependencyBranchGuards, compose_dependency_condition,
-};
+use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -28,7 +26,7 @@ pub struct CommonJsRequireDependency {
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   #[cacheable(with=AsOption<AsCacheable>)]
-  branch_guards: Option<Box<DependencyBranchGuards>>,
+  branch_guard: Option<DependencyBranchGuard>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
@@ -51,7 +49,7 @@ impl CommonJsRequireDependency {
       range_expr,
       loc,
       referenced_specifiers,
-      branch_guards: None,
+      branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
       factorize_info: Default::default(),
@@ -91,8 +89,11 @@ impl CommonJsRequireDependency {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
-  pub fn add_branch_guards(&mut self, guards: impl IntoIterator<Item = DependencyBranchGuard>) {
-    self.branch_guards.get_or_insert_default().extend(guards);
+  pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
@@ -176,7 +177,7 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guards.as_deref())
+    compose_dependency_condition(None, self.branch_guard.as_ref())
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
