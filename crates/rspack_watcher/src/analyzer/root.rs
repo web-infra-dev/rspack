@@ -48,15 +48,24 @@ struct PathTree {
 impl PathTree {
   pub fn find_common_root(&self) -> Option<ArcPath> {
     let root = self.find_root()?;
-    Some(self.find_common_root_recursive(root))
+    // [WATCHER_ROOT_DEBUG] Temporary instrumentation to capture the real tree
+    // state behind the Windows-only `assert!(path.exists())` panic. Emits a
+    // one-line summary every cycle whenever the tree holds non-existent or
+    // orphaned nodes, so we still see the forest/missing state even when the
+    // unordered `find_root` pick does not happen to hit the panic.
+    self.debug_summary(&root);
+    Some(self.find_common_root_recursive(root, 0))
   }
 
-  fn find_common_root_recursive(&self, path: ArcPath) -> ArcPath {
+  fn find_common_root_recursive(&self, path: ArcPath, depth: usize) -> ArcPath {
     let node = self
       .inner
       .get(&path)
       .expect("Path should exist in the tree");
     // We need make sure the path is exists
+    if !path.exists() {
+      self.debug_dump(&path, depth);
+    }
     assert!(path.exists(), "Path should exist");
 
     if let Some(child) = node
@@ -64,10 +73,74 @@ impl PathTree {
       // Check if the child exists in the tree
       .and_then(|child| if child.is_dir() { Some(child) } else { None })
     {
-      self.find_common_root_recursive(child)
+      self.find_common_root_recursive(child, depth + 1)
     } else {
       path // Return the current path if it has no single child
     }
+  }
+
+  fn parent_in_tree(&self, path: &ArcPath) -> Option<bool> {
+    path
+      .parent()
+      .map(|parent| self.inner.contains_key(&ArcPath::from(parent)))
+  }
+
+  fn debug_summary(&self, root: &ArcPath) {
+    let total = self.inner.len();
+    let mut missing = 0usize;
+    let mut orphans = 0usize;
+    for entry in self.inner.iter() {
+      let path = entry.key();
+      if !path.exists() {
+        missing += 1;
+      }
+      // An orphan = a node that has a parent which is NOT in the tree (i.e. the
+      // tree got disconnected into a forest). FS roots have no parent and don't
+      // count.
+      if matches!(self.parent_in_tree(path), Some(false)) {
+        orphans += 1;
+      }
+    }
+    if missing > 0 || orphans > 0 {
+      eprintln!(
+        "[WATCHER_ROOT_DEBUG] cycle: total={total} missing_on_disk={missing} orphan_subtree_roots={orphans} find_root={:?} find_root_exists={}",
+        root,
+        root.exists(),
+      );
+    }
+  }
+
+  fn debug_dump(&self, trigger: &ArcPath, depth: usize) {
+    let entry = if depth == 0 {
+      "find_root result (forest / missing root)"
+    } else {
+      "descend step (possible TOCTOU delete)"
+    };
+    eprintln!("[WATCHER_ROOT_DEBUG] ===== panic-about-to-fire dump begin =====");
+    eprintln!(
+      "[WATCHER_ROOT_DEBUG] trigger={:?} exists={} is_dir={} depth={depth} entry={entry} parent_in_tree={:?}",
+      trigger,
+      trigger.exists(),
+      trigger.is_dir(),
+      self.parent_in_tree(trigger),
+    );
+    eprintln!(
+      "[WATCHER_ROOT_DEBUG] find_root={:?} node_count={}",
+      self.find_root(),
+      self.inner.len(),
+    );
+    for item in self.inner.iter() {
+      let path = item.key();
+      eprintln!(
+        "[WATCHER_ROOT_DEBUG]   node={:?} exists={} is_dir={} children={} parent_in_tree={:?}",
+        path,
+        path.exists(),
+        path.is_dir(),
+        item.value().children.len(),
+        self.parent_in_tree(path),
+      );
+    }
+    eprintln!("[WATCHER_ROOT_DEBUG] ===== panic-about-to-fire dump end =====");
   }
 
   pub fn update_paths(&self, added_paths: &ArcPathDashSet, removed_paths: &ArcPathDashSet) {
