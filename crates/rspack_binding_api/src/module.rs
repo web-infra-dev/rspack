@@ -367,7 +367,7 @@ impl Module {
     let (_, module) = self.as_ref()?;
 
     Ok(match module.source() {
-      Some(source) => Either::A(source.as_ref().try_into()?),
+      Some(source) => Either::A(source.try_into()?),
       None => Either::B(()),
     })
   }

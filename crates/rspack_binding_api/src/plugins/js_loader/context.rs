@@ -150,7 +150,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
         .cloned(),
       source_map: cx
         .source_map()
-        .cloned()
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,

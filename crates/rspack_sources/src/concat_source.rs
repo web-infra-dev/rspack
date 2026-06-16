@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
-  sync::{Mutex, OnceLock},
+  sync::{Arc, Mutex, OnceLock},
 };
 
 use rustc_hash::FxHashMap as HashMap;
@@ -54,7 +54,8 @@ use crate::{
 ///         "console.log('test');\nconsole.log('test2');\n",
 ///         "Hello2\n"
 ///       ]
-///     }"#,
+///     }"#
+///       .to_string(),
 ///   )
 ///   .unwrap()
 /// );
@@ -216,10 +217,21 @@ impl Source for ConcatSource {
       .sum()
   }
 
-  fn map<'a>(&'a self, object_pool: &'a ObjectPool, options: &MapOptions) -> Option<SourceMap> {
+  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
     let chunks = self.stream_chunks();
-    let result = get_map(object_pool, chunks.as_ref(), options);
-    result
+    get_map(object_pool, chunks.as_ref(), options).map(SourceMap::from_fields)
+  }
+
+  fn map_static(
+    self: Arc<Self>,
+    object_pool: &ObjectPool,
+    options: &MapOptions,
+  ) -> Option<SourceMap<'static>> {
+    let owner = self.clone();
+    self
+      .as_ref()
+      .map(object_pool, options)
+      .map(|map| map.into_static(owner))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -247,7 +259,7 @@ impl PartialEq for ConcatSource {
 impl Eq for ConcatSource {}
 
 struct ConcatSourceChunks<'source> {
-  children_chunks: Vec<Box<dyn Chunks + 'source>>,
+  children_chunks: Vec<Box<dyn Chunks<'source> + 'source>>,
 }
 
 impl<'source> ConcatSourceChunks<'source> {
@@ -261,14 +273,14 @@ impl<'source> ConcatSourceChunks<'source> {
   }
 }
 
-impl Chunks for ConcatSourceChunks<'_> {
-  fn stream<'b>(
-    &'b self,
-    object_pool: &'b ObjectPool,
+impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
+  fn stream<'chunk>(
+    &'chunk self,
+    object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'b>,
-    on_source: crate::helpers::OnSource<'_, 'b>,
-    on_name: crate::helpers::OnName<'_, 'b>,
+    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
+    on_source: crate::helpers::OnSource<'_, 'source>,
+    on_name: crate::helpers::OnName<'_, 'source>,
   ) -> GeneratedInfo {
     if self.children_chunks.len() == 1 {
       return self.children_chunks[0].stream(object_pool, options, on_chunk, on_source, on_name);
@@ -426,7 +438,7 @@ impl Chunks for ConcatSourceChunks<'_> {
 }
 
 impl StreamChunks for ConcatSource {
-  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks + 'a> {
+  fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     Box::new(ConcatSourceChunks::new(self))
   }
 }
@@ -512,7 +524,8 @@ mod tests {
             "console.log('test');\nconsole.log('test2');\n",
             "Hello2\n"
           ]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap()
     );
@@ -531,6 +544,7 @@ mod tests {
             "Hello2\n"
           ]
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -565,7 +579,8 @@ mod tests {
             "console.log('test');\nconsole.log('test2');\n",
             "Hello2\n"
           ]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap()
     );
@@ -584,6 +599,7 @@ mod tests {
             "Hello2\n"
           ]
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -618,7 +634,8 @@ mod tests {
             "console.log('test');\nconsole.log('test2');\n",
             "Hello2\n"
           ]
-        }"#,
+        }"#
+          .to_string(),
       )
       .unwrap()
     );
@@ -637,6 +654,7 @@ mod tests {
             "Hello2\n"
           ]
         }"#
+          .to_string()
       )
       .unwrap()
     );
@@ -667,7 +685,8 @@ mod tests {
         "names": [],
         "sources": ["console.js"],
         "sourcesContent": ["console.log('test');\nconsole.log('test2');\n"]
-      }"#,
+      }"#
+        .to_string(),
     )
     .unwrap();
     assert_eq!(source.size(), 76);
@@ -727,6 +746,7 @@ mod tests {
           "sourcesContent": ["Hello", "World "],
           "version": 3
         }"#
+          .to_string()
       )
       .unwrap(),
     );

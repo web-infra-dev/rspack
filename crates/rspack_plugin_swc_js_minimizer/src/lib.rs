@@ -272,7 +272,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+        let input_source_map =
+          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),

@@ -93,7 +93,7 @@ impl SwcLoader {
       }
 
       if loader_context.context.source_map_kind.enabled() {
-        if let Some(pre_source_map) = loader_context.source_map().cloned() {
+        if let Some(pre_source_map) = loader_context.source_map() {
           swc_options.config.input_source_map = Some(InputSourceMap::Str(pre_source_map.to_json()))
         }
       } else {
@@ -279,14 +279,14 @@ impl SwcLoader {
           .sources()
           .iter()
           .map(|source| {
-            let source_path = Path::new(source);
+            let source_path = Path::new(source.as_ref());
             if source_path.is_relative() {
               source_path
                 .absolutize_with(resource_dir.as_std_path())
                 .to_string_lossy()
                 .into_owned()
             } else {
-              source.clone()
+              source.to_string()
             }
           })
           .collect::<Vec<_>>(),
