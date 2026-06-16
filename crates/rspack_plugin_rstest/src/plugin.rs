@@ -17,6 +17,7 @@ use rspack_core::{
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
+  runtime_variable_name,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -96,10 +97,12 @@ async fn runtime_module(
       };
       let source = runtime_module.generate_with_custom(&context).await?;
       let runtime_scope = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      let legacy_runtime_scope = runtime_variable_name(&RuntimeVariable::Require);
       let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
       runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(
         source,
         &runtime_scope,
+        legacy_runtime_scope,
         &module_factories,
       ));
     }
@@ -295,6 +298,7 @@ impl RstestPlugin {
   fn add_rstest_mock_chunk_loading_guard(
     source: String,
     runtime_scope: &str,
+    legacy_runtime_scope: &str,
     module_factories: &str,
   ) -> String {
     // TODO: Remove this compatibility guard once the minimum supported Rstest version
@@ -305,14 +309,20 @@ impl RstestPlugin {
     let legacy_rstest_mock_chunk_loading_guard = format!(
       "if (Object.keys({runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
     );
+    let webpack_rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
+    );
+    let legacy_webpack_rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
+    );
 
     let source = source
       .cow_replace(
-        "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;",
+        &webpack_rstest_mock_chunk_loading_guard,
         &rstest_mock_chunk_loading_guard,
       )
       .cow_replace(
-        "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;",
+        &legacy_webpack_rstest_mock_chunk_loading_guard,
         &rstest_mock_chunk_loading_guard,
       )
       .into_owned();
