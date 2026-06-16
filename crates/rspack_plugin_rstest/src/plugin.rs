@@ -306,6 +306,17 @@ impl RstestPlugin {
       "if (Object.keys({runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
     );
 
+    let source = source
+      .cow_replace(
+        "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;",
+        &rstest_mock_chunk_loading_guard,
+      )
+      .cow_replace(
+        "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;",
+        &rstest_mock_chunk_loading_guard,
+      )
+      .into_owned();
+
     if source.contains(&rstest_mock_chunk_loading_guard)
       || source.contains(&legacy_rstest_mock_chunk_loading_guard)
     {
