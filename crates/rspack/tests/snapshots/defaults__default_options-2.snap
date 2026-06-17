@@ -20,7 +20,7 @@ BuilderContext {
         NaturalModuleIdsPlugin,
         NaturalChunkIdsPlugin,
         SideEffectsFlagPlugin(
-            false,
+            true,
         ),
         FlagDependencyExportsPlugin,
         EntryPlugin(

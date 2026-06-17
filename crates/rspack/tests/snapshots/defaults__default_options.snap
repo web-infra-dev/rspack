@@ -1744,7 +1744,7 @@ CompilerOptions {
         css: false,
         defer_import: false,
         source_import: false,
-        pure_functions: false,
+        pure_functions: true,
         runtime_mode: Webpack,
     },
     incremental: IncrementalOptions {

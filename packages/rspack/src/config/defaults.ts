@@ -236,7 +236,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'useInputFileSystem', false);
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', false);
+  D(experiments, 'pureFunctions', true);
   D(experiments, 'runtimeMode', 'webpack');
 };
 

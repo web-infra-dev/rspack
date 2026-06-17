@@ -3763,7 +3763,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      pure_functions: d!(self.pure_functions, false),
+      pure_functions: d!(self.pure_functions, true),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
