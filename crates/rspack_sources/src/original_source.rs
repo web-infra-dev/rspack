@@ -35,7 +35,7 @@ use crate::{
 ///   "AAAA;AACA",
 /// );
 /// ```
-#[derive(Clone, Eq)]
+#[derive(Eq)]
 pub struct OriginalSource {
   value: Box<str>,
   name: Box<str>,

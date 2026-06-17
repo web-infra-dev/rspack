@@ -62,7 +62,7 @@ struct CachedData {
 /// ```
 pub struct CachedSource {
   inner: BoxSource,
-  cache: Arc<CachedData>,
+  cache: CachedData,
 }
 
 impl CachedSource {
@@ -71,12 +71,15 @@ impl CachedSource {
     let box_source = inner.boxed();
     // Check if it's already a BoxSource containing a CachedSource
     if let Some(cached_source) = box_source.as_ref().as_any().downcast_ref::<CachedSource>() {
-      return cached_source.clone();
+      return Self {
+        inner: cached_source.inner.clone(),
+        cache: CachedData::default(),
+      };
     }
 
     Self {
       inner: box_source,
-      cache: Arc::new(CachedData::default()),
+      cache: CachedData::default(),
     }
   }
 
@@ -92,9 +95,8 @@ impl CachedSource {
         chunks.push(chunk);
       });
       #[allow(unsafe_code)]
-      // SAFETY: CachedSource guarantees that the underlying source outlives the cache,
-      // so transmuting Vec<&str> to Vec<&'static str> is safe in this context.
-      // This allows us to store string slices in the cache without additional allocations.
+      // SAFETY: cached chunks are only exposed through `&self`, and they borrow
+      // from `self.inner`, which is held by the same `CachedSource`.
       unsafe {
         std::mem::transmute::<Vec<&str>, Vec<&'static str>>(chunks)
       }
@@ -287,15 +289,6 @@ impl StreamChunks for CachedSource {
   }
 }
 
-impl Clone for CachedSource {
-  fn clone(&self) -> Self {
-    Self {
-      inner: self.inner.clone(),
-      cache: self.cache.clone(),
-    }
-  }
-}
-
 impl Hash for CachedSource {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     (self.cache.hash.get_or_init(|| {
@@ -362,26 +355,12 @@ mod tests {
   }
 
   #[test]
-  fn should_allow_to_store_and_share_cached_data() {
+  fn should_not_wrap_cached_source_twice() {
     let original = OriginalSource::new("Hello World", "test.txt");
     let source = CachedSource::new(original);
-    let clone = source.clone();
+    let source = CachedSource::new(source.boxed());
 
-    // fill up cache
-    let map_options = MapOptions::default();
-    source.source();
-    source.buffer();
-    source.size();
-    source.map(&ObjectPool::default(), &map_options);
-
-    let cached_map = clone
-      .cache
-      .columns_map
-      .get()
-      .and_then(Option::as_ref)
-      .unwrap();
-    let map = source.map(&ObjectPool::default(), &map_options).unwrap();
-    assert!(cached_map.fields() == map.fields());
+    assert!(!source.inner().as_ref().as_any().is::<CachedSource>());
   }
 
   #[test]

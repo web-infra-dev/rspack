@@ -513,9 +513,10 @@ mod tests {
       "AAAA;AAAA;ACAA,ICAA,EDAA,ECAA,EFAA;AEAA,EFAA;ACAA",
     );
 
+    let source = source.boxed();
     macro_rules! test_cached {
       ($s:expr, $fn:expr) => {{
-        let s = $s.clone().boxed();
+        let s = $s.clone();
         let c = CachedSource::new(s.clone()).boxed();
         let o = $fn(s.clone());
         let a = $fn(c.clone());

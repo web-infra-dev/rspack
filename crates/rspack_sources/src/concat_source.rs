@@ -66,22 +66,6 @@ pub struct ConcatSource {
   is_optimized: OnceLock<Vec<BoxSource>>,
 }
 
-impl Clone for ConcatSource {
-  fn clone(&self) -> Self {
-    Self {
-      children: Mutex::new(self.children.lock().unwrap().clone()),
-      is_optimized: match self.is_optimized.get() {
-        Some(children) => {
-          let once_lock = OnceLock::new();
-          once_lock.get_or_init(|| children.clone());
-          once_lock
-        }
-        None => OnceLock::default(),
-      },
-    }
-  }
-}
-
 impl std::fmt::Debug for ConcatSource {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     let indent = f.width().unwrap_or(0);

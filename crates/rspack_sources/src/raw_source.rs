@@ -26,7 +26,7 @@ use crate::{
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
-#[derive(Clone, PartialEq, Eq)]
+#[derive(PartialEq, Eq)]
 pub struct RawStringSource(Cow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
@@ -169,15 +169,6 @@ impl RawBufferSource {
       })
       .as_deref()
       .unwrap_or_else(|| unsafe { std::str::from_utf8_unchecked(&self.value) })
-  }
-}
-
-impl Clone for RawBufferSource {
-  fn clone(&self) -> Self {
-    Self {
-      value: self.value.clone(),
-      value_as_string: Default::default(),
-    }
   }
 }
 
