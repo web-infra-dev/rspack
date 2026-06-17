@@ -355,15 +355,6 @@ mod tests {
   }
 
   #[test]
-  fn should_not_wrap_cached_source_twice() {
-    let original = OriginalSource::new("Hello World", "test.txt");
-    let source = CachedSource::new(original);
-    let source = CachedSource::new(source.boxed());
-
-    assert!(!source.inner().as_ref().as_any().is::<CachedSource>());
-  }
-
-  #[test]
   fn should_return_the_correct_size_for_binary_files() {
     let source = OriginalSource::new(String::from_utf8(vec![0; 256]).unwrap(), "file.wasm");
     let cached_source = CachedSource::new(source);

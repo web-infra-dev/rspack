@@ -55,7 +55,9 @@ pub async fn create_module_assets(
     }
   }
 
-  compilation.emit_assets(module_assets);
+  for (name, asset) in module_assets {
+    compilation.emit_asset(name, asset);
+  }
 
   for (chunk, asset_name) in chunk_asset_map {
     let chunk = compilation

@@ -809,71 +809,38 @@ impl Compilation {
     );
     Ok(())
   }
-
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
   pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    let source_equal = if let Some(original) = self.assets.get(&filename)
+    if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
     {
-      Some(is_source_equal(original_source, asset_source))
-    } else {
-      None
-    };
-
-    if source_equal == Some(true) {
-      let new_source_map = asset.get_info().related.source_map.clone();
-      let old_source_map = {
-        let original = self
-          .assets
-          .get_mut(&filename)
-          .expect("asset should exist after source equality check");
-        let old_source_map = original.get_info().related.source_map.clone();
-        original.info = asset.info;
-        old_source_map
-      };
-
-      if let Some(source_map) = old_source_map
-        && let Some(entry) = self.assets_related_in.get_mut(&source_map)
-      {
-        entry.remove(&filename);
-      }
-      if let Some(source_map) = new_source_map {
-        let entry = self.assets_related_in.entry(source_map).or_default();
-        entry.insert(filename);
-      }
-      return;
-    }
-
-    if source_equal == Some(false) {
-      tracing::error!(
-        "Emit Duplicate Filename({}), is_source_equal: {:?}",
-        filename,
-        false
-      );
-      self.push_diagnostic(
-        rspack_error::error!(
-          "Conflict: Multiple assets emit different content to the same filename {}{}",
+      let is_source_equal = is_source_equal(original_source, asset_source);
+      if !is_source_equal {
+        tracing::error!(
+          "Emit Duplicate Filename({}), is_source_equal: {:?}",
           filename,
-          // TODO: source file name
-          ""
-        )
-        .into(),
-      );
-    }
-
-    self.set_asset_info(&filename, Some(asset.get_info()), None);
-    self.assets.insert(filename, asset);
-  }
-
-  #[instrument("Compilation:emit_assets", skip_all)]
-  pub fn emit_assets(&mut self, assets: impl IntoIterator<Item = (String, CompilationAsset)>) {
-    let assets = assets.into_iter();
-    let (lower_bound, _) = assets.size_hint();
-    self.assets.reserve(lower_bound);
-
-    for (filename, asset) in assets {
-      self.emit_asset(filename, asset);
+          is_source_equal
+        );
+        self.push_diagnostic(
+          rspack_error::error!(
+            "Conflict: Multiple assets emit different content to the same filename {}{}",
+            filename,
+            // TODO: source file name
+            ""
+          )
+          .into(),
+        );
+        self.set_asset_info(&filename, Some(asset.get_info()), None);
+        self.assets.insert(filename, asset);
+        return;
+      }
+      self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
+      original.info = asset.info;
+      self.assets.insert(filename, original);
+    } else {
+      self.set_asset_info(&filename, Some(asset.get_info()), None);
+      self.assets.insert(filename, asset);
     }
   }
 
