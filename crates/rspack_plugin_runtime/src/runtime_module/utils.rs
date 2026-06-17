@@ -101,7 +101,7 @@ chunkCacheControls[{loading_type}] = {{
     for (var i = 0; i < chunkIds.length; i++) {{
       var chunkId = chunkIds[i];
       if (installedChunks[chunkId] !== undefined) {{
-        delete installedChunks[chunkId];
+        installedChunks[chunkId] = undefined;
         cleared.push(chunkId);
       }}
     }}
@@ -131,7 +131,7 @@ chunkCacheControls[{loading_type}] = {{
     var states = {{}};
     for (var i = 0; i < chunkIds.length; i++) {{
       var chunkId = chunkIds[i];
-      if (Object.prototype.hasOwnProperty.call(installedChunks, chunkId)) {{
+      if (installedChunks[chunkId] !== undefined) {{
         states[chunkId] = {{
           had: true,
           value: installedChunks[chunkId]
@@ -148,13 +148,13 @@ chunkCacheControls[{loading_type}] = {{
     for (var chunkId in states) {{
       var state = states[chunkId];
       if (state && state.had) installedChunks[chunkId] = state.value;
-      else delete installedChunks[chunkId];
+      else installedChunks[chunkId] = undefined;
     }}
   }},
   restoreGenerations: function(generations) {{
     for (var chunkId in generations) {{
       if (generations[chunkId]) {generation_var}[chunkId] = generations[chunkId];
-      else delete {generation_var}[chunkId];
+      else {generation_var}[chunkId] = undefined;
     }}
   }},
   getGeneration: function(chunkId) {{

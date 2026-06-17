@@ -91,12 +91,12 @@ if (typeof require === "function" && {runtime_scope}.chunkCacheControls && {runt
       for (var i = 0; i < chunkIds.length; i++) {{
         var chunkFile = {root_output_dir} + {get_chunk_script_filename}(chunkIds[i]);
         try {{
-          delete require.cache[require.resolve(chunkFile)];
+          require.cache[require.resolve(chunkFile)] = undefined;
         }} catch (e) {{}}
         try {{
           var path = require("node:path");
           var Module = require("node:module");
-          if (Module && Module._cache) delete Module._cache[path.resolve(__dirname, chunkFile)];
+          if (Module && Module._cache) Module._cache[path.resolve(__dirname, chunkFile)] = undefined;
         }} catch (e) {{}}
       }}
       return originalRequireChunkClear(chunkIds);
