@@ -34,6 +34,24 @@ You can refer to the following installation guides and choose one runtime:
 
 :::
 
+:::details For unsupported platforms
+
+If you are using a niche platform, Rspack may not provide native support for it. In this case, please manually install `@rspack/binding-wasm32-wasi` as a fallback. The Wasm build is compatible with most platforms.
+
+Currently supported platforms:
+
+- `darwin-arm64`
+- `darwin-x64`
+- `linux-arm64-gnu`
+- `linux-arm64-musl`
+- `linux-x64-gnu`
+- `linux-x64-musl`
+- `win32-arm64-msvc`
+- `win32-ia32-msvc`
+- `win32-x64-msvc`
+
+:::
+
 ## Create a new project
 
 ### Using Rsbuild

@@ -88,7 +88,7 @@ jobs:
 
       - name: Run benchmark (simulation)
         if: ${{ inputs.measurement == 'simulation' }}
-        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
+        uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
@@ -107,11 +107,12 @@ jobs:
               pnpm run bench:rust
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
-          runner-version: 4.13.0
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
+          skip-hash-check-warning: true
 
       - name: Run benchmark (walltime)
         if: ${{ inputs.measurement == 'walltime' }}
-        uses: CodSpeedHQ/action@d872884a306dd4853acf0f584f4b706cf0cc72a2
+        uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
@@ -129,7 +130,8 @@ jobs:
               taskset -c 176-191 pnpm run bench:rust
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
-          runner-version: 4.13.0
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
+          skip-hash-check-warning: true
 
       - name: Prepare Valgrind temporary files artifact
         if: ${{ always() && inputs.measurement == 'simulation' }}

@@ -2,6 +2,7 @@
 import { __webpack_require__ } from "./runtime.mjs";
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // node:fs
@@ -11,12 +12,11 @@ var external_node_fs_default = /*#__PURE__*/__webpack_require__.n(external_node_
 const external_node_path_namespaceObject = __rspack_createRequire_require("node:path");
 
 var external_node_path_default = /*#__PURE__*/__webpack_require__.n(external_node_path_namespaceObject);// ./index.js
-var index_dirname = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
 
 
 
 it('should support dynamic import', async () => {
-	const shared = external_node_path_default().resolve(index_dirname, 'shared.mjs')
+	const shared = external_node_path_default().resolve(__rspack_import_meta_dirname__, 'shared.mjs')
 	const content = external_node_fs_default().readFileSync(shared, 'utf-8')
 
 	expect(content).toContain('// ./m1.js')

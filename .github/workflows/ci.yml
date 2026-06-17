@@ -93,7 +93,7 @@ jobs:
   bench-rust-walltime:
     name: Rust Bench Walltime
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
     uses: ./.github/workflows/bench-rust.yml
     with:
       target: x86_64-unknown-linux-gnu
