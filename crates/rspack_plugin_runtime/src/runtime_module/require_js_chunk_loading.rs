@@ -76,14 +76,14 @@ impl RequireChunkLoadingRuntimeModule {
     runtime_template: &RuntimeCodeTemplate<'_>,
     root_output_dir: &str,
   ) -> String {
-    let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let runtime_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
     let get_chunk_script_filename =
       runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
     let root_output_dir = rspack_util::json_stringify_str(root_output_dir);
     format!(
       r#"
-if (typeof require === "function" && {require}.chunkCacheControls && {require}.chunkCacheControls.require) {{
-  var requireChunkCacheControl = {require}.chunkCacheControls.require;
+if (typeof require === "function" && {runtime_scope}.chunkCacheControls && {runtime_scope}.chunkCacheControls.require) {{
+  var requireChunkCacheControl = {runtime_scope}.chunkCacheControls.require;
   if (!requireChunkCacheControl.__rspack_require_cache_clear_installed__) {{
     var originalRequireChunkClear = requireChunkCacheControl.clear;
     requireChunkCacheControl.__rspack_require_cache_clear_installed__ = true;
@@ -197,6 +197,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RequireChunkLoadingRuntimeModule {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE_SCOPE
+  }
+
   fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::BASE_URI
       | RuntimeGlobals::ENSURE_CHUNK_HANDLERS

@@ -155,6 +155,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE_SCOPE
+  }
+
   fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::BASE_URI
       | RuntimeGlobals::ENSURE_CHUNK_HANDLERS

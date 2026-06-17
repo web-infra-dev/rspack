@@ -96,7 +96,7 @@ SSR 集成层仍然按原方式重新进入 SSR 入口。如果服务层绕过�
 
 `clearCache` 不要求 bundler runtime 在清理时重新准备 remote factory。新 remote 是否可用，由下一次正常 remote loading 决定。
 
-### SDK Node loader
+### SDK node loader
 
 MF 在 Node 侧加载生产者入口时会走 `loadScriptNode`。
 
@@ -109,7 +109,7 @@ MF 在 Node 侧加载生产者入口时会走 `loadScriptNode`。
 
 这部分不应该由 MF runtime 直接操作私有 Map，而应由 SDK Node loader 提供内部 clear adapter。
 
-### MF Node runtime plugin
+### MF node runtime plugin
 
 MF Node runtime plugin 负责 SSR Node 侧的 chunk 加载缓存。
 

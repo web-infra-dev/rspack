@@ -82,7 +82,7 @@ pub fn generate_chunk_cache_controls(
   loading_type: &str,
   loaded_state: u8,
 ) -> String {
-  let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+  let require_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
   let generation_var = format!(
     "chunkGenerations_{}",
     loading_type
@@ -93,7 +93,7 @@ pub fn generate_chunk_cache_controls(
   let loading_type = rspack_util::json_stringify_str(loading_type);
   format!(
     r#"
-var chunkCacheControls = {require_name}.chunkCacheControls = {require_name}.chunkCacheControls || {{}};
+var chunkCacheControls = {require_scope}.chunkCacheControls = {require_scope}.chunkCacheControls || {{}};
 var {generation_var} = {{}};
 chunkCacheControls[{loading_type}] = {{
   clear: function(chunkIds) {{
