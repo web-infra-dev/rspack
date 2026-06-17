@@ -113,7 +113,7 @@ MF 在 Node 侧加载生产者入口时会走 `loadScriptNode`。
 
 MF Node runtime plugin 负责 SSR Node 侧的 chunk 加载缓存。
 
-它需要清理：
+它需要清理或串联：
 
 - Rspack 生成的 Node chunk loading runtime 暴露出来的目标 chunk 加载状态。
 - MF Node runtime plugin 中与目标 remote 或 remote chunk 相关的动态 import 缓存记录。
@@ -123,7 +123,7 @@ MF Node runtime plugin 负责 SSR Node 侧的 chunk 加载缓存。
 
 这些状态不全在 MF Node runtime plugin 内部。Rspack 生成的 Node chunk loading runtime 也需要提供受控清理入口，暴露目标 chunk 的加载状态、chunk 到 remote 的关系和 generation 检查点。MF Node runtime plugin 负责串联这些能力，而不是猜闭包里的 `installedChunks`。
 
-`nodeRuntimeImportCache` 是 MF Node runtime plugin 里的动态 import 缓存记录，在 `module-federation/core` 的 `packages/node/src/runtimePlugin.ts` 中维护，不是 Rspack runtime 自带缓存。如果某个发布包或运行形态里没有这个具体变量名，应把它理解为 MF Node runtime plugin 需要新增的可清理动态 import 记录。
+`nodeRuntimeImportCache` 是 MF Node runtime plugin 里的动态 import 缓存记录，在 `module-federation/core` 的 `packages/node/src/runtimePlugin.ts` 中维护，不是 Rspack runtime 自带缓存。当前 Rspack 仓库没有这个缓存表或 remote URL chunk 状态的直接接入口，所以第一版只声明清理由 Rspack 生成的 Node chunk runtime 和 CommonJS `require.cache` 可控状态。remote URL chunk 和等价动态 import 缓存需要等 MF Node runtime plugin 暴露明确 adapter 后再接入。
 
 ### Node 原生缓存
 
@@ -358,10 +358,8 @@ stale 只表示旧加载结果不能再写回 runtime cache，不代表取消已
 - `from` 指向被清理的 remote。
 - 没有 `lib`。
 - 没有 `loaded`。
-- 没有正在生效的 `loading`。
-- 或者 loading 已失败，且没有成功写入 `lib`。
 
-这类 shared 只是注册过，还没有被 host 或其它 remote 实际使用，清理风险低。
+这类 shared 没有完成加载，还没有把可复用实例交给 host 或其它 remote，清理风险低。
 
 ### 正在加载
 
@@ -410,13 +408,16 @@ Node SSR 是这次设计的重点。
 
 MF Node runtime plugin 应提供内部清理 adapter，让 MF runtime 可以通知它清理目标 remote。
 
-需要覆盖：
+当前 Rspack 实现需要覆盖：
 
 - Rspack Node chunk loading runtime 暴露出来的目标 chunk loading 状态。
 - `.f.readFileVm` 维护的 `installedChunks`。
 - `.f.require` 维护的 `installedChunks`。
-- `nodeRuntimeImportCache`。
 - filesystem chunk 的 CommonJS `require.cache`。
+
+后续等 MF Node runtime plugin 暴露明确 adapter 后，再覆盖：
+
+- `nodeRuntimeImportCache` 或等价动态 import 缓存记录。
 - remote URL chunk 的加载状态。
 
 CommonJS remote entry 或 filesystem chunk 可以按路径清理 `require.cache`。
@@ -543,9 +544,9 @@ Node SSR 下分别覆盖：
 
 - script remoteEntry：确认 `globalThis[remoteEntryKey]` 被清理。
 - ESM remoteEntry root-only：没有依赖记录时，只确认已知 root URL 被清理。
-- ESM remoteEntry dependency graph：有 root 到 child URL 依赖记录时，确认 root 和 descendants 都被清理。
+- ESM remoteEntry dependency graph：第一版不记录 root 到 child URL 的依赖关系；后续如果 SDK Node loader 暴露依赖记录，再确认 root 和 descendants 都被清理。
 - `sdkImportCache`：确认 `path`、`vm`、`node-fetch`、`node:module` 这类 Node 依赖不被误删。
-- MF Node runtime plugin：确认 `nodeRuntimeImportCache` 或等价新增动态 import 缓存记录可按目标 remote 清理。
+- MF Node runtime plugin：当前 Rspack 仓库没有 `nodeRuntimeImportCache` 或 remote URL chunk 状态接入口；第一版只记录为不保证清理。
 
 ### 浏览器 script remote
 
@@ -576,9 +577,9 @@ Node SSR 下覆盖：
 Node SSR 下分别覆盖：
 
 - CommonJS filesystem chunk：确认相关 `require.cache` 被清。
-- remote URL chunk：确认 Node runtime plugin 的 chunk 状态被清。
+- remote URL chunk：当前 Rspack 仓库没有可控接入口，第一版记录为不保证清理。
 - ESM 同 URL：记录为不保证清理。
-- ESM 版本化 URL：确认可加载新版本。
+- ESM root 版本化 URL：确认 clear 后下一次 Node loader 使用新 URL。
 
 ## 风险与边界
 
@@ -594,6 +595,7 @@ Node SSR 下分别覆盖：
 - loaded shared 默认保留，可能意味着某些 shared 不会随 remote 版本一起更新。
 - 如果业务要求 shared 也随 remote 更新，需要通过版本化 shared 或未来新增显式危险选项处理。
 - ESM 同 URL 缓存不应被宣传为可清理能力。没有 root 到 child URL 依赖记录时，第一版只清已知 root URL。
+- remote URL chunk 和 `nodeRuntimeImportCache` 不在当前 Rspack runtime 可控范围内，第一版不宣传这部分可清理；后续等 MF Node runtime plugin 暴露 adapter 后再补。
 
 ## 实施 Roadmap
 
@@ -618,28 +620,38 @@ Node SSR 下分别覆盖：
 ### Phase 3: 接入 MF runtime 公共入口
 
 - [x] 在 MF runtime 中公开 `clearCache({ name })`。
-- [ ] 拆开“保留注册的缓存清理”和“移除 remote 注册”两种语义。
-- [ ] 增加 remote barrier，让同名 remote 的新加载在清理期间等待。
-- [ ] 增加 remote generation，防止 stale old load 后续写回 runtime cache。
-- [ ] 在 clear 前保存旧目标和旧状态快照；clear 自身失败时停止后续流程并抛错。
+- [x] 拆开“保留注册的缓存清理”和“移除 remote 注册”两种语义。
+- [x] 增加 remote barrier，让同名 remote 的新加载在清理期间等待。
+- [x] 增加 remote generation，防止 stale old load 后续写回 runtime cache。
+- [x] 在 clear 前保存旧目标和旧状态快照；clear 自身失败时停止后续流程并抛错。
 
 ### Phase 4: 补齐 Node、register 和浏览器边界
 
-- [ ] 在 SDK Node loader 增加 `loadScriptNode` 相关 clear adapter。
-- [ ] 为 ESM remoteEntry 补 root URL 清理，并可选记录 root 到 child URL 的依赖关系。
-- [ ] 在 Rspack 生成的 Node chunk loading runtime 中暴露受控清理入口、remote generation 状态和 generation 检查点。
-- [ ] 在 MF Node runtime plugin 增加 Node SSR cache clear adapter，串联 Node chunk loading runtime、`nodeRuntimeImportCache` 或等价动态 import 缓存记录、CommonJS cache。
-- [ ] 让 `registerRemotes(..., { force: true })` 保存 `oldTarget`，并用内部 clear adapter 清旧缓存；失败时回滚注册并 reject。
-- [ ] 浏览器只做保守清理，不做广泛消费者追溯，也不提前加载新的 script/global remote entry。
+- [x] 清理 runtime-core Node remoteEntry loading promise 和 `loadScriptNode` 写入的全局 remote entry。
+- [x] 在 Node loader 链路增加 `loadScriptNode` ESM module cache clear adapter，通过 root URL versioning 避开 SDK 内部 ESM cache。
+- [x] 为 ESM remoteEntry 补 root URL 清理；第一版不记录 root 到 child URL 的依赖关系。
+- [x] 在 Rspack 生成的 Node chunk loading runtime 中暴露受控清理入口，并由 MF runtime 按 remote chunk id 串联清理。
+- [x] 在 Rspack 生成的 Node chunk loading runtime 中补充 remote generation 状态。
+- [x] 在 readFileVm pending chunk load 中完成并验证 generation 检查点。
+- [x] 在 Rspack 生成的 `require` chunk loading runtime 中清理目标 chunk 的 CommonJS `require.cache`。
+- [x] 记录 remote URL chunk、`nodeRuntimeImportCache` 或等价动态 import 缓存当前不在 Rspack 可控范围，第一版不声明支持。
+- [x] 让 `registerRemotes(..., { force: true })` 保存 `oldTarget`，并用内部 clear adapter 清旧缓存；失败时回滚注册并 reject。
+- [x] 浏览器只做保守清理，不做广泛消费者追溯，也不提前加载新的 script/global remote entry。
 
 ### Phase 5: 补齐验收测试与风险覆盖
 
-- [ ] 覆盖 `registerRemotes(..., { force: true })` 不提前请求新 remote，并用 `oldTarget` 清旧缓存。
-- [ ] 覆盖 stale old load 后续返回时不写回 module factory、remote entry、shared 或 `installedChunks`。
-- [ ] 覆盖 already waiting old SSR request 仍能拿到旧加载的成功结果或错误。
-- [ ] 覆盖 shared safe 策略：未加载可清，正在加载的旧结果不写回，已加载保留。
-- [ ] 覆盖 repeated clear / reload 后缓存和内存没有明显持续增长。
-- [ ] 覆盖 CommonJS、remote URL chunk、ESM 同 URL 不保证清理、ESM 版本化 URL 可加载新版本。
+- [x] 覆盖 `registerRemotes(..., { force: true })` 不提前请求新 remote，并用 `oldTarget` 清旧缓存。
+- [x] 覆盖 stale old remote load 后续返回时不污染后续 remote module factory 和 remote entry 缓存。
+- [x] 覆盖 remote 已加载 chunk 在 `clearCache` 后清理 `installedChunks` 状态并推进 generation。
+- [x] 覆盖 readFileVm pending chunk：`clearCache` 等待旧 chunk settle 后再清理。
+- [x] 覆盖 stale old chunk load 后续返回时不写回 module factory 或 `installedChunks`。
+- [x] 覆盖 stale old shared load 后续返回时不写回 shared 缓存。
+- [x] 覆盖 shared safe 策略中的未加载可清、已加载保留、加载中旧结果不写回。
+- [x] 覆盖 already waiting old SSR request 仍能拿到旧加载的成功结果或错误。
+- [x] 覆盖 repeated clear / reload 后可控缓存数量没有明显持续增长。
+- [x] 覆盖 ESM remoteEntry clear 后使用版本化 root URL，避免复用同 URL SDK ESM cache。
+- [x] 覆盖 CommonJS filesystem chunk 在 `clearCache` 后清理 `require.cache`。
+- [x] 记录 remote URL chunk 和 ESM child URL 不保证清理；ESM root URL 通过版本化 URL 触发后续重新加载。
 
 ## 结论
 
