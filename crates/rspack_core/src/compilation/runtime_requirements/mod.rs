@@ -337,7 +337,6 @@ pub async fn process_chunks_runtime_requirements(
     })
     .collect::<FxHashMap<_, _>>();
 
-  let mut runtime_modules_to_add = Vec::new();
   for (chunk_ukey, mut set) in chunk_requirements {
     let mut additional_runtime_modules = Vec::new();
     plugin_driver
@@ -360,7 +359,7 @@ pub async fn process_chunks_runtime_requirements(
       compilation.add_runtime_module(&chunk_ukey, module)?;
     }
 
-    runtime_modules_to_add.clear();
+    let mut runtime_modules_to_add = Vec::new();
     process_runtime_requirement_hook_mut(compilation, &mut set, &mut runtime_modules_to_add, {
       let plugin_driver = plugin_driver.clone();
       move |compilation,
@@ -402,8 +401,7 @@ pub async fn process_chunks_runtime_requirements(
       set = set.with_require_scope();
     }
 
-    let runtime_modules_to_add_len = runtime_modules_to_add.len();
-    for module in runtime_modules_to_add.drain(0..runtime_modules_to_add_len) {
+    for module in runtime_modules_to_add {
       compilation.add_runtime_module(&chunk_ukey, module)?;
     }
 
@@ -412,10 +410,9 @@ pub async fn process_chunks_runtime_requirements(
   logger.time_end(start);
 
   let start = logger.time("runtime requirements.entries");
-  let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
   for &entry_ukey in &entries {
     let mut all_runtime_requirements = RuntimeGlobals::default();
-    runtime_modules_to_add.clear();
+    let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
 
     let entry = compilation
       .build_chunk_graph_artifact
@@ -494,8 +491,7 @@ pub async fn process_chunks_runtime_requirements(
     }
 
     ChunkGraph::set_tree_runtime_requirements(compilation, entry_ukey, all_runtime_requirements);
-    let runtime_modules_to_add_len = runtime_modules_to_add.len();
-    for (chunk_ukey, module) in runtime_modules_to_add.drain(0..runtime_modules_to_add_len) {
+    for (chunk_ukey, module) in runtime_modules_to_add {
       compilation.add_runtime_module(&chunk_ukey, module)?;
     }
   }
