@@ -270,7 +270,7 @@ export const getNormalizedRspackOptions = (
         },
     ),
     loader: cloneObject(config.loader),
-    cache: nestedConfig(config.cache, (cache) => {
+    cache: optionalNestedConfig(config.cache, (cache) => {
       if (cache === false) return false;
       if (cache === true) {
         return {
@@ -673,7 +673,7 @@ export interface RspackOptionsNormalized {
   devtool?: DevTool;
   node: Node;
   loader: Loader;
-  cache: CacheNormalized;
+  cache?: CacheNormalized;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

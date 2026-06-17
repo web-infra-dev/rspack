@@ -188,9 +188,12 @@ impl DB {
       return false;
     }
 
-    let mut buckets = self.buckets.lock().await;
+    {
+      let mut buckets = self.buckets.lock().await;
+      buckets.remove(scope);
+    }
+
     let result = self.fs.child_fs(scope).remove().await;
-    buckets.remove(scope);
 
     if let Err(err) = result {
       // The cache may be in an indeterminate state. Switch to readonly so no

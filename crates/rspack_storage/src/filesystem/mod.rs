@@ -33,12 +33,9 @@ async fn refresh_metadata(
     Err(error) if error.is_not_found() => Meta::default(),
     Err(_) => return,
   };
-  // Generation cleanup needs the current storage directory's version entries.
-  let versions = if max_generations.is_some() {
-    fs.list_child().await.unwrap_or_default()
-  } else {
-    Vec::new()
-  };
+  // Cleanup needs the current storage directory entries to keep metadata in
+  // sync with versions that still exist on disk.
+  let versions = fs.list_child().await.unwrap_or_default();
   let Ok((removed_versions, next_refresh_time)) = meta
     .refresh(&version, expire, max_generations, &versions)
     .await
