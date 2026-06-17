@@ -1,6 +1,6 @@
 import value from "remoteA/B";
 
-globalThis.__mfSsrClearCacheHarness.recordRouteExecution("pageB");
+globalThis.__mfSsrClearCacheRemoteServer.recordRouteExecution("pageB");
 
 export function render() {
 	return `pageB:${value}`;
