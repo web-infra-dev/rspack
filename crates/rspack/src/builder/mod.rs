@@ -3551,7 +3551,7 @@ impl OptimizationOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
-          experiments.pure_functions,
+          experiments.pure_functions && side_effects.is_true(),
         ));
     }
 
@@ -3763,7 +3763,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      pure_functions: d!(self.pure_functions, true),
+      pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
@@ -3838,6 +3838,25 @@ mod test {
           .plugins
           .iter()
           .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
+      );
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Development)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder {
+          pure_functions: Some(true),
+          ..Default::default()
+        })
+        .build(&mut context)
+        .unwrap();
+
+      assert!(compiler_options.experiments.pure_functions);
+      assert!(
+        context
+          .plugins
+          .iter()
+          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(false)))
       );
     })
   }

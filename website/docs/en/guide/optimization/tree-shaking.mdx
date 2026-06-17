@@ -189,7 +189,7 @@ When an unused variable's initial value is marked as side-effect-free (pure), it
 
 ### Configuration
 
-This feature is currently experimental and controlled by `experiments.pureFunctions`, which is enabled by default. It also depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) (`sideEffects` is enabled by default in production mode):
+This feature is currently experimental and controlled by `experiments.pureFunctions`, which is enabled by default in production mode. It also depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) being `true` (`sideEffects` is `true` by default in production mode):
 
 ```js title="rspack.config.mjs"
 export default {
@@ -230,7 +230,7 @@ If a function is marked as side-effect-free and its return value is unused, Rspa
 For configuration details, see [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) and [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions).
 
 :::warning
-This option is experimental and only takes effect when `experiments.pureFunctions` is enabled, which is the default.
+This option is experimental and only takes effect when `experiments.pureFunctions` is enabled, which is the default in production mode.
 :::
 
 :::note

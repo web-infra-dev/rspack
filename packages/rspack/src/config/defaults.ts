@@ -100,7 +100,7 @@ export const applyRspackOptionsDefaults = (
 
   applyIncrementalDefaults(options);
 
-  applyExperimentsDefaults(options.experiments);
+  applyExperimentsDefaults(options.experiments, { production });
 
   applyOptimizationDefaults(options.optimization, {
     production,
@@ -220,7 +220,10 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+  experiments: ExperimentsNormalized,
+  { production }: { production: boolean },
+) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -236,7 +239,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'useInputFileSystem', false);
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', true);
+  D(experiments, 'pureFunctions', production);
   D(experiments, 'runtimeMode', 'webpack');
 };
 
