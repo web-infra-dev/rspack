@@ -1,7 +1,7 @@
 use std::{cell::RefCell, sync::LazyLock};
 
 use napi::{
-  Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
+  Env, JsString, JsValue, NapiRaw, Property, PropertyAttributes, Unknown,
   bindgen_prelude::{
     Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, WeakReference,
   },
@@ -159,7 +159,13 @@ fn create_known_private_properties(env: &Env, properties: &mut Vec<Property>) ->
         .with_name(env, symbol)?
         .with_getter_closure(|env, this| {
           let wrapped_value = unsafe { KnownBuildInfo::from_napi_mut_ref(env.raw(), this.raw())? };
-          wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))
+          let reflector =
+            wrapped_value.with_ref(|module| Ok(module.build_info().assets.reflector()))?;
+          if let Some(reflector) = reflector {
+            unsafe { ToNapiValue::to_napi_value(env.raw(), reflector) }
+          } else {
+            Ok(unsafe { env.create_object()?.raw() })
+          }
         })
         .with_property_attributes(PropertyAttributes::Configurable),
     );
@@ -307,7 +313,7 @@ impl ToNapiValue for BuildInfo {
                 }
               }
 
-              module.build_info_mut().extras = extras;
+              module.build_info_mut().extras.replace(extras);
 
               Ok(())
             })
@@ -316,7 +322,7 @@ impl ToNapiValue for BuildInfo {
         val.with_ref(|module| {
           let extras = &module.build_info().extras;
           properties.reserve(extras.len() + 1);
-          for (key, value) in extras {
+          for (key, value) in extras.iter() {
             let napi_val = ToNapiValue::to_napi_value(env, value)?;
             properties.push(
               Property::new()

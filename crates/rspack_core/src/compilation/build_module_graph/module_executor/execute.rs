@@ -252,7 +252,7 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
       if !build_info.cacheable {
         execute_result.cacheable = false;
       }
-      for (name, asset) in build_info.assets.as_ref() {
+      for (name, asset) in build_info.assets.iter() {
         assets.insert(name.clone(), asset.clone());
       }
       if !has_error && make_failed_module.contains(&m) {

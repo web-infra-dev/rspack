@@ -939,10 +939,12 @@ impl Module for ConcatenatedModule {
       }
 
       // populate assets
-      self
-        .build_info
-        .assets
-        .extend(module_build_info.assets.as_ref().clone());
+      self.build_info.assets.extend(
+        module_build_info
+          .assets
+          .iter()
+          .map(|(name, asset)| (name.clone(), asset.clone())),
+      );
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
     Ok(BuildResult {

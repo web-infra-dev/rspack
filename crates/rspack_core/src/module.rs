@@ -253,6 +253,157 @@ pub struct AssetBuildInfo {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct BuildInfoAssets {
+  inner: Option<BindingCell<HashMap<String, CompilationAsset>>>,
+}
+
+impl BuildInfoAssets {
+  pub fn is_allocated(&self) -> bool {
+    self.inner.is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.as_ref().is_none_or(|assets| assets.is_empty())
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.as_ref().map_or(0, |assets| assets.len())
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&String, &CompilationAsset)> {
+    self.inner.iter().flat_map(|assets| assets.as_ref().iter())
+  }
+
+  pub fn keys(&self) -> impl Iterator<Item = &String> {
+    self.inner.iter().flat_map(|assets| assets.as_ref().keys())
+  }
+
+  pub fn insert(&mut self, name: String, asset: CompilationAsset) {
+    self.get_or_insert_default().insert(name, asset);
+  }
+
+  pub fn extend(&mut self, assets: impl IntoIterator<Item = (String, CompilationAsset)>) {
+    for (name, asset) in assets {
+      self.insert(name, asset);
+    }
+  }
+
+  fn get_or_insert_default(&mut self) -> &mut HashMap<String, CompilationAsset> {
+    self
+      .inner
+      .get_or_insert_with(|| BindingCell::from(HashMap::default()))
+      .as_mut()
+  }
+
+  #[cfg(feature = "napi")]
+  pub fn reflector(&self) -> Option<crate::Reflector> {
+    self.inner.as_ref().map(|assets| assets.reflector())
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct BuildInfoValueDependencies {
+  inner: Option<HashMap<String, String>>,
+}
+
+impl BuildInfoValueDependencies {
+  pub fn is_allocated(&self) -> bool {
+    self.inner.is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.as_ref().is_none_or(|values| values.is_empty())
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&String, &String)> {
+    self.inner.iter().flat_map(|values| values.iter())
+  }
+
+  pub fn insert(&mut self, key: String, value: String) {
+    self
+      .inner
+      .get_or_insert_with(HashMap::default)
+      .insert(key, value);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct BuildInfoExtras {
+  #[cacheable(with=AsOption<AsPreset>)]
+  inner: Option<serde_json::Map<String, serde_json::Value>>,
+}
+
+impl BuildInfoExtras {
+  pub fn is_allocated(&self) -> bool {
+    self.inner.is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.as_ref().is_none_or(|extras| extras.is_empty())
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.as_ref().map_or(0, |extras| extras.len())
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = (&String, &serde_json::Value)> {
+    self.inner.iter().flat_map(|extras| extras.iter())
+  }
+
+  pub fn get(&self, key: &str) -> Option<&serde_json::Value> {
+    self.inner.as_ref().and_then(|extras| extras.get(key))
+  }
+
+  pub fn insert(&mut self, key: String, value: serde_json::Value) {
+    self
+      .inner
+      .get_or_insert_with(serde_json::Map::default)
+      .insert(key, value);
+  }
+
+  pub fn replace(&mut self, extras: serde_json::Map<String, serde_json::Value>) {
+    self.inner = (!extras.is_empty()).then_some(extras);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct BuildInfoDeferredPureChecks {
+  #[cacheable(with=AsOption<AsVec>)]
+  inner: Option<HashSet<DeferredPureCheck>>,
+}
+
+impl BuildInfoDeferredPureChecks {
+  pub fn is_allocated(&self) -> bool {
+    self.inner.is_some()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.as_ref().is_none_or(|checks| checks.is_empty())
+  }
+
+  pub fn clear(&mut self) {
+    if let Some(checks) = &mut self.inner {
+      checks.clear();
+    }
+  }
+
+  pub fn insert(&mut self, check: DeferredPureCheck) {
+    self
+      .inner
+      .get_or_insert_with(HashSet::default)
+      .insert(check);
+  }
+
+  pub fn iter(&self) -> impl Iterator<Item = &DeferredPureCheck> {
+    self.inner.iter().flat_map(|checks| checks.iter())
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct BuildInfo {
   /// Whether the result is cacheable, i.e shared between builds.
@@ -265,7 +416,7 @@ pub struct BuildInfo {
   pub context_dependencies: ArcPathSet,
   pub missing_dependencies: ArcPathSet,
   pub build_dependencies: ArcPathSet,
-  pub value_dependencies: HashMap<String, String>,
+  pub value_dependencies: BuildInfoValueDependencies,
   #[cacheable(with=AsVec<AsPreset>)]
   pub esm_named_exports: HashSet<Atom>,
   pub all_star_exports: Vec<DependencyId>,
@@ -279,7 +430,7 @@ pub struct BuildInfo {
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub top_level_declarations: Option<HashSet<Atom>>,
   pub module_concatenation_bailout: Option<String>,
-  pub assets: BindingCell<HashMap<String, CompilationAsset>>,
+  pub assets: BuildInfoAssets,
   pub module: bool,
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
@@ -288,10 +439,8 @@ pub struct BuildInfo {
   pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
-  #[cacheable(with=AsPreset)]
-  pub extras: serde_json::Map<String, serde_json::Value>,
-  #[cacheable(with=AsVec)]
-  pub deferred_pure_checks: HashSet<DeferredPureCheck>,
+  pub extras: BuildInfoExtras,
+  pub deferred_pure_checks: BuildInfoDeferredPureChecks,
 }
 
 impl Default for BuildInfo {
@@ -306,7 +455,7 @@ impl Default for BuildInfo {
       context_dependencies: ArcPathSet::default(),
       missing_dependencies: ArcPathSet::default(),
       build_dependencies: ArcPathSet::default(),
-      value_dependencies: HashMap::default(),
+      value_dependencies: Default::default(),
       esm_named_exports: HashSet::default(),
       all_star_exports: Vec::default(),
       need_create_require: false,
@@ -324,8 +473,56 @@ impl Default for BuildInfo {
       import_phase: ImportPhase::Evaluation,
       isolated_dts: None,
       extras: Default::default(),
-      deferred_pure_checks: HashSet::default(),
+      deferred_pure_checks: Default::default(),
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn build_info_assets_are_created_lazily() {
+    let mut build_info = BuildInfo::default();
+
+    assert!(!build_info.assets.is_allocated());
+    assert!(build_info.assets.is_empty());
+    assert!(!build_info.value_dependencies.is_allocated());
+    assert!(build_info.value_dependencies.is_empty());
+    assert!(!build_info.extras.is_allocated());
+    assert!(build_info.extras.is_empty());
+    assert!(!build_info.deferred_pure_checks.is_allocated());
+    assert!(build_info.deferred_pure_checks.is_empty());
+
+    build_info.assets.extend([]);
+    build_info.deferred_pure_checks.clear();
+    assert!(!build_info.assets.is_allocated());
+    assert!(!build_info.deferred_pure_checks.is_allocated());
+
+    build_info.assets.extend([(
+      "asset.js".to_string(),
+      CompilationAsset::new(None, crate::AssetInfo::default()),
+    )]);
+    build_info
+      .value_dependencies
+      .insert("key".to_string(), "value".to_string());
+    build_info.extras.insert("extra".into(), true.into());
+    build_info.deferred_pure_checks.insert(DeferredPureCheck {
+      atom: Atom::from("symbol"),
+      dep_id: DependencyId::from(1),
+      start: 0,
+      end: 1,
+    });
+
+    assert!(build_info.assets.is_allocated());
+    assert!(!build_info.assets.is_empty());
+    assert!(build_info.value_dependencies.is_allocated());
+    assert!(!build_info.value_dependencies.is_empty());
+    assert!(build_info.extras.is_allocated());
+    assert!(!build_info.extras.is_empty());
+    assert!(build_info.deferred_pure_checks.is_allocated());
+    assert!(!build_info.deferred_pure_checks.is_empty());
   }
 }
 
@@ -613,7 +810,7 @@ pub trait Module:
   fn need_build(&self, value_cache_version: &ValueCacheVersions) -> bool {
     let build_info = self.build_info();
     !build_info.cacheable
-      || value_cache_version.has_diff(&build_info.value_dependencies)
+      || value_cache_version.has_diff(build_info.value_dependencies.iter())
       || self.diagnostics().iter().any(|item| item.is_error())
   }
 

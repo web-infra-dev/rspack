@@ -12,7 +12,10 @@ impl ValueCacheVersions {
     self.0.insert(key, value);
   }
 
-  pub fn has_diff(&self, value_dependencies: &HashMap<String, String>) -> bool {
+  pub fn has_diff<'a>(
+    &self,
+    value_dependencies: impl IntoIterator<Item = (&'a String, &'a String)>,
+  ) -> bool {
     for (key, value) in value_dependencies {
       let Some(current) = self.get(key) else {
         return true;

@@ -32,7 +32,7 @@ pub async fn create_module_assets(
       continue;
     }
 
-    for (name, asset) in assets.as_ref() {
+    for (name, asset) in assets.iter() {
       module_assets.push((name.clone(), asset.clone()));
     }
     // assets of executed modules are not in this compilation
