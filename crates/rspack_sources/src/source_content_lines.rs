@@ -1,15 +1,15 @@
-use std::borrow::Cow;
-
-use crate::{helpers::split_into_lines, object_pool::ObjectPool, with_utf16::WithUtf16};
+use crate::{
+  CompactCow, helpers::split_into_lines, object_pool::ObjectPool, with_utf16::WithUtf16,
+};
 
 pub struct SourceContentLines<'object_pool, 'source> {
-  text: Cow<'source, str>,
+  text: CompactCow<'source, str>,
   // Self-referential data structure: lines borrow from the text.
   lines: Vec<WithUtf16<'object_pool, 'static>>,
 }
 
 impl<'object_pool, 'source> SourceContentLines<'object_pool, 'source> {
-  pub fn new(object_pool: &'object_pool ObjectPool, text: Cow<'source, str>) -> Self {
+  pub fn new(object_pool: &'object_pool ObjectPool, text: CompactCow<'source, str>) -> Self {
     // SAFETY: We extend the lifetime of the &str to 'static because the text is held by this struct,
     // and all &'static str references are only used within the lifetime of this struct.
     #[allow(unsafe_code)]

@@ -1,11 +1,10 @@
 use std::{
-  borrow::Cow,
   hash::{Hash, Hasher},
   sync::Arc,
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  CompactCow, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
     stream_chunks_of_source_map,
@@ -121,15 +120,15 @@ impl SourceMapSource {
 
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.value))
+    SourceValue::String(CompactCow::borrowed(&self.value))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     on_chunk(&self.value)
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
-    Cow::Borrowed(self.value.as_bytes())
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
+    CompactCow::borrowed(self.value.as_bytes())
   }
 
   fn size(&self) -> usize {
@@ -298,7 +297,13 @@ mod tests {
       value: source_r_code,
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
-      original_source: Some(inner_source.source().into_string_lossy().into()),
+      original_source: Some(
+        inner_source
+          .source()
+          .into_string_lossy()
+          .into_owned()
+          .into_boxed_str(),
+      ),
       inner_source_map: inner_source
         .clone()
         .map_static(&ObjectPool::default(), &MapOptions::default()),
@@ -308,7 +313,13 @@ mod tests {
       value: source_r_code,
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
-      original_source: Some(inner_source.source().into_string_lossy().into()),
+      original_source: Some(
+        inner_source
+          .source()
+          .into_string_lossy()
+          .into_owned()
+          .into_boxed_str(),
+      ),
       inner_source_map: inner_source
         .clone()
         .map_static(&ObjectPool::default(), &MapOptions::default()),
@@ -749,7 +760,13 @@ mod tests {
       value: source_r_code,
       name: "text",
       source_map: source_r_map,
-      original_source: Some(inner_source.source().into_string_lossy().into()),
+      original_source: Some(
+        inner_source
+          .source()
+          .into_string_lossy()
+          .into_owned()
+          .into_boxed_str(),
+      ),
       inner_source_map,
       remove_original_source: false,
     });

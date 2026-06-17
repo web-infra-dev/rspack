@@ -1,5 +1,4 @@
 use std::{
-  borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
   sync::{Arc, Mutex, OnceLock},
@@ -8,7 +7,7 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
+  BoxSource, CompactCow, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
@@ -186,7 +185,7 @@ impl Source for ConcatSource {
     children.iter().for_each(|child| {
       child.rope(&mut on_chunk);
     });
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(CompactCow::owned(string))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
@@ -196,7 +195,7 @@ impl Source for ConcatSource {
     });
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
     let children = self.optimized_children();
     if children.len() == 1 {
       children[0].buffer()
@@ -205,7 +204,7 @@ impl Source for ConcatSource {
       // when concatenating nested ConcatSource instances directly
       let mut buffer = Vec::with_capacity(self.size());
       self.to_writer(&mut buffer).unwrap();
-      Cow::Owned(buffer)
+      CompactCow::owned(buffer)
     }
   }
 
@@ -287,8 +286,8 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
     }
     let mut current_line_offset = 0;
     let mut current_column_offset = 0;
-    let mut source_mapping: HashMap<Cow<str>, u32> = HashMap::default();
-    let mut name_mapping: HashMap<Cow<str>, u32> = HashMap::default();
+    let mut source_mapping: HashMap<CompactCow<str>, u32> = HashMap::default();
+    let mut name_mapping: HashMap<CompactCow<str>, u32> = HashMap::default();
     let mut need_to_close_mapping = false;
 
     let source_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());

@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{hash::Hash, sync::Arc};
 
 use derive_more::Debug;
 use futures::future::join_all;
@@ -6,7 +6,9 @@ use rspack_core::{
   ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
   Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
-  rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
+  rspack_sources::{
+    BoxSource, CompactCow, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
+  },
 };
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -148,7 +150,7 @@ async fn render_module_content(
       let source = origin_source.source().into_string_lossy();
 
       {
-        let modules = map.sources().iter().map(|source| {
+        let modules = map.sources().map(|source| {
           if let Some(stripped) = source.strip_prefix("webpack://") {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
@@ -210,13 +212,12 @@ async fn render_module_content(
             filename.extend(std::iter::repeat_n('*', n));
             filename
           });
-        map.set_sources(module_filenames);
+        map.set_sources(module_filenames.into_iter().map(CompactCow::owned));
       }
 
       if let Some(asset_conditions) = &self.ignore_list {
         let ignore_list = map
           .sources()
-          .iter()
           .enumerate()
           .filter_map(|(idx, source)| {
             if asset_conditions.try_match(source) {
@@ -226,18 +227,23 @@ async fn render_module_content(
             }
           })
           .collect::<Vec<_>>();
-        map.set_ignore_list(Some(Cow::Owned(ignore_list)));
+        map.set_ignore_list(Some(CompactCow::owned(ignore_list)));
       }
 
       if self.no_sources {
         map.set_sources_content(vec![]);
       }
 
-      map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
-      map.set_file(Some(Cow::Borrowed(module.identifier().as_str())));
+      map.set_source_root(
+        self
+          .source_root
+          .as_ref()
+          .map(|s| CompactCow::borrowed(s.as_str())),
+      );
+      map.set_file(Some(CompactCow::borrowed(module.identifier().as_str())));
 
       if self.debug_ids {
-        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
+        map.set_debug_id(Some(CompactCow::owned(generate_debug_id(
           module.identifier().as_str(),
           source.as_bytes(),
         ))));

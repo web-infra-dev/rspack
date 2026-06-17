@@ -17,8 +17,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
   rspack_sources::{
-    MapOptions, Mapping, ObjectPool, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions, encode_mappings,
+    CompactCow, MapOptions, Mapping, ObjectPool, OriginalLocation, SourceExt, SourceMap,
+    SourceMapSource, SourceMapSourceOptions, encode_mappings,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -239,7 +239,7 @@ impl LightningCssLoader {
           .get_sources()
           .iter()
           .map(|source| {
-            Cow::Owned(if source.starts_with('/') || source.contains(':') {
+            CompactCow::owned(if source.starts_with('/') || source.contains(':') {
               source.clone()
             } else {
               let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
@@ -252,12 +252,12 @@ impl LightningCssLoader {
         parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Cow::Owned(source_content.clone()))
+          .map(|source_content| CompactCow::owned(source_content.clone()))
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_names()
           .iter()
-          .map(|name| Cow::Owned(name.clone()))
+          .map(|name| CompactCow::owned(name.clone()))
           .collect::<Vec<_>>(),
       );
 

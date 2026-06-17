@@ -1,11 +1,10 @@
 use std::{
-  borrow::Cow,
   hash::{Hash, Hasher},
   sync::{Arc, OnceLock},
 };
 
 use crate::{
-  MapOptions, Source, SourceMap, SourceValue,
+  CompactCow, MapOptions, Source, SourceMap, SourceValue,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
     stream_chunks_of_raw_source,
@@ -27,10 +26,10 @@ use crate::{
 /// assert_eq!(s.size(), 16);
 /// ```
 #[derive(Clone, PartialEq, Eq)]
-pub struct RawStringSource(Cow<'static, str>);
+pub struct RawStringSource(CompactCow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
-static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
+static_assertions::assert_eq_size!(RawStringSource, [u8; 16]);
 
 impl RawStringSource {
   /// Create a new [RawStringSource] from a static &str.
@@ -43,33 +42,33 @@ impl RawStringSource {
   /// assert_eq!(s.source().into_string_lossy(), code);
   /// ```
   pub fn from_static(s: &'static str) -> Self {
-    Self(Cow::Borrowed(s))
+    Self(CompactCow::borrowed(s))
   }
 }
 
 impl From<String> for RawStringSource {
   fn from(value: String) -> Self {
-    Self(Cow::Owned(value))
+    Self(CompactCow::owned(value))
   }
 }
 
 impl From<&str> for RawStringSource {
   fn from(value: &str) -> Self {
-    Self(Cow::Owned(value.to_string()))
+    Self(CompactCow::owned(value.to_string()))
   }
 }
 
 impl Source for RawStringSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::String(Cow::Borrowed(&self.0))
+    SourceValue::String(CompactCow::borrowed(&self.0))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     on_chunk(self.0.as_ref())
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
-    Cow::Borrowed(self.0.as_bytes())
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
+    CompactCow::borrowed(self.0.as_bytes())
   }
 
   fn size(&self) -> usize {
@@ -163,9 +162,12 @@ impl RawBufferSource {
   fn get_or_init_value_as_string(&self) -> &str {
     self
       .value_as_string
-      .get_or_init(|| match String::from_utf8_lossy(&self.value) {
-        Cow::Owned(s) => Some(s),
-        Cow::Borrowed(_) => None,
+      .get_or_init(|| {
+        if std::str::from_utf8(&self.value).is_ok() {
+          None
+        } else {
+          Some(String::from_utf8_lossy(&self.value).into_owned())
+        }
       })
       .as_deref()
       .unwrap_or_else(|| unsafe { std::str::from_utf8_unchecked(&self.value) })
@@ -209,15 +211,15 @@ impl From<&[u8]> for RawBufferSource {
 
 impl Source for RawBufferSource {
   fn source(&self) -> SourceValue<'_> {
-    SourceValue::Buffer(Cow::Borrowed(&self.value))
+    SourceValue::Buffer(CompactCow::borrowed(&self.value))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
     on_chunk(self.get_or_init_value_as_string())
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
-    Cow::Borrowed(&self.value)
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
+    CompactCow::borrowed(&self.value)
   }
 
   fn size(&self) -> usize {

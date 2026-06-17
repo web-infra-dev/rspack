@@ -14,7 +14,8 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin, has_content_hash_placeholder,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+    BoxSource, CompactCow, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source,
+    SourceExt, SourceMap,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -56,6 +57,14 @@ fn starts_with_url_scheme(s: &str) -> bool {
   let mut chars = scheme.chars();
   matches!(chars.next(), Some(c) if c.is_ascii_alphabetic())
     && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+}
+
+#[inline]
+fn compact_cow_from_std(cow: Cow<'_, str>) -> CompactCow<'_, str> {
+  match cow {
+    Cow::Borrowed(value) => CompactCow::borrowed(value),
+    Cow::Owned(value) => CompactCow::owned(value),
+  }
 }
 
 fn starts_with_windows_drive_letter(s: &str) -> bool {
@@ -118,7 +127,6 @@ fn compute_source_references(
 ) -> Vec<SourceReference> {
   source_map
     .sources()
-    .iter()
     .map(|source_name| {
       if let Some(stripped) = source_name.strip_prefix("webpack://") {
         let source_name = make_paths_absolute(compilation.options.context.as_str(), stripped);
@@ -813,22 +821,23 @@ impl SourceMapDevToolPlugin {
     debug_id: Option<&'a str>,
   ) -> String {
     // Update source_map with deduplicated source names
-    source_map.set_file(Some(Cow::Borrowed(asset_filename)));
+    source_map.set_file(Some(CompactCow::borrowed(asset_filename)));
     source_map.set_sources(source_references.iter().map(|source_reference| {
-      reference_to_source_name_mapping
+      compact_cow_from_std(
+        reference_to_source_name_mapping
         .get(source_reference)
         .unwrap_or_else(|| {
           panic!(
             "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
           )
         })
-        .render_for_source_map(source_map_path)
+          .render_for_source_map(source_map_path),
+      )
     }));
 
     if let Some(asset_conditions) = &self.ignore_list {
       let ignore_list = source_map
         .sources()
-        .iter()
         .enumerate()
         .filter_map(|(idx, source)| {
           if asset_conditions.try_match(source) {
@@ -838,7 +847,7 @@ impl SourceMapDevToolPlugin {
           }
         })
         .collect::<Vec<_>>();
-      source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
+      source_map.set_ignore_list(Some(CompactCow::owned(ignore_list)));
     }
 
     if self.no_sources {
@@ -846,11 +855,11 @@ impl SourceMapDevToolPlugin {
     }
 
     if let Some(source_root) = &self.source_root {
-      source_map.set_source_root(Some(Cow::Borrowed(source_root.as_ref())));
+      source_map.set_source_root(Some(CompactCow::borrowed(source_root.as_ref())));
     }
 
     if let Some(debug_id) = debug_id {
-      source_map.set_debug_id(Some(Cow::Borrowed(debug_id)));
+      source_map.set_debug_id(Some(CompactCow::borrowed(debug_id)));
     }
 
     source_map.to_json()

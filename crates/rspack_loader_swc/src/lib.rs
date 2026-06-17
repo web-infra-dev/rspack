@@ -14,7 +14,10 @@ use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
+use rspack_core::{
+  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext,
+  rspack_sources::CompactCow,
+};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
@@ -274,23 +277,23 @@ impl SwcLoader {
     // The sources paths in the source map are relative to the target module. We need to resolve these paths
     // to absolute paths using the resource path to avoid incorrect project path references.
     if let (Some(map), Some(resource_dir)) = (map.as_mut(), resource_path.parent()) {
-      map.set_sources(
-        map
-          .sources()
-          .iter()
-          .map(|source| {
-            let source_path = Path::new(source.as_ref());
-            if source_path.is_relative() {
+      let sources = map
+        .sources()
+        .map(|source| {
+          let source_path = Path::new(source);
+          if source_path.is_relative() {
+            CompactCow::owned(
               source_path
                 .absolutize_with(resource_dir.as_std_path())
                 .to_string_lossy()
-                .into_owned()
-            } else {
-              source.to_string()
-            }
-          })
-          .collect::<Vec<_>>(),
-      );
+                .into_owned(),
+            )
+          } else {
+            CompactCow::owned(source.to_string())
+          }
+        })
+        .collect::<Vec<_>>();
+      map.set_sources(sources);
     }
 
     let additional_data = loader_context.take_additional_data();

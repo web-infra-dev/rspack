@@ -17,6 +17,7 @@ codspeed         = []
 rspack_cacheable = ["dep:rkyv"]
 
 [dependencies]
+beef              = { workspace = true }
 memchr            = { workspace = true, features = ["std"] }
 rkyv              = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }

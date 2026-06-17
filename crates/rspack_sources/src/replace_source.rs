@@ -1,5 +1,4 @@
 use std::{
-  borrow::Cow,
   cell::RefCell,
   hash::{Hash, Hasher},
   sync::Arc,
@@ -8,8 +7,8 @@ use std::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  BoxSource, MapOptions, Mapping, OriginalLocation, OriginalSource, Source, SourceExt, SourceMap,
-  SourceValue,
+  BoxSource, CompactCow, MapOptions, Mapping, OriginalLocation, OriginalSource, Source, SourceExt,
+  SourceMap, SourceValue,
   helpers::{Chunks, GeneratedInfo, StreamChunks, TextSpan, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
@@ -60,8 +59,8 @@ pub enum ReplacementEnforce {
 pub struct Replacement {
   start: u32,
   end: u32,
-  content: Cow<'static, str>,
-  name: Option<Cow<'static, str>>,
+  content: CompactCow<'static, str>,
+  name: Option<CompactCow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
 }
@@ -137,7 +136,7 @@ impl ReplaceSource {
   /// Insert a static string content at start.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// heap allocations by using `CompactCow::borrowed` internally. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -171,7 +170,7 @@ impl ReplaceSource {
   /// Insert a static string content at start, with ReplacementEnforce.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// heap allocations by using `CompactCow::borrowed` internally. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -205,7 +204,7 @@ impl ReplaceSource {
   /// Create a replacement with static string content at `[start, end)`.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// heap allocations by using `CompactCow::borrowed` internally. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -253,7 +252,7 @@ impl ReplaceSource {
   /// Create a replacement with static string content at `[start, end)`, with ReplacementEnforce.
   ///
   /// This method is optimized for `&'static str` inputs, avoiding unnecessary
-  /// heap allocations by using `Cow::Borrowed` internally. Use this when you
+  /// heap allocations by using `CompactCow::borrowed` internally. Use this when you
   /// have string literals or other static strings that don't need to be owned.
   ///
   /// # Performance
@@ -280,8 +279,8 @@ impl ReplaceSource {
     self.add_replacement(Replacement {
       start,
       end,
-      content: Cow::Borrowed(content),
-      name: name.map(Cow::Borrowed),
+      content: CompactCow::borrowed(content),
+      name: name.map(CompactCow::borrowed),
       enforce,
       insertion_order: self.replacements.len() as u32,
     });
@@ -322,7 +321,7 @@ impl Source for ReplaceSource {
     self.rope(&mut |chunk| {
       string.push_str(chunk);
     });
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(CompactCow::owned(string))
   }
 
   #[allow(unsafe_code)]
@@ -419,7 +418,7 @@ impl Source for ReplaceSource {
     }
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
     self.source().into_bytes()
   }
 
@@ -538,7 +537,7 @@ impl std::fmt::Debug for ReplaceSource {
 }
 
 enum SourceContent<'object_pool, 'source> {
-  Raw(Cow<'source, str>),
+  Raw(CompactCow<'source, str>),
   Lines(SourceContentLines<'object_pool, 'source>),
 }
 
@@ -620,7 +619,7 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
     let mut generated_column_offset_line = 0;
     let source_content_lines: RefCell<LinearMap<Option<SourceContent<'_, 'source>>>> =
       RefCell::new(LinearMap::default());
-    let name_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
+    let name_mapping: RefCell<HashMap<CompactCow<str>, u32>> = RefCell::new(HashMap::default());
     let name_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
 
     // check if source_content[line][col] is equal to expect
@@ -793,8 +792,8 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
               let mut global_index = name_mapping.get(name.as_ref()).copied();
               if global_index.is_none() {
                 let len = name_mapping.len() as u32;
-                name_mapping.insert(Cow::Borrowed(name), len);
-                on_name.borrow_mut()(len, Cow::Borrowed(name));
+                name_mapping.insert(CompactCow::borrowed(name), len);
+                on_name.borrow_mut()(len, CompactCow::borrowed(name));
                 global_index = Some(len);
               }
               replacement_name_index = global_index;
@@ -959,8 +958,8 @@ impl<'source> Chunks<'source> for ReplaceSourceChunks<'source> {
       &mut |source_index, source, source_content| {
         if !self.is_original_source {
           let mut source_content_lines = source_content_lines.borrow_mut();
-          let lines =
-            source_content.map(|source_content| SourceContent::Raw(Cow::Borrowed(source_content)));
+          let lines = source_content
+            .map(|source_content| SourceContent::Raw(CompactCow::borrowed(source_content)));
           source_content_lines.insert(source_index, lines);
         }
         on_source(source_index, source, source_content);
@@ -1409,7 +1408,7 @@ function StaticPage(_ref) {
     assert_eq!(source_map.get_name(1).unwrap(), "data");
     assert_eq!(source_map.get_name(2).unwrap(), "foo");
     assert_eq!(
-      source_map.get_source_content(0).unwrap().as_ref(),
+      source_map.get_source_content(0).unwrap(),
       r#"export default function StaticPage({ data }) {
 return <div>{data.foo}</div>
 }

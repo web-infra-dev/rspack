@@ -1,5 +1,4 @@
 use std::{
-  borrow::Cow,
   cell::OnceCell,
   hash::{Hash, Hasher},
   sync::{Arc, OnceLock},
@@ -8,7 +7,7 @@ use std::{
 use rustc_hash::FxHasher;
 
 use crate::{
-  BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
+  BoxSource, CompactCow, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
     Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
     stream_chunks_of_raw_source, stream_chunks_of_source_map,
@@ -157,7 +156,7 @@ impl Source for CachedSource {
         string.push_str(chunk);
       }
     }
-    SourceValue::String(Cow::Owned(string))
+    SourceValue::String(CompactCow::owned(string))
   }
 
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
@@ -165,7 +164,7 @@ impl Source for CachedSource {
     chunks.iter().for_each(|chunk| on_chunk(chunk));
   }
 
-  fn buffer(&self) -> Cow<'_, [u8]> {
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
     self.inner.buffer()
   }
 
@@ -204,7 +203,7 @@ impl Source for CachedSource {
 struct CachedSourceChunks<'source> {
   cache_source: &'source CachedSource,
   chunks: OnceCell<Box<dyn Chunks<'source> + 'source>>,
-  source: OnceCell<Cow<'source, str>>,
+  source: OnceCell<CompactCow<'source, str>>,
 }
 
 impl<'source> CachedSourceChunks<'source> {

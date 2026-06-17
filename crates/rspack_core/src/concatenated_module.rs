@@ -2561,93 +2561,96 @@ impl ConcatenatedModule {
       let source = inner
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
-      let source_code = source.source().into_string_lossy();
       let mut module_info = concatenation_scope.current_module;
 
-      let jsx = module
-        .as_ref()
-        .as_normal_module()
-        .and_then(|normal_module| normal_module.get_parser_options())
-        .and_then(|options: &ParserOptions| {
-          options
-            .get_javascript()
-            .and_then(|js_options| js_options.jsx)
-        })
-        .unwrap_or(false);
+      {
+        let source_code = source.source().into_string_lossy();
+        let jsx = module
+          .as_ref()
+          .as_normal_module()
+          .and_then(|normal_module| normal_module.get_parser_options())
+          .and_then(|options: &ParserOptions| {
+            options
+              .get_javascript()
+              .and_then(|js_options| js_options.jsx)
+          })
+          .unwrap_or(false);
 
-      let allocator = Allocator::new();
-      let lexer = swc_experimental_ecma_parser::Lexer::new(
-        &allocator,
-        Syntax::Es(EsSyntax {
-          jsx,
-          ..Default::default()
-        }),
-        EsVersion::EsNext,
-        StringSource::new(source_code.as_ref()),
-        None,
-      );
-      let mut p = Parser::new_from(&allocator, lexer);
-      let ret = p.parse_module();
+        let allocator = Allocator::new();
+        let lexer = swc_experimental_ecma_parser::Lexer::new(
+          &allocator,
+          Syntax::Es(EsSyntax {
+            jsx,
+            ..Default::default()
+          }),
+          EsVersion::EsNext,
+          StringSource::new(source_code.as_ref()),
+          None,
+        );
+        let mut p = Parser::new_from(&allocator, lexer);
+        let ret = p.parse_module();
 
-      let module = match ret {
-        Ok(module) => module,
-        Err(err) => {
-          // return empty error as we already push error to compilation.diagnostics
-          return Err(Error::from_string(
-            Some(source_code.into_owned()),
-            err.span().start.saturating_sub(1) as usize,
-            err.span().end.saturating_sub(1) as usize,
-            "JavaScript parse error:\n".to_string(),
-            err.kind().msg().to_string(),
-          ));
-        }
-      };
-      let program = Program::Module(allocator.boxed(module));
-      let semantic = resolver(&program);
-      let ids = collect_ident(&allocator, &program);
-
-      module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
-      module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
-
-      let top_level_scope_id = semantic.top_level_scope_id();
-      let mut all_used_names = HashSet::default();
-      all_used_names.reserve(ids.len());
-      module_info.idents.reserve(ids.len());
-      module_info.global_scope_ident.reserve(ids.len());
-      let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
-        FxIndexMap::default();
-      binding_to_ref.reserve(ids.len());
-
-      for ident in ids {
-        let scope = semantic.node_scope(&ident.id);
-        let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
-        let legacy = if is_global {
-          let leg = ident.to_legacy(&semantic);
-          module_info.global_scope_ident.push(leg.clone());
-          all_used_names.insert(leg.id.sym.clone());
-          Some(leg)
-        } else {
-          None
+        let module = match ret {
+          Ok(module) => module,
+          Err(err) => {
+            // return empty error as we already push error to compilation.diagnostics
+            return Err(Error::from_string(
+              Some(source_code.into_owned()),
+              err.span().start.saturating_sub(1) as usize,
+              err.span().end.saturating_sub(1) as usize,
+              "JavaScript parse error:\n".to_string(),
+              err.kind().msg().to_string(),
+            ));
+          }
         };
-        if ident.is_class_expr_with_ident {
-          all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-          continue;
+        let program = Program::Module(allocator.boxed(module));
+        let semantic = resolver(&program);
+        let ids = collect_ident(&allocator, &program);
+
+        module_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+        module_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
+
+        let top_level_scope_id = semantic.top_level_scope_id();
+        let mut all_used_names = HashSet::default();
+        all_used_names.reserve(ids.len());
+        module_info.idents.reserve(ids.len());
+        module_info.global_scope_ident.reserve(ids.len());
+        let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
+          FxIndexMap::default();
+        binding_to_ref.reserve(ids.len());
+
+        for ident in ids {
+          let scope = semantic.node_scope(&ident.id);
+          let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
+          let legacy = if is_global {
+            let leg = ident.to_legacy(&semantic);
+            module_info.global_scope_ident.push(leg.clone());
+            all_used_names.insert(leg.id.sym.clone());
+            Some(leg)
+          } else {
+            None
+          };
+          if ident.is_class_expr_with_ident {
+            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+            continue;
+          }
+          // deconflict naming from inner scope, the module level deconflict will be finished
+          // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
+          // during module eval phase.
+          if scope != top_level_scope_id {
+            all_used_names.insert(Atom::from(ident.id.sym.as_str()));
+          }
+          let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
+          module_info.idents.push(legacy.clone());
+          binding_to_ref
+            .entry((legacy.id.sym.clone(), legacy.id.ctxt))
+            .or_default()
+            .push(legacy);
         }
-        // deconflict naming from inner scope, the module level deconflict will be finished
-        // you could see tests/webpack-test/cases/scope-hoisting/renaming-4967 as a example
-        // during module eval phase.
-        if scope != top_level_scope_id {
-          all_used_names.insert(Atom::from(ident.id.sym.as_str()));
-        }
-        let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
-        module_info.idents.push(legacy.clone());
-        binding_to_ref
-          .entry((legacy.id.sym.clone(), legacy.id.ctxt))
-          .or_default()
-          .push(legacy);
+        module_info.all_used_names = all_used_names;
+        module_info.binding_to_ref = binding_to_ref;
       }
-      module_info.all_used_names = all_used_names;
-      module_info.binding_to_ref = binding_to_ref;
+
       let result_source = ReplaceSource::new(source.clone());
       module_info.has_ast = true;
       module_info.runtime_requirements = runtime_requirements;

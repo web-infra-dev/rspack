@@ -1,6 +1,5 @@
 use std::{
   any::{Any, TypeId},
-  borrow::Cow,
   fmt,
   hash::{Hash, Hasher},
   sync::Arc,
@@ -10,7 +9,7 @@ use serde::{Serialize, Serializer};
 use simd_json::{BorrowedValue, ErrorType, prelude::*};
 
 use crate::{
-  Result,
+  CompactCow, Result,
   helpers::{Chunks, StreamChunks, decode_mappings_fields},
   object_pool::ObjectPool,
 };
@@ -26,40 +25,34 @@ pub type BoxSource = Arc<dyn Source>;
 #[derive(Debug, PartialEq, Eq)]
 pub enum SourceValue<'a> {
   /// Text content stored as a UTF-8 string.
-  String(Cow<'a, str>),
+  String(CompactCow<'a, str>),
   /// Binary content stored as raw bytes.
-  Buffer(Cow<'a, [u8]>),
+  Buffer(CompactCow<'a, [u8]>),
 }
 
 impl<'a> SourceValue<'a> {
   /// Convert the source value to a string using lossy UTF-8 conversion.
   ///
-  /// This method converts both string and buffer variants to `Cow<str>`.
+  /// This method converts both string and buffer variants to `CompactCow<str>`.
   /// For buffer data that contains invalid UTF-8 sequences, replacement
   /// characters (�) will be used in place of invalid sequences.
-  pub fn into_string_lossy(self) -> Cow<'a, str> {
+  pub fn into_string_lossy(self) -> CompactCow<'a, str> {
     match self {
       SourceValue::String(cow) => cow,
-      SourceValue::Buffer(cow) => match cow {
-        Cow::Borrowed(bytes) => String::from_utf8_lossy(bytes),
-        Cow::Owned(bytes) => {
-          match String::from_utf8_lossy(&bytes) {
-            Cow::Borrowed(_) => {
-              // SAFETY: When `String::from_utf8_lossy` returns `Cow::Borrowed(_)`,
-              // it guarantees that the input slice contains only valid UTF-8 bytes.
-              // Since we're operating on the exact same `bytes` that were just
-              // validated by `from_utf8_lossy`, we can safely skip the UTF-8
-              // validation in `String::from_utf8_unchecked`.
-              //
-              // This optimization avoids the redundant UTF-8 validation that would
-              // occur if we used `String::from_utf8(bytes).unwrap()` or similar.
-              #[allow(unsafe_code)]
-              Cow::Owned(unsafe { String::from_utf8_unchecked(bytes) })
-            }
-            Cow::Owned(s) => Cow::Owned(s),
+      SourceValue::Buffer(cow) => {
+        if cow.is_borrowed() {
+          let bytes = cow.unwrap_borrowed();
+          match std::str::from_utf8(bytes) {
+            Ok(value) => CompactCow::borrowed(value),
+            Err(_) => CompactCow::owned(String::from_utf8_lossy(bytes).into_owned()),
+          }
+        } else {
+          match String::from_utf8(cow.into_owned()) {
+            Ok(value) => CompactCow::owned(value),
+            Err(err) => CompactCow::owned(String::from_utf8_lossy(err.as_bytes()).into_owned()),
           }
         }
-      },
+      }
     }
   }
 
@@ -76,15 +69,18 @@ impl<'a> SourceValue<'a> {
 
   /// Convert the source value into bytes.
   ///
-  /// This method consumes the `SourceValue` and converts it to `Cow<'a, [u8]>`,
+  /// This method consumes the `SourceValue` and converts it to `CompactCow<'a, [u8]>`,
   /// providing the most efficient representation possible while preserving
   /// the original borrowing relationships.
-  pub fn into_bytes(self) -> Cow<'a, [u8]> {
+  pub fn into_bytes(self) -> CompactCow<'a, [u8]> {
     match self {
-      SourceValue::String(cow) => match cow {
-        Cow::Borrowed(s) => Cow::Borrowed(s.as_bytes()),
-        Cow::Owned(s) => Cow::Owned(s.into_bytes()),
-      },
+      SourceValue::String(cow) => {
+        if cow.is_borrowed() {
+          CompactCow::borrowed(cow.unwrap_borrowed().as_bytes())
+        } else {
+          CompactCow::owned(cow.into_owned().into_bytes())
+        }
+      }
       SourceValue::Buffer(cow) => cow,
     }
   }
@@ -115,7 +111,7 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str));
 
   /// Get the source buffer.
-  fn buffer(&self) -> Cow<'_, [u8]>;
+  fn buffer(&self) -> CompactCow<'_, [u8]>;
 
   /// Get the size of the source.
   fn size(&self) -> usize;
@@ -151,7 +147,7 @@ impl Source for BoxSource {
   }
 
   #[inline]
-  fn buffer(&self) -> Cow<'_, [u8]> {
+  fn buffer(&self) -> CompactCow<'_, [u8]> {
     self.as_ref().buffer()
   }
 
@@ -286,7 +282,24 @@ impl MapOptions {
   }
 }
 
-fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
+#[inline]
+pub(crate) fn into_beef_str_cow(cow: CompactCow<'_, str>) -> CompactCow<'_, str> {
+  cow
+}
+
+#[inline]
+pub(crate) fn into_beef_str_cow_slice(
+  cows: Vec<CompactCow<'_, str>>,
+) -> CompactCow<'_, [CompactCow<'_, str>]> {
+  CompactCow::owned(cows)
+}
+
+#[inline]
+fn into_beef_u32_slice_cow(cow: CompactCow<'_, [u32]>) -> CompactCow<'_, [u32]> {
+  cow
+}
+
+fn is_all_empty(val: &[CompactCow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
   }
@@ -298,18 +311,18 @@ fn is_all_empty(val: &[Cow<'_, str>]) -> bool {
 pub(crate) struct SourceMapFields<'a> {
   pub(crate) version: u8,
   #[serde(skip_serializing_if = "Option::is_none")]
-  pub(crate) file: Option<Cow<'a, str>>,
-  pub(crate) sources: Cow<'a, [Cow<'a, str>]>,
+  pub(crate) file: Option<CompactCow<'a, str>>,
+  pub(crate) sources: CompactCow<'a, [CompactCow<'a, str>]>,
   #[serde(rename = "sourcesContent", skip_serializing_if = "is_all_empty")]
-  pub(crate) sources_content: Cow<'a, [Cow<'a, str>]>,
-  pub(crate) names: Cow<'a, [Cow<'a, str>]>,
-  pub(crate) mappings: Cow<'a, str>,
+  pub(crate) sources_content: CompactCow<'a, [CompactCow<'a, str>]>,
+  pub(crate) names: CompactCow<'a, [CompactCow<'a, str>]>,
+  pub(crate) mappings: CompactCow<'a, str>,
   #[serde(rename = "sourceRoot", skip_serializing_if = "Option::is_none")]
-  pub(crate) source_root: Option<Cow<'a, str>>,
+  pub(crate) source_root: Option<CompactCow<'a, str>>,
   #[serde(rename = "debugId", skip_serializing_if = "Option::is_none")]
-  pub(crate) debug_id: Option<Cow<'a, str>>,
+  pub(crate) debug_id: Option<CompactCow<'a, str>>,
   #[serde(rename = "ignoreList", skip_serializing_if = "Option::is_none")]
-  pub(crate) ignore_list: Option<Cow<'a, [u32]>>,
+  pub(crate) ignore_list: Option<CompactCow<'a, [u32]>>,
 }
 
 impl<'a> SourceMapFields<'a> {
@@ -317,14 +330,23 @@ impl<'a> SourceMapFields<'a> {
   pub(crate) fn as_borrowed(&self) -> SourceMapFields<'_> {
     SourceMapFields {
       version: self.version,
-      file: self.file.as_ref().map(|f| Cow::Borrowed(f.as_ref())),
-      sources: Cow::Borrowed(self.sources.as_ref()),
-      sources_content: Cow::Borrowed(self.sources_content.as_ref()),
-      names: Cow::Borrowed(self.names.as_ref()),
-      mappings: Cow::Borrowed(self.mappings.as_ref()),
-      source_root: self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
-      debug_id: self.debug_id.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
-      ignore_list: self.ignore_list.as_ref().map(|s| Cow::Borrowed(s.as_ref())),
+      file: self.file.as_ref().map(|f| CompactCow::borrowed(f.as_ref())),
+      sources: CompactCow::borrowed(self.sources.as_ref()),
+      sources_content: CompactCow::borrowed(self.sources_content.as_ref()),
+      names: CompactCow::borrowed(self.names.as_ref()),
+      mappings: CompactCow::borrowed(self.mappings.as_ref()),
+      source_root: self
+        .source_root
+        .as_ref()
+        .map(|s| CompactCow::borrowed(s.as_ref())),
+      debug_id: self
+        .debug_id
+        .as_ref()
+        .map(|s| CompactCow::borrowed(s.as_ref())),
+      ignore_list: self
+        .ignore_list
+        .as_ref()
+        .map(|s| CompactCow::borrowed(s.as_ref())),
     }
   }
 
@@ -336,15 +358,15 @@ impl<'a> SourceMapFields<'a> {
     self.source_root.as_deref()
   }
 
-  pub(crate) fn sources(&self) -> &[Cow<'a, str>] {
+  pub(crate) fn sources(&self) -> &[CompactCow<'a, str>] {
     self.sources.as_ref()
   }
 
-  pub(crate) fn get_source_content(&self, index: usize) -> Option<&Cow<'a, str>> {
+  pub(crate) fn get_source_content(&self, index: usize) -> Option<&CompactCow<'a, str>> {
     self.sources_content.get(index)
   }
 
-  pub(crate) fn names(&self) -> &[Cow<'a, str>] {
+  pub(crate) fn names(&self) -> &[CompactCow<'a, str>] {
     self.names.as_ref()
   }
 
@@ -432,20 +454,22 @@ impl<'a> SourceMap<'a> {
 impl SourceMap<'static> {
   /// Create a [SourceMap].
   pub fn new(
-    mappings: impl Into<Cow<'static, str>>,
-    sources: Vec<Cow<'static, str>>,
-    sources_content: Vec<Cow<'static, str>>,
-    names: Vec<Cow<'static, str>>,
+    mappings: impl Into<CompactCow<'static, str>>,
+    sources: Vec<CompactCow<'static, str>>,
+    sources_content: Vec<CompactCow<'static, str>>,
+    names: Vec<CompactCow<'static, str>>,
   ) -> Self {
     Self {
       owner: None,
       fields: SourceMapFields {
         version: 3,
         file: None,
-        mappings: mappings.into(),
-        sources: Cow::Owned(sources),
-        sources_content: Cow::Owned(sources_content),
-        names: Cow::Owned(names),
+        mappings: CompactCow::from(mappings.into()),
+        sources: CompactCow::owned(sources.into_iter().map(into_beef_str_cow).collect()),
+        sources_content: CompactCow::owned(
+          sources_content.into_iter().map(into_beef_str_cow).collect(),
+        ),
+        names: CompactCow::owned(names.into_iter().map(into_beef_str_cow).collect()),
         source_root: None,
         debug_id: None,
         ignore_list: None,
@@ -485,8 +509,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the file field in [SourceMap].
-  pub fn set_file(&mut self, file: Option<Cow<'a, str>>) {
-    self.fields.file = file.map(|file| Cow::Owned(file.into()));
+  pub fn set_file(&mut self, file: Option<CompactCow<'a, str>>) {
+    self.fields.file = file.map(into_beef_str_cow);
   }
 
   /// Get the ignoreList field in [SourceMap].
@@ -495,8 +519,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the ignoreList field in [SourceMap].
-  pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'a, [u32]>>) {
-    self.fields.ignore_list = ignore_list;
+  pub fn set_ignore_list(&mut self, ignore_list: Option<CompactCow<'a, [u32]>>) {
+    self.fields.ignore_list = ignore_list.map(into_beef_u32_slice_cow);
   }
 
   /// Get the decoded mappings in [SourceMap].
@@ -510,22 +534,16 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Get the sources field in [SourceMap].
-  pub fn sources(&self) -> &[Cow<'_, str>] {
-    self.fields.sources.as_ref()
+  pub fn sources(&self) -> impl ExactSizeIterator<Item = &str> + '_ {
+    self.fields.sources.iter().map(|source| source.as_ref())
   }
 
   /// Set the sources field in [SourceMap].
-  pub fn set_sources<T, I>(&mut self, sources: I)
+  pub fn set_sources<I>(&mut self, sources: I)
   where
-    T: Into<String>,
-    I: IntoIterator<Item = T>,
+    I: IntoIterator<Item = CompactCow<'a, str>>,
   {
-    self.fields.sources = Cow::Owned(
-      sources
-        .into_iter()
-        .map(|source| Cow::Owned(source.into()))
-        .collect(),
-    );
+    self.fields.sources = CompactCow::owned(sources.into_iter().map(into_beef_str_cow).collect());
   }
 
   /// Get the source by index from sources field in [SourceMap].
@@ -534,37 +552,40 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Get the sourcesContent field in [SourceMap].
-  pub fn sources_content(&self) -> &[Cow<'_, str>] {
-    self.fields.sources_content.as_ref()
+  pub fn sources_content(&self) -> impl ExactSizeIterator<Item = &str> + '_ {
+    self
+      .fields
+      .sources_content
+      .iter()
+      .map(|source_content| source_content.as_ref())
   }
 
   /// Set the sourcesContent field in [SourceMap].
-  pub fn set_sources_content(&mut self, sources_content: Vec<Cow<'a, str>>) {
-    self.fields.sources_content = Cow::Owned(sources_content);
+  pub fn set_sources_content(&mut self, sources_content: Vec<CompactCow<'a, str>>) {
+    self.fields.sources_content =
+      CompactCow::owned(sources_content.into_iter().map(into_beef_str_cow).collect());
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
-  pub fn get_source_content(&self, index: usize) -> Option<&Cow<'_, str>> {
-    self.fields.sources_content.get(index)
+  pub fn get_source_content(&self, index: usize) -> Option<&str> {
+    self
+      .fields
+      .sources_content
+      .get(index)
+      .map(|source_content| source_content.as_ref())
   }
 
   /// Get the names field in [SourceMap].
-  pub fn names(&self) -> &[Cow<'_, str>] {
-    self.fields.names.as_ref()
+  pub fn names(&self) -> impl ExactSizeIterator<Item = &str> + '_ {
+    self.fields.names.iter().map(|name| name.as_ref())
   }
 
   /// Set the names field in [SourceMap].
-  pub fn set_names<T, I>(&mut self, names: I)
+  pub fn set_names<I>(&mut self, names: I)
   where
-    T: Into<String>,
-    I: IntoIterator<Item = T>,
+    I: IntoIterator<Item = CompactCow<'a, str>>,
   {
-    self.fields.names = Cow::Owned(
-      names
-        .into_iter()
-        .map(|name| Cow::Owned(name.into()))
-        .collect(),
-    );
+    self.fields.names = CompactCow::owned(names.into_iter().map(into_beef_str_cow).collect());
   }
 
   /// Get the name by index from names field in [SourceMap].
@@ -578,13 +599,13 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the source_root field in [SourceMap].
-  pub fn set_source_root(&mut self, source_root: Option<Cow<'a, str>>) {
-    self.fields.source_root = source_root;
+  pub fn set_source_root(&mut self, source_root: Option<CompactCow<'a, str>>) {
+    self.fields.source_root = source_root.map(into_beef_str_cow);
   }
 
   /// Set the debug_id field in [SourceMap].
-  pub fn set_debug_id(&mut self, debug_id: Option<Cow<'a, str>>) {
-    self.fields.debug_id = debug_id;
+  pub fn set_debug_id(&mut self, debug_id: Option<CompactCow<'a, str>>) {
+    self.fields.debug_id = debug_id.map(into_beef_str_cow);
   }
 
   /// Get the debug_id field in [SourceMap].
@@ -715,9 +736,9 @@ fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<Sou
   Ok(SourceMapFields {
     version: 3,
     file: optional_string_field(object, "file")?,
-    sources: Cow::Owned(optional_string_array_field(object, "sources")?),
-    sources_content: Cow::Owned(optional_string_array_field(object, "sourcesContent")?),
-    names: Cow::Owned(optional_string_array_field(object, "names")?),
+    sources: CompactCow::owned(optional_string_array_field(object, "sources")?),
+    sources_content: CompactCow::owned(optional_string_array_field(object, "sourcesContent")?),
+    names: CompactCow::owned(optional_string_array_field(object, "names")?),
     mappings,
     source_root: optional_string_field(object, "sourceRoot")?,
     debug_id: optional_string_field(object, "debugId")?,
@@ -728,18 +749,18 @@ fn deserialize_source_map_fields<'a>(value: &'a BorrowedValue<'a>) -> Result<Sou
 fn required_string_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Cow<'a, str>> {
+) -> Result<CompactCow<'a, str>> {
   object
     .get(key)
     .and_then(BorrowedValue::as_str)
-    .map(Cow::Borrowed)
+    .map(CompactCow::borrowed)
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
 fn optional_string_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Option<Cow<'a, str>>> {
+) -> Result<Option<CompactCow<'a, str>>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -748,14 +769,14 @@ fn optional_string_field<'a>(
   }
   value
     .as_str()
-    .map(|value| Some(Cow::Borrowed(value)))
+    .map(|value| Some(CompactCow::borrowed(value)))
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
 }
 
 fn optional_string_array_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Vec<Cow<'a, str>>> {
+) -> Result<Vec<CompactCow<'a, str>>> {
   let Some(value) = object.get(key) else {
     return Ok(Vec::new());
   };
@@ -765,25 +786,25 @@ fn optional_string_array_field<'a>(
   let values = value
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
-  values
-    .iter()
-    .map(|value| {
-      if value.is_null() {
-        Ok(Cow::Borrowed(""))
-      } else {
-        value
-          .as_str()
-          .map(Cow::Borrowed)
-          .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString).into())
-      }
-    })
-    .collect()
+  let mut strings = Vec::with_capacity(values.len());
+  for value in values {
+    if value.is_null() {
+      strings.push(CompactCow::borrowed(""));
+    } else {
+      let value = value
+        .as_str()
+        .map(CompactCow::borrowed)
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedString))?;
+      strings.push(value);
+    }
+  }
+  Ok(strings)
 }
 
 fn optional_u32_array_field<'a>(
   object: &'a simd_json::borrowed::Object<'a>,
   key: &str,
-) -> Result<Option<Cow<'a, [u32]>>> {
+) -> Result<Option<CompactCow<'a, [u32]>>> {
   let Some(value) = object.get(key) else {
     return Ok(None);
   };
@@ -793,15 +814,15 @@ fn optional_u32_array_field<'a>(
   let values = value
     .as_array()
     .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedArray))?;
-  values
-    .iter()
-    .map(|value| {
+  let mut numbers = Vec::with_capacity(values.len());
+  for value in values {
+    numbers.push(
       value
         .as_u32()
-        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned).into())
-    })
-    .collect::<Result<Vec<_>>>()
-    .map(|v| Some(Cow::Owned(v)))
+        .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedUnsigned))?,
+    );
+  }
+  Ok(Some(CompactCow::owned(numbers)))
 }
 
 /// Represent a [Mapping] information of source map.

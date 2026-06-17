@@ -1,7 +1,7 @@
-use std::{borrow::Cow, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::Result;
-use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
+use rspack_sources::{CompactCow, Mapping, OriginalLocation, encode_mappings};
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 use swc_core::{
@@ -160,21 +160,21 @@ impl JavaScriptCompiler {
         mappings,
         combined_source_map
           .sources()
-          .map(|source| Cow::Owned(source.to_string()))
+          .map(|source| CompactCow::owned(source.to_string()))
           .collect::<Vec<_>>(),
         combined_source_map
           .source_contents()
-          .map(|byte_str| Cow::Owned(byte_str.map(ToString::to_string).unwrap_or_default()))
+          .map(|byte_str| CompactCow::owned(byte_str.map(ToString::to_string).unwrap_or_default()))
           .collect::<Vec<_>>(),
         combined_source_map
           .names()
-          .map(|name| Cow::Owned(name.to_string()))
+          .map(|name| CompactCow::owned(name.to_string()))
           .collect::<Vec<_>>(),
       );
       rspack_source_map.set_file(
         combined_source_map
           .get_file()
-          .map(|s| Cow::Owned(s.to_string())),
+          .map(|s| CompactCow::owned(s.to_string())),
       );
 
       Some(rspack_source_map)

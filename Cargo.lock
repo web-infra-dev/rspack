@@ -307,6 +307,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "beef"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a8241f3ebb85c056b509d4327ad0358fbbba6ffb340bf388f26350aeda225b1"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "better_scoped_tls"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5344,6 +5353,7 @@ dependencies = [
 name = "rspack_sources"
 version = "0.100.8"
 dependencies = [
+ "beef",
  "memchr",
  "regex",
  "rkyv 0.8.16",

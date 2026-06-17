@@ -75,34 +75,36 @@ async fn render_module_content(
     .code_generation_results
     .get(&module.identifier(), Some(runtime));
   if codegen_result.data.contains::<URLStaticMode>() {
-    let content = render_source.source.source().into_string_lossy();
     let mut replace_source = ReplaceSource::new(render_source.source.clone());
-    let replacement = URL_STATIC_PLACEHOLDER_RE
-      .find_iter(&content)
-      .map(|cap| (cap.start(), cap.end()));
+    {
+      let content = render_source.source.source().into_string_lossy();
+      let replacement = URL_STATIC_PLACEHOLDER_RE
+        .find_iter(&content)
+        .map(|cap| (cap.start(), cap.end()));
 
-    for (start, end) in replacement {
-      let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
-      let dep_id: DependencyId = dep_id
-        .parse::<u32>()
-        .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
-        .into();
-      let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
-        continue;
-      };
-      let codegen_result = compilation
-        .code_generation_results
-        .get(module, Some(runtime));
-      let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
-        unreachable!()
-      };
+      for (start, end) in replacement {
+        let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
+        let dep_id: DependencyId = dep_id
+          .parse::<u32>()
+          .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
+          .into();
+        let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
+          continue;
+        };
+        let codegen_result = compilation
+          .code_generation_results
+          .get(module, Some(runtime));
+        let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
+          unreachable!()
+        };
 
-      replace_source.replace(
-        start as u32,
-        end as u32,
-        filename.filename().to_string(),
-        None,
-      );
+        replace_source.replace(
+          start as u32,
+          end as u32,
+          filename.filename().to_string(),
+          None,
+        );
+      }
     }
 
     render_source.source = Arc::new(replace_source);

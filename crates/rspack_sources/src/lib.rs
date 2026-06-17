@@ -31,6 +31,8 @@ mod source_content_lines;
 mod source_map_source;
 mod with_utf16;
 
+pub use beef::lean::Cow as CompactCow;
+
 /// Feature for rspack persistent cache serialization/deserialization.
 #[cfg(feature = "rspack_cacheable")]
 pub mod cacheable;

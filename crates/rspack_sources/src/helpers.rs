@@ -1,18 +1,18 @@
 use core::str;
 use std::{
-  borrow::{BorrowMut, Cow},
+  borrow::BorrowMut,
   cell::{OnceCell, RefCell},
 };
 
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  MapOptions, SourceMap, SourceMapFields,
+  CompactCow, MapOptions, SourceMap, SourceMapFields,
   decoder::MappingsDecoder,
   encoder::create_encoder,
   linear_map::LinearMap,
   object_pool::ObjectPool,
-  source::{Mapping, OriginalLocation},
+  source::{Mapping, OriginalLocation, into_beef_str_cow, into_beef_str_cow_slice},
   source_content_lines::SourceContentLines,
   with_utf16::WithUtf16,
 };
@@ -23,9 +23,9 @@ pub fn get_map<'a>(
   options: &MapOptions,
 ) -> Option<SourceMapFields<'a>> {
   let mut mappings_encoder = create_encoder(options.columns);
-  let mut sources: Vec<Cow<'a, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'a, str>> = Vec::new();
-  let mut names: Vec<Cow<'a, str>> = Vec::new();
+  let mut sources: Vec<CompactCow<'a, str>> = Vec::new();
+  let mut sources_content: Vec<CompactCow<'a, str>> = Vec::new();
+  let mut names: Vec<CompactCow<'a, str>> = Vec::new();
 
   chunks.stream(
     object_pool,
@@ -41,33 +41,33 @@ pub fn get_map<'a>(
     &mut |source_index, source, source_content| {
       let source_index = source_index as usize;
       if sources.len() <= source_index {
-        sources.resize(source_index + 1, Cow::Borrowed(""));
+        sources.resize(source_index + 1, CompactCow::borrowed(""));
       }
-      sources[source_index] = source;
+      sources[source_index] = into_beef_str_cow(source);
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
-          sources_content.resize(source_index + 1, Cow::Borrowed(""));
+          sources_content.resize(source_index + 1, CompactCow::borrowed(""));
         }
-        sources_content[source_index] = Cow::Borrowed(source_content);
+        sources_content[source_index] = CompactCow::borrowed(source_content);
       }
     },
     // on_name
     &mut |name_index, name| {
       let name_index = name_index as usize;
       if names.len() <= name_index {
-        names.resize(name_index + 1, Cow::Borrowed(""));
+        names.resize(name_index + 1, CompactCow::borrowed(""));
       }
-      names[name_index] = name;
+      names[name_index] = into_beef_str_cow(name);
     },
   );
   let mappings = mappings_encoder.drain();
   (!mappings.is_empty()).then_some(SourceMapFields {
     version: 3,
     file: None,
-    mappings: Cow::Owned(mappings),
-    sources: Cow::Owned(sources),
-    sources_content: Cow::Owned(sources_content),
-    names: Cow::Owned(names),
+    mappings: into_beef_str_cow(CompactCow::owned(mappings)),
+    sources: into_beef_str_cow_slice(sources),
+    sources_content: into_beef_str_cow_slice(sources_content),
+    names: into_beef_str_cow_slice(names),
     source_root: None,
     debug_id: None,
     ignore_list: None,
@@ -282,10 +282,10 @@ impl std::ops::Deref for TextSpan<'_> {
 pub type OnChunk<'a, 'b> = &'a mut dyn FnMut(Option<TextSpan<'b>>, Mapping);
 
 /// [OnSource] abstraction, see [webpack-sources onSource](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnSource<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>, Option<&'b str>);
+pub type OnSource<'a, 'b> = &'a mut dyn FnMut(u32, CompactCow<'b, str>, Option<&'b str>);
 
 /// [OnName] abstraction, see [webpack-sources onName](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L13).
-pub type OnName<'a, 'b> = &'a mut dyn FnMut(u32, Cow<'b, str>);
+pub type OnName<'a, 'b> = &'a mut dyn FnMut(u32, CompactCow<'b, str>);
 
 /// Default stream chunks behavior impl, see [webpack-sources streamChunks](https://github.com/webpack/webpack-sources/blob/9f98066311d53a153fdc7c633422a1d086528027/lib/helpers/streamChunks.js#L15-L35).
 pub fn stream_chunks_default<'chunk, 'source, 'map>(
@@ -549,13 +549,13 @@ pub fn stream_chunks_of_source_map<'chunk, 'source>(
   }
 }
 
-fn get_source<'a>(source_map: &SourceMapFields, source: &'a str) -> Cow<'a, str> {
+fn get_source<'a>(source_map: &SourceMapFields, source: &'a str) -> CompactCow<'a, str> {
   let source_root = source_map.source_root();
   match source_root {
-    Some("") => Cow::Borrowed(source),
-    Some(root) if root.ends_with('/') => Cow::Owned(format!("{root}{source}")),
-    Some(root) => Cow::Owned(format!("{root}/{source}")),
-    None => Cow::Borrowed(source),
+    Some("") => CompactCow::borrowed(source),
+    Some(root) if root.ends_with('/') => CompactCow::owned(format!("{root}{source}")),
+    Some(root) => CompactCow::owned(format!("{root}/{source}")),
+    None => CompactCow::borrowed(source),
   }
 }
 
@@ -578,7 +578,7 @@ fn stream_chunks_of_source_map_final<'chunk, 'source>(
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
-    on_name(i as u32, Cow::Borrowed(name));
+    on_name(i as u32, CompactCow::borrowed(name.as_ref()));
   }
   let mut mapping_active_line = 0;
   let mut on_mapping = |mapping: Mapping| {
@@ -641,7 +641,7 @@ fn stream_chunks_of_source_map_full<'chunk, 'source, 'object_pool>(
     )
   }
   for (i, name) in source_map.names().iter().enumerate() {
-    on_name(i as u32, Cow::Borrowed(name));
+    on_name(i as u32, CompactCow::borrowed(name.as_ref()));
   }
   let last_line = &lines[lines.len() - 1].line;
   let last_new_line = last_line.ends_with('\n');
@@ -897,7 +897,7 @@ struct SourceMapLineData<'a> {
   pub chunks: Vec<TextSpan<'a>>,
 }
 
-type InnerSourceIndexValueMapping<'a> = LinearMap<(Cow<'a, str>, Option<&'a str>)>;
+type InnerSourceIndexValueMapping<'a> = LinearMap<(CompactCow<'a, str>, Option<&'a str>)>;
 
 #[allow(clippy::too_many_arguments)]
 pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
@@ -915,22 +915,23 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
 ) -> GeneratedInfo {
   let on_source = RefCell::new(on_source);
   let inner_source: RefCell<Option<&str>> = RefCell::new(inner_source);
-  let source_mapping: RefCell<HashMap<Cow<str>, u32>> = RefCell::new(HashMap::default());
-  let mut name_mapping: HashMap<Cow<str>, u32> = HashMap::default();
+  let source_mapping: RefCell<HashMap<CompactCow<str>, u32>> = RefCell::new(HashMap::default());
+  let mut name_mapping: HashMap<CompactCow<str>, u32> = HashMap::default();
   let source_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
   let name_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
-  let name_index_value_mapping: RefCell<LinearMap<Cow<str>>> = RefCell::new(LinearMap::default());
+  let name_index_value_mapping: RefCell<LinearMap<CompactCow<str>>> =
+    RefCell::new(LinearMap::default());
   let inner_source_index: RefCell<i64> = RefCell::new(-2);
   let inner_source_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
   let inner_source_index_value_mapping: RefCell<InnerSourceIndexValueMapping<'source>> =
     RefCell::new(LinearMap::default());
-  let inner_source_contents: RefCell<LinearMap<Option<Cow<'source, str>>>> =
+  let inner_source_contents: RefCell<LinearMap<Option<CompactCow<'source, str>>>> =
     RefCell::new(LinearMap::default());
   let inner_source_content_lines: RefCell<
     LinearMap<OnceCell<Option<SourceContentLines<'object_pool, 'source>>>>,
   > = RefCell::new(LinearMap::default());
   let inner_name_index_mapping: RefCell<LinearMap<i64>> = RefCell::new(LinearMap::default());
-  let inner_name_index_value_mapping: RefCell<LinearMap<Cow<str>>> =
+  let inner_name_index_value_mapping: RefCell<LinearMap<CompactCow<str>>> =
     RefCell::new(LinearMap::default());
   let inner_source_map_line_data: RefCell<Vec<SourceMapLineData>> = RefCell::new(Vec::new());
 
@@ -1180,10 +1181,10 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
             let mut global_index = source_mapping.get(inner_source_name).copied();
             if global_index.is_none() {
               let len = source_mapping.len() as u32;
-              source_mapping.insert(Cow::Borrowed(source), len);
+              source_mapping.insert(CompactCow::borrowed(source), len);
               on_source.borrow_mut()(
                 len,
-                Cow::Borrowed(inner_source_name),
+                CompactCow::borrowed(inner_source_name),
                 *inner_source.borrow(),
               );
               global_index = Some(len);
@@ -1255,7 +1256,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
       if source == inner_source_name {
         *inner_source_index.borrow_mut() = i as i64;
         let mut inner_source = inner_source.borrow_mut();
-        if let Some(inner_source) = inner_source.as_ref() {
+        if let Some(inner_source) = inner_source.as_ref().copied() {
           source_content = Some(inner_source);
         } else {
           *inner_source = source_content;
@@ -1317,7 +1318,7 @@ pub fn stream_chunks_of_combined_source_map<'chunk, 'source, 'object_pool>(
           &mut |i, source, source_content| {
             inner_source_contents
               .borrow_mut()
-              .insert(i, source_content.map(Cow::Borrowed));
+              .insert(i, source_content.map(CompactCow::borrowed));
             inner_source_content_lines
               .borrow_mut()
               .insert(i, Default::default());
@@ -1361,9 +1362,9 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
   on_name: OnName<'_, 'source>,
 ) -> (GeneratedInfo, Option<SourceMapFields<'source>>) {
   let mut mappings_encoder = create_encoder(options.columns);
-  let mut sources: Vec<Cow<'source, str>> = Vec::new();
-  let mut sources_content: Vec<Cow<'source, str>> = Vec::new();
-  let mut names: Vec<Cow<'source, str>> = Vec::new();
+  let mut sources: Vec<CompactCow<'source, str>> = Vec::new();
+  let mut sources_content: Vec<CompactCow<'source, str>> = Vec::new();
+  let mut names: Vec<CompactCow<'source, str>> = Vec::new();
 
   let generated_info = chunks.stream(
     object_pool,
@@ -1375,23 +1376,23 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
     &mut |source_index, source, source_content| {
       let source_index2 = source_index as usize;
       while sources.len() <= source_index2 {
-        sources.push(Cow::Borrowed(""));
+        sources.push(CompactCow::borrowed(""));
       }
-      sources[source_index2] = source.clone();
+      sources[source_index2] = into_beef_str_cow(source.clone());
       if let Some(source_content) = source_content {
         while sources_content.len() <= source_index2 {
-          sources_content.push(Cow::Borrowed(""));
+          sources_content.push(CompactCow::borrowed(""));
         }
-        sources_content[source_index2] = Cow::Borrowed(source_content);
+        sources_content[source_index2] = CompactCow::borrowed(source_content);
       }
       on_source(source_index, source, source_content);
     },
     &mut |name_index, name| {
       let name_index2 = name_index as usize;
       while names.len() <= name_index2 {
-        names.push(Cow::Borrowed(""));
+        names.push(CompactCow::borrowed(""));
       }
-      names[name_index2] = name.clone();
+      names[name_index2] = into_beef_str_cow(name.clone());
       on_name(name_index, name);
     },
   );
@@ -1403,10 +1404,10 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
     Some(SourceMapFields {
       version: 3,
       file: None,
-      mappings: Cow::Owned(mappings),
-      sources: Cow::Owned(sources),
-      sources_content: Cow::Owned(sources_content),
-      names: Cow::Owned(names),
+      mappings: into_beef_str_cow(CompactCow::owned(mappings)),
+      sources: into_beef_str_cow_slice(sources),
+      sources_content: into_beef_str_cow_slice(sources_content),
+      names: into_beef_str_cow_slice(names),
       source_root: None,
       debug_id: None,
       ignore_list: None,

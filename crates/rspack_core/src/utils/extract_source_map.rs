@@ -11,7 +11,7 @@ use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_fs::ReadableFileSystem;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-use rspack_sources::SourceMap;
+use rspack_sources::{CompactCow, SourceMap};
 use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
 
@@ -307,7 +307,6 @@ pub async fn extract_source_map(
   // Get sources from SourceMap and take ownership
   let sources = source_map
     .sources()
-    .iter()
     .map(|source| source.to_string())
     .collect::<Vec<_>>();
   let source_root = source_map.source_root().map(|s| s.to_string());
@@ -358,12 +357,13 @@ pub async fn extract_source_map(
   }
 
   // Build the final SourceMap using setter methods - consume resolved_sources to avoid cloning
-  let (sources_vec, sources_content_vec): (Vec<String>, Vec<Cow<'_, str>>) = resolved_sources
-    .into_iter()
-    .map(|(url, content)| (url, Cow::Owned(content.unwrap_or_default())))
-    .unzip();
+  let (sources_vec, sources_content_vec): (Vec<String>, Vec<CompactCow<'static, str>>) =
+    resolved_sources
+      .into_iter()
+      .map(|(url, content)| (url, CompactCow::owned(content.unwrap_or_default())))
+      .unzip();
 
-  source_map.set_sources(sources_vec);
+  source_map.set_sources(sources_vec.into_iter().map(CompactCow::owned));
   source_map.set_sources_content(sources_content_vec);
 
   // Remove source_root as per original logic

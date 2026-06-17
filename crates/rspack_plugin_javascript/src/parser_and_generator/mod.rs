@@ -237,120 +237,136 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     };
 
     let source = remove_bom(source);
-    let source_string = source.source().into_string_lossy();
+    let parsed = 'parse: {
+      let source_string = source.source().into_string_lossy();
 
-    let jsx = module_parser_options
-      .and_then(|options| options.get_javascript())
-      .and_then(|options| options.jsx)
-      .unwrap_or(false);
+      let jsx = module_parser_options
+        .and_then(|options| options.get_javascript())
+        .and_then(|options| options.jsx)
+        .unwrap_or(false);
 
-    let allocator = Allocator::new();
-    let mut comments = Comments::new_in(&allocator);
-    let parser_lexer = Lexer::new(
-      &allocator,
-      Syntax::Es(EsSyntax {
-        jsx,
-        allow_return_outside_function: matches!(
-          module_type,
-          ModuleType::JsDynamic | ModuleType::JsAuto
-        ),
-        explicit_resource_management: true,
-        import_attributes: true,
-        ..Default::default()
-      }),
-      EsVersion::EsNext,
-      StringSource::new(source_string.as_ref()),
-      // The parser keeps this mutable borrow for the AST lifetime. We only read
-      // the comments after dropping the parser below.
-      Some(&mut comments),
-    );
-    let parser_lexer = Capturing::new(parser_lexer);
-    let mut parser = Parser::new_from(&allocator, parser_lexer);
+      let allocator = Allocator::new();
+      let mut comments = Comments::new_in(&allocator);
+      let parser_lexer = Lexer::new(
+        &allocator,
+        Syntax::Es(EsSyntax {
+          jsx,
+          allow_return_outside_function: matches!(
+            module_type,
+            ModuleType::JsDynamic | ModuleType::JsAuto
+          ),
+          explicit_resource_management: true,
+          import_attributes: true,
+          ..Default::default()
+        }),
+        EsVersion::EsNext,
+        StringSource::new(source_string.as_ref()),
+        // The parser keeps this mutable borrow for the AST lifetime. We only read
+        // the comments after dropping the parser below.
+        Some(&mut comments),
+      );
+      let parser_lexer = Capturing::new(parser_lexer);
+      let mut parser = Parser::new_from(&allocator, parser_lexer);
 
-    let mut program = match match module_type {
-      ModuleType::JsEsm => parser
-        .parse_module()
-        .map(|module| Program::Module(allocator.boxed(module))),
-      ModuleType::JsDynamic => parser
-        .parse_commonjs()
-        .map(|script| Program::Script(allocator.boxed(script))),
-      _ => parser.parse_program(),
-    } {
-      Ok(program) => program,
-      Err(e) => {
-        let mut errors = parser.take_errors();
-        errors.push(e);
-        append_experimental_parse_errors(&mut diagnostics, &source_string, errors);
-        return default_with_diagnostics(source, diagnostics);
+      let mut program = match match module_type {
+        ModuleType::JsEsm => parser
+          .parse_module()
+          .map(|module| Program::Module(allocator.boxed(module))),
+        ModuleType::JsDynamic => parser
+          .parse_commonjs()
+          .map(|script| Program::Script(allocator.boxed(script))),
+        _ => parser.parse_program(),
+      } {
+        Ok(program) => program,
+        Err(e) => {
+          let mut errors = parser.take_errors();
+          errors.push(e);
+          append_experimental_parse_errors(&mut diagnostics, &source_string, errors);
+          break 'parse Err(diagnostics);
+        }
+      };
+
+      let parse_errors = parser.take_errors();
+      let tokens = parser.input_mut().iter.take();
+      drop(parser);
+      if !parse_errors.is_empty() {
+        append_experimental_parse_errors(&mut diagnostics, &source_string, parse_errors);
+        break 'parse Err(diagnostics);
       }
+
+      let mut semicolons = Default::default();
+      remove_paren(&mut program, &allocator, Some(&mut comments));
+      let semantic = resolver(&program);
+      program.visit_with(&mut semicolon::InsertedSemicolons::new(
+        &mut semicolons,
+        &tokens,
+      ));
+      let parsed_ast = ParsedJavaScriptAst {
+        allocator: &allocator,
+        comments: &comments,
+        semantic: &semantic,
+        program: &program,
+      };
+      let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
+
+      let ScanDependenciesResult {
+        dependencies,
+        blocks,
+        presentational_dependencies,
+        mut warning_diagnostics,
+        mut side_effects_item,
+      } = match scan_dependencies(
+        &source_string,
+        &parsed_ast,
+        resource_data,
+        compiler_options,
+        module_type,
+        module_layer,
+        factory_meta,
+        build_meta,
+        build_info,
+        module_identifier,
+        module_parser_options,
+        &mut semicolons,
+        &mut self.parser_plugins,
+        parse_meta,
+        &parser_runtime_requirements,
+      ) {
+        Ok(result) => result,
+        Err(mut e) => {
+          diagnostics.append(&mut e);
+          break 'parse Err(diagnostics);
+        }
+      };
+      diagnostics.append(&mut warning_diagnostics);
+      let mut side_effects_bailout = None;
+
+      if compiler_options.optimization.side_effects.is_true() {
+        let has_side_effects = side_effects_item.is_some();
+        build_meta.side_effect_free = Some(!has_side_effects);
+        if has_side_effects {
+          build_info.deferred_pure_checks.clear();
+        }
+        side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
+          let msg = item.loc?.to_string();
+          Some(SideEffectsBailoutItem { msg, ty: item.ty })
+        });
+      }
+
+      Ok((
+        dependencies,
+        blocks,
+        presentational_dependencies,
+        side_effects_bailout,
+        diagnostics,
+      ))
     };
 
-    let parse_errors = parser.take_errors();
-    let tokens = parser.input_mut().iter.take();
-    drop(parser);
-    if !parse_errors.is_empty() {
-      append_experimental_parse_errors(&mut diagnostics, &source_string, parse_errors);
-      return default_with_diagnostics(source, diagnostics);
-    }
-
-    let mut semicolons = Default::default();
-    remove_paren(&mut program, &allocator, Some(&mut comments));
-    let semantic = resolver(&program);
-    program.visit_with(&mut semicolon::InsertedSemicolons::new(
-      &mut semicolons,
-      &tokens,
-    ));
-    let parsed_ast = ParsedJavaScriptAst {
-      allocator: &allocator,
-      comments: &comments,
-      semantic: &semantic,
-      program: &program,
-    };
-    let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
-
-    let ScanDependenciesResult {
-      dependencies,
-      blocks,
-      presentational_dependencies,
-      mut warning_diagnostics,
-      mut side_effects_item,
-    } = match scan_dependencies(
-      &source_string,
-      &parsed_ast,
-      resource_data,
-      compiler_options,
-      module_type,
-      module_layer,
-      factory_meta,
-      build_meta,
-      build_info,
-      module_identifier,
-      module_parser_options,
-      &mut semicolons,
-      &mut self.parser_plugins,
-      parse_meta,
-      &parser_runtime_requirements,
-    ) {
-      Ok(result) => result,
-      Err(mut e) => {
-        diagnostics.append(&mut e);
-        return default_with_diagnostics(source, diagnostics);
-      }
-    };
-    diagnostics.append(&mut warning_diagnostics);
-    let mut side_effects_bailout = None;
-
-    if compiler_options.optimization.side_effects.is_true() {
-      let has_side_effects = side_effects_item.is_some();
-      build_meta.side_effect_free = Some(!has_side_effects);
-      if has_side_effects {
-        build_info.deferred_pure_checks.clear();
-      }
-      side_effects_bailout = side_effects_item.take().and_then(|item| -> Option<_> {
-        let msg = item.loc?.to_string();
-        Some(SideEffectsBailoutItem { msg, ty: item.ty })
-      });
-    }
+    let (dependencies, blocks, presentational_dependencies, side_effects_bailout, diagnostics) =
+      match parsed {
+        Ok(parsed) => parsed,
+        Err(diagnostics) => return default_with_diagnostics(source, diagnostics),
+      };
 
     Ok(
       ParseResult {
