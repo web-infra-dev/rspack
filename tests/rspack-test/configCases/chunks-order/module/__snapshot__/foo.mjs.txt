@@ -1,0 +1,41 @@
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+var __rspack_import_meta_filename__ = __rspack_fileURLToPath(import.meta.url);
+export const __rspack_esm_id = "foo";
+export const __rspack_esm_ids = ["foo"];
+export const __webpack_modules__ = {
+353(__unused_rspack_module, __unused_rspack___webpack_exports__, __webpack_require__) {
+/* import */ var _style_css__rspack_import_0 = __webpack_require__(711);
+/* import */ var _dependency_js__rspack_import_1 = __webpack_require__(784);
+/* import */ var _dependency_js__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(_dependency_js__rspack_import_1);
+
+
+
+it('The dependOn chunk must be loaded before the common chunk.', async () => {
+  const fs = await eval(`import("fs")`);
+  const path = await eval(`import("path")`);
+  const source = fs.readFileSync(__rspack_import_meta_filename__, 'utf-8');
+
+  expect(source).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, 'foo.mjs.txt'));
+});
+
+
+},
+711(module) {
+module.exports = {};
+
+
+},
+
+};
+import { __webpack_require__ } from './runtime~nested-shared.mjs';
+var __webpack_exec__ = function(moduleId) { return __webpack_require__(__webpack_require__.s = moduleId); }
+import * as __rspack_chunk_1 from './commons-dependency_js.mjs';
+__webpack_require__.C(__rspack_chunk_1);
+import * as __rspack_chunk_2 from './foo.mjs';
+__webpack_require__.C(__rspack_chunk_2);
+import * as __rspack_chunk_3 from './shared.mjs';
+__webpack_require__.C(__rspack_chunk_3);
+import * as __rspack_chunk_4 from './nested-shared.mjs';
+__webpack_require__.C(__rspack_chunk_4);
+var __webpack_exports__ = __webpack_exec__(353);
+//# sourceMappingURL=foo.mjs.map

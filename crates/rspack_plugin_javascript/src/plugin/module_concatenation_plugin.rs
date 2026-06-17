@@ -6,7 +6,7 @@ use rspack_collections::{
   Identifiable, IdentifierDashMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationOptimizeChunkModules, DependencyId,
+  BoxDependency, BoxModule, ChunkUkey, Compilation, CompilationOptimizeChunkModules, DependencyId,
   DependencyType, ExportProvided, ExportsInfoArtifact, ExtendedReferencedExport, GetTargetResult,
   ImportedByDeferModulesArtifact, LibIdentOptions, Logger, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, OptimizationBailoutItem, Plugin,
@@ -20,7 +20,7 @@ use rspack_core::{
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
@@ -189,35 +189,35 @@ impl ModuleConcatenationPlugin {
     artifacts: &ModuleGraphArtifacts,
     mi: ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
-    imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
+    imports_cache: &mut RuntimeIdentifierCache<Arc<[ModuleIdentifier]>>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
-  ) -> IdentifierIndexSet {
-    if let Some(set) = imports_cache.get(&mi, runtime) {
-      return set.clone();
+  ) -> Arc<[ModuleIdentifier]> {
+    if let Some(imports) = imports_cache.get(&mi, runtime) {
+      return Arc::clone(imports);
     }
 
     let cached = module_cache.get(&mi).expect("should have module");
 
-    let mut set =
-      IdentifierIndexSet::with_capacity_and_hasher(cached.connections.len(), Default::default());
-    for (con, (has_imported_names, cached_active)) in &cached.connections {
-      if set.contains(con.module_identifier()) {
+    let mut imports = Vec::with_capacity(cached.connections.len());
+    let mut seen = IdentifierSet::default();
+    for cached_connection in &cached.connections {
+      if seen.contains(&cached_connection.module_identifier) {
         continue;
       }
 
       let is_target_active = if let Some(runtime) = runtime {
         if cached.runtime == *runtime {
           // runtime is same, use cached value
-          *cached_active
-        } else if *cached_active && cached.runtime.is_subset(runtime) {
+          cached_connection.active
+        } else if cached_connection.active && cached.runtime.is_subset(runtime) {
           // cached runtime is subset and active, means it is also active in current runtime
           true
-        } else if !*cached_active && cached.runtime.is_superset(runtime) {
+        } else if !cached_connection.active && cached.runtime.is_superset(runtime) {
           // cached runtime is superset and inactive, means it is also inactive in current runtime
           false
         } else {
           // can't determine, need to check
-          con.is_target_active(
+          cached_connection.connection.is_target_active(
             mg,
             Some(runtime),
             artifacts.mg_cache,
@@ -227,7 +227,7 @@ impl ModuleConcatenationPlugin {
         }
       } else {
         // no runtime, need to check
-        con.is_target_active(
+        cached_connection.connection.is_target_active(
           mg,
           None,
           artifacts.mg_cache,
@@ -239,29 +239,32 @@ impl ModuleConcatenationPlugin {
       if !is_target_active {
         continue;
       }
-      if *has_imported_names || cached.provided_names {
-        set.insert(*con.module_identifier());
+      if cached_connection.has_imported_names || cached.provided_names {
+        imports.push(cached_connection.module_identifier);
+        seen.insert(cached_connection.module_identifier);
       }
     }
 
-    imports_cache.insert(mi, runtime, set.clone());
-    set
+    let imports: Arc<[ModuleIdentifier]> = Arc::from(imports);
+    imports_cache.insert(mi, runtime, Arc::clone(&imports));
+    imports
   }
 
   #[allow(clippy::too_many_arguments)]
   fn try_to_add(
     compilation: &Compilation,
     config: &mut ConcatConfiguration,
+    root_chunks: &HashSet<ChunkUkey>,
     module_id: &ModuleIdentifier,
     runtime: Option<&RuntimeSpec>,
     active_runtime: Option<&RuntimeSpec>,
     possible_modules: &IdentifierSet,
     candidates: &mut IdentifierSet,
     failure_cache: &mut IdentifierMap<Warning>,
-    success_cache: &mut RuntimeIdentifierCache<Vec<ModuleIdentifier>>,
+    success_cache: &mut RuntimeIdentifierCache<Arc<[ModuleIdentifier]>>,
     avoid_mutate_on_failure: bool,
     statistics: &mut Statistics,
-    imports_cache: &mut RuntimeIdentifierCache<IdentifierIndexSet>,
+    imports_cache: &mut RuntimeIdentifierCache<Arc<[ModuleIdentifier]>>,
     module_cache: &IdentifierMap<NoRuntimeModuleCache>,
   ) -> Option<Warning> {
     statistics
@@ -297,7 +300,7 @@ impl ModuleConcatenationPlugin {
 
     let incoming_modules = if let Some(incomings) = success_cache.get(module_id, runtime) {
       statistics.cache_hit += 1;
-      incomings.clone()
+      Arc::clone(incomings)
     } else {
       let module_readable_identifier = get_cached_readable_identifier(
         module_id,
@@ -313,10 +316,12 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let missing_chunks: Vec<_> = chunk_graph
-        .get_module_chunks(config.root_module)
+      let cached = module_cache
+        .get(module_id)
+        .expect("should have module cache");
+      let missing_chunks: Vec<_> = root_chunks
         .iter()
-        .filter(|chunk| !chunk_graph.is_module_in_chunk(module_id, **chunk))
+        .filter(|chunk| !cached.chunks.contains(chunk))
         .collect();
 
       if !missing_chunks.is_empty() {
@@ -330,8 +335,8 @@ impl ModuleConcatenationPlugin {
             .collect::<Vec<_>>();
           missing_chunks_list.sort_unstable();
 
-          let mut chunks = chunk_graph
-            .get_module_chunks(*module_id)
+          let mut chunks = cached
+            .chunks
             .iter()
             .map(|&chunk| {
               let chunk = chunk_by_ukey.expect_get(&chunk);
@@ -356,12 +361,9 @@ impl ModuleConcatenationPlugin {
 
       let NoRuntimeModuleCache {
         incomings,
-        active_incomings,
         runtime: cached_module_runtime,
         ..
-      } = module_cache
-        .get(module_id)
-        .expect("should have module cache");
+      } = cached;
 
       if !incomings.from_non_modules.is_empty() {
         let has_active_non_modules_connections =
@@ -369,7 +371,6 @@ impl ModuleConcatenationPlugin {
             is_connection_active_in_runtime(
               connection,
               runtime,
-              active_incomings,
               cached_module_runtime,
               module_graph,
               &module_graph_artifacts,
@@ -401,68 +402,210 @@ impl ModuleConcatenationPlugin {
         }
       }
 
-      let mut incoming_connections_from_modules =
-        IdentifierMap::with_capacity_and_hasher(incomings.from_modules.len(), Default::default());
-      for (origin_module, connections) in incomings.from_modules.iter() {
-        let number_of_chunks = module_cache.get(origin_module).map_or_else(
-          || chunk_graph.get_number_of_module_chunks(*origin_module),
-          |m| m.number_of_chunks,
-        );
+      let mut other_chunk_modules = Vec::new();
+      let mut non_esm_modules = Vec::new();
+      let mut incoming_modules = Vec::with_capacity(incomings.from_modules.len());
 
-        if number_of_chunks == 0 {
-          // Ignore connection from orphan modules
-          continue;
-        }
+      let needs_runtime_condition = runtime.is_some_and(|runtime| runtime.len() > 1);
+      if !needs_runtime_condition {
+        for (origin_module, connections) in incomings.from_modules.iter() {
+          let origin_cache = module_cache.get(origin_module);
+          let number_of_chunks = origin_cache.map_or_else(
+            || chunk_graph.get_number_of_module_chunks(*origin_module),
+            |m| m.number_of_chunks,
+          );
 
-        let is_intersect = if let Some(runtime) = runtime {
-          if let Some(origin_runtime) = module_cache.get(origin_module).map(|m| &m.runtime) {
-            !runtime.is_disjoint(origin_runtime)
-          } else {
-            let origin_runtime = RuntimeSpec::from_runtimes(
-              chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
-            );
-            !runtime.is_disjoint(&origin_runtime)
+          if number_of_chunks == 0 {
+            // Ignore connection from orphan modules
+            continue;
           }
-        } else {
-          false
-        };
 
-        if !is_intersect {
-          continue;
-        }
+          let is_intersect = if let Some(runtime) = runtime {
+            if let Some(origin_runtime) = origin_cache.map(|m| &m.runtime) {
+              !runtime.is_disjoint(origin_runtime)
+            } else {
+              let origin_runtime = RuntimeSpec::from_runtimes(
+                chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
+              );
+              !runtime.is_disjoint(&origin_runtime)
+            }
+          } else {
+            false
+          };
 
-        let active_connections: Vec<_> = connections
-          .iter()
-          .filter(|&connection| {
-            is_connection_active_in_runtime(
+          if !is_intersect {
+            continue;
+          }
+
+          let mut has_active_connection = false;
+          let mut has_non_esm_connection = false;
+          for connection in connections {
+            if is_connection_active_in_runtime(
               connection,
               runtime,
-              active_incomings,
               cached_module_runtime,
               module_graph,
               &module_graph_artifacts,
-            )
-          })
-          .collect();
+            ) {
+              has_active_connection = true;
+              has_non_esm_connection |= !connection.is_esm;
+            }
+          }
 
-        if !active_connections.is_empty() {
-          incoming_connections_from_modules.insert(*origin_module, active_connections);
+          if has_active_connection {
+            let is_same_chunks = if let Some(origin_cache) = origin_cache {
+              root_chunks.is_subset(&origin_cache.chunks)
+            } else {
+              root_chunks.is_subset(chunk_graph.get_module_chunks(*origin_module))
+            };
+            if !is_same_chunks {
+              other_chunk_modules.push(*origin_module);
+            }
+            if has_non_esm_connection {
+              non_esm_modules.push(*origin_module);
+            }
+            incoming_modules.push(*origin_module);
+          }
+        }
+      } else {
+        let mut incoming_connections_from_modules =
+          Vec::with_capacity(incomings.from_modules.len());
+        for (origin_module, connections) in incomings.from_modules.iter() {
+          let origin_cache = module_cache.get(origin_module);
+          let number_of_chunks = origin_cache.map_or_else(
+            || chunk_graph.get_number_of_module_chunks(*origin_module),
+            |m| m.number_of_chunks,
+          );
+
+          if number_of_chunks == 0 {
+            // Ignore connection from orphan modules
+            continue;
+          }
+
+          let is_intersect = if let Some(runtime) = runtime {
+            if let Some(origin_runtime) = origin_cache.map(|m| &m.runtime) {
+              !runtime.is_disjoint(origin_runtime)
+            } else {
+              let origin_runtime = RuntimeSpec::from_runtimes(
+                chunk_graph.get_module_runtimes_iter(*origin_module, chunk_by_ukey),
+              );
+              !runtime.is_disjoint(&origin_runtime)
+            }
+          } else {
+            false
+          };
+
+          if !is_intersect {
+            continue;
+          }
+
+          let mut active_connections = Vec::new();
+          for connection in connections {
+            if is_connection_active_in_runtime(
+              connection,
+              runtime,
+              cached_module_runtime,
+              module_graph,
+              &module_graph_artifacts,
+            ) {
+              active_connections.push(connection);
+            }
+          }
+
+          if !active_connections.is_empty() {
+            let is_same_chunks = if let Some(origin_cache) = origin_cache {
+              root_chunks.is_subset(&origin_cache.chunks)
+            } else {
+              root_chunks.is_subset(chunk_graph.get_module_chunks(*origin_module))
+            };
+            if !is_same_chunks {
+              other_chunk_modules.push(*origin_module);
+            }
+            if active_connections
+              .iter()
+              .any(|connection| !connection.is_esm)
+            {
+              non_esm_modules.push(*origin_module);
+            }
+            incoming_modules.push(*origin_module);
+            incoming_connections_from_modules.push((*origin_module, active_connections));
+          }
+        }
+
+        if let Some(runtime) = runtime {
+          let mut other_runtime_connections = Vec::new();
+          'outer: for (origin_module, connections) in &incoming_connections_from_modules {
+            let mut current_runtime_condition = RuntimeCondition::Boolean(false);
+            for connection in connections {
+              let runtime_condition = filter_runtime(Some(runtime), |runtime| {
+                connection.connection.is_target_active(
+                  module_graph,
+                  runtime,
+                  module_graph_cache,
+                  &compilation
+                    .build_module_graph_artifact
+                    .side_effects_state_artifact,
+                  &compilation.exports_info_artifact,
+                )
+              });
+
+              if runtime_condition == RuntimeCondition::Boolean(false) {
+                continue;
+              }
+
+              if runtime_condition == RuntimeCondition::Boolean(true) {
+                continue 'outer;
+              }
+
+              // here two runtime_condition must be `RuntimeCondition::Spec`
+              if current_runtime_condition != RuntimeCondition::Boolean(false) {
+                current_runtime_condition
+                  .as_spec_mut()
+                  .expect("should be spec")
+                  .extend(runtime_condition.as_spec().expect("should be spec"));
+              } else {
+                current_runtime_condition = runtime_condition;
+              }
+            }
+
+            if current_runtime_condition != RuntimeCondition::Boolean(false) {
+              other_runtime_connections.push((origin_module, current_runtime_condition));
+            }
+          }
+
+          if !other_runtime_connections.is_empty() {
+            let problem = {
+              format!(
+                "Module {} is runtime-dependent referenced by these modules: {}",
+                module_readable_identifier,
+                other_runtime_connections
+                  .iter()
+                  .map(|(origin_module, runtime_condition)| {
+                    let readable_identifier = get_cached_readable_identifier(
+                      origin_module,
+                      module_graph,
+                      &compilation.module_static_cache,
+                      &compilation.options.context,
+                    );
+                    format!(
+                      "{} (expected runtime {}, module is only referenced in {})",
+                      readable_identifier,
+                      runtime,
+                      runtime_condition.as_spec().expect("should be spec")
+                    )
+                  })
+                  .collect::<Vec<_>>()
+                  .join(", ")
+              )
+            };
+
+            let problem = Warning::Problem(problem);
+            statistics.incorrect_runtime_condition += 1;
+            failure_cache.insert(*module_id, problem.clone());
+            return Some(problem);
+          }
         }
       }
-
-      let mut incoming_modules = incoming_connections_from_modules
-        .keys()
-        .copied()
-        .collect::<Vec<_>>();
-      let other_chunk_modules = incoming_modules
-        .iter()
-        .filter(|&origin_module| {
-          chunk_graph
-            .get_module_chunks(config.root_module)
-            .iter()
-            .any(|&chunk_ukey| !chunk_graph.is_module_in_chunk(origin_module, chunk_ukey))
-        })
-        .collect::<Vec<_>>();
 
       if !other_chunk_modules.is_empty() {
         let problem = {
@@ -470,7 +613,7 @@ impl ModuleConcatenationPlugin {
             .into_iter()
             .map(|mid| {
               get_cached_readable_identifier(
-                mid,
+                &mid,
                 module_graph,
                 &compilation.module_static_cache,
                 &compilation.options.context,
@@ -491,36 +634,34 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      let mut non_esm_connections = IdentifierMap::with_capacity_and_hasher(
-        incoming_connections_from_modules.len(),
-        Default::default(),
-      );
-      for (origin_module, connections) in incoming_connections_from_modules.iter() {
-        let has_non_esm_connections = connections.iter().any(|connection| {
-          let dep = module_graph.dependency_by_id(&connection.dependency_id);
-          !is_esm_dep_like(dep)
-        });
-
-        if has_non_esm_connections {
-          non_esm_connections.insert(*origin_module, connections);
-        }
-      }
-
-      if !non_esm_connections.is_empty() {
+      if !non_esm_modules.is_empty() {
         let problem = {
-          let names: Vec<_> = non_esm_connections
+          let names: Vec<_> = non_esm_modules
             .iter()
-            .map(|(origin_module, connections)| {
+            .map(|origin_module| {
               let readable_identifier = get_cached_readable_identifier(
                 origin_module,
                 module_graph,
                 &compilation.module_static_cache,
                 &compilation.options.context,
               );
-              let mut names = connections
+              let mut names = incomings
+                .from_modules
+                .get(origin_module)
+                .expect("should have incoming connections")
                 .iter()
+                .filter(|connection| {
+                  !connection.is_esm
+                    && is_connection_active_in_runtime(
+                      connection,
+                      runtime,
+                      cached_module_runtime,
+                      module_graph,
+                      &module_graph_artifacts,
+                    )
+                })
                 .map(|item| {
-                  let dep = module_graph.dependency_by_id(&item.dependency_id);
+                  let dep = module_graph.dependency_by_id(&item.connection.dependency_id);
                   dep.dependency_type().to_string()
                 })
                 .collect::<Vec<_>>();
@@ -545,84 +686,9 @@ impl ModuleConcatenationPlugin {
         return Some(problem);
       }
 
-      if let Some(runtime) = runtime
-        && runtime.len() > 1
-      {
-        let mut other_runtime_connections = Vec::new();
-        'outer: for (origin_module, connections) in incoming_connections_from_modules {
-          let mut current_runtime_condition = RuntimeCondition::Boolean(false);
-          for connection in connections {
-            let runtime_condition = filter_runtime(Some(runtime), |runtime| {
-              connection.is_target_active(
-                module_graph,
-                runtime,
-                module_graph_cache,
-                &compilation
-                  .build_module_graph_artifact
-                  .side_effects_state_artifact,
-                &compilation.exports_info_artifact,
-              )
-            });
-
-            if runtime_condition == RuntimeCondition::Boolean(false) {
-              continue;
-            }
-
-            if runtime_condition == RuntimeCondition::Boolean(true) {
-              continue 'outer;
-            }
-
-            // here two runtime_condition must be `RuntimeCondition::Spec`
-            if current_runtime_condition != RuntimeCondition::Boolean(false) {
-              current_runtime_condition
-                .as_spec_mut()
-                .expect("should be spec")
-                .extend(runtime_condition.as_spec().expect("should be spec"));
-            } else {
-              current_runtime_condition = runtime_condition;
-            }
-          }
-
-          if current_runtime_condition != RuntimeCondition::Boolean(false) {
-            other_runtime_connections.push((origin_module, current_runtime_condition));
-          }
-        }
-
-        if !other_runtime_connections.is_empty() {
-          let problem = {
-            format!(
-              "Module {} is runtime-dependent referenced by these modules: {}",
-              module_readable_identifier,
-              other_runtime_connections
-                .iter()
-                .map(|(origin_module, runtime_condition)| {
-                  let readable_identifier = get_cached_readable_identifier(
-                    origin_module,
-                    module_graph,
-                    &compilation.module_static_cache,
-                    &compilation.options.context,
-                  );
-                  format!(
-                    "{} (expected runtime {}, module is only referenced in {})",
-                    readable_identifier,
-                    runtime,
-                    runtime_condition.as_spec().expect("should be spec")
-                  )
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-          };
-
-          let problem = Warning::Problem(problem);
-          statistics.incorrect_runtime_condition += 1;
-          failure_cache.insert(*module_id, problem.clone());
-          return Some(problem);
-        }
-      }
-
       incoming_modules.sort();
-      success_cache.insert(*module_id, runtime, incoming_modules.clone());
+      let incoming_modules: Arc<[ModuleIdentifier]> = Arc::from(incoming_modules);
+      success_cache.insert(*module_id, runtime, Arc::clone(&incoming_modules));
       incoming_modules
     };
 
@@ -634,10 +700,11 @@ impl ModuleConcatenationPlugin {
 
     config.add(*module_id);
 
-    for origin_module in &incoming_modules {
+    for origin_module in incoming_modules.iter() {
       if let Some(problem) = Self::try_to_add(
         compilation,
         config,
+        root_chunks,
         origin_module,
         runtime,
         active_runtime,
@@ -666,8 +733,10 @@ impl ModuleConcatenationPlugin {
       runtime,
       imports_cache,
       module_cache,
-    ) {
-      candidates.insert(imp);
+    )
+    .iter()
+    {
+      candidates.insert(*imp);
     }
     statistics.added += 1;
     None
@@ -748,34 +817,30 @@ impl ModuleConcatenationPlugin {
           .exports_info_artifact
           .get_exports_info_data(&module_id);
         let relevant_exports = exports_info.get_relevant_exports(None);
-        let unknown_exports = relevant_exports
-          .iter()
-          .filter(|export_info| {
-            export_info.is_reexport()
-              && !matches!(
-                get_target(
-                  export_info,
-                  module_graph,
-                  &compilation.exports_info_artifact,
-                  &|_| true,
-                  &mut Default::default()
-                ),
-                Some(GetTargetResult::Target(_))
-              )
-          })
-          .copied()
-          .collect::<Vec<_>>();
-        if !unknown_exports.is_empty() {
-          let cur_bailout_reason = unknown_exports
-            .into_iter()
-            .map(|export_info| {
+        let mut unknown_exports = None;
+        for export_info in relevant_exports.iter() {
+          if export_info.is_reexport()
+            && !matches!(
+              get_target(
+                export_info,
+                module_graph,
+                &compilation.exports_info_artifact,
+                &|_| true,
+                &mut Default::default()
+              ),
+              Some(GetTargetResult::Target(_))
+            )
+          {
+            unknown_exports.get_or_insert_with(Vec::new).push({
               let name = export_info
                 .name()
                 .map_or("other exports".to_string(), |name| name.to_string());
               format!("{} : {}", name, export_info.get_used_info())
-            })
-            .collect::<Vec<String>>()
-            .join(", ");
+            });
+          }
+        }
+        if let Some(unknown_exports) = unknown_exports {
+          let cur_bailout_reason = unknown_exports.join(", ");
           // self.set_bailout_reason(
           //   &module_id,
           //   format!("Reexports in this module do not have a static target ({bailout_reason})"),
@@ -789,16 +854,10 @@ impl ModuleConcatenationPlugin {
 
           return (false, false, module_id, bailout_reason);
         }
-        let unknown_provided_exports = relevant_exports
-          .iter()
-          .filter(|export_info| !matches!(export_info.provided(), Some(ExportProvided::Provided)))
-          .copied()
-          .collect::<Vec<_>>();
-
-        if !unknown_provided_exports.is_empty() {
-          let cur_bailout_reason = unknown_provided_exports
-            .into_iter()
-            .map(|export_info| {
+        let mut unknown_provided_exports = None;
+        for export_info in relevant_exports.iter() {
+          if !matches!(export_info.provided(), Some(ExportProvided::Provided)) {
+            unknown_provided_exports.get_or_insert_with(Vec::new).push({
               let name = export_info
                 .name()
                 .map_or("other exports".to_string(), |name| name.to_string());
@@ -808,9 +867,12 @@ impl ModuleConcatenationPlugin {
                 export_info.get_provided_info(),
                 export_info.get_used_info(),
               )
-            })
-            .collect::<Vec<String>>()
-            .join(", ");
+            });
+          }
+        }
+
+        if let Some(unknown_provided_exports) = unknown_provided_exports {
+          let cur_bailout_reason = unknown_provided_exports.join(", ");
           // self.set_bailout_reason(
           //   &module_id,
           //   format!("List of module exports is dynamic ({bailout_reason})"),
@@ -886,7 +948,7 @@ impl ModuleConcatenationPlugin {
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
-    let mut imports_cache = RuntimeIdentifierCache::<IdentifierIndexSet>::default();
+    let mut imports_cache = RuntimeIdentifierCache::<Arc<[ModuleIdentifier]>>::default();
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -910,15 +972,18 @@ impl ModuleConcatenationPlugin {
         let module = module_graph
           .module_by_identifier(&module_id)
           .expect("should have module");
-        let runtime = RuntimeSpec::from_runtimes(
+        let chunks = compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_module_chunks(module_id)
+          .clone();
+        let runtime = RuntimeSpec::from_runtimes(chunks.iter().map(|chunk| {
           compilation
             .build_chunk_graph_artifact
-            .chunk_graph
-            .get_module_runtimes_iter(
-              module_id,
-              &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-            ),
-        );
+            .chunk_by_ukey
+            .expect_get(chunk)
+            .runtime()
+        }));
 
         let _ = get_cached_readable_identifier(
           &module_id,
@@ -944,24 +1009,23 @@ impl ModuleConcatenationPlugin {
               None,
             );
 
-            Some((
-              con.clone(),
-              (
-                imported_names.iter().all(|item| match item {
-                  ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
-                  ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
-                }),
-                con.is_target_active(
-                  module_graph,
-                  Some(&runtime),
-                  module_graph_cache,
-                  &compilation
-                    .build_module_graph_artifact
-                    .side_effects_state_artifact,
-                  &compilation.exports_info_artifact,
-                ),
+            Some(CachedOutgoingConnection {
+              connection: con.clone(),
+              module_identifier: *con.module_identifier(),
+              has_imported_names: imported_names.iter().all(|item| match item {
+                ExtendedReferencedExport::Array(arr) => !arr.is_empty(),
+                ExtendedReferencedExport::Export(export) => !export.name.is_empty(),
+              }),
+              active: con.is_target_active(
+                module_graph,
+                Some(&runtime),
+                module_graph_cache,
+                &compilation
+                  .build_module_graph_artifact
+                  .side_effects_state_artifact,
+                &compilation.exports_info_artifact,
               ),
-            ))
+            })
           })
           .collect::<Vec<_>>();
 
@@ -972,53 +1036,52 @@ impl ModuleConcatenationPlugin {
         let incomings = IncomingConnections {
           from_non_modules: incoming_connections_from_non_modules
             .into_iter()
-            .cloned()
+            .map(|connection| {
+              CachedIncomingConnection::new(
+                connection,
+                &runtime,
+                module_graph,
+                module_graph_cache,
+                &compilation
+                  .build_module_graph_artifact
+                  .side_effects_state_artifact,
+                &compilation.exports_info_artifact,
+              )
+            })
             .collect(),
           from_modules: incoming_connections_from_modules
             .into_iter()
             .map(|(origin_module, connections)| {
-              (origin_module, connections.into_iter().cloned().collect())
+              (
+                origin_module,
+                connections
+                  .into_iter()
+                  .map(|connection| {
+                    CachedIncomingConnection::new(
+                      connection,
+                      &runtime,
+                      module_graph,
+                      module_graph_cache,
+                      &compilation
+                        .build_module_graph_artifact
+                        .side_effects_state_artifact,
+                      &compilation.exports_info_artifact,
+                    )
+                  })
+                  .collect(),
+              )
             })
             .collect(),
         };
-        let incoming_connections_len = incomings.from_non_modules.len()
-          + incomings
-            .from_modules
-            .values()
-            .map(std::vec::Vec::len)
-            .sum::<usize>();
-        let mut active_incomings =
-          HashMap::with_capacity_and_hasher(incoming_connections_len, Default::default());
-        for connection in incomings
-          .from_non_modules
-          .iter()
-          .chain(incomings.from_modules.values().flatten())
-        {
-          active_incomings.insert(
-            connection.dependency_id,
-            connection.is_active(
-              module_graph,
-              Some(&runtime),
-              module_graph_cache,
-              &compilation
-                .build_module_graph_artifact
-                .side_effects_state_artifact,
-              &compilation.exports_info_artifact,
-            ),
-          );
-        }
-        let number_of_chunks = compilation
-          .build_chunk_graph_artifact
-          .chunk_graph
-          .get_number_of_module_chunks(module_id);
+        let number_of_chunks = chunks.len();
         (
           module_id,
           NoRuntimeModuleCache {
             runtime,
+            chunks,
             provided_names,
             connections,
             incomings,
-            active_incomings,
             number_of_chunks,
           },
         )
@@ -1035,7 +1098,11 @@ impl ModuleConcatenationPlugin {
         continue;
       }
 
-      let NoRuntimeModuleCache { runtime, .. } = modules_without_runtime_cache
+      let NoRuntimeModuleCache {
+        runtime,
+        chunks: root_chunks,
+        ..
+      } = modules_without_runtime_cache
         .get(current_root)
         .expect("should have module");
       let module_graph = compilation.get_module_graph();
@@ -1052,6 +1119,7 @@ impl ModuleConcatenationPlugin {
 
       let mut current_configuration =
         ConcatConfiguration::new(*current_root, active_runtime.clone());
+      let root_chunks = root_chunks.clone();
 
       let mut failure_cache = IdentifierMap::default();
       let mut success_cache = RuntimeIdentifierCache::default();
@@ -1077,8 +1145,8 @@ impl ModuleConcatenationPlugin {
           &modules_without_runtime_cache,
         )
       };
-      for import in imports {
-        candidates.push_back(import);
+      for import in imports.iter() {
+        candidates.push_back(*import);
       }
 
       let mut import_candidates = IdentifierSet::default();
@@ -1091,6 +1159,7 @@ impl ModuleConcatenationPlugin {
         match Self::try_to_add(
           compilation,
           &mut current_configuration,
+          &root_chunks,
           &imp,
           Some(runtime),
           active_runtime.as_ref(),
@@ -1334,17 +1403,56 @@ struct Statistics {
 
 #[derive(Debug, Default)]
 struct IncomingConnections {
-  from_non_modules: Vec<ModuleGraphConnection>,
-  from_modules: IdentifierMap<Vec<ModuleGraphConnection>>,
+  from_non_modules: Vec<CachedIncomingConnection>,
+  from_modules: IdentifierMap<Vec<CachedIncomingConnection>>,
+}
+
+#[derive(Debug)]
+struct CachedOutgoingConnection {
+  connection: ModuleGraphConnection,
+  module_identifier: ModuleIdentifier,
+  has_imported_names: bool,
+  active: bool,
+}
+
+#[derive(Debug)]
+struct CachedIncomingConnection {
+  connection: ModuleGraphConnection,
+  active: bool,
+  is_esm: bool,
+}
+
+impl CachedIncomingConnection {
+  fn new(
+    connection: &ModuleGraphConnection,
+    runtime: &RuntimeSpec,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> Self {
+    let dep = module_graph.dependency_by_id(&connection.dependency_id);
+    Self {
+      connection: connection.clone(),
+      active: connection.is_active(
+        module_graph,
+        Some(runtime),
+        module_graph_cache,
+        side_effects_state_artifact,
+        exports_info_artifact,
+      ),
+      is_esm: is_esm_dep_like(dep),
+    }
+  }
 }
 
 #[derive(Debug)]
 pub struct NoRuntimeModuleCache {
   runtime: RuntimeSpec,
+  chunks: HashSet<ChunkUkey>,
   provided_names: bool,
-  connections: Vec<(ModuleGraphConnection, (bool, bool))>,
+  connections: Vec<CachedOutgoingConnection>,
   incomings: IncomingConnections,
-  active_incomings: HashMap<DependencyId, bool>,
   number_of_chunks: usize,
 }
 
@@ -1617,31 +1725,27 @@ fn add_concatenated_module(
 }
 
 fn is_connection_active_in_runtime(
-  connection: &ModuleGraphConnection,
+  connection: &CachedIncomingConnection,
   runtime: Option<&RuntimeSpec>,
-  cached_active_incomings: &HashMap<DependencyId, bool>,
   cached_runtime: &RuntimeSpec,
   mg: &ModuleGraph,
   artifacts: &ModuleGraphArtifacts,
 ) -> bool {
-  if let (Some(cached_active), Some(runtime)) = (
-    cached_active_incomings.get(&connection.dependency_id),
-    runtime,
-  ) {
+  if let Some(runtime) = runtime {
     if runtime == cached_runtime {
-      return *cached_active;
+      return connection.active;
     }
 
-    if *cached_active && cached_runtime.is_subset(runtime) {
+    if connection.active && cached_runtime.is_subset(runtime) {
       return true;
     }
 
-    if !*cached_active && cached_runtime.is_superset(runtime) {
+    if !connection.active && cached_runtime.is_superset(runtime) {
       return false;
     }
   }
 
-  connection.is_active(
+  connection.connection.is_active(
     mg,
     runtime,
     artifacts.mg_cache,

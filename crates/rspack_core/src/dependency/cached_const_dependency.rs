@@ -9,17 +9,60 @@ use crate::{
 };
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, Default, Hash, PartialEq, Eq)]
+pub enum CachedConstDependencyPlace {
+  #[default]
+  Module = 10,
+  Chunk = 20,
+}
+
+impl CachedConstDependencyPlace {
+  fn order(self) -> i32 {
+    self as i32
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedConstDependency {
-  pub range: DependencyRange,
+  pub place: CachedConstDependencyPlace,
+  pub range: Option<DependencyRange>,
   pub identifier: Box<str>,
   pub content: Box<str>,
 }
 
 impl CachedConstDependency {
   pub fn new(range: DependencyRange, identifier: Box<str>, content: Box<str>) -> Self {
-    Self {
+    Self::new_with_place(
       range,
+      identifier,
+      content,
+      CachedConstDependencyPlace::Module,
+    )
+  }
+
+  pub fn new_with_place(
+    range: DependencyRange,
+    identifier: Box<str>,
+    content: Box<str>,
+    place: CachedConstDependencyPlace,
+  ) -> Self {
+    Self {
+      place,
+      range: Some(range),
+      identifier,
+      content,
+    }
+  }
+
+  pub fn new_without_replacement(
+    identifier: Box<str>,
+    content: Box<str>,
+    place: CachedConstDependencyPlace,
+  ) -> Self {
+    Self {
+      place,
+      range: None,
       identifier,
       content,
     }
@@ -38,6 +81,7 @@ impl DependencyCodeGeneration for CachedConstDependency {
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
+    self.place.dyn_hash(hasher);
     self.identifier.dyn_hash(hasher);
     self.range.dyn_hash(hasher);
     self.content.dyn_hash(hasher);
@@ -66,21 +110,35 @@ impl DependencyTemplate for CachedConstDependencyTemplate {
       .downcast_ref::<CachedConstDependency>()
       .expect("CachedConstDependencyTemplate should be used for CachedConstDependency");
 
-    code_generatable_context.init_fragments.push(
-      NormalInitFragment::new(
-        format!("var {} = {};\n", dep.identifier, dep.content),
-        InitFragmentStage::StageConstants,
-        0,
-        InitFragmentKey::Const(dep.identifier.to_string()),
-        None,
-      )
-      .boxed(),
-    );
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      dep.identifier.to_string(),
-      None,
-    );
+    match dep.place {
+      CachedConstDependencyPlace::Module => {
+        code_generatable_context.init_fragments.push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
+        );
+      }
+      CachedConstDependencyPlace::Chunk => {
+        code_generatable_context.chunk_init_fragments().push(
+          NormalInitFragment::new(
+            format!("var {} = {};\n", dep.identifier, dep.content),
+            InitFragmentStage::StageConstants,
+            dep.place.order(),
+            InitFragmentKey::Const(dep.identifier.to_string()),
+            None,
+          )
+          .boxed(),
+        );
+      }
+    }
+
+    if let Some(range) = dep.range {
+      source.replace(range.start, range.end, dep.identifier.to_string(), None);
+    }
   }
 }

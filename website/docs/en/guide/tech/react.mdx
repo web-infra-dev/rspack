@@ -101,23 +101,85 @@ React Compiler is an experimental compiler introduced in React 19 that can autom
 
 Before you start using React Compiler, it's recommended to read the [React Compiler documentation](https://react.dev/learn/react-compiler) to understand the functionality, current state, and usage of the React Compiler.
 
-:::tip
-At present, React Compiler only supports Babel compilation, which may slow down the build time.
-:::
-
-### How to use
+### Using `builtin:swc-loader`
 
 The steps to use React Compiler in Rspack:
 
 1. Upgrade versions of `react` and `react-dom` to 19. If you are unable to upgrade, you can install the extra [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime) package which will allow the compiled code to run on versions prior to 19.
-2. React Compiler currently only provides a Babel plugin, you need to install:
+2. Enable React Compiler in `builtin:swc-loader` through `jsc.transform.reactCompiler`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: true,
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+For React 17 and 18 projects, set the compiler target:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: {
+                  target: '18',
+                },
+              },
+            },
+          },
+        },
+        type: 'javascript/auto',
+      },
+    ],
+  },
+};
+```
+
+The `reactCompiler` options are aligned with the React Compiler configuration. For example, you can use [`compilationMode`](https://react.dev/reference/react-compiler/compilationMode) to control which functions are compiled. For more options, refer to the official [React Compiler configuration documentation](https://react.dev/reference/react-compiler/configuration).
+
+### Using Babel
+
+You can also use the Babel plugin published by React Compiler. This is useful if you need Babel-specific integration or options that are not available in the SWC transform yet.
+
+To use Babel, install:
 
 - [@babel/core](https://www.npmjs.com/package/@babel/core)
 - [babel-loader](https://www.npmjs.com/package/babel-loader)
 - [babel-plugin-react-compiler](https://www.npmjs.com/package/babel-plugin-react-compiler)
 - [@babel/plugin-syntax-jsx](https://www.npmjs.com/package/@babel/plugin-syntax-jsx)
 
-3. Register `babel-loader` in your Rspack config file:
+Register `babel-loader` in your Rspack config file:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -151,7 +213,7 @@ export default {
 };
 ```
 
-4. Create a `babel.config.js` and configure the plugins:
+Create a `babel.config.js` and configure the plugins:
 
 ```js title="babel.config.js"
 const ReactCompilerConfig = {
