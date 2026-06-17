@@ -220,7 +220,7 @@ jobs:
   ecosystem_ci_per_commit:
     name: Run ecosystem CI per commit
     needs: [check-changed, build-linux]
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 40
     permissions:
       contents: write
