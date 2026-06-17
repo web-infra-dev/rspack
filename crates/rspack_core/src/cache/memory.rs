@@ -218,6 +218,22 @@ impl Cache for MemoryCache {
     }
   }
 
+  async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    if let Some(old_compilation) = self.old_compilation.as_mut()
+      && compilation.use_source_map_dev_tool_plugin_cache
+    {
+      compilation.source_map_dev_tool_plugin_cache_artifact = old_compilation
+        .source_map_dev_tool_plugin_cache_artifact
+        .take();
+      if let Some(artifact) = compilation
+        .source_map_dev_tool_plugin_cache_artifact
+        .as_mut()
+      {
+        artifact.reset_pending_changes();
+      }
+    }
+  }
+
   // FIXME: migrate emitted_asset_versions to EmitAssetArtifact for recovery
   // EMIT_ASSETS: no artifacts to recover
   async fn before_emit_assets(&mut self, _compilation: &mut Compilation) {

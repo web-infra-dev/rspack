@@ -1,7 +1,6 @@
 mod eval_dev_tool_module_plugin;
 mod eval_source_map_dev_tool_plugin;
 mod generate_debug_id;
-mod mapped_assets_cache;
 mod module_filename_helpers;
 mod source_map_dev_tool_module_options_plugin;
 mod source_map_dev_tool_plugin;

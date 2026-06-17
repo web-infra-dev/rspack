@@ -215,6 +215,7 @@ impl Cache for MixedCache {
 
   // PROCESS_ASSETS hooks
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {
+    self.memory.before_process_assets(compilation).await;
     self.persistent.before_process_assets(compilation).await;
   }
 
