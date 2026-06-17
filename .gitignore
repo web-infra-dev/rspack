@@ -128,8 +128,6 @@ webpack-dist
 .pnpm-store/
 
 !tests/rspack-test/configCases/target
-# Runtime-created `*` fixture for the path-ends-with-star case
-tests/rspack-test/configCases/code-generation/path-ends-with-star/star\*/
 tests/e2e/temp
 packages/*/tests/js
 tests/rspack-test/js
