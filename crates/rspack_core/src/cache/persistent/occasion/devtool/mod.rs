@@ -25,6 +25,12 @@ struct SourceMapAssetEntry {
   pub asset: CompilationAsset,
 }
 
+/// Per-asset cache key for `SourceMapDevToolPlugin`.
+///
+/// The plugin options are intentionally not part of this key. Option changes
+/// are expected to invalidate the whole persistent cache via
+/// `cache.buildDependencies` or `cache.version`, while this key only
+/// distinguishes assets within a valid cache generation.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SourceMapDevToolPluginCacheKey {
   filename: Arc<str>,
