@@ -334,10 +334,18 @@ impl RstestPlugin {
     }
 
     source
+      // require_chunk_loading.ejs declares `moduleId` in the loop initializer.
       .cow_replace(
         "for (var moduleId in moreModules) {",
         &format!("for (var moduleId in moreModules) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
       )
+      // module_chunk_loading.ejs declares `moduleId` before the loop.
+      .cow_replace(
+        "for (moduleId in moreModules) {",
+        &format!("for (moduleId in moreModules) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
+      )
+      // Covers runtimeMode: "rspack" and other generated code that iterates
+      // the module factories registry directly.
       .cow_replace(
         &format!("for (moduleId in {module_factories}) {{"),
         &format!("for (moduleId in {module_factories}) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
