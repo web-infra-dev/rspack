@@ -14,10 +14,10 @@ var app2 = () => {
 	secret;
 };
 
-var app4 = (0,_lib__rspack_import_0.something)("app4"),
+var app4 = (/* unused pure expression or super */ null && (something("app4"))),
 	app5 = 10000;
 
-var app3 = (0,_lib__rspack_import_0.something)("app3");
+var app3 = (/* unused pure expression or super */ null && (something("app3")));
 
 
 },
@@ -30,8 +30,7 @@ var app3 = (0,_lib__rspack_import_0.something)("app3");
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.d(__webpack_exports__, {
-  result: () => (result),
-  something: () => (something)
+  result: () => (result)
 });
 const secret = "888";
 const result = 20000;
