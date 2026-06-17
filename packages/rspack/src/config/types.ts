@@ -1942,7 +1942,7 @@ export type CacheStorageOptions = {
   type: 'filesystem';
   /**
    * Cache directory path.
-   * @default 'node_modules/.cache/rspack/<name>-<mode>[__compilerN__]'
+   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
    */
   directory?: string;
   /**
