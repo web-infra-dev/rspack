@@ -1,0 +1,75 @@
+name: Bench Windows Toolchain
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/bench-windows-toolchain.yml'
+  workflow_dispatch:
+
+jobs:
+  bench:
+    name: zstd-cache vs reinstall (windows)
+    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Download and install zstd
+        run: |
+          curl -L https://github.com/facebook/zstd/releases/download/v1.5.7/zstd-v1.5.7-win64.zip --output zstd.zip
+          unzip -o zstd.zip
+          mv zstd-v1.5.7-win64/zstd.exe C:/Windows/System32/
+          zstd --version
+
+      - name: Install rustup if needed
+        run: |
+          if ! command -v rustup &> /dev/null ; then
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --default-toolchain none -y
+            echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+          fi
+
+      - name: Get toolchain channel
+        id: tc
+        run: |
+          ch=$(grep -E "^channel\s*=" rust-toolchain.toml | sed -n -E 's/^[ \t]*channel[ \t]*=[ \t]*"([^"]*)"[^#]*.*$/\1/p' | tr -d '[:space:]')
+          echo "ch=$ch" >> "$GITHUB_OUTPUT"
+
+      - name: A) reinstall via rustup
+        run: |
+          ch='${{ steps.tc.outputs.ch }}'
+          rustup toolchain uninstall "$ch" || true
+          t0=$(date +%s)
+          rustup toolchain install "$ch" -c rustc -c cargo -c rust-std -c clippy -c rustfmt
+          echo "REINSTALL_SEC=$(( $(date +%s) - t0 ))" >> "$GITHUB_ENV"
+
+      - name: B) zstd compress (one-time save cost)
+        run: |
+          tc_dir="${RUSTUP_HOME:-$HOME/.rustup}/toolchains"
+          echo "uncompressed size:"; du -sh "$tc_dir"
+          t0=$(date +%s)
+          tar -C "$(dirname "$tc_dir")" -cf - "$(basename "$tc_dir")" | zstd -T0 -3 -o /tmp/tc.tar.zst
+          echo "COMPRESS_SEC=$(( $(date +%s) - t0 ))" >> "$GITHUB_ENV"
+          echo "ARCHIVE_SIZE=$(du -h /tmp/tc.tar.zst | cut -f1)" >> "$GITHUB_ENV"
+
+      - name: C) zstd restore (per-run cache cost)
+        run: |
+          tc_dir="${RUSTUP_HOME:-$HOME/.rustup}/toolchains"
+          rm -rf "$tc_dir"
+          t0=$(date +%s)
+          zstd -d -c /tmp/tc.tar.zst | tar -C "$(dirname "$tc_dir")" -xf -
+          echo "RESTORE_SEC=$(( $(date +%s) - t0 ))" >> "$GITHUB_ENV"
+
+      - name: Result
+        run: |
+          {
+            echo "## Windows toolchain: reinstall vs zstd cache"
+            echo ""
+            echo "| approach | seconds |"
+            echo "|---|---|"
+            echo "| reinstall (rustup install) | ${REINSTALL_SEC}s |"
+            echo "| zstd restore / decompress (per run) | ${RESTORE_SEC}s |"
+            echo "| zstd compress (one-time save) | ${COMPRESS_SEC}s, archive ${ARCHIVE_SIZE} |"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
