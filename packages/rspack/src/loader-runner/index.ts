@@ -48,6 +48,7 @@ import {
   absolutify,
   contextify,
   makePathsRelative,
+  parseResource,
   parseResourceWithoutFragment,
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
@@ -285,7 +286,7 @@ export async function runLoaders(
       resource: resource,
     },
   });
-  const splittedResource = resource && parsePathQueryFragment(resource);
+  const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
   const resourceFragment = splittedResource
@@ -448,7 +449,7 @@ export async function runLoaders(
       );
     },
     set: (value) => {
-      const splittedResource = value && parsePathQueryFragment(value);
+      const splittedResource = value && parseResource(value);
       loaderContext.resourcePath = splittedResource
         ? splittedResource.path
         : undefined;
@@ -1128,20 +1129,4 @@ export async function runLoaders(
   }
 
   return context;
-}
-
-const PATH_QUERY_FRAGMENT_REGEXP =
-  /^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
-
-export function parsePathQueryFragment(str: string): {
-  path: string;
-  query: string;
-  fragment: string;
-} {
-  const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
-  return {
-    path: match?.[1].replace(/\u200b(.)/g, '$1') || '',
-    query: match?.[2] ? match[2].replace(/\u200b(.)/g, '$1') : '',
-    fragment: match?.[3] || '',
-  };
 }
