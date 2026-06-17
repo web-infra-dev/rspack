@@ -24,8 +24,10 @@ module.exports = {
         // "Can't resolve" (-> wasm fs/resolver bug) or already gone (-> a
         // create/remove race in this fixture).
         const T0 = Date.now();
-        const log = (...a) =>
-          console.error('[STAR-DIAG-JS]', `+${Date.now() - T0}ms`, ...a);
+        const log = (label, obj) =>
+          console.error(
+            `[STAR-DIAG-JS] +${Date.now() - T0}ms pid=${process.pid} ${label} ${obj ? JSON.stringify(obj) : ''}`,
+          );
 
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir);

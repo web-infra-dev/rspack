@@ -27,7 +27,23 @@ fn star_diag_path(path: &std::path::Path) -> bool {
     .is_some_and(|p| p.contains("path-ends-with-star"))
 }
 
-fn star_diag_meta(op: &str, path: &std::path::Path, res: &rspack_fs::Result<rspack_fs::FileMetadata>) {
+// STAR-DIAG: widen the resolution window for the `star*` segment so the
+// (suspected) cross-suite remove-during-resolve race reproduces in a single
+// CI run instead of ~15% of the time. Sleeping *before* the underlying fs call
+// gives the other parallel suite's `done`-hook `rmSync(star*)` time to land in
+// the middle of this resolution.
+#[inline]
+fn star_diag_widen(path: &std::path::Path) {
+  if path.to_str().is_some_and(|p| p.contains("star*")) {
+    std::thread::sleep(std::time::Duration::from_millis(150));
+  }
+}
+
+fn star_diag_meta(
+  op: &str,
+  path: &std::path::Path,
+  res: &rspack_fs::Result<rspack_fs::FileMetadata>,
+) {
   if !star_diag_path(path) {
     return;
   }
@@ -71,6 +87,7 @@ impl ResolverFileSystem for BoxFS {
     }
   }
   async fn metadata(&self, path: &std::path::Path) -> io::Result<FileMetadata> {
+    star_diag_widen(path);
     let raw = self.0.metadata(path.assert_utf8()).await;
     star_diag_meta("metadata", path, &raw);
     match raw {
@@ -84,6 +101,7 @@ impl ResolverFileSystem for BoxFS {
   }
 
   async fn symlink_metadata(&self, path: &std::path::Path) -> io::Result<FileMetadata> {
+    star_diag_widen(path);
     let raw = self.0.symlink_metadata(path.assert_utf8()).await;
     star_diag_meta("symlink_metadata", path, &raw);
     match raw {
