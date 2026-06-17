@@ -11,7 +11,8 @@ use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
-    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+    generate_chunk_cache_controls, get_initial_chunk_ids, render_hmr_runtime_state_expression,
+    stringify_chunks,
   },
 };
 
@@ -70,6 +71,42 @@ impl RequireChunkLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template)
   }
+  fn generate_require_cache_clear(
+    &self,
+    runtime_template: &RuntimeCodeTemplate<'_>,
+    root_output_dir: &str,
+  ) -> String {
+    let require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let get_chunk_script_filename =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME);
+    let root_output_dir = rspack_util::json_stringify_str(root_output_dir);
+    format!(
+      r#"
+if (typeof require === "function" && {require}.chunkCacheControls && {require}.chunkCacheControls.require) {{
+  var requireChunkCacheControl = {require}.chunkCacheControls.require;
+  if (!requireChunkCacheControl.__rspack_require_cache_clear_installed__) {{
+    var originalRequireChunkClear = requireChunkCacheControl.clear;
+    requireChunkCacheControl.__rspack_require_cache_clear_installed__ = true;
+    requireChunkCacheControl.clear = function(chunkIds) {{
+      for (var i = 0; i < chunkIds.length; i++) {{
+        var chunkFile = {root_output_dir} + {get_chunk_script_filename}(chunkIds[i]);
+        try {{
+          delete require.cache[require.resolve(chunkFile)];
+        }} catch (e) {{}}
+        try {{
+          var path = require("node:path");
+          var Module = require("node:module");
+          if (Module && Module._cache) delete Module._cache[path.resolve(__dirname, chunkFile)];
+        }} catch (e) {{}}
+      }}
+      return originalRequireChunkClear(chunkIds);
+    }};
+  }}
+}}
+"#
+    )
+  }
+
   fn generate_base_uri(
     &self,
     chunk: &Chunk,
@@ -259,6 +296,14 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
         "var installedChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
       ));
+    }
+    source.push_str(&generate_chunk_cache_controls(
+      runtime_template,
+      "require",
+      1,
+    ));
+    if with_loading {
+      source.push_str(&self.generate_require_cache_clear(runtime_template, &root_output_dir));
     }
 
     if with_on_chunk_load {
