@@ -14,7 +14,8 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "type": "memory",
+			-   "cache": false,
+			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "portable": false,
 			+     "readonly": false,
@@ -27,9 +28,12 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack/none",
+			+       "maxAge": undefined,
+			+       "maxGenerations": undefined,
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",
 			+     "version": "",
+			+   },
 		`)
 };

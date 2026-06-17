@@ -8,7 +8,8 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-     "type": "memory",
+			-   "cache": false,
+			+   "cache": Object {
 			+     "buildDependencies": Array [],
 			+     "portable": false,
 			+     "readonly": false,
@@ -21,10 +22,13 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/node_modules/.cache/rspack/development",
+			+       "maxAge": undefined,
+			+       "maxGenerations": undefined,
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",
 			+     "version": "",
+			+   },
 			@@ ... @@
 			-   "devtool": false,
 			+   "devtool": "cheap-module-source-map",
