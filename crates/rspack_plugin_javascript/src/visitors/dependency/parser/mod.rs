@@ -556,15 +556,11 @@ impl<'parser> JavascriptParser<'parser> {
       inline_exports,
     )));
     if compiler_options.optimization.inner_graph {
-      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(
-        compiler_options.experiments.pure_functions,
-      )));
+      plugins.push(Box::new(parser_plugin::InnerGraphParserPlugin::new(true)));
     }
 
     if compiler_options.optimization.side_effects.is_true() {
-      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(
-        compiler_options.experiments.pure_functions,
-      )));
+      plugins.push(Box::new(parser_plugin::SideEffectsParserPlugin::new(true)));
     }
 
     let plugin_drive = Rc::new(JavaScriptParserPluginDrive::new(plugins));

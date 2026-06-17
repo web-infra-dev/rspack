@@ -32,7 +32,6 @@ module.exports = {
       context: workDir,
       entry: "./index.js",
       experiments: {
-        pureFunctions: true,
         cache: {
           type: "persistent",
           buildDependencies: [__filename],

@@ -18,9 +18,6 @@ module.exports = {
 			target: "node",
 			context: path.resolve(__dirname, "../fixtures", CASE_DIR),
 			entry: "./index.js",
-			experiments: {
-				pureFunctions: true
-			},
 			module: {
 				rules: [
 					{

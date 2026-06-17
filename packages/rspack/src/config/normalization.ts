@@ -346,8 +346,12 @@ export const getNormalizedRspackOptions = (
     performance: config.performance,
     plugins: nestedArray(config.plugins, (p) => [...p]),
     experiments: nestedConfig(config.experiments, (experiments) => {
+      const { pureFunctions: _pureFunctions, ...normalizedExperiments } =
+        experiments as typeof experiments & {
+          pureFunctions?: unknown;
+        };
       return {
-        ...experiments,
+        ...normalizedExperiments,
         buildHttp: experiments.buildHttp,
         useInputFileSystem: experiments.useInputFileSystem,
       };
@@ -620,7 +624,6 @@ export interface ExperimentsNormalized {
   nativeWatcher?: boolean;
   deferImport?: boolean;
   sourceImport?: boolean;
-  pureFunctions?: boolean;
   runtimeMode?: 'webpack' | 'rspack';
 }
 

@@ -835,9 +835,6 @@ export default {
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    pureFunctions: true,
-  },
   module: {
     rules: [
       // 将第三方库中的导出标记为 pure
@@ -861,7 +858,7 @@ export default {
 ```
 
 :::warning
-该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
+如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
 :::
 
 ### ["javascript/auto"]

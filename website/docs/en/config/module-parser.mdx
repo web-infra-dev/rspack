@@ -835,9 +835,6 @@ Although the option lives under `module.parser.javascript`, in practice it is us
 
 ```js title="rspack.config.mjs"
 export default {
-  experiments: {
-    pureFunctions: true,
-  },
   module: {
     rules: [
       // Mark exports of a third-party library as pure.
@@ -861,7 +858,7 @@ export default {
 ```
 
 :::warning
-This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
+Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
 :::
 
 ### ["javascript/auto"]

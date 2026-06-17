@@ -15,7 +15,6 @@ pub struct RawExperiments {
   pub css: Option<bool>,
   pub defer_import: bool,
   pub source_import: bool,
-  pub pure_functions: bool,
   #[napi(ts_type = "\"webpack\" | \"rspack\"")]
   pub runtime_mode: Option<String>,
 }
@@ -32,7 +31,6 @@ impl From<RawExperiments> for Experiments {
       css: value.css.unwrap_or(false),
       defer_import: value.defer_import,
       source_import: value.source_import,
-      pure_functions: value.pure_functions,
       runtime_mode,
     }
   }

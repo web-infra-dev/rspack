@@ -235,8 +235,6 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   // Enable `useInputFileSystem` will introduce much more fs overheads,  So disable by default.
   D(experiments, 'useInputFileSystem', false);
 
-  // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', false);
   D(experiments, 'runtimeMode', 'webpack');
 };
 

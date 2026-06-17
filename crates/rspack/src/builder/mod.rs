@@ -3421,7 +3421,7 @@ impl OptimizationOptionsBuilder {
     builder_context: &mut BuilderContext,
     development: bool,
     production: bool,
-    experiments: &Experiments,
+    _experiments: &Experiments,
   ) -> Result<Optimization> {
     let remove_empty_chunks = d!(self.remove_empty_chunks, true);
     if remove_empty_chunks {
@@ -3550,9 +3550,7 @@ impl OptimizationOptionsBuilder {
     if side_effects.is_enable() {
       builder_context
         .plugins
-        .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
-          experiments.pure_functions,
-        ));
+        .push(BuiltinPluginOptions::SideEffectsFlagPlugin(true));
     }
 
     let inline_exports = d!(self.inline_exports, production);
@@ -3681,8 +3679,6 @@ pub struct ExperimentsBuilder {
   defer_import: Option<bool>,
   /// Whether to enable source import.
   source_import: Option<bool>,
-  // TODO: lazy compilation
-  pure_functions: Option<bool>,
   runtime_mode: Option<RuntimeMode>,
 }
 
@@ -3694,7 +3690,6 @@ impl From<Experiments> for ExperimentsBuilder {
       async_web_assembly: None,
       defer_import: Some(value.defer_import),
       source_import: Some(value.source_import),
-      pure_functions: Some(value.pure_functions),
       runtime_mode: Some(value.runtime_mode),
     }
   }
@@ -3708,7 +3703,6 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       async_web_assembly: value.async_web_assembly.take(),
       defer_import: value.defer_import.take(),
       source_import: value.source_import.take(),
-      pure_functions: value.pure_functions.take(),
       runtime_mode: value.runtime_mode.take(),
     }
   }
@@ -3763,7 +3757,6 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      pure_functions: d!(self.pure_functions, false),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
@@ -3815,30 +3808,6 @@ mod test {
 
       let plugins = context.take_plugins(&compiler_options);
       assert!(!plugins.is_empty());
-    })
-  }
-
-  #[test]
-  fn side_effects_flag_plugin_respects_pure_functions() {
-    within_compiler_context_for_testing_sync(|| {
-      let mut context: BuilderContext = Default::default();
-      let compiler_options = CompilerOptions::builder()
-        .mode(Mode::Production)
-        .target(vec!["web".to_string()])
-        .experiments(ExperimentsBuilder {
-          pure_functions: Some(true),
-          ..Default::default()
-        })
-        .build(&mut context)
-        .unwrap();
-
-      assert!(compiler_options.experiments.pure_functions);
-      assert!(
-        context
-          .plugins
-          .iter()
-          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
-      );
     })
   }
 

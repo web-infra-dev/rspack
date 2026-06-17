@@ -12,7 +12,6 @@ module.exports = {
     concatenateModules: false,
   },
   experiments: {
-    pureFunctions: true,
     cache: {
       type: 'memory',
     },

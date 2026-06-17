@@ -3024,11 +3024,6 @@ export type Experiments = {
    */
   sourceImport?: boolean;
   /**
-   * Enable pure-function-based side-effects analysis.
-   * @default false
-   */
-  pureFunctions?: boolean;
-  /**
    * Select runtime proxy context behavior. `webpack` keeps `__webpack_require__.x`,
    * while `rspack` uses `__rspack_context`.
    * @default "webpack"

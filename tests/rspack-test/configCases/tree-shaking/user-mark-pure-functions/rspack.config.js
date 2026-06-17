@@ -6,9 +6,6 @@ module.exports = {
     usedExports: true,
     concatenateModules: false,
   },
-  experiments: {
-    pureFunctions: true,
-  },
   module: {
     rules: [
       {

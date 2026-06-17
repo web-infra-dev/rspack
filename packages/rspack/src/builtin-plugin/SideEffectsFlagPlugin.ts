@@ -6,7 +6,7 @@ export class SideEffectsFlagPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.SideEffectsFlagPlugin;
   affectedHooks = 'compilation' as const;
 
-  constructor(private analyzeSideEffectsFree = false) {
+  constructor(private analyzeSideEffectsFree = true) {
     super();
   }
 
