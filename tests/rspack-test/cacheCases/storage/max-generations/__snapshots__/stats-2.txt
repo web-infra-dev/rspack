@@ -1,4 +1,4 @@
-DEBUG LOG from rspack.persistentCache
+LOG from rspack.persistentCache
 <i> persistent cache enabled
 <i> build dependencies are valid (0 tracked)
 <i> meta persistent cache recovery succeeded

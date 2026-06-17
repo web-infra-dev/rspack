@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const cacheDir = path.join(__dirname, 'node_modules/.cache/max-generations');
 // Change cache.version between restarts to create multiple persistent cache
-// generations under the same compiler scope.
+// generations under the same storage directory.
 const cacheVersions = ['v1', 'v2', 'v3', 'v4'];
 const seenGenerations = [];
 let buildIndex = 0;
@@ -18,11 +18,7 @@ const getCacheEntries = (directory) => {
     .sort();
 };
 
-const getCompilerGenerations = () => {
-  const compilerScopes = getCacheEntries(cacheDir);
-  expect(compilerScopes.length).toBe(1);
-  return getCacheEntries(path.join(cacheDir, compilerScopes[0]));
-};
+const getCacheGenerations = () => getCacheEntries(cacheDir);
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
@@ -40,10 +36,10 @@ module.exports = {
       apply(compiler) {
         compiler.hooks.beforeCompile.tap('Test Plugin', () => {
           if (buildIndex === 1) {
-            seenGenerations[0] = getCompilerGenerations()[0];
+            seenGenerations[0] = getCacheGenerations()[0];
           }
           if (buildIndex === 3) {
-            const currentGenerations = getCompilerGenerations();
+            const currentGenerations = getCacheGenerations();
             expect(currentGenerations).toHaveLength(2);
             expect(currentGenerations).not.toContain(seenGenerations[0]);
           }

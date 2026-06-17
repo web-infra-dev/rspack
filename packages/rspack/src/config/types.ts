@@ -1912,10 +1912,6 @@ export type Node = false | NodeOptions;
 export type Loader = Record<string, any>;
 //#endregion
 
-//#region Snapshot
-export type SnapshotOptions = {};
-//#endregion
-
 //#region Cache
 /**
  * Snapshot options for determining which files have been modified.
@@ -1946,19 +1942,19 @@ export type CacheStorageOptions = {
   type: 'filesystem';
   /**
    * Cache directory path.
-   * @default 'node_modules/.cache/rspack'
+   * @default 'node_modules/.cache/rspack/<name>-<mode>[__compilerN__]'
    */
   directory?: string;
   /**
-   * Maximum age of cache versions in seconds. Must be an integer between 0
-   * and 4294967295.
+   * Maximum age of unused filesystem cache in seconds. Must be an integer
+   * between 0 and 4294967295.
    * @default 7 * 24 * 60 * 60
    */
   maxAge?: number;
   /**
-   * Maximum number of cache generations to retain for each compiler. Must be
-   * an integer between 0 and 4294967295.
-   * @default No generation count limit; age-based cleanup still applies
+   * Maximum number of filesystem cache generations to retain in the cache
+   * directory. Must be an integer between 0 and 4294967295.
+   * @default No generation count limit; maxAge cleanup still applies
    */
   maxGenerations?: number;
 };
@@ -3272,10 +3268,6 @@ export type RspackOptions = {
    * Options for the stats output.
    */
   stats?: StatsValue;
-  /**
-   * Options for snapshotting.
-   */
-  snapshot?: SnapshotOptions;
   /**
    * Optimization options.
    */

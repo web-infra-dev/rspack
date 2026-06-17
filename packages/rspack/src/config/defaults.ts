@@ -20,6 +20,7 @@ import { isNil } from '../util';
 import { assertNotNill } from '../util/assertNotNil';
 import { cleverMerge } from '../util/cleverMerge';
 import type {
+  CacheNormalized,
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
@@ -48,18 +49,19 @@ import type {
   Loader,
   Mode,
   ModuleOptions,
+  Name,
   Node,
   Optimization,
   Performance,
   ResolveOptions,
   RuleSetRules,
-  SnapshotOptions,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
+  compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
   F(options, 'target', () => {
@@ -95,8 +97,15 @@ export const applyRspackOptionsDefaults = (
   D(options, 'lazyCompilation', false);
   D(options, 'bail', false);
 
-  // but Rspack currently does not support this option
-  F(options, 'cache', () => development);
+  F(options, 'cache', () =>
+    development ? { type: 'memory' as const } : false,
+  );
+  applyCacheDefaults(options.cache!, {
+    context: options.context!,
+    name: options.name,
+    mode: options.mode,
+    compilerIndex,
+  });
 
   applyIncrementalDefaults(options);
 
@@ -106,8 +115,6 @@ export const applyRspackOptionsDefaults = (
     production,
     development,
   });
-
-  applySnapshotDefaults(options.snapshot, { production });
 
   applyOutputDefaults(options, {
     context: options.context!,
@@ -201,6 +208,45 @@ export const applyRspackOptionsDefaults = (
       };
 };
 
+const applyCacheDefaults = (
+  cache: CacheNormalized,
+  {
+    context,
+    name,
+    mode,
+    compilerIndex,
+  }: {
+    context: string;
+    name?: Name;
+    mode?: Mode;
+    compilerIndex?: number;
+  },
+) => {
+  if (cache === false) return;
+  switch (cache.type) {
+    case 'memory':
+      break;
+    case 'persistent':
+      D(cache, 'version', '');
+      F(cache, 'buildDependencies', () => []);
+      F(cache.snapshot, 'immutablePaths', () => []);
+      F(cache.snapshot, 'unmanagedPaths', () => []);
+      F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+      D(cache.storage, 'type', 'filesystem');
+      F(cache.storage, 'directory', () => {
+        const modeName = mode || 'production';
+        const compilerName = name ? `${name}-${modeName}` : modeName;
+        const cacheName = compilerIndex
+          ? `${compilerName}-${compilerIndex}`
+          : compilerName;
+        return path.resolve(context, 'node_modules/.cache/rspack', cacheName);
+      });
+      D(cache, 'portable', false);
+      D(cache, 'readonly', false);
+      break;
+  }
+};
+
 export const applyRspackOptionsBaseDefaults = (
   options: RspackOptionsNormalized,
 ) => {
@@ -260,11 +306,6 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
     D(options.incremental, 'emitAssets', true);
   }
 };
-
-const applySnapshotDefaults = (
-  _snapshot: SnapshotOptions,
-  _env: { production: boolean },
-) => {};
 
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,

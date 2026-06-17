@@ -14,11 +14,10 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
-			-   "cache": false,
-			+   "cache": Object {
+			-     "type": "memory",
 			+     "buildDependencies": Array [],
-			+     "portable": undefined,
-			+     "readonly": undefined,
+			+     "portable": false,
+			+     "readonly": false,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
@@ -27,11 +26,10 @@ module.exports = {
 			+       "unmanagedPaths": Array [],
 			+     },
 			+     "storage": Object {
-			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack",
+			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack/none",
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",
 			+     "version": "",
-			+   },
 		`)
 };

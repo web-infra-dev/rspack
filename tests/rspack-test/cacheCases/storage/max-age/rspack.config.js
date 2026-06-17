@@ -3,7 +3,7 @@ const path = require('node:path');
 
 const cacheDir = path.join(__dirname, 'node_modules/.cache/max-age');
 // Change cache.version between restarts to create multiple persistent cache
-// generations under the same compiler scope.
+// generations under the same storage directory.
 const cacheVersions = ['v1', 'v2', 'v3'];
 let buildIndex = 0;
 let expiredGeneration;
@@ -20,19 +20,7 @@ const getCacheEntries = (directory) => {
     .sort();
 };
 
-const tryGetCompilerScope = () => {
-  const compilerScopes = getCacheEntries(cacheDir);
-  return compilerScopes.length === 1 ? compilerScopes[0] : undefined;
-};
-
-const getCompilerScope = () => {
-  const compilerScopes = getCacheEntries(cacheDir);
-  expect(compilerScopes.length).toBe(1);
-  return compilerScopes[0];
-};
-
-const getCompilerGenerations = () =>
-  getCacheEntries(path.join(cacheDir, getCompilerScope()));
+const getCacheGenerations = () => getCacheEntries(cacheDir);
 
 // Persistent cache writes are queued in the background. Wait until the first
 // generation directory and `_meta` are both visible before starting the
@@ -40,16 +28,12 @@ const getCompilerGenerations = () =>
 // recorded.
 const waitForInitialGenerationWrite = async () => {
   for (let index = 0; index < 50; index++) {
-    const compilerScope = tryGetCompilerScope();
-    if (compilerScope) {
-      const scopeDir = path.join(cacheDir, compilerScope);
-      const generations = getCacheEntries(scopeDir);
-      if (
-        generations.length === 1 &&
-        fs.existsSync(path.join(scopeDir, '_meta'))
-      ) {
-        return generations[0];
-      }
+    const generations = getCacheGenerations();
+    if (
+      generations.length === 1 &&
+      fs.existsSync(path.join(cacheDir, '_meta'))
+    ) {
+      return generations[0];
     }
     await wait(50);
   }
@@ -75,7 +59,7 @@ module.exports = {
       apply(compiler) {
         compiler.hooks.beforeCompile.tap('Test Plugin', () => {
           if (buildIndex === 2) {
-            const currentGenerations = getCompilerGenerations();
+            const currentGenerations = getCacheGenerations();
             expect(currentGenerations).toHaveLength(1);
             expect(currentGenerations).not.toContain(expiredGeneration);
           }

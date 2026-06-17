@@ -16,7 +16,6 @@ use rspack_cacheable::{
   with::{As, AsVec, Skip},
 };
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem};
-use rspack_hash::{HashDigest, HashFunction, RspackHash};
 use rspack_workspace::rspack_pkg_version;
 
 use self::{
@@ -46,7 +45,7 @@ pub struct PersistentCacheOptions {
   /// Filesystem cache max age in seconds. `None` uses the storage default.
   #[cacheable(with=Skip)]
   pub max_age: Option<u64>,
-  /// Filesystem generation count limit for the current compiler cache scope.
+  /// Filesystem generation count limit for the current storage directory.
   #[cacheable(with=Skip)]
   pub max_generations: Option<u32>,
 }
@@ -80,11 +79,6 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    let compiler_scope = compiler_cache_scope(
-      (!option.portable).then_some(compiler_options.context.as_str()),
-      compiler_path,
-      compiler_options.name.as_deref(),
-    );
     let max_generations = option.max_generations;
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
@@ -102,7 +96,6 @@ impl PersistentCache {
     };
     let storage = create_storage(
       option.storage.clone(),
-      compiler_scope,
       version,
       option.max_age,
       max_generations,
@@ -147,20 +140,6 @@ impl PersistentCache {
     // meta: load or reset. make will handle itself in before_build_module_graph.
     self.ctx.load_occasion(&self.meta_occasion).await;
   }
-}
-
-/// Stable directory name for compiler-local filesystem cache.
-///
-/// Portable cache intentionally omits `context`, so moving the same project to
-/// another directory keeps using the same compiler cache scope.
-fn compiler_cache_scope(
-  context: Option<&str>,
-  compiler_path: &str,
-  compiler_name: Option<&str>,
-) -> String {
-  let mut hasher = RspackHash::new(&HashFunction::Xxhash64);
-  (context, compiler_path, compiler_name).hash(&mut hasher);
-  hasher.digest(&HashDigest::Hex).encoded().into()
 }
 
 #[async_trait::async_trait]

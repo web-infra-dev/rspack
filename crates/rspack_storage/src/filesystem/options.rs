@@ -7,17 +7,15 @@ use rspack_paths::Utf8PathBuf;
 #[derive(Debug)]
 pub struct FileSystemOptions {
   /// Storage root directory path. Filesystem cache entries are stored under
-  /// `<directory>/<compiler_scope>/<version>`.
+  /// `<directory>/<version>`.
   pub directory: Utf8PathBuf,
-  /// Compiler-scoped cache directory name
-  pub compiler_scope: String,
   /// Version identifier for the specific DB instance within directory
   pub version: String,
   /// Maximum pack file size (bytes), creates new pack file when exceeded
   pub max_pack_size: usize,
   /// Data expiration time (seconds), 0 means never expire
   pub expire: u64,
-  /// Maximum number of generations retained for the active compiler scope
+  /// Maximum number of generations retained in the storage directory
   pub max_generations: Option<u32>,
   /// File system implementation
   pub fs: Arc<dyn IntermediateFileSystem>,

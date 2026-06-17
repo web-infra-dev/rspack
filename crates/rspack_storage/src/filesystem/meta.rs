@@ -7,8 +7,8 @@ use crate::{Error, Result};
 
 /// Metadata for tracking last access times of all DB versions.
 ///
-/// Each compiler cache scope has its own `_meta` file. The file uses a
-/// two-column line format:
+/// Each storage directory has its own `_meta` file. The file uses a two-column
+/// line format:
 /// ```text
 /// version1 timestamp1
 /// version2 timestamp2
@@ -111,8 +111,8 @@ impl Meta {
     }
 
     if let Some(max_generations) = max_generations {
-      // `versions` is already scoped to the current compiler cache directory,
-      // so every non-hidden, non-active entry is a generation candidate.
+      // `versions` is already scoped to the current storage directory, so every
+      // non-hidden, non-active entry is a generation candidate.
       let mut candidates = versions
         .iter()
         .filter(|version| version.as_str() != active_version && !version.starts_with(['_', '.']))
@@ -181,48 +181,6 @@ mod test {
     let contents = String::from_utf8(fs.read(Meta::FILE_NAME).await?).expect("valid metadata");
     assert!(contents.lines().all(|line| line.split(' ').count() == 2));
 
-    Ok(())
-  }
-
-  #[tokio::test]
-  #[cfg_attr(miri, ignore)]
-  async fn limits_versions_within_the_active_compiler_scope() -> Result<()> {
-    let now = Meta::current_timestamp();
-    let mut meta = Meta::default();
-    meta.access_times.insert("a-v1".into(), now - 30);
-    meta.access_times.insert("a-v2".into(), now - 20);
-    meta.access_times.insert("b-v1".into(), now - 40);
-    meta.access_times.insert("legacy".into(), now - 50);
-    let versions = vec![
-      "a-v0".into(),
-      "a-v1".into(),
-      "a-v2".into(),
-      "a-v3".into(),
-      "b-v1".into(),
-      "legacy".into(),
-    ];
-
-    let (removed, _) = meta.refresh("a-v3", 0, Some(2), &versions).await?;
-
-    assert_eq!(removed, vec![String::from("a-v0"), String::from("a-v1")]);
-    assert!(meta.access_times.contains_key("a-v2"));
-    assert!(meta.access_times.contains_key("a-v3"));
-    assert!(meta.access_times.contains_key("b-v1"));
-    assert!(meta.access_times.contains_key("legacy"));
-
-    let versions = vec![
-      "a-v2".into(),
-      "a-v3".into(),
-      "a-v4".into(),
-      "b-v1".into(),
-      "legacy".into(),
-    ];
-    let (mut removed, _) = meta.refresh("a-v4", 0, Some(1), &versions).await?;
-    removed.sort();
-    assert_eq!(removed, vec![String::from("a-v2"), String::from("a-v3")]);
-    assert!(meta.access_times.contains_key("a-v4"));
-    assert!(meta.access_times.contains_key("b-v1"));
-    assert!(meta.access_times.contains_key("legacy"));
     Ok(())
   }
 }
