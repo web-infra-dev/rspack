@@ -23,7 +23,6 @@ describeByWalk(
 			/^[^a-d]/,
 			// Custom runtime sources are not supported in rspack runtime mode.
 			/^builtin-swc-loader\/preact-refresh$/,
-			/^chunks-order\/module$/,
 			/^container-1-5\/tree-shaking-shared-(infer|server)-mode$/,
 			/^hooks\/(modify-extract-css-loading-runtime|rspack-issue-5571|runtime-module|runtime-requirement-in-tree)$/,
 			/^rstest\/(dynamic-import-origin|mock|mock-dynamic-import-external|module-path-names|new-url-wasm)$/,
