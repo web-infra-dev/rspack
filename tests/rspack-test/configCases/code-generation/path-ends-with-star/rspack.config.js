@@ -29,10 +29,13 @@ module.exports = {
             `[STAR-DIAG-JS] +${Date.now() - T0}ms pid=${process.pid} ${label} ${obj ? JSON.stringify(obj) : ''}`,
           );
 
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir);
+        // FIX: create idempotently and never delete mid-run (the previous
+        // done-hook rmSync deleted this shared dir while the parallel
+        // RuntimeModeConfig suite was still building it).
+        fs.mkdirSync(dir, { recursive: true });
+        if (!fs.existsSync(file)) {
+          fs.writeFileSync(file, 'export const a = 1;');
         }
-        fs.writeFileSync(file, 'export const a = 1;');
         log('created', {
           dirExists: fs.existsSync(dir),
           fileExists: fs.existsSync(file),
@@ -69,12 +72,6 @@ module.exports = {
           if (starErr) {
             log('STAR-ERROR', String((starErr && starErr.message) || starErr));
           }
-        });
-
-        // cleanup
-        compiler.hooks.done.tap('skipWindows', () => {
-          log('done -> cleanup', { dirExists: fs.existsSync(dir) });
-          fs.rmSync(dir, { recursive: true, force: true });
         });
       }
     },
