@@ -12,6 +12,7 @@ on:
           - canary
           - nightly
           - latest
+          - latest-v1
           - beta
           - alpha
           - rc
@@ -23,6 +24,7 @@ on:
           - canary
           - nightly
           - latest
+          - latest-v1
           - beta
           - alpha
           - rc
