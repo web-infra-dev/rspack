@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{CompilationAsset, RayonConsumer};
 
-pub const SCOPE: &str = "occasion_source_map";
+pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
 #[cacheable]
 struct Entry {
