@@ -604,6 +604,61 @@ export default {
 };
 ```
 
+### javascript.createRequire
+
+<PropertyType type="boolean | string" />
+
+- **默认值：** Node-like target 下为 `true`，其他 target 下为 `false`。
+
+控制 Rspack 是否解析来自 Node.js `module` 的 `createRequire()`，并将创建出的 `require` 函数转换为可静态分析的依赖上下文。
+
+当设置为 `true` 时，等价于 `"createRequire from module"`。对于这种默认形式，Rspack 会同时识别来自 `module` 和 `node:module` 的导入。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire as r } from 'module';
+
+const require = r(import.meta.url);
+const value = require('./value.cjs');
+```
+
+Rspack 也支持 namespace import 和 default import：
+
+```js title="index.js"
+import moduleDefault from 'module';
+import * as moduleNs from 'node:module';
+
+moduleDefault.createRequire(import.meta.url)('./value.cjs');
+moduleNs.createRequire(import.meta.url)('./value.cjs');
+```
+
+`createRequire()` 的参数必须能被静态分析为 file URL 或绝对路径，例如 `import.meta.url`、`new URL('./dir/file.js', import.meta.url)` 或绝对 `file:` URL。当 `import.meta.url` 作为参数使用时，Rspack 会将其作为当前模块 URL 来计算 `createRequire` 的上下文。
+
+你也可以使用 `"<specifier> from <module>"` 形式的字符串来自定义导入的 specifier 和模块来源：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: 'createRequire from module',
+      },
+    },
+  },
+};
+```
+
 ### javascript.requireAlias
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />

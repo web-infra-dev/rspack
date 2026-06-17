@@ -196,6 +196,17 @@ fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bo
 
 #[cold]
 #[inline(never)]
+fn is_create_require_module_object_import(settings: &ESMSpecifierData) -> bool {
+  settings.namespace_import
+    || (settings.ids.len() == 1
+      && settings
+        .ids
+        .first()
+        .is_some_and(|id| id.as_ref() == "default"))
+}
+
+#[cold]
+#[inline(never)]
 pub(crate) fn is_create_require_namespace_member(
   parser: &mut JavascriptParser,
   expr: &Expr,
@@ -211,12 +222,12 @@ pub(crate) fn is_create_require_namespace_member(
   else {
     return false;
   };
-  let namespace_import = settings.namespace_import;
   let source = settings.source.clone();
+  let module_object_import = is_create_require_module_object_import(settings);
   let Some(member) = static_member_name(member_expr) else {
     return false;
   };
-  namespace_import
+  module_object_import
     && create_require_import_specifier(parser, &source).is_some_and(|specifier| member == specifier)
 }
 
@@ -238,7 +249,7 @@ fn is_create_require_namespace_member_param(
   else {
     return false;
   };
-  settings.namespace_import
+  is_create_require_module_object_import(settings)
     && create_require_import_specifier(parser, &settings.source)
       .is_some_and(|specifier| property == specifier.as_ref())
 }
@@ -364,6 +375,14 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  if let Some(member) = arg.as_member()
+    && is_meta_url(parser, member)
+  {
+    return Url::from_file_path(parser.resource_data.resource())
+      .ok()
+      .map(|url| url.to_string());
+  }
+
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
