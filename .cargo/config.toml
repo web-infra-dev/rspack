@@ -65,12 +65,8 @@ rustflags = [
 ]
 
 [target.x86_64-pc-windows-msvc]
-rustflags = [
-  "-C", "target-feature=+crt-static",
-  "-Z", "unstable-options",
-  "-C", "link-self-contained=+linker",
-  "-C", "linker-features=+lld",
-]
+linker = "lld-link.exe"
+rustflags = ["-C", "target-feature=+crt-static"]
 [target.i686-pc-windows-msvc]
 rustflags = ["-C", "target-feature=+crt-static"]
 [target.aarch64-pc-windows-msvc]

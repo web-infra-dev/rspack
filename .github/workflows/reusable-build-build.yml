@@ -101,6 +101,14 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
+      - name: Use bundled rust-lld as lld-link (Windows)
+        if: ${{ runner.os == 'Windows' }}
+        run: |
+          rust_lld=$(find "$(rustc --print sysroot)" -name rust-lld.exe | head -1)
+          echo "using $rust_lld"
+          cp "$rust_lld" "C:/Windows/System32/lld-link.exe"
+          command -v lld-link && echo "lld-link ready"
+
       - name: Run Cargo codegen
         run: cargo codegen
 
