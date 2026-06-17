@@ -94,15 +94,30 @@ pub async fn render_rspack_runtime_modules(
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template).await?;
   let mut sources = ConcatSource::default();
   let mut metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey);
+  for (_, runtime_requirements, write_runtime_requirements) in &runtime_module_sources {
+    if runtime_requirements.is_empty() && write_runtime_requirements.is_empty() {
+      continue;
+    }
+    let metadata = metadata.get_or_insert_default();
+    metadata
+      .tree_runtime_requirements
+      .insert(*runtime_requirements | *write_runtime_requirements);
+    metadata
+      .runtime_module_requirements
+      .insert(*runtime_requirements);
+    metadata
+      .context_setter_fields
+      .insert(*write_runtime_requirements);
+  }
   let script_nonce = RuntimeGlobals::SCRIPT_NONCE
     .to_lexical_name()
     .expect("script nonce should have lexical name");
   if runtime_module_sources
     .iter()
-    .any(|(source, _)| source.source().into_string_lossy().contains(script_nonce))
+    .any(|(source, _, _)| source.source().into_string_lossy().contains(script_nonce))
   {
     metadata
       .get_or_insert_default()
@@ -110,7 +125,7 @@ pub async fn render_rspack_runtime_modules(
       .insert(RuntimeGlobals::SCRIPT_NONCE);
   }
   let base_metadata = get_runtime_context_metadata(compilation, chunk_ukey);
-  let should_render_context = base_metadata.is_some_and(|metadata| {
+  let should_render_context = metadata.as_ref().or(base_metadata).is_some_and(|metadata| {
     metadata
       .tree_runtime_requirements
       .contains(RuntimeGlobals::REQUIRE_SCOPE)
@@ -305,7 +320,7 @@ pub async fn render_rspack_runtime_modules(
       "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
     )));
   }
-  for (runtime_module_source, generated_requirements) in runtime_module_sources {
+  for (runtime_module_source, _, generated_requirements) in runtime_module_sources {
     sources.add(runtime_module_source);
     if !runtime_template.uses_lexical_runtime_globals() {
       continue;

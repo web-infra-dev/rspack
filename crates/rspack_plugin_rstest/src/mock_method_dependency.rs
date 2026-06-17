@@ -124,7 +124,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
       .expect("MockMethodDependencyTemplate can only be applied to MockMethodDependency");
 
     let request = &dep.request;
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
     let hoist_id = dep.hoist_id();
 
     let hoist_flag = Self::get_hoist_flag(&dep.method);

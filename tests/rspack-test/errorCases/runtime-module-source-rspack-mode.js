@@ -3,7 +3,7 @@ const path = require("path");
 /** @type {import('@rspack/test-tools').TErrorCaseConfig} */
 module.exports = {
 	description:
-		"should reject runtime module source changes from JS hooks in rspack mode",
+		"should support runtime module source changes from JS hooks in rspack mode",
 	options() {
 		let modified = false;
 		class Plugin {
@@ -29,6 +29,7 @@ module.exports = {
 				chunk: "./chunk.js"
 			},
 			context: path.resolve(__dirname, "../configCases/hooks/runtime-module"),
+			target: "node",
 			experiments: {
 				runtimeMode: "rspack"
 			},
@@ -36,10 +37,7 @@ module.exports = {
 		};
 	},
 	async check(diagnostics) {
-		expect(diagnostics.errors).toHaveLength(1);
-		expect(diagnostics.errors[0].message).toContain(
-			'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack"'
-		);
+		expect(diagnostics.errors).toHaveLength(0);
 		expect(diagnostics.warnings).toHaveLength(0);
 	}
 };

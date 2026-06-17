@@ -44,14 +44,14 @@ it('routes external dynamic import() of a mocked module through rstest_dynamic_r
 	// guard, every external dynamic import() (even unmocked) would crash a stale
 	// runtime.
 	expect(content).toMatch(
-		/rstest_dynamic_require\s*\?[\s\S]*?:\s*__webpack_require__\.bind\(__webpack_require__,/,
+		/rstest_dynamic_require\s*\?[\s\S]*?:\s*(?:__webpack_require__|__rspack_context\.r)\.bind\((?:__webpack_require__|__rspack_context\.r),/,
 	);
 
 	// The INTERNAL dynamic import must remain a bare `__webpack_require__.bind`
 	// (byte-identical to upstream) — internal modules never split, so the gate
 	// must leave their codegen untouched.
 	expect(content).toMatch(
-		/\.then\(__webpack_require__\.bind\(__webpack_require__,\s*"\.\/src\/internal\.js"\)\)/,
+		/\.then\((?:__webpack_require__|__rspack_context\.r)\.bind\((?:__webpack_require__|__rspack_context\.r),\s*"\.\/src\/internal\.js"\)\)/,
 	);
 	expect(content).not.toMatch(/rstest_dynamic_require\.bind\([^)]*internal/);
 });

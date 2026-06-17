@@ -122,13 +122,12 @@ fn module_namespace_promise_rstest(
 
   let module_id_expr = module_id_rstest(compilation, runtime_template, dep_id, request, weak);
 
+  let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+  let require_scope = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
   let final_require = if is_import_actual {
-    format!(
-      "{}.rstest_import_actual",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-    )
+    format!("{require_scope}.rstest_import_actual")
   } else {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    require_name.clone()
   };
 
   // Externalized specifiers exhibit a two-id split: rspack mints a distinct id
@@ -173,7 +172,7 @@ fn module_namespace_promise_rstest(
         // falls back to plain require for an older @rstest/core lacking the helper;
         // drop it once the minimum @rstest/core always ships it.
         appending = format!(
-          ".then({final_require}.rstest_dynamic_require ? {final_require}.rstest_dynamic_require.bind({final_require}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
+          ".then({require_scope}.rstest_dynamic_require ? {require_scope}.rstest_dynamic_require.bind({require_scope}.rstest_dynamic_require, {module_id_expr}, {}) : {final_require}.bind({final_require}, {module_id_expr}))",
           json_stringify_str(request)
         );
       } else {
