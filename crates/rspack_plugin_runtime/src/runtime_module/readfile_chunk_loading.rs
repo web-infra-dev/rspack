@@ -171,6 +171,7 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
+<<<<<<< HEAD
   fn runtime_module_variables() -> &'static [&'static str] {
     RUNTIME_MODULE_VARIABLES.as_slice()
   }
@@ -180,7 +181,9 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       return RuntimeModuleRuntimeRequirements::default();
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    let mut dependencies = Self::get_runtime_requirements_basic() | RuntimeGlobals::MODULE_CACHE;
+    let mut dependencies = Self::get_runtime_requirements_basic()
+      | RuntimeGlobals::REQUIRE_SCOPE
+      | RuntimeGlobals::MODULE_CACHE;
     let mut weak = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::default();
     let mut force_context = RuntimeGlobals::default();
