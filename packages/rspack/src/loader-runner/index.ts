@@ -274,18 +274,25 @@ export async function runLoaders(
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
-  const uuid = JavaScriptTracer.uuid();
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
 
-  JavaScriptTracer.startAsync({
-    name: 'run_js_loaders',
-    processName: LOADER_PROCESS_NAME,
-    uuid,
-    ph: 'b',
-    args: {
-      is_pitch: pitch,
-      resource: resource,
-    },
-  });
+  if (traceData) {
+    JavaScriptTracer.startAsync({
+      name: 'run_js_loaders',
+      processName: LOADER_PROCESS_NAME,
+      uuid: traceData.uuid,
+      ph: 'b',
+      args: traceData.args,
+    });
+  }
   const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
@@ -346,16 +353,14 @@ export async function runLoaders(
     userOptions,
     callback,
   ) {
-    JavaScriptTracer.startAsync({
-      name: 'importModule',
-      processName: LOADER_PROCESS_NAME,
-
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
+    if (traceData) {
+      JavaScriptTracer.startAsync({
+        name: 'importModule',
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
     const options = userOptions ? userOptions : {};
     const context = loaderContext;
     function finalCallback(
@@ -364,15 +369,14 @@ export async function runLoaders(
     ) {
       return function (err?: Error, res?: any) {
         if (err) {
-          JavaScriptTracer.endAsync({
-            name: 'importModule',
-            processName: LOADER_PROCESS_NAME,
-            uuid,
-            args: {
-              is_pitch: pitch,
-              resource: resource,
-            },
-          });
+          if (traceData) {
+            JavaScriptTracer.endAsync({
+              name: 'importModule',
+              processName: LOADER_PROCESS_NAME,
+              uuid: traceData.uuid,
+              args: traceData.args,
+            });
+          }
           onError(err);
         } else {
           for (const dep of res.buildDependencies) {
@@ -390,15 +394,14 @@ export async function runLoaders(
           if (res.cacheable === false) {
             context.cacheable(false);
           }
-          JavaScriptTracer.endAsync({
-            name: 'importModule',
-            processName: LOADER_PROCESS_NAME,
-            uuid,
-            args: {
-              is_pitch: pitch,
-              resource: resource,
-            },
-          });
+          if (traceData) {
+            JavaScriptTracer.endAsync({
+              name: 'importModule',
+              processName: LOADER_PROCESS_NAME,
+              uuid: traceData.uuid,
+              args: traceData.args,
+            });
+          }
           if (res.error) {
             onError(
               compiler.__internal__takeModuleExecutionResult(res.id) ??
@@ -971,23 +974,27 @@ export async function runLoaders(
   const isomorphoicRun = async (fn: Function, args: any[]) => {
     const currentLoaderObject = getCurrentLoader(loaderContext);
     const parallelism = enableParallelism(currentLoaderObject);
-    const pitch = loaderState === JsLoaderState.Pitching;
-    const loaderName = extractLoaderName(currentLoaderObject!.request);
+    let loaderName: string | undefined;
+
+    if (traceData || parallelism) {
+      loaderName = extractLoaderName(currentLoaderObject!.request);
+    }
+
+    if (traceData) {
+      JavaScriptTracer.startAsync({
+        name: loaderName!,
+        trackName: loaderName!,
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
+
     let result: any;
-    JavaScriptTracer.startAsync({
-      name: loaderName,
-      trackName: loaderName,
-      processName: LOADER_PROCESS_NAME,
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
     if (parallelism) {
       result =
         (await pool.run(
-          loaderName,
+          loaderName!,
           {
             loaderContext: getWorkerLoaderContext(),
             loaderState,
@@ -1003,16 +1010,17 @@ export async function runLoaders(
         convertArgs(args, !!currentLoaderObject?.raw);
       result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
     }
-    JavaScriptTracer.endAsync({
-      name: loaderName,
-      trackName: loaderName,
-      processName: LOADER_PROCESS_NAME,
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
+
+    if (traceData) {
+      JavaScriptTracer.endAsync({
+        name: loaderName!,
+        trackName: loaderName!,
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
+
     return result;
   };
 
@@ -1115,14 +1123,13 @@ export async function runLoaders(
       context.__internal__error = e as RspackError;
     }
   }
-  JavaScriptTracer.endAsync({
-    name: 'run_js_loaders',
-    uuid,
-    args: {
-      is_pitch: pitch,
-      resource: resource,
-    },
-  });
+  if (traceData) {
+    JavaScriptTracer.endAsync({
+      name: 'run_js_loaders',
+      uuid: traceData.uuid,
+      args: traceData.args,
+    });
+  }
 
   if (compiler.options?.cache) {
     commitCustomFieldsToRust(context._module.buildInfo);
