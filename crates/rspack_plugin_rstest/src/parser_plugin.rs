@@ -25,6 +25,7 @@ use crate::{
   mock_method_dependency::{MockMethod, MockMethodDependency},
   mock_module_id_dependency::MockModuleIdDependency,
   module_path_name_dependency::{ModulePathNameDependency, NameType},
+  require_actual_dependency::RstestRequireActualDependency,
   require_resolve_origin_dependency::RstestRequireResolveOriginDependency,
 };
 
@@ -178,14 +179,9 @@ impl RstestParserPlugin {
 
           let callee_range = call_expr.callee.span().into();
           let loc = parser.to_dependency_location(callee_range);
-          parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(
+          parser.add_presentational_dependency(Box::new(RstestRequireActualDependency::new(
             callee_range,
             loc,
-          )));
-
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            callee_range,
-            ".rstest_require_actual".into(),
           )));
 
           return Some(true);

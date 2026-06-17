@@ -2,6 +2,7 @@
 
 extern crate self as rspack_plugin_javascript;
 
+mod custom_runtime_module_compat;
 pub mod dependency;
 mod magic_comment;
 pub mod parser_and_generator;

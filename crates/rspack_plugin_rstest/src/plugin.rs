@@ -41,6 +41,7 @@ use crate::{
   mock_module_id_dependency::{MockModuleIdDependency, MockModuleIdDependencyTemplate},
   module_path_name_dependency::ModulePathNameDependencyTemplate,
   parser_plugin::{MOCK_TARGET_REQUEST_PREFIX, RstestParserPlugin},
+  require_actual_dependency::RstestRequireActualDependencyTemplate,
   require_resolve_origin_dependency::RstestRequireResolveOriginDependencyTemplate,
   url_dependency::RstestUrlDependencyTemplate,
 };
@@ -452,6 +453,11 @@ async fn compilation(
   compilation.set_dependency_template(
     MockModuleIdDependencyTemplate::template_type(),
     Arc::new(MockModuleIdDependencyTemplate::default()),
+  );
+
+  compilation.set_dependency_template(
+    RstestRequireActualDependencyTemplate::template_type(),
+    Arc::new(RstestRequireActualDependencyTemplate),
   );
 
   if let Some(Some(callee)) = self.dynamic_import_origin_callee.get() {

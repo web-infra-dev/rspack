@@ -6,7 +6,21 @@ class CustomRuntimeModule extends RuntimeModule {
   }
 
   generate() {
-    return '__webpack_require__.custom = 1;';
+    return `
+const originalRequire = __webpack_require__;
+__webpack_require__ = function(...args) {
+  return originalRequire(...args);
+};
+for (const key in originalRequire) {
+  __webpack_require__[key] = originalRequire[key];
+}
+function localShadow(__webpack_require__) {
+  return __webpack_require__.custom;
+}
+__webpack_require__.custom = 1;
+globalThis.__custom_runtime_module_value__ = __webpack_require__.custom;
+globalThis.__custom_runtime_module_shadow__ = localShadow({ custom: 2 });
+`;
   }
 }
 
