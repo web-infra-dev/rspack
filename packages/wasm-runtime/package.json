@@ -1,0 +1,46 @@
+{
+  "name": "@rspack/wasm-runtime",
+  "version": "2.0.8",
+  "license": "MIT",
+  "description": "Dynamically loaded Wasmtime runtime for Rspack SWC Wasm plugins",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "build": "node -e \"\"",
+    "build:dev": "node scripts/build.js",
+    "build:debug": "node scripts/build.js --profile release-debug",
+    "build:ci": "node scripts/build.js --profile ci",
+    "build:profiling": "node scripts/build.js --profile profiling",
+    "build:release": "node scripts/build.js --profile release"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "rspack_wasm_runtime.*.dll",
+    "rspack_wasm_runtime.*.dylib",
+    "rspack_wasm_runtime.*.so"
+  ],
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/wasm-runtime"
+  },
+  "optionalDependencies": {
+    "@rspack/wasm-runtime-darwin-arm64": "workspace:*",
+    "@rspack/wasm-runtime-darwin-x64": "workspace:*",
+    "@rspack/wasm-runtime-linux-arm64-gnu": "workspace:*",
+    "@rspack/wasm-runtime-linux-arm64-musl": "workspace:*",
+    "@rspack/wasm-runtime-linux-x64-gnu": "workspace:*",
+    "@rspack/wasm-runtime-linux-x64-musl": "workspace:*",
+    "@rspack/wasm-runtime-win32-x64-msvc": "workspace:*"
+  }
+}

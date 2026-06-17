@@ -1,0 +1,29 @@
+{
+  "name": "@rspack/wasm-runtime-linux-x64-musl",
+  "version": "2.0.8",
+  "license": "MIT",
+  "description": "Wasmtime runtime for Rspack SWC Wasm plugins",
+  "main": "rspack_wasm_runtime.linux-x64-musl.so",
+  "homepage": "https://rspack.rs",
+  "bugs": "https://github.com/web-infra-dev/rspack/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/web-infra-dev/rspack",
+    "directory": "packages/wasm-runtime"
+  },
+  "publishConfig": {
+    "access": "public",
+    "os": [
+      "linux"
+    ],
+    "cpu": [
+      "x64"
+    ],
+    "libc": [
+      "musl"
+    ]
+  },
+  "files": [
+    "rspack_wasm_runtime.linux-x64-musl.so"
+  ]
+}

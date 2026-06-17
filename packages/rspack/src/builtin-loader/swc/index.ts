@@ -1,4 +1,5 @@
 import type { GetLoaderOptions } from '../../config/adapterRuleUse';
+import { hasSwcWasmPlugins, registerWasmRuntime } from '../../wasmRuntime';
 import { resolveCollectTypeScriptInfo } from './collectTypeScriptInfo';
 import { resolvePluginImport } from './pluginImport';
 
@@ -83,6 +84,10 @@ export const getSwcLoaderOptions: GetLoaderOptions = (o, composeOptions) => {
           rspackExperiments.import || rspackExperiments.pluginImport,
         );
       }
+    }
+
+    if (hasSwcWasmPlugins(options)) {
+      registerWasmRuntime();
     }
   }
   return options;

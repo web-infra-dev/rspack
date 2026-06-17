@@ -207,6 +207,20 @@ importers:
 
   npm/linux-x64-musl: {}
 
+  npm/wasm-runtime-darwin-arm64: {}
+
+  npm/wasm-runtime-darwin-x64: {}
+
+  npm/wasm-runtime-linux-arm64-gnu: {}
+
+  npm/wasm-runtime-linux-arm64-musl: {}
+
+  npm/wasm-runtime-linux-x64-gnu: {}
+
+  npm/wasm-runtime-linux-x64-musl: {}
+
+  npm/wasm-runtime-win32-x64-msvc: {}
+
   npm/wasm32-wasi:
     dependencies:
       '@emnapi/core':
@@ -243,6 +257,9 @@ importers:
       '@rspack/binding':
         specifier: workspace:*
         version: link:../../crates/node_binding
+      '@rspack/wasm-runtime':
+        specifier: workspace:*
+        version: link:../wasm-runtime
     devDependencies:
       '@ast-grep/napi':
         specifier: ^0.43.0
@@ -461,6 +478,30 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+
+  packages/wasm-runtime:
+    optionalDependencies:
+      '@rspack/wasm-runtime-darwin-arm64':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-darwin-arm64
+      '@rspack/wasm-runtime-darwin-x64':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-darwin-x64
+      '@rspack/wasm-runtime-linux-arm64-gnu':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-linux-arm64-gnu
+      '@rspack/wasm-runtime-linux-arm64-musl':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-linux-arm64-musl
+      '@rspack/wasm-runtime-linux-x64-gnu':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-linux-x64-gnu
+      '@rspack/wasm-runtime-linux-x64-musl':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-linux-x64-musl
+      '@rspack/wasm-runtime-win32-x64-msvc':
+        specifier: workspace:*
+        version: link:../../npm/wasm-runtime-win32-x64-msvc
 
   scripts:
     devDependencies:

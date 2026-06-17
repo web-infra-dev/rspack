@@ -107,6 +107,49 @@ const bindings = fs
   .map((item) => path.join(ARTIFACTS, item.name));
 
 const optionalDependencies = {};
+const wasmRuntimeOptionalDependencies = {};
+
+function dynamicLibraryExtension(platform) {
+  if (platform === 'win32') return 'dll';
+  if (platform === 'darwin') return 'dylib';
+  return 'so';
+}
+
+function createPlatformPackageJson({
+  name,
+  description,
+  main,
+  platform,
+  arch,
+  abi,
+  repositoryDirectory,
+}) {
+  const coreJson = require(
+    path.resolve(__dirname, '../packages/rspack/package.json'),
+  );
+  const pkgJson = {};
+  pkgJson.name = name;
+  pkgJson.version = coreJson.version;
+  pkgJson.license = coreJson.license;
+  pkgJson.description = description;
+  pkgJson.main = main;
+  pkgJson.homepage = coreJson.homepage;
+  pkgJson.bugs = coreJson.bugs;
+  pkgJson.repository = {
+    ...coreJson.repository,
+    directory: repositoryDirectory,
+  };
+  pkgJson.publishConfig = {
+    access: 'public',
+  };
+  pkgJson.files = [pkgJson.main];
+  pkgJson.os = [platform];
+  pkgJson.cpu = [arch];
+  if (abi && AbiToNodeLibc[abi]) {
+    pkgJson.libc = [AbiToNodeLibc[abi]];
+  }
+  return pkgJson;
+}
 
 for (const binding of bindings) {
   // The pkg of wasm binding is more complex, so we create it manually.
@@ -154,14 +197,20 @@ for (const binding of bindings) {
     continue;
   }
 
-  // bindings-x86_64-unknown-linux-musl
   const files = fs.readdirSync(binding);
-  assert(files.length === 1, `Expected only one file in ${binding}`);
+  const nodeFiles = files.filter((file) => path.extname(file) === '.node');
+  const wasmRuntimeFiles = files.filter((file) =>
+    /^rspack_wasm_runtime\..+\.(dll|dylib|so)$/.test(file),
+  );
 
-  // rspack.linux-x64-musl.node
-  const file = files[0];
-  assert(path.extname(file) === '.node', `Expected .node file in ${binding}`);
-  const binary = fs.readFileSync(path.join(binding, file));
+  assert(
+    nodeFiles.length <= 1,
+    `Expected at most one .node file in ${binding}`,
+  );
+  assert(
+    wasmRuntimeFiles.length <= 1,
+    `Expected at most one wasm runtime file in ${binding}`,
+  );
 
   const name = path.basename(binding);
   assert(name.startsWith('bindings-'));
@@ -177,49 +226,88 @@ for (const binding of bindings) {
     // linux-x64-musl
     platformArchABI,
   } = parseTriple(name.slice(9));
-  assert(
-    file.split('.')[1] === platformArchABI,
-    `Binding is not matched with triple (expected: rspack.${platformArchABI}.node, got: ${file})`,
-  );
 
-  // <absolute-path-to-npm>/linux-x64-musl
-  const output = path.join(NPM, platformArchABI);
-  try {
-    fs.mkdirSync(output);
-  } catch {}
+  if (nodeFiles.length === 1) {
+    // rspack.linux-x64-musl.node
+    const file = nodeFiles[0];
+    assert(
+      file.split('.')[1] === platformArchABI,
+      `Binding is not matched with triple (expected: rspack.${platformArchABI}.node, got: ${file})`,
+    );
 
-  const coreJson = require(
-    path.resolve(__dirname, '../packages/rspack/package.json'),
-  );
-  const pkgJson = {};
-  pkgJson.name = `@rspack/binding-${platformArchABI}`;
-  pkgJson.version = coreJson.version;
-  pkgJson.license = coreJson.license;
-  pkgJson.description = 'Node binding for rspack';
-  pkgJson.main = `rspack.${platformArchABI}.node`;
-  pkgJson.homepage = coreJson.homepage;
-  pkgJson.bugs = coreJson.bugs;
-  pkgJson.repository = coreJson.repository;
-  pkgJson.publishConfig = {
-    access: 'public',
-  };
-  pkgJson.files = [pkgJson.main];
-  pkgJson.os = [platform];
-  pkgJson.cpu = [arch];
-  if (abi && AbiToNodeLibc[abi]) {
-    pkgJson.libc = [AbiToNodeLibc[abi]];
+    // <absolute-path-to-npm>/linux-x64-musl
+    const output = path.join(NPM, platformArchABI);
+    try {
+      fs.mkdirSync(output);
+    } catch {}
+
+    const pkgJson = createPlatformPackageJson({
+      name: `@rspack/binding-${platformArchABI}`,
+      description: 'Node binding for rspack',
+      main: `rspack.${platformArchABI}.node`,
+      platform,
+      arch,
+      abi,
+      repositoryDirectory: 'packages/rspack',
+    });
+
+    // Using pnpm workspace
+    optionalDependencies[pkgJson.name] = 'workspace:*';
+
+    fs.writeFileSync(
+      `${output}/package.json`,
+      JSON.stringify(pkgJson, null, 2),
+    );
+    fs.writeFileSync(
+      `${output}/${pkgJson.main}`,
+      fs.readFileSync(path.join(binding, file)),
+    );
+
+    const README = generateReadme(pkgJson.name);
+
+    fs.writeFileSync(`${output}/README.md`, README);
+    releasingPackages.push(pkgJson.name);
   }
 
-  // Using pnpm workspace
-  optionalDependencies[pkgJson.name] = 'workspace:*';
+  if (wasmRuntimeFiles.length === 1) {
+    const file = wasmRuntimeFiles[0];
+    const expectedFile = `rspack_wasm_runtime.${platformArchABI}.${dynamicLibraryExtension(platform)}`;
+    assert(
+      file === expectedFile,
+      `Wasm runtime is not matched with triple (expected: ${expectedFile}, got: ${file})`,
+    );
 
-  fs.writeFileSync(`${output}/package.json`, JSON.stringify(pkgJson, null, 2));
-  fs.writeFileSync(`${output}/${pkgJson.main}`, binary);
+    const output = path.join(NPM, `wasm-runtime-${platformArchABI}`);
+    try {
+      fs.mkdirSync(output);
+    } catch {}
 
-  const README = generateReadme(pkgJson.name);
+    const pkgJson = createPlatformPackageJson({
+      name: `@rspack/wasm-runtime-${platformArchABI}`,
+      description: 'Wasmtime runtime for Rspack SWC Wasm plugins',
+      main: expectedFile,
+      platform,
+      arch,
+      abi,
+      repositoryDirectory: 'packages/wasm-runtime',
+    });
 
-  fs.writeFileSync(`${output}/README.md`, README);
-  releasingPackages.push(pkgJson.name);
+    wasmRuntimeOptionalDependencies[pkgJson.name] = 'workspace:*';
+
+    fs.writeFileSync(
+      `${output}/package.json`,
+      JSON.stringify(pkgJson, null, 2),
+    );
+    fs.writeFileSync(
+      `${output}/${pkgJson.main}`,
+      fs.readFileSync(path.join(binding, file)),
+    );
+
+    const README = generateReadme(pkgJson.name);
+
+    fs.writeFileSync(`${output}/README.md`, README);
+    releasingPackages.push(pkgJson.name);
+  }
 }
 
 // Determine whether to release or not based on the CI build result.
@@ -255,3 +343,11 @@ const bindingJson = require(bindingJsonPath);
 bindingJson.optionalDependencies = optionalDependencies;
 
 fs.writeFileSync(bindingJsonPath, JSON.stringify(bindingJson, null, 2));
+
+const wasmRuntimeJsonPath = path.resolve(
+  __dirname,
+  '../packages/wasm-runtime/package.json',
+);
+const wasmRuntimeJson = require(wasmRuntimeJsonPath);
+wasmRuntimeJson.optionalDependencies = wasmRuntimeOptionalDependencies;
+fs.writeFileSync(wasmRuntimeJsonPath, JSON.stringify(wasmRuntimeJson, null, 2));

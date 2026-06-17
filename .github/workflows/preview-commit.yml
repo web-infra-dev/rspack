@@ -29,6 +29,7 @@ jobs:
             changed:
               - "crates/**"
               - "packages/rspack/**"
+              - "packages/wasm-runtime/**"
               - "packages/rspack-cli/**"
 
   build:
@@ -93,4 +94,4 @@ jobs:
         run: ls -R npm
 
       - name: Release
-        run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/rspack-cli'
+        run: npx pkg-pr-new publish --compact --pnpm './npm/*' './crates/node_binding' './packages/rspack' './packages/wasm-runtime' './packages/rspack-cli'

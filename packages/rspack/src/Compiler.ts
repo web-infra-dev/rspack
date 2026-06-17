@@ -76,6 +76,7 @@ import type {
 } from './util/fs';
 import { makePathsRelative } from './util/identifier';
 import { VirtualModulesPlugin } from './VirtualModulesPlugin';
+import { tryRegisterWasmRuntime } from './wasmRuntime';
 import { Watching } from './Watching';
 import type { RawOptions } from '@rspack/binding';
 
@@ -951,6 +952,7 @@ class Compiler {
       VirtualModulesPlugin.__internal__take_virtual_files(this);
 
     const instanceBinding: typeof binding = require('@rspack/binding');
+    tryRegisterWasmRuntime();
 
     this.#registers = this.#createHooksRegisters();
 

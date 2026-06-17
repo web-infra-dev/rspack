@@ -146,6 +146,12 @@ profile.json
 
 # Node Addons
 npm/**/*.node
+npm/**/*.dll
+npm/**/*.dylib
+npm/**/*.so
+packages/wasm-runtime/rspack_wasm_runtime.*.dll
+packages/wasm-runtime/rspack_wasm_runtime.*.dylib
+packages/wasm-runtime/rspack_wasm_runtime.*.so
 
 # Npm packages. Include packages for local releases.
 /npm/*
@@ -156,6 +162,13 @@ npm/**/*.node
 !npm/linux-x64-gnu/
 !npm/linux-x64-musl
 !npm/wasm32-wasi
+!npm/wasm-runtime-darwin-arm64/
+!npm/wasm-runtime-darwin-x64/
+!npm/wasm-runtime-linux-arm64-gnu/
+!npm/wasm-runtime-linux-arm64-musl/
+!npm/wasm-runtime-linux-x64-gnu/
+!npm/wasm-runtime-linux-x64-musl/
+!npm/wasm-runtime-win32-x64-msvc/
 !npm/win32-arm64-msvc
 !npm/win32-ia32-msvc
 !npm/win32-x64-msvc/

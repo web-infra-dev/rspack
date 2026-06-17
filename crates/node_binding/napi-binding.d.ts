@@ -3288,6 +3288,8 @@ export interface Restriction {
   regex?: string
 }
 
+export declare function setWasmRuntimeLibraryPath(path: string): void
+
 export interface SourceMapDevToolPluginOptions {
   append?: (false | null) | string | Function
   columns?: boolean

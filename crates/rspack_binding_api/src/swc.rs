@@ -10,6 +10,13 @@ use swc_core::{
   base::config::SourceMapsConfig, common::comments::SingleThreadedComments, ecma::ast::noop_pass,
 };
 
+#[cfg(feature = "plugin")]
+#[napi]
+pub fn set_wasm_runtime_library_path(path: String) -> napi::Result<()> {
+  rspack_util::swc::runtime::set_wasm_runtime_library_path(path)
+    .map_err(|e| napi::Error::new(napi::Status::GenericFailure, format!("{e:#}")))
+}
+
 #[napi(object)]
 pub struct TransformOutput {
   pub code: String,
