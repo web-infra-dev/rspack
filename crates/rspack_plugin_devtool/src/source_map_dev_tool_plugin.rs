@@ -475,12 +475,12 @@ impl SourceMapDevToolPlugin {
       .await
   }
 
-  async fn use_cache<'a>(
+  async fn use_cache(
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
     output_path: &Utf8Path,
-    compilation_assets: Vec<(String, &'a CompilationAsset)>,
+    compilation_assets: Vec<(String, &CompilationAsset)>,
     cache: Option<&mut SourceMapDevToolPluginCacheArtifact>,
     cache_counter: Option<&CacheCount>,
   ) -> Result<Vec<MappedAsset>> {
