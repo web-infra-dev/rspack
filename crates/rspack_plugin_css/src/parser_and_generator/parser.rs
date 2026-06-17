@@ -182,7 +182,14 @@ impl<'context> CssModuleParser<'context> {
     parse_context: ParseContext<'context>,
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
-    let source_code: Arc<str> = source.source().into_string_lossy().into();
+    let source_code: Arc<str> = {
+      let source_code = source.source().into_string_lossy();
+      if source_code.is_borrowed() {
+        Arc::from(source_code.unwrap_borrowed())
+      } else {
+        Arc::from(source_code.into_owned())
+      }
+    };
     let (inherited_render_conditions, render_condition) = parse_context
       .build_info
       .css

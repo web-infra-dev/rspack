@@ -272,31 +272,35 @@ async fn render(
       continue;
     }
 
-    let original_source_str = render_source.source.source().into_string_lossy();
+    let new_source = {
+      let original_source_str = render_source.source.source().into_string_lossy();
 
-    let mut new_source = ConcatSource::default();
+      let mut new_source = ConcatSource::default();
 
-    if let Some(hashbang) = hashbang {
-      new_source.add(RawStringSource::from(format!("{hashbang}\n")));
-    }
+      if let Some(hashbang) = hashbang {
+        new_source.add(RawStringSource::from(format!("{hashbang}\n")));
+      }
 
-    if let Some(directives) = directives {
-      let use_strict_prefix = "\"use strict\";\n";
-      if let Some(rest) = original_source_str.strip_prefix(use_strict_prefix) {
-        new_source.add(RawStringSource::from(use_strict_prefix));
-        for directive in directives {
-          new_source.add(RawStringSource::from(format!("{directive}\n")));
+      if let Some(directives) = directives {
+        let use_strict_prefix = "\"use strict\";\n";
+        if let Some(rest) = original_source_str.strip_prefix(use_strict_prefix) {
+          new_source.add(RawStringSource::from(use_strict_prefix));
+          for directive in directives {
+            new_source.add(RawStringSource::from(format!("{directive}\n")));
+          }
+          new_source.add(RawStringSource::from(rest));
+        } else {
+          for directive in directives {
+            new_source.add(RawStringSource::from(format!("{directive}\n")));
+          }
+          new_source.add(render_source.source.clone());
         }
-        new_source.add(RawStringSource::from(rest));
       } else {
-        for directive in directives {
-          new_source.add(RawStringSource::from(format!("{directive}\n")));
-        }
         new_source.add(render_source.source.clone());
       }
-    } else {
-      new_source.add(render_source.source.clone());
-    }
+
+      new_source
+    };
 
     render_source.source = new_source.boxed();
     break;

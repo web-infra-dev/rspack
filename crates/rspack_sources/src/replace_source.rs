@@ -60,6 +60,7 @@ pub struct Replacement {
   start: u32,
   end: u32,
   content: CompactCow<'static, str>,
+  content_len: usize,
   name: Option<CompactCow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
@@ -239,10 +240,12 @@ impl ReplaceSource {
     name: Option<String>,
     enforce: ReplacementEnforce,
   ) {
+    let content_len = content.len();
     self.add_replacement(Replacement {
       start,
       end,
-      content: content.into(),
+      content: CompactCow::owned(content),
+      content_len,
       name: name.map(Into::into),
       enforce,
       insertion_order: self.replacements.len() as u32,
@@ -280,6 +283,7 @@ impl ReplaceSource {
       start,
       end,
       content: CompactCow::borrowed(content),
+      content_len: content.len(),
       name: name.map(CompactCow::borrowed),
       enforce,
       insertion_order: self.replacements.len() as u32,
@@ -439,7 +443,7 @@ impl Source for ReplaceSource {
         // This content is already counted in inner_source_size, so no change needed
       }
       if replacement.start as usize >= inner_source_size {
-        size += replacement.content.len();
+        size += replacement.content_len;
         continue;
       }
 
@@ -447,12 +451,11 @@ impl Source for ReplaceSource {
       let original_length = replacement
         .end
         .saturating_sub(replacement.start.max(inner_pos)) as usize;
-      let replacement_length = replacement.content.len();
 
       // Subtract original content length and add replacement content length
       size = size
         .saturating_sub(original_length)
-        .saturating_add(replacement_length);
+        .saturating_add(replacement.content_len);
 
       // Move position forward, handling overlaps
       inner_pos = inner_pos.max(replacement.end);

@@ -509,33 +509,34 @@ async fn mock_hoist_process_assets(&self, compilation: &mut Compilation) -> Resu
         return Ok((old, info));
       }
 
-      let content = old.source().into_string_lossy();
-      let captures: Vec<_> = RSTEST_FLAG_RE.captures_iter(&content).collect();
+      {
+        let content = old.source().into_string_lossy();
 
-      for c in captures {
-        let [Some(full), Some(hoist_id), Some(request), Some(t)] =
-          [c.get(0), c.get(2), c.get(3), c.get(4)]
-        else {
-          continue;
-        };
+        for c in RSTEST_FLAG_RE.captures_iter(&content) {
+          let [Some(full), Some(hoist_id), Some(request), Some(t)] =
+            [c.get(0), c.get(2), c.get(3), c.get(4)]
+          else {
+            continue;
+          };
 
-        let entry = pos_map.entry(hoist_id.as_str().to_string()).or_default();
-        entry.request = request.as_str().to_string();
+          let entry = pos_map.entry(hoist_id.as_str().to_string()).or_default();
+          entry.request = request.as_str().to_string();
 
-        if t.as_str() == "HOIST_START" {
-          entry.content_with_flag_start = Some(full.start());
-          entry.content_start = Some(full.end());
-        } else if t.as_str() == "HOIST_END" {
-          entry.content_with_flag_end = Some(full.end());
-          entry.content_end = Some(full.start());
-        } else if t.as_str() == "PLACEHOLDER" {
-          entry.placeholder_start = Some(full.start());
-          entry.placeholder_end = Some(full.end());
-        } else {
-          panic!(
-            "Unknown rstest mock type: {}",
-            c.get(1).map_or("", |m| m.as_str())
-          );
+          if t.as_str() == "HOIST_START" {
+            entry.content_with_flag_start = Some(full.start());
+            entry.content_start = Some(full.end());
+          } else if t.as_str() == "HOIST_END" {
+            entry.content_with_flag_end = Some(full.end());
+            entry.content_end = Some(full.start());
+          } else if t.as_str() == "PLACEHOLDER" {
+            entry.placeholder_start = Some(full.start());
+            entry.placeholder_end = Some(full.end());
+          } else {
+            panic!(
+              "Unknown rstest mock type: {}",
+              c.get(1).map_or("", |m| m.as_str())
+            );
+          }
         }
       }
 

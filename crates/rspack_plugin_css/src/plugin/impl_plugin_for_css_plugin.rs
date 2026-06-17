@@ -100,12 +100,14 @@ impl CssPlugin {
     let source =
       Self::render_chunk_to_source(compilation, chunk, &ordered_css_modules, &hooks).await?;
 
-    let content = source.source().into_string_lossy();
     let len = AUTO_PUBLIC_PATH_PLACEHOLDER.len();
-    let auto_public_path_matches: Vec<_> = content
-      .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
-      .map(|(index, _)| (index, index + len))
-      .collect();
+    let auto_public_path_matches: Vec<_> = {
+      let content = source.source().into_string_lossy();
+      content
+        .match_indices(AUTO_PUBLIC_PATH_PLACEHOLDER)
+        .map(|(index, _)| (index, index + len))
+        .collect()
+    };
     let source = if !auto_public_path_matches.is_empty() {
       let mut replace = ReplaceSource::new(source);
       for (start, end) in auto_public_path_matches {

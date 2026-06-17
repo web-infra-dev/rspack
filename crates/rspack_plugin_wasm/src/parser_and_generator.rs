@@ -52,12 +52,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     let mut diagnostic = Vec::with_capacity(1);
 
     if parse_context.build_info.import_phase.is_source() {
-      let bytes = source.buffer();
-      if !bytes.starts_with(WASM_MAGIC_HEADER) {
-        diagnostic.push(Diagnostic::error(
-          "Wasm Parse Error".into(),
-          "Source phase imports require valid WebAssembly modules. Invalid magic header (expected \\0asm).".into(),
-        ));
+      {
+        let bytes = source.buffer();
+        if !bytes.starts_with(WASM_MAGIC_HEADER) {
+          diagnostic.push(Diagnostic::error(
+            "Wasm Parse Error".into(),
+            "Source phase imports require valid WebAssembly modules. Invalid magic header (expected \\0asm).".into(),
+          ));
+        }
       }
       dependencies.push(Box::new(StaticExportsDependency::new(
         StaticExportsSpec::Array(vec![Atom::from("default")]),
@@ -77,43 +79,46 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       );
     }
 
-    for payload in Parser::new(0).parse_all(&source.buffer()) {
-      match payload {
-        Ok(payload) => match payload {
-          Payload::ExportSection(s) => {
-            for export in s {
-              match export {
-                Ok(export) => exports.push(export.name.to_string()),
-                Err(err) => diagnostic.push(Diagnostic::error(
-                  "Wasm Export Parse Error".into(),
-                  err.to_string(),
-                )),
-              };
-            }
-          }
-          Payload::ImportSection(s) => {
-            for import in s {
-              match import {
-                Ok(Import { module, name, .. }) => {
-                  dependencies.push(Box::new(WasmImportDependency::new(
-                    module.into(),
-                    name.into(),
-                  )));
-                }
-                Err(err) => diagnostic.push(Diagnostic::error(
-                  "Wasm Import Parse Error".into(),
-                  err.to_string(),
-                )),
+    {
+      let bytes = source.buffer();
+      for payload in Parser::new(0).parse_all(&bytes) {
+        match payload {
+          Ok(payload) => match payload {
+            Payload::ExportSection(s) => {
+              for export in s {
+                match export {
+                  Ok(export) => exports.push(export.name.to_string()),
+                  Err(err) => diagnostic.push(Diagnostic::error(
+                    "Wasm Export Parse Error".into(),
+                    err.to_string(),
+                  )),
+                };
               }
             }
+            Payload::ImportSection(s) => {
+              for import in s {
+                match import {
+                  Ok(Import { module, name, .. }) => {
+                    dependencies.push(Box::new(WasmImportDependency::new(
+                      module.into(),
+                      name.into(),
+                    )));
+                  }
+                  Err(err) => diagnostic.push(Diagnostic::error(
+                    "Wasm Import Parse Error".into(),
+                    err.to_string(),
+                  )),
+                }
+              }
+            }
+            _ => {}
+          },
+          Err(err) => {
+            diagnostic.push(Diagnostic::error(
+              "Wasm Parse Error".into(),
+              err.to_string(),
+            ));
           }
-          _ => {}
-        },
-        Err(err) => {
-          diagnostic.push(Diagnostic::error(
-            "Wasm Parse Error".into(),
-            err.to_string(),
-          ));
         }
       }
     }

@@ -319,26 +319,37 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     self.manifest_file_name.clone(),
   ];
   for file_name in file_names {
-    if let Some(file_name) = &file_name
-      && let Some(file) = compilation.assets().get(file_name)
-      && let Some(source) = file.get_source()
-      && let SourceValue::String(content) = source.source()
-      && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
-    {
-      let shared_referenced_exports = self
-        .shared_referenced_exports
-        .read()
-        .expect("lock poisoned");
+    let Some(file_name) = &file_name else {
+      continue;
+    };
 
-      for shared in &mut stats_root.shared {
-        if let Some(exports_set) = shared_referenced_exports.get(&shared.name) {
-          shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
+    let updated_content = {
+      if let Some(file) = compilation.assets().get(file_name)
+        && let Some(source) = file.get_source()
+        && let SourceValue::String(content) = source.source()
+        && let Ok(mut stats_root) = serde_json::from_str::<StatsRoot>(&content)
+      {
+        let shared_referenced_exports = self
+          .shared_referenced_exports
+          .read()
+          .expect("lock poisoned");
+
+        for shared in &mut stats_root.shared {
+          if let Some(exports_set) = shared_referenced_exports.get(&shared.name) {
+            shared.usedExports = exports_set.iter().cloned().collect::<Vec<_>>();
+          }
         }
+
+        Some(
+          serde_json::to_string_pretty(&stats_root)
+            .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?,
+        )
+      } else {
+        None
       }
+    };
 
-      let updated_content = serde_json::to_string_pretty(&stats_root)
-        .map_err(|e| rspack_error::error!("Failed to serialize stats root: {}", e))?;
-
+    if let Some(updated_content) = updated_content {
       compilation.update_asset(file_name, |_, info| {
         Ok((RawStringSource::from(updated_content).boxed(), info))
       })?;
