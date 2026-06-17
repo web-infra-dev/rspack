@@ -143,6 +143,11 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           queried.call(runtimeModule, chunk);
           const newSource = module.source?.source;
           if (newSource && newSource !== originSource) {
+            if (getCompiler().options.experiments?.runtimeMode === 'rspack') {
+              throw new Error(
+                'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack".',
+              );
+            }
             return module;
           }
           return;
