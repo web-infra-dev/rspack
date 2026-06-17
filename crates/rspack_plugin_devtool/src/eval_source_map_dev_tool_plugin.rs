@@ -162,7 +162,7 @@ async fn render_module_content(
               None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(Arc::from(source.as_ref()))
+            SourceReference::Source(Arc::from(source))
           }
         });
         let path_data = PathData::default()
@@ -212,7 +212,12 @@ async fn render_module_content(
             filename.extend(std::iter::repeat_n('*', n));
             filename
           });
-        map.set_sources(module_filenames.into_iter().map(CompactCow::owned));
+        map.set_sources(
+          module_filenames
+            .into_iter()
+            .map(CompactCow::owned)
+            .collect::<Vec<_>>(),
+        );
       }
 
       if let Some(asset_conditions) = &self.ignore_list {

@@ -282,23 +282,6 @@ impl MapOptions {
   }
 }
 
-#[inline]
-pub(crate) fn into_beef_str_cow(cow: CompactCow<'_, str>) -> CompactCow<'_, str> {
-  cow
-}
-
-#[inline]
-pub(crate) fn into_beef_str_cow_slice(
-  cows: Vec<CompactCow<'_, str>>,
-) -> CompactCow<'_, [CompactCow<'_, str>]> {
-  CompactCow::owned(cows)
-}
-
-#[inline]
-fn into_beef_u32_slice_cow(cow: CompactCow<'_, [u32]>) -> CompactCow<'_, [u32]> {
-  cow
-}
-
 fn is_all_empty(val: &[CompactCow<'_, str>]) -> bool {
   if val.is_empty() {
     return true;
@@ -465,11 +448,9 @@ impl SourceMap<'static> {
         version: 3,
         file: None,
         mappings: CompactCow::from(mappings.into()),
-        sources: CompactCow::owned(sources.into_iter().map(into_beef_str_cow).collect()),
-        sources_content: CompactCow::owned(
-          sources_content.into_iter().map(into_beef_str_cow).collect(),
-        ),
-        names: CompactCow::owned(names.into_iter().map(into_beef_str_cow).collect()),
+        sources: CompactCow::from(sources),
+        sources_content: CompactCow::from(sources_content),
+        names: CompactCow::from(names),
         source_root: None,
         debug_id: None,
         ignore_list: None,
@@ -510,7 +491,7 @@ impl<'a> SourceMap<'a> {
 
   /// Set the file field in [SourceMap].
   pub fn set_file(&mut self, file: Option<CompactCow<'a, str>>) {
-    self.fields.file = file.map(into_beef_str_cow);
+    self.fields.file = file;
   }
 
   /// Get the ignoreList field in [SourceMap].
@@ -520,7 +501,7 @@ impl<'a> SourceMap<'a> {
 
   /// Set the ignoreList field in [SourceMap].
   pub fn set_ignore_list(&mut self, ignore_list: Option<CompactCow<'a, [u32]>>) {
-    self.fields.ignore_list = ignore_list.map(into_beef_u32_slice_cow);
+    self.fields.ignore_list = ignore_list;
   }
 
   /// Get the decoded mappings in [SourceMap].
@@ -539,11 +520,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the sources field in [SourceMap].
-  pub fn set_sources<I>(&mut self, sources: I)
-  where
-    I: IntoIterator<Item = CompactCow<'a, str>>,
-  {
-    self.fields.sources = CompactCow::owned(sources.into_iter().map(into_beef_str_cow).collect());
+  pub fn set_sources(&mut self, sources: Vec<CompactCow<'a, str>>) {
+    self.fields.sources = CompactCow::from(sources);
   }
 
   /// Get the source by index from sources field in [SourceMap].
@@ -562,8 +540,7 @@ impl<'a> SourceMap<'a> {
 
   /// Set the sourcesContent field in [SourceMap].
   pub fn set_sources_content(&mut self, sources_content: Vec<CompactCow<'a, str>>) {
-    self.fields.sources_content =
-      CompactCow::owned(sources_content.into_iter().map(into_beef_str_cow).collect());
+    self.fields.sources_content = CompactCow::from(sources_content);
   }
 
   /// Get the source content by index from sourcesContent field in [SourceMap].
@@ -581,11 +558,8 @@ impl<'a> SourceMap<'a> {
   }
 
   /// Set the names field in [SourceMap].
-  pub fn set_names<I>(&mut self, names: I)
-  where
-    I: IntoIterator<Item = CompactCow<'a, str>>,
-  {
-    self.fields.names = CompactCow::owned(names.into_iter().map(into_beef_str_cow).collect());
+  pub fn set_names(&mut self, names: Vec<CompactCow<'a, str>>) {
+    self.fields.names = CompactCow::from(names);
   }
 
   /// Get the name by index from names field in [SourceMap].
@@ -600,12 +574,12 @@ impl<'a> SourceMap<'a> {
 
   /// Set the source_root field in [SourceMap].
   pub fn set_source_root(&mut self, source_root: Option<CompactCow<'a, str>>) {
-    self.fields.source_root = source_root.map(into_beef_str_cow);
+    self.fields.source_root = source_root;
   }
 
   /// Set the debug_id field in [SourceMap].
   pub fn set_debug_id(&mut self, debug_id: Option<CompactCow<'a, str>>) {
-    self.fields.debug_id = debug_id.map(into_beef_str_cow);
+    self.fields.debug_id = debug_id;
   }
 
   /// Get the debug_id field in [SourceMap].

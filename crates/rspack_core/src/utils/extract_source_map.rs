@@ -304,23 +304,17 @@ pub async fn extract_source_map(
     Some(set)
   };
 
-  // Get sources from SourceMap and take ownership
-  let sources = source_map
-    .sources()
-    .map(|source| source.to_string())
-    .collect::<Vec<_>>();
   let source_root = source_map.source_root().map(|s| s.to_string());
-
-  // Pre-collect all source content to avoid borrowing issues
-  let source_contents: Vec<Option<String>> = (0..sources.len())
-    .map(|i| source_map.get_source_content(i).map(|s| s.to_string()))
-    .collect();
 
   // Process sources in parallel using FuturesOrdered to maintain order
   let mut futures = FuturesOrdered::new();
 
-  // Use zip to consume both vectors without extra cloning
-  for (source, original_content) in sources.into_iter().zip(source_contents) {
+  for index in 0..source_map.sources().len() {
+    let Some(source) = source_map.get_source(index) else {
+      continue;
+    };
+    let source = source.to_string();
+    let original_content = source_map.get_source_content(index).map(|s| s.to_string());
     let skip_reading = original_content.is_some();
     let source_root = source_root.clone();
     let context = context.to_path_buf();
@@ -357,14 +351,16 @@ pub async fn extract_source_map(
   }
 
   // Build the final SourceMap using setter methods - consume resolved_sources to avoid cloning
-  let (sources_vec, sources_content_vec): (Vec<String>, Vec<CompactCow<'static, str>>) =
-    resolved_sources
-      .into_iter()
-      .map(|(url, content)| (url, CompactCow::owned(content.unwrap_or_default())))
-      .unzip();
+  let mut sources = Vec::with_capacity(resolved_sources.len());
+  let mut sources_content = Vec::with_capacity(resolved_sources.len());
 
-  source_map.set_sources(sources_vec.into_iter().map(CompactCow::owned));
-  source_map.set_sources_content(sources_content_vec);
+  for (url, content) in resolved_sources {
+    sources.push(CompactCow::owned(url));
+    sources_content.push(CompactCow::owned(content.unwrap_or_default()));
+  }
+
+  source_map.set_sources(sources);
+  source_map.set_sources_content(sources_content);
 
   // Remove source_root as per original logic
   source_map.set_source_root(None);

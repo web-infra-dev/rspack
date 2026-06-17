@@ -12,7 +12,7 @@ use crate::{
   encoder::create_encoder,
   linear_map::LinearMap,
   object_pool::ObjectPool,
-  source::{Mapping, OriginalLocation, into_beef_str_cow, into_beef_str_cow_slice},
+  source::{Mapping, OriginalLocation},
   source_content_lines::SourceContentLines,
   with_utf16::WithUtf16,
 };
@@ -43,7 +43,7 @@ pub fn get_map<'a>(
       if sources.len() <= source_index {
         sources.resize(source_index + 1, CompactCow::borrowed(""));
       }
-      sources[source_index] = into_beef_str_cow(source);
+      sources[source_index] = CompactCow::from(source);
       if let Some(source_content) = source_content {
         if sources_content.len() <= source_index {
           sources_content.resize(source_index + 1, CompactCow::borrowed(""));
@@ -57,17 +57,17 @@ pub fn get_map<'a>(
       if names.len() <= name_index {
         names.resize(name_index + 1, CompactCow::borrowed(""));
       }
-      names[name_index] = into_beef_str_cow(name);
+      names[name_index] = CompactCow::from(name);
     },
   );
   let mappings = mappings_encoder.drain();
   (!mappings.is_empty()).then_some(SourceMapFields {
     version: 3,
     file: None,
-    mappings: into_beef_str_cow(CompactCow::owned(mappings)),
-    sources: into_beef_str_cow_slice(sources),
-    sources_content: into_beef_str_cow_slice(sources_content),
-    names: into_beef_str_cow_slice(names),
+    mappings: CompactCow::from(CompactCow::owned(mappings)),
+    sources: CompactCow::from(sources),
+    sources_content: CompactCow::from(sources_content),
+    names: CompactCow::from(names),
     source_root: None,
     debug_id: None,
     ignore_list: None,
@@ -1378,7 +1378,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       while sources.len() <= source_index2 {
         sources.push(CompactCow::borrowed(""));
       }
-      sources[source_index2] = into_beef_str_cow(source.clone());
+      sources[source_index2] = CompactCow::from(source.clone());
       if let Some(source_content) = source_content {
         while sources_content.len() <= source_index2 {
           sources_content.push(CompactCow::borrowed(""));
@@ -1392,7 +1392,7 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       while names.len() <= name_index2 {
         names.push(CompactCow::borrowed(""));
       }
-      names[name_index2] = into_beef_str_cow(name.clone());
+      names[name_index2] = CompactCow::from(name.clone());
       on_name(name_index, name);
     },
   );
@@ -1404,10 +1404,10 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
     Some(SourceMapFields {
       version: 3,
       file: None,
-      mappings: into_beef_str_cow(CompactCow::owned(mappings)),
-      sources: into_beef_str_cow_slice(sources),
-      sources_content: into_beef_str_cow_slice(sources_content),
-      names: into_beef_str_cow_slice(names),
+      mappings: CompactCow::from(CompactCow::owned(mappings)),
+      sources: CompactCow::from(sources),
+      sources_content: CompactCow::from(sources_content),
+      names: CompactCow::from(names),
       source_root: None,
       debug_id: None,
       ignore_list: None,

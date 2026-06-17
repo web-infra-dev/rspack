@@ -139,7 +139,7 @@ fn compute_source_references(
           None => SourceReference::Source(Arc::from(source_name)),
         }
       } else {
-        SourceReference::Source(Arc::from(source_name.as_ref()))
+        SourceReference::Source(Arc::from(source_name))
       }
     })
     .collect()
@@ -822,18 +822,23 @@ impl SourceMapDevToolPlugin {
   ) -> String {
     // Update source_map with deduplicated source names
     source_map.set_file(Some(CompactCow::borrowed(asset_filename)));
-    source_map.set_sources(source_references.iter().map(|source_reference| {
-      compact_cow_from_std(
-        reference_to_source_name_mapping
-        .get(source_reference)
-        .unwrap_or_else(|| {
-          panic!(
+    source_map.set_sources(
+      source_references
+        .iter()
+        .map(|source_reference| {
+          compact_cow_from_std(
+            reference_to_source_name_mapping
+              .get(source_reference)
+              .unwrap_or_else(|| {
+                panic!(
             "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
           )
+              })
+              .render_for_source_map(source_map_path),
+          )
         })
-          .render_for_source_map(source_map_path),
-      )
-    }));
+        .collect::<Vec<_>>(),
+    );
 
     if let Some(asset_conditions) = &self.ignore_list {
       let ignore_list = source_map
