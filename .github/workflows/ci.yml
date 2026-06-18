@@ -104,7 +104,8 @@ jobs:
   test-windows:
     name: Test Windows
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    # TEMP: disabled to save compute while reproducing the part2 afterAll flake (revert before merge)
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: x86_64-pc-windows-msvc
@@ -116,7 +117,8 @@ jobs:
   test-mac:
     name: Test Mac ARM64
     needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    # TEMP: disabled to save compute while reproducing the part2 afterAll flake (revert before merge)
+    if: false
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: aarch64-apple-darwin

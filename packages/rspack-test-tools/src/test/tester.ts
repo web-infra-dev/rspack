@@ -6,6 +6,7 @@ import type {
   ITesterConfig,
   ITestProcessor,
 } from '../type';
+import { withCloseDiag } from './close-diag';
 import { TestContext } from './context';
 import { generateDebugReport } from './debug';
 
@@ -91,7 +92,7 @@ export class Tester implements ITester {
       }
     }
     try {
-      await this.context.closeCompiler();
+      await withCloseDiag(this.config.name, () => this.context.closeCompiler());
     } catch (e: any) {
       console.warn(
         `Error occured while closing compilers of '${this.config.name}':\n${e.stack}`,
