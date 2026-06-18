@@ -127,6 +127,7 @@ impl ExternalsPlugin {
 
     let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
+      phase: dependency.get_phase(),
       external_type: {
         if is_import_dependency
           || matches!(
