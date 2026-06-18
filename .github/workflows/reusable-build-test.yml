@@ -146,9 +146,24 @@ jobs:
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
+        timeout-minutes: 45 # TEMP raised for flake-repro loop (revert before merge)
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
-        run: pnpm run test:ci
+        env:
+          NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
+        # TEMP: build once, then loop the full test suite to harvest the part2 afterAll
+        # flake across many samples per build (revert to `pnpm run test:ci` before merge)
+        run: |
+          pnpm run build:js
+          pnpm run test:type
+          fail=0
+          for i in $(seq 1 8); do
+            echo "===== RSTEST ITER $i / 8 ====="
+            if ! pnpm run test:unit; then
+              echo "===== RSTEST ITER $i FAILED ====="
+              fail=1
+            fi
+          done
+          exit $fail
 
       - name: Upload linux test cache
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && matrix.node == '24' }}

@@ -15,6 +15,8 @@ function log(msg: string): void {
   process.stdout.write(`[CLOSEDIAG] pid=${PID} t=${Date.now()} ${msg}\n`);
 }
 
+log('armed'); // confirms the instrumentation compiled & this worker process loaded it
+
 let lastTick = Date.now();
 let maxLag = 0;
 const HEARTBEAT_MS = 250;
@@ -23,7 +25,7 @@ const timer = setInterval(() => {
   const lag = now - lastTick - HEARTBEAT_MS;
   lastTick = now;
   if (lag > maxLag) maxLag = lag;
-  if (lag > 500) log(`LAG gap=${lag}ms (loop stalled)`);
+  if (lag > 300) log(`LAG gap=${lag}ms (loop stalled)`);
 }, HEARTBEAT_MS);
 if (typeof timer.unref === 'function') timer.unref();
 
@@ -75,7 +77,7 @@ export async function withCloseDiag(
     const dur = Date.now() - start;
     clearTimeout(t4);
     clearTimeout(t9);
-    if (dur > 3000) {
+    if (dur > 1000) {
       log(
         `name="${name}" RESOLVED dur=${dur}ms maxLagSinceStart=${maxLag - lagAtStart}ms`,
       );
