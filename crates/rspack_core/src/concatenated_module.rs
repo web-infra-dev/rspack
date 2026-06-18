@@ -1422,9 +1422,6 @@ impl Module for ConcatenatedModule {
         let mut changes = None;
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
-          if !ConcatenationScope::is_module_reference(name.as_str()) {
-            continue;
-          }
           let cached_match_info = info
             .module_references
             .as_ref()
@@ -2604,7 +2601,6 @@ impl ConcatenatedModule {
       let mut all_used_names = HashSet::default();
       all_used_names.reserve(ids.len());
       module_info.idents.reserve(ids.len());
-      module_info.global_scope_ident.reserve(ids.len());
       let mut binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>> =
         FxIndexMap::default();
       binding_to_ref.reserve(ids.len());
