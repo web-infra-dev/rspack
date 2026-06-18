@@ -182,15 +182,31 @@ export default {
 };
 ```
 
-### cache.snapshot
+### snapshot and cache.snapshot
 
-- **Type:** `object`
+- **Type:**
+
+```ts
+type SnapshotOptions = {
+  immutablePaths?: Array<string | RegExp>;
+  unmanagedPaths?: Array<string | RegExp>;
+  managedPaths?: Array<string | RegExp>;
+  contextModule?: {
+    hash?: boolean;
+    timestamp?: boolean;
+  };
+};
+```
 
 - **Default:** `{}`
 
 Configure snapshot strategy. Snapshot is used to determine which files have been modified since the last build. The following configurations are supported:
 
-#### snapshot.immutablePaths
+Rspack supports the webpack-compatible top-level `snapshot` option for persistent cache. The path options can also be configured under `cache.snapshot` for existing Rspack configurations. When both are configured, top-level `snapshot.*` values take precedence over `cache.snapshot.*`.
+
+`snapshot.contextModule` must be configured on the top-level `snapshot` option.
+
+#### snapshot.immutablePaths / cache.snapshot.immutablePaths
 
 - **Type:** `(RegExp | string)[]`
 
@@ -198,7 +214,7 @@ Configure snapshot strategy. Snapshot is used to determine which files have been
 
 An array of paths to immutable files. On hot restart, changes to these paths will be ignored and the cache will be considered valid without re-checking file contents. Suitable for content-addressed paths that are guaranteed to never change once written.
 
-#### snapshot.managedPaths
+#### snapshot.managedPaths / cache.snapshot.managedPaths
 
 - **Type:** `(RegExp | string)[]`
 
@@ -206,13 +222,40 @@ An array of paths to immutable files. On hot restart, changes to these paths wil
 
 An array of paths managed by the package manager. On hot restart, Rspack will use the `version` field in the corresponding `package.json` to determine whether a package has changed, instead of hashing file contents. This speeds up cache validation for packages that are only updated via the package manager.
 
-#### snapshot.unmanagedPaths
+#### snapshot.unmanagedPaths / cache.snapshot.unmanagedPaths
 
 - **Type:** `(RegExp | string)[]`
 
 - **Default:** `[]`
 
 Specifies paths within `snapshot.managedPaths` that should not be treated as managed by the package manager. Files in these paths will fall back to content-hash-based cache validation.
+
+#### snapshot.contextModule
+
+- **Type:** `{ hash?: boolean; timestamp?: boolean }`
+
+- **Default:** `{ hash: true, timestamp: true }`
+
+Controls the snapshot strategy used when building context modules, such as modules created by dynamic imports or requires with a context.
+
+- `hash: true` compares recursive content hashes.
+- `timestamp: true` compares recursive timestamps.
+- When both are enabled, Rspack checks timestamps first and compares hashes only after a timestamp change, so unchanged content can still reuse the cache.
+
+At least one of `hash` or `timestamp` should be enabled. Disabling both makes context module snapshots always invalid.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  snapshot: {
+    contextModule: {
+      timestamp: true,
+    },
+  },
+};
+```
 
 ### cache.storage
 
@@ -370,22 +413,22 @@ export default {
 };
 ```
 
-4. Migrate `snapshot`
+4. Keep webpack-compatible `snapshot` at the top level
+
+Rspack supports the webpack-compatible top-level `snapshot` option for persistent cache, including `snapshot.contextModule`.
 
 ```diff title="rspack.config.mjs"
 export default {
-- snapshot: {
--   immutablePaths: [path.join(__dirname, "constant")],
--   managedPaths: [path.join(__dirname, "node_modules")],
--   unmanagedPaths: []
-- },
+  snapshot: {
+    immutablePaths: [path.join(__dirname, "constant")],
+    managedPaths: [path.join(__dirname, "node_modules")],
+    unmanagedPaths: [],
+    contextModule: {
+      timestamp: true
+    }
+  },
 + cache: {
-+   type: "persistent",
-+   snapshot: {
-+     immutablePaths: [path.join(__dirname, "constant")],
-+     managedPaths: [path.join(__dirname, "node_modules")],
-+     unmanagedPaths: []
-+   }
++   type: "persistent"
 + },
 };
 ```
@@ -434,10 +477,11 @@ function transform(webpackConfig, rspackConfig) {
     webpackConfig.cache.name,
     webpackConfig.cache.version,
   ].join();
-  rspackConfig.cache.snapshot = {
+  rspackConfig.snapshot = {
     immutablePaths: webpackConfig.snapshot?.immutablePaths,
     managedPaths: webpackConfig.snapshot?.managedPaths,
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+    contextModule: webpackConfig.snapshot?.contextModule,
   };
   rspackConfig.cache.storage = {
     type: 'filesystem',
