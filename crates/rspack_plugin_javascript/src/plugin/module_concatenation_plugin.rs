@@ -26,6 +26,13 @@ fn format_bailout_reason(msg: &str) -> String {
   format!("ModuleConcatenation bailout: {msg}")
 }
 
+fn push_bailout_reason(
+  bailout_reason: &mut Option<Vec<Cow<'static, str>>>,
+  reason: Cow<'static, str>,
+) {
+  bailout_reason.get_or_insert_with(Vec::new).push(reason);
+}
+
 #[derive(Clone, Debug)]
 enum Warning {
   Id(ModuleIdentifier),
@@ -777,7 +784,7 @@ impl ModuleConcatenationPlugin {
       .map(|module_id| {
         let mut can_be_root = true;
         let mut can_be_inner = true;
-        let mut bailout_reason = vec![];
+        let mut bailout_reason: Option<Vec<Cow<'static, str>>> = None;
         let number_of_module_chunks = compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -795,21 +802,21 @@ impl ModuleConcatenationPlugin {
           module_graph,
           &compilation.build_chunk_graph_artifact.chunk_graph,
         ) {
-          bailout_reason.push(reason);
+          push_bailout_reason(&mut bailout_reason, reason);
           return (false, false, module_id, bailout_reason);
         }
 
         if ModuleGraph::is_async(&compilation.async_modules_artifact, &module_id) {
-          bailout_reason.push("Module is async".into());
+          push_bailout_reason(&mut bailout_reason, "Module is async".into());
           return (false, false, module_id, bailout_reason);
         }
 
         if !m.build_info().strict {
-          bailout_reason.push("Module is not in strict mode".into());
+          push_bailout_reason(&mut bailout_reason, "Module is not in strict mode".into());
           return (false, false, module_id, bailout_reason);
         }
         if number_of_module_chunks == 0 {
-          bailout_reason.push("Module is not in any chunk".into());
+          push_bailout_reason(&mut bailout_reason, "Module is not in any chunk".into());
           return (false, false, module_id, bailout_reason);
         }
 
@@ -847,7 +854,8 @@ impl ModuleConcatenationPlugin {
           //   &mut module_graph,
           // );
 
-          bailout_reason.push(
+          push_bailout_reason(
+            &mut bailout_reason,
             format!("Reexports in this module do not have a static target ({cur_bailout_reason})")
               .into(),
           );
@@ -878,8 +886,10 @@ impl ModuleConcatenationPlugin {
           //   format!("List of module exports is dynamic ({bailout_reason})"),
           //   &mut module_graph,
           // );
-          bailout_reason
-            .push(format!("List of module exports is dynamic ({cur_bailout_reason})").into());
+          push_bailout_reason(
+            &mut bailout_reason,
+            format!("List of module exports is dynamic ({cur_bailout_reason})").into(),
+          );
           can_be_root = false;
         }
 
@@ -890,11 +900,11 @@ impl ModuleConcatenationPlugin {
           //   &mut module_graph,
           // );
           can_be_inner = false;
-          bailout_reason.push("Module is an entry point".into());
+          push_bailout_reason(&mut bailout_reason, "Module is an entry point".into());
         }
 
         if module_graph.is_deferred(&compilation.imported_by_defer_modules_artifact, &module_id) {
-          bailout_reason.push("Module is deferred".into());
+          push_bailout_reason(&mut bailout_reason, "Module is deferred".into());
           can_be_inner = false;
         }
 
@@ -917,8 +927,10 @@ impl ModuleConcatenationPlugin {
       if can_be_inner {
         possible_inners.insert(module_id);
       }
-      for bailout_reason in bailout_reason {
-        self.set_bailout_reason(&module_id, bailout_reason, module_graph);
+      if let Some(bailout_reason) = bailout_reason {
+        for bailout_reason in bailout_reason {
+          self.set_bailout_reason(&module_id, bailout_reason, module_graph);
+        }
       }
     }
 
