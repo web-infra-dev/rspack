@@ -1418,14 +1418,16 @@ impl Module for ConcatenatedModule {
         let ModuleInfo::Concatenated(info) = info else {
           return None;
         };
+        if info.global_scope_ident.is_empty() {
+          return None;
+        }
+        let module_references = info.module_references.as_ref();
         let mut strict_esm_module = None;
         let mut changes = None;
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
-          let cached_match_info = info
-            .module_references
-            .as_ref()
-            .and_then(|references| references.get(name.as_str()));
+          let cached_match_info =
+            module_references.and_then(|references| references.get(name.as_str()));
           let parsed_match_info;
           let match_info = if let Some(match_info) = cached_match_info {
             match_info
@@ -1446,7 +1448,7 @@ impl Module for ConcatenatedModule {
                 .strict_esm_module
             });
             let final_name = Self::get_final_name(
-              compilation.get_module_graph(),
+              module_graph,
               &compilation.module_graph_cache_artifact,
               &compilation.exports_info_artifact,
               &compilation.module_static_cache,
