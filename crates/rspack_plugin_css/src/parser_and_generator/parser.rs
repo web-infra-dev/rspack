@@ -664,6 +664,13 @@ impl<'context> CssModuleParser<'context> {
         {
           declarations.vars.insert(normalize_dashed_ident_name(name));
         }
+        css_module_lexer::Dependency::ICSSExportValue { prop, .. }
+        | css_module_lexer::Dependency::ICSSImportValue { prop, .. }
+          if self.dashed_idents()
+            && prop.strip_prefix("--").is_some_and(is_custom_property_name) =>
+        {
+          declarations.vars.insert(normalize_dashed_ident_name(prop));
+        }
         _ => {}
       }
     }
