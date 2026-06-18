@@ -146,33 +146,16 @@ jobs:
 
   check-cache:
     name: Check Cache Portable
-    needs: [test-linux, test-windows]
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          key: test_cache
-          save-if: true
-      - name: Download linux cache
-        uses: ./.github/actions/artifact/download
-        with:
-          name: testCase-persistentCache-linux
-          path: ./cache-linux
-          force-use-github-only: true
-      - name: Download windows cache
-        uses: ./.github/actions/artifact/download
-        with:
-          name: testCase-persistentCache-windows
-          path: ./cache-windows
-          force-use-github-only: true
       - name: Run compare kit
         run: |
-          echo "success"
           #  TODO open it after rspack portable cache implementation
+          #  Restore the linux/windows cache artifacts before enabling this compare.
           # cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+          echo "Portable cache comparison is currently disabled."
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
