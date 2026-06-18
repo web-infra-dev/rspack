@@ -104,11 +104,10 @@ const sharedConfig = defineProject({
     __TEST_FIXTURES_PATH__: path.resolve(__dirname, "fixtures"),
     __TEST_DIST_PATH__: path.resolve(__dirname, "js"),
     __ROOT_PATH__: root,
-    DEFAULT_MAX_CONCURRENT: process.argv.includes("--maxConcurrency")
-      ? process.argv[
-      process.argv.indexOf("--maxConcurrency") + 1
-      ]
-      : undefined,
+    DEFAULT_MAX_CONCURRENT: process.env.DEFAULT_MAX_CONCURRENT // TEMP diag: let the CI repro loop inject per-iteration (revert before merge)
+      ?? (process.argv.includes("--maxConcurrency")
+        ? process.argv[process.argv.indexOf("--maxConcurrency") + 1]
+        : undefined),
     __RSPACK_PATH__: path.resolve(root, "packages/rspack"),
     __RSPACK_TEST_TOOLS_PATH__: path.resolve(root, "packages/rspack-test-tools"),
     __DEBUG__: process.env.DEBUG === "test" ? 'true' : 'false',
