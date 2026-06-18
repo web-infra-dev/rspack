@@ -196,6 +196,17 @@ fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bo
 
 #[cold]
 #[inline(never)]
+fn is_create_require_module_object_import(settings: &ESMSpecifierData) -> bool {
+  settings.namespace_import
+    || (settings.ids.len() == 1
+      && settings
+        .ids
+        .first()
+        .is_some_and(|id| id.as_ref() == "default"))
+}
+
+#[cold]
+#[inline(never)]
 pub(crate) fn is_create_require_namespace_member(
   parser: &mut JavascriptParser,
   expr: &Expr,
@@ -211,12 +222,12 @@ pub(crate) fn is_create_require_namespace_member(
   else {
     return false;
   };
-  let namespace_import = settings.namespace_import;
   let source = settings.source.clone();
+  let module_object_import = is_create_require_module_object_import(settings);
   let Some(member) = static_member_name(member_expr) else {
     return false;
   };
-  namespace_import
+  module_object_import
     && create_require_import_specifier(parser, &source).is_some_and(|specifier| member == specifier)
 }
 
@@ -238,7 +249,7 @@ fn is_create_require_namespace_member_param(
   else {
     return false;
   };
-  settings.namespace_import
+  is_create_require_module_object_import(settings)
     && create_require_import_specifier(parser, &settings.source)
       .is_some_and(|specifier| property == specifier.as_ref())
 }
@@ -364,6 +375,14 @@ fn dirname(path: &str) -> Option<&str> {
 #[cold]
 #[inline(never)]
 fn evaluate_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) -> Option<String> {
+  if let Some(member) = arg.as_member()
+    && is_meta_url(parser, member)
+  {
+    return Url::from_file_path(parser.resource_data.resource())
+      .ok()
+      .map(|url| url.to_string());
+  }
+
   let evaluated = parser.evaluate_expression(arg);
   if let Some(value) = evaluated.as_string() {
     return Some(value);
@@ -547,6 +566,25 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
   } else {
     true
   }
+}
+
+#[inline(never)]
+fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
+  args.len() == 1
+    && !matches!(parser.javascript_options.require_resolve, Some(false))
+    && args[0].spread.is_none()
+    && args[0]
+      .expr
+      .as_member()
+      .is_some_and(|member| is_meta_url(parser, member))
+}
+
+#[inline(never)]
+fn clear_create_require_call(parser: &mut JavascriptParser, span: Span) {
+  parser.add_presentational_dependency(Box::new(ConstDependency::new(
+    span.into(),
+    "/* createRequire() */ undefined".into(),
+  )));
 }
 
 #[inline(never)]
@@ -876,6 +914,8 @@ fn add_unsupported_create_require_member_warning(parser: &mut JavascriptParser, 
 fn tag_created_require_declarator(
   parser: &mut JavascriptParser,
   binding: &Ident,
+  call_span: Span,
+  clear_call: bool,
   args: &[ExprOrSpread],
   argument: CreateRequireArgument,
 ) {
@@ -894,7 +934,9 @@ fn tag_created_require_declarator(
       side_effects: String::new(),
     }),
   );
-  if replace_argument {
+  if clear_call {
+    clear_create_require_call(parser, call_span);
+  } else if replace_argument {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       args[0].expr.span().into(),
       json_stringify_str(&value).into(),
@@ -1708,8 +1750,18 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || is_create_require_namespace_member(parser, callee))
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      tag_created_require_declarator(parser, &binding.id, &call.args, argument);
-      walk_create_require_callee(parser, call);
+      let clear_call = should_clear_create_require_call(parser, &call.args);
+      tag_created_require_declarator(
+        parser,
+        &binding.id,
+        call.span,
+        clear_call,
+        &call.args,
+        argument,
+      );
+      if !clear_call {
+        walk_create_require_callee(parser, call);
+      }
       return Some(true);
     }
 
@@ -1719,7 +1771,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
       && let Some(args) = init.args.as_deref()
     {
-      tag_created_require_declarator(parser, &binding.id, args, argument);
+      tag_created_require_declarator(parser, &binding.id, init.span, false, args, argument);
       parser.walk_expression(&init.callee);
       return Some(true);
     }
@@ -2051,7 +2103,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
     } else if should_handle_create_require_call(parser, for_name, call_expr.callee.as_expr()) {
       if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
-        if argument.replace_argument {
+        let clear_call = should_clear_create_require_call(parser, &call_expr.args);
+        if clear_call {
+          clear_create_require_call(parser, call_expr.span);
+        } else if argument.replace_argument {
           parser.add_presentational_dependency(Box::new(ConstDependency::new(
             call_expr.args[0].expr.span().into(),
             json_stringify_str(&argument.value).into(),
@@ -2059,7 +2114,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         } else {
           walk_create_require_argument_side_effects(parser, &call_expr.args[0].expr);
         }
-        walk_create_require_callee(parser, call_expr);
+        if !clear_call {
+          walk_create_require_callee(parser, call_expr);
+        }
         walk_create_require_ignored_args(parser, call_expr);
         Some(true)
       } else {

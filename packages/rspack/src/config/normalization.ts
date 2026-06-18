@@ -75,7 +75,6 @@ import type {
   RspackOptions,
   RuleSetRules,
   ScriptType,
-  SnapshotOptions,
   SourceMapFilename,
   StatsValue,
   StrictModuleErrorHandling,
@@ -271,38 +270,56 @@ export const getNormalizedRspackOptions = (
         },
     ),
     loader: cloneObject(config.loader),
-    snapshot: nestedConfig(config.snapshot, (_snapshot) => ({})),
     cache: optionalNestedConfig(config.cache, (cache) => {
-      if (typeof cache === 'boolean') {
-        return cache;
+      if (cache === false) return false;
+      if (cache === true) {
+        return {
+          type: 'memory',
+        };
       }
-      if (cache.type === 'memory') {
-        return cache;
+      switch (cache.type) {
+        case undefined:
+        case 'memory':
+          return {
+            ...cache,
+            type: 'memory',
+          };
+        case 'persistent': {
+          const context = config.context || process.cwd();
+          return {
+            type: 'persistent',
+            version: cache.version,
+            portable: cache.portable,
+            readonly: cache.readonly,
+            buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
+              deps.map((d) => path.resolve(context, d)),
+            ),
+            snapshot: nestedConfig(cache.snapshot, (snapshot) => ({
+              immutablePaths: optionalNestedArray(
+                snapshot.immutablePaths,
+                (p) => [...p],
+              ),
+              unmanagedPaths: optionalNestedArray(
+                snapshot.unmanagedPaths,
+                (p) => [...p],
+              ),
+              managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
+                ...p,
+              ]),
+            })),
+            storage: nestedConfig(cache.storage, (storage) => ({
+              type: storage.type,
+              directory: optionalNestedConfig(storage.directory, (d) =>
+                path.resolve(context, d),
+              ),
+              maxAge: storage.maxAge,
+              maxGenerations: storage.maxGenerations,
+            })),
+          };
+        }
+        default:
+          throw new Error(`Not implemented cache.type ${(cache as any).type}`);
       }
-      const snapshot = cache.snapshot || {};
-      return {
-        type: 'persistent',
-        buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
-          deps.map((d) => path.resolve(config.context || process.cwd(), d)),
-        ),
-        version: cache.version || '',
-        snapshot: {
-          immutablePaths: nestedArray(snapshot.immutablePaths, (p) => [...p]),
-          unmanagedPaths: nestedArray(snapshot.unmanagedPaths, (p) => [...p]),
-          managedPaths: optionalNestedArray(snapshot.managedPaths, (p) => [
-            ...p,
-          ]) || [/[\\/]node_modules[\\/][^.]/],
-        },
-        storage: {
-          type: 'filesystem',
-          directory: path.resolve(
-            config.context || process.cwd(),
-            cache.storage?.directory || 'node_modules/.cache/rspack',
-          ),
-        },
-        portable: cache.portable,
-        readonly: cache.readonly,
-      };
     }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
@@ -591,24 +608,27 @@ export interface ModuleOptionsNormalized {
 }
 
 export type CacheNormalized =
-  | boolean
+  | false
   | {
       type: 'memory';
     }
   | {
       type: 'persistent';
       buildDependencies: string[];
-      version: string;
+      version?: string;
       snapshot: {
-        immutablePaths: (string | RegExp)[];
-        unmanagedPaths: (string | RegExp)[];
-        managedPaths: (string | RegExp)[];
+        immutablePaths?: (string | RegExp)[];
+        unmanagedPaths?: (string | RegExp)[];
+        managedPaths?: (string | RegExp)[];
       };
       storage: {
         type: 'filesystem';
-        directory: string;
+        directory?: string;
+        maxAge?: number;
+        maxGenerations?: number;
       };
       portable?: boolean;
+      readonly?: boolean;
     };
 
 export interface ExperimentsNormalized {
@@ -653,7 +673,6 @@ export interface RspackOptionsNormalized {
   devtool?: DevTool;
   node: Node;
   loader: Loader;
-  snapshot: SnapshotOptions;
   cache?: CacheNormalized;
   stats: StatsValue;
   optimization: Optimization;

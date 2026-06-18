@@ -233,13 +233,13 @@ export default {
 <ApiMeta addedVersion="2.0.0" />
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** 生产模式下为 `true`，其他模式下为 `false`
 
 开启跨模块的无副作用函数调用优化，包括 `/*#__NO_SIDE_EFFECTS__*/` 注解和 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 配置。被注解或用户配置标记的无副作用函数如果没有被真正使用到，则不会被打包进产物。
 
 更多背景可参考 [pureFunctions](/guide/optimization/tree-shaking#purefunctions) 和 [NO_SIDE_EFFECTS 注解](/guide/optimization/tree-shaking#no_side_effects-注解)。
 
-这个选项用于开启能力本身。若要手动为命中的模块标记标识符 —— 既可以是第三方库中的导出函数，也可以是你自己代码中的 import 或本地声明 —— 推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions)，这样规则只会作用于目标模块。
+该能力在生产模式下默认开启。若要关闭 pure function 分析，可将该选项设为 `false`。若要手动为命中的模块标记标识符 —— 既可以是第三方库中的导出函数，也可以是你自己代码中的 import 或本地声明 —— 推荐通过 `module.rules[i].parser` 来配置 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions)，这样规则只会作用于目标模块。
 
 ```js title="rspack.config.mjs"
 export default {

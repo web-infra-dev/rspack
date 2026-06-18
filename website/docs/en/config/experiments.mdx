@@ -233,13 +233,13 @@ export default {
 <ApiMeta addedVersion="2.0.0" />
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true` in production mode, `false` otherwise
 
 Enables cross-module side-effect-free function call optimization, including the `/*#__NO_SIDE_EFFECTS__*/` annotation and [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions). Functions marked through annotations or user configuration are omitted from the output when they are not actually used.
 
 For more background, see [pureFunctions](/guide/optimization/tree-shaking#purefunctions) and [NO_SIDE_EFFECTS annotation](/guide/optimization/tree-shaking#no_side_effects-annotation).
 
-Use this option to turn on the capability itself. To manually mark identifiers in matched modules — exported functions in a third-party module, or imports/locals in your own files — configure [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
+This capability is enabled by default in production mode. To disable pure-function analysis, set this option to `false`. To manually mark identifiers in matched modules — exported functions in a third-party module, or imports/locals in your own files — configure [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) through `module.rules[i].parser` so the rule only applies to the intended modules.
 
 ```js title="rspack.config.mjs"
 export default {

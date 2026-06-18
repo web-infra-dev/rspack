@@ -347,14 +347,14 @@ export function configMultiCompiler(
   const multiCompilerOptions: RspackOptions[] = [];
   const caseOptions: RspackOptions[] = Array.isArray(configFiles)
     ? readConfigFile(
-        configFiles!.map((i) => context.getSource(i)),
+        configFiles!.map((i) => context.getCompileSource(i)),
         context,
         {},
         (configs) => {
           return configs.flatMap((c) => {
             if (typeof c === 'function') {
               const options = {
-                testPath: context.getDist(),
+                testPath: context.getCompileDist(),
                 env: undefined,
               };
 
