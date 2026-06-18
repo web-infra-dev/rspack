@@ -722,6 +722,11 @@ module.exports = {
 			      index,
 			    ],
 			  },
+			  snapshot: Object {
+			    contextModule: Object {
+			      timestamp: true,
+			    },
+			  },
 			  stats: Object {},
 			  target: web,
 			  watch: false,

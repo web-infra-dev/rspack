@@ -59,7 +59,7 @@ impl SnapshotStrategyOptions {
 
 impl Default for SnapshotStrategyOptions {
   fn default() -> Self {
-    Self::hash_and_timestamp()
+    Self::timestamp()
   }
 }
 
@@ -116,6 +116,14 @@ mod tests {
   use rspack_regex::RspackRegex;
 
   use super::{PathMatcher, SnapshotOptions};
+
+  #[test]
+  fn should_default_context_module_strategy_align_with_webpack() {
+    let strategy = SnapshotOptions::default().context_module_strategy();
+
+    assert!(!strategy.hash);
+    assert!(strategy.timestamp);
+  }
 
   #[test]
   fn should_path_matcher_works() {

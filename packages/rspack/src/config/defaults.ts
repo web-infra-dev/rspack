@@ -25,6 +25,7 @@ import type {
   EntryNormalized,
   ExperimentsNormalized,
   RspackOptionsNormalized,
+  SnapshotNormalized,
 } from './normalization';
 import {
   getDefaultTarget,
@@ -106,6 +107,8 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     compilerIndex,
   });
+  F(options, 'snapshot', () => ({}));
+  applySnapshotDefaults(options.snapshot!);
 
   applyIncrementalDefaults(options);
 
@@ -245,6 +248,10 @@ const applyCacheDefaults = (
       D(cache, 'readonly', false);
       break;
   }
+};
+
+const applySnapshotDefaults = (snapshot: SnapshotNormalized) => {
+  F(snapshot, 'contextModule', () => ({ timestamp: true }));
 };
 
 export const applyRspackOptionsBaseDefaults = (
