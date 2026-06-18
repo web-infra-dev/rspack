@@ -102,7 +102,7 @@ jobs:
         run: rustup target add ${{ inputs.target }}
 
       - name: Disable debuginfo for Windows CI build
-        if: ${{ runner.os == 'Windows' }}
+        if: ${{ runner.os == 'Windows' && inputs.profile == 'ci' }}
         run: echo "CARGO_PROFILE_CI_DEBUG=false" >> "$GITHUB_ENV"
 
       - name: Run Cargo codegen
