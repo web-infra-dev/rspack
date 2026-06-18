@@ -1420,7 +1420,7 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(&info.module)
           .expect("should have module");
         let build_meta = module.build_meta();
-        let mut changes = vec![];
+        let mut changes = None;
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
@@ -1432,11 +1432,7 @@ impl Module for ConcatenatedModule {
               &compilation.exports_info_artifact,
               &compilation.module_static_cache,
               referenced_info_id,
-              match_info
-                .ids
-                .into_iter()
-                .map(|item| Atom::from(item.as_str()))
-                .collect::<Vec<_>>(),
+              match_info.ids,
               &module_to_info_map,
               runtime,
               match_info.deferred_import,
@@ -1454,10 +1450,12 @@ impl Module for ConcatenatedModule {
             // let source = info.source.as_mut().expect("should have source");
             // range is extended by 2 chars to cover the appended "._"
             // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
-            changes.push((final_name, (low, high + 2)));
+            changes
+              .get_or_insert_with(Vec::new)
+              .push((final_name, (low, high + 2)));
           }
         }
-        Some((info.module, changes))
+        changes.map(|changes| (info.module, changes))
       })
       .collect::<Vec<_>>();
 
