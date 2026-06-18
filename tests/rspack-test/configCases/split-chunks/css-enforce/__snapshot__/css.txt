@@ -1,0 +1,11 @@
+Array [
+  body {
+  background: green;
+},
+  body {
+  background: red;
+},
+  body {
+  background: green;
+},
+]

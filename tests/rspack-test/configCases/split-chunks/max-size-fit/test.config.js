@@ -2,6 +2,6 @@
 module.exports = {
 	writeStatsJson: true,
 	findBundle: function (i, options) {
-		return ["main-1.js", "main-2.js", "main-3.js", "main-400f55e3.js"];
+		return ["main-1.js", "main-cde42ecf.js", "main-f5c11e54.js"];
 	}
 };
