@@ -75,6 +75,7 @@ import type {
   RspackOptions,
   RuleSetRules,
   ScriptType,
+  SnapshotStrategyOptions,
   SourceMapFilename,
   StatsValue,
   StrictModuleErrorHandling,
@@ -321,6 +322,30 @@ export const getNormalizedRspackOptions = (
           throw new Error(`Not implemented cache.type ${(cache as any).type}`);
       }
     }),
+    ...(config.snapshot === undefined
+      ? {}
+      : {
+          snapshot: {
+            immutablePaths: optionalNestedArray(
+              config.snapshot.immutablePaths,
+              (p) => [...p],
+            ),
+            unmanagedPaths: optionalNestedArray(
+              config.snapshot.unmanagedPaths,
+              (p) => [...p],
+            ),
+            managedPaths: optionalNestedArray(
+              config.snapshot.managedPaths,
+              (p) => [...p],
+            ),
+            contextModule: optionalNestedConfig(
+              config.snapshot.contextModule,
+              (strategy) => ({
+                ...strategy,
+              }),
+            ),
+          },
+        }),
     stats: nestedConfig(config.stats, (stats) => {
       if (stats === false) {
         return {
@@ -631,6 +656,13 @@ export type CacheNormalized =
       readonly?: boolean;
     };
 
+export type SnapshotNormalized = {
+  immutablePaths?: (string | RegExp)[];
+  unmanagedPaths?: (string | RegExp)[];
+  managedPaths?: (string | RegExp)[];
+  contextModule?: SnapshotStrategyOptions;
+};
+
 export interface ExperimentsNormalized {
   asyncWebAssembly?: boolean;
   css?: boolean;
@@ -674,6 +706,7 @@ export interface RspackOptionsNormalized {
   node: Node;
   loader: Loader;
   cache?: CacheNormalized;
+  snapshot?: SnapshotNormalized;
   stats: StatsValue;
   optimization: Optimization;
   plugins: Plugins;

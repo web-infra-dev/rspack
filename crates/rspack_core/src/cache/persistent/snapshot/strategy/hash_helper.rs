@@ -24,6 +24,7 @@ pub struct HashHelper {
   package_helper: Arc<PackageHelper>,
   file_cache: ArcPathDashMap<Option<ContentHash>>,
   dir_cache: ArcPathDashMap<Option<ContentHash>>,
+  timestamp_cache: ArcPathDashMap<Option<u64>>,
 }
 
 impl HashHelper {
@@ -39,6 +40,16 @@ impl HashHelper {
       package_helper,
       file_cache: Default::default(),
       dir_cache: Default::default(),
+      timestamp_cache: Default::default(),
+    }
+  }
+
+  fn modified_time_from_metadata(metadata: &FileMetadata) -> u64 {
+    // mtime is the larger of ctime and mtime
+    if metadata.ctime_ms > metadata.mtime_ms {
+      metadata.ctime_ms
+    } else {
+      metadata.mtime_ms
     }
   }
 
@@ -64,12 +75,7 @@ impl HashHelper {
       metadata
     };
 
-    // mtime is the larger of ctime and mtime
-    let mtime = if metadata.ctime_ms > metadata.mtime_ms {
-      metadata.ctime_ms
-    } else {
-      metadata.mtime_ms
-    };
+    let mtime = Self::modified_time_from_metadata(&metadata);
     let mut hasher = FxHasher::default();
     if metadata.is_symlink {
       if let Ok(target) = self.fs.canonicalize(utf8_path).await {
@@ -109,6 +115,7 @@ impl HashHelper {
     let hash = if metadata.is_directory && !metadata.is_symlink {
       if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
         let mut hasher = FxHasher::default();
+        let mut mtime = Self::modified_time_from_metadata(&metadata);
         children.sort();
         for item in children {
           let child_path = ArcPath::from(path.join(item));
@@ -120,17 +127,24 @@ impl HashHelper {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);
             }
+            if let Some(child_mtime) = self.dir_timestamp(&child_path).await {
+              mtime = mtime.max(child_mtime);
+            }
             continue;
           }
 
-          if let Some(ContentHash { hash, .. }) = self.dir_hash(&child_path).await {
+          if let Some(ContentHash {
+            hash,
+            mtime: child_mtime,
+          }) = self.dir_hash(&child_path).await
+          {
             hash.hash(&mut hasher);
+            mtime = mtime.max(child_mtime);
           }
         }
         Some(ContentHash {
           hash: hasher.finish(),
-          // The mtime value is always set to 0 for directories.
-          mtime: 0,
+          mtime,
         })
       } else {
         None
@@ -140,6 +154,43 @@ impl HashHelper {
     };
     self.dir_cache.insert(path.into(), hash.clone());
     hash
+  }
+
+  /// Get the maximum timestamp for a directory recursively.
+  #[async_recursion::async_recursion]
+  pub async fn dir_timestamp(&self, path: &ArcPath) -> Option<u64> {
+    if let Some(timestamp) = self.timestamp_cache.get(path) {
+      return *timestamp;
+    }
+
+    let utf8_path = path.assert_utf8();
+    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+      self.timestamp_cache.insert(path.into(), None);
+      return None;
+    };
+
+    let mut mtime = Self::modified_time_from_metadata(&metadata);
+    if metadata.is_directory && !metadata.is_symlink {
+      let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
+        self.timestamp_cache.insert(path.into(), None);
+        return None;
+      };
+      children.sort();
+      for item in children {
+        let child_path = ArcPath::from(path.join(item));
+        let child_path_str = child_path.to_string_lossy();
+        if self.snapshot_options.is_immutable_path(&child_path_str) {
+          continue;
+        }
+        if let Some(child_mtime) = self.dir_timestamp(&child_path).await {
+          mtime = mtime.max(child_mtime);
+        }
+      }
+    }
+
+    let timestamp = Some(mtime);
+    self.timestamp_cache.insert(path.into(), timestamp);
+    timestamp
   }
 }
 
@@ -235,7 +286,7 @@ mod tests {
 
     let helper = new_helper(fs.clone());
     let hash1 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_eq!(hash1.mtime, 0);
+    assert!(hash1.mtime > 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
@@ -243,7 +294,7 @@ mod tests {
     let helper = new_helper(fs.clone());
     let hash2 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
-    assert_eq!(hash2.mtime, 0);
+    assert_eq!(hash1.mtime, hash2.mtime);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
@@ -271,14 +322,15 @@ mod tests {
     .unwrap();
     let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash2.hash, hash3.hash);
-    assert_eq!(hash3.mtime, 0);
+    assert!(hash2.mtime < hash3.mtime);
 
     // update file content
+    std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = new_helper(fs.clone());
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
     let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_ne!(hash3.hash, hash4.hash);
-    assert_eq!(hash4.mtime, 0);
+    assert!(hash3.mtime < hash4.mtime);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());

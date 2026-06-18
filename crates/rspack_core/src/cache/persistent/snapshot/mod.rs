@@ -10,7 +10,7 @@ use rspack_paths::{ArcPath, ArcPathSet};
 
 use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
-  option::{PathMatcher, SnapshotOptions},
+  option::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
   scope::SnapshotScope,
   strategy::Strategy,
 };
@@ -57,9 +57,22 @@ impl Snapshot {
       return Some(v);
     }
     Some(match scope {
-      SnapshotScope::FILE => helper.file_hash(path).await,
+      SnapshotScope::FILE => {
+        helper
+          .file_strategy(path, SnapshotStrategyOptions::hash_and_timestamp())
+          .await
+      }
       SnapshotScope::MISSING => Strategy::Missing,
-      SnapshotScope::CONTEXT | SnapshotScope::BUILD => helper.dir_hash(path).await,
+      SnapshotScope::CONTEXT => {
+        helper
+          .dir_strategy(path, options.context_module_strategy())
+          .await
+      }
+      SnapshotScope::BUILD => {
+        helper
+          .dir_strategy(path, SnapshotStrategyOptions::hash())
+          .await
+      }
     })
   }
 
@@ -165,7 +178,7 @@ mod tests {
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
-    PathMatcher, Snapshot, SnapshotOptions, SnapshotScope,
+    PathMatcher, Snapshot, SnapshotOptions, SnapshotScope, SnapshotStrategyOptions,
   };
 
   macro_rules! p {
@@ -275,5 +288,69 @@ mod tests {
     assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
     assert!(modified_paths.contains(&p!("/node_modules/lib/file1")));
     assert_eq!(no_change_paths.len(), 1);
+  }
+
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn should_context_module_strategy_work() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let codec = Arc::new(CacheCodec::new(None));
+
+    fs.create_dir_all("/context".into()).await.unwrap();
+    fs.write("/context/a.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let timestamp_only = Snapshot::new(
+      SnapshotOptions::default().with_context_module_strategy(SnapshotStrategyOptions::timestamp()),
+      fs.clone(),
+      codec.clone(),
+    );
+    let mut timestamp_storage = MemoryStorage::default();
+    timestamp_only
+      .add(
+        &mut timestamp_storage,
+        SnapshotScope::CONTEXT,
+        [p!("/context")].into_iter(),
+      )
+      .await;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/context/a.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let (_, modified_paths, deleted_paths, _) = timestamp_only
+      .calc_modified_paths(&timestamp_storage, SnapshotScope::CONTEXT)
+      .await
+      .unwrap();
+    assert!(deleted_paths.is_empty());
+    assert!(modified_paths.contains(&p!("/context")));
+
+    let timestamp_and_hash = Snapshot::new(
+      SnapshotOptions::default()
+        .with_context_module_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
+      fs.clone(),
+      codec,
+    );
+    let mut timestamp_and_hash_storage = MemoryStorage::default();
+    timestamp_and_hash
+      .add(
+        &mut timestamp_and_hash_storage,
+        SnapshotScope::CONTEXT,
+        [p!("/context")].into_iter(),
+      )
+      .await;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/context/a.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let (_, modified_paths, deleted_paths, _) = timestamp_and_hash
+      .calc_modified_paths(&timestamp_and_hash_storage, SnapshotScope::CONTEXT)
+      .await
+      .unwrap();
+    assert!(deleted_paths.is_empty());
+    assert!(!modified_paths.contains(&p!("/context")));
   }
 }

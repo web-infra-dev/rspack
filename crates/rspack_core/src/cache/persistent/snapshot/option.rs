@@ -29,6 +29,38 @@ pub struct SnapshotOptions {
   unmanaged_paths: Vec<PathMatcher>,
   /// managed_paths, snapshot will use lib version strategy
   managed_paths: Vec<PathMatcher>,
+  context_module: SnapshotStrategyOptions,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash)]
+pub struct SnapshotStrategyOptions {
+  pub hash: bool,
+  pub timestamp: bool,
+}
+
+impl SnapshotStrategyOptions {
+  pub const fn new(hash: bool, timestamp: bool) -> Self {
+    Self { hash, timestamp }
+  }
+
+  pub const fn hash() -> Self {
+    Self::new(true, false)
+  }
+
+  pub const fn timestamp() -> Self {
+    Self::new(false, true)
+  }
+
+  pub const fn hash_and_timestamp() -> Self {
+    Self::new(true, true)
+  }
+}
+
+impl Default for SnapshotStrategyOptions {
+  fn default() -> Self {
+    Self::hash_and_timestamp()
+  }
 }
 
 impl SnapshotOptions {
@@ -41,7 +73,17 @@ impl SnapshotOptions {
       immutable_paths,
       unmanaged_paths,
       managed_paths,
+      ..Default::default()
     }
+  }
+
+  pub fn with_context_module_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.context_module = strategy;
+    self
+  }
+
+  pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
+    self.context_module
   }
 
   pub fn is_immutable_path(&self, path_str: &str) -> bool {

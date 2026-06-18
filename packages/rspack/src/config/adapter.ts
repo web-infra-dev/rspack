@@ -45,6 +45,7 @@ import type {
   ModuleOptionsNormalized,
   OutputNormalized,
   RspackOptionsNormalized,
+  SnapshotNormalized,
 } from './normalization';
 import type {
   AssetGeneratorDataUrl,
@@ -102,7 +103,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(options.cache!),
+    cache: getRawCache(options.cache!, options.snapshot),
     experiments,
     incremental: options.incremental,
     node: getRawNode(options.node),
@@ -112,7 +113,10 @@ export const getRawOptions = (
   };
 };
 
-function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
+function getRawCache(
+  cache: CacheNormalized,
+  snapshot?: SnapshotNormalized,
+): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
   return {
@@ -122,9 +126,12 @@ function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
       directory: cache.storage.directory!,
     },
     snapshot: {
-      immutablePaths: cache.snapshot.immutablePaths!,
-      unmanagedPaths: cache.snapshot.unmanagedPaths!,
-      managedPaths: cache.snapshot.managedPaths!,
+      immutablePaths:
+        snapshot?.immutablePaths ?? cache.snapshot.immutablePaths!,
+      unmanagedPaths:
+        snapshot?.unmanagedPaths ?? cache.snapshot.unmanagedPaths!,
+      managedPaths: snapshot?.managedPaths ?? cache.snapshot.managedPaths!,
+      contextModule: snapshot?.contextModule,
     },
   };
 }
