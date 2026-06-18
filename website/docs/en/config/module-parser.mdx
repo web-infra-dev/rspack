@@ -610,9 +610,12 @@ export default {
 
 ### javascript.createRequire
 
-<PropertyType type="boolean | string" />
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **Default:** `true` for Node-like targets, `false` otherwise.
+- **Default:** `false`.
 
 Control whether Rspack parses `createRequire()` from Node.js `module` and turns the created `require` function into a statically analyzable dependency context.
 
@@ -849,31 +852,6 @@ export default {
 :::warning
 This option is experimental in Rspack and may change or be removed.
 :::
-
-### javascript.createRequire
-
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-Enable parsing `import { createRequire } from 'module'` and evaluating `createRequire()` calls as CommonJS `require` functions.
-
-When enabled, Rspack can statically process calls such as `createRequire(import.meta.url)('./module')` and `createRequire(import.meta.url).resolve('./module')`.
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        createRequire: true,
-      },
-    },
-  },
-};
-```
-
-You can also pass a string in the form `"specifier from module"` to customize the imported specifier and module name, for example `"createRequire from node:module"`.
 
 ### javascript.importMetaResolve
 

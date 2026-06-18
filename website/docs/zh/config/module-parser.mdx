@@ -610,9 +610,12 @@ export default {
 
 ### javascript.createRequire
 
-<PropertyType type="boolean | string" />
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
 
-- **默认值：** Node-like target 下为 `true`，其他 target 下为 `false`。
+- **默认值：** `false`。
 
 控制 Rspack 是否解析来自 Node.js `module` 的 `createRequire()`，并将创建出的 `require` 函数转换为可静态分析的依赖上下文。
 
@@ -849,31 +852,6 @@ export default {
 :::warning
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
-
-### javascript.createRequire
-
-<PropertyType
-  type="boolean | string"
-  defaultValueList={[{ defaultValue: 'false' }]}
-/>
-
-启用对 `import { createRequire } from 'module'` 的解析，并将 `createRequire()` 调用按 CommonJS `require` 函数处理。
-
-启用后，Rspack 可以静态处理 `createRequire(import.meta.url)('./module')` 和 `createRequire(import.meta.url).resolve('./module')` 这类调用。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      javascript: {
-        createRequire: true,
-      },
-    },
-  },
-};
-```
-
-你也可以传入 `"specifier from module"` 形式的字符串来自定义导入的 specifier 和模块名，例如 `"createRequire from node:module"`。
 
 ### javascript.importMetaResolve
 
