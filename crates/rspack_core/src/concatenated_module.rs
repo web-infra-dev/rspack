@@ -1420,66 +1420,42 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(&info.module)
           .expect("should have module");
         let build_meta = module.build_meta();
-        let mut refs = vec![];
+        let mut changes = vec![];
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
-            refs.push((
-              reference.clone(),
+            let final_name = Self::get_final_name(
+              compilation.get_module_graph(),
+              &compilation.module_graph_cache_artifact,
+              &compilation.exports_info_artifact,
+              &compilation.module_static_cache,
               referenced_info_id,
               match_info
                 .ids
                 .into_iter()
                 .map(|item| Atom::from(item.as_str()))
                 .collect::<Vec<_>>(),
+              &module_to_info_map,
+              runtime,
+              match_info.deferred_import,
               match_info.call,
               !match_info.direct_import,
-              match_info.deferred_import,
               build_meta.strict_esm_module,
               match_info.asi_safe,
-            ));
+              &context,
+            );
+
+            // We assume this should be concatenated module info because previous loop
+            let span = reference.id.span();
+            let low = span.real_lo();
+            let high = span.real_hi();
+            // let source = info.source.as_mut().expect("should have source");
+            // range is extended by 2 chars to cover the appended "._"
+            // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
+            changes.push((final_name, (low, high + 2)));
           }
-        }
-
-        let mut changes = vec![];
-        for (
-          reference_ident,
-          referenced_info_id,
-          export_name,
-          call,
-          call_context,
-          deferred_import,
-          strict_esm_module,
-          asi_safe,
-        ) in refs
-        {
-          let final_name = Self::get_final_name(
-            compilation.get_module_graph(),
-            &compilation.module_graph_cache_artifact,
-            &compilation.exports_info_artifact,
-            &compilation.module_static_cache,
-            referenced_info_id,
-            export_name,
-            &module_to_info_map,
-            runtime,
-            deferred_import,
-            call,
-            call_context,
-            strict_esm_module,
-            asi_safe,
-            &context,
-          );
-
-          // We assume this should be concatenated module info because previous loop
-          let span = reference_ident.id.span();
-          let low = span.real_lo();
-          let high = span.real_hi();
-          // let source = info.source.as_mut().expect("should have source");
-          // range is extended by 2 chars to cover the appended "._"
-          // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/optimize/ConcatenatedModule.js#L1411-L1412
-          changes.push((final_name, (low, high + 2)));
         }
         Some((info.module, changes))
       })

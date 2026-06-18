@@ -309,13 +309,6 @@ impl ModuleConcatenationPlugin {
       statistics.cache_hit += 1;
       Arc::clone(incomings)
     } else {
-      let module_readable_identifier = get_cached_readable_identifier(
-        module_id,
-        module_graph,
-        &compilation.module_static_cache,
-        &compilation.options.context,
-      );
-
       if !possible_modules.contains(module_id) {
         statistics.invalid_module += 1;
         let problem = Warning::Id(*module_id);
@@ -333,6 +326,12 @@ impl ModuleConcatenationPlugin {
 
       if !missing_chunks.is_empty() {
         let problem_string = {
+          let module_readable_identifier = get_cached_readable_identifier(
+            module_id,
+            module_graph,
+            &compilation.module_static_cache,
+            &compilation.options.context,
+          );
           let mut missing_chunks_list = missing_chunks
             .iter()
             .map(|&chunk| {
@@ -387,6 +386,12 @@ impl ModuleConcatenationPlugin {
         // TODO: ADD module connection explanations
         if has_active_non_modules_connections {
           let problem = {
+            let module_readable_identifier = get_cached_readable_identifier(
+              module_id,
+              module_graph,
+              &compilation.module_static_cache,
+              &compilation.options.context,
+            );
             // let importing_explanations = active_non_modules_connections
             //   .iter()
             //   .flat_map(|&c| c.explanation())
@@ -582,6 +587,12 @@ impl ModuleConcatenationPlugin {
 
           if !other_runtime_connections.is_empty() {
             let problem = {
+              let module_readable_identifier = get_cached_readable_identifier(
+                module_id,
+                module_graph,
+                &compilation.module_static_cache,
+                &compilation.options.context,
+              );
               format!(
                 "Module {} is runtime-dependent referenced by these modules: {}",
                 module_readable_identifier,
@@ -616,6 +627,12 @@ impl ModuleConcatenationPlugin {
 
       if !other_chunk_modules.is_empty() {
         let problem = {
+          let module_readable_identifier = get_cached_readable_identifier(
+            module_id,
+            module_graph,
+            &compilation.module_static_cache,
+            &compilation.options.context,
+          );
           let mut names: Vec<_> = other_chunk_modules
             .into_iter()
             .map(|mid| {
@@ -643,6 +660,12 @@ impl ModuleConcatenationPlugin {
 
       if !non_esm_modules.is_empty() {
         let problem = {
+          let module_readable_identifier = get_cached_readable_identifier(
+            module_id,
+            module_graph,
+            &compilation.module_static_cache,
+            &compilation.options.context,
+          );
           let names: Vec<_> = non_esm_modules
             .iter()
             .map(|origin_module| {
@@ -964,8 +987,6 @@ impl ModuleConcatenationPlugin {
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
-    let module_static_cache = &compilation.module_static_cache;
-    let compilation_context = &compilation.options.context;
     let cache_modules = relevant_modules
       .iter()
       .chain(possible_inners.iter())
@@ -996,13 +1017,6 @@ impl ModuleConcatenationPlugin {
             .expect_get(chunk)
             .runtime()
         }));
-
-        let _ = get_cached_readable_identifier(
-          &module_id,
-          module_graph,
-          module_static_cache,
-          compilation_context,
-        );
 
         let connections = module
           .get_dependencies()
@@ -1131,7 +1145,6 @@ impl ModuleConcatenationPlugin {
 
       let mut current_configuration =
         ConcatConfiguration::new(*current_root, active_runtime.clone());
-      let root_chunks = root_chunks.clone();
 
       let mut failure_cache = IdentifierMap::default();
       let mut success_cache = RuntimeIdentifierCache::default();
