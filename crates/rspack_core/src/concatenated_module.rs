@@ -2614,7 +2614,9 @@ impl ConcatenatedModule {
         let is_global = SyntaxContext::from_u32(scope.raw()) == module_info.global_ctxt;
         let legacy = if is_global {
           let leg = ident.to_legacy(&semantic);
-          module_info.global_scope_ident.push(leg.clone());
+          if ConcatenationScope::is_module_reference(leg.id.sym.as_str()) {
+            module_info.global_scope_ident.push(leg.clone());
+          }
           all_used_names.insert(leg.id.sym.clone());
           Some(leg)
         } else {
