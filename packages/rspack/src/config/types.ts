@@ -1272,7 +1272,7 @@ export type JavascriptParserOptions = {
 
   /**
    * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
-   * @default true for Node-like targets, false otherwise
+   * @default false
    */
   createRequire?: boolean | string;
 
