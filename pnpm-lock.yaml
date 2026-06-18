@@ -492,37 +492,6 @@ importers:
         specifier: 8.8.5
         version: 8.8.5
 
-  tests/bench:
-    dependencies:
-      react:
-        specifier: ^19.2.7
-        version: 19.2.7
-      react-dom:
-        specifier: ^19.2.7
-        version: 19.2.7(react@19.2.7)
-    devDependencies:
-      '@codspeed/tinybench-plugin':
-        specifier: ^5.5.0
-        version: 5.5.0(tinybench@5.1.0)
-      '@rspack/cli':
-        specifier: workspace:*
-        version: link:../../packages/rspack-cli
-      '@rspack/core':
-        specifier: workspace:*
-        version: link:../../packages/rspack
-      '@rspack/plugin-react-refresh':
-        specifier: ^2.0.2
-        version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
-      '@types/react':
-        specifier: ^19.2.17
-        version: 19.2.17
-      '@types/react-dom':
-        specifier: ^19.2.3
-        version: 19.2.3(@types/react@19.2.17)
-      tinybench:
-        specifier: ^5.1.0
-        version: 5.1.0
-
   tests/e2e:
     devDependencies:
       '@babel/core':
@@ -1250,14 +1219,6 @@ packages:
 
   '@chevrotain/types@11.1.2':
     resolution: {integrity: sha512-U+HFai5+zmJCkK86QsaJtoITlboZHBqrVketcO2ROv865xfCMSFpELQoz1GkX5GzME8pTa+3kbKrZHQtI0gdbw==}
-
-  '@codspeed/core@5.5.0':
-    resolution: {integrity: sha512-5FbjNlxSVOfemB85orEecikZiTz0C8aZYUfCkt5HY6QLLd1mqkrHAfekEJw0gkHcgCjNgD6DVp2TXm0V/xtt4w==}
-
-  '@codspeed/tinybench-plugin@5.5.0':
-    resolution: {integrity: sha512-gqzjQjW9tmwExerklOSJMaU6vhv6/chKAYmOh/2z4TRnRO5K7300ftmBpF6wOEFoig3XdEIWgb9nQuM7WJ8Qvg==}
-    peerDependencies:
-      tinybench: '>=4.0.1'
 
   '@cspell/cspell-bundled-dicts@10.0.1':
     resolution: {integrity: sha512-WvkSDNX4Uyyj/ZgbPO6L38iFNMfK1EqsH1FteRiI2qLz6QZMXRFrIt12OqiWIplzZDDaVpBH9FCJOPJll0fjCQ==}
@@ -6917,10 +6878,6 @@ packages:
     resolution: {integrity: sha512-9phl76Cqm6FhSX9Xe1ZUAMLtm1BLkKj2Qd5ApyWkXzsMRaA7dgr81kf4wJmQf/hAvg8EEyJxDo3du/0KlhPiKQ==}
     engines: {node: '>=0.6.0'}
 
-  tinybench@5.1.0:
-    resolution: {integrity: sha512-LXKNtFualiKOm6gADe1UXPtf8+Nfn1CtPMEHAT33Fd2YjQatrujkDcK0+4wRC1X6t7fxUDXUs6BsvuIgfkDgDg==}
-    engines: {node: '>=20.0.0'}
-
   tinyexec@1.1.2:
     resolution: {integrity: sha512-dAqSqE/RabpBKI8+h26GfLq6Vb3JVXs30XYQjdMjaj/c2tS8IYYMbIzP599KtRj7c57/wYApb3QjgRgXmrCukA==}
     engines: {node: '>=18'}
@@ -7668,25 +7625,6 @@ snapshots:
   '@bufbuild/protobuf@2.11.0': {}
 
   '@chevrotain/types@11.1.2': {}
-
-  '@codspeed/core@5.5.0':
-    dependencies:
-      axios: 1.16.1
-      find-up: 6.3.0
-      form-data: 4.0.5
-      node-gyp-build: 4.8.4
-      stack-trace: 1.0.0-pre2
-    transitivePeerDependencies:
-      - debug
-      - supports-color
-
-  '@codspeed/tinybench-plugin@5.5.0(tinybench@5.1.0)':
-    dependencies:
-      '@codspeed/core': 5.5.0
-      tinybench: 5.1.0
-    transitivePeerDependencies:
-      - debug
-      - supports-color
 
   '@cspell/cspell-bundled-dicts@10.0.1':
     dependencies:
@@ -13721,8 +13659,6 @@ snapshots:
   timers-browserify@2.0.12:
     dependencies:
       setimmediate: 1.0.5
-
-  tinybench@5.1.0: {}
 
   tinyexec@1.1.2: {}
 

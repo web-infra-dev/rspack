@@ -49,7 +49,7 @@
     "test:e2e-browser": "pnpm --filter \"e2e-browser-test\" test",
     "test:ci": "cross-env NODE_OPTIONS=\"--max_old_space_size=8192 --stack-trace-limit=100\" pnpm run build:js && pnpm run test:type && pnpm run test:unit",
     "test:rs": "cargo test --workspace --exclude rspack_binding_api --exclude rspack_node --exclude rspack_binding_builder --exclude rspack_binding_builder_macros --exclude rspack_binding_builder_testing --exclude rspack_binding_build --exclude rspack_napi --exclude rspack_watcher -- --nocapture",
-    "bench:ci": "pnpm run bench:prepare && pnpm run bench:rust && pnpm --filter bench run bench",
+    "bench:ci": "pnpm run bench:prepare && pnpm run bench:rust",
     "bench:rust": "RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run",
     "bench:rust:local": "mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
