@@ -120,7 +120,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
 }
 
 fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
-  let mut filename_hash = RspackHash::from(&options.output);
+  let mut filename_hash = RspackHash::new(&options.output.hash_function);
   filename_hash.write(filename.as_bytes());
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
