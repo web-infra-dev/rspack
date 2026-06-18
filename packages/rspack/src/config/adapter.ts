@@ -126,11 +126,9 @@ function getRawCache(
       directory: cache.storage.directory!,
     },
     snapshot: {
-      immutablePaths:
-        snapshot?.immutablePaths ?? cache.snapshot.immutablePaths!,
-      unmanagedPaths:
-        snapshot?.unmanagedPaths ?? cache.snapshot.unmanagedPaths!,
-      managedPaths: snapshot?.managedPaths ?? cache.snapshot.managedPaths!,
+      immutablePaths: cache.snapshot.immutablePaths!,
+      unmanagedPaths: cache.snapshot.unmanagedPaths!,
+      managedPaths: cache.snapshot.managedPaths!,
       contextModule: snapshot?.contextModule,
     },
   };

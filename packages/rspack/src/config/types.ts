@@ -2044,7 +2044,7 @@ export type SnapshotStrategyOptions = {
 /**
  * Options for filesystem snapshots.
  */
-export type SnapshotOptions = CacheSnapshotOptions & {
+export type SnapshotOptions = {
   /**
    * Snapshots for building context modules.
    */

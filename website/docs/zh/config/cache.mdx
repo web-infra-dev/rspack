@@ -190,31 +190,15 @@ export default {
 };
 ```
 
-### snapshot 与 cache.snapshot
+### cache.snapshot
 
-- **类型：**
-
-```ts
-type SnapshotOptions = {
-  immutablePaths?: Array<string | RegExp>;
-  unmanagedPaths?: Array<string | RegExp>;
-  managedPaths?: Array<string | RegExp>;
-  contextModule?: {
-    hash?: boolean;
-    timestamp?: boolean;
-  };
-};
-```
+- **类型：** `object`
 
 - **默认值：** `{}`
 
 配置快照策略。快照用于确定自上次构建以来哪些文件发生了变化。支持以下配置：
 
-Rspack 支持与 webpack 对齐的顶层 `snapshot` 配置，用于持久化缓存。为了兼容已有 Rspack 配置，路径相关选项也可以配置在 `cache.snapshot` 下。如果两处都配置了同一个路径选项，顶层 `snapshot.*` 的值优先于 `cache.snapshot.*`。
-
-`snapshot.contextModule` 必须配置在顶层 `snapshot` 选项中。
-
-#### snapshot.immutablePaths / cache.snapshot.immutablePaths
+#### snapshot.immutablePaths
 
 - **类型：** `(RegExp | string)[]`
 
@@ -222,7 +206,7 @@ Rspack 支持与 webpack 对齐的顶层 `snapshot` 配置，用于持久化缓�
 
 不可变文件的路径数组。热重启时，这些路径下的文件变更将被忽略，缓存会直接视为有效而无需重新检查文件内容。适用于保证写入后永不变更的内容寻址路径。
 
-#### snapshot.managedPaths / cache.snapshot.managedPaths
+#### snapshot.managedPaths
 
 - **类型：** `(RegExp | string)[]`
 
@@ -230,7 +214,7 @@ Rspack 支持与 webpack 对齐的顶层 `snapshot` 配置，用于持久化缓�
 
 包管理器管理的路径数组。在热启动时，Rspack 会通过对应 `package.json` 中的 `version` 字段来判断包是否发生变化，而无需对文件内容进行哈希。这可以加速对仅通过包管理器更新的依赖包的缓存校验。
 
-#### snapshot.unmanagedPaths / cache.snapshot.unmanagedPaths
+#### snapshot.unmanagedPaths
 
 - **类型：** `(RegExp | string)[]`
 
@@ -238,13 +222,13 @@ Rspack 支持与 webpack 对齐的顶层 `snapshot` 配置，用于持久化缓�
 
 指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
-#### snapshot.contextModule
+### snapshot.contextModule
 
 - **类型：** `{ hash?: boolean; timestamp?: boolean }`
 
 - **默认值：** `{ hash: true, timestamp: true }`
 
-控制构建 context module 时使用的快照策略，例如由带上下文的动态 `import` 或 `require` 创建的模块。
+控制构建 context module 时使用的快照策略，例如由带上下文的动态 `import` 或 `require` 创建的模块。`snapshot.contextModule` 配置在顶层 `snapshot` 选项中。
 
 - `hash: true` 会比较递归内容哈希。
 - `timestamp: true` 会比较递归时间戳。
@@ -421,22 +405,32 @@ export default {
 };
 ```
 
-4. 保留与 webpack 对齐的顶层 `snapshot`
+4. 迁移 `snapshot`
 
-Rspack 支持用于持久化缓存的 webpack 顶层 `snapshot` 配置，包括 `snapshot.contextModule`。
+将路径相关的 snapshot 选项迁移到 `cache.snapshot` 中。`snapshot.contextModule` 保留在顶层 `snapshot` 选项中。
 
 ```diff title="rspack.config.mjs"
 export default {
-  snapshot: {
-    immutablePaths: [path.join(__dirname, "constant")],
-    managedPaths: [path.join(__dirname, "node_modules")],
-    unmanagedPaths: [],
-    contextModule: {
-      timestamp: true
-    }
-  },
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, "constant")],
+-   managedPaths: [path.join(__dirname, "node_modules")],
+-   unmanagedPaths: [],
+-   contextModule: {
+-     timestamp: true
+-   }
+- },
++ snapshot: {
++   contextModule: {
++     timestamp: true
++   }
++ },
 + cache: {
-+   type: "persistent"
++   type: "persistent",
++   snapshot: {
++     immutablePaths: [path.join(__dirname, "constant")],
++     managedPaths: [path.join(__dirname, "node_modules")],
++     unmanagedPaths: []
++   }
 + },
 };
 ```
@@ -485,10 +479,12 @@ function transform(webpackConfig, rspackConfig) {
     webpackConfig.cache.name,
     webpackConfig.cache.version,
   ].join();
-  rspackConfig.snapshot = {
+  rspackConfig.cache.snapshot = {
     immutablePaths: webpackConfig.snapshot?.immutablePaths,
     managedPaths: webpackConfig.snapshot?.managedPaths,
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+  rspackConfig.snapshot = {
     contextModule: webpackConfig.snapshot?.contextModule,
   };
   rspackConfig.cache.storage = {

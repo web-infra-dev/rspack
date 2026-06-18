@@ -326,18 +326,6 @@ export const getNormalizedRspackOptions = (
       ? {}
       : {
           snapshot: {
-            immutablePaths: optionalNestedArray(
-              config.snapshot.immutablePaths,
-              (p) => [...p],
-            ),
-            unmanagedPaths: optionalNestedArray(
-              config.snapshot.unmanagedPaths,
-              (p) => [...p],
-            ),
-            managedPaths: optionalNestedArray(
-              config.snapshot.managedPaths,
-              (p) => [...p],
-            ),
             contextModule: optionalNestedConfig(
               config.snapshot.contextModule,
               (strategy) => ({
@@ -657,9 +645,6 @@ export type CacheNormalized =
     };
 
 export type SnapshotNormalized = {
-  immutablePaths?: (string | RegExp)[];
-  unmanagedPaths?: (string | RegExp)[];
-  managedPaths?: (string | RegExp)[];
   contextModule?: SnapshotStrategyOptions;
 };
 

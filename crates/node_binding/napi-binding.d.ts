@@ -3040,9 +3040,9 @@ export interface RawSizeLimitsPluginOptions {
 }
 
 export interface RawSnapshotOptions {
-  immutablePaths?: Array<string|RegExp>
-  unmanagedPaths?: Array<string|RegExp>
-  managedPaths?: Array<string|RegExp>
+  immutablePaths: Array<string|RegExp>
+  unmanagedPaths: Array<string|RegExp>
+  managedPaths: Array<string|RegExp>
   contextModule?: RawSnapshotStrategyOptions
 }
 
