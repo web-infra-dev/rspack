@@ -471,7 +471,7 @@ opt-level = "s"
 # This is for CI build based on release but with faster build time
 [profile.ci]
 codegen-units = 256
-debug         = "limited"
+debug         = false
 inherits      = "release"
 lto           = false
 ## reduce little optimization to reduce build time
