@@ -1,0 +1,18 @@
+.card {
+  animation-name: externalFade;
+  background-image: --external-function(var(--external-bg));
+  background-color: var(--external-bg);
+  border-radius: var(--external-radius);
+  color: var(--local-color);
+  font-palette: --external-palette;
+  grid-area: externalArea;
+  grid-row: externalRow;
+  list-style: externalCounter;
+  --local-color: red;
+}
+
+@container externalContainer (min-width: 400px) {
+  .card {
+    color: var(--external-bg);
+  }
+}

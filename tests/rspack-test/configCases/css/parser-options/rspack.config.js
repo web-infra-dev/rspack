@@ -16,6 +16,9 @@ module.exports = {
       },
     },
     generator: {
+      'css/auto': {
+        localIdentName: '[name]_module_css-[local]',
+      },
       'css/module': {
         localIdentName: '[name]_module_css-[local]',
       },
@@ -37,6 +40,10 @@ module.exports = {
           import: false,
           url: false,
         },
+      },
+      {
+        test: /external-token\.module\.css$/,
+        type: 'css/auto',
       },
     ],
   },
