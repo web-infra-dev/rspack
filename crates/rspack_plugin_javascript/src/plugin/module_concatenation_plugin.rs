@@ -1184,7 +1184,7 @@ impl ModuleConcatenationPlugin {
         match Self::try_to_add(
           compilation,
           &mut current_configuration,
-          &root_chunks,
+          root_chunks,
           &imp,
           Some(runtime),
           active_runtime.as_ref(),
