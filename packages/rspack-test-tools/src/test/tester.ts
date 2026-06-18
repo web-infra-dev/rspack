@@ -6,7 +6,7 @@ import type {
   ITesterConfig,
   ITestProcessor,
 } from '../type';
-import { withCloseDiag } from './close-diag';
+import { buildEnter, buildExit, withCloseDiag } from './close-diag';
 import { TestContext } from './context';
 import { generateDebugReport } from './debug';
 
@@ -50,12 +50,17 @@ export class Tester implements ITester {
     const currentStep = this.steps[this.step];
     if (!currentStep) return;
 
-    await this.runStepMethods(currentStep, [
-      'before',
-      'config',
-      'compiler',
-      'build',
-    ]);
+    buildEnter(this.config.name);
+    try {
+      await this.runStepMethods(currentStep, [
+        'before',
+        'config',
+        'compiler',
+        'build',
+      ]);
+    } finally {
+      buildExit(this.config.name);
+    }
   }
   async check(env: ITestEnv) {
     const currentStep = this.steps[this.step];

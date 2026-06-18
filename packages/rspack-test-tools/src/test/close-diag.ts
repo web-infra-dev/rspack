@@ -29,6 +29,21 @@ const timer = setInterval(() => {
 }, HEARTBEAT_MS);
 if (typeof timer.unref === 'function') timer.unref();
 
+// Tracks which sibling cases are mid-build (native rspack compile) in THIS worker process,
+// so a pending afterAll close can be shown racing against concurrent builds for the event loop.
+const activeBuilds = new Set<string>();
+export function buildEnter(name: string): void {
+  activeBuilds.add(name);
+}
+export function buildExit(name: string): void {
+  activeBuilds.delete(name);
+}
+function buildsSnapshot(): string {
+  const names = [...activeBuilds];
+  const shown = names.slice(0, 6).join(', ');
+  return `concurrentBuilds=${names.length} [${shown}${names.length > 6 ? ', …' : ''}]`;
+}
+
 function dumpAsync(): string {
   const p = process as unknown as {
     _getActiveRequests?: () => unknown[];
@@ -58,12 +73,23 @@ export async function withCloseDiag(
   const lagAtStart = maxLag;
   let settled = false;
 
+  // Heartbeat ticks every 1s only for closes that outlast 1s (fast ones settle & clear first).
+  // Shows the afterAll close is mid-flight while sibling cases are still building in this worker.
+  // Gaps between WAITING lines == the loop was frozen (starved) for that span.
+  const waiting = setInterval(() => {
+    if (settled) return;
+    log(
+      `WAITING name="${name}" elapsed=${Date.now() - start}ms ${buildsSnapshot()} ${dumpAsync()}`,
+    );
+  }, 1000);
+  if (typeof waiting.unref === 'function') waiting.unref();
+
   const watch = (scheduledMs: number) =>
     setTimeout(() => {
       if (settled) return;
       const firedAfter = Date.now() - start;
       log(
-        `name="${name}" scheduled=+${scheduledMs}ms firedAfter=${firedAfter}ms pending=${!settled} maxLagSinceStart=${maxLag - lagAtStart}ms ${dumpAsync()}`,
+        `name="${name}" scheduled=+${scheduledMs}ms firedAfter=${firedAfter}ms pending=${!settled} maxLagSinceStart=${maxLag - lagAtStart}ms ${buildsSnapshot()} ${dumpAsync()}`,
       );
     }, scheduledMs);
 
@@ -75,11 +101,12 @@ export async function withCloseDiag(
   } finally {
     settled = true;
     const dur = Date.now() - start;
+    clearInterval(waiting);
     clearTimeout(t4);
     clearTimeout(t9);
     if (dur > 1000) {
       log(
-        `name="${name}" RESOLVED dur=${dur}ms maxLagSinceStart=${maxLag - lagAtStart}ms`,
+        `name="${name}" RESOLVED dur=${dur}ms maxLagSinceStart=${maxLag - lagAtStart}ms ${buildsSnapshot()}`,
       );
     }
   }

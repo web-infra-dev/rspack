@@ -158,6 +158,7 @@ jobs:
           fail=0
           for i in $(seq 1 8); do
             echo "===== RSTEST ITER $i / 8 ====="
+            rm -rf tests/rspack-test/js || true # isolate iterations: avoid stale-output cross-contamination
             if ! pnpm run test:unit; then
               echo "===== RSTEST ITER $i FAILED ====="
               fail=1
