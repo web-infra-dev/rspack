@@ -1425,12 +1425,21 @@ impl Module for ConcatenatedModule {
           if !ConcatenationScope::is_module_reference(name.as_str()) {
             continue;
           }
-          let match_result = info
+          let cached_match_info = info
             .module_references
             .as_ref()
-            .and_then(|references| references.get(name.as_str()).cloned())
-            .or_else(|| ConcatenationScope::match_module_reference(name.as_str()));
-          if let Some(match_info) = match_result {
+            .and_then(|references| references.get(name.as_str()));
+          let parsed_match_info;
+          let match_info = if let Some(match_info) = cached_match_info {
+            match_info
+          } else if let Some(match_info) = ConcatenationScope::match_module_reference(name.as_str())
+          {
+            parsed_match_info = match_info;
+            &parsed_match_info
+          } else {
+            continue;
+          };
+          {
             let referenced_info_id = &references_info[match_info.index].0;
             let strict_esm_module = *strict_esm_module.get_or_insert_with(|| {
               module_graph
@@ -1445,7 +1454,7 @@ impl Module for ConcatenatedModule {
               &compilation.exports_info_artifact,
               &compilation.module_static_cache,
               referenced_info_id,
-              match_info.ids,
+              &match_info.ids,
               &module_to_info_map,
               runtime,
               match_info.deferred_import,
@@ -1534,7 +1543,7 @@ impl Module for ConcatenatedModule {
           &compilation.exports_info_artifact,
           &compilation.module_static_cache,
           &root_module_id,
-          [name.clone()].to_vec(),
+          std::slice::from_ref(&name),
           &module_to_info_map,
           runtime,
           false,
@@ -1690,13 +1699,14 @@ impl Module for ConcatenatedModule {
         }
 
         if let Some(UsedNameItem::Str(used_name)) = export_info.get_used_name(None, runtime) {
+          let export_name = export_info.name().cloned().unwrap_or_else(|| "".into());
           let final_name = Self::get_final_name(
             compilation.get_module_graph(),
             &compilation.module_graph_cache_artifact,
             &compilation.exports_info_artifact,
             &compilation.module_static_cache,
             &module_info_id,
-            vec![export_info.name().cloned().unwrap_or_else(|| "".into())],
+            std::slice::from_ref(&export_name),
             &module_to_info_map,
             runtime,
             false,
@@ -2658,7 +2668,7 @@ impl ConcatenatedModule {
     exports_info_artifact: &ExportsInfoArtifact,
     module_static_cache: &ModuleStaticCache,
     info: &ModuleIdentifier,
-    export_name: Vec<Atom>,
+    export_name: &[Atom],
     module_to_info_map: &IdentifierIndexMap<ModuleInfo>,
     runtime: Option<&RuntimeSpec>,
     dep_deferred: bool,
@@ -2673,7 +2683,7 @@ impl ConcatenatedModule {
       module_graph_cache,
       exports_info_artifact,
       info,
-      export_name,
+      export_name.to_vec(),
       module_to_info_map,
       runtime,
       as_call,
