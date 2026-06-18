@@ -42,7 +42,7 @@ it("should add all modules headers info above modules", () => {
 /*! export message [provided] [used in sut] [inlined to ("hello")] */
 /*! export secret [maybe provided (runtime-defined)] [used in sut] [provision prevents renaming] -> ./cjs.js secret */
 /*! other exports [maybe provided (runtime-defined)] [unused] -> ./cjs.js */
-/*! runtime requirements: __webpack_exports__, __rspack_context.r, __rspack_context.o, __rspack_context.n, __rspack_context.d, __rspack_context */
+/*! runtime requirements: __rspack_exports, __rspack_context.r, __rspack_context.o, __rspack_context.n, __rspack_context.d, __rspack_context */
 `.trim())
   } else {
     expect(content).toContain(`

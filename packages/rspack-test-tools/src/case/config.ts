@@ -35,6 +35,11 @@ export function createConfigProcessor(
 ): ITestProcessor {
   return {
     config: (context: ITestContext) => {
+      // Isolated cases compile from a private copy of the case dir, so the
+      // config (and any fixtures it writes via __dirname) live under <dist>/src.
+      if (context.getTestConfig().isolateSource) {
+        fs.copySync(context.getSource(), context.getCompileSource());
+      }
       configMultiCompiler(
         context,
         name,
@@ -108,13 +113,13 @@ export function defaultOptions(
   context: ITestContext,
 ): RspackOptions {
   return {
-    context: context.getSource(),
+    context: context.getCompileSource(),
     mode: 'production',
     target: 'async-node',
     devtool: false,
     cache: false,
     output: {
-      path: context.getDist(),
+      path: context.getCompileDist(),
       bundlerInfo: {
         force: false,
       },

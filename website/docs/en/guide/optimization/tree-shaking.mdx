@@ -187,9 +187,9 @@ When an unused variable's initial value is marked as side-effect-free (pure), it
 
 `/*#__NO_SIDE_EFFECTS__*/` is a feature that follows the community [JavaScript Compiler Hints Spec](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/no-side-effects-notation-spec.md). Unlike `/*#__PURE__*/` which marks call sites, `/*#__NO_SIDE_EFFECTS__*/` is used to mark **function definitions**, declaring that the function has no side effects when called with arguments.
 
-### Enabling
+### Configuration
 
-This feature is currently experimental and needs to be enabled via following experimental feature configuration, and it depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) (`sideEffects` is enabled by default in production mode):
+This feature is currently experimental and controlled by `experiments.pureFunctions`, which is enabled by default in production mode. It also depends on [optimization.sideEffects](/config/optimization#optimizationsideeffects) being `true` (`sideEffects` is `true` by default in production mode):
 
 ```js title="rspack.config.mjs"
 export default {
@@ -230,7 +230,7 @@ If a function is marked as side-effect-free and its return value is unused, Rspa
 For configuration details, see [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions) and [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions).
 
 :::warning
-This option is experimental and only takes effect when `experiments.pureFunctions` is enabled.
+This option is experimental and only takes effect when `experiments.pureFunctions` is enabled, which is the default in production mode.
 :::
 
 :::note

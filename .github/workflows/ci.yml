@@ -72,15 +72,6 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: '"ubuntu-22.04"'
 
-  bench-binding:
-    name: Bench Binding
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/bench-binding.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-
   bench-rust:
     name: Rust Bench
     needs: [check-changed]

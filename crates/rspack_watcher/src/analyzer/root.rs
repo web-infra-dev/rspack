@@ -22,11 +22,18 @@ impl Analyzer for WatcherRootAnalyzer {
     let (_, added_directories, removed_directories) = path_accessor.directories();
     let (_, added_missing, removed_missing) = path_accessor.missing();
 
-    self.path_tree.update_paths(added_files, removed_files);
-    self
-      .path_tree
-      .update_paths(added_directories, removed_directories);
-    self.path_tree.update_paths(added_missing, removed_missing);
+    // files / directories / missing share one `path_tree`. On recovery a path
+    // can migrate between sets within a single cycle (e.g. the unresolved
+    // dependency `node_modules/some-module` becomes a real directory): it then
+    // shows up in one set's `added` and another set's `removed`. Applying each
+    // set's delta independently lets the stray `removed` delete a node the other
+    // set still references — orphaning its children and disconnecting the tree.
+    // Merge the three sets first, then cancel migrating paths out of both nets.
+    let adds = union3(added_files, added_directories, added_missing);
+    let removes = union3(removed_files, removed_directories, removed_missing);
+    let added = difference(&adds, &removes);
+    let removed = difference(&removes, &adds);
+    self.path_tree.update_paths(&added, &removed);
 
     let common_root = self.path_tree.find_common_root();
 
@@ -38,6 +45,28 @@ impl Analyzer for WatcherRootAnalyzer {
       None => vec![],
     }
   }
+}
+
+/// Union of three path sets into a fresh set.
+fn union3(a: &ArcPathDashSet, b: &ArcPathDashSet, c: &ArcPathDashSet) -> ArcPathDashSet {
+  let out = ArcPathDashSet::default();
+  for set in [a, b, c] {
+    for path in set.iter() {
+      out.insert(path.deref().clone());
+    }
+  }
+  out
+}
+
+/// Set difference `a - b` into a fresh set.
+fn difference(a: &ArcPathDashSet, b: &ArcPathDashSet) -> ArcPathDashSet {
+  let out = ArcPathDashSet::default();
+  for path in a.iter() {
+    if !b.contains(path.deref()) {
+      out.insert(path.deref().clone());
+    }
+  }
+  out
 }
 
 #[derive(Debug, Default)]
@@ -85,10 +114,15 @@ impl PathTree {
   }
 
   pub fn remove_path(&self, path: &ArcPath) {
-    if let Some(node) = self.inner.get(path) {
-      node.children.remove(path);
-    }
     self.inner.remove(path);
+    // Detach from the PARENT's child set. The previous code removed `path` from
+    // its own set (a no-op), leaving a stale child reference on the parent that
+    // could later surface as a tree node that no longer exists.
+    if let Some(parent) = path.parent().map(ArcPath::from)
+      && let Some(parent_node) = self.inner.get(&parent)
+    {
+      parent_node.children.remove(path);
+    }
   }
 
   fn find_root(&self) -> Option<ArcPath> {
@@ -199,5 +233,83 @@ mod tests {
 
     assert_eq!(watch_patterns.len(), 1);
     assert_eq!(watch_patterns[0].path, ArcPath::from(current_dir));
+  }
+
+  #[test]
+  fn test_remove_path_detaches_from_parent() {
+    let base = std::env::current_dir().expect("Failed to get current directory");
+    let dir = ArcPath::from(base.join("a"));
+    let leaf = ArcPath::from(base.join("a").join("b.js"));
+
+    let tree = PathTree::default();
+    tree.add_path(&leaf); // builds `a` as an ancestor whose child is `b.js`
+    assert!(
+      tree
+        .inner
+        .get(&dir)
+        .expect("a present")
+        .children
+        .contains(&leaf)
+    );
+
+    // Removing the leaf must detach it from its PARENT's child set; the old code
+    // removed it from its own set (a no-op), leaving a stale child reference.
+    tree.remove_path(&leaf);
+    assert!(!tree.inner.contains_key(&leaf));
+    assert!(
+      !tree
+        .inner
+        .get(&dir)
+        .expect("a present")
+        .children
+        .contains(&leaf),
+      "leaf must be detached from its parent's children"
+    );
+  }
+
+  #[test]
+  fn test_analyze_cancels_cross_set_migration() {
+    // `some-module` migrates missing -> directory on recovery: in the same cycle
+    // it appears in both `missing.removed` and `directories.added`. The
+    // union-difference must cancel it, so the shared tree neither re-adds nor
+    // deletes it — keeping the tree connected so `find_common_root` cannot land
+    // on a non-existent orphan root and panic.
+    let base = std::env::current_dir().expect("cwd");
+    let sm = ArcPath::from(base.join("__mig__").join("some-module"));
+    let sub = |s: &str| ArcPath::from(base.join("__mig__").join("some-module").join(s));
+
+    let pm = PathManager::default();
+    let analyzer = WatcherRootAnalyzer::default();
+
+    // STEP0: some-module is an unresolved missing dependency.
+    pm.update(
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::once(sm.clone()), std::iter::empty()),
+    )
+    .unwrap();
+    analyzer.analyze(pm.access());
+    pm.reset();
+
+    // STEP1: recover. some-module migrates into `directories`; directory
+    // resolution adds some-module/{index.js (file), package.json, index
+    // (missing)}; some-module leaves `missing`.
+    pm.update(
+      (std::iter::once(sub("index.js")), std::iter::empty()),
+      (std::iter::once(sm.clone()), std::iter::empty()),
+      (
+        vec![sub("package.json"), sub("index")].into_iter(),
+        std::iter::once(sm.clone()),
+      ),
+    )
+    .unwrap();
+
+    // Must not panic, and must keep the migrated `some-module` node.
+    let patterns = analyzer.analyze(pm.access());
+    assert_eq!(patterns.len(), 1);
+    assert!(
+      analyzer.path_tree.inner.contains_key(&sm),
+      "migrated some-module must be preserved, not deleted"
+    );
   }
 }
