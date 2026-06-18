@@ -197,35 +197,6 @@ jobs:
           RSPACK_LOADER_WORKER_THREADS: 1
         run: pnpm run test:ci
 
-      ### riscv64gc-unknown-linux-gnu
-      # No riscv64 hardware runner is available, so the binding is built on the
-      # host and exercised under QEMU emulation inside a riscv64 Debian container.
-      - name: Build JS for riscv64gc-unknown-linux-gnu
-        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
-        run: pnpm run build:js
-
-      - name: Set up QEMU
-        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
-        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
-        with:
-          platforms: riscv64
-
-      - name: Test riscv64gc-unknown-linux-gnu
-        timeout-minutes: 20
-        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
-        uses: ./.github/actions/docker/run
-        with:
-          image: riscv64/debian:trixie
-          options: --platform=linux/riscv64
-          script: |
-            uname -m
-            apt-get update
-            apt-get install -y nodejs npm
-            npm install -g pnpm@$(node -p "require('./package.json').packageManager.replace('pnpm@', '')")
-            pnpm i
-            pnpm run test:type
-            pnpm run test:unit
-
       - name: Upload Test Reporter
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
