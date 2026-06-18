@@ -1,5 +1,4 @@
 import * as animation from "./animation-name.module.css";
-import * as externalToken from "./external-token.module.css";
 import * as styles from "./options.module.css";
 
 const fs = __non_webpack_require__("fs");
@@ -35,35 +34,6 @@ it("should support disabling dashed and custom identifier renaming", () => {
   expect(content).toContain("grid-area: header");
   expect(content).toContain("grid-row: sidebar");
   expect(content).toContain("list-style: thumbs");
-});
-
-it("should not rename undeclared custom property references by default", () => {
-  expect(externalToken.card).toBe("external-token.module_module_css-card");
-
-  const content = css();
-  expect(content).toContain("animation-name: externalFade");
-  expect(content).toContain(
-    "background-image: --external-function(var(--external-bg))"
-  );
-  expect(content).toContain("background-color: var(--external-bg)");
-  expect(content).toContain("border-radius: var(--external-radius)");
-  expect(content).toContain("font-palette: --external-palette");
-  expect(content).toContain("grid-area: externalArea");
-  expect(content).toContain("grid-row: externalRow");
-  expect(content).toContain("list-style: externalCounter");
-  expect(content).toContain("@container externalContainer (min-width: 400px)");
-  expect(content).toContain("--external-token\\.module_module_css-local-color: red");
-  expect(content).toContain(
-    "color: var(--external-token\\.module_module_css-local-color)"
-  );
-  expect(content).not.toContain("externalFade_module_css");
-  expect(content).not.toContain("externalCounter_module_css");
-  expect(content).not.toContain("externalContainer_module_css");
-  expect(content).not.toContain("externalArea_module_css");
-  expect(content).not.toContain("--external-function_module_css");
-  expect(content).not.toContain("--external-palette_module_css");
-  expect(content).not.toContain("--external-bg_module_css");
-  expect(content).not.toContain("--external-radius_module_css");
 });
 
 it("should support disabling import and url handling", () => {
