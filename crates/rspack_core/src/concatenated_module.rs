@@ -1416,16 +1416,23 @@ impl Module for ConcatenatedModule {
         let ModuleInfo::Concatenated(info) = info else {
           return None;
         };
-        let module = module_graph
-          .module_by_identifier(&info.module)
-          .expect("should have module");
-        let build_meta = module.build_meta();
+        let mut strict_esm_module = None;
         let mut changes = None;
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
+          if !ConcatenationScope::is_module_reference(name.as_str()) {
+            continue;
+          }
           let match_result = ConcatenationScope::match_module_reference(name.as_str());
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
+            let strict_esm_module = *strict_esm_module.get_or_insert_with(|| {
+              module_graph
+                .module_by_identifier(&info.module)
+                .expect("should have module")
+                .build_meta()
+                .strict_esm_module
+            });
             let final_name = Self::get_final_name(
               compilation.get_module_graph(),
               &compilation.module_graph_cache_artifact,
@@ -1438,7 +1445,7 @@ impl Module for ConcatenatedModule {
               match_info.deferred_import,
               match_info.call,
               !match_info.direct_import,
-              build_meta.strict_esm_module,
+              strict_esm_module,
               match_info.asi_safe,
               &context,
             );

@@ -222,6 +222,13 @@ impl ConcatenationScope {
     })
   }
 
+  pub fn is_module_reference(name: &str) -> bool {
+    name
+      .strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
+      .unwrap_or(name)
+      .starts_with(MODULE_REFERENCE_PREFIX)
+  }
+
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
     matches!(
       self.modules_map.get(module).expect("should have module"),
