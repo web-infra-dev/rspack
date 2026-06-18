@@ -1,0 +1,133 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./index.js
+
+
+const req = __rspack_createRequire(import.meta.url);
+
+// `require()` is still bundled; `require.resolve` is preserved for the runtime
+// because module.parser.javascript.requireResolve is disabled.
+const value = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const resolved = req.resolve("path");
+const inlineResolved = __rspack_createRequire(import.meta.url).resolve("path");
+
+// A created require used only via the 2-arg `require.resolve(request, options)` form must
+// still be kept (regression: the multi-argument resolve must mark the declaration used).
+const reqWithOptions = __rspack_createRequire(import.meta.url);
+const resolvedWithOptions = reqWithOptions.resolve("path", { paths: [] });
+
+// An extra createRequire argument with a side effect must be preserved (such a call is not
+// deferred, so a clear cannot drop the side effect).
+let sideEffectRan = false;
+const reqExtraArg = external_node_module_namespaceObject.createRequire(import.meta.url, (sideEffectRan = true));
+const extraArgValue = __webpack_require__(/*! ./dep.js */ "./dep.js");
+
+// A multi-argument INLINE createRequire member chain keeps its literal `import.meta.url`
+// (NOT baked to a build-time URL — guarded by the file-url-scheme assertion below) and
+// preserves the extra argument's side effect.
+let inlineMultiArgRan = false;
+const inlineMultiArgResolved = external_node_module_namespaceObject.createRequire(
+	import.meta.url,
+	(inlineMultiArgRan = true)
+).resolve("path");
+
+it("should preserve createRequire().resolve at runtime when requireResolve is disabled", () => {
+	const fs = __rspack_createRequire_require("fs");
+	const path = __rspack_createRequire_require("path");
+	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
+
+	// Built by concatenation so these markers don't appear in this file's own
+	// source, which is itself emitted into main.mjs (see import-meta-url-resolve).
+	const clearedMarker = "/* createRequire()" + " */ undefined";
+	const fileUrlScheme = "file:" + "//";
+	const resolveRewrite = "/*require" + ".resolve*/";
+
+	// The createRequire(...) call is kept with import.meta.url preserved verbatim:
+	// NOT cleared to `undefined`, and NOT baked to a build-time absolute file URL.
+	expect(source).toContain("createRequire(import.meta.url)");
+	expect(source).not.toContain(clearedMarker);
+	expect(source).not.toContain(fileUrlScheme);
+	// require() still routes through the bundler; require.resolve stays a runtime call.
+	expect(source).toContain("__webpack_require__(");
+	expect(source).toContain('.resolve("path")');
+	expect(source).not.toContain(resolveRewrite);
+
+	// require() is bundled.
+	expect(value).toBe("dep");
+	// require.resolve runs at runtime: a builtin resolves to its own name, which a
+	// build-time module-id rewrite could never produce.
+	expect(resolved).toBe("path");
+	expect(inlineResolved).toBe("path");
+	// A real runtime resolve throws for a missing module instead of returning an id.
+	expect(() => req.resolve("./does-not-exist")).toThrow();
+
+	// P1: the 2-arg resolve form kept its created require (a cleared `undefined` would throw).
+	expect(resolvedWithOptions).toBe("path");
+	// P2: the extra-argument createRequire kept its side effect, and require() still bundles.
+	expect(extraArgValue).toBe("dep");
+	expect(sideEffectRan).toBe(true);
+
+	// Multi-argument inline member chain: `.resolve` runs at runtime (kept, not `undefined`),
+	// the extra argument's side effect ran, and `import.meta.url` was kept literal (the
+	// file-url-scheme assertion above guards against baking it to a build-time path).
+	expect(inlineMultiArgResolved).toBe("path");
+	expect(inlineMultiArgRan).toBe(true);
+});
+
+export { extraArgValue, inlineMultiArgResolved, inlineResolved, resolved, resolvedWithOptions, value };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

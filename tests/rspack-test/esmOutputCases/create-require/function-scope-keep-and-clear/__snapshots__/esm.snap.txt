@@ -1,0 +1,117 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = 1;
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./index.js
+
+
+// The demand-driven keep/clear decision (module.parser.javascript.requireResolve: false)
+// also applies to createRequire declared inside a function scope, not just module top level.
+
+// Case C — the created require is used only for an analyzable `require(...)` invoke, which
+// is bundled. The createRequire itself is then dead, so it is cleared to `undefined`.
+function onlyInvoke() {
+	const require = /* createRequire() */ undefined;
+	return __webpack_require__(/*! ./dep.js */ "./dep.js");
+}
+
+// Case B — the created require value is ACCESSED (a `.resolve` member here, not just an
+// invoke), so the real createRequire must be kept (rendered via rspack's helper).
+function accessValue() {
+	const require = __rspack_createRequire(import.meta.url);
+	return require.resolve("path");
+}
+
+// Case A — the created require ESCAPES the function (returned out and re-exported), so it
+// must be kept; the exported value has to be a real require.
+function makeRequire() {
+	const require = __rspack_createRequire(import.meta.url);
+	return require;
+}
+
+const invoked = onlyInvoke();
+const resolved = accessValue();
+const escaped = makeRequire();
+
+it("keeps a function-scoped createRequire only when accessed or escaping; clears invoke-only", () => {
+	const fs = __rspack_createRequire_require("fs");
+	const path = __rspack_createRequire_require("path");
+	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
+
+	// Built by concatenation so the marker isn't present as this file's own bundled source
+	// (which would make the assertion pass without an actual clear having happened).
+	const clearedMarker = "/* createRequire()" + " */ undefined";
+
+	// Case C: the invoke-only createRequire is cleared. (Runtime alone can't show this — the
+	// invoke is bundled whether or not the declaration is kept — so assert on the emitted
+	// source.)
+	expect(source).toContain(clearedMarker);
+
+	// Case C runtime: the bundled `require("./dep.js")` still returns the dep, even though
+	// the createRequire declaration was cleared (the cleared `undefined` is never read).
+	expect(invoked).toBe(1);
+
+	// Case B: `.resolve` runs at runtime — a cleared `undefined` would throw here, proving
+	// the createRequire was kept. A builtin resolves to its own name at runtime.
+	expect(resolved).toBe("path");
+
+	// Case A: the value that escaped the function is the real created require, kept alive.
+	expect(typeof escaped).toBe("function");
+	expect(escaped.resolve("path")).toBe("path");
+});
+
+export { escaped, invoked, resolved };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

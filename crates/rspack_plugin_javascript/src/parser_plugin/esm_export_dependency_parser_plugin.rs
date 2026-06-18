@@ -118,6 +118,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     export_name: &Atom,
     export_name_span: Span,
   ) -> Option<bool> {
+    // A deferred createRequire (module.parser.javascript.requireResolve: false) exposed by
+    // this export specifier — directly, aliased (`export { req as x }` / `export { req as
+    // default }`), or via a value copy (`const e = req; export { e }`) — must be kept so an
+    // importer can call `.resolve(...)` on it. `esm_named_exports` records only the public
+    // name; this runs in the block pre-walk before declarators, so record the exported local
+    // name and let the createRequire `finish` pass resolve it (including aliases).
+    if matches!(parser.javascript_options.require_resolve, Some(false)) {
+      parser
+        .created_require_references
+        .record_exported_local(local_id.clone());
+    }
     InnerGraphParserPlugin::add_variable_usage(
       parser,
       local_id,

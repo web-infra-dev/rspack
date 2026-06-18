@@ -1,23 +1,12 @@
+// The runtime-resolution behaviour of a preserved createRequire().resolve (with
+// requireResolve disabled) is covered by the ESM case
+// esmOutputCases/create-require/import-meta-url-resolve-disabled, because the
+// preserved literal `import.meta.url` is only valid in ESM output. This CJS case
+// covers that non-statically-analyzable createRequire arguments still keep their
+// dependencies (dynamic import / new URL side effects) when resolve is disabled.
 import { createRequire as _createRequire } from "module";
 import fs from "fs";
 import path from "path";
-
-it("should preserve created require resolve when requireResolve is disabled", () => {
-	const require = _createRequire(import.meta.url);
-	const resolved = require.resolve("./a");
-	expect(resolved.endsWith("a.js")).toBe(true);
-	expect(resolved).not.toBe("./a.js");
-
-	const directResolved = _createRequire(import.meta.url).resolve("./a");
-	expect(directResolved.endsWith("a.js")).toBe(true);
-	expect(directResolved).not.toBe("./a.js");
-
-	const directResolvedWithUrl = _createRequire(
-		new URL("./foo/c.js", import.meta.url)
-	).resolve("./a");
-	expect(directResolvedWithUrl).toMatch(/[\\/]foo[\\/]a\.js$/);
-	expect(directResolvedWithUrl).not.toBe("./a.js");
-});
 
 it("should keep preserved createRequire argument dependencies", () => {
 	try {
