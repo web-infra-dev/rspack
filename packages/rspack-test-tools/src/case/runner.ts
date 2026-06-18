@@ -70,8 +70,8 @@ export function createRunner(
     stats: cachedStats(context, name),
     name,
     testConfig: context.getTestConfig(),
-    source: context.getSource(),
-    dist: context.getDist(),
+    source: context.getCompileSource(),
+    dist: context.getCompileDist(),
     compilerOptions,
   };
   const isWeb = isWebTarget(compilerOptions);
@@ -150,8 +150,8 @@ export function createMultiCompilerRunner(
     },
     name,
     testConfig: context.getTestConfig(),
-    source: context.getSource(),
-    dist: context.getDist(),
+    source: context.getCompileSource(),
+    dist: context.getCompileDist(),
     compilerOptions,
     logs,
     errors,

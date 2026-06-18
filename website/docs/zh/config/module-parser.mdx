@@ -850,6 +850,31 @@ export default {
 该选项目前仅在 Rspack 中实验性提供，未来可能调整或移除。
 :::
 
+### javascript.createRequire
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+启用对 `import { createRequire } from 'module'` 的解析，并将 `createRequire()` 调用按 CommonJS `require` 函数处理。
+
+启用后，Rspack 可以静态处理 `createRequire(import.meta.url)('./module')` 和 `createRequire(import.meta.url).resolve('./module')` 这类调用。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+你也可以传入 `"specifier from module"` 形式的字符串来自定义导入的 specifier 和模块名，例如 `"createRequire from node:module"`。
+
 ### javascript.importMetaResolve
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.0.0" />
