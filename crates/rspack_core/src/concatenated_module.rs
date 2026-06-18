@@ -316,7 +316,7 @@ pub struct ConcatenatedModuleInfo {
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
-  pub module_references: Option<FxIndexMap<String, ModuleReferenceOptions>>,
+  pub module_references: Option<FxIndexMap<Atom, ModuleReferenceOptions>>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -1426,8 +1426,7 @@ impl Module for ConcatenatedModule {
         let mut changes = None;
         for reference in info.global_scope_ident.iter() {
           let name = &reference.id.sym;
-          let cached_match_info =
-            module_references.and_then(|references| references.get(name.as_str()));
+          let cached_match_info = module_references.and_then(|references| references.get(name));
           let parsed_match_info;
           let match_info = if let Some(match_info) = cached_match_info {
             match_info
@@ -2548,7 +2547,7 @@ impl ConcatenatedModule {
             if reference.ends_with("._") {
               reference.truncate(reference.len() - 2);
             }
-            module_references.insert(reference, options);
+            module_references.insert(reference.into(), options);
           }
         }
         module_info.module_references = Some(module_references);
