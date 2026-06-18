@@ -51,11 +51,12 @@ use crate::{
   ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
   InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  ModuleIdentifier, ModuleLayer, ModuleReferenceOptions, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -315,6 +316,7 @@ pub struct ConcatenatedModuleInfo {
   pub idents: Vec<ConcatenatedModuleIdent>,
   pub all_used_names: HashSet<Atom>,
   pub binding_to_ref: FxIndexMap<(Atom, SyntaxContext), Vec<ConcatenatedModuleIdent>>,
+  pub module_references: Option<FxIndexMap<String, ModuleReferenceOptions>>,
 
   pub public_path_auto_replacement: Option<bool>,
   pub static_url_replacement: bool,
@@ -1423,7 +1425,11 @@ impl Module for ConcatenatedModule {
           if !ConcatenationScope::is_module_reference(name.as_str()) {
             continue;
           }
-          let match_result = ConcatenationScope::match_module_reference(name.as_str());
+          let match_result = info
+            .module_references
+            .as_ref()
+            .and_then(|references| references.get(name.as_str()).cloned())
+            .or_else(|| ConcatenationScope::match_module_reference(name.as_str()));
           if let Some(match_info) = match_result {
             let referenced_info_id = &references_info[match_info.index].0;
             let strict_esm_module = *strict_esm_module.get_or_insert_with(|| {
@@ -2519,7 +2525,25 @@ impl ConcatenatedModule {
         .remove(&SourceType::JavaScript)
         .expect("should have javascript source");
       let source_code = source.source().into_string_lossy();
-      let mut module_info = concatenation_scope.current_module;
+      let ConcatenationScope {
+        current_module: mut module_info,
+        refs,
+        ..
+      } = concatenation_scope;
+      if !refs.is_empty() {
+        let len = refs.values().map(FxIndexMap::len).sum();
+        let mut module_references = FxIndexMap::default();
+        module_references.reserve(len);
+        for (_, references) in refs {
+          for (mut reference, options) in references {
+            if reference.ends_with("._") {
+              reference.truncate(reference.len() - 2);
+            }
+            module_references.insert(reference, options);
+          }
+        }
+        module_info.module_references = Some(module_references);
+      }
 
       let jsx = module
         .as_ref()
