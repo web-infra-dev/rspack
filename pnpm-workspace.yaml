@@ -45,8 +45,6 @@ minimumReleaseAgeExclude:
   - 'rsbuild-plugin-*'
   - '@swc/*'
   - 'heading-case'
-  # Renovate security update: http-proxy-middleware@4.1.1
-  - http-proxy-middleware@4.1.1
 
 patchedDependencies:
   webpack-sources@3.3.4: patches/webpack-sources@3.3.4.patch
