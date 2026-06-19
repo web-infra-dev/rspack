@@ -146,17 +146,18 @@ jobs:
 
       ### x86_64-unknown-linux-gnu
       - name: Test x86_64-unknown-linux-gnu
-        timeout-minutes: 70 # TEMP raised for flake-repro concurrency sweep (revert before merge)
+        timeout-minutes: 90 # TEMP raised for flake-repro stress sweep (revert before merge)
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         env:
           NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
-        # TEMP: build once, then sweep DEFAULT_MAX_CONCURRENT to measure its effect on the
-        # part2 afterAll close-starvation flake (revert to `pnpm run test:ci` before merge)
+        # TEMP: build once, then stress-sweep DEFAULT_MAX_CONCURRENT (interleaved) under amplified
+        # maxWorkers to measure whether lowering it suppresses the close-starvation flake under load
+        # (revert to `pnpm run test:ci` + restore maxWorkers "80%" before merge)
         run: |
           pnpm run build:js
           pnpm run test:type
           fail=0
-          for cfg in 2 2 2 3 3 3 5 5; do
+          for cfg in 5 3 2 5 3 2 5 3 2; do
             export DEFAULT_MAX_CONCURRENT=$cfg
             echo "===== SWEEP maxConcurrent=$cfg start $(date +%H:%M:%S) ====="
             rm -rf tests/rspack-test/js || true # isolate iterations: avoid stale-output cross-contamination

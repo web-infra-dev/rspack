@@ -145,7 +145,7 @@ export default defineConfig({
   }],
   reporters,
   pool: {
-    maxWorkers: "80%",
+    maxWorkers: 6, // TEMP stress: amplify cross-worker contention to reliably reproduce the starvation (revert to "80%" before merge)
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
   },
 });
