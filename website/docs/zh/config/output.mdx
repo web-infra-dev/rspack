@@ -410,7 +410,7 @@ export default {
 
 ## output.enabledWasmLoadingTypes
 
-- **类型：** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
+- **类型：** `string[]`
 - **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#outputworkerwasmloading) 的配置推断
 
 开启可用的 Wasm 加载类型的运行时模块打包。
@@ -1662,7 +1662,7 @@ export default {
 
 ## output.scriptType
 
-- **类型：** `'module' | 'text/javascript' | boolean`
+- **类型：** `false | 'text/javascript' | 'module'`
 - **默认值：** `false`
 
 该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
@@ -1732,6 +1732,27 @@ export default {
 };
 ```
 
+### output.trustedTypes.policyName
+
+- **类型：** `string`
+- **默认值：** 从 [`output.uniqueName`](#outputuniquename) 推导
+
+Rspack 创建用于加载 bundle chunk 的 Trusted Types 策略名称。
+
+当 [`output.trustedTypes`](#outputtrustedtypes) 设置为 `true` 时，Rspack 会从 [`output.uniqueName`](#outputuniquename) 推导策略名称，并将不支持的字符替换为 `_`。如果推导结果为空，则回退为 `'rspack'`。
+
+当 [`output.trustedTypes`](#outputtrustedtypes) 设置为非空字符串时，该字符串会作为 `policyName` 使用。
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: {
+      policyName: 'my-application#rspack',
+    },
+  },
+};
+```
+
 ### output.trustedTypes.onPolicyCreationFailure
 
 <ApiMeta addedVersion={'1.1.6'} />
@@ -1767,7 +1788,7 @@ export default {
 - [output.chunkLoadingGlobal](#outputchunkloadingglobal)
 - [output.hotUpdateGlobal](#outputhotupdateglobal)
 - [output.devtoolNamespace](#outputdevtoolnamespace)
-- [output.trustedTypes.policyName](#outputtrustedtypes)
+- [output.trustedTypes.policyName](#outputtrustedtypespolicyname)
 
 你也可以覆盖默认值：
 
@@ -1781,7 +1802,7 @@ export default {
 
 ## output.wasmLoading
 
-- **类型：** `false | 'fetch', 'async-node'`
+- **类型：** `false | 'fetch-streaming' | 'fetch' | 'async-node' | string`
 - **默认值：** `'fetch'`
 
 用于设置加载 WebAssembly 模块的方式。默认方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）
@@ -1820,7 +1841,7 @@ export default {
 
 ## output.workerChunkLoading
 
-- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 - **默认值：** `false`
 
 `workerChunkLoading` 控制 chunk 加载方式。
