@@ -1716,18 +1716,12 @@ export default {
 
 控制 [Trusted Types](https://web.dev/trusted-types) 兼容性。启用此选项，Rspack 将检测已实现了 Trusted Types，并使用 Trusted Types 来创建它动态加载的脚本 URL。应用在运行带有 [require-trusted-types-for](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) 内容安全策略指令下的应用程序。
 
-默认情况下是不启用。
-
-- 当设置为 `true` 时，Rspack 将使用 [`output.uniqueName`](#outputuniquename) 作为 Trusted Types 策略名称。
-- 当设置为非空字符串时，其值将被用作策略名称。
-- 当设置为对象时，策略名称将从对象的 `policyName` 属性中获取。
+默认情况下是不启用。将其设置为 `true` 时，Rspack 会启用 Trusted Types，并从 [`output.uniqueName`](#outputuniquename) 推导策略名称。
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    trustedTypes: {
-      policyName: 'my-application#rspack',
-    },
+    trustedTypes: true,
   },
 };
 ```
@@ -1737,11 +1731,9 @@ export default {
 - **类型：** `string`
 - **默认值：** 从 [`output.uniqueName`](#outputuniquename) 推导
 
-Rspack 创建用于加载 bundle chunk 的 Trusted Types 策略名称。
+Rspack 创建用于加载 bundle chunk 的 Trusted Types 策略名称。当策略名称需要匹配 CSP `trusted-types` 允许列表时，可以使用此选项。
 
-当 [`output.trustedTypes`](#outputtrustedtypes) 设置为 `true` 时，Rspack 会从 [`output.uniqueName`](#outputuniquename) 推导策略名称，并将不支持的字符替换为 `_`。如果推导结果为空，则回退为 `'rspack'`。
-
-当 [`output.trustedTypes`](#outputtrustedtypes) 设置为非空字符串时，该字符串会作为 `policyName` 使用。
+如果省略 `policyName`，Rspack 会从 [`output.uniqueName`](#outputuniquename) 推导策略名称，并将不支持的字符替换为 `_`。如果推导结果为空，则回退为 `'rspack'`。字符串简写 `trustedTypes: 'my-policy'` 等价于设置 `trustedTypes.policyName`。
 
 ```js title="rspack.config.mjs"
 export default {

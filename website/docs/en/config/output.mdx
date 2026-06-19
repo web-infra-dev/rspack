@@ -1725,18 +1725,12 @@ Tell Rspack to remove a module from the module instance cache (require.cache) if
 
 Controls [Trusted Types](https://web.dev/trusted-types) compatibility. When enabled, Rspack will detect Trusted Types support and, if they are supported, use Trusted Types policies to create script URLs it loads dynamically. Use when the application runs under a [`require-trusted-types-for`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) Content Security Policy directive.
 
-It is disabled by default (no compatibility, script URLs are strings).
-
-- When set to `true`, Rspack will use [`output.uniqueName`](#outputuniquename) as the Trusted Types policy name.
-- When set to a non-empty string, its value will be used as a policy name.
-- When set to an object, the policy name is taken from the object's `policyName` property.
+It is disabled by default (no compatibility, script URLs are strings). Set it to `true` to enable Trusted Types with a policy name derived from [`output.uniqueName`](#outputuniquename).
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    trustedTypes: {
-      policyName: 'my-application#rspack',
-    },
+    trustedTypes: true,
   },
 };
 ```
@@ -1746,11 +1740,9 @@ export default {
 - **Type:** `string`
 - **Default:** Derived from [`output.uniqueName`](#outputuniquename)
 
-The name of the Trusted Types policy created by Rspack to serve bundle chunks.
+The name of the Trusted Types policy created by Rspack to serve bundle chunks. Use this option when the policy name must match a CSP `trusted-types` allowlist.
 
-When [`output.trustedTypes`](#outputtrustedtypes) is set to `true`, Rspack derives the policy name from [`output.uniqueName`](#outputuniquename), replacing unsupported characters with `_`. If the derived name is empty, it falls back to `'rspack'`.
-
-When [`output.trustedTypes`](#outputtrustedtypes) is set to a non-empty string, that string is used as `policyName`.
+If `policyName` is omitted, Rspack derives it from [`output.uniqueName`](#outputuniquename), replacing unsupported characters with `_`. If the derived name is empty, it falls back to `'rspack'`. The string shorthand `trustedTypes: 'my-policy'` is equivalent to setting `trustedTypes.policyName`.
 
 ```js title="rspack.config.mjs"
 export default {
