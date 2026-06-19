@@ -150,22 +150,21 @@ jobs:
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         env:
           NODE_OPTIONS: '--max_old_space_size=8192 --stack-trace-limit=100'
-        # TEMP: build once, then stress-sweep DEFAULT_MAX_CONCURRENT (interleaved) under amplified
-        # maxWorkers to measure whether lowering it suppresses the close-starvation flake under load
-        # (revert to `pnpm run test:ci` + restore maxWorkers "80%" before merge)
+        # TEMP: validate the hookTimeout=60s fix — build once, then run the suite 10x under amplified
+        # maxWorkers (=6) + default DEFAULT_MAX_CONCURRENT (=5), i.e. worse-than-real stress, and check
+        # that no afterAll hook times out even when the close is starved (revert before merge)
         run: |
           pnpm run build:js
           pnpm run test:type
           fail=0
-          for cfg in 5 3 2 5 3 2 5 3 2; do
-            export DEFAULT_MAX_CONCURRENT=$cfg
-            echo "===== SWEEP maxConcurrent=$cfg start $(date +%H:%M:%S) ====="
+          for i in $(seq 1 10); do
+            echo "===== VERIFY ROUND $i / 10 start $(date +%H:%M:%S) ====="
             rm -rf tests/rspack-test/js || true # isolate iterations: avoid stale-output cross-contamination
             if ! pnpm run test:unit; then
-              echo "===== SWEEP maxConcurrent=$cfg FAILED ====="
+              echo "===== VERIFY ROUND $i FAILED ====="
               fail=1
             fi
-            echo "===== SWEEP maxConcurrent=$cfg end $(date +%H:%M:%S) ====="
+            echo "===== VERIFY ROUND $i end $(date +%H:%M:%S) ====="
           done
           exit $fail
 
