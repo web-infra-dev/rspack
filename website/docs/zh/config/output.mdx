@@ -1802,10 +1802,10 @@ export default {
 
 ## output.wasmLoading
 
-- **类型：** `false | 'fetch-streaming' | 'fetch' | 'async-node' | string`
+- **类型：** `false | 'fetch' | 'async-node' | 'universal'`
 - **默认值：** `'fetch'`
 
-用于设置加载 WebAssembly 模块的方式。默认方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）
+用于设置加载 WebAssembly 模块的方式。支持的方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）和 `'universal'`。
 
 默认值会受不同 [`target`](/config/target) 的影响：
 

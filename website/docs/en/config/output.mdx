@@ -1811,10 +1811,10 @@ export default {
 
 ## output.wasmLoading
 
-- **Type:** `false | 'fetch-streaming' | 'fetch' | 'async-node' | string`
+- **Type:** `false | 'fetch' | 'async-node' | 'universal'`
 - **Default:** `'fetch'`
 
-Option to set the method of loading WebAssembly Modules. Methods included by default are `'fetch'` (web/webworker), `'async-node'` (Node.js), but others might be added by plugins.
+Option to set the method of loading WebAssembly Modules. Supported methods are `'fetch'` (web/webworker), `'async-node'` (Node.js), and `'universal'`.
 
 The default value can be affected by different [`target`](/config/target):
 
