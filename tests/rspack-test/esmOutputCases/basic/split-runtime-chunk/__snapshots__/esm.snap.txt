@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
+import { __webpack_require__ } from "./main_runtime.mjs";
 import "./other.mjs";
 
 // ./index.js
@@ -13,24 +13,7 @@ export {};
 
 ```
 
-```mjs title=other.mjs
-import { __webpack_require__ } from "./runtime.mjs";
-
-__webpack_require__.add({
-"./other.js"
-/*!******************!*\
-  !*** ./other.js ***!
-  \******************/
-(__unused_rspack_module, exports) {
-exports.U = () => 42
-
-},
-});
-export {};
-
-```
-
-```mjs title=runtime.mjs
+```mjs title=main_runtime.mjs
 
 var __webpack_modules__ = {};
 // The module cache
@@ -62,5 +45,22 @@ __webpack_require__.add = function registerModules(modules) { Object.assign(__we
 })();
 
 export { __webpack_require__ };
+
+```
+
+```mjs title=other.mjs
+import { __webpack_require__ } from "./main_runtime.mjs";
+
+__webpack_require__.add({
+"./other.js"
+/*!******************!*\
+  !*** ./other.js ***!
+  \******************/
+(__unused_rspack_module, exports) {
+exports.U = () => 42
+
+},
+});
+export {};
 
 ```

@@ -509,8 +509,17 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
       unreachable!("entry_chunk and new_chunk should both exist")
     };
 
+    // Name the split runtime chunk after its entrypoint (like webpack's
+    // `optimization.runtimeChunk` which names it `runtime~<entry>`). Without a
+    // name it falls back to its numeric chunk id, and two compilations that
+    // share an output directory (e.g. multiple rslib libs) can both emit the
+    // same `<id>.js` and clobber each other.
+    let runtime_chunk_name = entry_chunk.name().map(|name| format!("{name}_runtime"));
     new_chunk.set_runtime(entry_chunk.runtime().clone());
     new_chunk.add_id_name_hints("runtime".to_string());
+    if let Some(runtime_chunk_name) = runtime_chunk_name {
+      new_chunk.set_name(Some(runtime_chunk_name));
+    }
     new_chunk.set_prevent_integration(true);
     new_chunk.add_group(entrypoint_ukey);
   }
