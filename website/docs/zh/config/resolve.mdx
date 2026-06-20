@@ -14,7 +14,12 @@ import WebpackLicense from '@components/WebpackLicense';
 
 ## resolve.alias
 
-- **类型：** `Record<string, false | string | (string | false)[]>`
+- **类型：**
+
+```ts
+type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
+```
+
 - **默认值：** `{}`
 
 路径别名，例如：
@@ -368,7 +373,12 @@ export default {
 
 ## resolve.fallback
 
-- **类型：** `Record<string, false | string>`
+- **类型：**
+
+```ts
+type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
+```
+
 - **默认值：** `{}`
 
 当常规解析失败时重定向模块请求。

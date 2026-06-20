@@ -14,7 +14,12 @@ Used to configure the Rspack module resolution logic.
 
 ## resolve.alias
 
-- **Type:** `Record<string, false | string | (string | false)[]>`
+- **Type:**
+
+```ts
+type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
+```
+
 - **Default:** `{}`
 
 Path alias, e.g.
@@ -368,7 +373,12 @@ export default {
 
 ## resolve.fallback
 
-- **Type:** `Record<string, false | string>`
+- **Type:**
+
+```ts
+type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
+```
+
 - **Default:** `{}`
 
 Redirect module requests when normal resolving fails.
