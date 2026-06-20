@@ -49,6 +49,18 @@ When you use `resolve.alias` to redirect a package import (for example, `import 
 If you want packages within a monorepo to retain the same resolution behavior as regular npm packages, avoid using `alias` to point a package name directly to its source directory.
 The recommended approach is to use your package manager's workspace feature to symlink sub-packages into `node_modules`, so they can be resolved just like normal dependencies.
 
+### Disable aliases
+
+Set `resolve.alias` to `false` to clear all aliases from the merged resolve options. This is different from leaving it `undefined` or setting it to `{}`, which does not add aliases but still keeps aliases merged from other resolve options.
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    alias: false,
+  },
+};
+```
+
 ## resolve.aliasFields
 
 - **Type:** `string[]`

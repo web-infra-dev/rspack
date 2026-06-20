@@ -49,6 +49,18 @@ type ResolveAlias = false | Record<string, false | string | (false | string)[]>;
 如果希望 monorepo 中的各个包依然保持和正常 npm 包一致的解析方式，不建议通过 `alias` 将包名直接指向源码目录。
 推荐的做法是使用包管理器的工作区功能，将子包符号链接到 `node_modules` 中，让它们像普通依赖一样被解析。
 
+### 禁用别名
+
+将 `resolve.alias` 设置为 `false` 会清空合并后的 resolve 选项中的所有别名。它不同于不配置 `resolve.alias` 或设置为 `{}`，后者只是不会新增别名，不会清除从其他 resolve 选项合并来的别名。
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    alias: false,
+  },
+};
+```
+
 ## resolve.aliasFields
 
 - **类型：** `string[]`
