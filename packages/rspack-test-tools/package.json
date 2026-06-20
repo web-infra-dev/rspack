@@ -57,7 +57,7 @@
     "source-map": "^0.7.6",
     "terser-webpack-plugin": "^5.6.1",
     "wast-loader": "^1.14.1",
-    "webpack-sources": "3.3.4"
+    "webpack-sources": "3.5.0"
   },
   "devDependencies": {
     "@rslib/core": "^0.23.0",

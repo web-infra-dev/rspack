@@ -71,10 +71,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType = LiteralUnion<
-  'fetch-streaming' | 'fetch' | 'async-node',
-  string
->;
+export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -311,7 +308,7 @@ export type StrictModuleErrorHandling = boolean;
 export type GlobalObject = string;
 
 /** List of wasm loading types enabled for use by entry points. */
-export type EnabledWasmLoadingTypes = string[];
+export type EnabledWasmLoadingTypes = ('...' | WasmLoadingType)[];
 
 /** The name of the native import() function. */
 export type ImportFunctionName = string;

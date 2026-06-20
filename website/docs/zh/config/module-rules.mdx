@@ -245,7 +245,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-- **Type:** `string`
+- **类型：** [`Condition`](#condition)
 - **默认值：** `undefined`
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
@@ -658,11 +658,17 @@ export default {
 
 ## rules[].type
 
-- **类型：**
+- **类型：** `string`
+
+常见的内置值：
 
 ```ts
-type RuleType =
+type BuiltinRuleType =
   | 'asset'
+  | 'asset/source'
+  | 'asset/resource'
+  | 'asset/inline'
+  | 'asset/bytes'
   | 'css'
   | 'css/auto'
   | 'css/global'
@@ -740,6 +746,15 @@ type RuleSetUse =
   | RuleSetUseItem
   | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
+
+type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+
+type RuleSetLoaderWithOptions = {
+  ident?: string;
+  loader: string;
+  options?: string | Record<string, any>;
+  parallel?: boolean | { maxWorkers?: number };
+};
 ```
 
 用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。
