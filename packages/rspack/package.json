@@ -61,7 +61,7 @@
     "tinypool": "^2.1.0",
     "typescript": "^6.0.3",
     "watchpack": "2.5.1",
-    "webpack-sources": "3.3.4"
+    "webpack-sources": "3.5.0"
   },
   "dependencies": {
     "@rspack/binding": "workspace:*"

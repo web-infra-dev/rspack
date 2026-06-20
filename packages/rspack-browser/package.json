@@ -38,7 +38,7 @@
     "@rspack/lite-tapable": "1.1.2",
     "@swc/types": "0.1.27",
     "memfs": "4.57.7",
-    "webpack-sources": "3.3.4"
+    "webpack-sources": "3.5.0"
   },
   "peerDependencies": {
     "@swc/helpers": "^0.5.23"
