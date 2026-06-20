@@ -27,7 +27,7 @@ base64-simd     = { version = "0.8.0", default-features = false, features = ["al
 bitflags        = { version = "2.11.1", default-features = false }
 browserslist-rs = { version = "0.19.0", default-features = false }
 bytes           = { version = "1.11.1", default-features = false }
-camino          = { version = "1.2.2", default-features = false }
+camino          = { version = "1.2.3", default-features = false }
 cargo_toml      = { version = "0.22.3", default-features = false }
 cfg-if          = { version = "1.0.4", default-features = false }
 chrono          = { version = "0.4.45", default-features = false }
