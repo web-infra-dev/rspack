@@ -62,7 +62,16 @@ export default {
 
 ## module.noParse
 
-- **类型：** `string | RegExp | ((request: string) => boolean) | (string | RegExp | ((request: string) => boolean))[]`
+- **类型：**
+
+```ts
+type NoParseOption =
+  | string
+  | RegExp
+  | ((request: string) => boolean)
+  | (string | RegExp | ((request: string) => boolean))[];
+```
+
 - **默认值：** `undefined`
 
 匹配的文件代码不会被 Rspack 转换，包括 `module.exports`, `require`, `import` 这些模块系统相关的语法。
