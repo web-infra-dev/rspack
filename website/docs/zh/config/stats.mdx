@@ -317,7 +317,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" />
 
-当没有指定 `stats.runtimeModules` 时，作为 `stats.runtimeModules` 的兜底值。
+`stats.runtimeModules` 的兼容性简写。只有在没有指定 `stats.runtimeModules` 时才会生效；如果两者都设置，以 `stats.runtimeModules` 为准。
 
 ### stats.cachedModules
 
@@ -329,7 +329,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" />
 
-当没有指定 `stats.cachedModules` 时，作为 `stats.cachedModules` 的兜底值。
+`stats.cachedModules` 的兼容性简写。只有在没有指定 `stats.cachedModules` 时才会生效；如果两者都设置，以 `stats.cachedModules` 为准。
 
 ### stats.excludeModules
 
