@@ -55,6 +55,7 @@ import type {
   Performance,
   ResolveOptions,
   RuleSetRules,
+  WasmLoadingType,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
@@ -1004,7 +1005,7 @@ const applyOutputDefaults = (
     return Array.from(enabledChunkLoadingTypes);
   });
   A(output, 'enabledWasmLoadingTypes', () => {
-    const enabledWasmLoadingTypes = new Set<string>();
+    const enabledWasmLoadingTypes = new Set<WasmLoadingType>();
     if (output.wasmLoading) {
       enabledWasmLoadingTypes.add(output.wasmLoading);
     }

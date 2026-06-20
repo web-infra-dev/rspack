@@ -308,7 +308,7 @@ export type StrictModuleErrorHandling = boolean;
 export type GlobalObject = string;
 
 /** List of wasm loading types enabled for use by entry points. */
-export type EnabledWasmLoadingTypes = string[];
+export type EnabledWasmLoadingTypes = ('...' | WasmLoadingType)[];
 
 /** The name of the native import() function. */
 export type ImportFunctionName = string;
