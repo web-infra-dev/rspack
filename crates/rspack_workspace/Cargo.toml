@@ -10,6 +10,10 @@ name                    = "rspack_workspace"
 repository.workspace    = true
 version.workspace       = true
 
+[build-dependencies]
+cargo_toml = { workspace = true }
+serde_json = { workspace = true }
+
 [lints]
 workspace = true
 

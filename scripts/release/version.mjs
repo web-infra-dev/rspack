@@ -156,8 +156,9 @@ export async function version_handler(version, options) {
     console.log(`Update ${newPackageJson.name}: ${newPackageJson.version}`);
   }
 
-  await $`cargo codegen`;
+  // Regenerate crates/rspack_workspace/src/generated.rs through its build.rs.
+  await $`cargo check -p rspack_workspace`;
   await $`pnpm run format:js`;
 
-  console.log('Cargo codegen done');
+  console.log('Version bump done');
 }

@@ -70,9 +70,6 @@ jobs:
       - name: Setup Rust Target
         run: rustup target add ${{ inputs.target }}
 
-      - name: Run Cargo codegen
-        run: cargo codegen
-
       - name: Build benchmark (${{ inputs.measurement }})
         run: |
           bench_args=()

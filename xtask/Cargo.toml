@@ -15,7 +15,6 @@ version                 = "0.1.0"
 anyhow     = { workspace = true }
 cargo_toml = { workspace = true }
 clap       = { workspace = true, features = ["color", "error-context", "help", "std", "suggestions", "usage", "derive"] }
-serde_json = { workspace = true }
 
 [lints]
 workspace = true

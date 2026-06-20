@@ -98,7 +98,7 @@ Examples:
 ./x version minor --pre beta
 ```
 
-`./x version ...` already updates the published JavaScript package versions, updates the Rust workspace version through the release tooling, runs `cargo codegen`, and runs `pnpm run format:js`.
+`./x version ...` already updates the published JavaScript package versions, updates the Rust workspace version through the release tooling, regenerates `crates/rspack_workspace/src/generated.rs` (via that crate's `build.rs`), and runs `pnpm run format:js`.
 
 After the command finishes, read the authoritative versions from:
 

@@ -42,9 +42,6 @@ jobs:
           save-if: true
           key: dylint
 
-      - name: Run Cargo codegen
-        run: cargo codegen
-
       - name: Install Dylint Toolchain
         run: rustup toolchain install nightly-2025-10-31 -c rustc-dev -c llvm-tools-preview -c rust-src
 
