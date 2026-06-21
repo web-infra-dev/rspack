@@ -16,6 +16,9 @@ pnpm install --no-frozen-lockfile 2>&1 | tail -5
 
 export NODE_ENV=development
 export NODE_OPTIONS="--require ${ROOT}/preload-wrap.cjs"
+# Disable ANSI color so the success line is plain text; the matcher below is
+# also tolerant of color codes between the two words just in case.
+export NO_COLOR=1 FORCE_COLOR=0 TERM=dumb
 
 # Invoke the rspack binary directly (the `pnpm serve` wrapper re-runs a deps
 # check that aborts on the ignored build script). Use a free port to avoid any
@@ -24,7 +27,7 @@ export NODE_OPTIONS="--require ${ROOT}/preload-wrap.cjs"
 SERVE=$!
 
 count() {
-  if [ -f dev.log ]; then grep -c "compiled successfully" dev.log 2>/dev/null || true; else echo 0; fi
+  if [ -f dev.log ]; then grep -cE "compiled.*successfully" dev.log 2>/dev/null || true; else echo 0; fi
 }
 wait_grow() {
   local base="$1" i
