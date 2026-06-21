@@ -179,12 +179,15 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
-        callback(err, new Map(), new Map(), changes, removals);
         // Mirror watchpack's public `aggregated` event (the batched summary
         // delivered after the aggregate timeout) on both the standard
-        // `on`/`once` API and the watchpack-compatible `.watcher` shim.
+        // `on`/`once` API and the watchpack-compatible `.watcher` shim. Emitted
+        // before `callback`, which synchronously starts the next rebuild, so
+        // listeners observe the batch before compilation — matching the node
+        // path, where the forwarded `aggregated` runs before its rebuild callback.
         this.#events.emit('aggregated', changes, removals);
         watcher.emit('aggregated', changes, removals);
+        callback(err, new Map(), new Map(), changes, removals);
       },
       (event) => {
         if (event.kind === 'change') {
