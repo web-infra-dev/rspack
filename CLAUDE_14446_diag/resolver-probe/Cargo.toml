@@ -1,0 +1,11 @@
+# Standalone probe — its own workspace so the parent rspack workspace ignores it.
+[workspace]
+
+[package]
+name = "resolver-probe"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+rspack_resolver = "=0.9.2"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
