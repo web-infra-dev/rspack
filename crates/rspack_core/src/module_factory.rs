@@ -30,7 +30,19 @@ pub struct ModuleFactoryCreateData {
 
 impl ModuleFactoryCreateData {
   pub fn add_file_dependency<F: Into<ArcPath>>(&mut self, file: F) {
-    self.file_dependencies.insert(file.into());
+    let file: ArcPath = file.into();
+    // DIAG14446
+    {
+      let __s = file.to_string_lossy();
+      if __s.contains('/') && __s.contains('\\') {
+        eprintln!(
+          "\n[DIAG14446 add_file_dependency MIXED] {}\n{}",
+          __s,
+          std::backtrace::Backtrace::force_capture()
+        );
+      }
+    }
+    self.file_dependencies.insert(file);
   }
 
   pub fn add_file_dependencies<F: Into<ArcPath>>(&mut self, files: impl IntoIterator<Item = F>) {

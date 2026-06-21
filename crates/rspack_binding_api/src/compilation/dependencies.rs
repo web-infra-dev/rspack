@@ -20,7 +20,14 @@ impl JsDependencies {
       .compilation
       .file_dependencies()
       .0
-      .map(|i| i.to_string_lossy().to_string())
+      .map(|i| {
+        let s = i.to_string_lossy().to_string();
+        // DIAG14446
+        if s.contains('/') && s.contains('\\') {
+          eprintln!("[DIAG14446 binding file_dependencies MIXED] {s}");
+        }
+        s
+      })
       .collect()
   }
   #[napi(getter)]

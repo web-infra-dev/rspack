@@ -71,6 +71,17 @@ fn create_loader_context<Context: Send>(
   if let Some(resource_path) = resource_data.path()
     && resource_path.is_absolute()
   {
+    // DIAG14446
+    {
+      let __s = resource_path.as_str();
+      if __s.contains('/') && __s.contains('\\') {
+        eprintln!(
+          "\n[DIAG14446 loader_runner resource_path MIXED] {}\n{}",
+          __s,
+          std::backtrace::Backtrace::force_capture()
+        );
+      }
+    }
     file_dependencies.insert(resource_path.to_owned().into_std_path_buf());
   }
 

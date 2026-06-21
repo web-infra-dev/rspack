@@ -18,6 +18,31 @@ jobs:
   runner-labels:
     uses: ./.github/workflows/get-runner-labels.yml
 
+  backtrace:
+    name: backtrace-windows
+    needs: runner-labels
+    runs-on: ${{ fromJSON(needs.runner-labels.outputs.WINDOWS_RUNNER_LABELS) }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Rust
+        uses: ./.github/actions/rustup
+        with:
+          key: diag-backtrace
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: '22'
+      - name: pnpm install (workspace)
+        shell: bash
+        run: pnpm install --no-frozen-lockfile
+      - name: build instrumented binding (debug)
+        shell: bash
+        run: pnpm --filter @rspack/binding run build:dev
+      - name: run repro with instrumented binding
+        shell: bash
+        run: bash CLAUDE_14446_diag/backtrace-repro.sh
+
   controlled:
     name: controlled-${{ matrix.name }}
     needs: runner-labels

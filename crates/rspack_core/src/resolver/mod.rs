@@ -89,6 +89,17 @@ impl Resource {
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
+    // DIAG14446
+    {
+      let __s = resource.path.as_str();
+      if __s.contains('/') && __s.contains('\\') {
+        eprintln!(
+          "\n[DIAG14446 ResourceData::from(Resource) MIXED] {}\n{}",
+          __s,
+          std::backtrace::Backtrace::force_capture()
+        );
+      }
+    }
     let mut resource_data = Self::new_with_path(
       resource.full_path(),
       resource.path,
