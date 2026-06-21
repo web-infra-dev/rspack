@@ -46,6 +46,13 @@ it("should treat POSIX absolute paths ending in backslash as files", () => {
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   target: 'node',
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
   optimization: {
     inlineExports: true,
     moduleIds: 'named',

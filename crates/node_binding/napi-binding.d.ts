@@ -1189,6 +1189,7 @@ export interface JsRsdoctorModuleGraph {
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
   connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
+  exportUsageEdges: Array<[number, Array<string> | null, number, Array<string> | null]>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -2953,6 +2954,7 @@ export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
   sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
+  exportUsageGraph?: boolean
 }
 
 export interface RawRslibPluginOptions {
@@ -3094,6 +3096,8 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  maxAge?: number
+  maxGenerations?: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

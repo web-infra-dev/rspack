@@ -118,7 +118,7 @@ impl DependencyCodeGeneration for ProvideDependency {
     self.identifier.dyn_hash(hasher);
     self.ids.dyn_hash(hasher);
     // Case: a ProvidePlugin variable is replaced by an inlined const export,
-    // e.g. `provided = (__webpack_require__("./constants"), 2)`. The generated
+    // e.g. `provided = (__rspack_require("./constants"), 2)`. The generated
     // code embeds the target export's inline literal, so the dependency hash must
     // include that payload and not only the provided identifier/import ids.
     let used_name = compilation

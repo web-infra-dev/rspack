@@ -48,6 +48,10 @@ impl URLDependency {
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
   }
+
+  pub fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
+  }
 }
 
 #[cacheable_dyn]

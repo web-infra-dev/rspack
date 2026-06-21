@@ -40,6 +40,7 @@ import {
   type PitchLoaderDefinitionFunction,
 } from './adapterRuleUse';
 import type {
+  CacheNormalized,
   ExperimentsNormalized,
   ModuleOptionsNormalized,
   OutputNormalized,
@@ -101,7 +102,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: options.cache || false,
+    cache: getRawCache(options.cache!),
     experiments,
     incremental: options.incremental,
     node: getRawNode(options.node),
@@ -110,6 +111,23 @@ export const getRawOptions = (
     __references: {},
   };
 };
+
+function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
+  if (cache === false) return false;
+  if (cache.type === 'memory') return cache;
+  return {
+    ...cache,
+    storage: {
+      ...cache.storage,
+      directory: cache.storage.directory!,
+    },
+    snapshot: {
+      immutablePaths: cache.snapshot.immutablePaths!,
+      unmanagedPaths: cache.snapshot.unmanagedPaths!,
+      managedPaths: cache.snapshot.managedPaths!,
+    },
+  };
+}
 
 function getRawOutput(output: Output): RawOutputOptions {
   return {

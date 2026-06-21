@@ -32,7 +32,6 @@ export default {
             detectSyntax: 'auto',
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -99,23 +98,114 @@ React Compiler 是 React 19 引入的一个实验性编译器，它可以自动�
 
 在开始使用 React Compiler 之前，建议阅读 [React Compiler 文档](https://zh-hans.react.dev/learn/react-compiler)，以了解 React Compiler 的功能、当前状态和使用方法。
 
-:::tip
-React Compiler 目前仅支持 Babel 编译，这会导致构建时间变慢。
-:::
-
-### 如何使用
+### 使用 `builtin:swc-loader`
 
 在 Rspack 中使用 React Compiler 的步骤如下：
 
-1. 升级 `react` 和 `react-dom` 版本到 19。如果你暂时无法升级，可以在 React 17 或 18 项目中安装 [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime)，以允许编译后的代码在 19 之前的版本上运行。
-2. 目前 React Compiler 仅提供了 Babel 插件，你需要安装：
+1. 升级 `@rspack/core` 到 v2.1.0 及以上版本。
+2. 升级 `react` 和 `react-dom` 版本到 19。如果你暂时无法升级，可以在 React 17 或 18 项目中安装 [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime)，以允许编译后的代码在 19 之前的版本上运行。
+3. 通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 启用 React Compiler：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: true,
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+对于 React 17 和 18 项目，需要指定编译目标：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: {
+                  target: '18',
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+`reactCompiler` 的选项与 React Compiler 配置对齐。例如，你可以通过 [`compilationMode`](https://react.dev/reference/react-compiler/compilationMode) 控制哪些函数会被编译。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: {
+                  compilationMode: 'annotation',
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+更多选项请参考官方 [React Compiler 配置说明](https://react.dev/reference/react-compiler/configuration)。
+
+### 使用 Babel
+
+你也可以使用 React Compiler 发布的 Babel 插件。如果你需要 Babel 特有的集成方式，或需要使用 SWC transform 尚未支持的选项，可以选择该方案。
+
+使用 Babel 时，需要安装：
 
 - [@babel/core](https://www.npmjs.com/package/@babel/core)
 - [babel-loader](https://www.npmjs.com/package/babel-loader)
 - [babel-plugin-react-compiler](https://www.npmjs.com/package/babel-plugin-react-compiler)
 - [@babel/plugin-syntax-jsx](https://www.npmjs.com/package/@babel/plugin-syntax-jsx)
 
-3. 在你的 Rspack 配置中注册 `babel-loader`：
+在你的 Rspack 配置中注册 `babel-loader`：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -149,7 +239,7 @@ export default {
 };
 ```
 
-4. 创建 `babel.config.js` 并配置插件：
+创建 `babel.config.js` 并配置插件：
 
 ```js title="babel.config.js"
 const ReactCompilerConfig = {

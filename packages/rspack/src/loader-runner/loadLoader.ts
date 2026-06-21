@@ -26,6 +26,9 @@ type ModuleObject = {
 type LoaderModule = ModuleObject | Function;
 
 let url: undefined | typeof Url;
+const moduleCache = new Map<string, LoaderModule>();
+const modulePromiseCache = new Map<string, Promise<LoaderModule>>();
+const loaderUrlCache = new Map<string, string>();
 
 export default function loadLoader(
   loader: LoaderObject,
@@ -42,11 +45,35 @@ export default function loadLoader(
     return handleResult(loader, module, callback);
   }
 
+  const cacheKey = `${loader.type ?? 'commonjs'}\0${loader.path}`;
+  const cachedModule = moduleCache.get(cacheKey);
+  if (cachedModule !== undefined) {
+    return handleResult(loader, cachedModule, callback);
+  }
+
   if (loader.type === 'module') {
     try {
-      if (url === undefined) url = require('node:url');
-      const loaderUrl = url!.pathToFileURL(loader.path);
-      const modulePromise = import(loaderUrl.toString());
+      let modulePromise = modulePromiseCache.get(cacheKey);
+      if (modulePromise === undefined) {
+        if (url === undefined) url = require('node:url');
+        let loaderUrl = loaderUrlCache.get(loader.path);
+        if (loaderUrl === undefined) {
+          loaderUrl = url!.pathToFileURL(loader.path).toString();
+          loaderUrlCache.set(loader.path, loaderUrl);
+        }
+        modulePromise = import(loaderUrl).then(
+          (module: LoaderModule) => {
+            moduleCache.set(cacheKey, module);
+            modulePromiseCache.delete(cacheKey);
+            return module;
+          },
+          (err) => {
+            modulePromiseCache.delete(cacheKey);
+            throw err;
+          },
+        );
+        modulePromiseCache.set(cacheKey, modulePromise);
+      }
       modulePromise.then((module: LoaderModule) => {
         handleResult(loader, module, callback);
       }, callback);

@@ -1,6 +1,7 @@
 use rspack_core::{
-  CachedConstDependency, ConstDependency, ImportMeta, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
+  CachedConstDependency, CachedConstDependencyPlace, ConstDependency, ImportMeta,
+  NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
@@ -84,6 +85,13 @@ impl NodeMetaProperty {
     match self {
       NodeMetaProperty::Filename => "__rspack_fileURLToPath(import.meta.url)",
       NodeMetaProperty::Dirname => "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))",
+    }
+  }
+
+  fn import_meta_cached_identifier(&self) -> &'static str {
+    match self {
+      NodeMetaProperty::Filename => "__rspack_import_meta_filename__",
+      NodeMetaProperty::Dirname => "__rspack_import_meta_dirname__",
     }
   }
 
@@ -242,12 +250,47 @@ impl NodeStuffPlugin {
     property: NodeMetaProperty,
   ) {
     Self::add_node_module_dependencies(parser, property);
-    let const_dep = CachedConstDependency::new(
+    let place = if parser.compiler_options.output.module {
+      CachedConstDependencyPlace::Chunk
+    } else {
+      CachedConstDependencyPlace::Module
+    };
+    let identifier = if matches!(place, CachedConstDependencyPlace::Chunk) {
+      property.import_meta_cached_identifier()
+    } else {
+      name
+    };
+    let const_dep = CachedConstDependency::new_with_place(
       ident_span.into(),
-      name.into(),
+      identifier.into(),
       property.node_module_runtime_expr().into(),
+      place,
     );
     parser.add_presentational_dependency(Box::new(const_dep));
+  }
+
+  fn add_import_meta_cached_dependency(
+    parser: &mut JavascriptParser,
+    range: Option<rspack_core::DependencyRange>,
+    property: NodeMetaProperty,
+    content: impl Into<Box<str>>,
+  ) -> String {
+    let identifier = property.import_meta_cached_identifier();
+    let const_dep = match range {
+      Some(range) => CachedConstDependency::new_with_place(
+        range,
+        identifier.into(),
+        content.into(),
+        CachedConstDependencyPlace::Chunk,
+      ),
+      None => CachedConstDependency::new_without_replacement(
+        identifier.into(),
+        content.into(),
+        CachedConstDependencyPlace::Chunk,
+      ),
+    };
+    parser.add_presentational_dependency(Box::new(const_dep));
+    identifier.to_string()
   }
 
   /// Get the evaluated value for import.meta.filename/dirname
@@ -313,7 +356,7 @@ impl NodeStuffPlugin {
 
     if property.is_eval_only(node_option) {
       return Some(if parser.compiler_options.output.module {
-        property.import_meta_name().to_string()
+        Self::add_import_meta_cached_dependency(parser, None, property, property.import_meta_name())
       } else {
         property.cjs_name().to_string()
       });
@@ -328,11 +371,20 @@ impl NodeStuffPlugin {
           .environment
           .supports_import_meta_dirname_and_filename()
       {
-        // Keep as import.meta.filename/dirname - runtime supports it
-        return Some(property.import_meta_name().to_string());
+        return Some(Self::add_import_meta_cached_dependency(
+          parser,
+          None,
+          property,
+          property.import_meta_name(),
+        ));
       }
       Self::add_node_module_dependencies(parser, property);
-      return Some(property.node_module_runtime_expr().to_string());
+      return Some(Self::add_import_meta_cached_dependency(
+        parser,
+        None,
+        property,
+        property.node_module_runtime_expr(),
+      ));
     }
 
     None
@@ -371,7 +423,7 @@ impl NodeStuffPlugin {
 
     if property.is_eval_only(node_option) {
       return Some(if parser.compiler_options.output.module {
-        property.import_meta_name().to_string()
+        Self::add_import_meta_cached_dependency(parser, None, property, property.import_meta_name())
       } else {
         property.cjs_name().to_string()
       });
@@ -386,10 +438,20 @@ impl NodeStuffPlugin {
           .environment
           .supports_import_meta_dirname_and_filename()
       {
-        return Some(property.import_meta_name().to_string());
+        return Some(Self::add_import_meta_cached_dependency(
+          parser,
+          None,
+          property,
+          property.import_meta_name(),
+        ));
       }
       Self::add_node_module_dependencies(parser, property);
-      return Some(property.node_module_runtime_expr().to_string());
+      return Some(Self::add_import_meta_cached_dependency(
+        parser,
+        None,
+        property,
+        property.node_module_runtime_expr(),
+      ));
     }
 
     None

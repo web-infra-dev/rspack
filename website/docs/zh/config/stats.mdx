@@ -168,6 +168,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 展示的 Chunk 内模块数量（超过的部分将以分组方式折叠）。
 
+### stats.chunkModulesSort
+
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"name"' }]} />
+
+基于指定的字段对 Chunk 内模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
+
 ### stats.dependentModules
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -307,11 +313,19 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 > 运行时模块为 Rspack 内置模块，用于提供各种运行时能力。
 
+:::tip
+`stats.runtime` 是 `stats.runtimeModules` 的兼容性别名。只有在没有指定 `stats.runtimeModules` 时才会生效；如果两者都设置，以 `stats.runtimeModules` 为准。
+:::
+
 ### stats.cachedModules
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 是否展示被缓存的模块。
+
+:::tip
+`stats.cached` 是 `stats.cachedModules` 的兼容性别名。只有在没有指定 `stats.cachedModules` 时才会生效；如果两者都设置，以 `stats.cachedModules` 为准。
+:::
 
 ### stats.excludeModules
 
@@ -333,6 +347,12 @@ type Stats = boolean | StatsOptions | StatsPresets;
 <PropertyType type="number" defaultValueList={[{ defaultValue: '10' }]} />
 
 展示的被嵌套模块数量（超过的部分将以分组方式折叠）。
+
+### stats.nestedModulesSort
+
+<PropertyType type="string" />
+
+基于指定的字段对嵌套模块排序。可用的排序字段见[字段排序](/config/stats#字段排序)。使用 `!` 作为前缀可以反转排序结果。
 
 ## 模块分组选项
 
@@ -493,11 +513,26 @@ export default {
 
 ### stats.colors
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+- **类型：**
+
+```ts
+type StatsColorOptions = {
+  bold?: string;
+  cyan?: string;
+  green?: string;
+  magenta?: string;
+  red?: string;
+  yellow?: string;
+};
+
+type StatsColors = boolean | StatsColorOptions;
+```
+
+- **默认值：** 根据当前环境决定
 
 是否在展示日志时添加颜色。
 
-在支持颜色输出的环境中执行 `rspack build` 时，它被默认设置为 `true`。
+当传入对象时，可以自定义每种支持颜色使用的 ANSI 转义序列。默认情况下，Rspack 会在当前环境支持颜色输出时启用颜色。
 
 ## Compilation 选项
 
@@ -524,12 +559,6 @@ export default {
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 是否展示 Rspack 的版本号。
-
-### stats.context
-
-<PropertyType type="string" />
-
-是否展示构建的 [基础目录](/config/context) 为绝对路径，可用来缩短模块标识符的长度。
 
 ### stats.publicPath
 

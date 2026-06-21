@@ -36,10 +36,10 @@ __webpack_require__.d(__webpack_exports__, {
 
 },
 "./zh_locale.js"(__unused_rspack_module, exports) {
-var __webpack_unused_export__;
+var __rspack_unused_export;
 
 
-__webpack_unused_export__ = ({
+__rspack_unused_export = ({
 	value: true
 });
 exports["default"] = void 0;

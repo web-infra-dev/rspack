@@ -66,6 +66,7 @@ export class NodeRunner implements ITestRunner {
   protected globalContext: IGlobalContext | null = null;
   protected baseModuleScope: IModuleScope | null = null;
   protected requirers: Map<string, TRunnerRequirer> = new Map();
+  protected runQueue: Promise<void> | undefined;
   constructor(protected _options: INodeRunnerOptions) {}
 
   protected log(message: string) {
@@ -73,6 +74,22 @@ export class NodeRunner implements ITestRunner {
   }
 
   run(file: string): Promise<unknown> {
+    // Keep runs on the same NodeRunner serialized. ESM linking/evaluation can
+    // continue asynchronously after runFile returns a promise; if another run
+    // recreates baseModuleScope/requirers before that continuation finishes,
+    // dynamic lookups through this.requirers may mix SourceTextModules from
+    // different vm.Context instances and Node will reject the link.
+    const run = this.runQueue
+      ? this.runQueue.then(() => this.runFile(file))
+      : this.runFile(file);
+    this.runQueue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  protected runFile(file: string): Promise<unknown> {
     if (!this.globalContext) {
       this.globalContext = this.createGlobalContext();
     }

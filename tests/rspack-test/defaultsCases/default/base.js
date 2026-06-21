@@ -722,7 +722,6 @@ module.exports = {
 			      index,
 			    ],
 			  },
-			  snapshot: Object {},
 			  stats: Object {},
 			  target: web,
 			  watch: false,

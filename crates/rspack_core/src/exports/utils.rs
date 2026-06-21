@@ -191,9 +191,9 @@ pub enum UsageState {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UsedByExports {
-  pub condition: UsedByExportsCondition,
+  condition: UsedByExportsCondition,
   #[cacheable(with=AsVec)]
-  pub deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
+  deferred_pure_checks: Vec<UsedByExportsDeferredPureCheck>,
 }
 
 impl UsedByExports {
@@ -217,6 +217,23 @@ impl UsedByExports {
   ) -> Self {
     self.deferred_pure_checks = deferred_pure_checks;
     self
+  }
+
+  pub fn condition(&self) -> &UsedByExportsCondition {
+    &self.condition
+  }
+
+  pub fn deferred_pure_checks(&self) -> &[UsedByExportsDeferredPureCheck] {
+    &self.deferred_pure_checks
+  }
+
+  pub fn has_deferred_pure_checks(&self) -> bool {
+    !self.deferred_pure_checks.is_empty()
+  }
+
+  pub fn is_false_without_deferred_pure_checks(&self) -> bool {
+    matches!(&self.condition, UsedByExportsCondition::Bool(false))
+      && !self.has_deferred_pure_checks()
   }
 }
 

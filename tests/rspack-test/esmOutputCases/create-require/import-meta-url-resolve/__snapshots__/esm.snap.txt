@@ -1,0 +1,87 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
+import {dirname as __rspack_dirname} from "node:path";
+var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./libCssExtractLoader.js"
+/*!********************************!*\
+  !*** ./libCssExtractLoader.js ***!
+  \********************************/
+(module) {
+module.exports = "loader";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./index.js
+
+
+const req = /* createRequire() */ undefined;
+
+const value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
+
+it("should consume createRequire(import.meta.url) like webpack", () => {
+	const fs = __rspack_createRequire_require("fs");
+	const path = __rspack_createRequire_require("path");
+	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
+	const fileUrlScheme = "file:" + "//";
+	const normalizedRoot = "<" + "ROOT>";
+	const unresolvedCreateRequire =
+		"external_node_module_namespaceObject." + "createRequire(import.meta.url)";
+
+	expect(source).not.toContain(fileUrlScheme);
+	expect(source).not.toContain("createRequire('" + normalizedRoot);
+	expect(source).not.toContain('createRequire("' + normalizedRoot);
+	expect(source).not.toContain(unresolvedCreateRequire);
+	expect(source).toContain("/* createRequire() */ undefined");
+	expect(source).toContain("__webpack_require__(");
+	expect(source).toContain("/*require.resolve*/");
+	expect(value).toBe("loader");
+	expect(loader).toBe("./libCssExtractLoader.js");
+});
+
+export { loader, value };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```
