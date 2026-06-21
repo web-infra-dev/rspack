@@ -15,7 +15,12 @@ corepack enable >/dev/null 2>&1 || true
 pnpm install --no-frozen-lockfile 2>&1 | tail -5
 
 export NODE_ENV=development
-export NODE_OPTIONS="--require ${ROOT}/preload-wrap.cjs"
+# Node's --require needs a native path; under Windows git-bash ROOT is a POSIX
+# path (/d/a/...) that Node cannot resolve, so convert it to a forward-slash
+# Windows path that Node accepts.
+PRELOAD="${ROOT}/preload-wrap.cjs"
+if command -v cygpath >/dev/null 2>&1; then PRELOAD="$(cygpath -m "$PRELOAD")"; fi
+export NODE_OPTIONS="--require ${PRELOAD}"
 # Disable ANSI color so the success line is plain text; the matcher below is
 # also tolerant of color codes between the two words just in case.
 export NO_COLOR=1 FORCE_COLOR=0 TERM=dumb
