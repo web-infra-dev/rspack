@@ -12,6 +12,15 @@ git clone --depth 1 https://github.com/ying-bin/rspack-repo-bug.git "$WORK"
 cd "$WORK" || exit 1
 
 corepack enable >/dev/null 2>&1 || true
+
+# Optionally normalize the config `context` to native separators, to test the
+# forward-slash-context root-cause hypothesis (jiti gives a `/` __dirname on Win).
+if [ "${NORMALIZE_CONTEXT:-}" = "1" ]; then
+  echo ">> normalizing context to native separators in rspack.config.ts"
+  node -e "const fs=require('fs');const f='rspack.config.ts';let c=fs.readFileSync(f,'utf8');c=c.replace('context: __dirname','context: __dirname.split(String.fromCharCode(47)).join(String.fromCharCode(92))');fs.writeFileSync(f,c);"
+  grep -n "context:" rspack.config.ts | head -1
+fi
+
 pnpm install --no-frozen-lockfile 2>&1 | tail -5
 
 # Optionally upgrade rspack to a given version (e.g. beta = current main) to
