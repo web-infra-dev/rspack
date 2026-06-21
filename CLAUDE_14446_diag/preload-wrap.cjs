@@ -4,6 +4,30 @@
 // own config or rspack source.
 const path = require('node:path');
 
+// Log compiler.context separator once (seed hypothesis: forward-slash context
+// from jiti on Windows feeding the rebuild's path construction).
+try {
+  const core = require('@rspack/core');
+  if (core && typeof core.rspack === 'function') {
+    const orig = core.rspack;
+    let logged = false;
+    core.rspack = function () {
+      const c = orig.apply(this, arguments);
+      try {
+        if (!logged && c && c.options) {
+          logged = true;
+          console.error(`[PRELOAD] compiler.options.context = ${JSON.stringify(c.options.context)}`);
+          console.error(`[PRELOAD] context.cwd = ${JSON.stringify(process.cwd())}`);
+        }
+      } catch (_) {}
+      return c;
+    };
+    console.error('[PRELOAD] wrapped @rspack/core rspack() for context logging');
+  }
+} catch (e) {
+  console.error('[PRELOAD] could not wrap rspack():', e && e.message);
+}
+
 try {
   const coreDir = path.dirname(require.resolve('@rspack/core/package.json'));
   const wpPath = path.join(coreDir, 'compiled', 'watchpack', 'index.js');
