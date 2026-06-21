@@ -50,6 +50,36 @@ jobs:
           echo "### Controlled probe — ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
           grep "VERDICT:" probe-output.txt >> "$GITHUB_STEP_SUMMARY" || true
 
+  controlled-swc:
+    name: controlled-swc-${{ matrix.name }}
+    needs: runner-labels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            labels: ${{ needs.runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - name: linux
+            labels: ${{ needs.runner-labels.outputs.LINUX_RUNNER_LABELS }}
+    runs-on: ${{ fromJSON(matrix.labels) }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: '22'
+      - name: install (@rspack/core@2.0.8 only)
+        shell: bash
+        working-directory: CLAUDE_14446_diag/controlled-swc
+        run: npm install --no-audit --no-fund
+      - name: run watch probe (swc-loader)
+        shell: bash
+        working-directory: CLAUDE_14446_diag/controlled-swc
+        run: |
+          node watch-probe.mjs | tee probe-output.txt
+          echo "### Controlled-swc probe — ${{ matrix.name }}" >> "$GITHUB_STEP_SUMMARY"
+          grep "VERDICT:" probe-output.txt >> "$GITHUB_STEP_SUMMARY" || true
+
   resolver-probe:
     name: resolver-probe-${{ matrix.name }}
     needs: runner-labels
