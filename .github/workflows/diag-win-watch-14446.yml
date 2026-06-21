@@ -127,3 +127,25 @@ jobs:
       - name: run faithful serve repro
         shell: bash
         run: bash CLAUDE_14446_diag/serve-repro.sh
+
+  faithful-build:
+    name: faithful-build-${{ matrix.name }}
+    needs: runner-labels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            labels: ${{ needs.runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+          - name: linux
+            labels: ${{ needs.runner-labels.outputs.LINUX_RUNNER_LABELS }}
+    runs-on: ${{ fromJSON(matrix.labels) }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: '22'
+      - name: run repro via build --watch (no dev-server)
+        shell: bash
+        run: bash CLAUDE_14446_diag/build-repro.sh
