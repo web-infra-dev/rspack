@@ -128,6 +128,28 @@ jobs:
         shell: bash
         run: bash CLAUDE_14446_diag/serve-repro.sh
 
+  faithful-serve-beta:
+    name: faithful-serve-beta-${{ matrix.name }}
+    needs: runner-labels
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            labels: ${{ needs.runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
+    runs-on: ${{ fromJSON(matrix.labels) }}
+    env:
+      RSPACK_VERSION: '2.1.0-beta.0'
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - name: Setup Node & pnpm
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: '22'
+      - name: run faithful serve repro (rspack@beta = main)
+        shell: bash
+        run: bash CLAUDE_14446_diag/serve-repro.sh
+
   faithful-serve-nohot:
     name: faithful-serve-nohot-${{ matrix.name }}
     needs: runner-labels

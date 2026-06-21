@@ -14,6 +14,15 @@ cd "$WORK" || exit 1
 corepack enable >/dev/null 2>&1 || true
 pnpm install --no-frozen-lockfile 2>&1 | tail -5
 
+# Optionally upgrade rspack to a given version (e.g. beta = current main) to
+# check whether the bug still reproduces there before any from-source build.
+if [ -n "${RSPACK_VERSION:-}" ]; then
+  echo ">> upgrading rspack to ${RSPACK_VERSION}"
+  pnpm add --no-strict-peer-dependencies \
+    "@rspack/core@${RSPACK_VERSION}" "@rspack/cli@${RSPACK_VERSION}" 2>&1 | tail -5
+  node -e "console.log('installed @rspack/core', require('@rspack/core/package.json').version)"
+fi
+
 export NODE_ENV=development
 # Node's --require needs a native path; under Windows git-bash ROOT is a POSIX
 # path (/d/a/...) that Node cannot resolve, so convert it to a forward-slash
