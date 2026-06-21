@@ -23,17 +23,27 @@ fn main() {
     return;
   }
 
+  let generated_path = manifest_dir.join("src/generated.rs");
   println!("cargo::rerun-if-changed={}", cargo_toml_path.display());
   println!("cargo::rerun-if-changed={}", package_json_path.display());
+  // Also rerun when generated.rs itself is edited, so a manual change is reasserted.
+  println!("cargo::rerun-if-changed={}", generated_path.display());
 
   let Some(content) = generate(&cargo_toml_path, &package_json_path) else {
+    println!(
+      "cargo::warning=rspack_workspace: could not read workspace versions; src/generated.rs left unchanged"
+    );
     return;
   };
 
-  let generated_path = manifest_dir.join("src/generated.rs");
   // Only write on change to avoid dirtying the working tree and recompiles.
-  if fs::read_to_string(&generated_path).unwrap_or_default() != content {
-    fs::write(&generated_path, content).expect("write crates/rspack_workspace/src/generated.rs");
+  if fs::read_to_string(&generated_path).unwrap_or_default() == content {
+    return;
+  }
+  if let Err(e) = fs::write(&generated_path, &content) {
+    println!(
+      "cargo::warning=rspack_workspace: could not write src/generated.rs ({e}); using the committed file"
+    );
   }
 }
 
