@@ -29,6 +29,7 @@ jobs:
         uses: ./.github/actions/rustup
         with:
           key: diag-backtrace
+          save-if: true
       - name: Setup Node & pnpm
         uses: ./.github/actions/pnpm/setup
         with:

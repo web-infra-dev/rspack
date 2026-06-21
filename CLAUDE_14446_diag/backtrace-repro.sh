@@ -35,6 +35,12 @@ done < <(find node_modules -name "$BN" 2>/dev/null)
 export NODE_ENV=development
 export NO_COLOR=1 FORCE_COLOR=0 TERM=dumb
 export RUST_BACKTRACE=1
+# also capture the watch-input (watchpack) per re-arm to compare with the
+# Rust-side DIAG (does the mixed path reach watchpack via JS even though the
+# binding getter looks clean?)
+PRELOAD="$WS/CLAUDE_14446_diag/preload-wrap.cjs"
+if command -v cygpath >/dev/null 2>&1; then PRELOAD="$(cygpath -m "$PRELOAD")"; fi
+export NODE_OPTIONS="--require ${PRELOAD}"
 
 ./node_modules/.bin/rspack serve --port "$PORT" >dev.log 2>&1 &
 SERVE=$!
@@ -54,7 +60,11 @@ C2=$(count)
 kill "$SERVE" 2>/dev/null || true
 echo "counts: C0=$C0 C1=$C1 C2=$C2"
 
-echo "===================== DIAG14446 hits ====================="
-grep -n "DIAG14446" dev.log | head -40
-echo "===================== DIAG14446 backtraces (full) ====================="
-sed -E 's/\x1b\[[0-9;]*m//g' dev.log | grep -A 60 "DIAG14446 .*MIXED" | head -300
+echo "===================== watchpack re-arm input (preload) ====================="
+sed -E 's/\x1b\[[0-9;]*m//g' dev.log | grep -aE "PRELOAD watchpack re-arm|src files:|App.tsx present" | head -40
+echo "===================== DIAG14446 summary ====================="
+for t in "ResourceData::from(Resource) MIXED" "loader_runner resource_path MIXED" "add_file_dependency MIXED" "binding file_dependencies MIXED"; do
+  printf "%-45s %s\n" "$t" "$(grep -ac "$t" dev.log)"
+done
+echo "===================== binding getter mixed (reaches JS) ====================="
+grep -a "binding file_dependencies MIXED" dev.log | sed -E 's/\r$//' | sort -u | head -20
