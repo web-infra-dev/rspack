@@ -65,6 +65,9 @@ export const applyRspackOptionsDefaults = (
   compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
+  // Normalize to native separators so a forward-slash context (e.g. jiti's
+  // `__dirname` on Windows) doesn't yield unmatchable watch paths. See #14446.
+  options.context = path.resolve(options.context!);
   F(options, 'target', () => {
     return getDefaultTarget(options.context!);
   });
