@@ -28,7 +28,8 @@ export NO_COLOR=1 FORCE_COLOR=0 TERM=dumb
 # Invoke the rspack binary directly (the `pnpm serve` wrapper re-runs a deps
 # check that aborts on the ignored build script). Use a free port to avoid any
 # local collision; on a fresh CI runner this is moot.
-./node_modules/.bin/rspack serve --port "$PORT" >dev.log 2>&1 &
+echo "serve flags: ${SERVE_FLAGS:-}"
+./node_modules/.bin/rspack serve --port "$PORT" ${SERVE_FLAGS:-} >dev.log 2>&1 &
 SERVE=$!
 
 count() {
