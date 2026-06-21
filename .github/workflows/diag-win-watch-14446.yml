@@ -1,0 +1,61 @@
+name: diag-win-watch-14446
+
+# Diagnostic-only workflow for issue #14446 ("File watching stops after first
+# change on Windows"). DO NOT MERGE. Reproduces the symptom on a Windows runner
+# and contrasts it against ubuntu/macos, while logging the exact path strings
+# handed to the watcher on each re-arm cycle.
+
+on:
+  push:
+    branches:
+      - 'diag/win-watch-stops-14446'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  controlled:
+    name: controlled-watch-${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: install (@rspack/core@2.0.8 only)
+        shell: bash
+        working-directory: CLAUDE_14446_diag/controlled
+        run: npm install --no-audit --no-fund
+      - name: run watch probe
+        shell: bash
+        working-directory: CLAUDE_14446_diag/controlled
+        run: |
+          node watch-probe.mjs | tee probe-output.txt
+          echo "### Controlled probe — ${RUNNER_OS}" >> "$GITHUB_STEP_SUMMARY"
+          grep "VERDICT:" probe-output.txt >> "$GITHUB_STEP_SUMMARY" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: controlled-${{ matrix.os }}
+          path: CLAUDE_14446_diag/controlled/probe-output.txt
+
+  faithful:
+    name: faithful-serve-${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: run faithful serve repro
+        shell: bash
+        run: bash CLAUDE_14446_diag/serve-repro.sh

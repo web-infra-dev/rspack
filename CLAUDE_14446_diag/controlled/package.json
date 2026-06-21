@@ -1,0 +1,9 @@
+{
+  "name": "diag-14446-controlled",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "@rspack/core": "2.0.8"
+  }
+}
