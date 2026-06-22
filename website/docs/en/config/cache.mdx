@@ -218,12 +218,12 @@ Specifies paths within `snapshot.managedPaths` that should not be treated as man
 
 - **Type:** `{ hash?: boolean; timestamp?: boolean }`
 
-- **Default:** `{ hash: true, timestamp: true }`
+- **Default:** `{ timestamp: true }`
 
 Controls the snapshot strategy used when building context modules, such as modules created by dynamic imports or requires with a context. `snapshot.contextModule` is configured on the top-level `snapshot` option.
 
 - `hash: true` compares recursive content hashes.
-- `timestamp: true` compares recursive timestamps.
+- `timestamp: true` compares recursive timestamp hashes, including directory entries and child timestamps.
 - When both are enabled, Rspack checks timestamps first and compares hashes only after a timestamp change, so unchanged content can still reuse the cache.
 
 At least one of `hash` or `timestamp` should be enabled. Disabling both makes context module snapshots always invalid.

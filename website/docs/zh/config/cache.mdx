@@ -226,12 +226,12 @@ export default {
 
 - **类型：** `{ hash?: boolean; timestamp?: boolean }`
 
-- **默认值：** `{ hash: true, timestamp: true }`
+- **默认值：** `{ timestamp: true }`
 
 控制构建 context module 时使用的快照策略，例如由带上下文的动态 `import` 或 `require` 创建的模块。`snapshot.contextModule` 配置在顶层 `snapshot` 选项中。
 
 - `hash: true` 会比较递归内容哈希。
-- `timestamp: true` 会比较递归时间戳。
+- `timestamp: true` 会比较递归时间戳哈希，包含目录项和子项时间戳。
 - 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
 
 `hash` 和 `timestamp` 至少应启用一个。两者都关闭会使 context module 快照始终失效。

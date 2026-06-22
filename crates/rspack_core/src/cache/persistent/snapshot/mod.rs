@@ -173,7 +173,7 @@ impl Snapshot {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use rspack_fs::{IntermediateFileSystemExtras, MemoryFileSystem, WritableFileSystem};
   use rspack_paths::ArcPath;
 
   use super::{
@@ -325,6 +325,27 @@ mod tests {
       .unwrap();
     assert!(deleted_paths.is_empty());
     assert!(modified_paths.contains(&p!("/context")));
+
+    timestamp_storage = MemoryStorage::default();
+    timestamp_only
+      .add(
+        &mut timestamp_storage,
+        SnapshotScope::CONTEXT,
+        [p!("/context")].into_iter(),
+      )
+      .await;
+    fs.rename("/context/a.js".into(), "/context/b.js".into())
+      .await
+      .unwrap();
+    let (_, modified_paths, deleted_paths, _) = timestamp_only
+      .calc_modified_paths(&timestamp_storage, SnapshotScope::CONTEXT)
+      .await
+      .unwrap();
+    assert!(deleted_paths.is_empty());
+    assert!(modified_paths.contains(&p!("/context")));
+    fs.rename("/context/b.js".into(), "/context/a.js".into())
+      .await
+      .unwrap();
 
     let timestamp_and_hash = Snapshot::new(
       SnapshotOptions::default()

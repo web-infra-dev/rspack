@@ -16,6 +16,13 @@ pub struct ContentHash {
   pub mtime: u64,
 }
 
+/// Timestamp hash with file type.
+#[derive(Debug, Clone, Default)]
+pub struct TimestampHash {
+  pub hash: u64,
+  pub is_directory: bool,
+}
+
 /// A helper for computing content hashes of files and directories.
 #[derive(Debug)]
 pub struct HashHelper {
@@ -25,6 +32,7 @@ pub struct HashHelper {
   file_cache: ArcPathDashMap<Option<ContentHash>>,
   dir_cache: ArcPathDashMap<Option<ContentHash>>,
   timestamp_cache: ArcPathDashMap<Option<u64>>,
+  timestamp_hash_cache: ArcPathDashMap<Option<TimestampHash>>,
 }
 
 impl HashHelper {
@@ -41,6 +49,7 @@ impl HashHelper {
       file_cache: Default::default(),
       dir_cache: Default::default(),
       timestamp_cache: Default::default(),
+      timestamp_hash_cache: Default::default(),
     }
   }
 
@@ -123,6 +132,10 @@ impl HashHelper {
           if self.snapshot_options.is_immutable_path(&child_path_str) {
             continue;
           }
+          child_path
+            .file_name()
+            .expect("child should have file name")
+            .hash(&mut hasher);
           if self.snapshot_options.is_managed_path(&child_path_str) {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);
@@ -191,6 +204,75 @@ impl HashHelper {
     let timestamp = Some(mtime);
     self.timestamp_cache.insert(path.into(), timestamp);
     timestamp
+  }
+
+  /// Get timestamp hash for a directory recursively.
+  ///
+  /// This matches webpack's context timestamp behavior: directory snapshots
+  /// hash child names and each child's timestamp or nested timestamp hash.
+  #[async_recursion::async_recursion]
+  pub async fn dir_timestamp_hash(&self, path: &ArcPath) -> Option<TimestampHash> {
+    if let Some(timestamp_hash) = self.timestamp_hash_cache.get(path) {
+      return timestamp_hash.clone();
+    }
+
+    let utf8_path = path.assert_utf8();
+    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+      self.timestamp_hash_cache.insert(path.into(), None);
+      return None;
+    };
+
+    let timestamp_hash = if metadata.is_directory && !metadata.is_symlink {
+      let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
+        self.timestamp_hash_cache.insert(path.into(), None);
+        return None;
+      };
+      children.sort();
+
+      let mut hasher = FxHasher::default();
+      for item in children {
+        let child_path = ArcPath::from(path.join(&item));
+        let child_path_str = child_path.to_string_lossy();
+        if self.snapshot_options.is_immutable_path(&child_path_str) {
+          continue;
+        }
+
+        item.hash(&mut hasher);
+        if self.snapshot_options.is_managed_path(&child_path_str) {
+          if let Some(version) = self.package_helper.package_version(&child_path).await {
+            "d".hash(&mut hasher);
+            version.hash(&mut hasher);
+          }
+          continue;
+        }
+
+        if let Some(child_hash) = self.dir_timestamp_hash(&child_path).await {
+          if child_hash.is_directory {
+            "d".hash(&mut hasher);
+          } else {
+            "f".hash(&mut hasher);
+          }
+          child_hash.hash.hash(&mut hasher);
+        } else {
+          "n".hash(&mut hasher);
+        }
+      }
+
+      Some(TimestampHash {
+        hash: hasher.finish(),
+        is_directory: true,
+      })
+    } else {
+      Some(TimestampHash {
+        hash: Self::modified_time_from_metadata(&metadata),
+        is_directory: false,
+      })
+    };
+
+    self
+      .timestamp_hash_cache
+      .insert(path.into(), timestamp_hash.clone());
+    timestamp_hash
   }
 }
 
@@ -363,6 +445,60 @@ mod tests {
     .unwrap();
     let hash2 = helper
       .dir_hash(&ArcPath::from("/node_modules/lib/"))
+      .await
+      .unwrap();
+    assert_ne!(hash1.hash, hash2.hash);
+  }
+
+  #[tokio::test]
+  async fn dir_hash_should_include_child_names() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/context".into()).await.unwrap();
+    fs.write("/context/a.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let helper = new_helper(fs.clone());
+    let hash1 = helper.dir_hash(&ArcPath::from("/context")).await.unwrap();
+
+    rspack_fs::IntermediateFileSystemExtras::rename(
+      &*fs,
+      "/context/a.js".into(),
+      "/context/b.js".into(),
+    )
+    .await
+    .unwrap();
+
+    let helper = new_helper(fs.clone());
+    let hash2 = helper.dir_hash(&ArcPath::from("/context")).await.unwrap();
+    assert_ne!(hash1.hash, hash2.hash);
+  }
+
+  #[tokio::test]
+  async fn dir_timestamp_hash_should_include_child_names() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    fs.create_dir_all("/context".into()).await.unwrap();
+    fs.write("/context/a.js".into(), "abc".as_bytes())
+      .await
+      .unwrap();
+
+    let helper = new_helper(fs.clone());
+    let hash1 = helper
+      .dir_timestamp_hash(&ArcPath::from("/context"))
+      .await
+      .unwrap();
+
+    rspack_fs::IntermediateFileSystemExtras::rename(
+      &*fs,
+      "/context/a.js".into(),
+      "/context/b.js".into(),
+    )
+    .await
+    .unwrap();
+
+    let helper = new_helper(fs.clone());
+    let hash2 = helper
+      .dir_timestamp_hash(&ArcPath::from("/context"))
       .await
       .unwrap();
     assert_ne!(hash1.hash, hash2.hash);
