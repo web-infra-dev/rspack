@@ -122,7 +122,6 @@ impl HashHelper {
     let hash = if metadata.is_directory && !metadata.is_symlink {
       if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
         let mut hasher = FxHasher::default();
-        let mut mtime = Self::modified_time_from_metadata(&metadata);
         children.sort();
         for item in children {
           let child_path = ArcPath::from(path.join(item));
@@ -141,18 +140,13 @@ impl HashHelper {
             continue;
           }
 
-          if let Some(ContentHash {
-            hash,
-            mtime: child_mtime,
-          }) = self.dir_hash(&child_path).await
-          {
+          if let Some(ContentHash { hash, .. }) = self.dir_hash(&child_path).await {
             hash.hash(&mut hasher);
-            mtime = mtime.max(child_mtime);
           }
         }
         Some(ContentHash {
           hash: hasher.finish(),
-          mtime,
+          mtime: 0,
         })
       } else {
         None
@@ -326,7 +320,7 @@ mod tests {
 
     let helper = new_helper(fs.clone());
     let hash1 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert!(hash1.mtime > 0);
+    assert_eq!(hash1.mtime, 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
@@ -334,12 +328,11 @@ mod tests {
     let helper = new_helper(fs.clone());
     let hash2 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash1.hash, hash2.hash);
-    assert_eq!(hash1.mtime, hash2.mtime);
+    assert_eq!(hash2.mtime, 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    // Updates under managed paths should not require walking the managed
-    // subtree just to update the directory mtime.
+    // Updates under managed paths should not affect the parent dir hash.
     let helper = new_helper(fs.clone());
     fs.write(
       "/node_modules/lib/index.js".into(),
@@ -349,7 +342,7 @@ mod tests {
     .unwrap();
     let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash2.hash, hash3.hash);
-    assert_eq!(hash2.mtime, hash3.mtime);
+    assert_eq!(hash3.mtime, 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
@@ -377,7 +370,7 @@ mod tests {
     .unwrap();
     let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_eq!(hash3.hash, hash4.hash);
-    assert!(hash3.mtime < hash4.mtime);
+    assert_eq!(hash4.mtime, 0);
 
     // update file content
     std::thread::sleep(std::time::Duration::from_millis(100));
@@ -385,7 +378,7 @@ mod tests {
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
     let hash5 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
     assert_ne!(hash4.hash, hash5.hash);
-    assert!(hash4.mtime < hash5.mtime);
+    assert_eq!(hash5.mtime, 0);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());
