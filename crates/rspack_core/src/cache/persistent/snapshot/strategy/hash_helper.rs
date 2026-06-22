@@ -129,10 +129,6 @@ impl HashHelper {
           if self.snapshot_options.is_immutable_path(&child_path_str) {
             continue;
           }
-          child_path
-            .file_name()
-            .expect("child should have file name")
-            .hash(&mut hasher);
           if self.snapshot_options.is_managed_path(&child_path_str) {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);
