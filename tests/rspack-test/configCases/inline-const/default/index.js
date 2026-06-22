@@ -1,7 +1,7 @@
 import directDefault from "./default-literal.js";
 import * as referencedDefault from "./default-reference.js";
 
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 const generated = /** @type {string} */ (fs.readFileSync(__filename, "utf-8"));
 
 it("should inline default exports", () => {

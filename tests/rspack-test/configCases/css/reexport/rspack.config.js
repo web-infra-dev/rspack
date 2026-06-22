@@ -2,6 +2,10 @@
 
 /** @type {import("@rspack/core").Configuration[]} */
 module.exports = ['development', 'production'].map((mode, idx) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   name: mode,
   devtool: false,
   entry: './index.js',

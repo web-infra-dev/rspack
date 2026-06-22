@@ -1,5 +1,5 @@
 it("should expose modules from the container", async () => {
-	const container = __non_webpack_require__("./container-file.js");
+	const container = require("./container-file.js");
 	expect(typeof container).toBe("object");
 	expect(typeof container.get).toBe("function");
 	const testFactory = await container.get("./test");

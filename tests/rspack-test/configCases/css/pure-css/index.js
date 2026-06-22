@@ -1,7 +1,7 @@
 import "./style.css";
 
 it("should compile", () => {
-	const path = __non_webpack_require__("path");
+	const path = require("path");
 	const links = Array.from(document.getElementsByTagName("link"));
 	const css = [];
 

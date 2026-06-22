@@ -1,7 +1,7 @@
 import { Kind } from './enum';
 import { InlineableKind } from "./inlineable-enum";
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const generated = /** @type {string} */ (require("fs").readFileSync(__filename, "utf-8"));
 
 it("should have dynamically defined methods (other exports should be null)", () => {
   expect(Kind.isA(Kind.A)).toBe(true);

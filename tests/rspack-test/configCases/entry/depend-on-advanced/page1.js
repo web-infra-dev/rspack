@@ -14,7 +14,7 @@ it("should have the correct modules in a lazy chunk", () => {
 			module.default();
 		}
 	);
-	__non_webpack_require__("./lazy.js");
+	require("./lazy.js");
 	document.head._children[0].onload();
 	return promise;
 });

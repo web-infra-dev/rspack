@@ -5,8 +5,8 @@ const c = require('./c');
 it('should merge module ids with existing records', () => {
   expect(a + b + c).toBe('abc');
 
-  const fs = __non_webpack_require__('fs');
-  const path = __non_webpack_require__('path');
+  const fs = require('fs');
+  const path = require('path');
   const ids = JSON.parse(
     fs.readFileSync(path.join(__dirname, 'merge-module-ids.json'), 'utf-8'),
   );

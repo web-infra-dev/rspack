@@ -2,7 +2,7 @@ it("should load script without crossorigin attribute (default)", function () {
 	const promise = import("./empty?a" /* webpackChunkName: "crossorigin-default" */);
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./crossorigin-default.web.js");
+	require("./crossorigin-default.web.js");
 	expect(script.src).toBe("https://test.cases/path/crossorigin-default.web.js");
 	expect(script.crossOrigin).toBe(null);
 
@@ -16,7 +16,7 @@ it("should load script without crossorigin attribute (relative)", function () {
 	__webpack_public_path__ = originalValue;
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./crossorigin-relative.web.js");
+	require("./crossorigin-relative.web.js");
 	expect(script.src).toBe("https://test.cases/crossorigin-relative.web.js");
 	expect(script.crossOrigin).toBe(null);
 
@@ -30,7 +30,7 @@ it("should load script without crossorigin attribute (server relative)", functio
 	__webpack_public_path__ = originalValue;
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./crossorigin-server-relative.web.js");
+	require("./crossorigin-server-relative.web.js");
 	expect(script.src).toBe("https://test.cases/server/crossorigin-server-relative.web.js");
 	expect(script.crossOrigin).toBe(null);
 
@@ -44,7 +44,7 @@ it("should load script without crossorigin attribute (same origin)", function ()
 	__webpack_public_path__ = originalValue;
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./crossorigin-same-origin.web.js");
+	require("./crossorigin-same-origin.web.js");
 	expect(script.src).toBe("https://test.cases/crossorigin-same-origin.web.js");
 	expect(script.crossOrigin).toBe(null);
 
@@ -59,7 +59,7 @@ it("should load script with crossorigin attribute anonymous (different origin)",
 
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./crossorigin-different-origin.web.js");
+	require("./crossorigin-different-origin.web.js");
 	expect(script.src).toBe("https://example.com/crossorigin-different-origin.web.js");
 	expect(script.crossOrigin).toBe("anonymous");
 

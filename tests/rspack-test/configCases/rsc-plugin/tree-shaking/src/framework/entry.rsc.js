@@ -6,7 +6,7 @@ export const renderRscStream = () => {
 };
 
 it('should tree-shake unused exports from "use client" modules', async () => {
-    const { loadClientModule } = __non_webpack_require__("./static/main.js");
+    const { loadClientModule } = require("./static/main.js");
     const chunkId = __rspack_rsc_manifest__.clientManifest[TODOS_PATH].chunks[0];
     const moduleId = __rspack_rsc_manifest__.clientManifest[TODOS_PATH].id;
     const exports = await loadClientModule(chunkId, moduleId);

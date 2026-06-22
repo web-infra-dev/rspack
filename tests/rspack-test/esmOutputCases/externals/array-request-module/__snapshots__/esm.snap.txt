@@ -2,8 +2,6 @@
 import { __webpack_require__ } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 
-import { createRequire as __rspack_createRequire } from "node:module";
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // fs-promises
 
 
@@ -11,7 +9,7 @@ var external_fs_promises_default = /*#__PURE__*/__webpack_require__.n(__rspack_e
 
 
 it('should support array-type module external with property access', async () => {
-  const fs = __rspack_createRequire_require('fs')
+  const fs = await import(/* webpackIgnore: true */ 'node:fs')
   expect((external_fs_promises_default())).toBe(fs.promises)
 })
 

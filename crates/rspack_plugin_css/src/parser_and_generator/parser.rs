@@ -11,6 +11,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWithDiagnosticArray};
 use rustc_hash::{FxHashMap, FxHashSet};
+use smol_str::SmolStr;
 
 use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
 use crate::{
@@ -163,6 +164,42 @@ impl ComposesOrderState {
   }
 }
 
+#[derive(Default)]
+struct LocalCssIdentDeclarations {
+  keyframes: FxHashSet<SmolStr>,
+  custom_idents: FxHashSet<SmolStr>,
+  containers: FxHashSet<SmolStr>,
+  functions: FxHashSet<SmolStr>,
+  grids: FxHashSet<SmolStr>,
+  vars: FxHashSet<SmolStr>,
+}
+
+impl LocalCssIdentDeclarations {
+  fn has_keyframes(&self, name: &str) -> bool {
+    self.keyframes.contains(&normalize_ident_name(name))
+  }
+
+  fn has_custom_ident(&self, name: &str) -> bool {
+    self.custom_idents.contains(&normalize_ident_name(name))
+  }
+
+  fn has_container(&self, name: &str) -> bool {
+    self.containers.contains(&normalize_ident_name(name))
+  }
+
+  fn has_function(&self, name: &str) -> bool {
+    self.functions.contains(&normalize_ident_name(name))
+  }
+
+  fn has_grid(&self, name: &str) -> bool {
+    self.grids.contains(&normalize_ident_name(name))
+  }
+
+  fn has_var(&self, name: &str) -> bool {
+    self.vars.contains(&normalize_dashed_ident_name(name))
+  }
+}
+
 fn source_order_to_i32(source_order: u32) -> i32 {
   source_order.try_into().unwrap_or(i32::MAX)
 }
@@ -172,6 +209,14 @@ fn is_custom_property_name(value: &str) -> bool {
     && value
       .bytes()
       .all(|c| !c.is_ascii_whitespace() && !matches!(c, b')' | b'(' | b'"' | b'\''))
+}
+
+fn normalize_ident_name(name: &str) -> SmolStr {
+  SmolStr::new(unescape(name).as_ref())
+}
+
+fn normalize_dashed_ident_name(name: &str) -> SmolStr {
+  SmolStr::new(unescape(name).trim_start_matches("--"))
 }
 
 impl<'context> CssModuleParser<'context> {
@@ -221,11 +266,16 @@ impl<'context> CssModuleParser<'context> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
-    let module_hash_options = self.create_module_hash_options(&deps);
+    let local_css_ident_declarations = self.collect_local_css_ident_declarations(&deps);
+    let module_hash_options = self.create_module_hash_options(&deps, &local_css_ident_declarations);
 
     for dependency in deps {
       self
-        .handle_dependency(dependency, &module_hash_options)
+        .handle_dependency(
+          dependency,
+          &module_hash_options,
+          &local_css_ident_declarations,
+        )
         .await?;
     }
 
@@ -279,6 +329,7 @@ impl<'context> CssModuleParser<'context> {
   fn create_module_hash_options<'source>(
     &self,
     deps: &[css_module_lexer::Dependency<'source>],
+    local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> LocalIdentModuleHashOptions<'source> {
     let mut export_dependency_names = Vec::new();
     let mut graph_export_name_set = FxHashSet::default();
@@ -300,8 +351,7 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalKeyframes { name, .. }
-        | css_module_lexer::Dependency::LocalKeyframesDecl { name, .. }
-          if self.animation() =>
+          if self.animation() && local_css_ident_declarations.has_keyframes(name) =>
         {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
@@ -312,9 +362,30 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
+        css_module_lexer::Dependency::LocalKeyframesDecl { name, .. } if self.animation() => {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
         css_module_lexer::Dependency::LocalCounterStyle { name, .. }
-        | css_module_lexer::Dependency::LocalCounterStyleDecl { name, .. }
         | css_module_lexer::Dependency::LocalFontPalette { name, .. }
+          if self.custom_idents() && local_css_ident_declarations.has_custom_ident(name) =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalCounterStyleDecl { name, .. }
         | css_module_lexer::Dependency::LocalFontPaletteDecl { name, .. }
           if self.custom_idents() =>
         {
@@ -328,9 +399,18 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalContainer { name, .. }
-        | css_module_lexer::Dependency::LocalContainerDecl { name, .. }
-          if self.container() =>
+          if self.container() && local_css_ident_declarations.has_container(name) =>
         {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalContainerDecl { name, .. } if self.container() => {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
               unescape(name).into_owned(),
@@ -341,8 +421,7 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalFunction { name, .. }
-        | css_module_lexer::Dependency::LocalFunctionDecl { name, .. }
-          if self.function() =>
+          if self.function() && local_css_ident_declarations.has_function(name) =>
         {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
@@ -353,10 +432,29 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
+        css_module_lexer::Dependency::LocalFunctionDecl { name, .. } if self.function() => {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
         css_module_lexer::Dependency::LocalGrid { name, .. }
-        | css_module_lexer::Dependency::LocalGridDecl { name, .. }
-          if self.grid() =>
+          if self.grid() && local_css_ident_declarations.has_grid(name) =>
         {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalGridDecl { name, .. } if self.grid() => {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
               unescape(name).into_owned(),
@@ -367,9 +465,18 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalContainer { name, .. }
-        | css_module_lexer::Dependency::LocalContainerDecl { name, .. }
-          if self.container() =>
+          if self.container() && local_css_ident_declarations.has_container(name) =>
         {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalContainerDecl { name, .. } if self.container() => {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
               unescape(name).into_owned(),
@@ -380,9 +487,18 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalFunction { name, .. }
-        | css_module_lexer::Dependency::LocalFunctionDecl { name, .. }
-          if self.function() =>
+          if self.function() && local_css_ident_declarations.has_function(name) =>
         {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalFunctionDecl { name, .. } if self.function() => {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
               unescape(name).into_owned(),
@@ -393,8 +509,7 @@ impl<'context> CssModuleParser<'context> {
           }
         }
         css_module_lexer::Dependency::LocalGrid { name, .. }
-        | css_module_lexer::Dependency::LocalGridDecl { name, .. }
-          if self.grid() =>
+          if self.grid() && local_css_ident_declarations.has_grid(name) =>
         {
           if let Some(convention) = convention {
             self.collect_export_dependency_name(
@@ -405,8 +520,30 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
-        css_module_lexer::Dependency::LocalVar { name, .. }
-        | css_module_lexer::Dependency::LocalVarDecl { name, .. }
+        css_module_lexer::Dependency::LocalGridDecl { name, .. } if self.grid() => {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalVar { name, from, .. }
+          if self.dashed_idents()
+            && self.should_handle_local_var_usage(name, *from, local_css_ident_declarations) =>
+        {
+          if let Some(convention) = convention {
+            self.collect_export_dependency_name(
+              unescape(name).into_owned(),
+              convention,
+              &mut export_dependency_names,
+              &mut graph_export_name_set,
+            );
+          }
+        }
+        css_module_lexer::Dependency::LocalVarDecl { name, .. }
         | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
           if self.dashed_idents() =>
         {
@@ -440,11 +577,17 @@ impl<'context> CssModuleParser<'context> {
       }
     }
 
-    if let Some(convention) = convention {
+    if self.dashed_idents()
+      && let Some(convention) = convention
+    {
       for captures in REGEX_CUSTOM_PROPERTY_IDENT.captures_iter(&self.source_code) {
         if let Some(name) = captures.get(2) {
+          let name = name.as_str();
+          if !local_css_ident_declarations.has_var(name) {
+            continue;
+          }
           self.collect_export_dependency_name(
-            name.as_str().to_string(),
+            name.to_string(),
             convention,
             &mut export_dependency_names,
             &mut graph_export_name_set,
@@ -475,6 +618,77 @@ impl<'context> CssModuleParser<'context> {
       graph_export_name_set.insert(convention_name);
     }
     export_dependency_names.push(name);
+  }
+
+  fn collect_local_css_ident_declarations<'source>(
+    &self,
+    deps: &[css_module_lexer::Dependency<'source>],
+  ) -> LocalCssIdentDeclarations {
+    let mut declarations = LocalCssIdentDeclarations::default();
+
+    if !self.animation()
+      && !self.custom_idents()
+      && !self.container()
+      && !self.function()
+      && !self.grid()
+      && !self.dashed_idents()
+    {
+      return declarations;
+    }
+
+    for dependency in deps {
+      match dependency {
+        css_module_lexer::Dependency::LocalKeyframesDecl { name, .. } if self.animation() => {
+          declarations.keyframes.insert(normalize_ident_name(name));
+        }
+        css_module_lexer::Dependency::LocalCounterStyleDecl { name, .. }
+        | css_module_lexer::Dependency::LocalFontPaletteDecl { name, .. }
+          if self.custom_idents() =>
+        {
+          declarations
+            .custom_idents
+            .insert(normalize_ident_name(name));
+        }
+        css_module_lexer::Dependency::LocalContainerDecl { name, .. } if self.container() => {
+          declarations.containers.insert(normalize_ident_name(name));
+        }
+        css_module_lexer::Dependency::LocalFunctionDecl { name, .. } if self.function() => {
+          declarations.functions.insert(normalize_ident_name(name));
+        }
+        css_module_lexer::Dependency::LocalGridDecl { name, .. } if self.grid() => {
+          declarations.grids.insert(normalize_ident_name(name));
+        }
+        css_module_lexer::Dependency::LocalVarDecl { name, .. }
+        | css_module_lexer::Dependency::LocalPropertyDecl { name, .. }
+          if self.dashed_idents() =>
+        {
+          declarations.vars.insert(normalize_dashed_ident_name(name));
+        }
+        css_module_lexer::Dependency::ICSSExportValue { prop, .. }
+        | css_module_lexer::Dependency::ICSSImportValue { prop, .. }
+          if self.dashed_idents()
+            && prop.strip_prefix("--").is_some_and(is_custom_property_name) =>
+        {
+          declarations.vars.insert(normalize_dashed_ident_name(prop));
+        }
+        _ => {}
+      }
+    }
+
+    declarations
+  }
+
+  fn should_handle_local_var_usage(
+    &self,
+    name: &str,
+    from: Option<&str>,
+    local_css_ident_declarations: &LocalCssIdentDeclarations,
+  ) -> bool {
+    if let Some(from) = from {
+      return from.trim_matches(|c| c == '\'' || c == '"') != "global";
+    }
+
+    local_css_ident_declarations.has_var(name)
   }
 
   fn presentational_replace_range(
@@ -515,6 +729,7 @@ impl<'context> CssModuleParser<'context> {
     &mut self,
     dependency: css_module_lexer::Dependency<'source>,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
+    local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
     match dependency {
       css_module_lexer::Dependency::Url {
@@ -550,7 +765,12 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.animation(), name, range, module_hash_options)
+          .handle_optional_local_ident_usage(
+            self.animation() && local_css_ident_declarations.has_keyframes(name),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::LocalKeyframesDecl { name, range, .. } => {
@@ -591,7 +811,12 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
       | css_module_lexer::Dependency::LocalFontPalette { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.custom_idents(), name, range, module_hash_options)
+          .handle_optional_local_ident_usage(
+            self.custom_idents() && local_css_ident_declarations.has_custom_ident(name),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::LocalCounterStyleDecl { name, range, .. }
@@ -607,7 +832,12 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::LocalContainer { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.container(), name, range, module_hash_options)
+          .handle_optional_local_ident_usage(
+            self.container() && local_css_ident_declarations.has_container(name),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::LocalContainerDecl { name, range, .. } => {
@@ -623,7 +853,7 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::LocalFunction { name, range, .. } => {
         self
           .handle_optional_local_dashed_ident_usage(
-            self.function(),
+            self.function() && local_css_ident_declarations.has_function(name),
             name,
             range,
             module_hash_options,
@@ -642,7 +872,12 @@ impl<'context> CssModuleParser<'context> {
       }
       css_module_lexer::Dependency::LocalGrid { name, range, .. } => {
         self
-          .handle_optional_local_ident_usage(self.grid(), name, range, module_hash_options)
+          .handle_optional_local_ident_usage(
+            self.grid() && local_css_ident_declarations.has_grid(name),
+            name,
+            range,
+            module_hash_options,
+          )
           .await
       }
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
@@ -658,6 +893,7 @@ impl<'context> CssModuleParser<'context> {
             range,
             from,
             module_hash_options,
+            local_css_ident_declarations,
           )
           .await
       }
@@ -955,6 +1191,7 @@ impl<'context> CssModuleParser<'context> {
     range: css_module_lexer::Range,
     from: Option<&str>,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
+    local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
     let name = unescape(name);
     let name = name.trim_start_matches("--");
@@ -962,6 +1199,10 @@ impl<'context> CssModuleParser<'context> {
     if let Some(from) = from
       && from.trim_matches(|c| c == '\'' || c == '"') == "global"
     {
+      return Ok(());
+    }
+
+    if from.is_none() && !local_css_ident_declarations.vars.contains(name) {
       return Ok(());
     }
 
@@ -999,12 +1240,19 @@ impl<'context> CssModuleParser<'context> {
     range: css_module_lexer::Range,
     from: Option<&str>,
     module_hash_options: &LocalIdentModuleHashOptions<'_>,
+    local_css_ident_declarations: &LocalCssIdentDeclarations,
   ) -> Result<()> {
     if !enabled {
       return Ok(());
     }
     self
-      .handle_local_var_usage(name, range, from, module_hash_options)
+      .handle_local_var_usage(
+        name,
+        range,
+        from,
+        module_hash_options,
+        local_css_ident_declarations,
+      )
       .await
   }
 

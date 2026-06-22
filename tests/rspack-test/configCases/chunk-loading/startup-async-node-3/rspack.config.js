@@ -1,7 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
   entry: {
-    main: './index.js',
     async: './async.js',
     other: './other.js',
   },

@@ -5,7 +5,7 @@ import { REMOVE_with_namespace_reexport } from "./namespace-reexport.js";
 import { REMOVE_with_side_effect_reexport } from "./side-effect-reexport.js";
 import { REMOVE_with_all_module_declarations } from "./combined.js";
 
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 const generated = /** @type {string} */ (fs.readFileSync(__filename, "utf-8"));
 
 it("should inline constants from modules with import and re-export declarations", () => {

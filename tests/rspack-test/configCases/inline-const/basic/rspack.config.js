@@ -1,5 +1,9 @@
 /**
- * @return {import("@rspack/core").Configuration}
+ * @return {
+    externals: {
+      fs: "node-commonjs fs",
+      path: "node-commonjs path",
+    },import("@rspack/core").Configuration}
  */
 function config(index, { concatenateModules } = {}) {
   return {

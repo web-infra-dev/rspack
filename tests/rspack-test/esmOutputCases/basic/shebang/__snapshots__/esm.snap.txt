@@ -10,20 +10,18 @@ export {};
 import {fileURLToPath as __rspack_fileURLToPath} from "node:url";
 import {dirname as __rspack_dirname} from "node:path";
 var __rspack_import_meta_dirname__ = __rspack_dirname(__rspack_fileURLToPath(import.meta.url));
-import { createRequire as __rspack_createRequire } from "node:module";
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 // ./index.js
 //
 
-
-it('should have shebang in entry chunk', () => {
-  const fs = __rspack_createRequire_require('fs')
-  const path = __rspack_createRequire_require('path')
+it('should have shebang in entry chunk', async () => {
+  const fs = await import(/* webpackIgnore: true */ 'node:fs')
+  const path = await import(/* webpackIgnore: true */ 'node:path')
 
   const code = fs.readFileSync(path.join(__rspack_import_meta_dirname__, 'main.mjs'), 'utf-8')
 
   expect(code.startsWith('#!')).toBeTruthy()
 })
+
 export {};
 
 ```

@@ -1,6 +1,6 @@
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
-const checkMap = __non_webpack_require__("@rspack/test-tools/helper/util/checkSourceMap").default;
+const fs = require("fs");
+const path = require("path");
+const checkMap = require("@rspack/test-tools/helper/util/checkSourceMap").default;
 
 import "./a"
 

@@ -1,5 +1,5 @@
 import "./style.css";
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 it(`should work with URLs in CSS`, async () => {
 	const links = Array.from(document.getElementsByTagName("link"));
