@@ -1,6 +1,6 @@
 use std::{
   borrow::Cow,
-  hash::Hasher,
+  hash::{Hash, Hasher},
   path::Path,
   sync::{Arc, LazyLock},
 };
@@ -10,18 +10,137 @@ use heck::{ToKebabCase, ToLowerCamelCase};
 use once_cell::sync::OnceCell;
 use regex::{Captures, Regex};
 use rspack_core::{
-  ChunkGraph, Compilation, CompilerOptions, CssExportsConvention, CssModuleGeneratorOptions,
-  LocalIdentName, Module, ModuleType, PathData, ReplaceAllPlaceholder, ResourceData,
+  BoxDependency, ChunkGraph, Compilation, CompilerOptions, CssExportType, CssExportsConvention,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, GeneratorOptions, ImportAttributes,
+  LocalIdentName, Module, ModuleType, NormalModuleCreateData, PathData, ReplaceAllPlaceholder,
+  ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
 use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashSet, FxHasher};
+
+use crate::{
+  dependency::{CssComposeDependency, CssImportDependency},
+  parser_and_generator::CssParserAndGenerator,
+};
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^((-?[0-9])|--)").expect("Invalid regexp"));
+
+pub(crate) fn css_generator_options(
+  generator_options: Option<&GeneratorOptions>,
+) -> &CssModuleGeneratorOptions {
+  generator_options
+    .and_then(GeneratorOptions::get_css_module)
+    .expect("should have CssModuleGeneratorOptions")
+}
+
+pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
+  source_order.try_into().unwrap_or(i32::MAX)
+}
+
+pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .and_then(|css| css.export_type)
+    .or_else(|| {
+      module.as_normal_module().and_then(|module| {
+        module
+          .parser_and_generator()
+          .downcast_ref::<CssParserAndGenerator>()
+          .and_then(|parser_and_generator| parser_and_generator.export_type)
+      })
+    })
+}
+
+pub(crate) fn css_render_conditions_from_module(
+  module: &dyn Module,
+) -> Vec<CssModuleRenderCondition> {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .map(|css| css.render_conditions().cloned().collect())
+    .unwrap_or_default()
+}
+
+pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css| css.has_charset)
+}
+
+pub(crate) fn css_module_is_import_dependency(module: &dyn Module) -> bool {
+  module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css| css.css_import_dependency)
+}
+
+pub(crate) fn css_module_resource(module: &dyn Module) -> Option<&str> {
+  module
+    .as_normal_module()
+    .map(|module| module.resource_resolved_data().resource())
+}
+
+pub(crate) fn append_css_export_type_key(
+  create_data: &mut NormalModuleCreateData,
+  export_type: CssExportType,
+) {
+  create_data.request.push_str("|css-export-type|");
+  create_data.request.push_str(&export_type.to_string());
+}
+
+pub(crate) fn css_attribute_export_type(
+  attributes: Option<&ImportAttributes>,
+) -> Option<CssExportType> {
+  attributes
+    .and_then(|attributes| attributes.get("type"))
+    .and_then(|value| (value == "css").then_some(CssExportType::CssStyleSheet))
+}
+
+pub(crate) fn css_dependency_export_type(dependency: &BoxDependency) -> Option<CssExportType> {
+  dependency
+    .downcast_ref::<CssImportDependency>()
+    .and_then(|dep| dep.export_type())
+    .or_else(|| {
+      dependency
+        .downcast_ref::<CssComposeDependency>()
+        .and_then(|dep| dep.export_type())
+    })
+}
+
+pub(crate) struct CssDependencyMeta {
+  pub is_css_import_dependency: bool,
+  pub is_css_dependency: bool,
+  pub render_conditions: Vec<CssModuleRenderCondition>,
+  pub export_type: Option<CssExportType>,
+}
+
+pub(crate) fn css_dependency_meta(dependency: &BoxDependency) -> CssDependencyMeta {
+  let css_import_dependency = dependency.downcast_ref::<CssImportDependency>();
+  let is_css_import_dependency = css_import_dependency.is_some();
+  let is_css_dependency =
+    is_css_import_dependency || dependency.downcast_ref::<CssComposeDependency>().is_some();
+
+  CssDependencyMeta {
+    is_css_import_dependency,
+    is_css_dependency,
+    render_conditions: css_import_dependency
+      .map(|dep| dep.render_conditions().cloned().collect())
+      .unwrap_or_default(),
+    export_type: css_dependency_export_type(dependency)
+      .or_else(|| css_attribute_export_type(dependency.get_attributes())),
+  }
+}
 
 #[derive(Debug, Clone)]
 pub struct PresentationalDependencyHashUpdate<'a> {
@@ -285,12 +404,61 @@ pub fn replace_css_module_id_placeholder<'a>(
     let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
     return Cow::Owned(format!("--{local_ident}"));
   }
+
+  let module_id = css_module_id_for_local_ident(compilation, module);
+  replace_css_module_id_placeholder_with_id(local_ident, &module_id)
+}
+
+fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module) -> String {
+  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
+    .expect("css module should have module id when rendering local ident");
+  let module_id = module_id.as_str();
+
+  let needs_stable_long_id = module
+    .build_info()
+    .css
+    .as_deref()
+    .is_some_and(|css_build_info| css_build_info.has_render_conditions());
+  if !needs_stable_long_id {
+    return module_id.to_string();
+  }
+
+  let module_id = module_id.split('?').next().unwrap_or(module_id);
+  let full_name = module
+    .as_normal_module()
+    .and_then(|module| {
+      module
+        .resource_resolved_data()
+        .path()
+        .map(|path| path.as_str())
+    })
+    .unwrap_or_else(|| module.identifier().as_str());
+  let full_name = make_paths_relative(&compilation.options.context, full_name);
+  let hash = get_css_module_id_hash(full_name, 4);
+  let mut stable_id = String::with_capacity(module_id.len() + 1 + hash.len());
+  stable_id.push_str(module_id);
+  stable_id.push('?');
+  stable_id.push_str(&hash);
+  stable_id
+}
+
+fn get_css_module_id_hash(value: impl Hash, length: usize) -> String {
+  let mut hasher = FxHasher::default();
+  value.hash(&mut hasher);
+  let hash = hasher.finish();
+  let mut hash = format!("{hash:x}");
+  hash.truncate(length);
+  hash
+}
+
+pub fn replace_css_module_id_placeholder_with_id<'a>(
+  local_ident: &'a str,
+  module_id: &str,
+) -> Cow<'a, str> {
   if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
     return Cow::Borrowed(local_ident);
   }
-  let module_id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier())
-    .expect("css module should have module id when rendering local ident");
-  let module_id = prepare_css_module_id(module_id.as_str());
+  let module_id = prepare_css_module_id(module_id);
   let local_ident = local_ident.cow_replace(CSS_MODULE_ID_PLACEHOLDER, module_id.as_ref());
   Cow::Owned(
     LEADING_DIGIT_REGEX

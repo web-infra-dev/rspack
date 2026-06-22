@@ -28,6 +28,11 @@ use rustc_hash::{FxHashMap, FxHashSet, FxHasher};
 pub type ModuleFilterFn =
   Arc<dyn for<'a> Fn(CompilerId, &'a dyn Module) -> BoxFuture<'a, Result<bool>> + Send + Sync>;
 
+pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool {
+  let build_meta = module.build_meta();
+  build_meta.is_css_module || build_meta.need_id_in_concatenation
+}
+
 #[allow(clippy::type_complexity)]
 #[allow(clippy::collapsible_else_if)]
 pub fn get_used_module_ids_and_modules(
@@ -70,7 +75,8 @@ pub fn get_used_module_ids_and_modules_with_artifact(
         used_ids.insert(module_id.to_string());
       } else {
         if filter.as_ref().is_none_or(|f| (f)(module))
-          && chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+          && (chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+            || should_assign_module_id_without_chunk(module.as_ref()))
         {
           modules.push(module.identifier());
         }
@@ -97,7 +103,8 @@ pub async fn get_used_module_ids_and_modules_with_async_filter(
     let module_id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier());
     if let Some(module_id) = module_id {
       used_ids.insert(module_id.to_string());
-    } else if chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+    } else if (chunk_graph.get_number_of_module_chunks(module.identifier()) != 0
+      || should_assign_module_id_without_chunk(module.as_ref()))
       && match filter {
         Some(filter) => filter(compilation.compiler_id(), module.as_ref()).await?,
         None => true,

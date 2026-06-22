@@ -33,9 +33,9 @@ use crate::{
   AsyncDependenciesBlock, BindingCell, BoxDependency, BoxDependencyTemplate, BoxModuleDependency,
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependencyId,
+  ExportProvided, ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase,
+  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
   OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
@@ -134,14 +134,14 @@ pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
 pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum CssLayer {
   Anonymous,
   Named(#[cacheable(with=AsPreset)] SmolStr),
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
 pub struct CssModuleRenderCondition {
   #[cacheable(with=AsOption<AsPreset>)]
   pub media: Option<SmolStr>,
@@ -211,6 +211,9 @@ pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
 #[cacheable]
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
+  pub export_type: Option<CssExportType>,
+  pub has_charset: bool,
+  pub css_import_dependency: bool,
   #[cacheable(with=AsMap<AsPreset, AsVec>)]
   pub exports: CssExports,
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
@@ -234,6 +237,10 @@ impl CssBuildInfo {
 
   pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
     iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
+  }
+
+  pub fn has_render_conditions(&self) -> bool {
+    self.render_conditions().next().is_some()
   }
 }
 
@@ -409,6 +416,8 @@ pub struct BuildMeta {
   // same as is_async https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/Module.js#L107
   pub has_top_level_await: bool,
   pub esm: bool,
+  pub is_css_module: bool,
+  pub need_id_in_concatenation: bool,
   pub exports_type: BuildMetaExportsType,
   pub default_object: BuildMetaDefaultObject,
   #[serde(skip_serializing_if = "Option::is_none")]

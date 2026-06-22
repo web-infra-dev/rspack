@@ -656,7 +656,7 @@ impl ConcatenatedModule {
 
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
-    root_module_ctxt: RootModuleContext,
+    mut root_module_ctxt: RootModuleContext,
     mut modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
@@ -664,6 +664,32 @@ impl ConcatenatedModule {
   ) -> Self {
     modules.sort_unstable_by_key(|a| a.id);
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
+    let module_graph = compilation.get_module_graph();
+    let concatenated_modules = modules
+      .iter()
+      .map(|module| module.id)
+      .collect::<IdentifierSet>();
+    root_module_ctxt.code_generation_dependencies = None;
+    for module in &modules {
+      let Some(dependencies) = module_graph
+        .module_by_identifier(&module.id)
+        .and_then(|module| module.get_code_generation_dependencies())
+      else {
+        continue;
+      };
+      for dependency in dependencies {
+        let references_concatenated_module = module_graph
+          .module_identifier_by_dependency_id(dependency.id())
+          .is_some_and(|module_id| concatenated_modules.contains(module_id));
+        if references_concatenated_module {
+          continue;
+        }
+        root_module_ctxt
+          .code_generation_dependencies
+          .get_or_insert_with(Vec::new)
+          .push(dependency.clone());
+      }
+    }
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
 
@@ -2320,6 +2346,14 @@ impl ConcatenatedModule {
         ConcatenationEntryConcatenated { module: *module },
       ));
     } else {
+      if matches!(
+        mg.dependency_by_id(&import.connection.dependency_id)
+          .dependency_type(),
+        DependencyType::CssImport
+      ) {
+        return;
+      }
+
       let reduced_runtime_condition;
       let reduced_non_defer_access;
       if let Some(existing) = exists_entry.get_mut(module) {
@@ -2412,10 +2446,10 @@ impl ConcatenatedModule {
         .module_by_identifier(connection.module_identifier())
         .expect("should have module");
 
-      if ref_module
-        .source_types(mg)
-        .iter()
-        .all(|source_type| source_type == &SourceType::Css)
+      let ref_source_types = ref_module.source_types(mg);
+      if !ref_source_types.contains(&SourceType::JavaScript)
+        && (ref_source_types.contains(&SourceType::Css)
+          || ref_source_types.contains(&SourceType::CssImport))
       {
         return None;
       }
@@ -3309,6 +3343,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
       | DependencyType::EsmExportImportedSpecifier
       | DependencyType::EsmImport
       | DependencyType::EsmExportImport
+      | DependencyType::CssImport
   )
 }
 

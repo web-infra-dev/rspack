@@ -20,7 +20,9 @@ fn get_modules_needing_ids(
     .filter(|m| {
       m.need_id()
         && ChunkGraph::get_module_id(module_ids_artifact, m.identifier()).is_none()
-        && chunk_graph.get_number_of_module_chunks(m.identifier()) != 0
+        && (chunk_graph.get_number_of_module_chunks(m.identifier()) != 0
+          || m.build_meta().is_css_module
+          || m.build_meta().need_id_in_concatenation)
     })
     .map(|m| m.identifier())
     .collect()

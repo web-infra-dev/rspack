@@ -539,6 +539,8 @@ fn convert_import_option(import: Option<Either<bool, RawCssImportFn>>) -> Option
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -552,6 +554,7 @@ pub struct RawCssParserOptions {
 impl From<RawCssParserOptions> for CssParserOptions {
   fn from(value: RawCssParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -563,6 +566,8 @@ impl From<RawCssParserOptions> for CssParserOptions {
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssModuleParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -583,6 +588,7 @@ pub struct RawCssModuleParserOptions {
 impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
   fn from(value: RawCssModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -600,6 +606,8 @@ impl From<RawCssModuleParserOptions> for CssModuleParserOptions {
 #[derive(Debug, Default)]
 #[napi(object, object_to_js = false)]
 pub struct RawCssAutoOrModuleParserOptions {
+  #[napi(ts_type = r#""link" | "text" | "css-style-sheet" | "style""#)]
+  pub export_type: Option<String>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   #[napi(js_name = "import")]
@@ -621,6 +629,7 @@ pub struct RawCssAutoOrModuleParserOptions {
 impl From<RawCssAutoOrModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: RawCssAutoOrModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type.map(Into::into),
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,

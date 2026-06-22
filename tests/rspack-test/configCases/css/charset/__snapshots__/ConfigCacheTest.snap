@@ -1,0 +1,297 @@
+// Jest Snapshot v1, https://jestjs.io/docs/snapshot-testing
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 1`] = `
+Array [
+  "@charset \\"UTF-8\\";
+/*!***********************************************!*\\\\
+  !*** external \\"http://some/path/to/css1.css\\" ***!
+  \\\\***********************************************/
+@import url(\\"http://some/path/to/css1.css\\");
+/*!************************************************!*\\\\
+  !*** css ./import.link.css (exportType: link) ***!
+  \\\\************************************************/
+
+
+.import {
+	color: red;
+}
+
+/*!**************************************************!*\\\\
+  !*** css ./styles-1.link.css (exportType: link) ***!
+  \\\\**************************************************/
+
+
+
+.class-1 {
+	color: red;
+}
+
+/*!**************************************************!*\\\\
+  !*** css ./styles-2.link.css (exportType: link) ***!
+  \\\\**************************************************/
+
+
+.class-2 {
+	color: blue;
+}
+
+/*!**************************************************!*\\\\
+  !*** css ./styles-3.link.css (exportType: link) ***!
+  \\\\**************************************************/
+
+
+.class-3 {
+	color: blue;
+}
+
+",
+]
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 2`] = `
+"@charset \\"UTF-8\\";
+/*!*******************************************************!*\\\\
+  !*** css ./import-nested.text.css (exportType: text) ***!
+  \\\\*******************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!***************************************************************!*\\\\
+  !*** css ./import-nested.text.css?foo=bar (exportType: text) ***!
+  \\\\***************************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!************************************************!*\\\\
+  !*** css ./import.text.css (exportType: text) ***!
+  \\\\************************************************/
+
+
+
+.import {
+	color: red;
+}
+
+/*!*******************************************************!*\\\\
+  !*** css ./import-nested.text.css (exportType: text) ***!
+  \\\\*******************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!***************************************************************!*\\\\
+  !*** css ./import-nested.text.css?foo=bar (exportType: text) ***!
+  \\\\***************************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!********************************************************!*\\\\
+  !*** css ./import.text.css?foo=bar (exportType: text) ***!
+  \\\\********************************************************/
+
+
+
+.import {
+	color: red;
+}
+
+/*!**************************************************!*\\\\
+  !*** css ./styles-4.text.css (exportType: text) ***!
+  \\\\**************************************************/
+
+
+
+.class-4 {
+	color: red;
+}
+
+"
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 3`] = `
+"@charset \\"UTF-8\\";
+/*!*******************************************************!*\\\\
+  !*** css ./import-nested.text.css (exportType: text) ***!
+  \\\\*******************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!***************************************************************!*\\\\
+  !*** css ./import-nested.text.css?foo=bar (exportType: text) ***!
+  \\\\***************************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!************************************************!*\\\\
+  !*** css ./import.text.css (exportType: text) ***!
+  \\\\************************************************/
+
+
+
+.import {
+	color: red;
+}
+
+"
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 4`] = `
+"@charset \\"UTF-8\\";
+/*!******************************************************************!*\\\\
+  !*** css ./import-nested.text.css (exportType: css-style-sheet) ***!
+  \\\\******************************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!**************************************************************************!*\\\\
+  !*** css ./import-nested.text.css?foo=bar (exportType: css-style-sheet) ***!
+  \\\\**************************************************************************/
+
+
+.import-nested {
+	color: red;
+}
+
+/*!***********************************************************!*\\\\
+  !*** css ./import.text.css (exportType: css-style-sheet) ***!
+  \\\\***********************************************************/
+
+
+
+.import {
+	color: red;
+}
+
+/*!************************************************************************!*\\\\
+  !*** css ./styles-5.css-style-sheet.css (exportType: css-style-sheet) ***!
+  \\\\************************************************************************/
+
+
+
+.class-5 {
+	color: red;
+}
+
+"
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 5`] = `
+"@charset \\"UTF-8\\";
+/*!***********************************************************!*\\\\
+  !*** css ./leaf-with-charset.text.css (exportType: text) ***!
+  \\\\***********************************************************/
+
+
+.leaf-with-charset {
+	color: red;
+}
+
+/*!*********************************************************!*\\\\
+  !*** css ./inherit-charset.text.css (exportType: text) ***!
+  \\\\*********************************************************/
+
+.inherit-charset {
+	color: red;
+}
+
+/*!**************************************************!*\\\\
+  !*** css ./styles-7.text.css (exportType: text) ***!
+  \\\\**************************************************/
+
+
+
+.class-7 {
+	color: red;
+}
+
+"
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 6`] = `
+"@charset \\"UTF-8\\";
+/*!***********************************************************!*\\\\
+  !*** css ./leaf-with-charset.text.css (exportType: text) ***!
+  \\\\***********************************************************/
+
+
+.leaf-with-charset {
+	color: red;
+}
+
+/*!*********************************************************!*\\\\
+  !*** css ./inherit-charset.text.css (exportType: text) ***!
+  \\\\*********************************************************/
+
+.inherit-charset {
+	color: red;
+}
+
+"
+`;
+
+exports[`ConfigCacheTestCases css charset exported tests should handle \`@charset\` at-rule 7`] = `
+Array [
+  "/*!********************************************************!*\\\\
+  !*** css ./import-nested.text.css (exportType: style) ***!
+  \\\\********************************************************/
+@charset \\"UTF-8\\";
+
+.import-nested {
+	color: red;
+}
+
+",
+  "/*!****************************************************************!*\\\\
+  !*** css ./import-nested.text.css?foo=bar (exportType: style) ***!
+  \\\\****************************************************************/
+@charset \\"UTF-8\\";
+
+.import-nested {
+	color: red;
+}
+
+",
+  "/*!*************************************************!*\\\\
+  !*** css ./import.text.css (exportType: style) ***!
+  \\\\*************************************************/
+@charset \\"UTF-8\\";
+
+
+.import {
+	color: red;
+}
+
+",
+  "/*!****************************************************!*\\\\
+  !*** css ./styles-6.style.css (exportType: style) ***!
+  \\\\****************************************************/
+@charset \\"UTF-8\\";
+
+
+.class-6 {
+	color: red;
+}
+
+",
+]
+`;

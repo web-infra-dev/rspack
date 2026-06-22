@@ -283,6 +283,10 @@ define_runtime_globals! {
 
   const HAS_CSS_MODULES;
 
+  const CSS_INJECT_STYLE;
+
+  const CSS_STYLE_SHEET;
+
   // rspack only
   const RSPACK_UNIQUE_ID;
 
@@ -344,6 +348,8 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
     | RuntimeGlobals::STARTUP_ENTRYPOINT
     | RuntimeGlobals::STARTUP
+    | RuntimeGlobals::CSS_INJECT_STYLE
+    | RuntimeGlobals::CSS_STYLE_SHEET
 });
 
 pub static HOT_RUNTIME_WRITE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
@@ -439,6 +445,8 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::RSPACK_VERSION => "rv",
     RuntimeGlobals::RSPACK_UNIQUE_ID => "ruid",
     RuntimeGlobals::HAS_CSS_MODULES => "has css modules",
+    RuntimeGlobals::CSS_INJECT_STYLE => "is",
+    RuntimeGlobals::CSS_STYLE_SHEET => "css",
     RuntimeGlobals::ASYNC_STARTUP => "asyncStartup",
     RuntimeGlobals::HAS_FETCH_PRIORITY => "has fetch priority",
 

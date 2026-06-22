@@ -1,0 +1,16 @@
+Object {
+  another: module-text-no-esm_css-another,
+  default: Object {
+    another: module-text-no-esm_css-another,
+    default: .module-text-no-esm_css-no-esm-text {
+	color: orange;
+	background: lightgray;
+}
+
+.module-text-no-esm_css-another {
+	text-align: center;
+},
+    no-esm-text: module-text-no-esm_css-no-esm-text,
+  },
+  no-esm-text: module-text-no-esm_css-no-esm-text,
+}

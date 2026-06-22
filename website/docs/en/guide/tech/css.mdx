@@ -141,6 +141,41 @@ export default {
 };
 ```
 
+### CSS export type
+
+Built-in CSS support uses `exportType: 'link'` by default. This emits CSS as stylesheet output and loads it with the built-in CSS loading runtime. You can set `module.parser.css.exportType` or the parser options for `css/auto`, `css/global`, and `css/module` to change how CSS is exported to JavaScript.
+
+Supported values:
+
+- `link`: emit CSS as stylesheet output.
+- `text`: export the generated CSS text as the default export.
+- `css-style-sheet`: export a `CSSStyleSheet` instance as the default export.
+- `style`: inject CSS into the document through `<style>` tags at runtime.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+        parser: {
+          exportType: 'text',
+        },
+      },
+    ],
+  },
+};
+```
+
+```js title="index.js"
+import cssText from './style.css';
+
+console.log(cssText);
+```
+
+See [module.parser["css/auto"].exportType](/config/module-parser#cssautoexporttype) for details.
+
 ### Using CssExtractRspackPlugin
 
 Rspack supports using [css-loader](https://github.com/webpack/css-loader) and [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin) to generate standalone CSS files.
