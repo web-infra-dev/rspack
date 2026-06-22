@@ -132,16 +132,16 @@ rkyv      = { version = "=0.8.16", default-features = false, features = ["std", 
 
 # Must be pinned with the same swc versions
 pnp                 = { version = "0.12.9", default-features = false }
-swc                 = { path = "../swc/crates/swc", default-features = false }
-swc_atoms           = { path = "../swc/crates/swc_atoms", default-features = false }
-swc_config          = { path = "../swc/crates/swc_config", default-features = false }
-swc_core            = { path = "../swc/crates/swc_core", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { path = "../swc/crates/swc_ecma_minifier", default-features = false }
-swc_error_reporters = { path = "../swc/crates/swc_error_reporters", default-features = false }
-swc_html            = { path = "../swc/crates/swc_html", default-features = false }
-swc_html_minifier   = { path = "../swc/crates/swc_html_minifier", default-features = false }
-swc_plugin_runner   = { path = "../swc/crates/swc_plugin_runner", default-features = false }
-swc_typescript      = { path = "../swc/crates/swc_typescript", default-features = false }
+swc                 = { version = "69.0.0", default-features = false }
+swc_atoms           = { version = "9.0.3", default-features = false }
+swc_config          = { version = "5.0.0", default-features = false }
+swc_core            = { version = "71.0.1", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "56.0.1", default-features = false }
+swc_error_reporters = { version = "25.0.0", default-features = false }
+swc_html            = { version = "35.0.0", default-features = false }
+swc_html_minifier   = { version = "56.0.0", default-features = false }
+swc_plugin_runner   = { version = "30.0.0", default-features = false }
+swc_typescript      = { version = "30.0.1", default-features = false }
 
 swc_experimental_allocator            = { version = "0.11.0", default-features = false }
 swc_experimental_ecma_ast             = { version = "0.11.0", default-features = false }
