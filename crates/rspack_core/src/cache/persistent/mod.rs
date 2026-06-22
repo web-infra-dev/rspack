@@ -30,7 +30,6 @@ use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
-const PERSISTENT_CACHE_SCHEMA_VERSION: &str = "snapshot-strategy-v2";
 
 #[cacheable]
 #[derive(Debug, Clone, Hash)]
@@ -89,7 +88,6 @@ impl PersistentCache {
     let version = {
       let mut hasher = DefaultHasher::new();
       compiler_path.hash(&mut hasher);
-      PERSISTENT_CACHE_SCHEMA_VERSION.hash(&mut hasher);
       option_bytes.hash(&mut hasher);
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
