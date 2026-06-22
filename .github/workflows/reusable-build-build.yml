@@ -86,7 +86,9 @@ jobs:
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
-          key: ${{ inputs.target }}-${{ inputs.profile }}
+          # `-freshcache` suffix forces a brand-new cache built by the current `--config` rustflags,
+          # to validate that the 0% utilization is a stale/mismatched pre-existing cache.
+          key: ${{ inputs.target }}-${{ inputs.profile }}-freshcache
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
           use-cache: ${{ !inputs.force-rebuild }}
