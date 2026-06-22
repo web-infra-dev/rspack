@@ -492,7 +492,7 @@ export default {
 
 监听 IPC socket，而不是监听主机名和端口。
 
-设置为 `true` 时，`@rspack/dev-server` 会使用默认 socket 路径：在操作系统临时目录下创建名为 `webpack-dev-server.sock` 的 socket，Windows 上则使用命名管道路径。设置为字符串时，该字符串会作为自定义 socket 路径。
+设置为 `true` 时，`@rspack/dev-server` 会使用默认 socket 路径：在操作系统临时目录下创建名为 `rspack-dev-server.sock` 的 socket，Windows 上则使用命名管道路径。设置为字符串时，该字符串会作为自定义 socket 路径。
 
 ```js title="rspack.config.mjs"
 export default {
