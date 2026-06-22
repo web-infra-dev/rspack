@@ -84,7 +84,7 @@ impl Meta {
     &mut self,
     active_version: &str,
     expire_seconds: u64,
-    max_generations: Option<u32>,
+    max_generations: u32,
     versions: &[String],
   ) -> Result<(Vec<String>, u64)> {
     let now = Self::current_timestamp();
@@ -110,7 +110,7 @@ impl Meta {
       });
     }
 
-    if let Some(max_generations) = max_generations {
+    if max_generations != 0 {
       // `versions` is already scoped to the current storage directory, so every
       // non-hidden, non-active entry is a generation candidate.
       let mut candidates = versions
@@ -168,7 +168,7 @@ mod test {
     meta.save(&fs).await?;
 
     let mut meta = Meta::load(&fs).await?;
-    let (mut expired, _next_time) = meta.refresh("v3", 1, None, &[]).await?;
+    let (mut expired, _next_time) = meta.refresh("v3", 1, 0, &[]).await?;
     expired.sort();
     assert_eq!(expired, vec![String::from("v1"), String::from("v2")]);
     assert!(meta.access_times.contains_key("v3"));

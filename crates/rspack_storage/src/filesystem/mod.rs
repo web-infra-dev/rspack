@@ -19,7 +19,7 @@ async fn refresh_metadata(
   fs: ScopeFileSystem,
   version: String,
   expire: u64,
-  max_generations: Option<u32>,
+  max_generations: u32,
   next_meta_refresh_time: Arc<Mutex<u64>>,
 ) {
   let now = Meta::current_timestamp();

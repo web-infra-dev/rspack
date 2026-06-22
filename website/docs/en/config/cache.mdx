@@ -251,7 +251,7 @@ Configure different [`config.name`](/config/other-options#name) values for diffe
 
 - **Default:** `7 * 24 * 60 * 60` (7 days)
 
-The maximum time, in seconds, that cache can remain unused. During cleanup, Rspack removes cache that has not been accessed for longer than `maxAge`.
+The maximum time, in seconds, that cache can remain unused. During cleanup, Rspack removes cache that has not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -269,9 +269,9 @@ export default {
 
 - **Type:** `number` (positive integer)
 
-- **Default:** No generation count limit; `maxAge` cleanup still applies
+- **Default:** `3`
 
-This is a generational cleanup policy that controls how many cache generations can be retained in the current cache directory. When the number of generations exceeds the limit, Rspack removes the least recently accessed cache.
+This is a generational cleanup policy that controls how many cache generations can be retained in the current cache directory. When the number of generations exceeds the limit, Rspack removes the least recently accessed cache. Set `maxGenerations` to `Infinity` to disable generation-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {

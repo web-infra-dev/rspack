@@ -1944,14 +1944,15 @@ export type CacheStorageOptions = {
   directory?: string;
   /**
    * Maximum age of unused filesystem cache in seconds. Must be an integer
-   * between 0 and 4294967295.
+   * between 1 and 4294967295, or Infinity to disable age-based cleanup.
    * @default 7 * 24 * 60 * 60
    */
   maxAge?: number;
   /**
    * Maximum number of filesystem cache generations to retain in the cache
-   * directory. Must be an integer between 0 and 4294967295.
-   * @default No generation count limit; maxAge cleanup still applies
+   * directory. Must be an integer between 1 and 4294967295, or Infinity to
+   * disable generation-based cleanup.
+   * @default 3
    */
   maxGenerations?: number;
 };

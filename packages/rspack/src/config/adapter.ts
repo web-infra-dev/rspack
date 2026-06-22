@@ -80,6 +80,8 @@ export type {
   PitchLoaderDefinitionFunction,
 };
 
+const MAX_U32 = 0xffffffff;
+
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
   options: RspackOptionsNormalized,
@@ -115,11 +117,25 @@ export const getRawOptions = (
 function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
+  const toRawStorageLimit = (name: string, value: number) => {
+    const rawValue = value === Infinity ? 0 : value;
+    if (!Number.isSafeInteger(rawValue) || rawValue < 0 || rawValue > MAX_U32) {
+      throw new Error(
+        `Invalid Rspack configuration: "${name}" must be a uint32 number or Infinity, get \`${value}\`.`,
+      );
+    }
+    return rawValue;
+  };
   return {
     ...cache,
     storage: {
       ...cache.storage,
       directory: cache.storage.directory!,
+      maxAge: toRawStorageLimit('cache.storage.maxAge', cache.storage.maxAge!),
+      maxGenerations: toRawStorageLimit(
+        'cache.storage.maxGenerations',
+        cache.storage.maxGenerations!,
+      ),
     },
     snapshot: {
       immutablePaths: cache.snapshot.immutablePaths!,

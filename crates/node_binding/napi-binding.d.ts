@@ -3086,8 +3086,8 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
-  maxAge?: number
-  maxGenerations?: number
+  maxAge: number
+  maxGenerations: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {

@@ -42,12 +42,12 @@ pub struct PersistentCacheOptions {
   pub portable: bool,
   #[cacheable(with=Skip)]
   pub readonly: bool,
-  /// Filesystem cache max age in seconds. `None` uses the storage default.
+  /// Filesystem cache max age in seconds.
   #[cacheable(with=Skip)]
-  pub max_age: Option<u64>,
+  pub max_age: u64,
   /// Filesystem generation count limit for the current storage directory.
   #[cacheable(with=Skip)]
-  pub max_generations: Option<u32>,
+  pub max_generations: u32,
 }
 
 /// Persistent cache implementation

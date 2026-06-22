@@ -28,8 +28,8 @@ module.exports = {
 			+     },
 			+     "storage": Object {
 			+       "directory": "<cwd>/fixtures/node_modules/.cache/rspack/none",
-			+       "maxAge": undefined,
-			+       "maxGenerations": undefined,
+			+       "maxAge": 604800,
+			+       "maxGenerations": 3,
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",
