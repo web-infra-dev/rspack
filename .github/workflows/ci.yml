@@ -136,7 +136,7 @@ jobs:
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
   build-riscv64:
-    name: Build riscv64gc-unknown-linux-gnu
+    name: Build riscv64
     needs: [check-changed]
     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
     uses: ./.github/workflows/reusable-build-build.yml
