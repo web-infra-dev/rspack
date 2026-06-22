@@ -31,6 +31,9 @@ env:
   # Measure how many compile units are reused from the restored Rust cache.
   # Only meaningful for cached builds (profile == 'ci'); release builds rebuild from scratch.
   MEASURE_CARGO_FRESH: ${{ inputs.profile == 'ci' && '1' || '' }}
+  # Diagnose why a full-match cache restore still recompiles everything: cargo logs
+  # the per-unit dirty reason (e.g. RustflagsChanged). Scoped to one Linux job to keep logs sane.
+  CARGO_LOG: ${{ inputs.target == 'x86_64-unknown-linux-gnu' && inputs.profile == 'ci' && 'cargo::core::compiler::fingerprint=info' || '' }}
 
 jobs:
   build:
