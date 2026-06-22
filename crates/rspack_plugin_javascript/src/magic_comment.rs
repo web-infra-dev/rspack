@@ -1,5 +1,6 @@
-use std::{borrow::Cow, fmt};
+use std::{borrow::Cow, fmt, sync::LazyLock};
 
+use regex::Regex;
 use rspack_core::DependencyRange;
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_regex::RspackRegex;
@@ -304,7 +305,11 @@ pub fn try_extract_magic_comment(
 /// Block comment text does not include `/*` and `*/`. We parse it by wrapping
 /// it as `({<comment_text>})`, so synthetic expression spans are offset by the
 /// two-byte `({` prefix.
-fn value_span_to_error_span(comment_span: Span, value_span: Span) -> Option<DependencyRange> {
+fn value_span_to_error_span_with_offset(
+  comment_span: Span,
+  value_span: Span,
+  comment_offset: usize,
+) -> Option<DependencyRange> {
   // Block comment format: /* comment_text */
   // The comment_text doesn't include the "/*" and "*/" delimiters
   // So we need to add 2 bytes for "/*" to get the actual position in source
@@ -318,34 +323,49 @@ fn value_span_to_error_span(comment_span: Span, value_span: Span) -> Option<Depe
   }
 
   let comment_start = comment_span.real_lo() as usize;
-  let start = comment_start + BLOCK_COMMENT_START_LEN + value_start - OBJECT_LITERAL_PREFIX_LEN;
-  let end = comment_start + BLOCK_COMMENT_START_LEN + value_end - OBJECT_LITERAL_PREFIX_LEN;
+  let start = comment_start + BLOCK_COMMENT_START_LEN + comment_offset + value_start
+    - OBJECT_LITERAL_PREFIX_LEN;
+  let end = comment_start + BLOCK_COMMENT_START_LEN + comment_offset + value_end
+    - OBJECT_LITERAL_PREFIX_LEN;
 
   Some(DependencyRange::new(start as u32, end as u32))
 }
 
-fn value_span_to_comment_offsets(comment_text: &str, value_span: Span) -> Option<(usize, usize)> {
+fn value_span_to_comment_offsets_with_offset(
+  comment_text: &str,
+  value_span: Span,
+  comment_offset: usize,
+) -> Option<(usize, usize)> {
   const OBJECT_LITERAL_PREFIX_LEN: usize = 2; // Length of "({"
 
-  let start = value_span
-    .real_lo()
-    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
-  let end = value_span
-    .real_hi()
-    .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+  let start = comment_offset
+    + value_span
+      .real_lo()
+      .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
+  let end = comment_offset
+    + value_span
+      .real_hi()
+      .checked_sub(OBJECT_LITERAL_PREFIX_LEN as u32)? as usize;
 
   (start <= end && end <= comment_text.len()).then_some((start, end))
 }
 
-fn raw_value<'a>(comment_text: &'a str, value: &Expr) -> Option<&'a str> {
-  let (start, end) = value_span_to_comment_offsets(comment_text, value.span())?;
+fn raw_value_with_offset<'a>(
+  comment_text: &'a str,
+  value: &Expr,
+  comment_offset: usize,
+) -> Option<&'a str> {
+  let (start, end) =
+    value_span_to_comment_offsets_with_offset(comment_text, value.span(), comment_offset)?;
   comment_text.get(start..end).map(str::trim)
 }
 
 fn parse_magic_comment_object<'a>(
   allocator: &'a Allocator,
   comment_text: &str,
-) -> Option<Expr<'a>> {
+) -> Option<(Expr<'a>, usize)> {
+  let magic_comment_start = find_magic_comment_start(comment_text)?;
+  let comment_text = comment_text.get(magic_comment_start..)?;
   let source = format!("({{{comment_text}}})");
   let source = allocator.alloc_str(&source);
   let mut expr = parse_file_as_expr(
@@ -357,7 +377,20 @@ fn parse_magic_comment_object<'a>(
   )
   .ok()?;
   remove_paren(&mut expr, allocator, None);
-  Some(expr)
+  Some((expr, magic_comment_start))
+}
+
+static WEBPACK_COMMENT_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(
+    r#"(^|[^\w])(?P<key>(?:webpack|rspack)[A-Z][A-Za-z]+|"(?:webpack|rspack)[A-Z][A-Za-z]+"|'(?:webpack|rspack)[A-Z][A-Za-z]+')\s*:"#,
+  )
+  .expect("invalid regex")
+});
+
+fn find_magic_comment_start(comment_text: &str) -> Option<usize> {
+  WEBPACK_COMMENT_REGEXP
+    .captures(comment_text)
+    .and_then(|captures| captures.name("key").map(|matched| matched.start()))
 }
 
 fn prop_name_to_str<'a>(name: &'a PropName<'a>) -> Option<Cow<'a, str>> {
@@ -401,9 +434,18 @@ fn is_number_expr(expr: &Expr) -> bool {
   }
 }
 
+#[cfg(test)]
 fn expr_to_order_str<'a>(comment_text: &'a str, expr: &Expr) -> Option<&'a str> {
+  expr_to_order_str_with_offset(comment_text, expr, 0)
+}
+
+fn expr_to_order_str_with_offset<'a>(
+  comment_text: &'a str,
+  expr: &Expr,
+  comment_offset: usize,
+) -> Option<&'a str> {
   if expr_to_bool(expr).is_some() || is_number_expr(expr) {
-    raw_value(comment_text, expr)
+    raw_value_with_offset(comment_text, expr, comment_offset)
   } else {
     None
   }
@@ -419,7 +461,11 @@ fn expr_to_regexp<'a>(expr: &'a Expr<'a>) -> Option<(&'a str, &'a str)> {
   }
 }
 
-fn expr_to_magic_comment_value(comment_text: &str, expr: &Expr) -> Option<MagicCommentValue> {
+fn expr_to_magic_comment_value_with_offset(
+  comment_text: &str,
+  expr: &Expr,
+  comment_offset: usize,
+) -> Option<MagicCommentValue> {
   if let Some(value) = expr_to_bool(expr) {
     return Some(MagicCommentValue::Bool(value));
   }
@@ -429,7 +475,8 @@ fn expr_to_magic_comment_value(comment_text: &str, expr: &Expr) -> Option<MagicC
   }
 
   if is_number_expr(expr) {
-    return raw_value(comment_text, expr).map(|value| MagicCommentValue::Number(value.to_string()));
+    return raw_value_with_offset(comment_text, expr, comment_offset)
+      .map(|value| MagicCommentValue::Number(value.to_string()));
   }
 
   if let Some((source, flags)) = expr_to_regexp(expr) {
@@ -530,7 +577,7 @@ fn analyze_comments(
       continue;
     }
     parsed_comment.insert(comment.span);
-    let Some(expr) = parse_magic_comment_object(allocator, &comment.text) else {
+    let Some((expr, comment_offset)) = parse_magic_comment_object(allocator, &comment.text) else {
       continue;
     };
     let Expr::Object(object) = &expr else {
@@ -551,9 +598,11 @@ fn analyze_comments(
       };
       let value = &prop.value;
       let item_name = rspack_comment.prefixed_name(prefix);
-      let received = raw_value(&comment.text, value).unwrap_or_default();
+      let received =
+        raw_value_with_offset(&comment.text, value, comment_offset).unwrap_or_default();
       let item_span =
-        value_span_to_error_span(comment.span, value.span()).unwrap_or(error_span.into());
+        value_span_to_error_span_with_offset(comment.span, value.span(), comment_offset)
+          .unwrap_or(error_span.into());
       let push_parse_warning = |comment_type| {
         push_magic_comment_parse_warning(
           source,
@@ -575,7 +624,7 @@ fn analyze_comments(
           }
         }
         RspackComment::Prefetch => {
-          if let Some(value) = expr_to_order_str(&comment.text, value) {
+          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -587,7 +636,7 @@ fn analyze_comments(
           }
         }
         RspackComment::Preload => {
-          if let Some(value) = expr_to_order_str(&comment.text, value) {
+          if let Some(value) = expr_to_order_str_with_offset(&comment.text, value, comment_offset) {
             if value == "true" {
               MagicCommentValue::Bool(true)
             } else {
@@ -602,8 +651,9 @@ fn analyze_comments(
           if let Some(value) = expr_to_bool(value) {
             MagicCommentValue::Bool(value)
           } else {
-            let value = expr_to_magic_comment_value(&comment.text, value)
-              .unwrap_or(MagicCommentValue::Unknown);
+            let value =
+              expr_to_magic_comment_value_with_offset(&comment.text, value, comment_offset)
+                .unwrap_or(MagicCommentValue::Unknown);
             push_parse_warning("a boolean");
             value
           }
@@ -679,7 +729,7 @@ mod tests_extract_magic_comment_object {
 
   fn with_value<R>(raw: &str, name: &str, f: impl FnOnce(&Expr<'_>) -> Option<R>) -> Option<R> {
     let allocator = Allocator::new();
-    let expr = parse_magic_comment_object(&allocator, raw)?;
+    let (expr, _) = parse_magic_comment_object(&allocator, raw)?;
     let Expr::Object(object) = &expr else {
       return None;
     };
@@ -942,6 +992,19 @@ mod tests_extract_magic_comment_object {
     assert!(comments.get_include().is_some());
     assert!(comments.get_exclude().is_some());
     assert_eq!(comments.get_exports(), Some(vec!["a".into(), "b".into()]));
+  }
+
+  #[test]
+  fn test_extract_preserved_magic_comments() {
+    let (comments, warnings) = extract("@preserve webpackIgnore: true");
+
+    assert!(warnings.is_empty());
+    assert_eq!(comments.get_ignore(), Some(true));
+
+    let (comments, warnings) = extract("@license MIT webpackIgnore: true");
+
+    assert!(warnings.is_empty());
+    assert_eq!(comments.get_ignore(), Some(true));
   }
 
   #[test]
