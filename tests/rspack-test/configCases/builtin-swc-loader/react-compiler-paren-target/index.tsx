@@ -11,7 +11,7 @@ const App = () => {
   );
 };
 
-it("should emit react compiler output with swc-loader", () => {
+it("should build successfully with react compiler enabled (paren assignment target)", () => {
   const fs = require("fs");
   const source = fs.readFileSync(__filename, "utf-8");
   expect(source).toContain(["Rsbuild", "with", "React"].join(" "));
