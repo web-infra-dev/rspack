@@ -78,7 +78,7 @@ export default {
 };
 ```
 
-2. Flatten webpack `cache.buildDependencies` into Rspack [`cache.buildDependencies`](/config/cache#cachebuilddependencies), which accepts a file path array.
+2. Flatten webpack `cache.buildDependencies` into Rspack [`cache.buildDependencies`](/config/cache#builddependencies), which accepts a file path array.
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -99,9 +99,9 @@ export default {
 };
 ```
 
-3. Merge webpack `cache.name` and `cache.version` into Rspack [`cache.version`](/config/cache#cacheversion).
+3. Merge webpack `cache.name` and `cache.version` into Rspack [`cache.version`](/config/cache#version).
 
-Rspack does not have a separate `cache.name` option. Cache instances are isolated by `cache.version` and [`cache.storage.directory`](/config/cache#cachestoragedirectory).
+Rspack does not have a separate `cache.name` option. Cache instances are isolated by `cache.version` and [`cache.storage.directory`](/config/cache#storagedirectory).
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -116,7 +116,7 @@ export default {
 };
 ```
 
-4. Move webpack top-level `snapshot` options into Rspack [`cache.snapshot`](/config/cache#cachesnapshot).
+4. Move webpack top-level `snapshot` options into Rspack [`cache.snapshot`](/config/cache#snapshot).
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -136,7 +136,7 @@ export default {
 };
 ```
 
-5. Move webpack `cache.cacheDirectory` to Rspack [`cache.storage.directory`](/config/cache#cachestoragedirectory).
+5. Move webpack `cache.cacheDirectory` to Rspack [`cache.storage.directory`](/config/cache#storagedirectory).
 
 ```diff title="rspack.config.mjs"
 export default {

@@ -1,5 +1,5 @@
 ---
-description: '缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。'
+description: '配置 Rspack 的缓存策略，包括禁用缓存、内存缓存和持久化缓存。'
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
@@ -9,7 +9,7 @@ import PropertyType from '@components/PropertyType';
 
 <ApiMeta addedVersion="2.0.0" />
 
-缓存：该选项可以开启或者关闭 Rspack 构建过程中对快照及中间产物的缓存，如果开启，在下次构建中可以使用它们来提升构建的速度。
+`cache` 选项用于控制 Rspack 的缓存策略，让 Rspack 可以在构建之间复用缓存数据以提升构建性能。
 
 - **类型：**
 
@@ -39,21 +39,13 @@ type CacheOptions =
     };
 ```
 
-- **默认值：** development 模式为 `true`，production 模式和 none 模式为 `false`
-
-## 禁用缓存
-
-可以配置 `cache` 为 `false` 来禁用缓存。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: false,
-};
-```
+- **默认值：** development 模式为 `{ type: 'memory' }`（等价于 `true`），production 模式和 none 模式为 `false`
 
 ## 内存缓存
 
-可以配置 `cache` 为 `true` 或 `{ type: "memory" }` 来启用内存缓存。
+将 `cache` 设置为 `true` 或 `{ type: 'memory' }` 可以启用内存缓存。内存缓存只保存在当前 compiler 进程中，主要用于 rebuild、watch 模式和 HMR。
+
+内存缓存不会将缓存数据写入磁盘，因此进程结束后缓存会被清空，也无法加速后续重新启动的全新构建。它更适合开发阶段的长时间运行场景，例如同一个 compiler 实例持续处理多次重构建。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -61,7 +53,7 @@ export default {
 };
 ```
 
-或
+或：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -73,7 +65,7 @@ export default {
 
 ## 持久化缓存
 
-可以配置 `cache` 为 `{ type: "persistent" }` 来启用持久化缓存。
+将 `cache` 设置为 `{ type: 'persistent' }` 可以启用持久化缓存。持久化缓存会将缓存数据写入磁盘，以便后续构建进程复用。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -83,21 +75,12 @@ export default {
 };
 ```
 
-### cache.buildDependencies
+### buildDependencies
 
 - **类型：** `string[]`
-
 - **默认值：** `[]`
 
-`cache.buildDependencies` 是一个包含构建依赖的文件数组，Rspack 会使用这些文件的哈希值来使持久化缓存失效。
-
-:::tip
-与 webpack 不同，Rspack 默认不预设任何构建依赖。建议将项目配置文件添加到 `cache.buildDependencies`，以确保配置变更时缓存能及时失效。
-
-注意：使用 Rspack CLI 时，配置文件会自动被添加到 `cache.buildDependencies` 中。
-
-在解析构建依赖文件时，Rspack 会通过 AST 递归解析 JS/TS 文件，追踪其传递依赖。对于 `node_modules` 下的包，Rspack 会停止递归解析，转而追踪该包的 `package.json`。
-:::
+`cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化时使持久化缓存失效。
 
 ```js title="rspack.config.mjs"
 import { fileURLToPath } from 'node:url';
@@ -114,42 +97,50 @@ export default {
 };
 ```
 
-### cache.version
+:::tip
+与 webpack 不同，Rspack 默认不预设任何构建依赖。建议将未被 Rspack CLI 加载的项目配置文件添加到 `cache.buildDependencies`，以确保这些文件变化时缓存能及时失效。
+
+注意：使用 Rspack CLI 时，配置文件会自动被添加到 `cache.buildDependencies` 中。
+
+解析构建依赖时，Rspack 会递归遍历目录，并通过 AST 解析 JS/TS 文件以追踪传递依赖。对于解析到 `node_modules` 下的依赖，Rspack 会停止递归解析，并在可用时追踪对应包的 `package.json`。
+:::
+
+### version
 
 - **类型：** `string`
-
 - **默认值:** `""`
 
-缓存版本，不同版本的缓存彼此隔离。
+`cache.version` 是写入持久化缓存 key 的额外版本字符串。可以通过修改它来手动隔离或使持久化缓存失效。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    version: 'v1',
+  },
+};
+```
 
 :::warning
-不要在不同配置之间共享同一份缓存（相同的 `version` 和 `storage.directory`），这样可能导致错误的缓存命中。
+不要在不同配置之间共享同一份缓存（相同的 `cache.version` 和 `cache.storage.directory`），这样可能导致错误的缓存命中。
 :::
 
 :::tip 持久化缓存失效
 
-除了 [buildDependencies](#cachebuilddependencies) 和 [version](#cacheversion) 配置会影响持久化缓存失效外，以下字段变化时 Rspack 也会使持久化缓存失效。
+除了 [buildDependencies](#builddependencies) 校验和 [version](#version) 外，持久化缓存 key 还包含 Rspack 版本、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode)，以及会影响缓存内容的持久化缓存配置。
 
-- [config.name](/config/other-options#name)
-- [config.mode](/config/mode#mode)
+这些值发生变化时，Rspack 会隔离缓存，避免复用过期的持久化缓存数据。
 
 :::
 
-### cache.portable
+### portable
 
 - **类型：** `boolean`
-
 - **默认值：** `false`
 
 启用可移植缓存模式。启用后，生成的缓存内容可以在同一项目的不同平台和路径之间共享使用。
 
 可移植缓存构建在持久化缓存之上，通过在序列化和反序列化过程中转换平台特定的数据（例如，将绝对路径转换为相对路径），使缓存具有平台无关性。
-
-:::tip 使用场景
-
-典型的使用场景是在 CI 环境中，Windows、Linux 和 macOS 可以使用同一份缓存进行加速，而不需要生成三份独立的缓存副本。
-
-:::
 
 **示例：**
 
@@ -162,16 +153,21 @@ export default {
 };
 ```
 
+:::tip 使用场景
+
+典型的使用场景是在 CI 环境中，Windows、Linux 和 macOS 可以使用同一份缓存进行加速，而不需要生成三份独立的缓存副本。
+
+:::
+
 :::warning 限制
 
 项目目录之外的文件（`config.context` 之外）会被转换为相对路径。如果这些文件在新环境中不存在，将会触发相关模块的重新构建。
 
 :::
 
-### cache.readonly
+### readonly
 
 - **类型：** `boolean`
-
 - **默认值：** `false`
 
 启用只读缓存模式。启用后，缓存将仅从磁盘读取而不会被写入，这在 CI 环境中非常有用，可以使用预热的缓存而不修改它。
@@ -190,39 +186,79 @@ export default {
 };
 ```
 
-### cache.snapshot
+### snapshot
 
 - **类型：** `object`
+- **默认值：** `{ immutablePaths: [], managedPaths: [/[\\/]node_modules[\\/][^.]/], unmanagedPaths: [] }`
 
-- **默认值：** `{}`
+配置持久化缓存的快照策略，用于判断自上次构建以来哪些依赖发生了变化。
 
-配置快照策略。快照用于确定自上次构建以来哪些文件发生了变化。支持以下配置：
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      managedPaths: [/[\\/]node_modules[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.immutablePaths
 
 - **类型：** `(RegExp | string)[]`
-
 - **默认值：** `[]`
 
-不可变文件的路径数组。热重启时，这些路径下的文件变更将被忽略，缓存会直接视为有效而无需重新检查文件内容。适用于保证写入后永不变更的内容寻址路径。
+不可变路径数组。从持久化缓存恢复时，Rspack 会将匹配的路径视为未变化，并且不会重新检查其内容。适用于写入后保证不再变化的内容寻址路径。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      immutablePaths: [/[\\/]\.yarn[\\/]cache[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.managedPaths
 
 - **类型：** `(RegExp | string)[]`
-
 - **默认值：** `[/[\\/]node_modules[\\/][^.]/]`
 
-包管理器管理的路径数组。在热启动时，Rspack 会通过对应 `package.json` 中的 `version` 字段来判断包是否发生变化，而无需对文件内容进行哈希。这可以加速对仅通过包管理器更新的依赖包的缓存校验。
+包管理器管理的路径数组。从持久化缓存恢复时，Rspack 会通过对应 `package.json` 中的 `version` 字段判断包是否发生变化，而不是对文件内容进行哈希。这可以加速对仅通过包管理器更新的依赖包的缓存校验。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      managedPaths: [/[\\/]node_modules[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.unmanagedPaths
 
 - **类型：** `(RegExp | string)[]`
-
 - **默认值：** `[]`
 
-指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
+指定 [`cache.snapshot.managedPaths`](#snapshotmanagedpaths) 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
-### cache.storage
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      unmanagedPaths: [/[\\/]node_modules[\\/]my-linked-package[\\/]/],
+    },
+  },
+};
+```
+
+### storage
 
 - **类型：** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
 
@@ -241,25 +277,52 @@ export default {
 };
 ```
 
-#### cache.storage.directory
+#### storage.type
+
+- **类型：** `'filesystem'`
+- **默认值：** `'filesystem'`
+
+通过 `type` 设置缓存存储类型。目前仅支持文件系统存储。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+    },
+  },
+};
+```
+
+#### storage.directory
 
 - **类型：** `string`
+- **默认值：** `node_modules/.cache/rspack/<mode>` 或 `node_modules/.cache/rspack/<name>-<mode>`
 
-- **默认值：** `node_modules/.cache/rspack/<name>-<mode>-<index>`
+通过 `directory` 设置缓存目录。默认目录会基于 [`config.context`](/config/#context)、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成。在 multi compiler 模式下，后续 compiler 会追加 `-<index>` 以避免共享同一个目录。
 
-通过 `directory` 设置缓存目录。默认情况下 Rspack 会基于 [`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成缓存目录。
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      directory: '.rspack-cache',
+    },
+  },
+};
+```
 
 :::tip
 不同 Compiler 应配置不同的 [`config.name`](/config/other-options#name) 以确保使用不同的 `cache.storage.directory`，以避免缓存冲突。
 :::
 
-#### cache.storage.maxAge
+#### storage.maxAge
 
-- **类型：** `number`（正整数，单位为秒）
-
+- **类型：** `number`（正整数，单位为秒）或 `Infinity`
 - **默认值：** `7 * 24 * 60 * 60`（7 天）
 
-缓存允许保持未访问状态的最长时间，单位为秒。超过该时间未被访问的缓存会在清理时被删除。设置为 `Infinity` 可禁用基于时间的清理。
+一份缓存数据在未被访问后允许保留的最长时间，单位为秒。清理时，Rspack 会删除超过 `maxAge` 时间未被访问的缓存数据。设置为 `Infinity` 可禁用基于时间的清理。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -273,13 +336,12 @@ export default {
 };
 ```
 
-#### cache.storage.maxGenerations
+#### storage.maxGenerations
 
-- **类型：** `number`（正整数）
-
+- **类型：** `number`（正整数）或 `Infinity`
 - **默认值：** `3`
 
-这是一个分代回收策略，用来控制当前缓存目录最多保留多少代缓存。缓存代数超过限制时，Rspack 会删除最久未访问的缓存。设置为 `Infinity` 可禁用基于代数的清理。
+控制当前缓存目录最多保留多少个缓存版本。超过限制时，Rspack 会优先删除较旧且未处于当前使用状态的缓存版本。设置为 `Infinity` 可禁用基于数量的清理。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -325,6 +387,16 @@ export default {
 };
 ```
 
-## 从 webpack 配置迁移
+## 禁用缓存
+
+将 `cache` 设置为 `false` 可以同时禁用内存缓存和持久化缓存。通常不建议禁用缓存，因为这会导致开发阶段的重构建显著变慢。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: false,
+};
+```
+
+## 从 webpack 迁移
 
 请参考 [迁移 webpack - 缓存配置](/guide/migration/webpack#cache-configuration)，了解如何将 webpack 缓存配置迁移到 Rspack。
