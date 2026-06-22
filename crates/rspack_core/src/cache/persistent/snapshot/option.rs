@@ -20,7 +20,7 @@ impl PathMatcher {
 
 /// Snapshot options
 #[cacheable]
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them
   immutable_paths: Vec<PathMatcher>,
@@ -31,6 +31,18 @@ pub struct SnapshotOptions {
   managed_paths: Vec<PathMatcher>,
   dependencies: SnapshotStrategyOptions,
   context_dependencies: SnapshotStrategyOptions,
+}
+
+impl Default for SnapshotOptions {
+  fn default() -> Self {
+    Self {
+      immutable_paths: Default::default(),
+      unmanaged_paths: Default::default(),
+      managed_paths: Default::default(),
+      dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      context_dependencies: SnapshotStrategyOptions::timestamp(),
+    }
+  }
 }
 
 #[cacheable]
