@@ -201,10 +201,6 @@ impl LocalCssIdentDeclarations {
   }
 }
 
-fn source_order_to_i32(source_order: u32) -> i32 {
-  source_order.try_into().unwrap_or(i32::MAX)
-}
-
 fn is_custom_property_name(value: &str) -> bool {
   !value.is_empty()
     && value
