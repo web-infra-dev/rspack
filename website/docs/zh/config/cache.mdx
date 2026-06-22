@@ -222,47 +222,6 @@ export default {
 
 指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
-### snapshot.dependencies
-
-- **类型：** `{ hash?: boolean; timestamp?: boolean }`
-
-- **默认值：** development 和 none 模式下为 `{ timestamp: true }`，production 模式下为 `{ hash: true, timestamp: true }`
-
-控制 `compilation.fileDependencies` 记录路径的快照策略。`snapshot.dependencies` 配置在顶层 `snapshot` 选项中。
-
-- `hash: true` 会比较文件内容哈希。
-- `timestamp: true` 会比较文件时间戳。
-- 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
-
-策略对象未设置 `hash: true` 时，`timestamp` 默认开启。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
-
-### snapshot.contextDependencies
-
-- **类型：** `{ hash?: boolean; timestamp?: boolean }`
-
-- **默认值：** `{ timestamp: true }`
-
-控制 `compilation.contextDependencies` 记录路径的快照策略。`snapshot.contextDependencies` 配置在顶层 `snapshot` 选项中。
-
-- `hash: true` 会比较递归内容哈希。
-- `timestamp: true` 会比较递归时间戳哈希，包含目录项和子项时间戳。
-- 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
-
-策略对象未设置 `hash: true` 时，`timestamp` 默认开启。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
-
-```js title="rspack.config.mjs"
-export default {
-  cache: {
-    type: 'persistent',
-  },
-  snapshot: {
-    contextDependencies: {
-      hash: true,
-    },
-  },
-};
-```
-
 ### cache.storage
 
 - **类型：** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
@@ -421,7 +380,7 @@ export default {
 
 4. 迁移 `snapshot`
 
-将路径相关的 snapshot 选项迁移到 `cache.snapshot` 中。依赖策略配置保留在顶层 `snapshot` 选项中，对应 `snapshot.dependencies` 和 `snapshot.contextDependencies`。
+将路径相关的 snapshot 选项迁移到 `cache.snapshot` 中。Rspack 目前不在 JavaScript 配置中暴露 webpack 的 `snapshot.module` 和 `snapshot.contextModule` 策略选项。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -429,21 +388,7 @@ export default {
 -   immutablePaths: [path.join(__dirname, "constant")],
 -   managedPaths: [path.join(__dirname, "node_modules")],
 -   unmanagedPaths: [],
--   dependencies: {
--     timestamp: true
--   },
--   contextDependencies: {
--     timestamp: true
--   }
 - },
-+ snapshot: {
-+   dependencies: {
-+     timestamp: true
-+   },
-+   contextDependencies: {
-+     timestamp: true
-+   }
-+ },
 + cache: {
 +   type: "persistent",
 +   snapshot: {
@@ -503,10 +448,6 @@ function transform(webpackConfig, rspackConfig) {
     immutablePaths: webpackConfig.snapshot?.immutablePaths,
     managedPaths: webpackConfig.snapshot?.managedPaths,
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
-  };
-  rspackConfig.snapshot = {
-    dependencies: webpackConfig.snapshot?.module,
-    contextDependencies: webpackConfig.snapshot?.contextModule,
   };
   rspackConfig.cache.storage = {
     type: 'filesystem',

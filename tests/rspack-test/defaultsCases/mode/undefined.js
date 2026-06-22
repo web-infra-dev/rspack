@@ -64,7 +64,5 @@ module.exports = {
 			+     "maxAssetSize": 307200,
 			+     "maxEntrypointSize": 512000,
 			+   },
-			@@ ... @@
-			+       "hash": true,
 		`)
 };

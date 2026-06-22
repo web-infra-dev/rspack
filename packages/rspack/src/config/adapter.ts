@@ -45,7 +45,6 @@ import type {
   ModuleOptionsNormalized,
   OutputNormalized,
   RspackOptionsNormalized,
-  SnapshotNormalized,
 } from './normalization';
 import type {
   AssetGeneratorDataUrl,
@@ -103,7 +102,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: getRawCache(options.cache!, options.snapshot),
+    cache: getRawCache(options.cache!),
     experiments,
     incremental: options.incremental,
     node: getRawNode(options.node),
@@ -113,10 +112,7 @@ export const getRawOptions = (
   };
 };
 
-function getRawCache(
-  cache: CacheNormalized,
-  snapshot?: SnapshotNormalized,
-): RawOptions['cache'] {
+function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
   if (cache === false) return false;
   if (cache.type === 'memory') return cache;
   return {
@@ -129,8 +125,6 @@ function getRawCache(
       immutablePaths: cache.snapshot.immutablePaths!,
       unmanagedPaths: cache.snapshot.unmanagedPaths!,
       managedPaths: cache.snapshot.managedPaths!,
-      dependencies: snapshot?.dependencies,
-      contextDependencies: snapshot?.contextDependencies,
     },
   };
 }

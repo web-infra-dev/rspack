@@ -2026,36 +2026,6 @@ export type CacheOptions =
   | PersistentCacheOptions;
 //#endregion
 
-//#region Snapshot
-/**
- * Strategy options for creating and invalidating filesystem snapshots.
- */
-export type SnapshotStrategyOptions = {
-  /**
-   * Compare content hashes to determine invalidation.
-   */
-  hash?: boolean;
-  /**
-   * Compare timestamps to determine invalidation.
-   */
-  timestamp?: boolean;
-};
-
-/**
- * Options for filesystem snapshots.
- */
-export type SnapshotOptions = {
-  /**
-   * Snapshots for file dependencies.
-   */
-  dependencies?: SnapshotStrategyOptions;
-  /**
-   * Snapshots for context dependencies.
-   */
-  contextDependencies?: SnapshotStrategyOptions;
-};
-//#endregion
-
 //#region Stats
 
 export type StatsPresets =
@@ -3255,10 +3225,6 @@ export type RspackOptions = {
    * Options for caching.
    */
   cache?: CacheOptions;
-  /**
-   * Options for filesystem snapshots.
-   */
-  snapshot?: SnapshotOptions;
   /**
    * The context in which the compilation should occur.
    */

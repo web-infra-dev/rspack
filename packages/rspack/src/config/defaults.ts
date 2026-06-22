@@ -25,7 +25,6 @@ import type {
   EntryNormalized,
   ExperimentsNormalized,
   RspackOptionsNormalized,
-  SnapshotNormalized,
 } from './normalization';
 import {
   getDefaultTarget,
@@ -107,8 +106,6 @@ export const applyRspackOptionsDefaults = (
     mode: options.mode,
     compilerIndex,
   });
-  F(options, 'snapshot', () => ({}));
-  applySnapshotDefaults(options.snapshot!, { production });
 
   applyIncrementalDefaults(options);
 
@@ -247,26 +244,6 @@ const applyCacheDefaults = (
       D(cache, 'portable', false);
       D(cache, 'readonly', false);
       break;
-  }
-};
-
-const applySnapshotDefaults = (
-  snapshot: SnapshotNormalized,
-  { production }: { production: boolean },
-) => {
-  F(snapshot, 'dependencies', () =>
-    production ? { timestamp: true, hash: true } : { timestamp: true },
-  );
-  F(snapshot, 'contextDependencies', () => ({ timestamp: true }));
-  applySnapshotStrategyDefaults(snapshot.dependencies);
-  applySnapshotStrategyDefaults(snapshot.contextDependencies);
-};
-
-const applySnapshotStrategyDefaults = (
-  strategy: SnapshotNormalized['dependencies'],
-) => {
-  if (strategy && strategy.hash !== true) {
-    D(strategy, 'timestamp', true);
   }
 };
 
