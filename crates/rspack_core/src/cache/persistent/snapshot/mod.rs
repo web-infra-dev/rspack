@@ -6,6 +6,7 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
+use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use self::strategy::{StrategyHelper, ValidateResult};
@@ -146,32 +147,26 @@ impl Snapshot {
         let helper = helper.clone();
         let codec = codec.clone();
         async move {
-          let Ok(path) = codec.decode::<ArcPath>(&key) else {
-            return None;
-          };
+          let path = codec.decode::<ArcPath>(&key)?;
           let validate = match codec.decode::<Strategy>(&value) {
             Ok(strategy) => helper.validate(&path, &strategy).await,
             Err(_) => ValidateResult::Modified,
           };
-          Some((path, validate))
+          Ok::<_, rspack_error::Error>((path, validate))
         }
       })
-      .fut_consume(|data| {
-        if let Some((path, validate)) = data {
-          match validate {
-            ValidateResult::Modified => {
-              modified_path.insert(path);
-            }
-            ValidateResult::Deleted => {
-              deleted_path.insert(path);
-            }
-            ValidateResult::NoChanged => {
-              no_change_path.insert(path);
-            }
-          }
+      .try_fut_consume(|(path, validate)| match validate {
+        ValidateResult::Modified => {
+          modified_path.insert(path);
+        }
+        ValidateResult::Deleted => {
+          deleted_path.insert(path);
+        }
+        ValidateResult::NoChanged => {
+          no_change_path.insert(path);
         }
       })
-      .await;
+      .await?;
 
     Ok((is_hot_start, modified_path, deleted_path, no_change_path))
   }
@@ -470,5 +465,28 @@ mod tests {
     assert!(modified_paths.contains(&p!("/file.js")));
     assert!(deleted_paths.is_empty());
     assert!(no_change_paths.is_empty());
+  }
+
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn should_return_error_for_undecodable_snapshot_key() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let codec = Arc::new(CacheCodec::new(None));
+
+    fs.create_dir_all("/".into()).await.unwrap();
+    fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
+
+    let snapshot = Snapshot::new(SnapshotOptions::default(), fs, codec.clone());
+    let mut storage = MemoryStorage::default();
+    storage.set(
+      SnapshotScope::FILE.name(),
+      b"invalid path".to_vec(),
+      codec.encode(&SnapshotStrategyOptions::timestamp()).unwrap(),
+    );
+
+    let result = snapshot
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await;
+
+    assert!(result.is_err());
   }
 }
