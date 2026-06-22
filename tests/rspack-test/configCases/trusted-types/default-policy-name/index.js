@@ -15,7 +15,7 @@ it("should use default trusted types policy name", function () {
 	);
 	var script = document.head._children.pop();
 	expect(script.src).toBe("https://test.cases/path/default-policy-name.web.js");
-	__non_webpack_require__("./default-policy-name.web.js");
+	require("./default-policy-name.web.js");
 	expect(createScriptURLSpy).toHaveBeenCalledWith(
 		"https://test.cases/path/default-policy-name.web.js"
 	);

@@ -1,7 +1,7 @@
 import "./style.module.css";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("should support css module parser feature toggles", () => {
   const css = fs.readFileSync(path.resolve(__dirname, "bundle0.css"), "utf-8");

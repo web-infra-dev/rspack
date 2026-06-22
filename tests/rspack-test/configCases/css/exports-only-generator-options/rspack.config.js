@@ -1,6 +1,12 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = [
   {
+    externals: {
+      './pseudo-export_style_module_css.bundle0.js':
+        'commonjs ./pseudo-export_style_module_css.bundle0.js',
+      './pseudo-export_style_module_css_exportsOnly.bundle0.js':
+        'commonjs ./pseudo-export_style_module_css_exportsOnly.bundle0.js',
+    },
     target: 'web',
     mode: 'development',
     module: {

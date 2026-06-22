@@ -2,7 +2,7 @@ import "package/styles.css";
 import "./style.css";
 
 it("should work and enforce create vendor CSS chunk", () => {
-	const path = __non_webpack_require__("path");
+	const path = require("path");
 	const links = document.getElementsByTagName("link");
 	const css = [];
 

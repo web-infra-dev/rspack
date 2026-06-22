@@ -11,6 +11,7 @@ import {
 } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
+import { applyNodeBuiltinExternals } from './node-builtin-externals';
 import { createRunner } from './runner';
 
 const NORMAL_CASES_ROOT = path.resolve(__TEST_PATH__, 'normalCases');
@@ -40,6 +41,7 @@ const createCaseOptions = (
             options,
           );
           overrideOptions(context, options);
+          applyNodeBuiltinExternals(options);
           compiler.setOptions(options);
         },
         compiler: async (context: ITestContext) => {

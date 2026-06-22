@@ -2,13 +2,13 @@ const prod = process.env.NODE_ENV === "production";
 
 it("should allow to create css modules", () => new Promise((resolve, reject) => {
 	const done = err => (err ? reject(err) : resolve());
-	__non_webpack_require__("./use-style_js.bundle0.js");
+	require("./use-style_js.bundle0.js");
 	import("./use-style.js").then(({ default: x }) => {
 		try {
 			expect(x).toMatchFileSnapshotSync(`${__SNAPSHOT__}/x.txt`);
 
-			const fs = __non_webpack_require__("fs");
-			const path = __non_webpack_require__("path");
+			const fs = require("fs");
+			const path = require("path");
 			const cssOutputFilename = "use-style_js.bundle0.css";
 
 			const cssContent = fs.readFileSync(

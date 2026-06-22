@@ -2,6 +2,9 @@
 
 /** @type {() => import("@rspack/core").Configuration} */
 module.exports = () => ({
+  externals: {
+    './use-style_js.bundle0.js': 'commonjs ./use-style_js.bundle0.js',
+  },
   target: 'web',
   mode: 'development',
   module: {

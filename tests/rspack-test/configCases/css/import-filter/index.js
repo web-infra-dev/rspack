@@ -1,6 +1,6 @@
 require("./a.css");
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("import filter function should filter imports based on return value", async () => {
 	const css = await fs.promises.readFile(

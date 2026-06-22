@@ -1,5 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './imported_js.bundle0.js': 'commonjs ./imported_js.bundle0.js',
+    './reexported_js.bundle0.js': 'commonjs ./reexported_js.bundle0.js',
+  },
   target: 'web',
   node: {
     __dirname: false,

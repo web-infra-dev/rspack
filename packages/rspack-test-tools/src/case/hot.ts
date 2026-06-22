@@ -21,6 +21,7 @@ import type {
   ITestRunner,
 } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
+import { applyNodeBuiltinExternals } from './node-builtin-externals';
 import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { cachedStats, type THotStepRuntimeData } from './runner';
 
@@ -60,6 +61,7 @@ export function createHotProcessor(
         options.incremental ??= 'advance-silent';
       }
       mergeRspackOptions(options, rspackOptions);
+      applyNodeBuiltinExternals(options);
       applyRuntimeModeTestDefines(options);
       compiler.setOptions(options);
     },

@@ -1,4 +1,4 @@
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 const getHashPrefix = (value, local) => value.slice(0, -`-${local}`.length);
 const getSnapshotPath = name => {

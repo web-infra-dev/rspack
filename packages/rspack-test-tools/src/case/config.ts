@@ -21,10 +21,11 @@ import {
   findMultiCompilerBundle,
   run,
 } from './common';
+import { applyNodeBuiltinExternals } from './node-builtin-externals';
 import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
-export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
+export type TConfigCaseConfig = TTestConfig;
 type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
   rspackOptions?: RspackOptions;
 };
@@ -48,6 +49,7 @@ export function createConfigProcessor(
         (index, context, options) => {
           overrideOptions(index, context, options);
           mergeRspackOptions(options, rspackOptions);
+          applyNodeBuiltinExternals(options);
           applyRuntimeModeTestDefines(options);
         },
       );

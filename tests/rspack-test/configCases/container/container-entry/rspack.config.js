@@ -2,6 +2,9 @@ const { ContainerPlugin } = require('@rspack/core').container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './container-file.js': 'commonjs ./container-file.js',
+  },
   output: {
     pathinfo: true,
   },

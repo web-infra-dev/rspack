@@ -2,7 +2,7 @@ import path from 'node:path';
 import { renderToReadableStream } from 'react-server-dom-rspack/server';
 import { App } from '../App';
 
-const fs = __non_webpack_require__('node:fs');
+const fs = require('node:fs');
 
 const RSC_ENTRY_MODULE_HEADER = '"rspack/rsc-entry?name=main"() {';
 

@@ -22,6 +22,12 @@ module.exports = {
     minimize: true,
     minimizer: [new rspack.LightningCssMinimizerRspackPlugin()],
   },
-  externals: ['source-map'],
+  externals: [
+    {
+      '@rspack/test-tools/helper/util/checkSourceMap':
+        'commonjs @rspack/test-tools/helper/util/checkSourceMap',
+    },
+    'source-map',
+  ],
   externalsType: 'commonjs',
 };

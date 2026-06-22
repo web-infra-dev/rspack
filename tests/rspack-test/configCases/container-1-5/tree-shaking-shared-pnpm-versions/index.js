@@ -9,7 +9,7 @@ it('should generate tree shaking shared fallbacks for every resolved version', a
 
   const fallbackValues = Object.fromEntries(
     fallbacks.map(([entry, version, globalName]) => {
-      const container = __non_webpack_require__(`./${entry}`)[globalName];
+      const container = eval("require")(`./${entry}`)[globalName];
       return [version, container.get()().value];
     }),
   );

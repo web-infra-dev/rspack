@@ -23,8 +23,8 @@ test2;
 require;
 
 it("should NOT rename require when requireAlias is false", function () {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 
 	const content = fs.readFileSync(path.join(__dirname, "./bundle0.js"), "utf-8");
 	const filename = "./file";
