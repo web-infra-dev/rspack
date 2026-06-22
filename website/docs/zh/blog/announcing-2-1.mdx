@@ -19,11 +19,11 @@ import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 ## 新特性
 
-### React Compiler 支持
+### 支持 React Compiler \{#react-compiler}
 
-### Native CSS 新能力
+### Native CSS 新能力 \{#native-css}
 
-### `createRequire` 支持 \{#create-require}
+### 支持 `createRequire` \{#create-require}
 
 在 ESM 模块中没有内置的 `require`，因此 Node.js 提供了 [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename)，允许你在 ESM 中创建一个 `require` 函数，用于加载 CommonJS 模块。在以往的版本中，Rspack 无法静态分析通过这种方式创建出的 `require`，因此其加载的模块也无法被正常打包。
 
@@ -56,19 +56,21 @@ const value = require('./value.cjs');
 
 该选项默认值为 `false`，与 webpack 的行为保持一致。查看 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 了解更多。
 
-### `import.meta.glob` 支持
+### 支持 `import.meta.glob` \{#import-meta-glob}
 
-### Rspack magic comments
+### Rspack magic comments \{#magic-comments}
 
-### Import Source Phase for Wasm
+### 支持 Source Phase Imports \{#source-phase-imports}
 
-### TS Checker 插件与 tsgo 支持
+### TS Checker 插件与 tsgo 支持 \{#tsgo-support}
+
+### 新的持久化缓存清理机制 \{#cache-cleanup}
 
 ## 性能提升
 
-### 构建性能优化
+### 构建性能优化 \{#build-performance}
 
-### Circular Check 插件提速
+### Circular Check 插件提速 \{#circular-check}
 
 ## 产物优化
 
@@ -109,11 +111,11 @@ export default {
 
 查看 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions) 了解更多。
 
-### Guarded dependency optimization
+### 分支感知的依赖裁剪
 
-### Guarded export presence
+### 分支感知的 ESM 导出存在检测
 
-### Export const getter optimization
+### `export const` 值绑定优化
 
 ## Rstack 进展
 
