@@ -57,6 +57,148 @@ However, unlike webpack, if a configuration file is not explicitly specified, Rs
 
 Rspack supports most webpack configuration options. See [Configure Rspack](/config/) for the complete list of supported options.
 
+## Cache configuration
+
+Webpack and Rspack use different cache option shapes. Do not copy webpack cache options directly; map them to the corresponding [Rspack cache options](/config/cache).
+
+Disabled cache and memory cache can be kept as-is: `cache: false`, `cache: true`, and `cache: { type: 'memory' }` have the same meaning in Rspack.
+
+For webpack filesystem cache, use Rspack [persistent cache](/config/cache#persistent-cache), then migrate the supported fields below.
+
+1. Change webpack `cache.type: 'filesystem'` to Rspack `cache.type: 'persistent'`.
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: {
++   type: 'persistent',
++ },
+};
+```
+
+2. Flatten webpack `cache.buildDependencies` into Rspack [`cache.buildDependencies`](/config/cache#cachebuilddependencies), which accepts a file path array.
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, 'package.json')],
+-     ts: [path.join(__dirname, 'tsconfig.json')]
+-   }
+- },
++ cache: {
++   type: 'persistent',
++   buildDependencies: [
++     __filename,
++     path.join(__dirname, 'package.json'),
++     path.join(__dirname, 'tsconfig.json')
++   ]
++ },
+};
+```
+
+3. Merge webpack `cache.name` and `cache.version` into Rspack [`cache.version`](/config/cache#cacheversion).
+
+Rspack does not have a separate `cache.name` option. Cache instances are isolated by `cache.version` and [`cache.storage.directory`](/config/cache#cachestoragedirectory).
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
++ cache: {
++   type: 'persistent',
++   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
++ },
+};
+```
+
+4. Move webpack top-level `snapshot` options into Rspack [`cache.snapshot`](/config/cache#cachesnapshot).
+
+```diff title="rspack.config.mjs"
+export default {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, 'constant')],
+-   managedPaths: [path.join(__dirname, 'node_modules')],
+-   unmanagedPaths: []
+- },
++ cache: {
++   type: 'persistent',
++   snapshot: {
++     immutablePaths: [path.join(__dirname, 'constant')],
++     managedPaths: [path.join(__dirname, 'node_modules')],
++     unmanagedPaths: []
++   }
++ },
+};
+```
+
+5. Move webpack `cache.cacheDirectory` to Rspack [`cache.storage.directory`](/config/cache#cachestoragedirectory).
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test')
+- },
++ cache: {
++   type: 'persistent',
++   storage: {
++     type: 'filesystem',
++     directory: path.join(__dirname, 'node_modules/.cache/test')
++   }
++ },
+};
+```
+
+The following example shows the same mapping when automating config migration:
+
+```js
+function transform(webpackConfig, rspackConfig) {
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
+  }
+
+  if (!webpackConfig.cache) {
+    rspackConfig.cache = false;
+    return;
+  }
+
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.cache = true;
+    return;
+  }
+
+  rspackConfig.cache = { type: 'persistent' };
+
+  rspackConfig.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
+  ).flat();
+
+  const version = [webpackConfig.cache.name, webpackConfig.cache.version]
+    .filter(Boolean)
+    .join('-');
+  if (version) {
+    rspackConfig.cache.version = version;
+  }
+
+  rspackConfig.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+
+  if (webpackConfig.cache.cacheDirectory) {
+    rspackConfig.cache.storage = {
+      type: 'filesystem',
+      directory: webpackConfig.cache.cacheDirectory,
+    };
+  }
+}
+```
+
 ## Webpack built-in plugins
 
 Rspack has implemented most of webpack's built-in plugins, with the same names and configuration parameters, allowing for easy replacement.
