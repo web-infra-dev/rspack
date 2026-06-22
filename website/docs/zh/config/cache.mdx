@@ -234,7 +234,7 @@ export default {
 - `timestamp: true` 会比较递归时间戳哈希，包含目录项和子项时间戳。
 - 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
 
-`hash` 和 `timestamp` 至少应启用一个。两者都关闭会使 context module 快照始终失效。
+与 webpack 一致，除非设置了 `hash: true`，context module 快照都会使用 timestamp 模式。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -243,7 +243,7 @@ export default {
   },
   snapshot: {
     contextModule: {
-      timestamp: true,
+      hash: true,
     },
   },
 };

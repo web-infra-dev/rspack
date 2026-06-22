@@ -226,7 +226,7 @@ Controls the snapshot strategy used when building context modules, such as modul
 - `timestamp: true` compares recursive timestamp hashes, including directory entries and child timestamps.
 - When both are enabled, Rspack checks timestamps first and compares hashes only after a timestamp change, so unchanged content can still reuse the cache.
 
-At least one of `hash` or `timestamp` should be enabled. Disabling both makes context module snapshots always invalid.
+Following webpack, context module snapshots use timestamp mode unless `hash: true` is set. When `hash: true` is set without `timestamp: true`, Rspack uses hash-only mode.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -235,7 +235,7 @@ export default {
   },
   snapshot: {
     contextModule: {
-      timestamp: true,
+      hash: true,
     },
   },
 };

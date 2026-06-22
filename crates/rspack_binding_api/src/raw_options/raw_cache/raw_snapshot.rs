@@ -35,10 +35,13 @@ pub struct RawSnapshotStrategyOptions {
 
 impl From<RawSnapshotStrategyOptions> for SnapshotStrategyOptions {
   fn from(value: RawSnapshotStrategyOptions) -> Self {
-    SnapshotStrategyOptions::new(
-      value.hash.unwrap_or_default(),
-      value.timestamp.unwrap_or_default(),
-    )
+    let hash = value.hash.unwrap_or_default();
+    let timestamp = if hash {
+      value.timestamp.unwrap_or_default()
+    } else {
+      true
+    };
+    SnapshotStrategyOptions::new(hash, timestamp)
   }
 }
 
@@ -67,5 +70,42 @@ impl From<RawSnapshotOptions> for SnapshotOptions {
     } else {
       options
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{RawSnapshotOptions, RawSnapshotStrategyOptions, SnapshotStrategyOptions};
+
+  fn to_strategy(hash: Option<bool>, timestamp: Option<bool>) -> SnapshotStrategyOptions {
+    RawSnapshotStrategyOptions { hash, timestamp }.into()
+  }
+
+  #[test]
+  fn should_align_context_module_strategy_defaults_with_webpack() {
+    let strategy = to_strategy(None, None);
+    assert!(!strategy.hash);
+    assert!(strategy.timestamp);
+
+    let strategy = to_strategy(Some(false), Some(false));
+    assert!(!strategy.hash);
+    assert!(strategy.timestamp);
+
+    let strategy = to_strategy(Some(true), None);
+    assert!(strategy.hash);
+    assert!(!strategy.timestamp);
+
+    let strategy = to_strategy(Some(true), Some(true));
+    assert!(strategy.hash);
+    assert!(strategy.timestamp);
+  }
+
+  #[test]
+  fn should_use_default_context_module_strategy_when_omitted() {
+    let options: rspack_core::cache::persistent::snapshot::SnapshotOptions =
+      RawSnapshotOptions::default().into();
+    let strategy = options.context_module_strategy();
+    assert!(!strategy.hash);
+    assert!(strategy.timestamp);
   }
 }
