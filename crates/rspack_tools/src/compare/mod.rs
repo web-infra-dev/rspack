@@ -11,13 +11,43 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{debug_info::DebugInfo, utils::ensure_iter_equal};
 
+const META_FILE_NAME: &str = "_meta";
+
+fn is_cache_scope(name: &str) -> bool {
+  name == occasion::meta::SCOPE || name == occasion::make::SCOPE
+}
+
+fn has_version_scope(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
+  let Ok(versions) = fs.read_dir_sync(path.as_path()) else {
+    return false;
+  };
+
+  versions
+    .into_iter()
+    .filter(|version| !version.starts_with(['.', '_']))
+    .map(|version| path.join(version))
+    .any(|version_path| {
+      fs.metadata_sync(&version_path)
+        .is_ok_and(|metadata| metadata.is_directory)
+        && fs
+          .read_dir_sync(&version_path)
+          .is_ok_and(|scopes| scopes.iter().any(|scope| is_cache_scope(scope)))
+    })
+}
+
+fn is_storage_root(fs: &NativeFileSystem, path: &Utf8PathBuf) -> bool {
+  fs.metadata_sync(&path.join(META_FILE_NAME))
+    .is_ok_and(|metadata| metadata.is_file)
+    || has_version_scope(fs, path)
+}
+
 pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
   let fs = NativeFileSystem::new(false);
   let mut relative_paths = HashSet::default();
   let mut queue = VecDeque::new();
   queue.push_back(root_path.clone());
   while let Some(path) = queue.pop_front() {
-    if matches!(path.file_name(), Some("rspack")) {
+    if is_storage_root(&fs, &path) {
       relative_paths.insert(
         path
           .strip_prefix(root_path)
@@ -31,40 +61,62 @@ pub fn find_relative_cache_path(root_path: &Utf8PathBuf) -> HashSet<String> {
       continue;
     };
     for child in children {
-      queue.push_back(path.join(child));
+      if child.starts_with(['.', '_']) {
+        continue;
+      }
+      let child_path = path.join(child);
+      if fs
+        .metadata_sync(&child_path)
+        .is_ok_and(|metadata| metadata.is_directory)
+      {
+        queue.push_back(child_path);
+      }
     }
   }
   relative_paths
 }
 
-/// Load all version storages from a directory path
-/// Returns a HashMap where key is version name and value is BoxStorage
+fn join_relative_cache_path(root_path: &Utf8PathBuf, relative_path: &str) -> Utf8PathBuf {
+  if relative_path.is_empty() {
+    root_path.clone()
+  } else {
+    root_path.join(relative_path)
+  }
+}
+
+/// Load all version storages from a directory path.
+/// Returns a HashMap where key is `<version>` and value is BoxStorage.
 pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage> {
   let fs = Arc::new(NativeFileSystem::new(false));
   let mut storages = HashMap::default();
 
-  // Read directory entries
   let Ok(versions) = fs.read_dir_sync(path.as_path()) else {
     return storages;
   };
 
-  // Collect version directories (skip hidden files)
-  for v in versions {
-    // Skip hidden files (starting with .)
-    if v.starts_with('.') {
+  // Cache directories are laid out as `<version>`.
+  for version in versions {
+    if version.starts_with(['.', '_']) {
+      continue;
+    }
+    if !fs
+      .metadata_sync(&path.join(&version))
+      .is_ok_and(|metadata| metadata.is_directory)
+    {
       continue;
     }
 
-    // Create storage for this version
     let storage = create_storage(
       StorageOptions::FileSystem {
         directory: path.clone(),
       },
-      v.clone(),
+      version.clone(),
+      None,
+      None,
       fs.clone(),
     );
 
-    storages.insert(v, storage);
+    storages.insert(version, storage);
   }
 
   storages
@@ -87,8 +139,8 @@ pub async fn compare_cache_dir(path1: Utf8PathBuf, path2: Utf8PathBuf) -> Result
   )?;
 
   for cache_relative_path in &cache_paths1 {
-    let cache_path1 = path1.join(cache_relative_path);
-    let cache_path2 = path2.join(cache_relative_path);
+    let cache_path1 = join_relative_cache_path(&path1, cache_relative_path);
+    let cache_path2 = join_relative_cache_path(&path2, cache_relative_path);
     let debug_info = DebugInfo::default()
       .with_field("path1", cache_path1.as_ref())
       .with_field("path2", cache_path2.as_ref());

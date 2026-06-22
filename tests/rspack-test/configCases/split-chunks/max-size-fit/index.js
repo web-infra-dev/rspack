@@ -48,12 +48,13 @@ it('should ensure max size fit', () => {
 		chunks.set(c.id, c)
 	}
 
-	expect(chunks.size).toBe(4)
+	expect(chunks.size).toBe(3)
 
 	expect(chunks.get('main-1')).toBeDefined()
-	expect(chunks.get('main-1').modules.length).toBe(3)
-	expect(chunks.get('main-2')).toBeDefined()
-	expect(chunks.get('main-2').modules.length).toBe(3)
-	expect(chunks.get('main-3')).toBeDefined()
-	expect(chunks.get('main-3').modules.length).toBe(1)
+	expect(chunks.get('main-1').modules.length).toBe(4)
+	expect(chunks.get('main-cde42ecf')).toBeDefined()
+	expect(chunks.get('main-cde42ecf').modules.length).toBe(1)
+	expect(chunks.get('main-cde42ecf').modules[0].name).toBe('./index.js + 5 modules')
+	expect(chunks.get('main-f5c11e54')).toBeDefined()
+	expect(chunks.get('main-f5c11e54').modules.length).toBe(1)
 })

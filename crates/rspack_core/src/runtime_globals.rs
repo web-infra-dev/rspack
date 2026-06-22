@@ -4,7 +4,7 @@ use bitflags::bitflags;
 use heck::ToLowerCamelCase;
 use rustc_hash::FxHashMap;
 
-use crate::CompilerOptions;
+use crate::{CompilerOptions, runtime_mode::RuntimeMode};
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -494,10 +494,24 @@ pub enum RuntimeVariable {
 
 pub fn runtime_variable_to_string(
   runtime_variable: &RuntimeVariable,
-  _compiler_options: &CompilerOptions,
+  compiler_options: &CompilerOptions,
 ) -> String {
-  // TODO: use compiler options to get runtime variable names
-  runtime_variable_name(runtime_variable).to_string()
+  match compiler_options.experiments.runtime_mode {
+    RuntimeMode::Webpack => runtime_variable_name(runtime_variable).to_string(),
+    RuntimeMode::Rspack => rspack_runtime_variable_name(runtime_variable).to_string(),
+  }
+}
+
+pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {
+  match *runtime_variable {
+    RuntimeVariable::Require => "__rspack_require",
+    RuntimeVariable::Context => "__rspack_context",
+    RuntimeVariable::Modules => "__rspack_modules",
+    RuntimeVariable::ModuleCache => "__rspack_module_cache",
+    RuntimeVariable::Exports => "__rspack_exports",
+    RuntimeVariable::Module => "__rspack_module",
+    RuntimeVariable::StartupExec => "__rspack_exec",
+  }
 }
 
 pub fn runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {

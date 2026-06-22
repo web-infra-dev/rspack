@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::{borrow::Cow, hash::Hash, sync::LazyLock};
+use std::{borrow::Cow, hash::Hasher, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -120,8 +120,8 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
 }
 
 fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
-  let mut filename_hash = RspackHash::from(&options.output);
-  filename.hash(&mut filename_hash);
+  let mut filename_hash = RspackHash::new(&options.output.hash_function);
+  filename_hash.write(filename.as_bytes());
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()
 }
@@ -260,9 +260,7 @@ fn deterministic_grouping_for_modules(
   min_size: &SplitChunkSizes,
   delimiter: &str,
 ) -> Vec<Group> {
-  let mut results: Vec<Group> = Default::default();
-
-  let mut nodes = items
+  let nodes = items
     .iter()
     .map(|module| {
       let module: &dyn Module = module.as_ref();
@@ -274,6 +272,16 @@ fn deterministic_grouping_for_modules(
       }
     })
     .collect::<Vec<_>>();
+
+  deterministic_grouping(nodes, allow_max_size, min_size)
+}
+
+fn deterministic_grouping(
+  mut nodes: Vec<GroupItem>,
+  allow_max_size: &SplitChunkSizes,
+  min_size: &SplitChunkSizes,
+) -> Vec<Group> {
+  let mut results: Vec<Group> = Default::default();
 
   nodes.sort_by(|a, b| a.key.cmp(&b.key));
 
@@ -380,8 +388,8 @@ fn deterministic_grouping_for_modules(
         while pos <= right + 1 {
           let similarity = group.similarities[pos as usize - 1];
           if similarity < best_similarity
-            && left_size.bigger_than(min_size)
-            && right_size.bigger_than(min_size)
+            && !left_size.smaller_than(min_size)
+            && !right_size.smaller_than(min_size)
           {
             best_similarity = similarity;
             best = pos;
@@ -726,5 +734,156 @@ impl SplitChunksPlugin {
       })
     });
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::collections::BTreeMap;
+
+  use super::*;
+
+  type NormalizedSize = Vec<(String, i32)>;
+  type GroupResult = Vec<(Vec<usize>, NormalizedSize)>;
+
+  fn sizes(values: &[(&str, i32)]) -> SplitChunkSizes {
+    SplitChunkSizes(
+      values
+        .iter()
+        .map(|(ty, size)| (SourceType::from(*ty), f64::from(*size)))
+        .collect(),
+    )
+  }
+
+  fn item(index: usize, size: &[(&str, i32)]) -> GroupItem {
+    GroupItem {
+      module: ModuleIdentifier::from(index.to_string()),
+      size: sizes(size),
+      key: (100_000 + index).to_string(),
+    }
+  }
+
+  fn normalize_size(size: &SplitChunkSizes) -> NormalizedSize {
+    size
+      .iter()
+      .map(|(ty, size)| (ty.to_string(), *size as i32))
+      .collect::<BTreeMap<_, _>>()
+      .into_iter()
+      .collect()
+  }
+
+  fn expected_size(values: &[(&str, i32)]) -> NormalizedSize {
+    values
+      .iter()
+      .map(|(ty, size)| ((*ty).to_string(), *size))
+      .collect()
+  }
+
+  fn group(
+    items: Vec<&[(&str, i32)]>,
+    min_size: &[(&str, i32)],
+    max_size: &[(&str, i32)],
+  ) -> GroupResult {
+    deterministic_grouping(
+      items
+        .into_iter()
+        .enumerate()
+        .map(|(index, size)| item(index, size))
+        .collect(),
+      &sizes(max_size),
+      &sizes(min_size),
+    )
+    .into_iter()
+    .map(|group| {
+      (
+        group
+          .nodes
+          .iter()
+          .map(|node| node.module.as_str().parse().expect("module index"))
+          .collect(),
+        normalize_size(&group.size),
+      )
+    })
+    .collect()
+  }
+
+  #[test]
+  fn should_split_large_chunks_with_different_size_types() {
+    assert_eq!(
+      group(
+        vec![&[("a", 3), ("b", 3)], &[("b", 1)], &[("a", 3)]],
+        &[("a", 3), ("b", 3)],
+        &[("a", 5), ("b", 5)],
+      ),
+      vec![
+        (vec![0, 1], expected_size(&[("a", 3), ("b", 4)])),
+        (vec![2], expected_size(&[("a", 3)])),
+      ]
+    );
+  }
+
+  #[test]
+  fn should_separate_items_with_different_size_types_when_unsplittable() {
+    assert_eq!(
+      group(
+        vec![
+          &[("a", 1)],
+          &[("b", 1)],
+          &[("a", 1)],
+          &[("a", 1)],
+          &[("b", 1)],
+          &[("a", 1)],
+          &[("a", 1)],
+          &[("b", 1)],
+          &[("a", 1)],
+          &[("a", 1)],
+        ],
+        &[("a", 3), ("b", 3)],
+        &[("a", 5), ("b", 5)],
+      ),
+      vec![
+        (vec![0, 2, 3], expected_size(&[("a", 3)])),
+        (vec![1, 4, 7], expected_size(&[("b", 3)])),
+        (vec![5, 6, 8, 9], expected_size(&[("a", 4)])),
+      ]
+    );
+  }
+
+  #[test]
+  fn should_handle_entangled_size_types_case_1() {
+    assert_eq!(
+      group(
+        vec![
+          &[("c", 2), ("b", 2)],
+          &[("a", 2), ("c", 2)],
+          &[("a", 2), ("b", 2)]
+        ],
+        &[("a", 3), ("b", 3), ("c", 3)],
+        &[("a", 3), ("b", 3), ("c", 3)],
+      ),
+      vec![(
+        vec![0, 1, 2],
+        expected_size(&[("a", 4), ("b", 4), ("c", 4)])
+      )]
+    );
+  }
+
+  #[test]
+  fn should_handle_entangled_size_types_case_2() {
+    assert_eq!(
+      group(
+        vec![
+          &[("c", 2), ("b", 2)],
+          &[("a", 2), ("c", 2)],
+          &[("a", 2), ("b", 2)]
+        ],
+        &[("a", 3), ("b", 3)],
+        &[("c", 3)],
+      ),
+      vec![
+        (vec![0, 2], expected_size(&[("a", 2), ("b", 4), ("c", 2)])),
+        (vec![1], expected_size(&[("a", 2), ("c", 2)])),
+      ]
+    );
   }
 }

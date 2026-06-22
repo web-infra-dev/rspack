@@ -6,6 +6,7 @@ import type {
 } from '../config';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const MAX_U32 = 0xffffffff;
 
 const validateContext = ({ context }: Configuration) => {
   if (context && !isAbsolute(context)) {
@@ -23,6 +24,34 @@ const validateSplitChunks = ({ optimization }: Configuration) => {
         `${ERROR_PREFIX} "optimization.splitChunks.minChunks" must be greater than or equal to 1, get \`${minChunks}\`.`,
       );
     }
+  }
+};
+
+const validatePersistentCache = ({ cache }: Configuration) => {
+  if (typeof cache !== 'object' || cache.type !== 'persistent') {
+    return;
+  }
+
+  const maxAge = cache.storage?.maxAge;
+  if (
+    maxAge !== undefined &&
+    (!Number.isSafeInteger(maxAge) || maxAge < 0 || maxAge > MAX_U32)
+  ) {
+    throw new Error(
+      `${ERROR_PREFIX} "cache.storage.maxAge" must be an integer between 0 and ${MAX_U32}, get \`${maxAge}\`.`,
+    );
+  }
+
+  const maxGenerations = cache.storage?.maxGenerations;
+  if (
+    maxGenerations !== undefined &&
+    (!Number.isSafeInteger(maxGenerations) ||
+      maxGenerations < 0 ||
+      maxGenerations > MAX_U32)
+  ) {
+    throw new Error(
+      `${ERROR_PREFIX} "cache.storage.maxGenerations" must be an integer between 0 and ${MAX_U32}, get \`${maxGenerations}\`.`,
+    );
   }
 };
 
@@ -85,5 +114,6 @@ const validateExternalUmd = ({
 export function validateRspackConfig(config: Configuration) {
   validateContext(config);
   validateSplitChunks(config);
+  validatePersistentCache(config);
   validateExternalUmd(config);
 }

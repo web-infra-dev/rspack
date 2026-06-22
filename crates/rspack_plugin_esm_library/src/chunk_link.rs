@@ -293,7 +293,7 @@ pub struct ChunkLinkContext {
   pub module_external_namespace_imports: FxHashMap<RawImportSource, Atom>,
 
   /**
-  `const symbol = __webpack_require__(module_id)`
+  `const symbol = __rspack_require(module_id)`
   */
   pub required: IdentifierIndexMap<ExternalInterop>,
 
@@ -331,7 +331,7 @@ pub struct ChunkLinkContext {
   pub used_names: FxHashSet<Atom>,
 
   /**
-  whether `__webpack_require__` is exported by a runtime module instead of chunk exports
+  whether `__rspack_require` is exported by a runtime module instead of chunk exports
   */
   pub exports_require_via_runtime_module: bool,
 }

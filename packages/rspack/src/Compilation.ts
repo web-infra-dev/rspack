@@ -13,6 +13,7 @@ import type {
   ChunkGroup,
   Dependency,
   ExternalObject,
+  JsAsset,
   JsCompilation,
   JsPathData,
   JsSource,
@@ -476,12 +477,13 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * Get a map of all entrypoints.
    */
   get entrypoints(): ReadonlyMap<string, Entrypoint> {
-    return new Map(
-      this.#inner.entrypoints.map((entrypoint) => [
-        entrypoint.name!,
-        entrypoint,
-      ]),
-    );
+    const entrypoints = new Map<string, Entrypoint>();
+    const rawEntryPoints = this.#inner.entrypoints;
+    for (let i = 0; i < rawEntryPoints.length; i++) {
+      const entrypoint = rawEntryPoints[i];
+      entrypoints.set(entrypoint.name!, entrypoint);
+    }
+    return entrypoints;
   }
 
   get chunkGroups(): readonly ChunkGroup[] {
@@ -692,16 +694,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   getAssets(): readonly Asset[] {
     const assets = this.#inner.getAssets();
 
-    return assets.map((asset) => {
-      return Object.defineProperties(asset, {
-        info: {
-          value: asset.info,
-        },
-        source: {
-          get: () => this.__internal__getAssetSource(asset.name),
-        },
-      }) as unknown as Asset;
-    });
+    return assets.map((asset) => this.#createAsset(asset));
   }
 
   getAsset(name: string): Readonly<Asset> | void {
@@ -709,14 +702,14 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     if (!asset) {
       return;
     }
-    return Object.defineProperties(asset, {
-      info: {
-        value: asset.info,
-      },
-      source: {
-        get: () => this.__internal__getAssetSource(asset.name),
-      },
-    }) as unknown as Asset;
+    return this.#createAsset(asset);
+  }
+
+  #createAsset(asset: JsAsset): Asset {
+    Object.defineProperty(asset, 'source', {
+      get: () => this.__internal__getAssetSource(asset.name),
+    });
+    return asset as unknown as Asset;
   }
 
   /**

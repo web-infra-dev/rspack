@@ -1462,7 +1462,7 @@ var {} = {{}};
                   .get_module_chunks(id)
                   .is_empty();
                 if has_javascript_source && used_in_chunk {
-                  // we use __webpack_require__.add({...}) to register modules
+                  // we use __rspack_require.add({...}) to register modules
                   external_module_info
                     .runtime_requirements
                     .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
@@ -1652,8 +1652,8 @@ var {} = {{}};
   }
 
   /**
-  add __webpack_require__ call to current chunk at top level,
-  if `from` is specified, the __webpack_require__ will be rendered
+  add __rspack_require call to current chunk at top level,
+  if `from` is specified, the __rspack_require will be rendered
   as the `from` module renders.
   */
   pub(crate) fn add_require<'a>(
@@ -2315,7 +2315,7 @@ var {} = {{}};
       .map(|chunk| (*chunk, Default::default()))
       .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
 
-    // const symbol = __webpack_require__(module);
+    // const symbol = __rspack_require(module);
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
@@ -2644,7 +2644,7 @@ var {} = {{}};
       // followings should not require the module again.
       //
       // ```js
-      // const foo = __webpack_require__('foo')
+      // const foo = __rspack_require('foo')
       // foo; // access foo
       // foo; // access foo again, but no require call
       // ```
@@ -2656,7 +2656,7 @@ var {} = {{}};
         // make sure all side-effect modules are rendered
         // eg.
         // import './foo.cjs'
-        // should be rendered as __webpack_require__('./foo.cjs')
+        // should be rendered as __rspack_require('./foo.cjs')
         for dep_id in module.get_dependencies() {
           let dep = module_graph.dependency_by_id(dep_id);
 

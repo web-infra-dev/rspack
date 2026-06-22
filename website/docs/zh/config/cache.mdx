@@ -33,6 +33,8 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        maxAge?: number;
+        maxGenerations?: number;
       };
     };
 ```
@@ -222,11 +224,9 @@ export default {
 
 ### cache.storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string }`
+- **类型：** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
 
-- **默认值：** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
-
-配置缓存存储。目前仅支持文件系统存储。可通过 `directory` 设置缓存目录。默认为 `node_modules/.cache/rspack`。
+配置缓存存储。目前仅支持文件系统存储。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -234,17 +234,64 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      directory: 'node_modules/.cache/rspack',
+      maxAge: 7 * 24 * 60 * 60,
+      maxGenerations: 10,
     },
   },
 };
 ```
 
-:::tip
-Rspack 将基于 [config.name](/config/other-options#name)、[config.mode](/config/mode#mode)、[buildDependencies](#cachebuilddependencies) 中的文件内容和 [version](#cacheversion) 在 `storage.directory` 中生成缓存文件夹。
+#### cache.storage.directory
 
-Rspack 会在启动时自动清理长时间（7 天）未访问的缓存文件夹。
+- **类型：** `string`
+
+- **默认值：** `node_modules/.cache/rspack/<name>-<mode>-<index>`
+
+通过 `directory` 设置缓存目录。默认情况下 Rspack 会基于 [`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成缓存目录。
+
+:::tip
+不同 Compiler 应配置不同的 [`config.name`](/config/other-options#name) 以确保使用不同的 `cache.storage.directory`，以避免缓存冲突。
 :::
+
+#### cache.storage.maxAge
+
+- **类型：** `number`（正整数，单位为秒）
+
+- **默认值：** `7 * 24 * 60 * 60`（7 天）
+
+缓存允许保持未访问状态的最长时间，单位为秒。超过该时间未被访问的缓存会在清理时被删除。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxAge: 7 * 24 * 60 * 60,
+    },
+  },
+};
+```
+
+#### cache.storage.maxGenerations
+
+- **类型：** `number`（正整数）
+
+- **默认值：** 不限制缓存代数；仍会执行 `maxAge` 清理
+
+这是一个分代回收策略，用来控制当前缓存目录最多保留多少代缓存。缓存代数超过限制时，Rspack 会删除最久未访问的缓存。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxGenerations: 10,
+    },
+  },
+};
+```
 
 ### 查看持久化缓存日志
 

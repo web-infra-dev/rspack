@@ -84,7 +84,7 @@ pub fn module_id_rstest(
   }
 }
 
-// To support use `__webpack_require__.import_actual` for `importActual`.
+// To support use `__rspack_require.import_actual` for `importActual`.
 fn module_namespace_promise_rstest(
   code_generatable_context: &mut TemplateContext,
   dep_id: &DependencyId,

@@ -297,7 +297,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for variable declarations that need hoisting.
   /// Example: `const mocks = rs.hoisted(() => {...})`
-  /// Result: `/* HOIST_START */const mocks = __webpack_require__.rstest_hoisted(() => {...})/* HOIST_END */`
+  /// Result: `/* HOIST_START */const mocks = __rspack_require.rstest_hoisted(() => {...})/* HOIST_END */`
   fn transform_with_statement_hoist(
     source: &mut TemplateReplaceSource,
     dep: &MockMethodDependency,
@@ -327,7 +327,7 @@ impl MockMethodDependencyTemplate {
     );
 
     // Comment out original callee and replace with runtime method
-    // `rs.hoisted` -> `/* rs.hoisted */ __webpack_require__.rstest_hoisted`
+    // `rs.hoisted` -> `/* rs.hoisted */ __rspack_require.rstest_hoisted`
     source.replace_static(callee_range.start, callee_range.start, "/* ", None);
     source.replace(
       callee_range.end,
@@ -339,7 +339,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for standalone calls that need hoisting.
   /// Example: `rs.mock('./foo', () => {...})`
-  /// Result: `/* rs.mock */ /* HOIST_START */__webpack_require__.rstest_mock('./foo', () => {...})/* HOIST_END */`
+  /// Result: `/* rs.mock */ /* HOIST_START */__rspack_require.rstest_mock('./foo', () => {...})/* HOIST_END */`
   fn transform_with_call_hoist(
     source: &mut TemplateReplaceSource,
     dep: &MockMethodDependency,
@@ -368,7 +368,7 @@ impl MockMethodDependencyTemplate {
 
   /// Transform for calls without hoisting.
   /// Example: `rs.doMock('./foo', () => {...})`
-  /// Result: `/* rs.doMock */ __webpack_require__.rstest_do_mock('./foo', () => {...})`
+  /// Result: `/* rs.doMock */ __rspack_require.rstest_do_mock('./foo', () => {...})`
   fn transform_without_hoist(
     source: &mut TemplateReplaceSource,
     require_name: &str,

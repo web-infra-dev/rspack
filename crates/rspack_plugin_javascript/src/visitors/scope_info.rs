@@ -300,25 +300,25 @@ pub struct VariableInfo {
   pub flags: VariableInfoFlags,
 
   /// For example, if we want to bundle a case that has the same name as one
-  /// already used in the webpack output, we must rename the argument
-  /// `__webpack_require__` to something else.
+  /// already used in the rspack output, we must rename the argument
+  /// `__rspack_require` to something else.
   ///
   /// ```ignore
-  /// function f(__webpack_require__) {
-  ///  __webpack_require__(something)
+  /// function f(__rspack_require) {
+  ///  __rspack_require(something)
   /// }
   /// ```
   ///
-  /// Firstly, it tries to define the argument `__webpack_require__` as a
+  /// Firstly, it tries to define the argument `__rspack_require` as a
   /// normal variable (`free_name` and `tag_info` both `None`). However, it should
   /// invoke `Javascript::tag_variable` because it has the same name as the
-  /// webpack runtime require.
+  /// rspack runtime require.
   ///
-  /// so the info about the argument `__webpack_require__` becomes:
+  /// so the info about the argument `__rspack_require` becomes:
   ///
   /// ```ignore
   /// VariableInfo {
-  ///   free_name: Some("__webpack_require__"),
+  ///   free_name: Some("__rspack_require"),
   ///   tag: Some(Tag {
   ///     tag: COMPACT_WEBPACK_RUNTIME_REQUIRE_IDENTIFIER,
   ///     data: SOME_DATA_TO_RENAME_THIS_IDENTIFIER
@@ -326,7 +326,7 @@ pub struct VariableInfo {
   /// }
   /// ```
   ///
-  /// Then, when we encounter the callee `__webpack_require__`,
+  /// Then, when we encounter the callee `__rspack_require`,
   /// the `tag_info` will help us known how to handle it correctly.
   pub tag_info: Option<TagInfoId>,
 }
