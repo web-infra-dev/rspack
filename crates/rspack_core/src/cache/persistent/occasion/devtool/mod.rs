@@ -177,17 +177,15 @@ impl Occasion for SourceMapDevToolPluginOccasion {
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::recovery", skip_all)]
   async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCacheArtifact> {
     let items = storage.load(SCOPE).await?;
-    let mut entries = FxHashMap::default();
-    entries.reserve(items.len());
-
-    for (key, value) in items {
-      let Some(key) = SourceMapDevToolPluginCacheKey::from_bytes(&key) else {
-        tracing::warn!("source map persistent cache key has invalid length");
-        continue;
-      };
-      match self.codec.decode::<Entry>(&value) {
-        Ok(entry) => {
-          entries.insert(
+    let entries = items
+      .into_par_iter()
+      .filter_map(|(key, value)| {
+        let Some(key) = SourceMapDevToolPluginCacheKey::from_bytes(&key) else {
+          tracing::warn!("source map persistent cache key has invalid length");
+          return None;
+        };
+        match self.codec.decode::<Entry>(&value) {
+          Ok(entry) => Some((
             key,
             CachedSourceMapDevToolPluginEntry {
               asset: entry.asset,
@@ -198,13 +196,14 @@ impl Occasion for SourceMapDevToolPluginOccasion {
                   asset: source_map.asset,
                 }),
             },
-          );
+          )),
+          Err(err) => {
+            tracing::warn!("source map persistent cache decode failed: {:?}", err);
+            None
+          }
         }
-        Err(err) => {
-          tracing::warn!("source map persistent cache decode failed: {:?}", err);
-        }
-      }
-    }
+      })
+      .collect::<FxHashMap<SourceMapDevToolPluginCacheKey, CachedSourceMapDevToolPluginEntry>>();
 
     tracing::debug!(
       "recovered {} source map persistent cache entries",
