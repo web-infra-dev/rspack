@@ -142,21 +142,29 @@ impl Snapshot {
         let helper = helper.clone();
         let codec = codec.clone();
         async move {
-          let path: ArcPath = codec.decode(&key).expect("should decode success");
-          let strategy: Strategy = codec.decode(&value).expect("should decode success");
-          let validate = helper.validate(&path, &strategy).await;
-          (path, validate)
+          let Ok(path) = codec.decode::<ArcPath>(&key) else {
+            return None;
+          };
+          let validate = match codec.decode::<Strategy>(&value) {
+            Ok(strategy) => helper.validate(&path, &strategy).await,
+            Err(_) => ValidateResult::Modified,
+          };
+          Some((path, validate))
         }
       })
-      .fut_consume(|(path, validate)| match validate {
-        ValidateResult::Modified => {
-          modified_path.insert(path);
-        }
-        ValidateResult::Deleted => {
-          deleted_path.insert(path);
-        }
-        ValidateResult::NoChanged => {
-          no_change_path.insert(path);
+      .fut_consume(|data| {
+        if let Some((path, validate)) = data {
+          match validate {
+            ValidateResult::Modified => {
+              modified_path.insert(path);
+            }
+            ValidateResult::Deleted => {
+              deleted_path.insert(path);
+            }
+            ValidateResult::NoChanged => {
+              no_change_path.insert(path);
+            }
+          }
         }
       })
       .await;
@@ -173,7 +181,10 @@ mod tests {
   use rspack_paths::ArcPath;
 
   use super::{
-    super::{codec::CacheCodec, storage::MemoryStorage},
+    super::{
+      codec::CacheCodec,
+      storage::{MemoryStorage, Storage},
+    },
     PathMatcher, Snapshot, SnapshotOptions, SnapshotScope, SnapshotStrategyOptions,
   };
 
@@ -427,5 +438,32 @@ mod tests {
       .unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/file.js")));
+  }
+
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn should_treat_undecodable_strategy_as_modified() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let codec = Arc::new(CacheCodec::new(None));
+
+    fs.create_dir_all("/".into()).await.unwrap();
+    fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
+
+    let snapshot = Snapshot::new(SnapshotOptions::default(), fs, codec.clone());
+    let mut storage = MemoryStorage::default();
+    storage.set(
+      SnapshotScope::FILE.name(),
+      codec.encode(&p!("/file.js")).unwrap(),
+      b"invalid strategy".to_vec(),
+    );
+
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+
+    assert!(is_hot_start);
+    assert!(modified_paths.contains(&p!("/file.js")));
+    assert!(deleted_paths.is_empty());
+    assert!(no_change_paths.is_empty());
   }
 }

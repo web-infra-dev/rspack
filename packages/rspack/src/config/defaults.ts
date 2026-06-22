@@ -258,6 +258,16 @@ const applySnapshotDefaults = (
     production ? { timestamp: true, hash: true } : { timestamp: true },
   );
   F(snapshot, 'contextModule', () => ({ timestamp: true }));
+  applySnapshotStrategyDefaults(snapshot.module);
+  applySnapshotStrategyDefaults(snapshot.contextModule);
+};
+
+const applySnapshotStrategyDefaults = (
+  strategy: SnapshotNormalized['module'],
+) => {
+  if (strategy && strategy.hash !== true) {
+    D(strategy, 'timestamp', true);
+  }
 };
 
 export const applyRspackOptionsBaseDefaults = (

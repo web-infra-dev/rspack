@@ -31,7 +31,6 @@ pub struct HashHelper {
   package_helper: Arc<PackageHelper>,
   file_cache: ArcPathDashMap<Option<ContentHash>>,
   dir_cache: ArcPathDashMap<Option<ContentHash>>,
-  timestamp_cache: ArcPathDashMap<Option<u64>>,
   timestamp_hash_cache: ArcPathDashMap<Option<TimestampHash>>,
 }
 
@@ -48,7 +47,6 @@ impl HashHelper {
       package_helper,
       file_cache: Default::default(),
       dir_cache: Default::default(),
-      timestamp_cache: Default::default(),
       timestamp_hash_cache: Default::default(),
     }
   }
@@ -140,9 +138,6 @@ impl HashHelper {
             if let Some(version) = self.package_helper.package_version(&child_path).await {
               version.hash(&mut hasher);
             }
-            if let Some(child_mtime) = self.dir_timestamp(&child_path).await {
-              mtime = mtime.max(child_mtime);
-            }
             continue;
           }
 
@@ -167,43 +162,6 @@ impl HashHelper {
     };
     self.dir_cache.insert(path.into(), hash.clone());
     hash
-  }
-
-  /// Get the maximum timestamp for a directory recursively.
-  #[async_recursion::async_recursion]
-  pub async fn dir_timestamp(&self, path: &ArcPath) -> Option<u64> {
-    if let Some(timestamp) = self.timestamp_cache.get(path) {
-      return *timestamp;
-    }
-
-    let utf8_path = path.assert_utf8();
-    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
-      self.timestamp_cache.insert(path.into(), None);
-      return None;
-    };
-
-    let mut mtime = Self::modified_time_from_metadata(&metadata);
-    if metadata.is_directory && !metadata.is_symlink {
-      let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
-        self.timestamp_cache.insert(path.into(), None);
-        return None;
-      };
-      children.sort();
-      for item in children {
-        let child_path = ArcPath::from(path.join(item));
-        let child_path_str = child_path.to_string_lossy();
-        if self.snapshot_options.is_immutable_path(&child_path_str) {
-          continue;
-        }
-        if let Some(child_mtime) = self.dir_timestamp(&child_path).await {
-          mtime = mtime.max(child_mtime);
-        }
-      }
-    }
-
-    let timestamp = Some(mtime);
-    self.timestamp_cache.insert(path.into(), timestamp);
-    timestamp
   }
 
   /// Get timestamp hash for a directory recursively.
@@ -380,6 +338,21 @@ mod tests {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
+    // Updates under managed paths should not require walking the managed
+    // subtree just to update the directory mtime.
+    let helper = new_helper(fs.clone());
+    fs.write(
+      "/node_modules/lib/index.js".into(),
+      "const a = 2".as_bytes(),
+    )
+    .await
+    .unwrap();
+    let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_eq!(hash2.hash, hash3.hash);
+    assert_eq!(hash2.mtime, hash3.mtime);
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
     // do something will not update hash
     let helper = new_helper(fs.clone());
     // write same content
@@ -402,17 +375,17 @@ mod tests {
     )
     .await
     .unwrap();
-    let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_eq!(hash2.hash, hash3.hash);
-    assert!(hash2.mtime < hash3.mtime);
+    let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_eq!(hash3.hash, hash4.hash);
+    assert!(hash3.mtime < hash4.mtime);
 
     // update file content
     std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = new_helper(fs.clone());
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
-    let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_ne!(hash3.hash, hash4.hash);
-    assert!(hash3.mtime < hash4.mtime);
+    let hash5 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_ne!(hash4.hash, hash5.hash);
+    assert!(hash4.mtime < hash5.mtime);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());
