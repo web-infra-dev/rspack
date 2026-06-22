@@ -1812,7 +1812,7 @@ fn add_concatenated_module(
       let source_types =
         chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
 
-      if source_types.len() == 1 {
+      if source_types.len() == 1 && source_types.contains(&SourceType::JavaScript) {
         chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
       } else {
         let new_source_types = source_types

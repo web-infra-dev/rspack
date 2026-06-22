@@ -3,9 +3,10 @@ use std::{path::Path, sync::Arc};
 use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependencyTemplate, BoxModuleDependency, ConstDependency, CssAutoOrModuleParserOptions,
-  CssExport, CssExports, CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
-  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency, DependencyId,
-  DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
+  CssExport, CssExportType, CssExports, CssExportsConvention, CssLayer, CssLocalNames,
+  CssModuleGeneratorOptions, CssModuleRenderCondition, CssParserImport, CssParserImportContext,
+  Dependency, DependencyId, DependencyRange, ModuleType, ParseContext, ParseResult, ResourceData,
+  StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
   topological_sort,
 };
@@ -13,7 +14,7 @@ use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, Severity, TWith
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, REGEX_IS_MODULES};
+use super::{REGEX_CUSTOM_PROPERTY_IDENT, REGEX_IS_COMMENTS, is_css_module};
 use crate::{
   dependency::{
     CssComposeDependency, CssExportDependency, CssIcssSymbolDependency, CssIcssSymbolValue,
@@ -24,14 +25,16 @@ use crate::{
   utils::{
     LocalIdentModuleHashOptions, LocalIdentOptions, PresentationalDependencyHashUpdate,
     css_parsing_traceable_error, export_locals_convention, normalize_url,
-    replace_module_request_prefix, unescape,
+    replace_module_request_prefix, source_order_to_i32, unescape,
   },
 };
 
 pub(super) struct CssModuleParser<'context> {
-  generator_options: &'context CssModuleGeneratorOptions,
   parser_options: &'context CssAutoOrModuleParserOptions,
+  generator_options: &'context CssModuleGeneratorOptions,
   exports_only: bool,
+  export_type: Option<CssExportType>,
+  has_charset: bool,
   parse_context: ParseContext<'context>,
   source: Arc<dyn Source>,
   source_code: Arc<str>,
@@ -41,8 +44,6 @@ pub(super) struct CssModuleParser<'context> {
   code_generation_dependencies: Vec<BoxModuleDependency>,
   css_exports: CssExports,
   css_local_names: CssLocalNames,
-  inherited_render_conditions: Vec<CssModuleRenderCondition>,
-  render_condition: CssModuleRenderCondition,
   icss_definitions: FxHashMap<String, IcssDefinition>,
   current_icss_import_from: Option<String>,
   composes_order: ComposesOrderState,
@@ -200,10 +201,6 @@ impl LocalCssIdentDeclarations {
   }
 }
 
-fn source_order_to_i32(source_order: u32) -> i32 {
-  source_order.try_into().unwrap_or(i32::MAX)
-}
-
 fn is_custom_property_name(value: &str) -> bool {
   !value.is_empty()
     && value
@@ -228,22 +225,20 @@ impl<'context> CssModuleParser<'context> {
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
     let source_code: Arc<str> = source.source().into_string_lossy().into();
-    let (inherited_render_conditions, render_condition) = parse_context
+
+    let export_type = parse_context
       .build_info
       .css
       .as_deref()
-      .map(|css| {
-        (
-          css.inherited_render_conditions.clone(),
-          css.render_condition.clone(),
-        )
-      })
-      .unwrap_or_default();
+      .and_then(|css_build_info| css_build_info.export_type)
+      .or(parser_options.export_type);
 
     Self {
-      generator_options,
       parser_options,
+      generator_options,
       exports_only,
+      export_type,
+      has_charset: false,
       parse_context,
       source,
       source_code,
@@ -253,8 +248,6 @@ impl<'context> CssModuleParser<'context> {
       code_generation_dependencies: vec![],
       css_exports: Default::default(),
       css_local_names: Default::default(),
-      inherited_render_conditions,
-      render_condition,
       icss_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
@@ -282,9 +275,22 @@ impl<'context> CssModuleParser<'context> {
     self.apply_composes_source_order();
     self.add_warnings(warnings);
 
+    if matches!(
+      self.export_type(),
+      Some(CssExportType::Text | CssExportType::CssStyleSheet)
+    ) {
+      self
+        .dependencies
+        .push(Box::new(StaticExportsDependency::new(
+          StaticExportsSpec::Array(vec!["default".into()]),
+          false,
+        )));
+    }
+
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
     css_build_info.exports = self.css_exports;
     css_build_info.local_names = self.css_local_names;
+    css_build_info.has_charset = self.has_charset;
 
     Ok(
       ParseResult {
@@ -309,12 +315,10 @@ impl<'context> CssModuleParser<'context> {
       ModuleType::CssModule => css_module_lexer::Mode::Local,
       ModuleType::CssGlobal => css_module_lexer::Mode::Global,
       ModuleType::CssAuto
-        if resource_path.is_some()
-          && REGEX_IS_MODULES.is_match(
-            resource_path
-              .expect("should have resource_path for module_type css/auto")
-              .as_str(),
-          ) =>
+        if is_css_module(
+          self.parse_context.module_type,
+          resource_path.map(|path| path.as_str()),
+        ) =>
       {
         if self.pure() {
           css_module_lexer::Mode::Pure
@@ -324,6 +328,10 @@ impl<'context> CssModuleParser<'context> {
       }
       _ => css_module_lexer::Mode::Css,
     }
+  }
+
+  fn export_type(&self) -> Option<CssExportType> {
+    self.export_type
   }
 
   fn create_module_hash_options<'source>(
@@ -464,72 +472,6 @@ impl<'context> CssModuleParser<'context> {
             );
           }
         }
-        css_module_lexer::Dependency::LocalContainer { name, .. }
-          if self.container() && local_css_ident_declarations.has_container(name) =>
-        {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
-        css_module_lexer::Dependency::LocalContainerDecl { name, .. } if self.container() => {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
-        css_module_lexer::Dependency::LocalFunction { name, .. }
-          if self.function() && local_css_ident_declarations.has_function(name) =>
-        {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
-        css_module_lexer::Dependency::LocalFunctionDecl { name, .. } if self.function() => {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
-        css_module_lexer::Dependency::LocalGrid { name, .. }
-          if self.grid() && local_css_ident_declarations.has_grid(name) =>
-        {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
-        css_module_lexer::Dependency::LocalGridDecl { name, .. } if self.grid() => {
-          if let Some(convention) = convention {
-            self.collect_export_dependency_name(
-              unescape(name).into_owned(),
-              convention,
-              &mut export_dependency_names,
-              &mut graph_export_name_set,
-            );
-          }
-        }
         css_module_lexer::Dependency::LocalVar { name, from, .. }
           if self.dashed_idents()
             && self.should_handle_local_var_usage(name, *from, local_css_ident_declarations) =>
@@ -571,6 +513,13 @@ impl<'context> CssModuleParser<'context> {
             start: range.start,
             end: range.end + 1,
             content,
+          });
+        }
+        css_module_lexer::Dependency::Charset { range, .. } => {
+          presentational_dependency_hash_updates.push(PresentationalDependencyHashUpdate {
+            start: range.start,
+            end: range.end + 1,
+            content: "",
           });
         }
         _ => {}
@@ -755,6 +704,10 @@ impl<'context> CssModuleParser<'context> {
           .push(Box::new(ConstDependency::new(range, content.into())));
         Ok(())
       }
+      css_module_lexer::Dependency::Charset { range, .. } => {
+        self.handle_charset(range);
+        Ok(())
+      }
       css_module_lexer::Dependency::LocalClass { name, range, .. }
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();
@@ -908,8 +861,17 @@ impl<'context> CssModuleParser<'context> {
           )
           .await
       }
-      _ => Ok(()),
     }
+  }
+
+  fn handle_charset(&mut self, range: css_module_lexer::Range) {
+    self.has_charset = true;
+    self
+      .presentational_dependencies
+      .push(Box::new(ConstDependency::new(
+        (range.start, range.end).into(),
+        "".into(),
+      )));
   }
 
   fn handle_url(
@@ -984,25 +946,36 @@ impl<'context> CssModuleParser<'context> {
       supports.map(|supports| supports.trim().into()),
       layer,
     );
-
-    self.dependencies.push(Box::new(CssImportDependency::new(
+    let dep = Box::new(CssImportDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
       inherited_render_conditions,
       render_condition,
-    )));
+      self.export_type(),
+    ));
+    self.dependencies.push(dep.clone());
+    self.code_generation_dependencies.push(dep);
     Ok(())
   }
 
   fn css_import_inherited_render_conditions(&self) -> Vec<CssModuleRenderCondition> {
-    if self.render_condition.is_empty() {
-      return self.inherited_render_conditions.clone();
-    }
+    let (mut inherited_render_conditions, render_condition) = self
+      .parse_context
+      .build_info
+      .css
+      .as_deref()
+      .map(|css| {
+        (
+          css.inherited_render_conditions.clone(),
+          css.render_condition.clone(),
+        )
+      })
+      .unwrap_or_default();
 
-    let mut inherited_render_conditions =
-      Vec::with_capacity(self.inherited_render_conditions.len() + 1);
-    inherited_render_conditions.extend(self.inherited_render_conditions.iter().cloned());
-    inherited_render_conditions.push(self.render_condition.clone());
+    if render_condition.is_empty() {
+      return inherited_render_conditions;
+    }
+    inherited_render_conditions.push(render_condition);
     inherited_render_conditions
   }
 
@@ -1445,6 +1418,7 @@ impl<'context> CssModuleParser<'context> {
         from.to_string(),
         names.iter().map(|s| s.to_owned().into()).collect(),
         DependencyRange::new(range.start, range.end),
+        self.export_type(),
       );
       dep_id = Some(*dep.id());
       self
@@ -1585,6 +1559,7 @@ impl<'context> CssModuleParser<'context> {
       request,
       vec![value.to_owned().into()],
       DependencyRange::new(0, 0),
+      self.export_type(),
     )));
   }
 

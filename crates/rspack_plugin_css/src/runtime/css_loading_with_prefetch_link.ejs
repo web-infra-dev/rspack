@@ -1,4 +1,5 @@
 var link = document.createElement('link');
+link.setAttribute("data-rspack-native-css", "true");
 <% if (_cross_origin != "") { %>
 link.crossOrigin = '<%- _cross_origin %>';
 <% } %>

@@ -10,12 +10,12 @@ use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkLoading, ChunkLoadingType, ChunkUkey,
   Compilation, CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleType,
-  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
+  ModuleIdentifier, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SelfModuleFactory, SourceType,
   css_module_render_conditions_identifier, get_css_chunk_filename_template,
-  rspack_sources::{BoxSource, CachedSource, ConcatSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
@@ -37,7 +37,11 @@ use crate::{
   },
   plugin::{CssModulesPluginHooks, CssModulesRenderSource, CssPluginInner},
   runtime::CssLoadingRuntimeModule,
-  utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+  utils::{
+    AUTO_PUBLIC_PATH_PLACEHOLDER, append_css_export_type_key, css_attribute_export_type,
+    css_dependency_export_type, css_dependency_meta, css_module_has_charset,
+    css_module_is_import_dependency, css_module_resource, css_render_conditions_from_module,
+  },
 };
 
 /// Safety with [atomic_refcell::AtomicRefCell]:
@@ -155,11 +159,12 @@ impl CssPlugin {
     chunk: &Chunk,
     ordered_css_modules: &[&dyn Module],
     hooks: &CssModulesPluginHooks,
-  ) -> rspack_error::Result<ConcatSource> {
+  ) -> rspack_error::Result<BoxSource> {
     let module_sources = ordered_css_modules
       .iter()
       .map(|module| {
         let module_id = &module.identifier();
+        let render_conditions = css_render_conditions_from_module(*module);
         let code_gen_result = compilation
           .code_generation_results
           .get(module_id, Some(chunk.runtime()));
@@ -167,7 +172,7 @@ impl CssPlugin {
         Ok(
           code_gen_result
             .get(&SourceType::Css)
-            .map(|source| (*module, source)),
+            .map(|source| (*module, render_conditions, source)),
         )
       })
       .collect::<Result<Vec<_>>>()?;
@@ -176,14 +181,26 @@ impl CssPlugin {
       module_sources
         .into_iter()
         .flatten()
-        .for_each(|(module, cur_source)| {
-          let s = unsafe { token.used((compilation, chunk.ukey(), module, cur_source, hooks)) };
+        .for_each(|(module, render_conditions, cur_source)| {
+          let s = unsafe {
+            token.used((
+              compilation,
+              chunk.ukey(),
+              module,
+              cur_source,
+              render_conditions,
+              hooks,
+            ))
+          };
           s.spawn(
-            |(compilation, chunk, module, cur_source, hooks)| async move {
+            |(compilation, chunk, module, cur_source, render_conditions, hooks)| async move {
               let mut post_module_container = {
-                let render_conditions = css_render_conditions_from_module(module);
-                let mut builder = CssSourceBuilder::new(false);
-                if builder.push_css_source(cur_source.clone(), render_conditions, false) {
+                let mut builder = CssSourceBuilder::new(false, true, Default::default());
+                if builder.push_css_source(
+                  cur_source.clone(),
+                  &render_conditions,
+                  css_module_has_charset(module),
+                ) {
                   builder.push_line();
                 }
                 CssModulesRenderSource {
@@ -197,7 +214,7 @@ impl CssPlugin {
                 .call(compilation, &chunk_ukey, module, &mut post_module_container)
                 .await?;
 
-              Ok(post_module_container.source)
+              Ok((module.identifier(), post_module_container.source))
             },
           );
         });
@@ -207,25 +224,49 @@ impl CssPlugin {
     .map(|r| r.to_rspack_result())
     .collect::<Result<Vec<_>>>()?;
 
-    let mut source = ConcatSource::default();
+    let module_sources = module_sources
+      .into_iter()
+      .collect::<Result<Vec<_>>>()?
+      .into_iter()
+      .collect::<HashMap<_, _>>();
+    Ok(Self::render_ordered_css_sources(
+      ordered_css_modules,
+      &module_sources,
+    ))
+  }
 
-    for module_source in module_sources {
-      source.add(module_source?);
+  fn render_ordered_css_sources(
+    ordered_css_modules: &[&dyn Module],
+    module_sources: &HashMap<ModuleIdentifier, BoxSource>,
+  ) -> BoxSource {
+    let non_import_css_resources = ordered_css_modules
+      .iter()
+      .filter(|module| !css_module_is_import_dependency(**module))
+      .filter(|module| module_sources.contains_key(&module.identifier()))
+      .filter_map(|module| css_module_resource(*module))
+      .collect::<HashSet<_>>();
+
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
+    for module in ordered_css_modules {
+      if css_module_is_import_dependency(*module)
+        && css_render_conditions_from_module(*module).is_empty()
+        && let Some(resource) = css_module_resource(*module)
+        && non_import_css_resources.contains(resource)
+      {
+        continue;
+      }
+
+      let identifier = module.identifier();
+      if let Some(source) = module_sources.get(&identifier) {
+        if css_module_has_charset(*module) {
+          builder.set_has_charset();
+        }
+        builder.push_css_source(source.clone(), &[], false);
+      }
     }
 
-    Ok(source)
+    builder.into_source()
   }
-}
-
-fn css_render_conditions_from_module(
-  module: &dyn Module,
-) -> impl Iterator<Item = &CssModuleRenderCondition> {
-  module
-    .build_info()
-    .css
-    .as_deref()
-    .into_iter()
-    .flat_map(|css| css.render_conditions())
 }
 
 #[plugin_hook(NormalModuleFactoryAfterResolve for CssPlugin)]
@@ -234,19 +275,33 @@ async fn normal_module_factory_after_resolve(
   data: &mut ModuleFactoryCreateData,
   create_data: &mut NormalModuleCreateData,
 ) -> Result<Option<bool>> {
-  let Some(css_import_dep) = data
+  let css_attribute_export_type = data
+    .dependencies
+    .iter()
+    .find_map(|dependency| css_attribute_export_type(dependency.get_attributes()));
+
+  let css_import_dep = data
     .dependencies
     .first()
-    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>())
-  else {
-    return Ok(None);
-  };
+    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>());
 
-  if let Some(conditions_key) =
-    css_module_render_conditions_identifier(css_import_dep.render_conditions())
-  {
-    create_data.request.push_str("|css-render-conditions|");
-    create_data.request.push_str(&conditions_key);
+  if let Some(css_import_dep) = css_import_dep {
+    let conditions_key =
+      css_module_render_conditions_identifier(css_import_dep.render_conditions())
+        .unwrap_or_default();
+    if !conditions_key.is_empty() {
+      create_data.request.push_str("|css-render-conditions|");
+      create_data.request.push_str(&conditions_key);
+    }
+  }
+
+  let css_dependency_export_type = data
+    .dependencies
+    .first()
+    .and_then(css_dependency_export_type);
+
+  if let Some(export_type) = css_dependency_export_type.or(css_attribute_export_type) {
+    append_css_export_type_key(create_data, export_type);
   }
 
   Ok(None)
@@ -259,15 +314,15 @@ async fn normal_module_factory_module(
   _create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
-  let Some(css_import_dep) = data
-    .dependencies
-    .first()
-    .and_then(|dependency| dependency.downcast_ref::<CssImportDependency>())
-  else {
+  let Some(dependency) = data.dependencies.first() else {
     return Ok(());
   };
 
-  if !css_import_dep.has_render_conditions() {
+  let css_dependency_meta = css_dependency_meta(dependency);
+  if css_dependency_meta.render_conditions.is_empty()
+    && css_dependency_meta.export_type.is_none()
+    && !css_dependency_meta.is_css_dependency
+  {
     return Ok(());
   }
 
@@ -275,9 +330,10 @@ async fn normal_module_factory_module(
     .build_info_mut()
     .css
     .get_or_insert_with(|| Box::new(CssBuildInfo::default()));
-  css_build_info.inherited_render_conditions =
-    css_import_dep.inherited_render_conditions().to_vec();
-  css_build_info.render_condition = css_import_dep.render_condition().clone();
+  css_build_info.inherited_render_conditions = css_dependency_meta.render_conditions;
+  css_build_info.render_condition = CssModuleRenderCondition::default();
+  css_build_info.export_type = css_dependency_meta.export_type;
+  css_build_info.css_import_dependency = css_dependency_meta.is_css_import_dependency;
 
   Ok(())
 }
@@ -343,12 +399,20 @@ async fn runtime_requirements_in_tree(
     &ChunkLoading::Enable(ChunkLoadingType::Import),
     compilation,
   );
+  let needs_css_loading_runtime = runtime_requirements.intersects(
+    RuntimeGlobals::HAS_CSS_MODULES
+      | RuntimeGlobals::CSS_INJECT_STYLE
+      | RuntimeGlobals::CSS_STYLE_SHEET,
+  );
 
-  if !is_enabled_for_chunk {
+  if !is_enabled_for_chunk
+    && !runtime_requirements
+      .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
+  {
     return Ok(None);
   }
 
-  if runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES) {
+  if needs_css_loading_runtime {
     runtime_modules_to_add.push((
       *chunk_ukey,
       CssLoadingRuntimeModule::new(&compilation.runtime_template).boxed(),
@@ -361,6 +425,17 @@ async fn runtime_requirements_in_tree(
     )
   {
     runtime_requirements_mut.extend(CssLoadingRuntimeModule::get_runtime_requirements_basic());
+  }
+
+  if all_runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
+    runtime_requirements_mut.extend(
+      CssLoadingRuntimeModule::get_runtime_requirements_with_style().lexical_requirements(),
+    );
+  }
+  if all_runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
+    runtime_requirements_mut.extend(
+      CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet().lexical_requirements(),
+    );
   }
 
   if all_runtime_requirements
@@ -524,6 +599,14 @@ impl Plugin for CssPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
+    ctx
+      .normal_module_factory_hooks
+      .after_resolve
+      .tap(normal_module_factory_after_resolve::new(self));
+    ctx
+      .normal_module_factory_hooks
+      .module
+      .tap(normal_module_factory_module::new(self));
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
     ctx
       .compilation_hooks
@@ -537,31 +620,20 @@ impl Plugin for CssPlugin {
       .compilation_hooks
       .render_manifest
       .tap(render_manifest::new(self));
-    ctx
-      .normal_module_factory_hooks
-      .after_resolve
-      .tap(normal_module_factory_after_resolve::new(self));
-    ctx
-      .normal_module_factory_hooks
-      .module
-      .tap(normal_module_factory_module::new(self));
 
-    ctx.register_parser_and_generator_builder(
+    for module_type in [
       ModuleType::Css,
-      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.register_parser_and_generator_builder(
       ModuleType::CssGlobal,
-      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.register_parser_and_generator_builder(
       ModuleType::CssModule,
-      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
-    );
-    ctx.register_parser_and_generator_builder(
       ModuleType::CssAuto,
-      Box::new(|_| Box::new(CssParserAndGenerator::new()) as Box<dyn ParserAndGenerator>),
-    );
+    ] {
+      ctx.register_parser_and_generator_builder(
+        module_type,
+        Box::new(|options| {
+          Box::new(CssParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
+        }),
+      );
+    }
 
     Ok(())
   }

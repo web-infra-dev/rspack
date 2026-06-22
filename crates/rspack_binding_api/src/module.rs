@@ -856,6 +856,8 @@ impl From<JsBuildMeta> for BuildMeta {
       strict_esm_module: strict_esm_module.unwrap_or_default(),
       has_top_level_await: has_top_level_await.unwrap_or_default(),
       esm: esm.unwrap_or_default(),
+      is_css_module: false,
+      need_id_in_concatenation: false,
       exports_type,
       default_object,
       side_effect_free,
