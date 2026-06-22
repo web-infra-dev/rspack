@@ -10,7 +10,7 @@ const App = () => {
   );
 };
 
-it("should emit react compiler output with swc-loader", () => {
+it("should not emit react compiler output when compilation is skipped", () => {
   const fs = require("fs");
   const source = fs.readFileSync(__filename, "utf-8");
   expect(source).not.toContain(["react", "compiler-runtime"].join("/"));
