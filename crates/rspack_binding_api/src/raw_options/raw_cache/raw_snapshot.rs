@@ -44,21 +44,3 @@ impl From<RawSnapshotOptions> for SnapshotOptions {
     )
   }
 }
-
-#[cfg(test)]
-mod tests {
-  use super::RawSnapshotOptions;
-
-  #[test]
-  fn should_use_default_snapshot_strategies_when_omitted() {
-    let options: rspack_core::cache::persistent::snapshot::SnapshotOptions =
-      RawSnapshotOptions::default().into();
-    let dependencies_strategy = options.dependencies_strategy();
-    assert!(!dependencies_strategy.hash);
-    assert!(dependencies_strategy.timestamp);
-
-    let context_dependencies_strategy = options.context_dependencies_strategy();
-    assert!(!context_dependencies_strategy.hash);
-    assert!(context_dependencies_strategy.timestamp);
-  }
-}

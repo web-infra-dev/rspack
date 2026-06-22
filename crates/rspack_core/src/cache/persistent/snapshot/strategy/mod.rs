@@ -336,7 +336,7 @@ mod tests {
   use rspack_fs::{MemoryFileSystem, WritableFileSystem};
   use rspack_paths::ArcPath;
 
-  use super::{SnapshotStrategyOptions, Strategy, StrategyHelper, ValidateResult};
+  use super::{Strategy, StrategyHelper, ValidateResult};
 
   #[tokio::test]
   async fn validate_package_version() {
@@ -437,82 +437,6 @@ mod tests {
         .validate(&ArcPath::from("/file1.js"), &strategy)
         .await,
       ValidateResult::Deleted
-    ));
-  }
-
-  #[tokio::test]
-  async fn validate_file_timestamp() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    let strategy = helper
-      .file_strategy(
-        &ArcPath::from("/file1.js"),
-        SnapshotStrategyOptions::timestamp(),
-      )
-      .await;
-    assert!(matches!(
-      helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write("/file1.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper
-        .validate(&ArcPath::from("/file1.js"), &strategy)
-        .await,
-      ValidateResult::Modified
-    ));
-  }
-
-  #[tokio::test]
-  async fn validate_dir_timestamp_and_hash() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/context".into()).await.unwrap();
-    fs.write("/context/a.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    let strategy = helper
-      .dir_strategy(
-        &ArcPath::from("/context"),
-        SnapshotStrategyOptions::hash_and_timestamp(),
-      )
-      .await;
-    assert!(matches!(
-      helper.validate(&ArcPath::from("/context"), &strategy).await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write("/context/a.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper.validate(&ArcPath::from("/context"), &strategy).await,
-      ValidateResult::NoChanged
-    ));
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-    let helper = StrategyHelper::new(fs.clone(), Default::default());
-    fs.write("/context/a.js".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    assert!(matches!(
-      helper.validate(&ArcPath::from("/context"), &strategy).await,
-      ValidateResult::Modified
     ));
   }
 

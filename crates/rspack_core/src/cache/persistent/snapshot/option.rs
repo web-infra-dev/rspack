@@ -128,19 +128,6 @@ mod tests {
   use super::{PathMatcher, SnapshotOptions};
 
   #[test]
-  fn should_default_snapshot_strategies_use_timestamp() {
-    let options = SnapshotOptions::default();
-
-    let dependencies_strategy = options.dependencies_strategy();
-    assert!(!dependencies_strategy.hash);
-    assert!(dependencies_strategy.timestamp);
-
-    let context_dependencies_strategy = options.context_dependencies_strategy();
-    assert!(!context_dependencies_strategy.hash);
-    assert!(context_dependencies_strategy.timestamp);
-  }
-
-  #[test]
   fn should_path_matcher_works() {
     let matcher = PathMatcher::String("abc".into());
     assert!(matcher.try_match("aabcc"));

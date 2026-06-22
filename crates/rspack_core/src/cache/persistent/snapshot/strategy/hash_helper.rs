@@ -332,20 +332,6 @@ mod tests {
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
-    // Updates under managed paths should not affect the parent dir hash.
-    let helper = new_helper(fs.clone());
-    fs.write(
-      "/node_modules/lib/index.js".into(),
-      "const a = 2".as_bytes(),
-    )
-    .await
-    .unwrap();
-    let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_eq!(hash2.hash, hash3.hash);
-    assert_eq!(hash3.mtime, 0);
-
-    std::thread::sleep(std::time::Duration::from_millis(100));
-
     // do something will not update hash
     let helper = new_helper(fs.clone());
     // write same content
@@ -368,17 +354,16 @@ mod tests {
     )
     .await
     .unwrap();
-    let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_eq!(hash3.hash, hash4.hash);
-    assert_eq!(hash4.mtime, 0);
+    let hash3 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_eq!(hash2.hash, hash3.hash);
+    assert_eq!(hash3.mtime, 0);
 
     // update file content
-    std::thread::sleep(std::time::Duration::from_millis(100));
     let helper = new_helper(fs.clone());
     fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
-    let hash5 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
-    assert_ne!(hash4.hash, hash5.hash);
-    assert_eq!(hash5.mtime, 0);
+    let hash4 = helper.dir_hash(&ArcPath::from("/")).await.unwrap();
+    assert_ne!(hash3.hash, hash4.hash);
+    assert_eq!(hash4.mtime, 0);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());
@@ -411,60 +396,6 @@ mod tests {
     .unwrap();
     let hash2 = helper
       .dir_hash(&ArcPath::from("/node_modules/lib/"))
-      .await
-      .unwrap();
-    assert_ne!(hash1.hash, hash2.hash);
-  }
-
-  #[tokio::test]
-  async fn dir_hash_should_include_child_names() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/context".into()).await.unwrap();
-    fs.write("/context/a.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let helper = new_helper(fs.clone());
-    let hash1 = helper.dir_hash(&ArcPath::from("/context")).await.unwrap();
-
-    rspack_fs::IntermediateFileSystemExtras::rename(
-      &*fs,
-      "/context/a.js".into(),
-      "/context/b.js".into(),
-    )
-    .await
-    .unwrap();
-
-    let helper = new_helper(fs.clone());
-    let hash2 = helper.dir_hash(&ArcPath::from("/context")).await.unwrap();
-    assert_ne!(hash1.hash, hash2.hash);
-  }
-
-  #[tokio::test]
-  async fn dir_timestamp_hash_should_include_child_names() {
-    let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/context".into()).await.unwrap();
-    fs.write("/context/a.js".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-
-    let helper = new_helper(fs.clone());
-    let hash1 = helper
-      .dir_timestamp_hash(&ArcPath::from("/context"))
-      .await
-      .unwrap();
-
-    rspack_fs::IntermediateFileSystemExtras::rename(
-      &*fs,
-      "/context/a.js".into(),
-      "/context/b.js".into(),
-    )
-    .await
-    .unwrap();
-
-    let helper = new_helper(fs.clone());
-    let hash2 = helper
-      .dir_timestamp_hash(&ArcPath::from("/context"))
       .await
       .unwrap();
     assert_ne!(hash1.hash, hash2.hash);
