@@ -318,16 +318,16 @@ export default {
 ```js title="rspack.config.mjs"
 import VirtualModulesPlugin from 'webpack-virtual-modules';
 
-var virtualModules = new VirtualModulesPlugin({
-  'virtual_entry.js': `
-    require("./src/another_virtual.js");
-    require("./src/disk_file.js")
+const virtualModules = new VirtualModulesPlugin({
+  'virtual-entry.js': `
+    import "./src/another-virtual.js";
+    import "./src/disk-file.js";
     `,
-  'src/another_virtual.js': 'module.exports = 42',
+  'src/another-virtual.js': 'export default 42;',
 });
 
 export default {
-  entry: './virtual_entry.js',
+  entry: './virtual-entry.js',
   plugins: [virtualModules],
   experiments: {
     useInputFileSystem: [/.*virtual.*\.js$/],
@@ -335,4 +335,4 @@ export default {
 };
 ```
 
-当访问 `virtual_entry.js` 和 `src/another_virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk_file.js`，则会使用原生文件系统读取。
+当访问 `virtual-entry.js` 和 `src/another-virtual.js` 时，它们匹配了 `experiments.useInputFileSystem` 中的正则规则，Rspack 会通过 `VirtualModulesPlugin` 包装的输入文件系统读取它们；而像 `src/disk-file.js`，则会使用原生文件系统读取。

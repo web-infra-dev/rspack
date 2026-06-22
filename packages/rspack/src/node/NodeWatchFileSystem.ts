@@ -21,10 +21,12 @@ import type {
 
 const require = createRequire(import.meta.url);
 
+type WatchpackInstance = InstanceType<typeof Watchpack>;
+
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
   watcherOptions: Watchpack.WatchOptions;
-  watcher?: Watchpack;
+  watcher?: WatchpackInstance;
 
   constructor(inputFileSystem: InputFileSystem) {
     this.inputFileSystem = inputFileSystem;

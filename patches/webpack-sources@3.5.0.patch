@@ -1,8 +1,8 @@
 diff --git a/types.d.ts b/types.d.ts
-index cf0ea711c417bb41cadb1b75957433456c8e7958..3fe3398978312771832971b45e0bf41541614153 100644
+index 4427cfff67eeb1db4b3f41cc45a258ff7cf9cf16..c9d4cda37ec913a05c353b7ce5696919918550c8 100644
 --- a/types.d.ts
 +++ b/types.d.ts
-@@ -407,7 +407,7 @@ declare interface StreamChunksOptions {
+@@ -447,7 +447,7 @@ declare interface StreamChunksOptions {
  	finalSource?: boolean;
  	columns?: boolean;
  }
@@ -11,12 +11,11 @@ index cf0ea711c417bb41cadb1b75957433456c8e7958..3fe3398978312771832971b45e0bf415
  	export namespace util {
  		export namespace stringBufferUtils {
  			export let disableDualStringBufferCaching: () => void;
-@@ -456,6 +456,6 @@ declare namespace exports {
+@@ -496,6 +496,5 @@ declare namespace exports {
  		GeneratedSourceInfo,
  		StreamChunksOptions,
  	};
 -}
  
 -export = exports;
-+
 +

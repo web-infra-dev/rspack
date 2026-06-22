@@ -135,9 +135,11 @@ jobs:
       target: wasm32-wasip1-threads
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
+  # TODO: Enable this job after Rspack portable cache is implemented.
   check-cache:
     name: Check Cache Portable
     needs: [test-linux, test-windows]
+    if: ${{ false }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - name: Checkout
@@ -160,10 +162,7 @@ jobs:
           path: ./cache-windows
           force-use-github-only: true
       - name: Run compare kit
-        run: |
-          echo "success"
-          #  TODO open it after rspack portable cache implementation
-          # cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+        run: cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
@@ -190,13 +189,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test

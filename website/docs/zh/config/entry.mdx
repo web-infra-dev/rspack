@@ -199,7 +199,7 @@ export default {
 #### EntryDescription.filename
 
 <PropertyType
-  type="string"
+  type="string | ((pathData: PathData, assetInfo?: AssetInfo) => string)"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -224,13 +224,13 @@ export default {
 #### EntryDescription.wasmLoading
 
 <PropertyType
-  type="'fetch' | 'async-node'"
+  type="false | 'fetch' | 'async-node' | 'universal'"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-设置当前入口加载 WebAssembly 模块的方式。默认可使用的方式有 `'fetch'`（web/WebWorker），`'async-node'`（Node.js），其他额外方式可由插件提供。
+设置当前入口加载 WebAssembly 模块的方式。省略时使用 [`output.wasmLoading`](/config/output#outputwasmloading) 的值。
 
-其默认值会根据 [target](/config/target) 的变化而变化：
+[`output.wasmLoading`](/config/output#outputwasmloading) 的默认值会根据 [target](/config/target) 的变化而变化：
 
 - 如果 target 设置为 `'web'`，`'webworker'`，`'electron-renderer'` 或 `'node-webkit'` 其中之一，其默认值为 `'fetch'`。
 - 如果 target 设置为 `'node'`，`'async-node'`，`'electron-main'` 或 `'electron-preload'`，其默认值为 `'async-node'`。
