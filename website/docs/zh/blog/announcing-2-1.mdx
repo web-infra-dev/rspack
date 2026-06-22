@@ -23,7 +23,38 @@ import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 ### Native CSS 新能力
 
-### `createRequire` 支持
+### `createRequire` 支持 \{#create-require}
+
+在 ESM 模块中没有内置的 `require`，因此 Node.js 提供了 [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename)，允许你在 ESM 中创建一个 `require` 函数，用于加载 CommonJS 模块。在以往的版本中，Rspack 无法静态分析通过这种方式创建出的 `require`，因此其加载的模块也无法被正常打包。
+
+Rspack 2.1 新增了 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 选项。开启后，Rspack 会识别从 Node.js `module` 引入的 `createRequire`，并将创建出的 `require` 转换为可静态分析的依赖上下文。这样一来，通过它加载的模块会像普通的 `require` 或 `import` 一样被打包进产物。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const value = require('./value.cjs');
+```
+
+它的能力包括：
+
+- **多种导入形式**：支持具名导入、默认导入和命名空间导入，并同时识别来自 `module` 和 `node:module` 的导入。
+- **自定义来源**：除 `true` 外，还可以通过 `"<specifier> from <module>"` 形式的字符串自定义 specifier 和模块来源，例如 `"createRequire from module"`。
+- **静态可分析的参数**：`createRequire()` 的参数需要能被静态分析为 file URL 或绝对路径，例如 `import.meta.url`、`new URL('./dir/file.js', import.meta.url)` 或绝对 `file:` URL。
+
+该选项默认值为 `false`，与 webpack 的行为保持一致。查看 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 了解更多。
 
 ### `import.meta.glob` 支持
 
@@ -41,7 +72,42 @@ import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 ## 产物优化
 
-### `pureFunctions` 稳定化
+### `pureFunctions` 稳定化 \{#pure-functions}
+
+Rspack 2.0 引入了实验性的 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions)，用于在跨模块场景下进行更细粒度的无副作用函数 tree shaking。它包含两部分能力：
+
+- [`/*#__NO_SIDE_EFFECTS__*/`](/guide/optimization/tree-shaking#no_side_effects-注解) 注解，在**函数定义处**声明该函数调用无副作用；
+- [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 配置，面向无法直接修改源码的第三方库，手动将顶层标识符标记为“调用无副作用”。
+
+被标记的函数如果其调用的返回值未被使用，则会在 tree shaking 时被安全移除。
+
+在 Rspack 2.0 中，这项能力还需要手动设置 `experiments.pureFunctions: true` 才能启用。经过一段时间的迭代和验证，**从 Rspack 2.1 开始，`pureFunctions` 在生产模式下默认开启**，无需再额外配置即可生效。这意味着 `/*#__NO_SIDE_EFFECTS__*/` 注解和 `pureFunctions` 配置将在生产构建中开箱即用：
+
+```js title="utils.js"
+/*#__NO_SIDE_EFFECTS__*/
+export function join(a, b) {
+  return `${a}-${b}`;
+}
+```
+
+```js title="index.js"
+import { join } from './utils';
+
+// 返回值未被使用，该调用会被自动移除
+join('btn', 'primary');
+```
+
+该能力依赖 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects) 为 `true`（在生产模式下默认即为 `true`）。如果你希望关闭这项分析，可以将 `experiments.pureFunctions` 显式设为 `false`：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: false,
+  },
+};
+```
+
+查看 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions) 了解更多。
 
 ### Guarded dependency optimization
 
