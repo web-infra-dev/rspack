@@ -3,7 +3,7 @@ use rspack_core::{
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
-use rspack_util::{SpanExt, json_stringify_str};
+use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
   AssignExpr, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
@@ -48,19 +48,15 @@ const API_MODULE: &str = "__webpack_module__";
 const API_NON_REQUIRE: &str = "__non_webpack_require__";
 const API_REQUIRE: &str = "__webpack_require__";
 
-#[derive(Clone, Copy)]
-enum RuntimeApiIdentifierMode {
-  Normal,
-  Call,
-  Require,
-}
+type RuntimeApiIdentifier =
+  for<'p> fn(&mut JavascriptParser<'p>, Span, RuntimeGlobals) -> Option<bool>;
 
 #[derive(Clone, Copy)]
 struct RuntimeApi {
   name: &'static str,
   type_of: Option<&'static str>,
   runtime_global: Option<RuntimeGlobals>,
-  identifier_mode: Option<RuntimeApiIdentifierMode>,
+  identifier: Option<RuntimeApiIdentifier>,
 }
 
 static RUNTIME_APIS: &[RuntimeApi] = &[
@@ -68,109 +64,122 @@ static RUNTIME_APIS: &[RuntimeApi] = &[
     name: API_REQUIRE,
     type_of: Some("function"),
     runtime_global: Some(RuntimeGlobals::REQUIRE),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Require),
+    identifier: Some(|parser, span, runtime_global| {
+      if parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+          span.into(),
+          runtime_global,
+        )));
+        Some(true)
+      } else {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+          runtime_global,
+        )));
+        None
+      }
+    }),
   },
   RuntimeApi {
     name: "__webpack_hash__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::GET_FULL_HASH),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Call),
+    identifier: Some(call_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_public_path__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::PUBLIC_PATH),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_modules__",
     type_of: Some("object"),
     runtime_global: Some(RuntimeGlobals::MODULE_FACTORIES),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: API_MODULE,
     type_of: Some("object"),
     runtime_global: None,
-    identifier_mode: None,
+    identifier: None,
   },
   RuntimeApi {
     name: "__webpack_chunk_load__",
     type_of: Some("function"),
     runtime_global: Some(RuntimeGlobals::ENSURE_CHUNK),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_base_uri__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::BASE_URI),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: API_NON_REQUIRE,
     type_of: None,
     runtime_global: None,
-    identifier_mode: None,
+    identifier: None,
   },
   RuntimeApi {
     name: "__system_context__",
     type_of: Some("object"),
     runtime_global: Some(RuntimeGlobals::SYSTEM_CONTEXT),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_share_scopes__",
     type_of: Some("object"),
     runtime_global: Some(RuntimeGlobals::SHARE_SCOPE_MAP),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_init_sharing__",
     type_of: Some("function"),
     runtime_global: Some(RuntimeGlobals::INITIALIZE_SHARING),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_nonce__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::SCRIPT_NONCE),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_chunkname__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::CHUNK_NAME),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_runtime_id__",
     type_of: None,
     runtime_global: Some(RuntimeGlobals::RUNTIME_ID),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__webpack_get_script_filename__",
     type_of: Some("function"),
     runtime_global: Some(RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__rspack_version__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::RSPACK_VERSION),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Call),
+    identifier: Some(call_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__rspack_unique_id__",
     type_of: Some("string"),
     runtime_global: Some(RuntimeGlobals::RSPACK_UNIQUE_ID),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
   RuntimeApi {
     name: "__rspack_rsc_manifest__",
     type_of: Some("object"),
     runtime_global: Some(RuntimeGlobals::RSC_MANIFEST),
-    identifier_mode: Some(RuntimeApiIdentifierMode::Normal),
+    identifier: Some(normal_runtime_api_identifier),
   },
 ];
 
@@ -195,6 +204,30 @@ fn runtime_api_from_name(name: &str) -> Option<&'static RuntimeApi> {
 
 fn get_typeof_evaluate_of_api(sym: &str) -> Option<&'static str> {
   runtime_api_from_name(sym).and_then(|api| api.type_of)
+}
+
+fn normal_runtime_api_identifier(
+  parser: &mut JavascriptParser,
+  span: Span,
+  runtime_global: RuntimeGlobals,
+) -> Option<bool> {
+  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+    span.into(),
+    runtime_global,
+  )));
+  Some(true)
+}
+
+fn call_runtime_api_identifier(
+  parser: &mut JavascriptParser,
+  span: Span,
+  runtime_global: RuntimeGlobals,
+) -> Option<bool> {
+  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
+    span.into(),
+    runtime_global,
+  )));
+  Some(true)
 }
 
 fn static_require_member_chain(
@@ -332,51 +365,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     }
 
     let api = runtime_api_from_name(for_name)?;
+    let identifier = api.identifier?;
     let runtime_global = api
       .runtime_global
       .expect("runtime api identifier should have runtime global");
-    match for_name {
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require))
-        && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack =>
-      {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Require)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
-          runtime_global,
-        )));
-        None
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Call)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
-          ident.span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      API_LAYER => {
-        parser.add_presentational_dependency(Box::new(ConstDependency::new(
-          ident.span.into(),
-          parser
-            .module_layer
-            .map_or_else(|| "null".to_string(), |layer| json_stringify_str(layer))
-            .into(),
-        )));
-        Some(true)
-      }
-      _ if matches!(api.identifier_mode, Some(RuntimeApiIdentifierMode::Normal)) => {
-        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-          ident.span.into(),
-          runtime_global,
-        )));
-        Some(true)
-      }
-      _ => None,
-    }
+    identifier(parser, ident.span, runtime_global)
   }
 
   fn evaluate_identifier(

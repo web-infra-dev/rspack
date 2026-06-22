@@ -1,0 +1,15 @@
+it("should expose rspack runtime module variables on import.meta", function () {
+	expect(typeof import.meta.rspackPublicPath).toBe("string");
+	expect(import.meta.rspackPublicPath).toBe("/");
+
+	expect(typeof import.meta.rspackBaseUri).toBe("string");
+	expect(typeof import.meta.rspackShareScopes).toBe("object");
+	expect(typeof import.meta.rspackInitSharing).toBe("function");
+	expect(typeof import.meta.rspackNonce).toBe("string");
+
+	expect(typeof import.meta.rspackVersion).toBe("string");
+	expect(import.meta.rspackVersion.length > 0).toBe(true);
+
+	expect(typeof import.meta.rspackHash).toBe("string");
+	expect(import.meta.rspackHash.length > 0).toBe(true);
+});
