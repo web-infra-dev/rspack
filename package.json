@@ -59,10 +59,10 @@
   },
   "devDependencies": {
     "@rslint/core": "0.6.2",
-    "@rstest/core": "^0.10.4",
+    "@rstest/core": "^0.10.6",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.43",
-    "@typescript/native-preview": "7.0.0-dev.20260613.1",
+    "@typescript/native-preview": "7.0.0-dev.20260618.1",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",

@@ -22,10 +22,12 @@ import type {
 
 const require = createRequire(import.meta.url);
 
+type WatchpackInstance = InstanceType<typeof Watchpack>;
+
 export default class NodeWatchFileSystem implements WatchFileSystem {
   inputFileSystem: InputFileSystem;
   watcherOptions: Watchpack.WatchOptions;
-  watcher?: Watchpack;
+  watcher?: WatchpackInstance;
   // Long-lived emitter backing the `on`/`once` API. `watch()` replaces
   // `this.watcher` with a fresh Watchpack each cycle, so listeners must live
   // here (and be fed from each new watcher) to survive across cycles.

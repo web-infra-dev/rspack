@@ -5115,6 +5115,7 @@ dependencies = [
  "rspack_error",
  "rspack_hook",
  "rspack_plugin_javascript",
+ "rspack_resolver",
  "rspack_util",
  "rustc-hash",
  "swc_experimental_ecma_ast",

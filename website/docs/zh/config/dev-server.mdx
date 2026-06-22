@@ -74,6 +74,30 @@ export default {
 };
 ```
 
+## devServer.app
+
+- **类型：**
+
+```ts
+type DevServerApp = () => Promise<ConnectApplication>;
+```
+
+- **默认值：** [`connect-next`](https://github.com/rstackjs/connect-next) 应用
+
+为开发服务器的中间件栈提供自定义应用实例。
+
+默认情况下，`@rspack/dev-server` 会创建 `connect-next` 应用。如果你需要使用 Express 专有 API，例如 `app.get()`、`app.post()` 或 `res.send()`，请显式提供你自己的 Express 应用：
+
+```js title="rspack.config.mjs"
+import express from 'express';
+
+export default {
+  devServer: {
+    app: async () => express(),
+  },
+};
+```
+
 ## devServer.client
 
 - **类型：** `object`
@@ -461,6 +485,33 @@ export default {
 
 将 host 指定为 `local-ipv6` 会尝试将 host 选项解析为你的本地 `IPv6` 地址。
 
+## devServer.ipc
+
+- **类型：** `boolean | string`
+- **默认值：** `undefined`
+
+监听 IPC socket，而不是监听主机名和端口。
+
+设置为 `true` 时，`@rspack/dev-server` 会使用默认 socket 路径：在操作系统临时目录下创建名为 `rspack-dev-server.sock` 的 socket，Windows 上则使用命名管道路径。设置为字符串时，该字符串会作为自定义 socket 路径。
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: true,
+  },
+};
+```
+
+使用自定义 socket 路径：
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: '/tmp/rspack-dev-server.sock',
+  },
+};
+```
+
 ## devServer.hot
 
 - **类型：** `boolean | 'only'`
@@ -827,6 +878,23 @@ module.exports = {
   </Tab>
 </Tabs>
 
+## devServer.setupExitSignals
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+是否让 `@rspack/dev-server` 注册 `SIGINT` 和 `SIGTERM` 处理器，在进程退出前优雅地停止开发服务器并关闭 compiler。
+
+当其他进程管理器或测试运行器负责处理退出信号时，可以将它设置为 `false`。
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    setupExitSignals: false,
+  },
+};
+```
+
 ## devServer.setupMiddlewares
 
 - **类型：** `function (middlewares, devServer)`
@@ -872,18 +940,6 @@ export default {
 
       return middlewares;
     },
-  },
-};
-```
-
-默认情况下，`@rspack/dev-server` 创建的是 [`connect-next`](https://github.com/rstackjs/connect-next) 应用。如果你需要使用 Express 专有 API，请显式提供你自己的 app：
-
-```js title="rspack.config.mjs"
-import express from 'express';
-
-export default {
-  devServer: {
-    app: async () => express(),
   },
 };
 ```

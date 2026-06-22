@@ -54,13 +54,13 @@
     "browserslist-to-es-version": "^1.4.2",
     "connect-next": "^4.0.3",
     "enhanced-resolve": "5.24.0",
-    "http-proxy-middleware": "^4.1.0",
+    "http-proxy-middleware": "^4.1.1",
     "memfs": "4.57.7",
     "open": "^11.0.0",
     "prebundle": "^1.6.5",
     "tinypool": "^2.1.0",
     "typescript": "^6.0.3",
-    "watchpack": "2.5.1",
+    "watchpack": "2.5.2",
     "webpack-sources": "3.5.0"
   },
   "dependencies": {

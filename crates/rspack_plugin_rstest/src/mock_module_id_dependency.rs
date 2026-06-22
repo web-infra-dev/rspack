@@ -19,6 +19,7 @@ pub struct MockModuleIdDependency {
   factorize_info: FactorizeInfo,
   category: DependencyCategory,
   pub suffix: Option<String>,
+  missing_module_fallback: Option<String>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -40,11 +41,21 @@ impl MockModuleIdDependency {
       factorize_info: Default::default(),
       category,
       suffix,
+      missing_module_fallback: None,
     }
   }
 
   pub fn set_request(&mut self, request: String) {
     self.request = request;
+  }
+
+  pub fn with_missing_module_fallback(mut self, fallback: String) -> Self {
+    self.missing_module_fallback = Some(fallback);
+    self
+  }
+
+  pub fn has_missing_module_fallback(&self) -> bool {
+    self.missing_module_fallback.is_some()
   }
 }
 
@@ -139,13 +150,23 @@ impl DependencyTemplate for MockModuleIdDependencyTemplate {
       .downcast_ref::<MockModuleIdDependency>()
       .expect("MockModuleIdDependencyTemplate should only be used for MockModuleIdDependency");
 
-    let module_id = module_id_rstest(
-      code_generatable_context.compilation,
-      code_generatable_context.runtime_template,
-      &dep.id,
-      &dep.request,
-      dep.weak,
-    );
+    let module_id = if code_generatable_context
+      .compilation
+      .get_module_graph()
+      .module_identifier_by_dependency_id(&dep.id)
+      .is_none()
+      && let Some(fallback) = &dep.missing_module_fallback
+    {
+      fallback.clone()
+    } else {
+      module_id_rstest(
+        code_generatable_context.compilation,
+        code_generatable_context.runtime_template,
+        &dep.id,
+        &dep.request,
+        dep.weak,
+      )
+    };
 
     source.replace(
       dep.range.start,
