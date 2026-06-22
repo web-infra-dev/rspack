@@ -11,11 +11,14 @@ function createDeferred() {
 export function createRemoteServer() {
 	const remoteServer = {
 		version: "v1",
+		largeRemotePayloadSize: 50000,
 		activeFactoryVersion: undefined,
 		remoteEntryLoads: [],
+		remoteEntryClears: [],
 		providerRuntime: undefined,
 		remoteGets: [],
 		factoryExecutions: [],
+		largeRemotePayloads: [],
 		routeExecutions: {
 			pageA: 0,
 			pageB: 0
@@ -23,9 +26,6 @@ export function createRemoteServer() {
 		blockNextGet: false,
 		blockedGet: undefined,
 		blockedGetObserved: undefined,
-		setVersion(version) {
-			this.version = version;
-		},
 		setProviderRuntime(providerRuntime) {
 			this.providerRuntime = providerRuntime;
 		},
@@ -59,16 +59,31 @@ export function createRemoteServer() {
 		snapshot() {
 			return {
 				remoteEntryLoads: this.remoteEntryLoads.length,
+				remoteEntryClears: this.remoteEntryClears.length,
 				remoteGets: this.remoteGets.length,
 				factoryExecutions: this.factoryExecutions.length,
+				largeRemotePayloads: this.largeRemotePayloads.length,
 				routeExecutions: { ...this.routeExecutions }
 			};
 		},
+		getRemoteEntryVersion(entry) {
+			const match = String(entry).match(
+				/remote-project-(v\d+)\/remoteEntry\.js/
+			);
+			return match?.[1] || this.version;
+		},
 		wrapRemoteEntry(remoteEntry, entry) {
-			const entryVersion = this.version;
+			const entryVersion = this.getRemoteEntryVersion(entry);
+			if (typeof remoteEntry.__webpack_clear_cache__ !== "function") {
+				throw new Error("remoteEntry is missing __webpack_clear_cache__");
+			}
 			this.remoteEntryLoads.push(`${entryVersion}:${entry}`);
 			return {
 				init: (...args) => remoteEntry.init(...args),
+				__webpack_clear_cache__: () => {
+					this.remoteEntryClears.push(`${entryVersion}:${entry}`);
+					remoteEntry.__webpack_clear_cache__();
+				},
 				get: expose => {
 					this.remoteGets.push(`${entryVersion}:${expose}`);
 					const getFactory = Promise.resolve(remoteEntry.get(expose)).then(
@@ -105,6 +120,26 @@ export function createRemoteServer() {
 		createRemoteExport(expose) {
 			const version = this.activeFactoryVersion || this.version;
 			return `${expose}:${version}`;
+		},
+		createLargeRemoteExport(expose, remoteVersion) {
+			const version =
+				remoteVersion || this.activeFactoryVersion || this.version;
+			const payload = Array.from(
+				{ length: this.largeRemotePayloadSize },
+				(_, index) =>
+					`${expose}:${version}:${index}:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+			);
+			this.largeRemotePayloads.push({
+				expose,
+				version,
+				size: payload.length,
+				first: payload[0],
+				last: payload[payload.length - 1]
+			});
+			return {
+				value: `${expose}:${version}`,
+				payload
+			};
 		}
 	};
 	globalThis.__mfSsrClearCacheRemoteServer = remoteServer;
