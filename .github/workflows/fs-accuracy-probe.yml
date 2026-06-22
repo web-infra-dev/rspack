@@ -1,0 +1,51 @@
+name: FS Accuracy Probe
+
+# Measures the filesystem mtime accuracy (`FS_ACCURACY`) that each watcher
+# converges to, on macOS / Linux / Windows, for both implementations:
+#   - native watcher: rspack_watcher's real `safe_time`/`ensure_fs_accuracy`
+#   - watchpack: the real `watchpack` package via `getTimeInfoEntries().accuracy`
+# Look for `FS_ACCURACY_PROBE` lines in each job log.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/fs-accuracy-probe.yml'
+      - 'scripts/fs-accuracy-probe/**'
+      - 'crates/rspack_watcher/src/time_info.rs'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Probe (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: fs-accuracy-probe
+
+      - name: Probe native watcher (rspack_watcher)
+        run: cargo test -p rspack_watcher probe_fs_accuracy -- --ignored --nocapture
+
+      - name: Setup Node
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: 20
+
+      - name: Install watchpack
+        working-directory: scripts/fs-accuracy-probe
+        run: npm install --no-audit --no-fund
+
+      - name: Probe watchpack
+        working-directory: scripts/fs-accuracy-probe
+        run: node probe-watchpack.mjs

@@ -112,4 +112,64 @@ mod tests {
       "future mtime must be clamped to now + accuracy",
     );
   }
+
+  // Empirical probe: writes real files on the host filesystem, feeds their real
+  // mtimes through the production `safe_time`/`ensure_fs_accuracy` ladder, and
+  // prints the FS_ACCURACY the native watcher would converge to on this OS.
+  //
+  // `#[ignore]` so it never runs in normal `cargo test`. MUST be run in
+  // isolation (FS_ACCURACY is a process-global one-way ratchet — other tests in
+  // this binary would pre-narrow it):
+  //   cargo test -p rspack_watcher probe_fs_accuracy -- --ignored --nocapture
+  #[test]
+  #[ignore = "filesystem measurement probe; run explicitly in isolation"]
+  fn probe_fs_accuracy() {
+    use std::{fs, thread, time::Duration};
+
+    let dir = tempfile::tempdir().expect("create temp dir");
+    let mut mtimes = Vec::new();
+
+    // Spread ~50 distinct files over ~1.1s of wall clock with sub-ms jitter so
+    // their mtimes land on whatever granularity the filesystem actually keeps.
+    for i in 0..50u64 {
+      let path = dir.path().join(format!("probe_{i}.txt"));
+      fs::write(&path, i.to_le_bytes()).expect("write probe file");
+      let mtime = system_time_to_millis(
+        fs::metadata(&path)
+          .and_then(|m| m.modified())
+          .expect("read mtime"),
+      );
+      mtimes.push(mtime);
+      thread::sleep(Duration::from_micros(21_000 + (i * 271) % 900));
+    }
+
+    // Drive the real ladder.
+    for &m in &mtimes {
+      let _ = safe_time(m);
+    }
+    let converged = fs_accuracy();
+
+    // Independent ground truth: the smallest non-zero gap between observed
+    // mtimes is the filesystem's effective tick.
+    let mut sorted: Vec<u64> = mtimes.clone();
+    sorted.sort_unstable();
+    sorted.dedup();
+    let min_delta = sorted
+      .windows(2)
+      .map(|w| w[1] - w[0])
+      .filter(|&d| d > 0)
+      .min()
+      .unwrap_or(0);
+    let non_mult_10 = mtimes.iter().filter(|m| **m % 10 != 0).count();
+    let non_mult_100 = mtimes.iter().filter(|m| **m % 100 != 0).count();
+    let non_mult_1000 = mtimes.iter().filter(|m| **m % 1000 != 0).count();
+
+    println!("FS_ACCURACY_PROBE native os={}", std::env::consts::OS);
+    println!("FS_ACCURACY_PROBE native converged_accuracy_ms={converged}");
+    println!("FS_ACCURACY_PROBE native empirical_min_mtime_delta_ms={min_delta}");
+    println!(
+      "FS_ACCURACY_PROBE native samples=50 distinct={} non_mult_10={non_mult_10} non_mult_100={non_mult_100} non_mult_1000={non_mult_1000}",
+      sorted.len()
+    );
+  }
 }

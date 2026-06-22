@@ -1,0 +1,8 @@
+{
+  "name": "fs-accuracy-probe",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "watchpack": "2.5.1"
+  }
+}
