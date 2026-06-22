@@ -246,8 +246,8 @@ export class Watching {
   }
 
   #invalidate(
-    fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
-    contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore' | null>,
+    contextTimeInfoEntries?: Map<string, FileSystemInfoEntry | 'ignore' | null>,
     changedFiles?: Set<string>,
     removedFiles?: Set<string>,
   ) {
@@ -270,10 +270,13 @@ export class Watching {
   }
 
   #go(
-    fileTimeInfoEntries?: ReadonlyMap<string, FileSystemInfoEntry | 'ignore'>,
+    fileTimeInfoEntries?: ReadonlyMap<
+      string,
+      FileSystemInfoEntry | 'ignore' | null
+    >,
     contextTimeInfoEntries?: ReadonlyMap<
       string,
-      FileSystemInfoEntry | 'ignore'
+      FileSystemInfoEntry | 'ignore' | null
     >,
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,

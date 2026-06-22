@@ -269,6 +269,8 @@ impl TestHelper {
         &self,
         changed_files: FxHashSet<String>,
         deleted_files: FxHashSet<String>,
+        _file_time_info_entries: Vec<rspack_watcher::TimeInfoEntry>,
+        _context_time_info_entries: Vec<rspack_watcher::TimeInfoEntry>,
       ) {
         let _ = self.0.send(Event::Aggregated(AggregatedEvent {
           changed_files,

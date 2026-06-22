@@ -477,11 +477,6 @@ export declare class NativeWatcher {
   pause(): void
 }
 
-export declare class NativeWatchResult {
-  changedFiles: Array<string>
-  removedFiles: Array<string>
-}
-
 
 export declare class RawExternalItemFnCtx {
   data(): RawExternalItemFnCtxData
@@ -1786,6 +1781,14 @@ export interface NapiResolveOptions {
   enablePnp?: boolean
 }
 
+export interface NativeTimeInfoEntry {
+  path: string
+  /** `None` => JS `null` (registered path absent on disk). */
+  safeTime?: number
+  /** `None` for directory/context entries. */
+  timestamp?: number
+}
+
 export interface NativeWatcherOptions {
   followSymlinks?: boolean
   pollInterval?: number
@@ -1795,6 +1798,13 @@ export interface NativeWatcherOptions {
    * It can be a single path, an array of paths, or a regular expression.
    */
   ignored?: string | string[] | RegExp
+}
+
+export interface NativeWatchResult {
+  changedFiles: Array<string>
+  removedFiles: Array<string>
+  fileTimeInfoEntries: Array<NativeTimeInfoEntry>
+  contextTimeInfoEntries: Array<NativeTimeInfoEntry>
 }
 
 export interface NodeFsStats {

@@ -62,8 +62,11 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     options: Watchpack.WatchOptions,
     callback: (
       error: Error | null,
-      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
-      contextTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore'>,
+      fileTimeInfoEntries: Map<string, FileSystemInfoEntry | 'ignore' | null>,
+      contextTimeInfoEntries: Map<
+        string,
+        FileSystemInfoEntry | 'ignore' | null
+      >,
       changedFiles: Set<string>,
       removedFiles: Set<string>,
     ) => void,
@@ -120,11 +123,35 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
             fs.purge?.(item);
           }
         }
-        // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
+
+        const toMap = (
+          entries: binding.NativeTimeInfoEntry[],
+        ): Map<string, FileSystemInfoEntry | 'ignore' | null> => {
+          const map = new Map<string, FileSystemInfoEntry | 'ignore' | null>();
+          for (const entry of entries) {
+            map.set(
+              entry.path,
+              entry.safeTime == null
+                ? null
+                : {
+                    safeTime: entry.safeTime,
+                    timestamp: entry.timestamp ?? undefined,
+                  },
+            );
+          }
+          return map;
+        };
+        const fileTimeInfoEntries = toMap(result.fileTimeInfoEntries);
+        const contextTimeInfoEntries = toMap(result.contextTimeInfoEntries);
+        // watchpack convention: a removed path reads as null.
+        for (const removed of removedFiles) {
+          fileTimeInfoEntries.set(removed, null);
+        }
+
         callback(
           err,
-          new Map(),
-          new Map(),
+          fileTimeInfoEntries,
+          contextTimeInfoEntries,
           new Set(changedFiles),
           new Set(removedFiles),
         );

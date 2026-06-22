@@ -40,6 +40,18 @@ pub(crate) struct FsEvent {
   pub kind: FsEventKind,
 }
 
+/// A single time-info entry for one watched path, mirroring watchpack's
+/// per-path `{ safeTime, timestamp }`. `safe_time == None` means the path is
+/// absent on disk (the JS side maps it to `null`); `timestamp == None` marks a
+/// directory/context entry, which carries only a safe time (watchpack's
+/// `OnlySafeTimeEntry`).
+#[derive(Debug, Clone)]
+pub struct TimeInfoEntry {
+  pub path: String,
+  pub safe_time: Option<u64>,
+  pub timestamp: Option<u64>,
+}
+
 pub(crate) type EventBatch = Vec<FsEvent>;
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
@@ -49,8 +61,15 @@ pub(crate) type EventBatch = Vec<FsEvent>;
 /// This trait is intended to be used with the file system watcher to aggregate events
 /// and handle them in a single place.
 pub trait EventAggregateHandler {
-  /// Handle a batch of file system events.
-  fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
+  /// Handle a batch of aggregated file system events together with the current
+  /// file/context time-info snapshots.
+  fn on_event_handle(
+    &self,
+    _changed_files: HashSet<String>,
+    _deleted_files: HashSet<String>,
+    _file_time_info_entries: Vec<TimeInfoEntry>,
+    _context_time_info_entries: Vec<TimeInfoEntry>,
+  );
 
   /// Handle an error that occurs during file system watching.
   fn on_error(&self, _error: rspack_error::Error) {
@@ -145,7 +164,11 @@ impl FsWatcher {
 
     self
       .executor
-      .wait_for_execute(event_aggregate_handler, event_handler)
+      .wait_for_execute(
+        event_aggregate_handler,
+        event_handler,
+        Arc::clone(&self.path_manager),
+      )
       .await;
   }
 
