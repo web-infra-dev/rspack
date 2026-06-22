@@ -2,6 +2,8 @@
 module.exports = [
   {
     externals: {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
       './pseudo-export_style_module_css.bundle0.js':
         'commonjs ./pseudo-export_style_module_css.bundle0.js',
       './pseudo-export_style_module_css_exportsOnly.bundle0.js':

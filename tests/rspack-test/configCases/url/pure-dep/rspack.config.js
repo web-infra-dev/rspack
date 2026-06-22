@@ -2,6 +2,9 @@
 
 /** @type {import("../../../../").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+  },
   output: {
     assetModuleFilename: '[path][name][ext]',
   },

@@ -3,6 +3,10 @@ var MCEP = require('@rspack/core').CssExtractRspackPlugin;
 
 /** @type {(number, any) => import("@rspack/core").Configuration} */
 const config = (i, options) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   entry: {
     a: './a',
     b: './b',

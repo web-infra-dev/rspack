@@ -4,6 +4,10 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 /** @type {import("@rspack/core").Configuration} */
 
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   entry: './index.js',
   output: {
     ignoreBrowserWarnings: true,

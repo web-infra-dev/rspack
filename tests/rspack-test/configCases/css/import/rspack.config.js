@@ -53,6 +53,7 @@ module.exports = {
     ],
   },
   externals: {
+    path: 'node-commonjs path',
     'external-1.css': 'css-import external-1.css',
     'external-2.css': 'css-import external-2.css',
     'external-3.css': 'css-import external-3.css',

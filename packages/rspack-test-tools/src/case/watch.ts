@@ -16,7 +16,6 @@ import type {
   ITestRunner,
 } from '../type';
 import { afterExecute, compiler, findMultiCompilerBundle, run } from './common';
-import { applyNodeBuiltinExternals } from './node-builtin-externals';
 
 type TWatchContext = {
   currentTriggerFilename: string | null;
@@ -74,7 +73,6 @@ export function createWatchInitialProcessor(
           tempDir,
           nativeWatcher,
         );
-        applyNodeBuiltinExternals(compilerOptions);
         multiCompilerOptions.push(compilerOptions);
       }
 

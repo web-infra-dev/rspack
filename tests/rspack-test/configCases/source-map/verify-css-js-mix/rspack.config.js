@@ -5,6 +5,10 @@ module.exports = {
   devtool: 'source-map',
   externals: [
     {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
+    },
+    {
       '@rspack/test-tools/helper/util/checkSourceMap':
         'commonjs @rspack/test-tools/helper/util/checkSourceMap',
     },

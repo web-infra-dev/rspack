@@ -3,6 +3,8 @@
 /** @type {() => import("@rspack/core").Configuration} */
 module.exports = () => ({
   externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
     './use-style_js.bundle0.js': 'commonjs ./use-style_js.bundle0.js',
   },
   target: 'web',

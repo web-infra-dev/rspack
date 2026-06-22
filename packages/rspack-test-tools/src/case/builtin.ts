@@ -6,7 +6,6 @@ import { isJavaScript } from '../helper';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
 import { build, checkSnapshot, compiler } from './common';
-import { applyNodeBuiltinExternals } from './node-builtin-externals';
 
 const creator = new BasicCaseCreator({
   clean: true,
@@ -166,8 +165,6 @@ export function defaultOptions(context: ITestContext): RspackOptions {
       level: 'error',
     };
   }
-
-  applyNodeBuiltinExternals(defaultOptions);
 
   return defaultOptions;
 }

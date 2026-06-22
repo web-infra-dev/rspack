@@ -17,6 +17,9 @@ module.exports = {
   devtool: 'cheap-source-map',
   externals: [
     {
+      fs: 'node-commonjs fs',
+    },
+    {
       'source-map': 'commonjs source-map',
     },
     'source-map',

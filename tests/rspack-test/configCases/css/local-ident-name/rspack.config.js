@@ -1,4 +1,7 @@
 const common = {
+  externals: {
+    path: 'node-commonjs path',
+  },
   mode: 'development',
   devtool: false,
   module: {

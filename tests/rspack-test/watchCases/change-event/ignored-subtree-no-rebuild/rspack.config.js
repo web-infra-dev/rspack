@@ -32,6 +32,10 @@ class IgnoredRebuildProbe {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   watchOptions: {
     aggregateTimeout: 200,
     ignored: ['**/__ignored__'],

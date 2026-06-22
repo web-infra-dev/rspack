@@ -7,6 +7,10 @@ const implementation = require.resolve('@module-federation/runtime-tools', {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   optimization: {
     chunkIds: 'named',
     moduleIds: 'named',

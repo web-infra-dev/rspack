@@ -4,6 +4,10 @@ const {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    'node:fs': 'node-commonjs node:fs',
+    'node:path': 'node-commonjs node:path',
+  },
   context: __dirname,
   entry: './index.ts',
   target: 'node',

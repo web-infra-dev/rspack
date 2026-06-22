@@ -1,6 +1,10 @@
 const { rspack } = require('@rspack/core');
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   devtool: 'source-map',
   target: 'web',
   node: false,

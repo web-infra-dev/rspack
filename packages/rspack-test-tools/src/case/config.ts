@@ -21,7 +21,6 @@ import {
   findMultiCompilerBundle,
   run,
 } from './common';
-import { applyNodeBuiltinExternals } from './node-builtin-externals';
 import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
@@ -49,7 +48,6 @@ export function createConfigProcessor(
         (index, context, options) => {
           overrideOptions(index, context, options);
           mergeRspackOptions(options, rspackOptions);
-          applyNodeBuiltinExternals(options);
           applyRuntimeModeTestDefines(options);
         },
       );
