@@ -4,6 +4,9 @@ module.exports = {
     type: 'persistent',
   },
   snapshot: {
+    module: {
+      hash: true,
+    },
     contextModule: {
       timestamp: true,
     },

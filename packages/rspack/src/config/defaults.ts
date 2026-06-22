@@ -108,7 +108,7 @@ export const applyRspackOptionsDefaults = (
     compilerIndex,
   });
   F(options, 'snapshot', () => ({}));
-  applySnapshotDefaults(options.snapshot!);
+  applySnapshotDefaults(options.snapshot!, { production });
 
   applyIncrementalDefaults(options);
 
@@ -250,7 +250,13 @@ const applyCacheDefaults = (
   }
 };
 
-const applySnapshotDefaults = (snapshot: SnapshotNormalized) => {
+const applySnapshotDefaults = (
+  snapshot: SnapshotNormalized,
+  { production }: { production: boolean },
+) => {
+  F(snapshot, 'module', () =>
+    production ? { timestamp: true, hash: true } : { timestamp: true },
+  );
   F(snapshot, 'contextModule', () => ({ timestamp: true }));
 };
 

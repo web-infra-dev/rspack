@@ -23,6 +23,7 @@ pub struct RawSnapshotOptions {
   pub unmanaged_paths: Vec<RawPathMatcher>,
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub managed_paths: Vec<RawPathMatcher>,
+  pub r#module: Option<RawSnapshotStrategyOptions>,
   pub context_module: Option<RawSnapshotStrategyOptions>,
 }
 
@@ -65,11 +66,17 @@ impl From<RawSnapshotOptions> for SnapshotOptions {
         .collect(),
     );
 
-    if let Some(context_module) = value.context_module {
-      options.with_context_module_strategy(context_module.into())
+    let options = if let Some(module) = value.r#module {
+      options.with_module_strategy(module.into())
     } else {
       options
+    };
+
+    if let Some(context_module) = value.context_module {
+      return options.with_context_module_strategy(context_module.into());
     }
+
+    options
   }
 }
 
@@ -82,7 +89,7 @@ mod tests {
   }
 
   #[test]
-  fn should_align_context_module_strategy_defaults_with_webpack() {
+  fn should_align_snapshot_strategy_defaults_with_webpack() {
     let strategy = to_strategy(None, None);
     assert!(!strategy.hash);
     assert!(strategy.timestamp);
@@ -101,11 +108,30 @@ mod tests {
   }
 
   #[test]
-  fn should_use_default_context_module_strategy_when_omitted() {
+  fn should_use_default_snapshot_strategies_when_omitted() {
     let options: rspack_core::cache::persistent::snapshot::SnapshotOptions =
       RawSnapshotOptions::default().into();
-    let strategy = options.context_module_strategy();
-    assert!(!strategy.hash);
+    let module_strategy = options.module_strategy();
+    assert!(!module_strategy.hash);
+    assert!(module_strategy.timestamp);
+
+    let context_module_strategy = options.context_module_strategy();
+    assert!(!context_module_strategy.hash);
+    assert!(context_module_strategy.timestamp);
+  }
+
+  #[test]
+  fn should_apply_raw_module_strategy() {
+    let options: rspack_core::cache::persistent::snapshot::SnapshotOptions = RawSnapshotOptions {
+      r#module: Some(RawSnapshotStrategyOptions {
+        hash: Some(true),
+        timestamp: Some(true),
+      }),
+      ..Default::default()
+    }
+    .into();
+    let strategy = options.module_strategy();
+    assert!(strategy.hash);
     assert!(strategy.timestamp);
   }
 }

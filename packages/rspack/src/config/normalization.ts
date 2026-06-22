@@ -326,6 +326,12 @@ export const getNormalizedRspackOptions = (
       ? {}
       : {
           snapshot: {
+            module: optionalNestedConfig(
+              config.snapshot.module,
+              (strategy) => ({
+                ...strategy,
+              }),
+            ),
             contextModule: optionalNestedConfig(
               config.snapshot.contextModule,
               (strategy) => ({
@@ -645,6 +651,7 @@ export type CacheNormalized =
     };
 
 export type SnapshotNormalized = {
+  module?: SnapshotStrategyOptions;
   contextModule?: SnapshotStrategyOptions;
 };
 

@@ -57,11 +57,7 @@ impl Snapshot {
       return Some(v);
     }
     Some(match scope {
-      SnapshotScope::FILE => {
-        helper
-          .file_strategy(path, SnapshotStrategyOptions::hash_and_timestamp())
-          .await
-      }
+      SnapshotScope::FILE => helper.file_strategy(path, options.module_strategy()).await,
       SnapshotScope::MISSING => Strategy::Missing,
       SnapshotScope::CONTEXT => {
         helper
@@ -373,5 +369,63 @@ mod tests {
       .unwrap();
     assert!(deleted_paths.is_empty());
     assert!(!modified_paths.contains(&p!("/context")));
+  }
+
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn should_module_strategy_work() {
+    let fs = Arc::new(MemoryFileSystem::default());
+    let codec = Arc::new(CacheCodec::new(None));
+
+    fs.create_dir_all("/".into()).await.unwrap();
+    fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
+
+    let timestamp_only = Snapshot::new(
+      SnapshotOptions::default().with_module_strategy(SnapshotStrategyOptions::timestamp()),
+      fs.clone(),
+      codec.clone(),
+    );
+    let mut timestamp_storage = MemoryStorage::default();
+    timestamp_only
+      .add(
+        &mut timestamp_storage,
+        SnapshotScope::FILE,
+        [p!("/file.js")].into_iter(),
+      )
+      .await;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
+
+    let (_, modified_paths, deleted_paths, _) = timestamp_only
+      .calc_modified_paths(&timestamp_storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(deleted_paths.is_empty());
+    assert!(modified_paths.contains(&p!("/file.js")));
+
+    let timestamp_and_hash = Snapshot::new(
+      SnapshotOptions::default()
+        .with_module_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
+      fs.clone(),
+      codec,
+    );
+    let mut timestamp_and_hash_storage = MemoryStorage::default();
+    timestamp_and_hash
+      .add(
+        &mut timestamp_and_hash_storage,
+        SnapshotScope::FILE,
+        [p!("/file.js")].into_iter(),
+      )
+      .await;
+
+    std::thread::sleep(std::time::Duration::from_millis(100));
+    fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
+
+    let (_, modified_paths, deleted_paths, _) = timestamp_and_hash
+      .calc_modified_paths(&timestamp_and_hash_storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(deleted_paths.is_empty());
+    assert!(!modified_paths.contains(&p!("/file.js")));
   }
 }

@@ -726,6 +726,9 @@ module.exports = {
 			    contextModule: Object {
 			      timestamp: true,
 			    },
+			    module: Object {
+			      timestamp: true,
+			    },
 			  },
 			  stats: Object {},
 			  target: web,

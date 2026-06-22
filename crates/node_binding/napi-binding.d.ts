@@ -3043,6 +3043,7 @@ export interface RawSnapshotOptions {
   immutablePaths: Array<string|RegExp>
   unmanagedPaths: Array<string|RegExp>
   managedPaths: Array<string|RegExp>
+  module?: RawSnapshotStrategyOptions
   contextModule?: RawSnapshotStrategyOptions
 }
 

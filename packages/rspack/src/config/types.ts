@@ -2046,6 +2046,10 @@ export type SnapshotStrategyOptions = {
  */
 export type SnapshotOptions = {
   /**
+   * Snapshots for building modules.
+   */
+  module?: SnapshotStrategyOptions;
+  /**
    * Snapshots for building context modules.
    */
   contextModule?: SnapshotStrategyOptions;

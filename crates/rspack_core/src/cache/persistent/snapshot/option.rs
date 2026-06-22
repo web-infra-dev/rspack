@@ -29,6 +29,7 @@ pub struct SnapshotOptions {
   unmanaged_paths: Vec<PathMatcher>,
   /// managed_paths, snapshot will use lib version strategy
   managed_paths: Vec<PathMatcher>,
+  module: SnapshotStrategyOptions,
   context_module: SnapshotStrategyOptions,
 }
 
@@ -82,6 +83,15 @@ impl SnapshotOptions {
     self
   }
 
+  pub fn with_module_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.module = strategy;
+    self
+  }
+
+  pub fn module_strategy(&self) -> SnapshotStrategyOptions {
+    self.module
+  }
+
   pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
     self.context_module
   }
@@ -118,11 +128,16 @@ mod tests {
   use super::{PathMatcher, SnapshotOptions};
 
   #[test]
-  fn should_default_context_module_strategy_align_with_webpack() {
-    let strategy = SnapshotOptions::default().context_module_strategy();
+  fn should_default_snapshot_strategies_align_with_webpack_development() {
+    let options = SnapshotOptions::default();
 
-    assert!(!strategy.hash);
-    assert!(strategy.timestamp);
+    let module_strategy = options.module_strategy();
+    assert!(!module_strategy.hash);
+    assert!(module_strategy.timestamp);
+
+    let context_module_strategy = options.context_module_strategy();
+    assert!(!context_module_strategy.hash);
+    assert!(context_module_strategy.timestamp);
   }
 
   #[test]

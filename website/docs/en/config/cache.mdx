@@ -214,6 +214,20 @@ An array of paths managed by the package manager. On hot restart, Rspack will us
 
 Specifies paths within `snapshot.managedPaths` that should not be treated as managed by the package manager. Files in these paths will fall back to content-hash-based cache validation.
 
+### snapshot.module
+
+- **Type:** `{ hash?: boolean; timestamp?: boolean }`
+
+- **Default:** `{ timestamp: true }` in development and none mode, `{ hash: true, timestamp: true }` in production mode
+
+Controls the snapshot strategy used when building modules. `snapshot.module` is configured on the top-level `snapshot` option.
+
+- `hash: true` compares file content hashes.
+- `timestamp: true` compares file timestamps.
+- When both are enabled, Rspack checks timestamps first and compares hashes only after a timestamp change, so unchanged content can still reuse the cache.
+
+Following webpack, module snapshots use timestamp mode unless `hash: true` is set. When `hash: true` is set without `timestamp: true`, Rspack uses hash-only mode.
+
 ### snapshot.contextModule
 
 - **Type:** `{ hash?: boolean; timestamp?: boolean }`
@@ -399,7 +413,7 @@ export default {
 
 4. Migrate `snapshot`
 
-Move path-related snapshot options into `cache.snapshot`. Keep `snapshot.contextModule` on the top-level `snapshot` option.
+Move path-related snapshot options into `cache.snapshot`. Keep `snapshot.module` and `snapshot.contextModule` on the top-level `snapshot` option.
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -407,11 +421,17 @@ export default {
 -   immutablePaths: [path.join(__dirname, "constant")],
 -   managedPaths: [path.join(__dirname, "node_modules")],
 -   unmanagedPaths: [],
+-   module: {
+-     timestamp: true
+-   },
 -   contextModule: {
 -     timestamp: true
 -   }
 - },
 + snapshot: {
++   module: {
++     timestamp: true
++   },
 +   contextModule: {
 +     timestamp: true
 +   }
@@ -477,6 +497,7 @@ function transform(webpackConfig, rspackConfig) {
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
   };
   rspackConfig.snapshot = {
+    module: webpackConfig.snapshot?.module,
     contextModule: webpackConfig.snapshot?.contextModule,
   };
   rspackConfig.cache.storage = {
