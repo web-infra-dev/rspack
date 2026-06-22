@@ -2,6 +2,11 @@
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 const common = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+    vm: 'node-commonjs vm',
+  },
   entry: {
     main: './index.js',
   },

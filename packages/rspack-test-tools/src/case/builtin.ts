@@ -1,7 +1,7 @@
 import path from 'node:path';
 import type { RspackOptions } from '@rspack/core';
 import fs from 'fs-extra';
-import { merge } from 'webpack-merge';
+import { merge } from 'rspack-merge';
 import { isJavaScript } from '../helper';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv } from '../type';
@@ -18,7 +18,7 @@ const creator = new BasicCaseCreator({
     const filter = FILTERS[cat];
     return [
       {
-        config: async (context: ITestContext) => {
+        config: (context: ITestContext) => {
           const compiler = context.getCompiler();
           compiler.setOptions(defaultOptions(context));
         },

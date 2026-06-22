@@ -6,8 +6,8 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  DependencyId, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, DependencyId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleStage, RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::Result;
 
@@ -51,6 +51,10 @@ impl EmbedFederationRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::STARTUP
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -118,7 +122,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
         })
         .collect::<Vec<_>>();
       let entry_chunk_ids_literal =
-        serde_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
+        simd_json::to_string(&entry_chunk_ids).expect("Invalid json to string");
       Ok(context.runtime_template.render(
         &self.template_id(TemplateId::Async),
         Some(serde_json::json!({

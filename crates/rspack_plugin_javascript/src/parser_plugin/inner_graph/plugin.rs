@@ -4,12 +4,10 @@ use rspack_core::{
 };
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{
-  atoms::Atom,
-  common::{BytePos, Mark, Span, Spanned, SyntaxContext},
-  ecma::ast::{
-    AssignOp, ClassMember, DefaultDecl, ExportDefaultExpr, Expr, ModuleDecl, Pat, VarDeclarator,
-  },
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{
+  AssignExpr, AssignOp, ClassMember, DefaultDecl, Expr, GetSpan, Ident, MemberExpr, ModuleDecl,
+  Pat, Program, Span, ThisExpr, VarDeclarator,
 };
 
 use super::state::{
@@ -17,7 +15,6 @@ use super::state::{
   InnerGraphUsageOperation, TopLevelSymbol,
 };
 use crate::{
-  ClassExt,
   dependency::{ESMImportSpecifierDependency, PureExpressionDependency, URLDependency},
   parser_plugin::{DEFAULT_STAR_JS_WORD, JavascriptParserPlugin},
   side_effects_parser_plugin::{
@@ -29,18 +26,29 @@ use crate::{
   },
 };
 
+fn class_member_is_static(member: &ClassMember<'_>) -> bool {
+  match member {
+    ClassMember::Constructor(_) => false,
+    ClassMember::Method(m) => m.is_static,
+    ClassMember::PrivateMethod(m) => m.is_static,
+    ClassMember::ClassProp(p) => p.is_static,
+    ClassMember::PrivateProp(p) => p.is_static,
+    ClassMember::Empty(_) => false,
+    ClassMember::StaticBlock(_) => true,
+    ClassMember::AutoAccessor(a) => a.is_static,
+  }
+}
+
 #[derive(Debug)]
 pub struct InnerGraphParserPlugin {
-  unresolved_context: SyntaxContext,
   analyze_pure_annotation: bool,
 }
 
 pub static TOP_LEVEL_SYMBOL: &str = "inner graph top level symbol";
 
 impl InnerGraphParserPlugin {
-  pub fn new(unresolved_mark: Mark, analyze_pure_annotation: bool) -> Self {
+  pub fn new(analyze_pure_annotation: bool) -> Self {
     Self {
-      unresolved_context: SyntaxContext::empty().apply_mark(unresolved_mark),
       analyze_pure_annotation,
     }
   }
@@ -80,9 +88,9 @@ impl InnerGraphParserPlugin {
           DependencyRange::new(pure_part_start, pure_part_end),
           *parser.module_identifier,
         );
-        let dep_id = *dep.id();
+        let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
-        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
   }
@@ -104,18 +112,24 @@ impl InnerGraphParserPlugin {
         let mut set_is_true = false;
         let mut is_terminal = true;
         let already_processed = processed.entry(*key).or_default();
-        if let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.get(key) {
-          for name in names.iter() {
-            already_processed.insert(name.clone());
-          }
+        if matches!(state.inner_graph.get(key), Some(InnerGraphMapValue::Set(_))) {
+          let Some(InnerGraphMapValue::Set(names)) = state.inner_graph.remove(key) else {
+            unreachable!("checked Set value before removing inner graph entry")
+          };
+          already_processed.extend(names.iter().cloned());
           for name in names {
             match name {
               InnerGraphMapSetValue::Str(v) => {
-                new_set.insert(InnerGraphMapSetValue::Str(v.clone()));
+                new_set.insert(InnerGraphMapSetValue::Str(v));
               }
-              InnerGraphMapSetValue::TopLevel(v) => {
-                let item_value = state.inner_graph.get(v);
-                match item_value {
+              InnerGraphMapSetValue::TopLevel(dep_symbol) => {
+                if dep_symbol == *key {
+                  continue;
+                }
+                if deferred_pure_checks_by_symbol.contains_key(&dep_symbol) {
+                  new_set.insert(InnerGraphMapSetValue::TopLevel(dep_symbol));
+                }
+                match state.inner_graph.get(&dep_symbol) {
                   Some(InnerGraphMapValue::True) => {
                     set_is_true = true;
                     break;
@@ -188,7 +202,7 @@ impl InnerGraphParserPlugin {
 
     let mut finalized = vec![];
     for (symbol, cbs) in state.usage_map.drain() {
-      let deferred_pure_checks = deferred_pure_checks_by_symbol
+      let mut deferred_pure_checks = deferred_pure_checks_by_symbol
         .get(&symbol)
         .cloned()
         .unwrap_or_default();
@@ -196,10 +210,19 @@ impl InnerGraphParserPlugin {
       let used_by_exports = if let Some(usage) = usage {
         match usage {
           InnerGraphMapValue::Set(set) => {
-            let finalized_set = set
-              .iter()
-              .map(|item| item.to_atom(&state.symbol_map))
-              .collect::<HashSet<_>>();
+            let mut finalized_set = HashSet::default();
+            for item in set {
+              match item {
+                InnerGraphMapSetValue::TopLevel(dep_symbol) => {
+                  if let Some(checks) = deferred_pure_checks_by_symbol.get(dep_symbol) {
+                    deferred_pure_checks.extend(checks.iter().cloned());
+                  }
+                }
+                InnerGraphMapSetValue::Str(export_name) => {
+                  finalized_set.insert(export_name.clone());
+                }
+              }
+            }
             UsedByExports::set(finalized_set)
           }
           InnerGraphMapValue::True => UsedByExports::bool(true),
@@ -221,70 +244,68 @@ impl InnerGraphParserPlugin {
     state: &mut InnerGraphState,
     dependencies: &mut [BoxDependency],
   ) {
-    if !state.is_enabled() {
+    if !state.is_enabled() || state.usage_map.is_empty() {
       return;
     }
 
-    let dep_by_span: HashMap<(BytePos, BytePos), (DependencyId, Atom)> = dependencies
-      .iter()
-      .filter_map(|dep| {
-        let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
-        let range = specifier_dep.range()?;
-        Some((
-          (BytePos(range.start), BytePos(range.end)),
-          (*dep.id(), specifier_dep.imported_name().clone()),
-        ))
-      })
-      .collect();
-
     let mut deferred_pure_checks_by_symbol = HashMap::default();
-    let mut always_used_symbols = Vec::new();
+    if state
+      .symbol_map
+      .values()
+      .any(|symbol_data| !symbol_data.depend_on_pure.is_empty())
+    {
+      let mut dep_by_span: HashMap<(u32, u32), (DependencyId, Atom)> = dependencies
+        .iter()
+        .filter_map(|dep| {
+          let specifier_dep = dep.downcast_ref::<ESMImportSpecifierDependency>()?;
+          let range = specifier_dep.range()?;
+          Some((
+            (range.start, range.end),
+            (*dep.id(), specifier_dep.imported_name().clone()),
+          ))
+        })
+        .collect();
 
-    for (symbol, symbol_data) in &state.symbol_map {
-      let mut deferred_pure_checks = Vec::new();
-      for (_name, span) in &symbol_data.depend_on_pure {
-        if let Some((dep_id, import_name)) =
-          dep_by_span.get(&(BytePos(span.real_lo()), BytePos(span.real_hi())))
-        {
-          deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
-            dep_id: *dep_id,
-            atom: import_name.clone(),
-          });
-        } else {
-          always_used_symbols.push(*symbol);
-          deferred_pure_checks.clear();
-          break;
+      let mut always_used_symbols = Vec::new();
+
+      for (symbol, symbol_data) in &state.symbol_map {
+        let mut deferred_pure_checks = Vec::new();
+        for (_name, span) in &symbol_data.depend_on_pure {
+          if let Some((dep_id, import_name)) = dep_by_span.remove(&(span.real_lo(), span.real_hi()))
+          {
+            deferred_pure_checks.push(UsedByExportsDeferredPureCheck {
+              dep_id,
+              atom: import_name,
+            });
+          } else {
+            always_used_symbols.push(*symbol);
+            deferred_pure_checks.clear();
+            break;
+          }
+        }
+
+        if !deferred_pure_checks.is_empty() {
+          deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
         }
       }
 
-      if !deferred_pure_checks.is_empty() {
-        deferred_pure_checks_by_symbol.insert(*symbol, deferred_pure_checks);
+      for symbol in always_used_symbols {
+        state.inner_graph.insert(symbol, InnerGraphMapValue::True);
+        deferred_pure_checks_by_symbol.remove(&symbol);
       }
     }
-
-    for symbol in always_used_symbols {
-      state.inner_graph.insert(symbol, InnerGraphMapValue::True);
-      deferred_pure_checks_by_symbol.remove(&symbol);
-    }
-
-    let dep_by_id: HashMap<DependencyId, usize> = dependencies
-      .iter()
-      .enumerate()
-      .map(|(idx, dep)| (*dep.id(), idx))
-      .collect();
 
     for (operation, used_by_exports) in
       Self::infer_dependency_usage(state, &deferred_pure_checks_by_symbol)
     {
-      let dep_id = match operation {
-        InnerGraphUsageOperation::PureExpression(dep_id)
-        | InnerGraphUsageOperation::ESMImportSpecifier(dep_id)
-        | InnerGraphUsageOperation::URLDependency(dep_id) => dep_id,
+      let dep_idx = match operation {
+        InnerGraphUsageOperation::PureExpression(dep_idx)
+        | InnerGraphUsageOperation::ESMImportSpecifier(dep_idx)
+        | InnerGraphUsageOperation::URLDependency(dep_idx) => dep_idx,
       };
-      let Some(dep_idx) = dep_by_id.get(&dep_id).copied() else {
+      let Some(dep) = dependencies.get_mut(dep_idx) else {
         continue;
       };
-      let dep = &mut dependencies[dep_idx];
       match operation {
         InnerGraphUsageOperation::PureExpression(_) => {
           if let Some(dep) = dep.downcast_mut::<PureExpressionDependency>() {
@@ -307,8 +328,8 @@ impl InnerGraphParserPlugin {
 
   pub fn add_variable_usage(parser: &mut JavascriptParser, name: &Atom, usage: InnerGraphMapUsage) {
     let symbol = parser
-      .get_tag_data(name, TOP_LEVEL_SYMBOL)
-      .map(TopLevelSymbol::downcast)
+      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
+      .copied()
       .unwrap_or_else(|| Self::tag_top_level_symbol(parser, name));
 
     parser.inner_graph.add_usage(symbol, usage);
@@ -336,14 +357,11 @@ impl InnerGraphParserPlugin {
   ) -> TopLevelSymbol {
     parser.define_variable(name.clone());
 
-    let existing = parser.get_variable_info(name);
-    if let Some(existing) = existing
-      && let Some(tag_info) = existing.tag_info
-      && let tag_info = parser.definitions_db.expect_get_mut_tag_info(tag_info)
-      && tag_info.tag == TOP_LEVEL_SYMBOL
-      && let Some(tag_data) = tag_info.data.clone()
+    if let Some(existing) = parser
+      .get_tag_data::<TopLevelSymbol>(name, TOP_LEVEL_SYMBOL)
+      .copied()
     {
-      return TopLevelSymbol::downcast(tag_data);
+      return existing;
     }
 
     let symbol = parser.inner_graph.new_top_level_symbol(name.clone());
@@ -358,18 +376,18 @@ impl InnerGraphParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for InnerGraphParserPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
   fn program(
     &self,
     parser: &mut crate::visitors::JavascriptParser,
-    _ast: &swc_core::ecma::ast::Program,
+    _ast: &Program,
   ) -> Option<bool> {
     parser.inner_graph.enable();
 
     None
   }
 
-  fn finish(&self, parser: &mut JavascriptParser) -> Option<bool> {
+  fn finish(&self, parser: &mut JavascriptParser<'p>) -> Option<bool> {
     if !parser.inner_graph.is_enabled() {
       return None;
     }
@@ -389,9 +407,10 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
     if parser.is_top_level_scope()
       && let Some(fn_decl) = stmt.as_function_decl()
     {
-      let name = &fn_decl
-        .ident()
-        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
+      let name = &fn_decl.ident().map_or_else(
+        || DEFAULT_STAR_JS_WORD.clone(),
+        |ident| Atom::from(ident.sym.as_str()),
+      );
       let fn_variable = Self::tag_top_level_symbol(parser, name);
 
       parser
@@ -419,14 +438,14 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         parser,
         self.analyze_pure_annotation,
         class_decl.class(),
-        self.unresolved_context,
-        parser.comments,
+        parser.ast.comments,
         None,
       )
     {
-      let name = &class_decl
-        .ident()
-        .map_or_else(|| DEFAULT_STAR_JS_WORD.clone(), |ident| ident.sym.clone());
+      let name = &class_decl.ident().map_or_else(
+        || DEFAULT_STAR_JS_WORD.clone(),
+        |ident| Atom::from(ident.sym.as_str()),
+      );
       let class_variable = Self::tag_top_level_symbol(parser, name);
       parser
         .inner_graph
@@ -455,8 +474,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &class_expr.class,
-          self.unresolved_context,
-          parser.comments,
+          parser.ast.comments,
           None,
         )
       {
@@ -470,8 +488,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &fn_expr.function,
-          self.unresolved_context,
-          parser.comments,
+          parser.ast.comments,
           None,
         )
       {
@@ -487,17 +504,16 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
     // https://github.com/estree/estree/blob/master/es2015.md#exportdefaultdeclaration
     // but SWC using ExportDefaultExpr to represent `export default 1`
     let mut callees = vec![];
-    if let ModuleDecl::ExportDefaultExpr(ExportDefaultExpr { expr, .. }) = export_decl
+    if let ModuleDecl::ExportDefaultExpr(default_expr) = export_decl
       && is_pure_expression(
         parser,
         self.analyze_pure_annotation,
-        expr,
-        self.unresolved_context,
-        parser.comments,
+        &default_expr.expr,
+        parser.ast.comments,
         Some(&mut callees),
       )
     {
-      let export_part = &**expr;
+      let export_part = &default_expr.expr;
       let variable = Self::tag_top_level_symbol(parser, &DEFAULT_STAR_JS_WORD);
 
       for (name, span) in callees {
@@ -510,11 +526,11 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         .statement_with_top_level_symbol
         .insert(export_span, variable);
 
-      if !export_part.is_fn_expr() && !export_part.is_arrow() && !export_part.is_lit() {
+      if !export_part.is_fn() && !export_part.is_arrow() && !export_part.is_lit() {
         parser
           .inner_graph
           .statement_pure_part
-          .insert(export_span, expr.span());
+          .insert(export_span, export_part.span());
       }
     }
 
@@ -534,7 +550,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
     if let Pat::Ident(ident) = &decl.name
       && let Some(init) = &decl.init
     {
-      let name = &ident.id.sym;
+      let name = Atom::from(ident.id.sym.as_str());
       let mut callees = vec![];
 
       if init.is_class()
@@ -542,12 +558,11 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           parser,
           self.analyze_pure_annotation,
           &init.as_class().expect("should be class").class,
-          self.unresolved_context,
-          parser.comments,
+          parser.ast.comments,
           None,
         )
       {
-        let v = Self::tag_top_level_symbol(parser, name);
+        let v = Self::tag_top_level_symbol(parser, &name);
 
         parser
           .inner_graph
@@ -557,11 +572,10 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         parser,
         self.analyze_pure_annotation,
         init,
-        self.unresolved_context,
-        parser.comments,
+        parser.ast.comments,
         Some(&mut callees),
       ) {
-        let v = Self::tag_top_level_symbol(parser, name);
+        let v = Self::tag_top_level_symbol(parser, &name);
         for (symbol, span) in callees {
           v.add_depend_on(&mut parser.inner_graph, symbol, span);
         }
@@ -571,7 +585,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           .decl_with_top_level_symbol
           .insert(decl.span(), v);
 
-        if !init.is_fn_expr() && !init.is_arrow() && !init.is_lit() {
+        if !init.is_fn() && !init.is_arrow() && !init.is_lit() {
           parser.inner_graph.pure_declarators.insert(decl.span());
         }
       }
@@ -596,7 +610,11 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
     None
   }
 
-  fn module_declaration(&self, parser: &mut JavascriptParser, stmt: &ModuleDecl) -> Option<bool> {
+  fn module_declaration(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    stmt: &ModuleDecl,
+  ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
@@ -619,9 +637,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           DependencyRange::new(pure_part_start, pure_part_end),
           *parser.module_identifier,
         );
-        let dep_id = *dep.id();
+        let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(Box::new(dep));
-        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+        Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
       }
     }
 
@@ -633,7 +651,6 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         DefaultDecl::Fn(f) => {
           Self::for_each_statement(parser, &f.span());
         }
-        DefaultDecl::TsInterfaceDecl(_) => unreachable!(),
       }
     }
 
@@ -642,7 +659,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn class_extends_expression(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     super_class: &Expr,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -654,8 +671,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
       parser,
       self.analyze_pure_annotation,
       super_class,
-      self.unresolved_context,
-      parser.comments,
+      parser.ast.comments,
       None,
     );
 
@@ -673,9 +689,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         DependencyRange::new(expr_span.real_lo(), expr_span.real_hi()),
         *parser.module_identifier,
       );
-      let dep_id = *dep.id();
+      let dep_idx = parser.next_dependency_idx();
       parser.add_dependency(Box::new(dep));
-      Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+      Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
     }
 
     None
@@ -683,7 +699,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn class_body_element(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     element: &ClassMember,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -720,7 +736,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
           .map(|info| ExportedVariableInfo::VariableInfo(info.id()))
           .unwrap_or(ExportedVariableInfo::Name(top_level_symbol_variable_name));
         if let Some(class_ident) = class_decl_or_expr.ident() {
-          parser.set_variable(class_ident.sym.clone(), class_var.clone());
+          parser.set_variable(Atom::from(class_ident.sym.as_str()), class_var.clone());
         }
         parser.set_variable("this".into(), class_var);
       }
@@ -731,8 +747,8 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn class_body_value(
     &self,
-    parser: &mut JavascriptParser,
-    element: &swc_core::ecma::ast::ClassMember,
+    parser: &mut JavascriptParser<'p>,
+    element: &ClassMember,
     expr_span: Span,
     class_decl_or_expr: crate::visitors::ClassDeclOrExpr,
   ) -> Option<bool> {
@@ -743,8 +759,7 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
       parser,
       self.analyze_pure_annotation,
       element,
-      self.unresolved_context,
-      parser.comments,
+      parser.ast.comments,
       None,
     );
     if let Some(v) = parser
@@ -752,16 +767,16 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
       .class_with_top_level_symbol
       .get(&class_decl_or_expr.span())
     {
-      if !element.is_static() || pure_member {
+      if !class_member_is_static(element) || pure_member {
         parser.inner_graph.set_top_level_symbol(Some(*v));
-        if !matches!(element, ClassMember::Method(_)) && element.is_static() {
+        if !matches!(element, ClassMember::Method(_)) && class_member_is_static(element) {
           let dep = PureExpressionDependency::new(
             DependencyRange::new(expr_span.real_lo(), expr_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
-          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         }
       } else {
         parser.inner_graph.set_top_level_symbol(None);
@@ -773,8 +788,8 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn declarator(
     &self,
-    parser: &mut JavascriptParser,
-    decl: &swc_core::ecma::ast::VarDeclarator,
+    parser: &mut JavascriptParser<'p>,
+    decl: &VarDeclarator,
     _stmt: VariableDeclaration<'_>,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() {
@@ -792,16 +807,16 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
         // class Foo extends Bar {}
         // if Foo is not used, we can ignore extends Bar
         if let Some(init) = &decl.init
-          && let Expr::Class(class_expr) = init.as_ref()
+          && let Expr::Class(class_expr) = init
         {
           let super_span = class_expr.class.super_class.span();
           let dep = PureExpressionDependency::new(
             DependencyRange::new(super_span.real_lo(), super_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
-          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_id));
+          Self::on_usage(parser, InnerGraphUsageOperation::PureExpression(dep_idx));
         } else if decl.init.is_none() || !decl.init.as_ref().expect("unreachable").is_class() {
           let init = decl.init.as_ref().expect("should have initialization");
           let init_span = init.span();
@@ -809,11 +824,11 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
             DependencyRange::new(init_span.real_lo(), init_span.real_hi()),
             *parser.module_identifier,
           );
-          let dep_id = *dep.id();
+          let dep_idx = parser.next_dependency_idx();
           parser.add_dependency(Box::new(dep));
           InnerGraphParserPlugin::on_usage(
             parser,
-            InnerGraphUsageOperation::PureExpression(dep_id),
+            InnerGraphUsageOperation::PureExpression(dep_idx),
           );
         }
       }
@@ -839,8 +854,8 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    _expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);
@@ -849,8 +864,9 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn assign(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::AssignExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &AssignExpr,
+    _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     if !parser.inner_graph.is_enabled() || for_name != TOP_LEVEL_SYMBOL {
@@ -864,8 +880,8 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    _ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    _ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);
@@ -874,8 +890,8 @@ impl JavascriptParserPlugin for InnerGraphParserPlugin {
 
   fn this(
     &self,
-    parser: &mut JavascriptParser,
-    _expr: &swc_core::ecma::ast::ThisExpr,
+    parser: &mut JavascriptParser<'p>,
+    _expr: &ThisExpr,
     for_name: &str,
   ) -> Option<bool> {
     Self::for_each_expression(parser, for_name);

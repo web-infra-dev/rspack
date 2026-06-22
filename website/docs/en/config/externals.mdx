@@ -53,7 +53,7 @@ console.log(dayjs().format('YYYY-MM-DD'));
 
 In the configuration above, the key `dayjs` under `externals` matches the module specifier in `import dayjs from 'dayjs'`, meaning that module should not be bundled.
 
-The value `dayjs` is then used to access the global variable at runtime. By default, [externalsType](#externalstype) is `var`, which means Rspack reads it from the global scope. In a browser, this usually means accessing `window.dayjs`.
+The value `dayjs` is then used to access the global variable at runtime. In this basic configuration, the default [externalsType](#externalstype) is `var`, which means Rspack reads it from the global scope. In a browser, this usually means accessing `window.dayjs`.
 
 ### String
 
@@ -144,7 +144,7 @@ export default {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytarget) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytype) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
 :::
 
 ```js title="rspack.config.mjs"
@@ -308,9 +308,17 @@ export default {
 ## externalsType
 
 - **Type:** `string`
-- **Default:** `'var'`
+- **Default:** Depends on [`output.library.type`](/config/output#outputlibrarytype) and [`output.module`](/config/output#outputmodule)
+
+The default value is inferred as follows:
+
+- When [`output.library`](/config/output#outputlibrary) is configured, it matches [`output.library.type`](/config/output#outputlibrarytype).
+- Otherwise, when [`output.module`](/config/output#outputmodule) is `true`, it is `'module-import'`.
+- Otherwise, it is `'var'`.
 
 Specify the default type of externals. `amd`, `umd`, `system` and `jsonp` externals **depend on the [`output.library.type`](/config/output#outputlibrarytype)** being set to the same value e.g. you can only consume `amd` externals within an `amd` library.
+
+Set `externalsType` explicitly when the external dependency should use a different loading format from the inferred default.
 
 Supported types:
 
@@ -323,6 +331,7 @@ Supported types:
 - [`'module'`](#externalstypemodule)
 - [`'import'`](#externalstypeimport) - uses `import()` to load a native ECMAScript module (async module)
 - [`'module-import'`](#externalstypemodule-import)
+- [`'modern-module'`](#externalstypemodern-module)
 - [`'commonjs-import'`](#externalstypecommonjs-import)
 - `'jsonp'`
 - [`'node-commonjs'`](#externalstypenode-commonjs)
@@ -543,6 +552,64 @@ export default {
       callback();
     },
   ]
+```
+
+### externalsType['modern-module']
+
+Specify the default type of externals as `'modern-module'`.
+
+For compatibility, Rspack does not enable this automatically when [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'` yet. Configure `externalsType: 'modern-module'` explicitly to opt in. This will become the default for `modern-module` libraries in the next major version.
+
+For static ESM imports, Rspack renders the external like [`'module'`](#externalstypemodule), using a static `import` statement. For dynamic `import()`, Rspack renders the external like [`'module-import'`](#externalstypemodule-import), using `import()`.
+
+For CommonJS `require()`, Rspack chooses the CommonJS external variant from the target. Node-like targets render the external like [`'node-commonjs'`](#externalstypenode-commonjs) and create a `require` function with `createRequire` in the generated ESM output. Other targets render it like [`'commonjs'`](#externalstypecommonjs), preserving a bare `require()` call.
+
+**Example**
+
+```js title="src/index.js"
+import { readFile } from 'node:fs/promises';
+
+const path = require('node:path');
+
+export async function loadConfig(file) {
+  const os = await import('node:os');
+  const content = await readFile(file, 'utf-8');
+  return {
+    content,
+    dirname: path.dirname(file),
+    platform: os.platform(),
+  };
+}
+```
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: {
+    library: {
+      type: 'modern-module',
+    },
+  },
+  externalsType: 'modern-module',
+  externals: ['node:fs/promises', 'node:path', 'node:os'],
+};
+```
+
+Because this example targets Node.js, the generated ESM output keeps the static import as an `import` statement, keeps the dynamic import as `import()`, and renders the `require()` external through `createRequire`:
+
+```js
+import { createRequire as __rspack_createRequire } from 'node:module';
+import { readFile } from 'node:fs/promises';
+
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+const path = __rspack_createRequire_require('node:path');
+
+async function loadConfig(file) {
+  const os = await import('node:os');
+  // ...
+}
+
+export { loadConfig };
 ```
 
 ### externalsType['commonjs-import']

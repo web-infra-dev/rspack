@@ -32,10 +32,15 @@ impl DiskWatcher {
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
         Ok(event) => {
-          let paths = &event.paths;
+          tracing::debug!(
+            target: "rspack_watcher::fs_event",
+            kind = ?event.kind,
+            paths = ?event.paths,
+            "fs_event",
+          );
 
-          if paths.is_empty() {
-            return; // Ignore events with no paths
+          if event.paths.is_empty() {
+            return;
           }
 
           let kind = match event.kind {
@@ -47,16 +52,15 @@ impl DiskWatcher {
             // TODO: handle this case /path/to/index.js -> /path/to/index.js.map
             // path/to/index.js should be removed, and path/to/index.js.map should be changed
             // Now /path/to/index.js and /path/to/index.js.map will both be changed
-            _ => return, // Ignore other kinds of events
+            _ => return,
           };
-          let paths = event.paths.into_iter().map(ArcPath::from);
-          for path in paths {
+          for path in event.paths.into_iter().map(ArcPath::from) {
             trigger.on_event(&path, kind);
           }
         }
 
         Err(e) => {
-          // Handle error, e.g., log it or notify the user
+          tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
           eprintln!("Error in file watcher: {e:?}",);
         }
       },

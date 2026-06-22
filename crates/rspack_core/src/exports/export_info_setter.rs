@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 
 use rspack_util::atom::Atom;
 
-use super::{ExportInfoData, ExportInfoTargetValue, UsageFilterFnTy, UsageState};
+use super::{ExportInfoData, ExportInfoTargetValue, UsageState};
 use crate::{CanInlineUse, DependencyId, Nullable, RuntimeSpec};
 
 impl ExportInfoData {
@@ -130,7 +130,7 @@ impl ExportInfoData {
 
   pub fn set_used_conditionally(
     &mut self,
-    condition: UsageFilterFnTy<UsageState>,
+    condition: impl Fn(&UsageState) -> bool,
     new_value: UsageState,
     runtime: Option<&RuntimeSpec>,
   ) -> bool {
@@ -180,7 +180,7 @@ impl ExportInfoData {
     let mut changed = false;
 
     if self.set_used_conditionally(
-      Box::new(|value| value < &UsageState::Unknown),
+      |value| value < &UsageState::Unknown,
       UsageState::Unknown,
       runtime,
     ) {

@@ -7,9 +7,9 @@ use rspack_core::{
   CompilationOptimizeDependencies, ConnectionState, DependencyExtraMeta, DependencyId,
   ExportsInfoArtifact, FactoryMeta, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleGraphConnection, ModuleIdentifier, NormalModuleCreateData, NormalModuleFactoryModule,
-  OptimizationBailoutItem, Plugin, PrefetchExportsInfoMode, ResolvedExportInfoTarget,
-  SideEffectsDoOptimize, SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact,
-  SideEffectsState, SideEffectsStateArtifact,
+  OptimizationBailoutItem, Plugin, ResolvedExportInfoTarget, SideEffectsDoOptimize,
+  SideEffectsDoOptimizeMoveTarget, SideEffectsOptimizeArtifact, SideEffectsState,
+  SideEffectsStateArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   can_move_target, get_target,
   incremental::{self, IncrementalPasses, Mutation},
@@ -18,10 +18,10 @@ use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, Utf8Path};
 use sugar_path::SugarPath;
-use swc_core::ecma::ast::*;
+use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
 use crate::{
-  FLAG_DEPENDENCY_EXPORTS_STAGE,
+  FLAG_DEPENDENCY_EXPORTS_STAGE, deferred_pure_check_is_impure,
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
 };
 
@@ -79,37 +79,35 @@ fn glob_match_with_normalized_pattern(pattern: &str, string: &str) -> bool {
   fast_glob::glob_match(&normalized_glob, string.trim_start_matches("./"))
 }
 
-pub trait ClassExt {
-  fn class_key(&self) -> Option<&PropName>;
+pub trait ClassExt<'a> {
+  fn class_key(&'a self) -> Option<&'a PropName<'a>>;
   fn is_static(&self) -> bool;
 }
 
-impl ClassExt for ClassMember {
-  fn class_key(&self) -> Option<&PropName> {
+impl<'a> ClassExt<'a> for ClassMember<'a> {
+  fn class_key(&'a self) -> Option<&'a PropName<'a>> {
     match self {
       ClassMember::Constructor(c) => Some(&c.key),
       ClassMember::Method(m) => Some(&m.key),
       ClassMember::PrivateMethod(_) => None,
       ClassMember::ClassProp(c) => Some(&c.key),
       ClassMember::PrivateProp(_) => None,
-      ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => None,
       ClassMember::StaticBlock(_) => None,
-      ClassMember::AutoAccessor(a) => match a.key {
+      ClassMember::AutoAccessor(a) => match &a.key {
         Key::Private(_) => None,
-        Key::Public(ref public) => Some(public),
+        Key::Public(public) => Some(public),
       },
     }
   }
 
   fn is_static(&self) -> bool {
     match self {
-      ClassMember::Constructor(_cons) => false,
+      ClassMember::Constructor(_) => false,
       ClassMember::Method(m) => m.is_static,
       ClassMember::PrivateMethod(m) => m.is_static,
       ClassMember::ClassProp(p) => p.is_static,
       ClassMember::PrivateProp(p) => p.is_static,
-      ClassMember::TsIndexSignature(_) => unreachable!(),
       ClassMember::Empty(_) => false,
       ClassMember::StaticBlock(_) => true,
       ClassMember::AutoAccessor(a) => a.is_static,
@@ -133,7 +131,7 @@ impl SideEffectsFlagPlugin {
 async fn nmf_module(
   &self,
   _data: &mut ModuleFactoryCreateData,
-  create_data: &mut NormalModuleCreateData,
+  create_data: &NormalModuleCreateData,
   module: &mut BoxModule,
 ) -> Result<()> {
   if let Some(has_side_effects) = create_data.side_effects {
@@ -143,7 +141,7 @@ async fn nmf_module(
     return Ok(());
   }
 
-  let resource_data = &create_data.resource_resolve_data;
+  let resource_data = create_data.resource_resolve_data.as_ref();
   let Some(resource_path) = resource_data.path() else {
     return Ok(());
   };
@@ -201,47 +199,12 @@ async fn finish_modules(
         .deferred_pure_checks
         .iter()
         .any(|deferred_check| {
-          let Some(ref_module) =
-            module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
-          else {
-            return true;
-          };
-
-          let target_exports_info = exports_info_artifact
-            .get_prefetched_exports_info(ref_module, PrefetchExportsInfoMode::Default);
-          let target_export_info =
-            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
-          let resolve_filter = |_: &ResolvedExportInfoTarget| true;
-
-          let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-            &target_export_info,
+          deferred_pure_check_is_impure(
             module_graph,
             exports_info_artifact,
-            &resolve_filter,
-            &mut Default::default(),
-          ) {
-            let atom = if target.module == *ref_module {
-              deferred_check.atom.clone()
-            } else {
-              target
-                .export
-                .as_ref()
-                .and_then(|export| export.first().cloned())
-                .unwrap_or_else(|| deferred_check.atom.clone())
-            };
-            (target.module, atom)
-          } else {
-            (*ref_module, deferred_check.atom.clone())
-          };
-
-          let ref_module = module_graph
-            .module_by_identifier(&ref_module_id)
-            .expect("should have module");
-
-          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
-            return true;
-          };
-          !side_effects_free.contains(&atom)
+            &deferred_check.dep_id,
+            &deferred_check.atom,
+          )
         });
 
     deferred_side_effect_states.push((
@@ -512,8 +475,7 @@ fn can_optimize_connection(
   if let Some(dep) = dep.downcast_ref::<ESMExportImportedSpecifierDependency>()
     && let Some(name) = &dep.name
   {
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(&original_module, PrefetchExportsInfoMode::Default);
+    let exports_info = exports_info_artifact.get_exports_info_data(&original_module);
     let export_info = exports_info.get_export_info_without_mut_module_graph(name);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {
@@ -558,10 +520,7 @@ fn can_optimize_connection(
     && let ids = dep.get_ids(module_graph)
     && !ids.is_empty()
   {
-    let exports_info = exports_info_artifact.get_prefetched_exports_info(
-      connection.module_identifier(),
-      PrefetchExportsInfoMode::Default,
-    );
+    let exports_info = exports_info_artifact.get_exports_info_data(connection.module_identifier());
     let export_info = exports_info.get_export_info_without_mut_module_graph(&ids[0]);
 
     let resolve_filter = |target: &ResolvedExportInfoTarget| {

@@ -29,10 +29,13 @@ impl MetaOccasion {
   }
 }
 
-#[async_trait::async_trait]
 impl Occasion for MetaOccasion {
   /// Meta has no structured artifact: it reads/writes a single global counter.
   type Artifact = ();
+
+  fn name(&self) -> &'static str {
+    "meta"
+  }
 
   #[tracing::instrument("Cache::Occasion::Meta::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {

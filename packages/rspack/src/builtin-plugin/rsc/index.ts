@@ -1,12 +1,12 @@
 import { Coordinator } from './Coordinator';
+import { RscClientPlugin } from './RscClientPlugin';
 import {
-  RscClientPlugin,
-  type RscClientPluginOptions,
-} from './RscClientPlugin';
-import { RscServerPlugin } from './RscServerPlugin';
+  RscServerPlugin,
+  type RscServerPluginOptions,
+} from './RscServerPlugin';
 
 declare class ServerPlugin extends RscServerPlugin {
-  constructor(options?: Omit<RscClientPluginOptions, 'coordinator'>);
+  constructor(options?: Omit<RscServerPluginOptions, 'coordinator'>);
 }
 
 declare class ClientPlugin extends RscClientPlugin {}
@@ -14,7 +14,7 @@ declare class ClientPlugin extends RscClientPlugin {}
 export const rsc = {
   createPlugins: (): {
     ServerPlugin: new (
-      options?: Omit<RscClientPluginOptions, 'coordinator'>,
+      options?: Omit<RscServerPluginOptions, 'coordinator'>,
     ) => ServerPlugin;
     ClientPlugin: new () => ClientPlugin;
   } => {
@@ -22,7 +22,7 @@ export const rsc = {
 
     return {
       ServerPlugin: class ServerPlugin extends RscServerPlugin {
-        constructor(options: Omit<RscClientPluginOptions, 'coordinator'> = {}) {
+        constructor(options: Omit<RscServerPluginOptions, 'coordinator'> = {}) {
           super({ coordinator, ...options });
         }
       },

@@ -31,6 +31,8 @@ type CacheOptions =
       storage?: {
         type: 'filesystem';
         directory?: string;
+        maxAge?: number;
+        maxGenerations?: number;
       };
     };
 ```
@@ -214,11 +216,9 @@ Specifies paths within `snapshot.managedPaths` that should not be treated as man
 
 ### cache.storage
 
-- **Type:** `{ type: 'filesystem'; directory?: string }`
+- **Type:** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
 
-- **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
-
-Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
+Configure cache storage. Currently only filesystem storage is supported.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -226,143 +226,97 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      directory: 'node_modules/.cache/rspack',
+      maxAge: 7 * 24 * 60 * 60,
+      maxGenerations: 10,
     },
   },
 };
 ```
 
-:::tip
-Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
+#### cache.storage.directory
 
-Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+- **Type:** `string`
+
+- **Default:** `node_modules/.cache/rspack/<name>-<mode>-<index>`
+
+Use `directory` to configure the cache directory. By default, Rspack generates the cache directory from [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and the multi-compiler index.
+
+:::tip
+Configure different [`config.name`](/config/other-options#name) values for different compilers so they use different `cache.storage.directory` values and avoid cache conflicts.
 :::
+
+#### cache.storage.maxAge
+
+- **Type:** `number` (positive integer, in seconds)
+
+- **Default:** `7 * 24 * 60 * 60` (7 days)
+
+The maximum time, in seconds, that cache can remain unused. During cleanup, Rspack removes cache that has not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxAge: 7 * 24 * 60 * 60,
+    },
+  },
+};
+```
+
+#### cache.storage.maxGenerations
+
+- **Type:** `number` (positive integer)
+
+- **Default:** `3`
+
+This is a generational cleanup policy that controls how many cache generations can be retained in the current cache directory. When the number of generations exceeds the limit, Rspack removes the least recently accessed cache. Set `maxGenerations` to `Infinity` to disable generation-based cleanup.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+      maxGenerations: 10,
+    },
+  },
+};
+```
+
+### Inspect persistent cache logs
+
+Persistent cache logs are emitted through the `rspack.persistentCache` logger. To display them in the build stats, enable this logger with `stats.loggingDebug`:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: false,
+    loggingDebug: /^rspack\.persistentCache$/,
+  },
+};
+```
+
+The logs include key persistent cache events, such as whether persistent cache is enabled, whether build dependencies are valid, whether cache recovery succeeded, and why the persistent cache was invalidated. They also include read and write timings for each cache phase (for example, build dependency validation, snapshot restore, occasion recovery, staging, and flushing to disk).
+
+If you want to include logs from other loggers too, enable `stats.logging`:
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+  },
+  stats: {
+    logging: 'info',
+    loggingDebug: /^rspack\.persistentCache$/,
+  },
+};
+```
 
 ## Migrating from webpack config
 
-The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.
-
-1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   type: 'filesystem',
-- },
-+ cache: {
-+   type: 'persistent',
-+ },
-};
-```
-
-2. Migrate `cache.buildDependencies`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   buildDependencies: {
--     config: [__filename, path.join(__dirname, "package.json")],
--     ts: [path.join(__dirname, "tsconfig.json")]
--   }
-- },
-+ cache: {
-+   type: "persistent",
-+   buildDependencies: [
-+     __filename,
-+     path.join(__dirname, "package.json"),
-+     path.join(__dirname, "tsconfig.json")
-+   ]
-+ },
-};
-```
-
-3. Migrate `cache.version` and `cache.name`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-+ cache: {
-+   type: "persistent",
-+   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-+ },
-};
-```
-
-4. Migrate `snapshot`
-
-```diff title="rspack.config.mjs"
-export default {
-- snapshot: {
--   immutablePaths: [path.join(__dirname, "constant")],
--   managedPaths: [path.join(__dirname, "node_modules")],
--   unmanagedPaths: []
-- },
-+ cache: {
-+   type: "persistent",
-+   snapshot: {
-+     immutablePaths: [path.join(__dirname, "constant")],
-+     managedPaths: [path.join(__dirname, "node_modules")],
-+     unmanagedPaths: []
-+   }
-+ },
-};
-```
-
-5. Migrate `cache.cacheDirectory`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
-- },
-+ cache: {
-+   type: "persistent",
-+   storage: {
-+     type: "filesystem",
-+     directory: path.join(__dirname, "node_modules/.cache/test")
-+   }
-+ },
-};
-```
-
-Sample migration code:
-
-```js
-function transform(webpackConfig, rspackConfig) {
-  if (webpackConfig.cache === undefined) {
-    webpackConfig.cache = webpackConfig.mode === 'development';
-  }
-  // 1. if using disable cache, just set `cache` = false
-  if (!webpackConfig.cache) {
-    rspackConfig.cache = false;
-    return;
-  }
-  // 2. if using memory cache, just set `cache` = true
-  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
-    rspackConfig.cache = true;
-    return;
-  }
-  // 3. using persistent cache, set `cache` = { type: "persistent" }
-  rspackConfig.cache = { type: 'persistent' };
-  // 4. building `cache` from webpack config
-  rspackConfig.cache.buildDependencies = Object.values(
-    webpackConfig.cache.buildDependencies || {},
-  ).flat();
-  rspackConfig.cache.version = [
-    webpackConfig.cache.name,
-    webpackConfig.cache.version,
-  ].join();
-  rspackConfig.cache.snapshot = {
-    immutablePaths: webpackConfig.snapshot?.immutablePaths,
-    managedPaths: webpackConfig.snapshot?.managedPaths,
-    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
-  };
-  rspackConfig.cache.storage = {
-    type: 'filesystem',
-    directory: webpackConfig.cache?.cacheDirectory,
-  };
-}
-```
+See [Migrate from webpack - Cache configuration](/guide/migration/webpack#cache-configuration) for how to migrate webpack cache configuration to Rspack.

@@ -3,15 +3,17 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  FactorizeInfo, ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes, ImportPhase,
+  ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier,
+  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
+use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -28,6 +30,8 @@ pub struct ImportDependency {
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   optional: bool,
+  #[cacheable(with=AsOption<AsCacheable>)]
+  branch_guard: Option<DependencyBranchGuard>,
 }
 
 impl ImportDependency {
@@ -41,7 +45,7 @@ impl ImportDependency {
     comments: Vec<(bool, String)>,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,
@@ -53,11 +57,19 @@ impl ImportDependency {
       factorize_info: Default::default(),
       optional,
       comments,
+      branch_guard: None,
     }
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.referenced_specifiers = Some(referenced_specifiers);
+  }
+
+  pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
+    self.branch_guard = Some(match self.branch_guard.take() {
+      Some(old_guard) => old_guard.and(guard),
+      None => guard,
+    });
   }
 }
 
@@ -151,6 +163,10 @@ impl ModuleDependency for ImportDependency {
   fn get_optional(&self) -> bool {
     self.optional
   }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    compose_dependency_condition(None, self.branch_guard.as_ref())
+  }
 }
 
 #[cacheable_dyn]
@@ -186,22 +202,26 @@ impl DependencyTemplate for ImportDependencyTemplate {
     let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
     let block = module_graph.get_parent_block(dep.id());
-    source.replace(
-      range.start,
-      range.end,
-      code_generatable_context
-        .runtime_template
-        .module_namespace_promise(
-          code_generatable_context.compilation,
-          code_generatable_context.module.identifier(),
-          dep.id(),
-          block,
-          dep.request(),
-          dep.dependency_type().as_str(),
-          false,
-          dep.get_phase(),
-        ),
-      None,
-    );
+    let mut content = code_generatable_context
+      .runtime_template
+      .module_namespace_promise(
+        code_generatable_context.compilation,
+        code_generatable_context.module.identifier(),
+        dep.id(),
+        block,
+        dep.request(),
+        dep.dependency_type().as_str(),
+        false,
+        dep.get_phase(),
+      );
+    if dep.get_phase().is_source() {
+      content = format!(
+        "{content}.then({})",
+        code_generatable_context
+          .runtime_template
+          .returning_function("m[\"default\"]", "m")
+      );
+    }
+    source.replace(range.start, range.end, content, None);
   }
 }

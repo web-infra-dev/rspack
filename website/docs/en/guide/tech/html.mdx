@@ -4,30 +4,19 @@ description: 'Use HTML with Rspack, covering setup, configuration, integration d
 
 # HTML
 
-Rspack supports generating HTML files using the following plugins, and automatically injecting the generated CSS and JavaScript files into the HTML.
-This is particularly useful for Rspack bundles that contain filename hashes, as the hashes can change with each Rspack build.
+Rspack can generate HTML files for your application and automatically inject the emitted JavaScript and CSS assets.
+This is useful for production builds where asset filenames often include content hashes, because the generated HTML will always reference the latest build outputs.
 
-## HtmlWebpackPlugin
+## Plugins
 
-Rspack fully supports [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin).
+Rspack provides two plugin options for generating HTML:
 
-```js title="rspack.config.mjs"
-import HtmlWebpackPlugin from 'html-webpack-plugin';
-import path from 'node:path';
+- The built-in `HtmlRspackPlugin` is optimized for performance and common HTML generation needs.
+- The community-compatible `HtmlWebpackPlugin` is suitable when you need broader webpack ecosystem compatibility or features that are not yet implemented by `HtmlRspackPlugin`.
 
-export default {
-  entry: 'index.js',
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'index_bundle.js',
-  },
-  plugins: [new HtmlWebpackPlugin()],
-};
-```
+If you're not sure which plugin to choose, see the [comparison between HtmlRspackPlugin and HtmlWebpackPlugin](/plugins/rspack/html-rspack-plugin#comparison) to understand their differences in performance, features, and compatibility.
 
-For all configuration options, see the [plugin documentation](https://github.com/jantimon/html-webpack-plugin#options).
-
-## Built-in HtmlRspackPlugin
+### Built-in HtmlRspackPlugin
 
 [HtmlRspackPlugin](/plugins/rspack/html-rspack-plugin) is a high-performance HTML plugin implemented in Rust, offering significantly better build performance than the `HtmlWebpackPlugin`, especially when building a large number of HTML files.
 
@@ -35,13 +24,22 @@ For all configuration options, see the [plugin documentation](https://github.com
 import { rspack } from '@rspack/core';
 
 export default {
-  entry: 'index.js',
-  output: {
-    path: path.resolve(__dirname, './dist'),
-    filename: 'index_bundle.js',
-  },
   plugins: [new rspack.HtmlRspackPlugin()],
 };
 ```
 
 For all configuration options, see the [plugin documentation](/plugins/rspack/html-rspack-plugin).
+
+### HtmlWebpackPlugin
+
+Rspack is fully compatible with [HtmlWebpackPlugin](https://github.com/jantimon/html-webpack-plugin).
+
+```js title="rspack.config.mjs"
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+
+export default {
+  plugins: [new HtmlWebpackPlugin()],
+};
+```
+
+For all configuration options, see the [plugin documentation](https://github.com/jantimon/html-webpack-plugin#options).

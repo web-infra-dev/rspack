@@ -3,7 +3,7 @@ import * as styles from "./style.modules.css";
 it(`should work with URLs in CSS`, () => {
 	const links = Array.from(document.getElementsByTagName("link"));
 	const css = [];
-	const path = __non_webpack_require__("path");
+	const path = require("path");
 
 	// Skip first because import it by default
 	for (const link of links.slice(1)) {

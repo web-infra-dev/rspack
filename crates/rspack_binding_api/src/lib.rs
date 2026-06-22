@@ -9,6 +9,7 @@
 //!
 //! - `browser`: Enable browser-specific wasm behavior
 //! - `debug_tool`: Enable debug tools
+//! - `perfetto`: Enable perfetto tracing layer
 //! - `plugin`: Enable SWC plugin support
 //! - `sftrace-setup`: Enable performance tracing setup
 //!
@@ -61,6 +62,7 @@ mod clean_options;
 mod codegen_result;
 mod compilation;
 mod compiler;
+mod compiler_scoped_tsfn;
 mod context_module_factory;
 mod define_symbols;
 mod dependencies;
@@ -124,6 +126,7 @@ use crate::{
   chunk_group::ChunkGroupWrapper,
   compilation::JsCompilationWrapper,
   compiler::{Compiler, CompilerState, CompilerStateGuard},
+  compiler_scoped_tsfn::CompilerScopedTsFnManager,
   dependency::DependencyWrapper,
   error::{ErrorCode, RspackResultToNapiResultExt},
   fs_node::{HybridFileSystem, NodeFileSystem, ThreadsafeNodeFS},
@@ -164,6 +167,7 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
+  compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
   compiler: ManuallyDrop<Compiler>,
@@ -177,14 +181,17 @@ struct JsCompiler {
 #[napi]
 impl JsCompiler {
   #[allow(clippy::too_many_arguments)]
-  #[napi(constructor)]
+  #[napi(
+    constructor,
+    ts_args_type = "compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform"
+  )]
   pub fn new(
     env: Env,
     mut this: This,
     compiler_path: String,
-    mut options: RawOptions,
-    builtin_plugins: Vec<BuiltinPlugin>,
-    register_js_taps: RegisterJsTaps,
+    raw_options: Unknown<'static>,
+    raw_builtin_plugins: Unknown<'static>,
+    raw_register_js_taps: Unknown<'static>,
     output_filesystem: ThreadsafeNodeFS,
     intermediate_filesystem: Option<ThreadsafeNodeFS>,
     input_filesystem: Option<ThreadsafeNodeFS>,
@@ -193,11 +200,24 @@ impl JsCompiler {
     platform: RawCompilerPlatform,
   ) -> Result<Self> {
     tracing::info!(name:"rspack_version", version = rspack_workspace::rspack_pkg_version!());
-    tracing::info!(name:"raw_options", options=?&options);
+
+    let compiler_scoped_tsfn_manager = CompilerScopedTsFnManager::new();
+    // Parse constructor inputs inside the manager scope so any nested callback fields in
+    // options, builtin plugins, or hook registrations become compiler-scoped TSFNs.
+    let mut options: RawOptions = compiler_scoped_tsfn_manager
+      .scope(|| unsafe { RawOptions::from_napi_value(env.raw(), raw_options.raw()) })?;
+    let builtin_plugins: Vec<BuiltinPlugin> = compiler_scoped_tsfn_manager.scope(|| unsafe {
+      Vec::<BuiltinPlugin>::from_napi_value(env.raw(), raw_builtin_plugins.raw())
+    })?;
+    let register_js_taps: RegisterJsTaps = compiler_scoped_tsfn_manager.scope(|| unsafe {
+      RegisterJsTaps::from_napi_value(env.raw(), raw_register_js_taps.raw())
+    })?;
+
     let compiler_context = Arc::new(CompilerContext::new());
     CURRENT_COMPILER_CONTEXT.sync_scope(compiler_context.clone(), || {
+      tracing::info!(name:"raw_options", options=?&options);
       let mut plugins = Vec::with_capacity(builtin_plugins.len());
-      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(env, register_js_taps)?;
+      let js_hooks_plugin = JsHooksAdapterPlugin::from_js_hooks(&env, register_js_taps)?;
       plugins.push(js_hooks_plugin.clone().boxed());
 
       // Register builtin loader plugins
@@ -224,7 +244,7 @@ impl JsCompiler {
       plugins.push(js_cleanup_plugin.boxed());
 
       for bp in builtin_plugins {
-        bp.append_to(env, &mut this, &mut plugins)?;
+        compiler_scoped_tsfn_manager.scope(|| bp.append_to(env, &mut this, &mut plugins))?;
       }
 
       let pnp = options.resolve.pnp.unwrap_or(false);
@@ -321,6 +341,7 @@ impl JsCompiler {
       );
 
       Ok(Self {
+        compiler_scoped_tsfn_manager,
         compiler: ManuallyDrop::new(Compiler::from(rspack)),
         state: CompilerState::init(),
         js_hooks_plugin,
@@ -332,6 +353,7 @@ impl JsCompiler {
       })
     })
   }
+
   #[napi]
   pub fn set_non_skippable_registers(&self, kinds: Vec<RegisterJsTapKind>) {
     self.js_hooks_plugin.set_non_skippable_registers(kinds)
@@ -349,13 +371,16 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            compiler.build().await.to_napi_result_with_message(|e| {
+            let result = compiler.build().await.to_napi_result_with_message(|e| {
               print_error_diagnostic(e, compiler.options.stats.colors)
-            })?;
+            });
+            result?;
             tracing::debug!("build ok");
             Ok(())
           },
-          Some(|| drop(guard)),
+          Some(move || {
+            drop(guard);
+          }),
         )
       })
     }
@@ -372,14 +397,12 @@ impl JsCompiler {
     removed_files: Vec<String>,
     f: Function<'static>,
   ) -> Result<(), ErrorCode> {
-    use std::collections::HashSet;
-
     unsafe {
       self.run(reference, |compiler, guard| {
         callbackify(
           f,
           async move {
-            compiler
+            let result = compiler
               .rebuild(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
@@ -387,26 +410,55 @@ impl JsCompiler {
               .await
               .to_napi_result_with_message(|e| {
                 print_error_diagnostic(e, compiler.options.stats.colors)
-              })?;
+              });
+            result?;
             tracing::debug!("rebuild ok");
             Ok(())
           },
-          Some(|| drop(guard)),
+          Some(move || {
+            drop(guard);
+          }),
         )
       })
     }
   }
 
-  #[napi]
-  pub async fn close(&self) -> Result<()> {
-    self
-      .compiler
-      .close()
-      .await
-      .to_napi_result_with_message(|e| {
-        print_error_diagnostic(e, self.compiler.options.stats.colors)
-      })?;
-    Ok(())
+  #[napi(ts_return_type = "Promise<void>")]
+  pub fn close<'env>(
+    &self,
+    env: &'env Env,
+    mut reference: Reference<JsCompiler>,
+  ) -> Result<PromiseRaw<'env, ()>> {
+    // SAFETY:
+    // The `Reference<JsCompiler>` prevents the JsCompiler from being garbage collected
+    // until `promise.finally()` runs, ensuring the Compiler remains valid throughout the
+    // async operation. This allows us to safely extend the lifetime to 'static.
+    let compiler =
+      unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
+
+    let wait_idle = self.state.wait_idle();
+    let spawn_future_result = env.spawn_future(async move {
+      // An in-flight build/rebuild still calls back into JS through compiler-scoped
+      // TSFNs; closing mid-build would release them and fail those calls. Wait until
+      // the compiler is idle before shutting down.
+      wait_idle.await;
+      let result = compiler
+        .close()
+        .await
+        .to_napi_result_with_message(|e| print_error_diagnostic(e, compiler.options.stats.colors));
+      result?;
+      Ok(())
+    });
+    let Ok(mut promise) = spawn_future_result else {
+      self.compiler_scoped_tsfn_manager.release();
+      drop(reference);
+      return spawn_future_result;
+    };
+    promise.finally(|_env| {
+      self.compiler_scoped_tsfn_manager.release();
+      drop(reference);
+      Ok(())
+    })
   }
 
   #[napi]
@@ -445,21 +497,24 @@ impl JsCompiler {
     }
 
     let compiler_state_guard = self.state.enter();
-    let weak_reference = reference.downgrade();
+
     // SAFETY:
     // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
     // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
     let compiler = unsafe {
       std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
     };
-    let guard = RunGuard {
-      _compiler_state_guard: compiler_state_guard,
-      _reference: reference,
-    };
+
+    let weak_reference = reference.downgrade();
     COMPILER_REFERENCES.with(|ref_cell| {
       let mut references = ref_cell.borrow_mut();
       references.insert(compiler.id(), weak_reference);
     });
+
+    let guard = RunGuard {
+      _compiler_state_guard: compiler_state_guard,
+      _reference: reference,
+    };
 
     self.cleanup_last_compilation(&compiler.compilation);
     within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
@@ -486,7 +541,7 @@ impl ObjectFinalize for JsCompiler {
     });
 
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
-    if (!self.unsafe_fast_drop) {
+    if !self.unsafe_fast_drop {
       unsafe {
         ManuallyDrop::drop(&mut self.compiler);
       }
@@ -503,47 +558,49 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[napi::ctor::ctor(crate_path = ::napi::ctor)]
-fn init() {
-  use std::{
-    sync::atomic::{AtomicUsize, Ordering},
-    thread,
-  };
+napi::ctor::declarative::ctor! {
+  #[ctor(unsafe)]
+  fn init() {
+    use std::{
+      sync::atomic::{AtomicUsize, Ordering},
+      thread,
+    };
 
-  #[cfg(feature = "tracy-client")]
-  {
-    use tracy_client::register_demangler;
-    tracy_client::Client::start();
-    register_demangler!();
-  }
-  #[cfg(feature = "sftrace-setup")]
-  if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
-    unsafe {
-      sftrace_setup::setup();
+    #[cfg(feature = "tracy-client")]
+    {
+      use tracy_client::register_demangler;
+      tracy_client::Client::start();
+      register_demangler!();
     }
-  }
+    #[cfg(feature = "sftrace-setup")]
+    if std::env::var_os("SFTRACE_OUTPUT_FILE").is_some() {
+      unsafe {
+        sftrace_setup::setup();
+      }
+    }
 
-  panic::install_panic_handler();
-  // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
-  const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
-  // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
-  // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-  let default_blocking_threads = 4;
-  let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
-    .ok()
-    .and_then(|v| v.parse::<usize>().ok())
-    .unwrap_or(default_blocking_threads);
-  let rt = tokio::runtime::Builder::new_multi_thread()
-    .max_blocking_threads(blocking_threads)
-    .thread_name_fn(|| {
-      static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
-      let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
-      format!("tokio-{id}")
-    })
-    .enable_all()
-    .build()
-    .expect("Create tokio runtime failed");
-  create_custom_tokio_runtime(rt);
+    panic::install_panic_handler();
+    // control the number of blocking threads, similar as https://github.com/tokio-rs/tokio/blob/946401c345d672d357693740bc51f77bc678c5c4/tokio/src/loom/std/mod.rs#L93
+    const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
+    // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
+    // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
+    let default_blocking_threads = 4;
+    let blocking_threads = std::env::var(ENV_BLOCKING_THREADS)
+      .ok()
+      .and_then(|v| v.parse::<usize>().ok())
+      .unwrap_or(default_blocking_threads);
+    let rt = tokio::runtime::Builder::new_multi_thread()
+      .max_blocking_threads(blocking_threads)
+      .thread_name_fn(|| {
+        static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
+        let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
+        format!("tokio-{id}")
+      })
+      .enable_all()
+      .build()
+      .expect("Create tokio runtime failed");
+    create_custom_tokio_runtime(rt);
+  }
 }
 
 fn print_error_diagnostic(e: rspack_error::Error, colored: bool) -> String {

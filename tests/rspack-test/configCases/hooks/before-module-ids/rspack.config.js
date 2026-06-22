@@ -116,6 +116,8 @@ module.exports = {
   context: __dirname,
   optimization: {
     concatenateModules: false,
+    // Avoid the default export is inlined, which causes the module with custom ID not exist in stats.modules
+    inlineExports: false,
   },
   plugins: [new BeforeModuleIdsTestPlugin()],
 };

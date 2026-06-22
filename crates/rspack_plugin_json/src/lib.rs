@@ -12,10 +12,10 @@ use json::{
 };
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoGetter,
-  GenerateContext, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT, ParseOption,
-  ParserAndGenerator, Plugin, PrefetchExportsInfoMode, PrefetchedExportsInfoWrapper, RuntimeSpec,
-  SourceType, UsageState, UsedNameItem,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ExportsInfoArtifact, ExportsInfoData,
+  GenerateContext, GeneratorOptions, Module, ModuleArgument, ModuleGraph, NAMESPACE_OBJECT_EXPORT,
+  ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
+  UsedNameItem,
   diagnostics::ModuleParseError,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
 };
@@ -190,7 +190,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           .expect("should have json data");
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          .get_exports_info_data(&module.identifier());
 
         let final_json = match json_data {
           json::JsonValue::Object(_) | json::JsonValue::Array(_)
@@ -201,7 +201,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
           {
             create_object_for_exports_info(
               json_data.clone(),
-              &exports_info,
+              exports_info,
               *runtime,
               &compilation.exports_info_artifact,
             )
@@ -213,7 +213,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         let json_str = utils::escape_json(&final_json_string);
         let json_expr = if self.json_parse && is_js_object && json_str.len() > 20 {
           Cow::Owned(format!(
-            "JSON.parse('{}')",
+            "/*#__PURE__*/JSON.parse('{}')",
             json_str.cow_replace('\\', r"\\").cow_replace('\'', r"\'")
           ))
         } else {
@@ -264,13 +264,13 @@ impl Plugin for JsonPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|p, g| {
-        let p = p
-          .and_then(|p| p.get_json())
+      Box::new(|options| {
+        let p = options
+          .parser_options_computed(ParserOptions::get_json)
           .expect("should have JsonParserOptions");
 
-        let g = g
-          .and_then(|g| g.get_json())
+        let g = options
+          .generator_options_computed(GeneratorOptions::get_json)
           .expect("should have JsonGeneratorOptions");
 
         Box::new(JsonParserAndGenerator {
@@ -286,7 +286,7 @@ impl Plugin for JsonPlugin {
 
 pub fn create_object_for_exports_info(
   data: JsonValue,
-  exports_info: &PrefetchedExportsInfoWrapper<'_>,
+  exports_info: &ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> JsonValue {
@@ -313,12 +313,8 @@ pub fn create_object_for_exports_info(
         {
           // avoid clone
           let temp = std::mem::replace(value, JsonValue::Null);
-          let exports_info = ExportsInfoGetter::prefetch(
-            &exports_info,
-            exports_info_artifact,
-            PrefetchExportsInfoMode::Default,
-          );
-          create_object_for_exports_info(temp, &exports_info, runtime, exports_info_artifact)
+          let exports_info = exports_info.as_data(exports_info_artifact);
+          create_object_for_exports_info(temp, exports_info, runtime, exports_info_artifact)
         } else {
           std::mem::replace(value, JsonValue::Null)
         };
@@ -354,14 +350,10 @@ pub fn create_object_for_exports_info(
           if used == UsageState::OnlyPropertiesUsed
             && let Some(exports_info) = export_info.exports_info()
           {
-            let exports_info = ExportsInfoGetter::prefetch(
-              &exports_info,
-              exports_info_artifact,
-              PrefetchExportsInfoMode::Default,
-            );
+            let exports_info = exports_info.as_data(exports_info_artifact);
             Some(create_object_for_exports_info(
               item,
-              &exports_info,
+              exports_info,
               runtime,
               exports_info_artifact,
             ))

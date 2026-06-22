@@ -42,7 +42,10 @@ export default defineConfig({
     {
       format: 'esm',
       syntax: 'es2023',
-      dts: { build: true },
+      dts: {
+        build: true,
+        tsgo: true,
+      },
       autoExternal: false,
       source: {
         entry: {
@@ -88,7 +91,7 @@ export default defineConfig({
         // For CI
         {
           from: path.resolve(
-            '../../artifacts/bindings-wasm32-wasip1-threads/rspack.browser.wasm',
+            '../../artifacts/bindings-wasm32-wasip1-threads-browser/rspack.browser.wasm',
           ),
           to: 'rspack.wasm32-wasi.wasm',
           noErrorOnMissing: true,

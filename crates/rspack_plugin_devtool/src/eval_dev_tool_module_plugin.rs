@@ -3,9 +3,9 @@ use std::{borrow::Cow, hash::Hash};
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, Compilation, CompilationAdditionalModuleRuntimeRequirements,
-  CompilationParams, CompilerCompilation, Filename, Module, ModuleIdentifier, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals,
+  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -15,7 +15,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
 };
-use rspack_util::fx_hash::FxDashMap;
+use rspack_util::{fx_hash::FxDashMap, json_stringify_str};
 
 use crate::{
   ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
@@ -92,7 +92,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let origin_source = render_source.source.clone();
   if let Some(cached_source) = self.cache.get(&origin_source) {
@@ -157,8 +157,7 @@ async fn render_module_content(
       )
     );
 
-    let module_content =
-      simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("failed to parse string");
+    let module_content = json_stringify_str(&format!("{{{source}{footer}\n}}"));
     RawStringSource::from(format!(
       "eval({});",
       if compilation.options.output.trusted_types.is_some() {

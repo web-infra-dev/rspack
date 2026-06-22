@@ -19,6 +19,10 @@ on:
       binding_postfix: # specify extra postfix for binding artifact
         required: false
         type: string
+      force-rebuild: # Disable Rust cache and build from scratch, e.g. for release builds
+        required: false
+        type: boolean
+        default: false
 
 env:
   # Since CI builds are more akin to from-scratch builds, incremental compilation adds unnecessary dependency-tracking and IO overhead, reducing caching effectiveness.
@@ -27,17 +31,31 @@ env:
 
 jobs:
   build:
-    name: Build
+    name: Build ${{ inputs.target }}${{ inputs.binding_postfix }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Disable CPU hogs (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          Set-MpPreference -DisableRealtimeMonitoring $true -Force
+          Add-MpPreference -ExclusionPath "C:\" -Force
+          Add-MpPreference -ExclusionPath "D:\" -Force
+          sc.exe config wuauserv start= disabled
+          Stop-Service wuauserv
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
 
       - name: Download and install zstd
         if: ${{ runner.os == 'Windows' }}
@@ -65,6 +83,7 @@ jobs:
           key: ${{ inputs.target }}-${{ inputs.profile }}
           # don't need use cache in self-hosted windows; benefits of build with cargo build are wasted by cache restore
           save-if: true
+          use-cache: ${{ !inputs.force-rebuild }}
 
       - name: Setup Zig for musl build
         if: ${{ contains(inputs.target, 'musl') }}
@@ -74,7 +93,7 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@0abfcd587b70a713fdaa7fb502c885e2112acb15 # v2
+        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2
         with:
           tool: cargo-zigbuild
 
@@ -165,16 +184,22 @@ jobs:
           cp crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       # WASM Release (use profile = release-wasi) + wasm-opt
-      - name: Build wasm32-wasip1-threads(release-wasi) with linux
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' }}
+      # The wasi and browser variants are split into two parallel matrix jobs
+      # (see reusable-release-npm.yml) and selected here via binding_postfix.
+      - name: Build wasm32-wasip1-threads wasi variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '' }}
         run: |
-          pnpm --filter @rspack/binding build:release:browser
-          pnpm --filter @rspack/binding build:release:wasm
-
           npm install -g binaryen
-          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm & wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm &
-          wait
+          pnpm --filter @rspack/binding build:release:wasm
+          wasm-opt -Oz crates/node_binding/rspack.wasm32-wasi.wasm -o crates/node_binding/rspack.wasm32-wasi.optimized.wasm
           mv crates/node_binding/rspack.wasm32-wasi.optimized.wasm crates/node_binding/rspack.wasm32-wasi.wasm
+
+      - name: Build wasm32-wasip1-threads browser variant (release-wasi) with linux
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' && inputs.profile == 'release' && inputs.binding_postfix == '-browser' }}
+        run: |
+          npm install -g binaryen
+          pnpm --filter @rspack/binding build:release:browser
+          wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Diff artifact

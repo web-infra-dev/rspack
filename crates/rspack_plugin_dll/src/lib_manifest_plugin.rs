@@ -1,6 +1,6 @@
 use rspack_core::{
   ChunkGraph, Compilation, CompilerEmit, Context, EntryDependency, Filename, LibIdentOptions,
-  PathData, Plugin, PrefetchExportsInfoMode, ProvidedExports, SourceType,
+  PathData, Plugin, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hook::{plugin, plugin_hook};
@@ -128,7 +128,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(ident) = ident {
         let exports_info = compilation
           .exports_info_artifact
-          .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
+          .get_exports_info_data(&module.identifier());
 
         let provided_exports = match exports_info.get_provided_exports() {
           ProvidedExports::ProvidedNames(vec) => Some(DllManifestContentItemExports::Vec(vec)),
@@ -160,7 +160,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
     let manifest_json = if format {
       serde_json::to_string_pretty(&manifest).to_rspack_result()?
     } else {
-      serde_json::to_string(&manifest).to_rspack_result()?
+      simd_json::to_string(&manifest).to_rspack_result()?
     };
 
     manifests.insert(target_path, manifest_json);

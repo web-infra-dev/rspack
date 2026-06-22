@@ -2,6 +2,8 @@ pub mod make;
 pub mod meta;
 pub mod minimize;
 
+use std::future::Future;
+
 pub use make::MakeOccasion;
 pub use meta::MetaOccasion;
 pub use minimize::{
@@ -20,10 +22,12 @@ use super::storage::Storage;
 ///
 /// `BuildDeps` and `Snapshot` are not occasions: they operate across multiple
 /// scopes and have more complex lifecycle semantics.
-#[async_trait::async_trait]
 pub trait Occasion {
   /// The data produced/consumed by this occasion.
   type Artifact: Send;
+
+  /// Human-readable occasion name used in persistent cache logging.
+  fn name(&self) -> &'static str;
 
   /// Clear this occasion's scope in storage.
   fn reset(&self, storage: &mut dyn Storage);
@@ -32,5 +36,8 @@ pub trait Occasion {
   fn save(&self, storage: &mut dyn Storage, artifact: &Self::Artifact);
 
   /// Load and reconstruct the artifact from storage.
-  async fn recovery(&self, storage: &dyn Storage) -> Result<Self::Artifact>;
+  fn recovery<'a>(
+    &'a self,
+    storage: &'a dyn Storage,
+  ) -> impl Future<Output = Result<Self::Artifact>> + Send + 'a;
 }

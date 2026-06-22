@@ -143,6 +143,24 @@ compiler.hooks.compilation.tap(
   </CollapsePanel>
 </Collapse>
 
+## `createModule`
+
+`AsyncSeriesBailHook<[NormalModuleCreateData, {}]>`
+
+Called after a request has been resolved and before Rspack creates the normal module instance. Return `undefined` to continue with the default module creation flow.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.createModule.tap('MyPlugin', (createData) => {
+      // inspect module creation data
+      console.log(createData.resourceResolveData.resource);
+    });
+  },
+);
+```
+
 ## `resolveForScheme`
 
 `AsyncSeriesBailHook<[ResourceDataWithData]>`

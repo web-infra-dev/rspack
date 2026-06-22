@@ -2,13 +2,22 @@
 description: 'Rspack 1.0 alpha 现已发布至 npm！在发布 Rspack 1.0 稳定版之前，我们将进行 1～2 个月的测试，以改进 1.0 版本的 API 稳定性和可靠性，并验证对下游项目的影响。'
 date: 2024-06-28 16:00:00
 sidebar: false
+authors:
+  - name: Rspack Team
+    avatar: 'https://assets.rspack.rs/rspack/rspack-logo-with-background.png'
+    title: '@rspack_dev'
+    x: 'https://x.com/rspack_dev'
 ---
+
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 import { PackageManagerTabs } from '@theme';
 
-_2024 年 6 月 28 日_
-
 # Rspack 1.0 alpha 发布公告
+
+2024 年 6 月 28 日
+
+<BlogAuthors />
 
 ![](https://assets.rspack.rs/rspack/rspack-banner-v1-0-alpha.png)
 
@@ -119,13 +128,13 @@ export default {
 
 ## CSS 打包
 
-Rspack 1.0 对齐了 webpack 的 [experiment.css](/config/experiments#experimentscss) 默认值，这使得从 webpack 迁移到 Rspack 更加容易。
+Rspack 1.0 对齐了 webpack 的 [experiment.css](/config/deprecated-options#experimentscss) 默认值，这使得从 webpack 迁移到 Rspack 更加容易。
 
 在 webpack 生态中，有三种常用的方式来打包 CSS 文件：
 
 1. 使用 [css-loader](https://github.com/webpack/css-loader) 和 [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin)，生成独立的 CSS 文件。
 2. 使用 [css-loader](https://github.com/webpack/css-loader) 和 [style-loader](https://github.com/webpack/style-loader)，将 CSS 通过 `<style>` 标签注入。
-3. 使用 [experiment.css](/config/experiments#experimentscss)，这是 webpack 5 引入的实验性功能，提供 CSS 原生支持。
+3. 使用 [experiment.css](/config/deprecated-options#experimentscss)，这是 webpack 5 引入的实验性功能，提供 CSS 原生支持。
 
 在 0.x 版本中，Rspack 默认启用了 `experiment.css`，这会与 css-loader 产生冲突。用户需要手动关闭 `experiment.css` 才能使用 css-loader。
 

@@ -40,4 +40,8 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
       | RuntimeGlobals::ENSURE_CHUNK
       | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::STARTUP_ENTRYPOINT
+  }
 }

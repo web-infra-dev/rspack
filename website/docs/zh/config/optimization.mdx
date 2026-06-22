@@ -119,7 +119,7 @@ export default {
 
 对以下内容执行跨模块内联优化：
 
-1. 模块图叶子模块中导出的常量值：
+1. 可被静态求值的顶层导出常量值：
    - `null` 或 `undefined`
    - `boolean` 值（`true` 或 `false`）
    - 长度 \<= 6 的 `number`
@@ -159,6 +159,10 @@ const __webpack_modules__ = {
 
 :::tip
 由于此功能依赖模块导出使用信息（[optimization.usedExports](#optimizationusedexports)），建议仅在生产模式下启用，因为生产模式下 `usedExports` 默认启用。
+:::
+
+:::warning TDZ 行为
+内联循环引用模块中的常量导出，可能会让原本会触发暂时性死区（TDZ）错误的代码不再报错。生态中大多数工具通常在进行优化时不会保留 TDZ 错误；Rspack 也遵循这种优化优先的行为。
 :::
 
 更多详情，请参考 [inline const 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const)。
@@ -281,7 +285,7 @@ export default {
 ## optimization.minimizer
 
 <PropertyType
-  type="Array<Plugin>"
+  type="('...' | Plugin)[]"
   defaultValueList={[
     {
       defaultValue:
@@ -334,7 +338,7 @@ export default {
 ## optimization.moduleIds
 
 <PropertyType
-  type="'natural' | 'named' | 'deterministic' | 'hashed'"
+  type="false | 'natural' | 'named' | 'deterministic' | 'hashed'"
   defaultValueList={[
     { defaultValue: "'deterministic'", mode: 'production' },
     { defaultValue: "'named'", mode: 'development' },
@@ -351,6 +355,7 @@ export default {
 | `named`         | 使用有意义、方便调试的内容当作模块 id。                                                                       |
 | `deterministic` | 使用对模块标识符哈希后的数字当作模块 id，有益于长期缓存。默认使用 3 位数字。                                  |
 | `hashed`        | 使用模块标识符的哈希值作为模块 id。等同于使用默认选项（md4、base64、4 字符）的 `HashedModuleIdsPlugin` 插件。 |
+| `false`         | 禁用 Rspack 内置的模块 id 算法，允许自定义插件提供模块 id。                                                   |
 
 ```js title="rspack.config.mjs"
 export default {
@@ -363,7 +368,7 @@ export default {
 ## optimization.nodeEnv
 
 <PropertyType
-  type="boolean | string"
+  type="string | false"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -391,7 +396,7 @@ export default {
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
-开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#reexports-optimization)运行时循环依赖的错误。
+开启后 Rspack 将会分析模块提供哪些导出，包括重导出模块，引用模块不存在的导出时会发出提示。默认情况下，`optimization.providedExports` 已启用，该分析会增加构建时间，你可以考虑在 development 模式中关闭该配置，关闭后有可能会遇到[SideEffects 章节](/guide/optimization/tree-shaking#重导出分析)运行时循环依赖的错误。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -440,7 +445,7 @@ export default {
 ## optimization.runtimeChunk
 
 <PropertyType
-  type="boolean | string | { name: string } | { name: (entrypoint: { name: string }) => string }"
+  type="boolean | 'single' | 'multiple' | { name?: string | ((entrypoint: { name: string }) => string) }"
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
@@ -460,17 +465,19 @@ export default {
 };
 ```
 
-设置为 `'single'` 会将所有入口的运行时代码抽离到一个单独的 chunk。该设置等同于：
+设置为 `'single'` 会将所有入口的运行时代码抽离到一个名为 `runtime` 的单独 chunk。该设置等同于：
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
-    runtimeChunk: 'runtime',
+    runtimeChunk: {
+      name: 'runtime',
+    },
   },
 };
 ```
 
-设置为对象时，可以提供 `name` 属性，该属性代表 runtime chunk 的名称。
+设置为对象时，可以提供可选的 `name` 属性，该属性代表 runtime chunk 的名称。
 
 ```js title="rspack.config.mjs"
 export default {

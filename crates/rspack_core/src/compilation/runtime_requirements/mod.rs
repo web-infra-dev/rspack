@@ -2,7 +2,14 @@ use async_trait::async_trait;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
-use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
+use crate::{
+  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata,
+  cache::Cache,
+  compilation::pass::PassExt,
+  logger::Logger,
+  runtime_globals::{BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS, HOT_RUNTIME_WRITE_GLOBALS},
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+};
 
 pub struct RuntimeRequirementsPass;
 
@@ -390,6 +397,10 @@ pub async fn process_chunks_runtime_requirements(
     })
     .await?;
 
+    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+      set = set.with_require_scope();
+    }
+
     for module in runtime_modules_to_add {
       compilation.add_runtime_module(&chunk_ukey, module)?;
     }
@@ -475,6 +486,10 @@ pub async fn process_chunks_runtime_requirements(
       }
     }
 
+    if compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack {
+      all_runtime_requirements = all_runtime_requirements.with_require_scope();
+    }
+
     ChunkGraph::set_tree_runtime_requirements(compilation, entry_ukey, all_runtime_requirements);
     for (chunk_ukey, module) in runtime_modules_to_add {
       compilation.add_runtime_module(&chunk_ukey, module)?;
@@ -507,6 +522,97 @@ pub async fn process_chunks_runtime_requirements(
     }
   }
   compilation.runtime_modules = runtime_modules;
+
+  compilation.runtime_proxy_metadata_artifact.clear();
+  if compilation.options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
+    logger.time_end(start);
+    return Ok(());
+  }
+
+  for &entry_ukey in &entries {
+    let entry = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&entry_ukey);
+    let mut referenced_chunks =
+      entry.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
+    referenced_chunks.insert(entry_ukey);
+    let mut metadata = RuntimeProxyMetadata::default();
+
+    for chunk_ukey in referenced_chunks.iter() {
+      let chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(chunk_ukey);
+      for mid in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_modules_identifier(chunk_ukey)
+      {
+        if let Some(runtime_requirements) =
+          ChunkGraph::get_module_runtime_requirements(compilation, *mid, chunk.runtime())
+        {
+          metadata
+            .module_proxy_requirements
+            .insert(*runtime_requirements);
+        }
+        if compilation
+          .get_module_graph()
+          .module_by_identifier(mid)
+          .is_some()
+          && let Some(write_requirements) = compilation
+            .code_generation_results
+            .get(mid, Some(chunk.runtime()))
+            .data
+            .get::<CodeGenerationRuntimeRequirementsWrite>()
+        {
+          metadata
+            .context_setter_fields
+            .insert(write_requirements.runtime_requirements);
+        }
+      }
+
+      for runtime_module_id in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_chunk_runtime_modules_iterable(chunk_ukey)
+      {
+        let runtime_module = compilation
+          .runtime_modules
+          .get(runtime_module_id)
+          .expect("should have runtime module");
+        let additional_runtime_requirements =
+          runtime_module.additional_runtime_requirements(compilation);
+        metadata
+          .runtime_module_requirements
+          .insert(additional_runtime_requirements);
+      }
+    }
+
+    metadata
+      .tree_runtime_requirements
+      .insert(*ChunkGraph::get_tree_runtime_requirements(
+        compilation,
+        &entry_ukey,
+      ));
+    if metadata
+      .tree_runtime_requirements
+      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
+    {
+      metadata
+        .context_setter_fields
+        .insert(*HOT_RUNTIME_WRITE_GLOBALS);
+    }
+    metadata.bootstrap_proxy_requirements.insert(
+      metadata
+        .tree_runtime_requirements
+        .intersection(*BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS),
+    );
+
+    compilation
+      .runtime_proxy_metadata_artifact
+      .insert(entry_ukey, metadata);
+  }
 
   logger.time_end(start);
   Ok(())

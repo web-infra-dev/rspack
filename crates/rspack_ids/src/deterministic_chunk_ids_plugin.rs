@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rayon::prelude::*;
 use rspack_core::{
   ChunkByUkey, ChunkNamedIdArtifact, CompilationChunkIds, Plugin, incremental::IncrementalPasses,
@@ -7,7 +9,8 @@ use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 
 use crate::id_helpers::{
-  assign_deterministic_ids, compare_chunks_natural, get_full_chunk_name, get_used_chunk_ids,
+  NaturalChunkCompareCache, assign_deterministic_ids, compare_chunks_natural, get_full_chunk_name,
+  get_used_chunk_ids,
 };
 
 #[plugin]
@@ -82,15 +85,17 @@ async fn chunk_ids(
     })
     .collect::<FxHashMap<_, _>>();
 
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 
   assign_deterministic_ids(
     chunks,
     |chunk| {
-      chunk_names
-        .get(&chunk.ukey())
-        .expect("should have generated full chunk name")
-        .clone()
+      Cow::Borrowed(
+        chunk_names
+          .get(&chunk.ukey())
+          .expect("should have generated full chunk name")
+          .as_str(),
+      )
     },
     |a, b| {
       compare_chunks_natural(
@@ -99,7 +104,7 @@ async fn chunk_ids(
         &compilation.module_ids_artifact,
         a,
         b,
-        &mut ordered_chunk_modules_cache,
+        &mut chunk_compare_cache,
       )
     },
     |chunk, id| {

@@ -1,5 +1,5 @@
 ---
-description: 'describes the options that affect the behavior of @rspack/dev-server (short: dev-server), based on webpack-dev-server@5, which facilitates rapid application...'
+description: 'Configure @rspack/dev-server for local development and preview.'
 ---
 
 import WebpackLicense from '@components/WebpackLicense';
@@ -9,15 +9,17 @@ import { Tabs, Tab } from '@theme';
 
 # DevServer
 
-This page describes the options that affect the behavior of [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) (short: dev-server), based on `webpack-dev-server@5`, which facilitates rapid application development.
+This page describes the options used by [`@rspack/dev-server`](https://github.com/rstackjs/rspack-dev-server) to run a local development server for Rspack projects.
 
 - **Type:** `object`
 
-:::tip
-If the current application does not depend on `@rspack/dev-server`, then the devServer config will have no effect.
+## When to use
 
-For example, Rspack CLI depends on `@rspack/dev-server` by default, so the devServer config can be used in Rspack CLI projects. Rsbuild has implemented its own dev server and provides a separate "server" config, so the devServer config cannot be used in Rsbuild projects.
-:::
+The `devServer` config only takes effect when using `@rspack/dev-server`. If the current application does not start `@rspack/dev-server`, this config will have no effect.
+
+For example, with Rspack CLI, install `@rspack/dev-server` and use `rspack dev` or `rspack serve` to apply the `devServer` config. Rsbuild implements its own dev server and provides a separate `server` config, so Rsbuild projects should configure that instead.
+
+When using `rspack preview`, the Rspack CLI also loads `@rspack/dev-server` and respects a subset of `devServer` options: [`port`](#devserverport), [`host`](#devserverhost), [`open`](#devserveropen), [`server`](#devserverserver), [`proxy`](#devserverproxy), and [`historyApiFallback`](#devserverhistoryapifallback).
 
 ## devServer.allowedHosts
 
@@ -68,6 +70,30 @@ When set to `'auto'` this option always allows `localhost`, [`host`](#devserverh
 export default {
   devServer: {
     allowedHosts: 'auto',
+  },
+};
+```
+
+## devServer.app
+
+- **Type:**
+
+```ts
+type DevServerApp = () => Promise<ConnectApplication>;
+```
+
+- **Default:** a [`connect-next`](https://github.com/rstackjs/connect-next) app
+
+Provide a custom application instance for the dev server middleware stack.
+
+By default, `@rspack/dev-server` creates a `connect-next` app. If you need Express-only APIs such as `app.get()`, `app.post()`, or `res.send()`, provide your own Express app explicitly:
+
+```js title="rspack.config.mjs"
+import express from 'express';
+
+export default {
+  devServer: {
+    app: async () => express(),
   },
 };
 ```
@@ -333,7 +359,7 @@ export default {
 - **Type:** `object`
 - **Default:** `{}`
 
-Provide options to [webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware) which handles Rspack assets.
+Provide options to [`@rspack/dev-middleware`](https://github.com/rstackjs/rspack-dev-middleware), which serves Rspack build assets from the dev server.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -469,6 +495,33 @@ Specifying `local-ipv4` as host will try to resolve the host option as your loca
 
 Specifying local-ipv6 as host will try to resolve the host option as your local IPv6 address.
 
+## devServer.ipc
+
+- **Type:** `boolean | string`
+- **Default:** `undefined`
+
+Listen on an IPC socket instead of a host and port.
+
+When set to `true`, `@rspack/dev-server` uses a default socket path named `rspack-dev-server.sock` in the operating system temporary directory, or a Windows named pipe path on Windows. When set to a string, that string is used as the custom socket path.
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: true,
+  },
+};
+```
+
+Use a custom socket path:
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: '/tmp/rspack-dev-server.sock',
+  },
+};
+```
+
 ## devServer.hot
 
 - **Type:** `boolean | 'only'`
@@ -550,7 +603,7 @@ export default {
 ```
 
 :::info
-When using `rspack dev` or `rspack serve`, you can override this option from the CLI with `--open`, `--open <value>`, or `--no-open`. The CLI flag takes precedence over `devServer.open` in the configuration.
+When using `rspack dev` or `rspack serve`, you can override this option from the CLI with `--open`, `--open <value>`, or `--no-open`. When using `rspack preview`, this option is also respected, and `--open` takes precedence over `devServer.open` in the configuration.
 :::
 
 To open a specified page in a browser:
@@ -638,7 +691,7 @@ export default {
 
 Configure proxy rules for the dev server, and forward requests to the specified service.
 
-This feature is powered by [http-proxy-middleware v3](https://github.com/chimurai/http-proxy-middleware). You can use [all options](https://github.com/chimurai/http-proxy-middleware#options) provided by `http-proxy-middleware`.
+This feature is powered by [http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware). You can use [all options](https://github.com/chimurai/http-proxy-middleware#options) provided by `http-proxy-middleware`.
 
 ### Basic usage
 
@@ -835,6 +888,23 @@ module.exports = {
   </Tab>
 </Tabs>
 
+## devServer.setupExitSignals
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether `@rspack/dev-server` registers `SIGINT` and `SIGTERM` handlers to gracefully stop the dev server and close the compiler before exiting the process.
+
+Set it to `false` when another process manager or test runner owns signal handling.
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    setupExitSignals: false,
+  },
+};
+```
+
 ## devServer.setupMiddlewares
 
 - **Type:** `function (middlewares, devServer)`
@@ -880,18 +950,6 @@ export default {
 
       return middlewares;
     },
-  },
-};
-```
-
-By default, `@rspack/dev-server` creates a [`connect-next`](https://github.com/rstackjs/connect-next) app. If you need Express-only APIs, provide your own app explicitly:
-
-```js title="rspack.config.mjs"
-import express from 'express';
-
-export default {
-  devServer: {
-    app: async () => express(),
   },
 };
 ```

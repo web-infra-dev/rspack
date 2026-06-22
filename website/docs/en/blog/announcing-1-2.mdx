@@ -2,17 +2,30 @@
 description: 'Rspack 1.2 has been released, introducing experimental persistent caching, a faster code splitting algorithm, and Yarn PnP support.'
 date: 2025-01-21 16:00:00
 sidebar: false
+authors:
+  - name: jerrykingxyz
+    avatar: 'https://github.com/jerrykingxyz.png'
+    github: 'jerrykingxyz'
+  - name: chenjiahan
+    avatar: 'https://github.com/chenjiahan.png'
+    github: 'chenjiahan'
+  - name: JSerFeng
+    avatar: 'https://github.com/JSerFeng.png'
+    github: 'JSerFeng'
+  - name: ahabhgk
+    avatar: 'https://github.com/ahabhgk.png'
+    github: 'ahabhgk'
 ---
 
-_January 21, 2025_
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 # Announcing Rspack 1.2
 
+January 21, 2025
+
+<BlogAuthors />
+
 ![Rspack 1.2](https://assets.rspack.rs/rspack/rspack-banner-v1-2.png)
-
-> Posted by [@jerrykingxyz](https://github.com/jerrykingxyz), [@chenjiahan](https://github.com/chenjiahan), [@JSerFeng](https://github.com/JSerFeng), [@ahabhgk](https://github.com/ahabhgk)
-
----
 
 Rspack v1.2 has been released!
 
@@ -29,7 +42,7 @@ Notable changes:
   - [Faster side effects optimization](#faster-side-effects-optimization)
 - Ecosystem
   - [Angular support](#angular-support)
-  - [Rsbuild v1.2](#rsbuild-v1-2)
+  - [Rsbuild v1.2](#rsbuild-v12)
 
 ## New features
 
@@ -92,8 +105,6 @@ export default {
   },
 };
 ```
-
-> See [experiments.parallelCodeSplitting](/config/experiments#experimentsparallelcodesplitting) for more details.
 
 ### Watch scope change
 
@@ -158,7 +169,7 @@ Nx team core member [Colum Ferry](https://github.com/Coly010) has brought comple
 
 With the newly released `@ng-rsbuild/plugin-angular` and `@ng-rspack/build` packages, developers can now use Rspack or Rsbuild to build Angular applications, with faster build performance and module federation support.
 
-Please visit [Angular Rspack](https://github.com/nrwl/angular-rspack) for more information.
+Please visit [Angular Rspack](https://nx.dev/docs/technologies/angular/angular-rspack) for more information.
 
 ### Rsbuild v1.2
 
@@ -166,7 +177,7 @@ Rsbuild v1.2 has been released alongside Rspack v1.2, bringing several new featu
 
 - Customize manifest file generation through [output.manifest.generate](https://rsbuild.rs/config/output/manifest#generate).
 - Specify files to retain in the dist directory using [cleanDistPath.keep](https://rsbuild.rs/config/output/clean-dist-path#keep).
-- [@rsbuild/plugin-assets-retry](https://rsbuild.rs/plugins/list/plugin-assets-retry) now generates smaller runtime code.
+- [@rsbuild/plugin-assets-retry](https://v0.rsbuild.rs/plugins/list/plugin-assets-retry) now generates smaller runtime code.
 
 > For more details, see [Rsbuild v1.2.0](https://github.com/web-infra-dev/rsbuild/releases/tag/v1.2.0).
 

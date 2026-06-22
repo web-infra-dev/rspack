@@ -20,7 +20,7 @@ impl PathMatcher {
 
 /// Snapshot options
 #[cacheable]
-#[derive(Debug, Default, Clone, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub struct SnapshotOptions {
   /// immutable paths, snapshot will ignore them
   immutable_paths: Vec<PathMatcher>,
@@ -29,6 +29,51 @@ pub struct SnapshotOptions {
   unmanaged_paths: Vec<PathMatcher>,
   /// managed_paths, snapshot will use lib version strategy
   managed_paths: Vec<PathMatcher>,
+  dependencies: SnapshotStrategyOptions,
+  context_dependencies: SnapshotStrategyOptions,
+}
+
+impl Default for SnapshotOptions {
+  fn default() -> Self {
+    Self {
+      immutable_paths: Default::default(),
+      unmanaged_paths: Default::default(),
+      managed_paths: Default::default(),
+      dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
+      context_dependencies: SnapshotStrategyOptions::timestamp(),
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, Hash)]
+pub struct SnapshotStrategyOptions {
+  pub hash: bool,
+  pub timestamp: bool,
+}
+
+impl SnapshotStrategyOptions {
+  pub const fn new(hash: bool, timestamp: bool) -> Self {
+    Self { hash, timestamp }
+  }
+
+  pub const fn hash() -> Self {
+    Self::new(true, false)
+  }
+
+  pub const fn timestamp() -> Self {
+    Self::new(false, true)
+  }
+
+  pub const fn hash_and_timestamp() -> Self {
+    Self::new(true, true)
+  }
+}
+
+impl Default for SnapshotStrategyOptions {
+  fn default() -> Self {
+    Self::timestamp()
+  }
 }
 
 impl SnapshotOptions {
@@ -41,7 +86,26 @@ impl SnapshotOptions {
       immutable_paths,
       unmanaged_paths,
       managed_paths,
+      ..Default::default()
     }
+  }
+
+  pub fn with_context_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.context_dependencies = strategy;
+    self
+  }
+
+  pub fn with_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.dependencies = strategy;
+    self
+  }
+
+  pub fn dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.dependencies
+  }
+
+  pub fn context_dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.context_dependencies
   }
 
   pub fn is_immutable_path(&self, path_str: &str) -> bool {

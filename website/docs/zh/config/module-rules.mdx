@@ -245,7 +245,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-- **Type:** `string`
+- **类型：** [`Condition`](#condition)
 - **默认值：** `undefined`
 
 匹配所有符合这个资源的模块，会与"引入当前模块"的模块的 layer 进行匹配。
@@ -321,6 +321,51 @@ export default {
       {
         test: /\.js$/,
         dependency: { not: 'url' },
+      },
+    ],
+  },
+};
+```
+
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **类型：** [`Condition`](#condition)
+- **默认值：** `undefined`
+
+根据引入当前模块的依赖所处的 import phase 来匹配模块。
+
+传给 condition 的值可能是：
+
+- `evaluation`：普通的 `import`、`import()`、`require()`，以及其他没有特殊 import phase 的依赖
+- `defer`：启用 [`experiments.deferImport`](/config/experiments#experimentsdeferimport) 后的 `import defer` 和 `import.defer()` 依赖
+- `source`：启用 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后的 `import source` 和 `import.source()` 依赖
+
+当同一个资源需要根据导入方式应用不同 Loader、parser 选项或模块类型时，可以使用该条件。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
       },
     ],
   },
@@ -452,7 +497,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -523,7 +567,7 @@ export default {
 };
 ```
 
-对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](/config/module#moduleparser)。
+对于特定的解析器选项及其对应的模块类型，你可以参考 [`module.parser`](/config/module-parser#parser)。
 
 ## rules[].generator
 
@@ -548,7 +592,7 @@ export default {
 };
 ```
 
-对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](/config/module#modulegenerator)。
+对于特定的生成器选项及其对应的模块类型，你可以参考 [`module.generator`](/config/module-generator#generator)。
 
 ## rules[].sideEffects
 
@@ -614,13 +658,20 @@ export default {
 
 ## rules[].type
 
-- **类型：**
+- **类型：** `string`
+
+常见的内置值：
 
 ```ts
-type RuleType =
+type BuiltinRuleType =
   | 'asset'
+  | 'asset/source'
+  | 'asset/resource'
+  | 'asset/inline'
+  | 'asset/bytes'
   | 'css'
   | 'css/auto'
+  | 'css/global'
   | 'css/module'
   | 'javascript/auto'
   | 'javascript/dynamic'
@@ -659,7 +710,7 @@ export default {
 - `'javascript/esm'`：JavaScript 模块，当作严格 ES modules 处理。
 - `'javascript/dynamic'`：JavaScript 模块，当作 Script 处理。
 - `'json'`：JSON data 模块，参考 [JSON](/guide/tech/json)。
-- `'css' | 'css/module' | 'css/auto'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
+- `'css' | 'css/auto' | 'css/global' | 'css/module'`：CSS 模块，参考 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。
 - `'asset' | 'asset/source' | 'asset/resource' | 'asset/inline' | 'asset/bytes'`：资源模块，参考 [资源模块](/guide/features/asset-module)。
 
 ## rules[].layer
@@ -692,18 +743,18 @@ export default {
 
 ```ts
 type RuleSetUse =
-  | RuleSetUseItem[]
   | RuleSetUseItem
+  | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem =
-  | { loader: string; options: Record<string, any>; parallel?: boolean }
-  | string;
-interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
-}
+
+type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+
+type RuleSetLoaderWithOptions = {
+  ident?: string;
+  loader: string;
+  options?: string | Record<string, any>;
+  parallel?: boolean | { maxWorkers?: number };
+};
 ```
 
 用于传递 Loader 包名与其选项的数组。`string[]` 如: `use: ['svgr-loader']` 是 `use: [ { loader: 'svgr-loader' } ]` 的简写。Loader 会按照从右到左的顺序执行。
@@ -821,10 +872,10 @@ export default {
 
 ## rules[].rules
 
-- **类型：** [Rule](#rules)[]
+- **类型：** [Rule](#rule)[]
 - **默认值：** `undefined`
 
-[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rules) 匹配成功后，会使用这些 Rules 继续进行匹配。
+[嵌套 Rule](#nested-rule) 的一种，当其上层 [Rule](#rule) 匹配成功后，会使用这些 Rules 继续进行匹配。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -855,7 +906,7 @@ export default {
 
 ## rules[].oneOf
 
-- **类型：** ([Rule](#rules) | Falsy)[]
+- **类型：** ([Rule](#rule) | Falsy)[]
 - **默认值：** `undefined`
 
 [嵌套 Rule](#nested-rule) 的一种，当其上层 Rule 匹配成功后会使用这些 Rule 进行匹配，并且只使用匹配成功的第一个 Rule。

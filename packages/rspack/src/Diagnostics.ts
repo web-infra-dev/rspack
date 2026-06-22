@@ -71,7 +71,6 @@ export function createDiagnosticArray(
       return adm.get(index);
     },
     concat(...items: RspackError[]): RspackError[] {
-      [].includes;
       return adm.values().concat(...items);
     },
     flat(): RspackError[] {

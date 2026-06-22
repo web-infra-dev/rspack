@@ -11,15 +11,17 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-allocative    = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto/allocative"]
+allocative    = ["rspack_util/allocative", "rspack_collections/allocative", "rspack_cacheable/allocative", "rspack_tracing_perfetto?/allocative"]
 browser       = []
 debug_tool    = ["rspack_core/debug_tool"]
+perfetto      = ["dep:rspack_tracing_perfetto", "rspack_tracing/perfetto"]
 plugin        = ["rspack_loader_swc/plugin", "rspack_util/plugin"]
 sftrace-setup = ["dep:sftrace-setup", "rspack_allocator/sftrace-setup"]
 tracy-client  = ["dep:tracy-client", "rspack_allocator/tracy-client"]
 
 [dependencies]
 anyhow                    = { workspace = true }
+atomic_refcell            = { workspace = true }
 rspack_allocator          = { workspace = true }
 rspack_browserslist       = { workspace = true }
 rspack_collections        = { workspace = true }
@@ -46,7 +48,7 @@ rspack_workspace          = { workspace = true }
 async-trait             = { workspace = true }
 cow-utils               = { workspace = true }
 rspack_tracing          = { workspace = true }
-rspack_tracing_perfetto = { workspace = true }
+rspack_tracing_perfetto = { workspace = true, optional = true }
 tracing                 = { workspace = true }
 tracing-subscriber      = { workspace = true }
 tracy-client            = { workspace = true, optional = true }
@@ -56,7 +58,6 @@ napi-derive = { workspace = true, features = ["compat-mode"] }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }
-glob                                   = { workspace = true }
 heck                                   = { workspace = true }
 once_cell                              = { workspace = true }
 rayon                                  = { workspace = true }
@@ -114,6 +115,7 @@ rspack_resolver                        = { workspace = true }
 rustc-hash                             = { workspace = true }
 serde                                  = { workspace = true }
 serde_json                             = { workspace = true }
+simd-json                              = { workspace = true }
 swc_core                               = { workspace = true, default-features = false, features = ["ecma_transforms_react"] }
 tokio                                  = { workspace = true, features = ["rt", "rt-multi-thread", "macros", "test-util", "tracing", "parking_lot"] }
 ustr                                   = { workspace = true }
@@ -129,6 +131,9 @@ parking_lot = { version = "=0.12.5", features = ["nightly"] }
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 rspack_tracing = { workspace = true }
 sftrace-setup  = { workspace = true, optional = true }
+
+[build-dependencies]
+rspack_binding_build = { workspace = true }
 
 [lints]
 workspace = true

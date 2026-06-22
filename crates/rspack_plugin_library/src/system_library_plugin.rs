@@ -1,9 +1,9 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, ExternalModule, ExternalRequest, Filename, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, PathData, Plugin, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error_bail};
@@ -84,7 +84,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -132,7 +132,7 @@ async fn render(
       ExternalRequest::Map(map) => map.get("amd").map(|request| request.primary()),
     })
     .collect::<Vec<_>>();
-  let external_deps_array = serde_json::to_string(&external_deps_array).to_rspack_result()?;
+  let external_deps_array = simd_json::to_string(&external_deps_array).to_rspack_result()?;
   let external_arguments = external_module_names(&modules, compilation);
 
   // The name of the variable provided by System for exporting

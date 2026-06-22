@@ -16,6 +16,13 @@ pub struct ContentHash {
   pub mtime: u64,
 }
 
+/// Timestamp hash with file type.
+#[derive(Debug, Clone, Default)]
+pub struct TimestampHash {
+  pub hash: u64,
+  pub is_directory: bool,
+}
+
 /// A helper for computing content hashes of files and directories.
 #[derive(Debug)]
 pub struct HashHelper {
@@ -24,6 +31,7 @@ pub struct HashHelper {
   package_helper: Arc<PackageHelper>,
   file_cache: ArcPathDashMap<Option<ContentHash>>,
   dir_cache: ArcPathDashMap<Option<ContentHash>>,
+  timestamp_hash_cache: ArcPathDashMap<Option<TimestampHash>>,
 }
 
 impl HashHelper {
@@ -39,6 +47,16 @@ impl HashHelper {
       package_helper,
       file_cache: Default::default(),
       dir_cache: Default::default(),
+      timestamp_hash_cache: Default::default(),
+    }
+  }
+
+  fn modified_time_from_metadata(metadata: &FileMetadata) -> u64 {
+    // mtime is the larger of ctime and mtime
+    if metadata.ctime_ms > metadata.mtime_ms {
+      metadata.ctime_ms
+    } else {
+      metadata.mtime_ms
     }
   }
 
@@ -64,12 +82,7 @@ impl HashHelper {
       metadata
     };
 
-    // mtime is the larger of ctime and mtime
-    let mtime = if metadata.ctime_ms > metadata.mtime_ms {
-      metadata.ctime_ms
-    } else {
-      metadata.mtime_ms
-    };
+    let mtime = Self::modified_time_from_metadata(&metadata);
     let mut hasher = FxHasher::default();
     if metadata.is_symlink {
       if let Ok(target) = self.fs.canonicalize(utf8_path).await {
@@ -129,7 +142,6 @@ impl HashHelper {
         }
         Some(ContentHash {
           hash: hasher.finish(),
-          // The mtime value is always set to 0 for directories.
           mtime: 0,
         })
       } else {
@@ -140,6 +152,75 @@ impl HashHelper {
     };
     self.dir_cache.insert(path.into(), hash.clone());
     hash
+  }
+
+  /// Get timestamp hash for a directory recursively.
+  ///
+  /// This matches webpack's context timestamp behavior: directory snapshots
+  /// hash child names and each child's timestamp or nested timestamp hash.
+  #[async_recursion::async_recursion]
+  pub async fn dir_timestamp_hash(&self, path: &ArcPath) -> Option<TimestampHash> {
+    if let Some(timestamp_hash) = self.timestamp_hash_cache.get(path) {
+      return timestamp_hash.clone();
+    }
+
+    let utf8_path = path.assert_utf8();
+    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+      self.timestamp_hash_cache.insert(path.into(), None);
+      return None;
+    };
+
+    let timestamp_hash = if metadata.is_directory && !metadata.is_symlink {
+      let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
+        self.timestamp_hash_cache.insert(path.into(), None);
+        return None;
+      };
+      children.sort();
+
+      let mut hasher = FxHasher::default();
+      for item in children {
+        let child_path = ArcPath::from(path.join(&item));
+        let child_path_str = child_path.to_string_lossy();
+        if self.snapshot_options.is_immutable_path(&child_path_str) {
+          continue;
+        }
+
+        item.hash(&mut hasher);
+        if self.snapshot_options.is_managed_path(&child_path_str) {
+          if let Some(version) = self.package_helper.package_version(&child_path).await {
+            "d".hash(&mut hasher);
+            version.hash(&mut hasher);
+          }
+          continue;
+        }
+
+        if let Some(child_hash) = self.dir_timestamp_hash(&child_path).await {
+          if child_hash.is_directory {
+            "d".hash(&mut hasher);
+          } else {
+            "f".hash(&mut hasher);
+          }
+          child_hash.hash.hash(&mut hasher);
+        } else {
+          "n".hash(&mut hasher);
+        }
+      }
+
+      Some(TimestampHash {
+        hash: hasher.finish(),
+        is_directory: true,
+      })
+    } else {
+      Some(TimestampHash {
+        hash: Self::modified_time_from_metadata(&metadata),
+        is_directory: false,
+      })
+    };
+
+    self
+      .timestamp_hash_cache
+      .insert(path.into(), timestamp_hash.clone());
+    timestamp_hash
   }
 }
 

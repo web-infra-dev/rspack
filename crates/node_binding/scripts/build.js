@@ -71,6 +71,9 @@ async function build() {
 		if (process.env.RSPACK_TARGET_BROWSER) {
 			features.push("browser")
 		}
+		if (values.profile !== "release") {
+			features.push("perfetto");
+		}
 		args.push("--no-dts-cache");
 		if (process.env.SFTRACE) {
 			features.push("sftrace-setup");
@@ -85,6 +88,7 @@ async function build() {
 		}
 		if (values.profile === "release") {
 			features.push("info-level");
+			rustflags.push("-Zlocation-detail=none");
 			if (process.env.RUST_TARGET && !process.env.RUST_TARGET.includes("windows-msvc")) {
 				rustflags.push("-Cforce-unwind-tables=no");
 			}

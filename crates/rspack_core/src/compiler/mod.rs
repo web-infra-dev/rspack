@@ -15,9 +15,9 @@ use tracing::instrument;
 
 pub use self::rebuild::CompilationRecords;
 use crate::{
-  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilerOptions, CompilerPlatform,
-  ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver, ResolverFactory,
-  SharedPluginDriver,
+  BoxPlugin, CleanOptions, Compilation, CompilationAsset, CompilationLogging, CompilerOptions,
+  CompilerPlatform, ContextModuleFactory, Filename, KeepPattern, NormalModuleFactory, PluginDriver,
+  ResolverFactory, SharedPluginDriver,
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
@@ -150,6 +150,7 @@ impl Compiler {
     });
 
     let options = Arc::new(options);
+    let compilation_logging: CompilationLogging = Default::default();
     let plugin_driver = PluginDriver::new(options.clone(), plugins, resolver_factory.clone());
     let buildtime_plugin_driver =
       PluginDriver::new(options.clone(), buildtime_plugins, resolver_factory.clone());
@@ -158,6 +159,7 @@ impl Compiler {
       options.clone(),
       input_filesystem.clone(),
       intermediate_filesystem.clone(),
+      compilation_logging.clone(),
     );
     let incremental = Incremental::new_cold(options.incremental);
     let module_executor = ModuleExecutor::default();
@@ -179,6 +181,7 @@ impl Compiler {
         None,
         incremental,
         Some(module_executor),
+        compilation_logging,
         Default::default(),
         Default::default(),
         input_filesystem.clone(),
@@ -242,6 +245,8 @@ impl Compiler {
     let plugin_driver_clone = self.plugin_driver.clone();
     let compilation_id = self.compilation.id();
     let _guard = scopeguard::guard((), move |_| plugin_driver_clone.clear_cache(compilation_id));
+    let compilation_logging = self.compilation.get_logging().clone();
+    compilation_logging.clear();
 
     fast_set(
       &mut self.compilation,
@@ -256,6 +261,7 @@ impl Compiler {
         None,
         Incremental::new_cold(self.options.incremental),
         Some(Default::default()),
+        compilation_logging,
         Default::default(),
         Default::default(),
         self.input_filesystem.clone(),

@@ -70,25 +70,26 @@ Come chat with us on [Discord](https://discord.gg/79ZZ66GH9E)! Rspack team and R
 
 ## Links
 
-| Name                                                                           | Description                                                                   |
-| ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                   | A curated list of awesome things related to Rstack                            |
-| [agent-skills](https://github.com/rstackjs/agent-skills)                       | A collection of Agent Skills for Rstack                                       |
-| [Rspack 2.x docs](https://v2.rspack.rs/)                                       | Documentation for Rspack 2.x (beta)                                           |
-| [Rspack 1.x docs](https://rspack.rs/)                                          | Documentation for Rspack 1.x (latest)                                         |
-| [Rspack 0.x docs](https://v0.rspack.rs/)                                       | Documentation for Rspack 0.x version                                          |
-| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)             | Dev server for Rspack                                                         |
-| [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Examples showcasing Rstack                                                    |
-| [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Design resources for Rstack                                                   |
+| Name                                                                                      | Description                                                                   |
+| ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                              | A curated list of awesome things related to Rstack                            |
+| [agent-skills](https://github.com/rstackjs/agent-skills)                                  | A collection of Agent Skills for Rstack                                       |
+| [Rspack 2.x docs](https://rspack.rs/)                                                     | Documentation for Rspack 2.x                                                  |
+| [Rspack 1.x docs](https://v1.rspack.rs/)                                                  | Documentation for Rspack 1.x                                                  |
+| [Rspack 0.x docs](https://v0.rspack.rs/)                                                  | Documentation for Rspack 0.x version                                          |
+| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)                        | Dev server for Rspack                                                         |
+| [rstack-examples](https://github.com/rstackjs/rstack-examples)                            | Examples showcasing Rstack                                                    |
+| [rspack-sources](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_sources) | Rust port of [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources)            | Design resources for Rstack                                                   |
 
 ## Contributors
 
 <a href="https://github.com/web-infra-dev/rspack/graphs/contributors"><img src="https://opencollective.com/rspack/contributors.svg?width=890&button=false" /></a>
 
-## Benchmark
+## Benchmarks
 
-See [Benchmark](https://ecosystem-benchmark.rspack.rs/).
+- See [build-tools-performance](https://github.com/rstackjs/build-tools-performance) for comparisons between Rspack and other tools.
+- See [Rspack Benchmarks](https://ecosystem-benchmark.rspack.rs/) for Rspack's performance trends over time.
 
 ## Credits
 

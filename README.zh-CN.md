@@ -71,17 +71,17 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 
 ## 链接
 
-| 名称                                                                           | 描述                                                                         |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
-| [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                   | 与 Rspack 相关的精彩内容列表                                                 |
-| [agent-skills](https://github.com/rstackjs/agent-skills)                       | Rstack 的 Agent Skills 合集                                                  |
-| [Rspack 2.x 文档](https://v2.rspack.rs/zh/)                                    | Rspack 2.x 版本的文档（Beta）                                                |
-| [Rspack 1.x 文档](https://rspack.rs/zh/)                                       | Rspack 1.x 版本的文档（最新）                                                |
-| [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                    | Rspack 0.x 版本的文档                                                        |
-| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)             | Rspack 的开发服务器                                                          |
-| [rstack-examples](https://github.com/rstackjs/rstack-examples)                 | Rstack 的示例项目                                                            |
-| [rspack-sources](https://github.com/rstackjs/rspack-sources)                   | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
-| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources) | Rstack 的设计资源                                                            |
+| 名称                                                                                      | 描述                                                                         |
+| ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| [awesome-rstack](https://github.com/rstackjs/awesome-rstack)                              | 与 Rspack 相关的精彩内容列表                                                 |
+| [agent-skills](https://github.com/rstackjs/agent-skills)                                  | Rstack 的 Agent Skills 合集                                                  |
+| [Rspack 2.x 文档](https://rspack.rs/zh/)                                                  | Rspack 2.x 版本的文档                                                        |
+| [Rspack 1.x 文档](https://v1.rspack.rs/zh/)                                               | Rspack 1.x 版本的文档                                                        |
+| [Rspack 0.x 文档](https://v0.rspack.rs/zh/)                                               | Rspack 0.x 版本的文档                                                        |
+| [rspack-dev-server](https://github.com/rstackjs/rspack-dev-server)                        | Rspack 的开发服务器                                                          |
+| [rstack-examples](https://github.com/rstackjs/rstack-examples)                            | Rstack 的示例项目                                                            |
+| [rspack-sources](https://github.com/web-infra-dev/rspack/tree/main/crates/rspack_sources) | Rust 版本的 [webpack-sources](https://www.npmjs.com/package/webpack-sources) |
+| [rstack-design-resources](https://github.com/rstackjs/rstack-design-resources)            | Rstack 的设计资源                                                            |
 
 ## 贡献者
 
@@ -89,7 +89,8 @@ Rstack 是一个以 Rspack 为核心的 JavaScript 统一工具链，具有优�
 
 ## 基准测试
 
-参考 [基准测试](https://ecosystem-benchmark.rspack.rs/)。
+- 参考 [build-tools-performance](https://github.com/rstackjs/build-tools-performance) 了解 Rspack 与其他工具的对比
+- 参考 [Rspack 基准测试](https://ecosystem-benchmark.rspack.rs/) 了解 Rspack 性能的变化趋势
 
 ## 致谢
 

@@ -29,7 +29,7 @@ const creator = new BasicCaseCreator({
   },
   steps: ({ name }) => [
     {
-      config: async (context: ITestContext) => {
+      config: (context: ITestContext) => {
         configMultiCompiler(
           context,
           name,
@@ -121,8 +121,8 @@ const defaultOptions = (
     runtimeChunk: 'single',
   },
   externals: {
-    fs: 'module-import fs',
-    path: 'module-import path',
+    fs: 'fs',
+    path: 'path',
   },
 });
 

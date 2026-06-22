@@ -1,5 +1,5 @@
 use rspack_collections::Identifier;
-use rspack_core::{BuildMetaExportsType, DependencyType};
+use rspack_core::{BuildMetaExportsType, DependencyId, DependencyType};
 use rustc_hash::FxHashSet as HashSet;
 
 pub type ConnectionUkey = i32;
@@ -70,6 +70,23 @@ pub struct RsdoctorDependency {
   pub request: String,
   pub module: ModuleUkey,
   pub dependency: ModuleUkey,
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct RsdoctorExportUsageDependency {
+  pub dependency_id: DependencyId,
+  pub origin_module_identifier: Identifier,
+  pub target_module_identifier: Identifier,
+  pub origin_export: Option<Vec<String>>,
+  pub target_export: Option<Vec<String>>,
+}
+
+#[derive(Debug, Default)]
+pub struct RsdoctorExportUsageEdge {
+  pub origin_module: ModuleUkey,
+  pub origin_export: Option<Vec<String>>,
+  pub target_module: ModuleUkey,
+  pub target_export: Option<Vec<String>>,
 }
 
 #[derive(Debug, Default)]
@@ -206,6 +223,7 @@ pub struct RsdoctorModuleGraph {
   pub dependencies: Vec<RsdoctorDependency>,
   pub chunk_modules: Vec<RsdoctorChunkModules>,
   pub connections_only_imports: Vec<RsdoctorConnectionsOnlyImport>,
+  pub export_usage_edges: Vec<RsdoctorExportUsageEdge>,
 }
 
 #[derive(Debug, Default)]

@@ -3,17 +3,16 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ESMExportInitFragment, EvaluatedInlinableValue,
-  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsInfoGetter, ExportsOfExportsSpec,
-  ExportsSpec, GetUsedNameParam, LazyUntil, ModuleGraph, ModuleGraphCacheArtifact,
-  PrefetchExportsInfoMode, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
+  DependencyTemplateType, DependencyType, ESMExportBinding, ESMExportInitFragment,
+  ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, LazyUntil,
+  ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
-use crate::is_export_inlined;
+use crate::{ConstValue, is_export_inlined};
 
-// Create _webpack_require__.d(__webpack_exports__, {}) for each export.
+// Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {
@@ -24,7 +23,7 @@ pub struct ESMExportSpecifierDependency {
   name: Atom,
   #[cacheable(with=AsPreset)]
   value: Atom, // id
-  inline: Option<EvaluatedInlinableValue>,
+  const_value: Option<ConstValue>,
   enum_value: Option<TSEnumValue>,
 }
 
@@ -32,7 +31,7 @@ impl ESMExportSpecifierDependency {
   pub fn new(
     name: Atom,
     value: Atom,
-    inline: Option<EvaluatedInlinableValue>,
+    const_value: Option<ConstValue>,
     enum_value: Option<TSEnumValue>,
     range: DependencyRange,
     loc: Option<DependencyLocation>,
@@ -40,7 +39,7 @@ impl ESMExportSpecifierDependency {
     Self {
       name,
       value,
-      inline,
+      const_value,
       enum_value,
       range,
       loc,
@@ -76,7 +75,10 @@ impl Dependency for ESMExportSpecifierDependency {
     Some(ExportsSpec {
       exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
         name: self.name.clone(),
-        inlinable: self.inline.clone(),
+        inlinable: self
+          .const_value
+          .as_ref()
+          .and_then(|const_value| const_value.as_inlinable().cloned()),
         exports: self.enum_value.as_ref().map(|enum_value| {
           enum_value
             .iter()
@@ -195,9 +197,9 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
 
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(&module.identifier(), PrefetchExportsInfoMode::Default);
-    let Some(used_name) = ExportsInfoGetter::get_used_name(
-      GetUsedNameParam::WithNames(&exports_info),
+      .get_exports_info_data(&module.identifier());
+    let Some(used_name) = exports_info.get_used_name(
+      &compilation.exports_info_artifact,
       *runtime,
       std::slice::from_ref(&dep.name),
     ) else {
@@ -210,9 +212,18 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
       }
       UsedName::Inlined(_) => return,
     };
+    let is_circular_module = compilation
+      .circular_modules
+      .is_circular_module(&module.identifier());
+    let binding = if matches!(is_circular_module, Some(false)) && dep.const_value.is_some() {
+      ESMExportBinding::Value(dep.value.clone())
+    } else {
+      ESMExportBinding::Getter(dep.value.clone())
+    };
     init_fragments.push(Box::new(ESMExportInitFragment::new(
       module.get_exports_argument(),
-      vec![(used_name, dep.value.clone())],
+      vec![(used_name, binding)],
+      is_circular_module,
     )));
   }
 }

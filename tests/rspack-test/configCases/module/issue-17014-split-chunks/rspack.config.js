@@ -17,5 +17,7 @@ module.exports = {
         },
       },
     },
+    // Avoid the default export of common.js is inlined, which causes the splitChunks common cache group disappear.
+    inlineExports: false,
   },
 };

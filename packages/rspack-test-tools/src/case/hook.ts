@@ -5,17 +5,17 @@ import {
   type RspackOptions,
   sources,
 } from '@rspack/core';
-import { getSerializers } from 'jest-snapshot';
 import { createSnapshotSerializer as createPathSerializer } from 'path-serializer';
 import {
   type PrettyFormatOptions,
   format as prettyFormat,
 } from 'pretty-format';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { TestContext, type TTestContextOptions } from '../test/context';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITesterConfig } from '../type';
 import { build, checkSnapshot, compiler, config } from './common';
+import { getSnapshotSerializers } from '../helper/expect/snapshot-serializers';
 
 const srcDir = __TEST_FIXTURES_PATH__;
 const distDir = path.resolve(__TEST_DIST_PATH__, 'hook');
@@ -134,7 +134,7 @@ const serialize = (val: unknown, indent = 2, formatOverrides = {}) =>
       escapeRegex,
       indent,
       plugins: [
-        ...getSerializers(),
+        ...getSnapshotSerializers(),
         sourceSerializer,
         internalSerializer,
         testPathSerializer,

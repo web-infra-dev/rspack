@@ -10,6 +10,10 @@ import WebpackLicense from '@components/WebpackLicense';
 
 全局变量：该选项可以配置是否 polyfill 或 mock 某些 [Node.js 全局变量](https://nodejs.org/docs/latest/api/globals.html)。
 
+- **类型：** `false | object`
+
+将 `node` 设置为 `false` 可以禁用所有 Node.js 全局变量的 polyfill 和 mock。否则，可以使用下面的选项分别配置。
+
 ## node.global
 
 - **类型：** `boolean | 'warn'`
@@ -39,7 +43,7 @@ export default {
 
 ## node.\_\_filename
 
-- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **默认值：**
   - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
   - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`
@@ -83,7 +87,7 @@ export default {
 
 ## node.\_\_dirname
 
-- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only'`
+- **类型：** `boolean | 'mock' | 'warn-mock' | 'eval-only' | 'node-module'`
 - **默认值：**
   - 当 `target` 不包含 `node` 时，默认值为 `'warn-mock'`。
   - 当 `target` 包含 `node` 时，启用 [output.module](/config/output#outputmodule) 则为 `'node-module'`，否则为 `'eval-only'`

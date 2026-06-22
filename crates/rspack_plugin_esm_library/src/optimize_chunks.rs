@@ -414,7 +414,8 @@ pub(crate) fn ensure_entry_exports(compilation: &mut Compilation) {
 }
 
 /// For each entrypoint, if the runtime chunk is the same as the entry chunk
-/// and any initial ChunkGroup containing this chunk has multiple chunks,
+/// and either this chunk has async chunks or any initial ChunkGroup containing
+/// this chunk has multiple chunks,
 /// split the runtime into a separate runtime chunk.
 ///
 /// This must run AFTER SplitChunksPlugin and RemoveDuplicateModulesPlugin
@@ -440,12 +441,16 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
         return false;
       }
 
-      // Check if any initial ChunkGroup containing this chunk has multiple chunks
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(&runtime_chunk_ukey);
 
+      if chunk.has_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
+        return true;
+      }
+
+      // Check if any initial ChunkGroup containing this chunk has multiple chunks
       chunk.groups().iter().any(|group_ukey| {
         let group = compilation
           .build_chunk_graph_artifact
@@ -474,6 +479,10 @@ pub(crate) fn optimize_runtime_chunks(compilation: &mut Compilation) {
     if let Some(mut mutation) = compilation.incremental.mutations_write() {
       mutation.add(Mutation::ChunkAdd {
         chunk: new_chunk_ukey,
+      });
+      mutation.add(Mutation::ChunkSplit {
+        from: entry_chunk_ukey,
+        to: new_chunk_ukey,
       });
     }
 
@@ -570,9 +579,7 @@ pub(crate) fn analyze_dyn_import_targets(
         continue;
       }
 
-      let exports_info = exports_info_artifact
-        .get_exports_info(target)
-        .as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_data(target);
 
       if exports_info.other_exports_info().is_used(None) {
         namespace_targets.insert(*target);
@@ -668,9 +675,7 @@ pub(crate) fn analyze_dyn_import_targets(
       if strict_chunks.contains(&chunk_ukey) {
         continue;
       }
-      let exports_info = exports_info_artifact
-        .get_exports_info(module_id)
-        .as_data(exports_info_artifact);
+      let exports_info = exports_info_artifact.get_exports_info_data(module_id);
       let export_names: FxHashSet<Atom> = exports_info
         .exports()
         .iter()
@@ -831,14 +836,18 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   let module_graph = compilation.get_module_graph();
 
   // Collect all existing named chunks
-  let mut used_names: FxHashMap<String, usize> = FxHashMap::default();
+  let mut used_names: FxHashMap<String, usize> = FxHashMap::with_capacity_and_hasher(
+    compilation.build_chunk_graph_artifact.named_chunks.len(),
+    Default::default(),
+  );
   for name in compilation.build_chunk_graph_artifact.named_chunks.keys() {
     used_names.insert(name.clone(), 1);
   }
 
   // Collect candidates: (chunk_ukey, root_module_identifier) for unnamed non-initial chunks
   // with exactly one root module
-  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> = Vec::new();
+  let mut candidates: Vec<(ChunkUkey, ModuleIdentifier)> =
+    Vec::with_capacity(compilation.build_chunk_graph_artifact.chunk_by_ukey.len());
 
   for (chunk_ukey, chunk) in compilation.build_chunk_graph_artifact.chunk_by_ukey.iter() {
     // Skip chunks that already have a name
@@ -871,8 +880,10 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
 
   // Compute short names and track duplicates
   // name_to_chunks: maps base_name → list of (chunk_ukey, module_identifier) in sorted order
-  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> = Vec::new();
-  let mut name_index_map: FxHashMap<String, usize> = FxHashMap::default();
+  let mut name_to_chunks: Vec<(String, Vec<(ChunkUkey, ModuleIdentifier)>)> =
+    Vec::with_capacity(candidates.len());
+  let mut name_index_map: FxHashMap<String, usize> =
+    FxHashMap::with_capacity_and_hasher(candidates.len(), Default::default());
 
   for (chunk_ukey, module_id) in &candidates {
     let Some(module_path) = module_graph
@@ -895,7 +906,7 @@ pub(crate) fn assign_dyn_import_chunk_short_names(compilation: &mut Compilation)
   }
 
   // Assign names, handling deduplication
-  let mut assignments: Vec<(ChunkUkey, String)> = Vec::new();
+  let mut assignments: Vec<(ChunkUkey, String)> = Vec::with_capacity(candidates.len());
 
   for (base_name, chunks) in &name_to_chunks {
     if chunks.len() == 1 && !used_names.contains_key(base_name) {

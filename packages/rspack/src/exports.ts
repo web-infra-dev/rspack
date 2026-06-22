@@ -182,13 +182,21 @@ interface Electron {
 
 export const electron: Electron = { ElectronTargetPlugin };
 
-import { HashedModuleIdsPlugin } from './builtin-plugin';
+import {
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+  SyncModuleIdsPlugin,
+} from './builtin-plugin';
 
 interface Ids {
+  DeterministicModuleIdsPlugin: typeof DeterministicModuleIdsPlugin;
   HashedModuleIdsPlugin: typeof HashedModuleIdsPlugin;
 }
 
-export const ids: Ids = { HashedModuleIdsPlugin };
+export const ids: Ids = {
+  DeterministicModuleIdsPlugin,
+  HashedModuleIdsPlugin,
+};
 
 import { EnableLibraryPlugin } from './builtin-plugin';
 
@@ -337,6 +345,7 @@ export type {
 } from './builtin-loader/swc/index';
 ///// Rspack Postfixed Internal Plugins /////
 export type {
+  CircularCheckRspackPluginOptions,
   CircularDependencyRspackPluginOptions,
   CopyRspackPluginOptions,
   CssExtractRspackLoaderOptions,
@@ -351,6 +360,7 @@ export type {
   SwcJsMinimizerRspackPluginOptions,
 } from './builtin-plugin';
 export {
+  CircularCheckRspackPlugin,
   CircularDependencyRspackPlugin,
   ContextReplacementPlugin,
   CopyRspackPlugin,
@@ -409,6 +419,9 @@ interface Experiments {
   CssChunkingPlugin: typeof CssChunkingPlugin;
   createNativePlugin: typeof createNativePlugin;
   VirtualModulesPlugin: typeof VirtualModulesPlugin;
+  ids: {
+    SyncModuleIdsPlugin: typeof SyncModuleIdsPlugin;
+  };
   rsc: typeof rsc;
 }
 
@@ -460,5 +473,8 @@ export const experiments: Experiments = {
   CssChunkingPlugin,
   createNativePlugin,
   VirtualModulesPlugin,
+  ids: {
+    SyncModuleIdsPlugin,
+  },
   rsc,
 };

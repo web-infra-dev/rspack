@@ -6,11 +6,12 @@ use rspack_core::{
   AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoGetter, ExportsOfExportsSpec, ExportsSpec, GetUsedNameParam, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment,
-  PrefetchExportsInfoMode, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access,
 };
-use swc_core::atoms::Atom;
+use rspack_util::json_stringify_str;
+use swc_atoms::Atom;
 
 use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;
 
@@ -174,28 +175,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
       .module_by_identifier(&module.identifier())
       .expect("should have mgm");
 
-    let used = if dep.names.is_empty() {
-      let exports_info_used = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info_used(&module.identifier(), *runtime);
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithoutNames(&exports_info_used),
-        *runtime,
-        &dep.names,
-      )
-    } else {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_prefetched_exports_info(
-          &module.identifier(),
-          PrefetchExportsInfoMode::Nested(&dep.names),
-        );
-      ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(&exports_info),
-        *runtime,
-        &dep.names,
-      )
-    };
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&module.identifier());
+    let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
 
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
@@ -225,7 +208,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         // Export a inlinable const from cjs is not possible for now but we compat it here
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
         let placeholder_var = format!(
-          "__webpack_{}_export__",
+          "__rspack_{}_export",
           if is_inlined { "inlined" } else { "unused" }
         );
         source.replace(
@@ -256,8 +239,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
                 "Object.defineProperty({}{}, {}, (",
                 base,
                 property_access(used[0..used.len() - 1].iter(), 0),
-                serde_json::to_string(&used.last())
-                  .expect("Unexpected render define property base")
+                json_stringify_str(used.last().expect("Unexpected render define property base"))
               ),
               None,
             );
@@ -268,10 +250,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         } else {
           init_fragments.push(
             NormalInitFragment::new(
-              "var __webpack_unused_export__;\n".to_string(),
+              "var __rspack_unused_export;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
+              InitFragmentKey::CommonJsExports("__rspack_unused_export".to_owned()),
               None,
             )
             .boxed(),
@@ -279,7 +261,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           source.replace_static(
             dep.range.start,
             value_range.start,
-            "__webpack_unused_export__ = (",
+            "__rspack_unused_export = (",
             None,
           );
           source.replace_static(value_range.end, dep.range.end, ")", None);

@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 it("should use JSON.parse", () => {
 	const JSONParse = rstest.spyOn(JSON, 'parse');
 	JSONParse.mockClear();
@@ -11,6 +13,9 @@ it("should use JSON.parse", () => {
 	expect(data3).toMatchObject([{"this is a large JSON object": "that should be converted to JSON.parse by default"}]);
 
 	expect(JSONParse).toHaveBeenCalledTimes(3);
+
+	const source = fs.readFileSync(__filename, 'utf-8').toString();
+	expect((source.match(/\/\*#__PURE__\*\/JSON\.parse/g) || []).length).toBe(3);
 });
 
 it("should not call JSON.parse when resourceQuery is JSONParse=false", () => {

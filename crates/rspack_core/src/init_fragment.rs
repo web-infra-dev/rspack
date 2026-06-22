@@ -85,7 +85,7 @@ impl InitFragmentKey {
         res
       }
       InitFragmentKey::ESMExports => {
-        let mut export_map: Vec<(Atom, Atom)> = vec![];
+        let mut export_map: Vec<(Atom, ESMExportBinding)> = vec![];
         let mut iter = fragments.into_iter();
         let first = iter
           .next()
@@ -95,15 +95,17 @@ impl InitFragmentKey {
           .downcast::<ESMExportInitFragment>()
           .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
         let export_argument = first.exports_argument;
+        let is_circular_module = first.is_circular_module;
         export_map.extend(first.export_map);
         for fragment in iter {
           let fragment = fragment
             .into_any()
             .downcast::<ESMExportInitFragment>()
             .expect("fragment of InitFragmentKey::ESMExports should be a ESMExportInitFragment");
+          debug_assert_eq!(is_circular_module, fragment.is_circular_module);
           export_map.extend(fragment.export_map);
         }
-        ESMExportInitFragment::new(export_argument, export_map).boxed()
+        ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
       }
       InitFragmentKey::AwaitDependencies => {
         let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
@@ -349,17 +351,29 @@ impl<C> InitFragment<C> for NormalInitFragment {
 }
 
 #[derive(Debug, Clone, Hash)]
+pub enum ESMExportBinding {
+  Getter(Atom),
+  Value(Atom),
+}
+
+#[derive(Debug, Clone, Hash)]
 pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
-  export_map: Vec<(Atom, Atom)>,
+  export_map: Vec<(Atom, ESMExportBinding)>,
+  is_circular_module: Option<bool>,
 }
 
 impl ESMExportInitFragment {
-  pub fn new(exports_argument: ExportsArgument, export_map: Vec<(Atom, Atom)>) -> Self {
+  pub fn new(
+    exports_argument: ExportsArgument,
+    export_map: Vec<(Atom, ESMExportBinding)>,
+    is_circular_module: Option<bool>,
+  ) -> Self {
     Self {
       exports_argument,
       export_map,
+      is_circular_module,
     }
   }
 }
@@ -369,31 +383,73 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     let runtime_template = context.runtime_template();
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
-    let exports = format!(
-      "{{\n  {}\n}}",
-      self
-        .export_map
-        .iter()
-        .map(|s| {
-          let prop = property_name(&s.0)?;
-          Ok(format!(
-            "{}: {}",
-            prop,
-            runtime_template.returning_function(&s.1, "")
-          ))
-        })
-        .collect::<Result<Vec<_>>>()?
-        .join(",\n  ")
-    );
 
-    let res = InitFragmentContents {
-      start: format!(
-        "{}({}, {});\n",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-        runtime_template.render_exports_argument(self.exports_argument),
-        exports
-      ),
-      end: None,
+    let mut content =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    content.push('(');
+    content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
+    content.push_str(", {");
+
+    let mut getters = self
+      .export_map
+      .iter()
+      .filter_map(|(key, value)| match value {
+        ESMExportBinding::Getter(getter) => Some((key, getter)),
+        _ => None,
+      });
+    if let Some((key, getter)) = getters.next() {
+      content.push_str("\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
+    }
+    for (key, getter) in getters {
+      content.push_str(",\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
+    }
+    content.push_str("\n}");
+
+    let mut values_content = String::new();
+    let mut values = self
+      .export_map
+      .iter()
+      .filter_map(|(key, value)| match value {
+        ESMExportBinding::Value(value) => Some((key, value)),
+        _ => None,
+      });
+    if let Some((key, value)) = values.next() {
+      values_content.push_str("\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+    for (key, value) in values {
+      values_content.push_str(",\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+
+    if values_content.is_empty() {
+      content.push_str(");\n");
+    } else {
+      content.push_str(", {");
+      content.push_str(&values_content);
+      content.push_str("\n});\n");
+    }
+
+    let res = if matches!(self.is_circular_module, None | Some(true)) {
+      InitFragmentContents {
+        start: content,
+        end: None,
+      }
+    } else {
+      InitFragmentContents {
+        start: String::new(),
+        end: Some(format!("\n{content}")),
+      }
     };
     Ok(res)
   }

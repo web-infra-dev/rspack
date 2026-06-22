@@ -40,7 +40,6 @@ export default {
       type: 'modern-module',
     },
   },
-  externalsType: 'module-import',
   optimization: {
     avoidEntryIife: true,
     minimize: false,
@@ -73,7 +72,7 @@ In other words, the focus has been shifting from "can Rspack emit ESM at all?" t
 Below are the main configuration options related to ESM and their descriptions, which are used when building both applications and libraries.
 
 1. [output.module](/config/output#outputmodule): Set to `true` to generate ESM format output. When this option is enabled, it affects the following configurations:
-   1. Affects [externalsType](/config/externals#externalstype) default value: When `output.module` is `true`, `externalsType` defaults to `'module-import'`
+   1. Affects [externalsType](/config/externals#externalstype) default value: When `output.module` is `true`, `externalsType` defaults to `'module-import'`. For compatibility, `output.library.type: 'modern-module'` currently keeps this default unless you explicitly configure `externalsType: 'modern-module'`; `modern-module` externals will become the default for `modern-module` libraries in the next major version.
    2. Affects [output.filename](/config/output#outputfilename) default value: When `output.module` is `true`, the default filename is `'[name].mjs'` instead of `'[name].js'`
    3. Affects [output.chunkFilename](/config/output#outputchunkfilename) default value: When `output.module` is `true`, chunk filename defaults to `'[id].mjs'` instead of `'[id].js'`
    4. Affects [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) default value: When `output.module` is `true`, defaults to `'[id].[fullhash].hot-update.mjs'`
@@ -81,9 +80,9 @@ Below are the main configuration options related to ESM and their descriptions, 
    6. Affects [output.iife](/config/output#outputiife) default value: When `output.module` is `true`, `output.iife` defaults to `false`
    7. If [`output.library`](/config/output#outputlibrary) is also configured and [`output.library.type`](/config/output#outputlibrarytype) is not set explicitly, the default becomes `'modern-module'` instead of `'var'`
    8. Affects [output.scriptType](/config/output#outputscripttype) default value: When `output.module` is `true`, defaults to `'module'`
-   9. Affects [output.environment.dynamicImport](/config/output#outputenvironmentdynamicimport) default value: Enabled when `output.module` is `true`
-   10. Affects [output.environment.dynamicImportInWorker](/config/output#outputenvironmentdynamicimportinworker) default value: Enabled when `output.module` is `true`
-   11. Affects [output.environment.module](/config/output#outputenvironmentmodule) default value: Enabled when `output.module` is `true`
+   9. Affects [output.environment.dynamicImport](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
+   10. Affects [output.environment.dynamicImportInWorker](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
+   11. Affects [output.environment.module](/config/output#outputenvironment) default value: Enabled when `output.module` is `true`
    12. Affects Node.js related configuration defaults: In Node.js environment, when `output.module` is `true`, `__filename` and `__dirname` default to `'node-module'`
 2. [output.chunkFormat](/config/output#outputchunkformat): When building application ESM output, this is typically set to `'module'` to use ESM-format chunks.
 3. [output.library.type](/config/output#outputlibrarytype): When building library ESM output, this is typically set to `'modern-module'` to use Rspack's dedicated ESM library rendering path.

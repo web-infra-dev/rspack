@@ -12,6 +12,8 @@ import type {
 export interface ITestContext {
   getSource(sub?: string): string;
   getDist(sub?: string): string;
+  getCompileSource(sub?: string): string;
+  getCompileDist(sub?: string): string;
   getTemp(sub?: string): string | null;
 
   getCompiler(): ITestCompilerManager;
@@ -51,6 +53,8 @@ export interface ITestLoader {
 
 export type TTestRunResult = Record<string, any>;
 
+export type MaybePromise<T> = T | Promise<T>;
+
 export interface ITesterConfig {
   name: string;
   src: string;
@@ -76,16 +80,16 @@ export interface ITester {
 }
 
 export interface ITestProcessor {
-  beforeAll?(context: ITestContext): Promise<void>;
-  afterAll?(context: ITestContext): Promise<void>;
-  before?(context: ITestContext): Promise<void>;
-  after?(context: ITestContext): Promise<void>;
+  beforeAll?(context: ITestContext): MaybePromise<void>;
+  afterAll?(context: ITestContext): MaybePromise<void>;
+  before?(context: ITestContext): MaybePromise<void>;
+  after?(context: ITestContext): MaybePromise<void>;
 
-  config(context: ITestContext): Promise<void>;
-  compiler(context: ITestContext): Promise<void>;
-  build(context: ITestContext): Promise<void>;
-  run(env: ITestEnv, context: ITestContext): Promise<void>;
-  check(env: ITestEnv, context: ITestContext): Promise<unknown>;
+  config(context: ITestContext): MaybePromise<void>;
+  compiler(context: ITestContext): MaybePromise<void>;
+  build(context: ITestContext): MaybePromise<void>;
+  run(env: ITestEnv, context: ITestContext): MaybePromise<void>;
+  check(env: ITestEnv, context: ITestContext): MaybePromise<unknown>;
 }
 
 export interface ITestReporter {
@@ -150,8 +154,17 @@ export interface ITestEnv {
 
 export type TTestConfig = {
   location?: string;
-  validate?: (stats: Stats | MultiStats, stderr?: string) => void;
+  validate?: (
+    stats: Stats | MultiStats,
+    stderr?: string,
+    options?: RspackOptions,
+  ) => MaybePromise<void>;
   noTests?: boolean;
+  // Compile from a per-suite copy of the case dir (context = <dist>/src,
+  // output = <dist>/dist) instead of in-place from the shared source dir.
+  // Needed for cases whose config writes fixtures into the case dir, so the
+  // parallel Config.* / RuntimeModeConfig.* suites don't race on it.
+  isolateSource?: boolean;
   writeStatsOuptut?: boolean;
   writeStatsJson?: boolean;
   beforeExecute?: (options: RspackOptions) => void;

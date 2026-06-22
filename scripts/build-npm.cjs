@@ -44,9 +44,12 @@ function parseTriple(rawTriple) {
   let sys;
   let abi = null;
   if (triples.length === 4) {
-    [cpu, , sys, abi = null] = triples;
+    cpu = triples[0];
+    sys = triples[2];
+    abi = triples[3] ?? null;
   } else if (triples.length === 3) {
-    [cpu, , sys] = triples;
+    cpu = triples[0];
+    sys = triples[2];
   } else {
     [cpu, sys] = triples;
   }
@@ -108,6 +111,14 @@ const optionalDependencies = {};
 for (const binding of bindings) {
   // The pkg of wasm binding is more complex, so we create it manually.
   if (binding.includes('wasm')) {
+    // The browser variant ships in its own artifact (bindings-*-browser) that
+    // only carries rspack.browser.wasm; it is bundled into @rspack/browser by
+    // build:js, not packaged here. Skip it so we don't look for the missing
+    // node wasm.
+    if (!fs.existsSync(path.join(binding, 'rspack.wasm32-wasi.wasm'))) {
+      continue;
+    }
+
     const output = path.join(NPM, 'wasm32-wasi');
     const pkgJson = require(path.join(output, 'package.json'));
 

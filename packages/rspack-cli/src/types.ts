@@ -22,5 +22,5 @@ export interface RspackCLILogger {
 }
 
 export interface RspackCommand {
-  apply(cli: RspackCLI): Promise<void>;
+  apply(cli: RspackCLI): void | Promise<void>;
 }

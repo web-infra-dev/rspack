@@ -46,9 +46,9 @@ fn resolve_relative_resource_path(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
 ) -> Option<String> {
-  if absolute_resource_path.starts_with("webpack/") {
+  if absolute_resource_path.starts_with("webpack/runtime") {
     // Webpack runtime modules are virtual
-    return Some(absolute_resource_path.to_string());
+    return Some(format!("webpack://{absolute_resource_path}"));
   }
 
   let Some(source_map_path) = source_map_path else {
@@ -216,6 +216,10 @@ impl ModuleFilenameHelpers {
     namespace: &str,
     unresolved_source_map_path: Option<&Utf8Path>,
   ) -> String {
+    if module_filename_template == "webpack://[namespace]/[resourcePath]" {
+      return create_default_module_filename(source_reference, compilation, namespace);
+    }
+
     let ctx = ModuleFilenameHelpers::create_module_filename_template_string_ctx(
       source_reference,
       compilation,
@@ -277,6 +281,39 @@ impl ModuleFilenameHelpers {
       identifier: Default::default(),
     }
   }
+}
+
+fn create_default_module_filename(
+  source_reference: &SourceReference,
+  compilation: &Compilation,
+  namespace: &str,
+) -> String {
+  let Compilation { options, .. } = compilation;
+  let context = &options.context;
+
+  let short_identifier = match source_reference {
+    SourceReference::Module(module_identifier) => {
+      let module_graph = compilation.get_module_graph();
+      let module = module_graph
+        .module_by_identifier(module_identifier)
+        .unwrap_or_else(|| {
+          panic!("failed to find a module for the given identifier '{module_identifier}'")
+        });
+      module.readable_identifier(context)
+    }
+    SourceReference::Source(source) => Cow::Owned(contextify(context, source)),
+  };
+
+  let resource = short_identifier.split('!').next_back().unwrap_or("");
+  let resource_path = resource.split_once('?').map_or(resource, |(path, _)| path);
+
+  let mut result =
+    String::with_capacity("webpack://".len() + namespace.len() + 1 + resource_path.len());
+  result.push_str("webpack://");
+  result.push_str(namespace);
+  result.push('/');
+  result.push_str(resource_path);
+  result
 }
 
 struct ModuleFilenameTemplateStringCtx<'a> {

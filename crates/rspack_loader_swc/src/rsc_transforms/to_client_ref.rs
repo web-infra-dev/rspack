@@ -28,10 +28,10 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
 ///   .map(href => React.createElement("link", {
+///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
+///     href
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -54,10 +54,10 @@ const API_RSC_MANIFEST: &str = "__rspack_rsc_manifest__";
 ///
 /// const resources = (__rspack_rsc_manifest__.clientManifest?.[resource]?.cssFiles ?? [])
 ///   .map(href => React.createElement("link", {
+///     ...__rspack_rsc_manifest__.cssLinkProps,
 ///     key: href,
 ///     rel: "stylesheet",
-///     href,
-///     precedence: "default"
+///     href
 ///   }));
 ///
 /// const Ref1 = registerClientReference(function() { throw new Error(...); }, resource, "default");
@@ -398,17 +398,37 @@ fn react_fragment_with_resources(ref_name: &str, resources_name: &str, react_nam
 }
 
 fn react_link_element(react_name: &str) -> Expr {
-  react_create_element_call(
-    react_name,
-    str_expr("link"),
-    object_expr(vec![
-      key_value_prop("key", ident_expr("href")),
-      key_value_prop("rel", str_expr("stylesheet")),
-      key_value_prop("href", ident_expr("href")),
-      key_value_prop("precedence", str_expr("default")),
-    ]),
-    vec![],
-  )
+  react_create_element_call(react_name, str_expr("link"), link_props_expr(), vec![])
+}
+
+fn link_props_expr() -> Expr {
+  object_expr(vec![
+    spread_prop(member_expr(ident_expr(API_RSC_MANIFEST), "cssLinkProps")),
+    key_value_prop("key", ident_expr("href")),
+    key_value_prop("rel", str_expr("stylesheet")),
+    key_value_prop("href", ident_expr("href")),
+  ])
+}
+
+fn object_expr(props: Vec<PropOrSpread>) -> Expr {
+  Expr::Object(ObjectLit {
+    span: DUMMY_SP,
+    props,
+  })
+}
+
+fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
+  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
+    key: PropName::Ident(ident_name(name)),
+    value: Box::new(value),
+  })))
+}
+
+fn spread_prop(expr: Expr) -> PropOrSpread {
+  PropOrSpread::Spread(SpreadElement {
+    dot3_token: DUMMY_SP,
+    expr: Box::new(expr),
+  })
 }
 
 fn react_create_element_call(
@@ -424,20 +444,6 @@ fn react_create_element_call(
     args,
     DUMMY_SP,
   )
-}
-
-fn object_expr(props: Vec<PropOrSpread>) -> Expr {
-  Expr::Object(ObjectLit {
-    span: DUMMY_SP,
-    props,
-  })
-}
-
-fn key_value_prop(name: &str, value: Expr) -> PropOrSpread {
-  PropOrSpread::Prop(Box::new(Prop::KeyValue(KeyValueProp {
-    key: PropName::Ident(ident_name(name)),
-    value: Box::new(value),
-  })))
 }
 
 fn null_expr() -> Expr {

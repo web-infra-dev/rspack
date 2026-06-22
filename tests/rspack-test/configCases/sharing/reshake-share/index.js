@@ -1,8 +1,8 @@
-import shared_0 from 'ui-lib';
-import shared_1 from 'ui-lib-dep';
+import * as uiLib from 'ui-lib';
+import * as uiLibDep from 'ui-lib-dep';
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 __webpack_require__.p = 'PUBLIC_PATH';
 
 const treeShakingSharedDir = path.join(
@@ -30,13 +30,16 @@ const customPluginAssetPath = path.join(
 
 
 it("should build independent share file", () => {
+	expect(uiLib.Badge).toBe("Badge");
+	expect(uiLib.MessagePro).toBe("MessagePro");
+	expect(uiLibDep.Message).toBe("Message");
 	expect(fs.existsSync(uiLibShareContainerPath)).toBe(true);
 	expect(fs.existsSync(uiLibDepShareContainerPath)).toBe(true);
 	expect(fs.existsSync(customPluginAssetPath)).toBe(true);
 });
 
 it("secondary tree shaking shared container should only have specify usedExports", async () => {
-    const uiLibDepShareContainerModule = __non_webpack_require__(uiLibDepShareContainerPath).secondary_tree_shaking_share_t_ui_lib_dep_100;
+    const uiLibDepShareContainerModule = eval("require")(uiLibDepShareContainerPath).secondary_tree_shaking_share_t_ui_lib_dep_100;
 		await uiLibDepShareContainerModule.init({},{
 		installInitialConsumes: async ()=>{
 			return 'call init'
@@ -50,7 +53,7 @@ it("secondary tree shaking shared container should only have specify usedExports
 
 
 it("correct handle share dep while secondary tree shaking", async () => {
-    const uiLibShareContainerModule = __non_webpack_require__(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
+    const uiLibShareContainerModule = eval("require")(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
 		await uiLibShareContainerModule.init({},{
 		installInitialConsumes: async ({webpackRequire})=>{
 			webpackRequire.m['webpack/sharing/consume/default/ui-lib-dep'] = (m)=>{

@@ -21,6 +21,8 @@ pub enum StorageOptions {
 pub fn create_storage(
   options: StorageOptions,
   version: String,
+  max_age: u64,
+  max_generations: u32,
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
@@ -28,8 +30,9 @@ pub fn create_storage(
       let option = FileSystemOptions {
         directory,
         version,
+        max_generations,
         max_pack_size: 500 * 1024,
-        expire: 7 * 24 * 60 * 60,
+        expire: max_age,
         fs,
       };
       Box::new(FileSystemStorage::new(option))

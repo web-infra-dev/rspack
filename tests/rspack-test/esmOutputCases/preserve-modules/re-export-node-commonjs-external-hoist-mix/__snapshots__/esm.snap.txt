@@ -107,12 +107,16 @@ __webpack_require__.n = (module) => {
 })();
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	for(var key in definition) {
-        if(__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-            Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
-        }
-    }
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
 })();
 // webpack/runtime/esm_module_decorator
@@ -153,16 +157,17 @@ __webpack_require__.add({
   !*** ./src/wrapped.js ***!
   \************************/
 (module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, {
-  E: () => (/* reexport safe */ fs__rspack_import_0.readFile),
-  Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
-});
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
 /* import */ var fs__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(fs__rspack_import_0);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 
 console.log.bind(module)
+
+__webpack_require__.d(__webpack_exports__, {
+  E: () => (/* reexport safe */ fs__rspack_import_0.readFile),
+  Z: () => (/* reexport safe */ fs__rspack_import_0.readFileSync)
+});
 
 
 },

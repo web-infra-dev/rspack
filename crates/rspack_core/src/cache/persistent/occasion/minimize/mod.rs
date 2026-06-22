@@ -88,9 +88,12 @@ impl MinimizeOccasion {
   }
 }
 
-#[async_trait::async_trait]
 impl Occasion for MinimizeOccasion {
   type Artifact = MinimizePersistentCacheArtifact;
+
+  fn name(&self) -> &'static str {
+    "minimize"
+  }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::reset", skip_all)]
   fn reset(&self, storage: &mut dyn Storage) {

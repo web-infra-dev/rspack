@@ -1,7 +1,10 @@
 import { createRequire } from 'node:module';
 import type { Compiler } from '../Compiler';
 import type { ModuleFederationPluginOptions } from '../container/ModuleFederationPlugin';
-import { IndependentSharedPlugin } from './IndependentSharedPlugin';
+import {
+  IndependentSharedPlugin,
+  type ShareFallback,
+} from './IndependentSharedPlugin';
 import { SharedUsedExportsOptimizerPlugin } from './SharedUsedExportsOptimizerPlugin';
 import { normalizeSharedOptions } from './SharePlugin';
 
@@ -10,20 +13,23 @@ const require = createRequire(import.meta.url);
 export interface TreeshakingSharedPluginOptions {
   mfConfig: ModuleFederationPluginOptions;
   secondary?: boolean;
+  onBuildAssets?: (buildAssets: ShareFallback) => void;
 }
 
 export class TreeShakingSharedPlugin {
   mfConfig: ModuleFederationPluginOptions;
   outputDir: string;
   secondary?: boolean;
+  onBuildAssets?: (buildAssets: ShareFallback) => void;
   private _independentSharePlugin?: IndependentSharedPlugin;
 
   name = 'TreeShakingSharedPlugin';
   constructor(options: TreeshakingSharedPluginOptions) {
-    const { mfConfig, secondary } = options;
+    const { mfConfig, secondary, onBuildAssets } = options;
     this.mfConfig = mfConfig;
     this.outputDir = mfConfig.treeShakingSharedDir || 'independent-packages';
     this.secondary = Boolean(secondary);
+    this.onBuildAssets = onBuildAssets;
   }
 
   apply(compiler: Compiler) {
@@ -63,6 +69,7 @@ export class TreeShakingSharedPlugin {
         manifest: mfConfig.manifest,
         treeShakingSharedExcludePlugins:
           mfConfig.treeShakingSharedExcludePlugins,
+        onBuildAssets: this.onBuildAssets,
       });
       this._independentSharePlugin.apply(compiler);
     }

@@ -23,7 +23,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
@@ -33,6 +33,15 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
+
+      # The @rspack/browser e2e needs rspack.browser.wasm. The wasi (node)
+      # artifact only ships rspack.wasm32-wasi.wasm, so reuse it under the
+      # browser name — the e2e runs against the wasi build, same as CI. The real
+      # browser variant is built and published by the separate -browser build
+      # job; it is intentionally not e2e-tested here.
+      - name: Provide browser wasm for e2e
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: cp -f crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Setup Pnpm
         timeout-minutes: 5
@@ -55,7 +64,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.59.1-jammy
+          image: mcr.microsoft.com/playwright:v1.60.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -70,7 +79,7 @@ jobs:
         with:
           # Jammy uses ubuntu 22.04
           # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.59.1-jammy
+          image: mcr.microsoft.com/playwright:v1.60.0-jammy
           # .cache is required by download artifact, and mount in ./.github/actions/docker/run
           # .tool_cache is required by pnpm
           options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
@@ -98,10 +107,24 @@ jobs:
       PUPPETEER_SKIP_DOWNLOAD: true
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           ref: ${{ inputs.ref }}
           clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Disable CPU hogs (Windows)
+        if: runner.os == 'Windows'
+        shell: powershell
+        continue-on-error: true
+        run: |
+          $ErrorActionPreference = 'SilentlyContinue'
+          Set-MpPreference -DisableRealtimeMonitoring $true -Force
+          Add-MpPreference -ExclusionPath "C:\" -Force
+          Add-MpPreference -ExclusionPath "D:\" -Force
+          sc.exe config wuauserv start= disabled
+          Stop-Service wuauserv
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+          reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
 
       - name: Download bindings
         uses: ./.github/actions/artifact/download
@@ -175,7 +198,7 @@ jobs:
 
       - name: Upload Test Reporter
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: rstest-event-reports-${{ inputs.target }}-node${{ matrix.node }}
           path: '*-report.txt'

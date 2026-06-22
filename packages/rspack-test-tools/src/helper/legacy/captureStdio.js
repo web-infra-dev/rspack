@@ -1,7 +1,7 @@
 // @ts-nocheck
 const { stripVTControlCharacters: stripAnsi } = require('node:util');
 
-module.exports = (stdio, tty) => {
+export function captureStdio(stdio, tty) {
   let logs = [];
 
   const write = stdio.write;
@@ -39,4 +39,4 @@ module.exports = (stdio, tty) => {
       // delete require.cache[require.resolve("../../lib/node/nodeConsole")];
     },
   };
-};
+}

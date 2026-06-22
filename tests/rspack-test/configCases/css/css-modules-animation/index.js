@@ -1,7 +1,7 @@
 import { foo } from './index.module.css'
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("should generate correct css", () => {
 	expect(foo).toBe("./index.module-foo bar")

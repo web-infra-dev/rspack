@@ -113,6 +113,14 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    // Drop events inside ignored subtrees. The recursive-root watch delivers
+    // events for unregistered paths (e.g. the build-output dir); left through,
+    // `find_associated_event` bubbles them to a registered parent and triggers
+    // a spurious rebuild.
+    if self.path_manager.is_ignored_path(path.as_ref()) {
+      return;
+    }
+
     let is_registered_file = self.path_manager.access().files().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files

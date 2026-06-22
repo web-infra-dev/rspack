@@ -1,0 +1,54 @@
+.button {
+  animation-name: fade;
+  background-color: --transparent(var(--brand-color), 0.8);
+  container-name: summary;
+  container: card / inline-size;
+  color: var(--brand-color);
+  grid-template-areas:
+    "header header"
+    "sidebar main";
+  grid-area: header;
+  grid-row: sidebar;
+  list-style: thumbs;
+  font-palette: --palette;
+}
+
+@container summary (min-width: 400px) {
+  .button {
+    color: green;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@counter-style thumbs {
+  system: cyclic;
+  symbols: "+";
+  suffix: " ";
+}
+
+@font-palette-values --palette {
+  font-family: Bixa;
+}
+
+@function --transparent(--color, --alpha) {
+  result: var(--color);
+}
+
+@property --brand-color {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: red;
+}
+
+:root {
+  --brand-color: red;
+}

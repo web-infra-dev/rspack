@@ -31,10 +31,10 @@ use crate::{
     ImportMetaContextDependencyTemplate, ImportMetaHotAcceptDependencyTemplate,
     ImportMetaHotDeclineDependencyTemplate, ImportMetaResolveContextDependencyTemplate,
     ImportMetaResolveDependencyTemplate, ImportMetaResolveHeaderDependencyTemplate,
-    IsIncludedDependencyTemplate, ModuleArgumentDependencyTemplate,
-    ModuleDecoratorDependencyTemplate, ModuleHotAcceptDependencyTemplate,
-    ModuleHotDeclineDependencyTemplate, ProvideDependencyTemplate,
-    PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
+    ImportMetaRscDependencyTemplate, ImportWeakDependencyTemplate, IsIncludedDependencyTemplate,
+    ModuleArgumentDependencyTemplate, ModuleDecoratorDependencyTemplate,
+    ModuleHotAcceptDependencyTemplate, ModuleHotDeclineDependencyTemplate,
+    ProvideDependencyTemplate, PureExpressionDependencyTemplate, RequireContextDependencyTemplate,
     RequireEnsureDependencyTemplate, RequireHeaderDependencyTemplate,
     RequireMainDependencyTemplate, RequireResolveContextDependencyTemplate,
     RequireResolveDependencyTemplate, RequireResolveHeaderDependencyTemplate,
@@ -62,6 +62,10 @@ async fn compilation(
   );
   compilation.set_dependency_factory(
     DependencyType::EsmImportSpecifier,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::ImportMetaRsc,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -138,6 +142,10 @@ async fn compilation(
     params.context_module_factory.clone(),
   );
   compilation.set_dependency_factory(
+    DependencyType::ImportMetaGlob,
+    params.context_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
     DependencyType::ImportMetaResolveContext,
     params.context_module_factory.clone(),
   );
@@ -153,6 +161,10 @@ async fn compilation(
 
   compilation.set_dependency_factory(
     DependencyType::DynamicImportEager,
+    params.normal_module_factory.clone(),
+  );
+  compilation.set_dependency_factory(
+    DependencyType::DynamicImportWeak,
     params.normal_module_factory.clone(),
   );
   compilation.set_dependency_factory(
@@ -229,8 +241,16 @@ async fn compilation(
     Arc::new(ImportEagerDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
+    ImportWeakDependencyTemplate::template_type(),
+    Arc::new(ImportWeakDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
     ProvideDependencyTemplate::template_type(),
     Arc::new(ProvideDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaRscDependencyTemplate::template_type(),
+    Arc::new(ImportMetaRscDependencyTemplate),
   );
 
   // amd dependency templates
@@ -315,6 +335,10 @@ async fn compilation(
   );
   compilation.set_dependency_template(
     ImportMetaContextDependencyTemplate::template_type(),
+    Arc::new(ImportMetaContextDependencyTemplate::default()),
+  );
+  compilation.set_dependency_template(
+    ImportMetaContextDependencyTemplate::glob_template_type(),
     Arc::new(ImportMetaContextDependencyTemplate::default()),
   );
   compilation.set_dependency_template(
@@ -533,7 +557,7 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let runtime_template = compilation.runtime_template.create_chunk_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
     let group = compilation
@@ -647,17 +671,17 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });

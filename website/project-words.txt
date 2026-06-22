@@ -44,6 +44,8 @@ dhruvkelawala
 disabletransformbydefault
 ecma
 edusperoni
+elecmonkey
+elecmonkeyjs
 esbuild
 etags
 evanw
@@ -52,6 +54,7 @@ externalstypecommonjs
 faga295
 fansenze
 fargs
+fetchcompileasyncwasmplugin
 feishu
 fi3ework
 fnames
@@ -68,10 +71,12 @@ indicatif
 inituit
 innovatively
 inottn
+intellild
 intlify
 IWANABETHATGUY
 jantimon
 JavaScript
+Jiahan
 jerrykingxyz
 jkzing
 jridgewell
@@ -109,6 +114,7 @@ moduleparsercssauto
 moduleparsercssautonamedexports
 moduleparsercssmodule
 monaco
+MPHF
 msvc
 myorg
 myrspackapp
@@ -206,6 +212,7 @@ valorkin
 vant
 verkada
 viktoriialurie
+vize
 weapp
 webpack
 xcode
@@ -213,7 +220,9 @@ xcrun
 xctrace
 Xeon
 XKKCNZZNJD
+xmcp
 xstyled
+xtask
 xxhash
 yannik
 Zack

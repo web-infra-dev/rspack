@@ -1,6 +1,6 @@
 import EventEmitter from 'node:events';
 import { Compiler, type RspackOptions, type Stats } from '@rspack/core';
-import merge from 'webpack-merge';
+import merge from 'rspack-merge';
 import { DEBUG_SCOPES } from './test/debug';
 import type { ITestCompilerManager, ITestContext } from './type';
 
@@ -188,6 +188,8 @@ export class TestCompilerManager implements ITestCompilerManager {
       // want to watch all files, which aligns with webpack's default behavior
       ignored: [],
       aggregateTimeout: timeout,
+      // A case may override any of the above (e.g. `ignored`) via its config.
+      ...this.compilerInstance.options.watchOptions,
     };
     if (__DEBUG__) {
       context.setValue(DEBUG_SCOPES.BuildMethod, {
@@ -247,7 +249,11 @@ export class TestCompilerManager implements ITestCompilerManager {
       if (this.compilerInstance) {
         this.compilerInstance.close((e) => {
           this.emitter.emit(ECompilerEvent.Close, e);
-          e ? reject(e) : resolve();
+          if (e) {
+            reject(e);
+          } else {
+            resolve();
+          }
         });
       } else {
         resolve();

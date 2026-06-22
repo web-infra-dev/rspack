@@ -7,7 +7,7 @@ use std::{
 use rspack_error::{Error, Severity, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::DescriptionData;
-use rspack_paths::{ArcPathSet, AssertUtf8};
+use rspack_paths::{ArcResolverPathSet, AssertUtf8};
 use rspack_util::location::byte_line_column_to_offset;
 
 use super::{ResolveResult, Resource, boxfs::BoxFS};
@@ -16,12 +16,16 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone)]
-pub struct ResolveContext {
-  /// Files that was found on file system
-  pub file_dependencies: ArcPathSet,
-  /// Dependencies that was not found on file system
-  pub missing_dependencies: ArcPathSet,
+pub struct ResolveDependencies {
+  /// Files that were found on file system; entries carry the precomputed
+  /// `FxHash` from `rspack_resolver`.
+  pub file_dependencies: ArcResolverPathSet,
+  /// Dependencies that were not found on file system; entries carry the
+  /// precomputed `FxHash` from `rspack_resolver`.
+  pub missing_dependencies: ArcResolverPathSet,
 }
+
+pub type ResolveContext = ResolveDependencies;
 
 /// Proxy to [nodejs_resolver::Error] or [rspack_resolver::ResolveError]
 #[derive(Debug)]
@@ -160,20 +164,24 @@ impl Resolver {
     &self,
     path: &Path,
     request: &str,
-    resolve_context: &mut ResolveContext,
-  ) -> Result<ResolveResult, ResolveInnerError> {
+  ) -> (
+    Result<ResolveResult, ResolveInnerError>,
+    ResolveDependencies,
+  ) {
     let resolver = &self.resolver;
     let mut context = Default::default();
     let result = resolver
       .resolve_with_context(path, request, &mut context)
       .await;
-    resolve_context
-      .file_dependencies
-      .extend(context.file_dependencies.into_iter().map(Into::into));
-    resolve_context
-      .missing_dependencies
-      .extend(context.missing_dependencies.into_iter().map(Into::into));
-    match result {
+    // `context.{file,missing}_dependencies` is `FxHashSet<ResolverPath>`. We
+    // re-bucket into the `IdentityHasher`-keyed `ArcResolverPathSet` so future
+    // lookups become a single `write_u64`. No path rehashing or `Arc<Path>`
+    // re-allocation happens here.
+    let dependencies = ResolveDependencies {
+      file_dependencies: context.file_dependencies.into_iter().collect(),
+      missing_dependencies: context.missing_dependencies.into_iter().collect(),
+    };
+    let result = match result {
       Ok(r) => Ok(ResolveResult::Resource(Resource {
         path: r.path().to_path_buf().assert_utf8(),
         query: r.query().unwrap_or_default().to_string(),
@@ -184,7 +192,8 @@ impl Resolver {
       })),
       Err(rspack_resolver::ResolveError::Ignored(_)) => Ok(ResolveResult::Ignored),
       Err(error) => Err(ResolveInnerError::RspackResolver(error)),
-    }
+    };
+    (result, dependencies)
   }
 
   pub fn inner_fs(&self) -> Arc<dyn ReadableFileSystem> {

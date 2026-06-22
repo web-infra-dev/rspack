@@ -11,11 +11,13 @@ anymap                     = { workspace = true }
 async-recursion            = { workspace = true }
 async-trait                = { workspace = true }
 bitflags                   = { workspace = true }
+concat-string              = { workspace = true }
 cow-utils                  = { workspace = true }
 dashmap                    = { workspace = true, features = ["rayon"] }
 derive_more                = { workspace = true, features = ["debug"] }
 dyn-clone                  = { workspace = true }
 either                     = { workspace = true }
+fast-glob                  = { workspace = true }
 futures                    = { workspace = true }
 hashlink                   = { workspace = true }
 heck                       = { workspace = true }
@@ -57,6 +59,10 @@ rustc-hash                 = { workspace = true }
 scopeguard                 = { workspace = true }
 serde                      = { workspace = true }
 serde_json                 = { workspace = true }
+simd-json                  = { workspace = true }
+simdutf8                   = { workspace = true }
+smallvec                   = { workspace = true }
+smol_str                   = { workspace = true }
 sugar_path                 = { workspace = true }
 swc_core                   = { workspace = true, features = ["__ecma", "__visit", "__utils", "__ecma_transforms", "ecma_ast", "ecma_parser", "ecma_codegen", "ecma_quote", "common_concurrent", "swc_ecma_ast", "ecma_transforms_react", "ecma_transforms_module", "swc_ecma_codegen", "swc_ecma_visit"] }
 tokio                      = { workspace = true, features = ["rt", "macros"] }
@@ -65,6 +71,7 @@ urlencoding                = { workspace = true }
 ustr                       = { workspace = true }
 winnow                     = { workspace = true }
 
+swc_experimental_allocator     = { workspace = true }
 swc_experimental_ecma_ast      = { workspace = true }
 swc_experimental_ecma_parser   = { workspace = true }
 swc_experimental_ecma_semantic = { workspace = true }
@@ -76,7 +83,7 @@ pretty_assertions = { workspace = true }
 workspace = true
 
 [features]
-benchmark-passes = []
-debug_tool       = ["rspack_util/debug_tool"]
-default          = []
-napi             = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]
+codspeed   = ["rspack_parallel/codspeed"]
+debug_tool = ["rspack_util/debug_tool"]
+default    = []
+napi       = ["dep:napi", "dep:rspack_napi", "dep:rkyv"]

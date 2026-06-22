@@ -1,5 +1,5 @@
 asset main.js xx KiB [emitted] (name: main)
-runtime modules xx bytes 4 modules
+runtime modules xx KiB 4 modules
 cacheable modules xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]
@@ -24,13 +24,12 @@ cacheable modules xx KiB
     [no exports used]
     Statement with side_effects in source code at ./index.js<LINE_COL>-31
     ModuleConcatenation bailout: Module is an entry point
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/a.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
     ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
     ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
 Rspack x.x.x compiled successfully in X s
 
 asset main.no-side.js xx KiB [emitted] (name: main)
-runtime modules xx bytes 4 modules
+runtime modules xx KiB 4 modules
 cacheable modules xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]

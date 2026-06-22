@@ -8,6 +8,8 @@ use crate::{
   ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation, ConcatenatedModule,
   ModuleGraph, ModuleIdentifier,
 };
+#[cfg(feature = "codspeed")]
+mod codspeed;
 mod comment;
 mod compile_boolean_matcher;
 mod concatenated_module_visitor;
@@ -34,6 +36,7 @@ mod source_size_cache;
 pub mod task_loop;
 mod template;
 mod to_path;
+mod topological_sort;
 pub use compile_boolean_matcher::*;
 pub use concatenated_module_visitor::*;
 pub use concatenation_scope::*;
@@ -41,6 +44,8 @@ pub use memory_gc::MemoryGCStorage;
 pub use rspack_parallel::{FutureConsumer, RayonConsumer};
 pub use steal_cell::StealCell;
 
+#[cfg(feature = "codspeed")]
+pub use self::codspeed::*;
 pub use self::{
   comment::*,
   extract_source_map::*,
@@ -59,6 +64,7 @@ pub use self::{
   source_size_cache::*,
   template::*,
   to_path::to_path,
+  topological_sort::*,
 };
 
 /// join string component in a more human readable way

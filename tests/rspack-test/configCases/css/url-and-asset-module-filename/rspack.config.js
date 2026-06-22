@@ -2,6 +2,9 @@
 
 /** @type {import("@rspack/core").Configuration} */
 const common = {
+  externals: {
+    path: 'node-commonjs path',
+  },
   target: 'web',
   mode: 'development',
   devtool: false,

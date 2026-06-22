@@ -9,9 +9,9 @@ module.exports = {
     rules: [
       {
         test: /\.tsx?$/,
-        loader: 'ts-loader',
+        loader: 'builtin:swc-loader',
         options: {
-          transpileOnly: true,
+          detectSyntax: 'auto',
         },
       },
     ],

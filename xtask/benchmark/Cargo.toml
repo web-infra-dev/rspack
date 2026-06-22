@@ -7,36 +7,55 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
-[features]
-codspeed = []
-default  = []
-
 [dependencies]
 criterion = { workspace = true }
+rayon     = { workspace = true }
 tokio     = { workspace = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Keep benchmark allocator features aligned with rspack_allocator.
+mimalloc = { workspace = true, features = ["local_dynamic_tls", "v3"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mimalloc = { workspace = true, features = ["v3"] }
+
+[target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dependencies]
+mimalloc = { workspace = true, features = ["v3"] }
 
 [dev-dependencies]
 # Make rust analyzer happy
-async-trait                = { workspace = true }
-rspack                     = { workspace = true, features = ["full"] }
-rspack_cacheable           = { workspace = true }
-rspack_collections         = { workspace = true }
-rspack_core                = { workspace = true, features = ["benchmark-passes"] }
-rspack_error               = { workspace = true }
-rspack_fs                  = { workspace = true }
-rspack_hash                = { workspace = true }
-rspack_javascript_compiler = { workspace = true }
-rspack_plugin_javascript   = { workspace = true }
-rspack_plugin_split_chunks = { workspace = true }
-rspack_regex               = { workspace = true }
-rspack_tasks               = { workspace = true }
-rustc-hash                 = { workspace = true }
-serde_json                 = { workspace = true }
-swc_core                   = { workspace = true, features = ["__parser", "base"] }
+async-trait                           = { workspace = true }
+rspack                                = { workspace = true, features = ["codspeed", "full"] }
+rspack_cacheable                      = { workspace = true }
+rspack_collections                    = { workspace = true }
+rspack_core                           = { workspace = true, features = ["codspeed"] }
+rspack_error                          = { workspace = true }
+rspack_fs                             = { workspace = true }
+rspack_hash                           = { workspace = true }
+rspack_plugin_javascript              = { workspace = true }
+rspack_plugin_split_chunks            = { workspace = true }
+rspack_regex                          = { workspace = true }
+rspack_sources                        = { workspace = true }
+rspack_tasks                          = { workspace = true }
+rustc-hash                            = { workspace = true }
+serde_json                            = { workspace = true }
+swc_experimental_allocator            = { workspace = true }
+swc_experimental_ecma_ast             = { workspace = true }
+swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
+swc_experimental_ecma_semantic        = { workspace = true }
+swc_experimental_ecma_transforms_base = { workspace = true }
 
 [[bench]]
 harness = false
 name    = "benches"
+
+[[bench]]
+harness = false
+name    = "rspack_sources"
+
+[[bench]]
+harness = false
+name    = "walltime"
 
 [package.metadata.cargo-shear]
 ignored = ["rspack_cacheable"]

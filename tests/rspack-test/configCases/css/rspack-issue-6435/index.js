@@ -2,6 +2,6 @@ import * as classes from "./style.module.css";
 import legacyClasses from "./legacy/index.css";
 
 it("should have consistent hash", () => {
-	expect(classes["container-main"]).toBe(`${/* md4("./style.module.css") */ "_7ea850e6088d2566f677"}-container-main`)
-	expect(legacyClasses["legacy-main"]).toBe(`${/* md4("./legacy/index.css") */ "_2c15d43fe622e87bbf5d"}-legacy-main`)
+  expect(classes["container-main"]).toBe("_467c4885db406636e4bf-container-main")
+  expect(legacyClasses["legacy-main"]).toBe("_472dae718ba45ef203c9-legacy-main")
 });

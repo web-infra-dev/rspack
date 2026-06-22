@@ -7,7 +7,7 @@ mod module_group;
 use std::{borrow::Cow, cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator};
 use rspack_collections::IdentifierMap;
 use rspack_core::{ChunkUkey, Compilation, CompilationOptimizeChunks, Logger, Plugin};
 use rspack_error::Result;
@@ -58,8 +58,9 @@ impl SplitChunksPlugin {
       .modules_keys()
       .copied()
       .collect::<Vec<_>>();
-    // Sort modules to ensure deterministic processing order
-    all_modules.sort_unstable();
+    // Sort modules to ensure deterministic processing order.
+    // Use the precomputed identifier hash first to avoid repeated long string comparisons.
+    all_modules.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
 
     let module_sizes = get_module_sizes(all_modules.par_iter().copied(), compilation);
     let module_chunks = Self::get_module_chunks(&all_modules, compilation);
@@ -130,12 +131,20 @@ impl SplitChunksPlugin {
 
     let mut combinator = module_group::Combinator::default();
 
-    if self
+    let non_used_exports_min_chunks = self
       .cache_groups
       .iter()
-      .any(|cache_group| !cache_group.used_exports)
-    {
-      combinator.prepare_group_by_chunks(&all_modules, &module_chunks, &chunk_index_map);
+      .filter(|cache_group| !cache_group.used_exports)
+      .map(|cache_group| cache_group.min_chunks as usize)
+      .min();
+
+    if let Some(min_chunks) = non_used_exports_min_chunks {
+      combinator.prepare_group_by_chunks(
+        &all_modules,
+        &module_chunks,
+        &chunk_index_map,
+        min_chunks,
+      );
     }
 
     if self
@@ -170,6 +179,9 @@ impl SplitChunksPlugin {
         .await?;
       tracing::trace!("prepared module_group_map {:#?}", module_group_map);
 
+      module_group_map
+        .par_iter_mut()
+        .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
       while !module_group_map.is_empty() {

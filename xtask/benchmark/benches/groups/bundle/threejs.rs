@@ -6,5 +6,7 @@ pub fn compiler() -> CompilerBuilder {
   basic_compiler_builder(BuilderOptions {
     project: "threejs",
     entry: "./src/Three.js",
+    swc_loader: false,
+    native_output_filesystem: false,
   })
 }

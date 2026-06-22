@@ -8,12 +8,12 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
-use rustc_hash::{FxHashMap as HashMap, FxHasher};
+use rustc_hash::FxHashMap as HashMap;
 use swc_core::ecma::atoms::Atom;
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
-  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo, ExportName,
+  AsyncModulesArtifact, Compilation, DependenciesBlock, Dependency, ExportInfo,
   ImportedByDeferModulesArtifact, ModuleGraphCacheArtifact, RuntimeSpec, SideEffectsStateArtifact,
   UsedNameItem,
 };
@@ -112,7 +112,7 @@ pub(crate) struct ModuleGraphData {
     rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
-  dependencies: HashMap<DependencyId, BoxDependency>,
+  dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<Box<AsyncDependenciesBlock>>,
 
@@ -133,9 +133,9 @@ pub(crate) struct ModuleGraphData {
   ///     assert_eq!(parents_info.module, parent_module_id);
   ///   })
   /// ```
-  dependency_id_to_parents: HashMap<DependencyId, DependencyParents>,
+  dependency_id_to_parents: rollback::DenseDependencyIdMap<DependencyParents>,
   // TODO try move condition as connection field
-  connection_to_condition: HashMap<DependencyId, DependencyCondition>,
+  connection_to_condition: rollback::DenseDependencyIdMap<DependencyCondition>,
 
   /************************** Modified by Seal Phase **********************/
   /// ModuleGraphModule indexed by `ModuleIdentifier`.
@@ -145,12 +145,11 @@ pub(crate) struct ModuleGraphData {
 
   /// ModuleGraphConnection indexed by `DependencyId`.
   /// modified here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/module_concatenation_plugin.rs#L820
-  connections:
-    rollback::OverlayMap<DependencyId, ModuleGraphConnection, BuildHasherDefault<FxHasher>>,
+  connections: rollback::DenseDependencyIdOverlayMap<ModuleGraphConnection>,
 
   /***************** only Modified during Seal Phase ********************/
   // setting here https://github.com/web-infra-dev/rspack/blob/9ae2f0f3be22370197cd9ed3308982f84f2bb738/crates/rspack_plugin_javascript/src/plugin/side_effects_flag_plugin.rs#L318
-  dep_meta_map: HashMap<DependencyId, DependencyExtraMeta>,
+  dep_meta_map: rollback::DenseDependencyIdMap<DependencyExtraMeta>,
 }
 impl ModuleGraphData {
   fn checkpoint(&mut self) {
@@ -327,7 +326,7 @@ impl ModuleGraph {
     {
       mgm.remove_outgoing_connection(dep_id);
       if force {
-        mgm.all_dependencies.retain(|id| id != dep_id);
+        mgm.all_dependencies_mut().retain(|id| id != dep_id);
       }
     }
     // remove incoming from module graph module
@@ -351,7 +350,7 @@ impl ModuleGraph {
       .map(|mgm| {
         (
           mgm.incoming_connections().clone(),
-          mgm.all_dependencies.clone(),
+          mgm.all_dependencies().to_vec(),
         )
       })
       .unwrap_or_default();
@@ -611,7 +610,7 @@ impl ModuleGraph {
     &self.inner.blocks
   }
 
-  pub fn dependencies(&self) -> impl Iterator<Item = (&DependencyId, &BoxDependency)> {
+  pub fn dependencies(&self) -> impl Iterator<Item = (DependencyId, &BoxDependency)> {
     self.inner.dependencies.iter()
   }
 
@@ -798,7 +797,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter_map(|dep_id| self.connection_by_dependency_id(dep_id))
       })
@@ -813,7 +812,7 @@ impl ModuleGraph {
     self
       .module_graph_module_by_identifier(module_identifier)
       .map(|m| {
-        m.all_dependencies
+        m.all_dependencies()
           .iter()
           .filter(|dep_id| self.connection_by_dependency_id(dep_id).is_some())
       })
@@ -1177,26 +1176,9 @@ impl ModuleGraph {
     tasks: Vec<(ExportInfo, UsedNameItem)>,
   ) {
     for (export_info, used_name) in tasks {
-      let ExportInfo {
-        exports_info,
-        export_name,
-      } = export_info;
-
-      let data = exports_info_artifact.get_exports_info_mut_by_id(&exports_info);
-      match export_name {
-        ExportName::Named(name) => {
-          data
-            .named_exports_mut(&name)
-            .expect("should have named export")
-            .set_used_name(used_name);
-        }
-        ExportName::Other => {
-          data.other_exports_info_mut().set_used_name(used_name);
-        }
-        ExportName::SideEffects => {
-          data.side_effects_only_info_mut().set_used_name(used_name);
-        }
-      }
+      export_info
+        .as_data_mut(exports_info_artifact)
+        .set_used_name(used_name);
     }
   }
 }

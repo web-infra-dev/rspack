@@ -2,8 +2,7 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 
 use crate::{
-  ArtifactExt, ExportsInfo, ExportsInfoData, ExportsInfoGetter, ModuleIdentifier,
-  PrefetchExportsInfoMode, PrefetchedExportsInfoUsed, PrefetchedExportsInfoWrapper, RuntimeSpec,
+  ArtifactExt, ExportsInfo, ExportsInfoData, ModuleIdentifier,
   incremental::{Incremental, IncrementalPasses},
   module_graph::rollback,
 };
@@ -50,6 +49,13 @@ impl ExportsInfoArtifact {
       .unwrap_or_else(|| panic!("{} {:#?}", module_identifier, &self))
   }
 
+  pub fn get_exports_info_optional(
+    &self,
+    module_identifier: &ModuleIdentifier,
+  ) -> Option<ExportsInfo> {
+    self.module_exports_info.get(module_identifier).copied()
+  }
+
   pub fn get_exports_info_data(&self, module_identifier: &ModuleIdentifier) -> &ExportsInfoData {
     self
       .exports_info_map
@@ -66,38 +72,6 @@ impl ExportsInfoArtifact {
       .exports_info_map
       .get_mut(&id)
       .expect("should have exports info")
-  }
-
-  pub fn get_prefetched_exports_info_optional<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> Option<PrefetchedExportsInfoWrapper<'b>> {
-    self
-      .module_exports_info
-      .get(module_identifier)
-      .map(move |exports_info| ExportsInfoGetter::prefetch(exports_info, self, mode))
-  }
-
-  pub fn get_prefetched_exports_info<'b>(
-    &'b self,
-    module_identifier: &ModuleIdentifier,
-    mode: PrefetchExportsInfoMode<'b>,
-  ) -> PrefetchedExportsInfoWrapper<'b> {
-    let exports_info = self.get_exports_info(module_identifier);
-    ExportsInfoGetter::prefetch(&exports_info, self, mode)
-  }
-
-  pub fn get_prefetched_exports_info_used(
-    &self,
-    module_identifier: &ModuleIdentifier,
-    runtime: Option<&RuntimeSpec>,
-  ) -> PrefetchedExportsInfoUsed {
-    ExportsInfoGetter::prefetch_used_info_without_name(
-      &self.get_exports_info(module_identifier),
-      self,
-      runtime,
-    )
   }
 
   pub fn set_exports_info_by_id(&mut self, id: ExportsInfo, info: ExportsInfoData) {

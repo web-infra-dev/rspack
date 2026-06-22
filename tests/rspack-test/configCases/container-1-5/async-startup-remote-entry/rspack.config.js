@@ -2,6 +2,9 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './remoteEntry.js': 'commonjs ./remoteEntry.js',
+  },
   plugins: [
     new ModuleFederationPlugin({
       name: 'container',

@@ -11,11 +11,13 @@ cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
 fast-glob    = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
+regex        = { workspace = true }
 rspack_error = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util  = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
+tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
 tokio = { workspace = true, features = ["rt", "macros", "sync", "fs"] }

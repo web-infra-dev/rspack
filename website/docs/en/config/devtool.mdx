@@ -15,7 +15,7 @@ Use the [SourceMapDevToolPlugin](/plugins/webpack/source-map-dev-tool-plugin) or
 - **Type:**
 
 ```ts
-type Devtool = 'string' | false;
+type Devtool = string | false;
 ```
 
 - **Default:** `cheap-module-source-map` in development mode and `false` in production mode
@@ -34,7 +34,7 @@ type Devtool = 'string' | false;
 - **Module-level positioning only** → Set `devtool: 'eval'`
   - Each module executed via `eval()` with `//# sourceURL` comment
   - Extremely fast build speed
-- **Full source code mapping needed** → Proceed to [Step 3](#step-3-configure-sourcemap)
+- **Full source code mapping needed** → Proceed to [Step 3](#step-3-configure-source-map)
 
 ### Step 3: configure source map
 
@@ -65,7 +65,7 @@ Functional modifiers, to control source map generation, usually used in **produc
 | nosources | source map is created without the `sourcesContent` in it                                                                                     |
 | debugids  | source map is created with the `debugId` in it                                                                                               |
 
-We expect a certain pattern when validate devtool name, pay attention and don't mix up the sequence of devtool string. The pattern is: `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
+Rspack validates the `devtool` string with a fixed modifier order. The pattern is: `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`.
 
 ## Recommended configurations
 

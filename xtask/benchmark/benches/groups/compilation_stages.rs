@@ -7,7 +7,7 @@ use std::{
   sync::Arc,
 };
 
-use criterion::{BatchSize, black_box, criterion_group};
+use criterion::{BatchSize, black_box};
 use rspack::builder::Builder as _;
 use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
@@ -33,10 +33,12 @@ use rspack_plugin_split_chunks::{
   SplitChunksPlugin, create_all_chunk_filter, create_default_module_layer_filter,
   create_default_module_type_filter,
 };
-use rspack_tasks::within_compiler_context_for_testing_sync;
 use rustc_hash::FxHashMap;
+use tokio::runtime::Runtime;
 
-use crate::groups::build_chunk_graph::prepare_large_code_splitting_case;
+use crate::groups::{
+  build_chunk_graph::prepare_large_code_splitting_case, diagnostics::assert_no_compilation_errors,
+};
 
 const GENERAL_STAGE_NUM_MODULES: usize = 3000;
 const CONCAT_GROUPS: usize = 160;
@@ -47,34 +49,7 @@ const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
 const MODULE_ASSET_SEED_COUNT: usize = 256;
 
-pub fn compilation_stages_benchmark(c: &mut Criterion) {
-  within_compiler_context_for_testing_sync(|| {
-    compilation_stages_benchmark_inner(c);
-  })
-}
-
-fn compilation_stages_benchmark_inner(c: &mut Criterion) {
-  let rt = rspack_benchmark::build_tokio_rt();
-  let _guard = rt.enter();
-
-  flag_dependency_exports_benchmark(c, &rt);
-  flag_dependency_usage_benchmark(c, &rt);
-  create_module_ids_benchmark(c, &rt);
-  split_chunks_benchmark(c, &rt);
-  create_chunk_ids_benchmark(c, &rt);
-  mangle_exports_benchmark(c, &rt);
-  create_module_hashes_benchmark(c, &rt);
-  runtime_requirements_benchmark(c, &rt);
-  create_chunk_hashes_benchmark(c, &rt);
-  create_full_hash_benchmark(c, &rt);
-  create_module_assets_benchmark(c, &rt);
-  create_chunk_assets_benchmark(c, &rt);
-  real_content_hash_benchmark(c, &rt);
-  create_concatenate_module_benchmark(c, &rt);
-  concatenate_module_code_generation_benchmark(c, &rt);
-}
-
-fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -117,7 +92,7 @@ fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Run
   });
 }
 
-fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -174,7 +149,7 @@ fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runti
   });
 }
 
-fn create_module_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -210,7 +185,43 @@ fn create_module_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) 
   });
 }
 
-fn split_chunks_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "named", "deterministic");
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_module_ids(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_named_module_ids setup");
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_named_module_ids", |b| {
+    b.iter_batched_ref(
+      || {
+        let mut compiler = compiler.borrow_mut();
+        compiler.compilation.module_ids_artifact.clear();
+      },
+      |_| {
+        let mut compiler = compiler.borrow_mut();
+        rt.block_on(async {
+          run_module_ids_hook(&mut compiler.compilation)
+            .await
+            .unwrap();
+        });
+        black_box(compiler.compilation.module_ids_artifact.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+pub(crate) fn split_chunks_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_split_chunks_stage_compiler(fs.clone());
 
@@ -318,7 +329,7 @@ fn split_chunks_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -365,7 +376,54 @@ fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "deterministic", "named");
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_for_chunk_ids(&mut compiler).await.unwrap();
+  });
+
+  assert_no_compilation_errors(&compiler.compilation, "create_named_chunk_ids setup");
+  let initial_chunk_by_ukey = compiler
+    .compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .clone();
+
+  let compiler = RefCell::new(compiler);
+  c.bench_function("rust@create_named_chunk_ids", |b| {
+    b.iter_batched(
+      || {
+        (
+          initial_chunk_by_ukey.clone(),
+          ChunkNamedIdArtifact::default(),
+        )
+      },
+      |(mut chunk_by_ukey, mut named_chunk_ids_artifact)| {
+        let compiler = compiler.borrow();
+        rt.block_on(async {
+          run_chunk_ids_hook(
+            &compiler.compilation,
+            &mut chunk_by_ukey,
+            &mut named_chunk_ids_artifact,
+          )
+          .await
+          .unwrap();
+        });
+        black_box(named_chunk_ids_artifact.chunk_ids.len());
+      },
+      BatchSize::PerIteration,
+    );
+  });
+}
+
+pub(crate) fn mangle_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_mangle_exports_stage_compiler(fs.clone());
@@ -442,7 +500,7 @@ fn mangle_exports_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_module_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -474,7 +532,7 @@ fn create_module_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -500,7 +558,7 @@ fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
-fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -556,7 +614,7 @@ fn runtime_requirements_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_full_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -629,7 +687,7 @@ fn create_full_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
   });
 }
 
-fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -679,7 +737,7 @@ fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime
   });
 }
 
-fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -743,7 +801,7 @@ fn create_module_assets_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtim
   });
 }
 
-fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn real_content_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_real_content_hash_stage_compiler(fs.clone());
@@ -797,7 +855,7 @@ fn real_content_hash_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) 
   });
 }
 
-fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
@@ -886,7 +944,7 @@ fn create_concatenate_module_benchmark(c: &mut Criterion, rt: &tokio::runtime::R
   });
 }
 
-fn concatenate_module_code_generation_benchmark(c: &mut Criterion, rt: &tokio::runtime::Runtime) {
+pub(crate) fn concatenate_module_code_generation_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());
   let mut compiler = create_concatenate_stage_compiler(fs.clone());
 
@@ -932,6 +990,14 @@ fn load_random_table() -> Vec<Vec<usize>> {
 }
 
 fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
+  create_general_stage_compiler_with_ids(fs, "deterministic", "deterministic")
+}
+
+fn create_general_stage_compiler_with_ids(
+  fs: Arc<MemoryFileSystem>,
+  module_ids: &str,
+  chunk_ids: &str,
+) -> Compiler {
   Compiler::builder()
     .context("/")
     .mode(Mode::Development)
@@ -943,8 +1009,8 @@ fn create_general_stage_compiler(fs: Arc<MemoryFileSystem>) -> Compiler {
       Optimization::builder()
         .provided_exports(true)
         .used_exports(UsedExportsOption::True)
-        .module_ids("deterministic".to_string())
-        .chunk_ids("deterministic".to_string())
+        .module_ids(module_ids.to_string())
+        .chunk_ids(chunk_ids.to_string())
         .concatenate_modules(false),
     )
     .incremental(IncrementalOptions::empty_passes())
@@ -1252,13 +1318,14 @@ async fn run_optimize_dependencies_hook(compilation: &mut Compilation) -> Result
 
 async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> {
   let mut diagnostics = vec![];
+  let mut circular_modules = Default::default();
   while matches!(
     compilation
       .plugin_driver
       .clone()
       .compilation_hooks
       .optimize_modules
-      .call(compilation, &mut diagnostics)
+      .call(compilation, &mut circular_modules, &mut diagnostics)
       .await?,
     Some(true)
   ) {}
@@ -1870,13 +1937,6 @@ fn count_assigned_export_used_names(compilation: &Compilation) -> usize {
     .sum()
 }
 
-fn assert_no_compilation_errors(compilation: &Compilation, context: &str) {
-  assert!(
-    compilation.get_errors().next().is_none(),
-    "{context} should not produce compilation errors"
-  );
-}
-
 fn create_split_chunks_plugin() -> SplitChunksPlugin {
   let js_zero_sizes = SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0);
 
@@ -1913,5 +1973,3 @@ fn create_split_chunks_plugin() -> SplitChunksPlugin {
     hide_path_info: Some(true),
   })
 }
-
-criterion_group!(compilation_stages, compilation_stages_benchmark);

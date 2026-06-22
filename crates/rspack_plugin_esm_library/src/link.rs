@@ -9,15 +9,14 @@ use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfoHashKey, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsInfoGetter, ExportsType, FindTargetResult, GetUsedNameParam,
-  ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo,
-  NAMESPACE_OBJECT_EXPORT, PathData, PrefetchExportsInfoMode, RuntimeGlobals,
-  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
-  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
-  get_js_chunk_filename_template, get_module_directives, get_module_hashbang, property_access,
-  property_name, reserved_names::RESERVED_NAMES, rspack_sources::ReplaceSource,
-  split_readable_identifier, to_normal_comment,
+  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
+  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
+  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -29,8 +28,9 @@ use rspack_util::{
   atom::Atom,
   fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet},
 };
-use swc_core::common::{SyntaxContext, comments::SingleThreadedComments};
-use swc_experimental_ecma_ast::{Ast, EsVersion, StringAllocator};
+use swc_core::common::SyntaxContext;
+use swc_experimental_allocator::Allocator;
+use swc_experimental_ecma_ast::{EsVersion, Program};
 use swc_experimental_ecma_parser::{EsSyntax, Parser, StringSource, Syntax};
 use swc_experimental_ecma_semantic::resolver::resolver;
 
@@ -270,6 +270,18 @@ impl EsmLibraryPlugin {
           .clone(),
       );
     }
+
+    Self::add_chunk_export_alias(chunk, local, exported, chunk_exports, strict_exports)
+  }
+
+  fn add_chunk_export_alias(
+    chunk: ChunkUkey,
+    local: Atom,
+    exported: Atom,
+    chunk_exports: &mut FxHashMap<ChunkUkey, ExportsContext>,
+    strict_exports: bool,
+  ) -> Option<Atom> {
+    let ctx = chunk_exports.get_mut_unwrap(&chunk);
 
     // we've not exported this local symbol, check if we've already exported this symbol
     if ctx.exported_symbols.contains(&exported) {
@@ -702,7 +714,7 @@ impl EsmLibraryPlugin {
                   if let Some(ext) = module_graph
                     .module_by_identifier(&symbol_binding.module)
                     .and_then(|m| m.as_external_module())
-                    && ext.get_external_type().as_str().starts_with("module")
+                    && ext.resolve_external_type() == "module"
                   {
                     let Some((raw_import_source, import_binding)) = concate_modules_map
                       .get(&symbol_binding.module)
@@ -952,18 +964,15 @@ var {} = {{}};
 
     let module_graph = compilation.get_module_graph();
 
-    let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES
-      .iter()
-      .map(|s| Atom::new(*s))
-      .chain(chunk_link.hoisted_modules.iter().flat_map(|m| {
-        let info = &concate_modules_map[m];
-        info
-          .as_concatenated()
-          .global_scope_ident
-          .iter()
-          .map(|ident| ident.id.sym.clone())
-      }))
-      .collect();
+    let mut all_used_names: FxHashSet<Atom> = RESERVED_NAMES_ATOM_SET.clone();
+    all_used_names.extend(chunk_link.hoisted_modules.iter().flat_map(|m| {
+      let info = &concate_modules_map[m];
+      info
+        .as_concatenated()
+        .global_scope_ident
+        .iter()
+        .map(|ident| ident.id.sym.clone())
+    }));
 
     // merge all all_used_names from hoisted modules
     for id in &chunk_link.hoisted_modules {
@@ -1367,7 +1376,7 @@ var {} = {{}};
     orig_concate_modules_map: &mut IdentifierIndexMap<ModuleInfo>,
     external_module_init_fragments: &mut IdentifierMap<ChunkInitFragments>,
   ) -> Result<()> {
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation.runtime_template.create_chunk_code_template();
     let mut outputs = FxHashMap::<ChunkUkey, String>::default();
     let module_keys: Vec<ModuleIdentifier> = orig_concate_modules_map.keys().copied().collect();
     for m in &module_keys {
@@ -1453,7 +1462,7 @@ var {} = {{}};
                   .get_module_chunks(id)
                   .is_empty();
                 if has_javascript_source && used_in_chunk {
-                  // we use __webpack_require__.add({...}) to register modules
+                  // we use __rspack_require.add({...}) to register modules
                   external_module_info
                     .runtime_requirements
                     .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
@@ -1526,19 +1535,18 @@ var {} = {{}};
                   .source()
                   .into_string_lossy()
                   .into_owned();
-                let comments = SingleThreadedComments::default();
-                let mut ast = Ast::new(source_str.len(), StringAllocator::default());
+                let allocator = Allocator::new();
                 let lexer = swc_experimental_ecma_parser::Lexer::new(
+                  &allocator,
                   Syntax::Es(EsSyntax {
                     jsx,
                     ..Default::default()
                   }),
                   EsVersion::EsNext,
                   StringSource::new(&source_str),
-                  Some(&comments),
-                  ast.string_allocator(),
+                  None,
                 );
-                let mut parser = Parser::new_from(&mut ast, lexer);
+                let mut parser = Parser::new_from(&allocator, lexer);
                 let module = match parser.parse_module() {
                   Ok(module) => module,
                   Err(err) => {
@@ -1551,12 +1559,12 @@ var {} = {{}};
                     ));
                   }
                 };
-                let ast = &ast;
-                let semantic = resolver(module, ast);
-                let ids = collect_ident(ast, module);
+                let program = Program::Module(allocator.boxed(module));
+                let semantic = resolver(&program);
+                let ids = collect_ident(&allocator, &program);
 
-                concate_info.module_ctxt = semantic.top_level_scope_id().to_ctxt();
-                concate_info.global_ctxt = semantic.unresolved_scope_id().to_ctxt();
+                concate_info.module_ctxt = SyntaxContext::from_u32(semantic.top_level_scope_id().raw());
+                concate_info.global_ctxt = SyntaxContext::from_u32(semantic.unresolved_scope_id().raw());
 
                 let top_level_scope_id = semantic.top_level_scope_id();
                 let mut all_used_names = FxHashSet::default();
@@ -1570,10 +1578,10 @@ var {} = {{}};
                 binding_to_ref.reserve(ids.len());
 
                 for ident in ids {
-                  let scope = semantic.node_scope(ident.id);
-                  let is_global = scope.to_ctxt() == concate_info.global_ctxt;
+                  let scope = semantic.node_scope(&ident.id);
+                  let is_global = SyntaxContext::from_u32(scope.raw()) == concate_info.global_ctxt;
                   let legacy = if is_global {
-                    let leg = ident.to_legacy(ast, &semantic);
+                    let leg = ident.to_legacy(&semantic);
                     concate_info.global_scope_ident.push(leg.clone());
                     all_used_names.insert(leg.id.sym.clone());
                     Some(leg)
@@ -1581,13 +1589,13 @@ var {} = {{}};
                     None
                   };
                   if ident.is_class_expr_with_ident {
-                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                     continue;
                   }
                   if scope != top_level_scope_id {
-                    all_used_names.insert(ast.get_atom(ident.id.sym(ast)));
+                    all_used_names.insert(Atom::from(ident.id.sym.as_str()));
                   }
-                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(ast, &semantic));
+                  let legacy = legacy.unwrap_or_else(|| ident.to_legacy(&semantic));
                   concate_info.idents.push(legacy.clone());
                   binding_to_ref
                     .entry((legacy.id.sym.clone(), legacy.id.ctxt))
@@ -1644,8 +1652,8 @@ var {} = {{}};
   }
 
   /**
-  add __webpack_require__ call to current chunk at top level,
-  if `from` is specified, the __webpack_require__ will be rendered
+  add __rspack_require call to current chunk at top level,
+  if `from` is specified, the __rspack_require will be rendered
   as the `from` module renders.
   */
   pub(crate) fn add_require<'a>(
@@ -1874,6 +1882,69 @@ var {} = {{}};
     }
   }
 
+  fn get_same_chunk_inlined_export_binding(
+    module_graph: &ModuleGraph,
+    exports_info_artifact: &ExportsInfoArtifact,
+    module_id: &ModuleIdentifier,
+    export_name: Vec<Atom>,
+    chunk_link: &ChunkLinkContext,
+    concate_modules_map: &IdentifierIndexMap<ModuleInfo>,
+    already_visited: &mut FxHashSet<ExportInfo>,
+  ) -> Option<Atom> {
+    if export_name.len() != 1 {
+      return None;
+    }
+
+    if !chunk_link.hoisted_modules.contains(module_id) {
+      return None;
+    }
+
+    let exports_info = exports_info_artifact.get_exports_info_data(module_id);
+    let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
+    let export_info_id = export_info.id();
+
+    if !already_visited.insert(export_info_id) {
+      return None;
+    }
+
+    if let Some(ModuleInfo::Concatenated(info)) = concate_modules_map.get(module_id)
+      && let Some(UsedName::Inlined(_)) =
+        exports_info.get_used_name(exports_info_artifact, None, &export_name)
+      && let Some(direct_export) = info
+        .export_map
+        .as_ref()
+        .and_then(|map| map.get(&export_name[0]))
+    {
+      let direct_export = Atom::new(direct_export.clone());
+      return info.get_internal_name(&direct_export).cloned();
+    }
+
+    let target = find_target(
+      &export_info,
+      module_graph,
+      exports_info_artifact,
+      Arc::new(|module: &ModuleIdentifier| chunk_link.hoisted_modules.contains(module)),
+      already_visited,
+    );
+
+    if let FindTargetResult::ValidTarget(target) = target
+      && !target.defer
+      && let Some(target_export) = target.export
+    {
+      return Self::get_same_chunk_inlined_export_binding(
+        module_graph,
+        exports_info_artifact,
+        &target.module,
+        target_export,
+        chunk_link,
+        concate_modules_map,
+        already_visited,
+      );
+    }
+
+    None
+  }
+
   #[allow(clippy::too_many_arguments)]
   fn link_entry_module_exports(
     &self,
@@ -2084,6 +2155,55 @@ var {} = {{}};
             }
           }
           Ref::Inline(inlined_value) => {
+            let current_chunk_link = link
+              .get(&current_chunk)
+              .expect("should have current chunk link");
+            if let Some(local_name) = Self::get_same_chunk_inlined_export_binding(
+              module_graph,
+              &compilation.exports_info_artifact,
+              &entry_module,
+              vec![name.clone()],
+              current_chunk_link,
+              concate_modules_map,
+              &mut Default::default(),
+            ) {
+              let exported = Self::add_chunk_export_alias(
+                current_chunk,
+                local_name,
+                name.clone(),
+                exports,
+                !allow_rename
+                  && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk)),
+              );
+
+              if exported.is_none()
+                && !allow_rename
+                && (current_chunk == entry_chunk || self.strict_export_chunk(current_chunk))
+              {
+                errors.push(
+                  rspack_error::error!(
+                    "Entry {entry_module} has conflict exports: {name} has already been exported"
+                  )
+                  .into(),
+                );
+              }
+
+              if current_chunk != entry_chunk
+                && let Some(exported) = exported
+              {
+                Self::add_chunk_re_export(
+                  entry_chunk,
+                  current_chunk,
+                  exported.clone(),
+                  name.clone(),
+                  exports,
+                  !allow_rename,
+                );
+              }
+
+              continue;
+            }
+
             let entry_chunk_link = link.get_mut_unwrap(&entry_chunk);
             let new_name = find_new_name(
               &name,
@@ -2095,18 +2215,20 @@ var {} = {{}};
                 context,
               )],
             );
-            entry_chunk_link.used_names.insert(new_name.clone());
-            entry_chunk_link
-              .decl_before_exports
-              .insert(format!("var {new_name} = {inlined_value};\n"));
-
-            Self::add_chunk_export(
+            if Self::add_chunk_export(
               entry_chunk,
               new_name.clone(),
               name.clone(),
               exports,
               !allow_rename,
-            );
+            )
+            .is_some()
+            {
+              entry_chunk_link.used_names.insert(new_name.clone());
+              entry_chunk_link
+                .decl_before_exports
+                .insert(format!("var {new_name} = {inlined_value};\n"));
+            }
           }
         }
       }
@@ -2134,6 +2256,9 @@ var {} = {{}};
         .expect("should have module")
         .as_external_module()
         .expect("should be external module");
+      if external_module.resolve_external_type() != "module" {
+        continue;
+      }
       entry_chunk_link
         .raw_star_exports
         .entry(external_module.get_request().primary().into())
@@ -2190,7 +2315,7 @@ var {} = {{}};
       .map(|chunk| (*chunk, Default::default()))
       .collect::<FxHashMap<ChunkUkey, IdentifierIndexMap<FxHashMap<Atom, Atom>>>>();
 
-    // const symbol = __webpack_require__(module);
+    // const symbol = __rspack_require(module);
     let mut required = FxHashMap::<ChunkUkey, IdentifierIndexMap<ExternalInterop>>::default();
 
     // link entry direct exports
@@ -2491,10 +2616,8 @@ var {} = {{}};
         let info = &concate_modules_map[m];
         let runtime_requirements = info.get_runtime_requirements();
         if !runtime_requirements.is_empty() && runtime_chunk != *chunk {
-          let runtime_template = compilation.runtime_template.create_runtime_code_template();
-          let require_symbol: Atom = runtime_template
-            .render_runtime_globals(&RuntimeGlobals::REQUIRE)
-            .into();
+          let runtime_template = compilation.runtime_template.create_chunk_code_template();
+          let require_symbol: Atom = runtime_template.render_runtime_argument().into();
           if !runtime_chunks_exporting_require_via_runtime_module.contains(&runtime_chunk) {
             Self::add_chunk_export(
               runtime_chunk,
@@ -2521,7 +2644,7 @@ var {} = {{}};
       // followings should not require the module again.
       //
       // ```js
-      // const foo = __webpack_require__('foo')
+      // const foo = __rspack_require('foo')
       // foo; // access foo
       // foo; // access foo again, but no require call
       // ```
@@ -2533,7 +2656,7 @@ var {} = {{}};
         // make sure all side-effect modules are rendered
         // eg.
         // import './foo.cjs'
-        // should be rendered as __webpack_require__('./foo.cjs')
+        // should be rendered as __rspack_require('./foo.cjs')
         for dep_id in module.get_dependencies() {
           let dep = module_graph.dependency_by_id(dep_id);
 
@@ -2920,7 +3043,7 @@ var {} = {{}};
     call_context: bool,
     strict_esm_module: bool,
     asi_safe: Option<bool>,
-    already_visited: &mut FxHashSet<ExportInfoHashKey>,
+    already_visited: &mut FxHashSet<ExportInfo>,
     required: &mut IdentifierIndexMap<ExternalInterop>,
     all_used_names: &mut FxHashSet<Atom>,
   ) -> Option<Ref> {
@@ -3075,8 +3198,7 @@ var {} = {{}};
       }
     }
 
-    let exports_info = exports_info_artifact
-      .get_prefetched_exports_info(info_id, PrefetchExportsInfoMode::Nested(&export_name));
+    let exports_info = exports_info_artifact.get_exports_info_data(info_id);
 
     if export_name.is_empty() {
       let info = module_to_info_map.get_mut_unwrap(info_id);
@@ -3114,15 +3236,15 @@ var {} = {{}};
     }
 
     let export_info = exports_info.get_export_info_without_mut_module_graph(&export_name[0]);
-    let export_info_hash_key = export_info.as_hash_key();
+    let export_info_id = export_info.id();
 
-    if already_visited.contains(&export_info_hash_key) {
+    if already_visited.contains(&export_info_id) {
       return Some(Ref::Inline(
         "/* circular reexport */ Object(function x() { x() }())".into(),
       ));
     }
 
-    already_visited.insert(export_info_hash_key);
+    already_visited.insert(export_info_id);
 
     let info = &module_to_info_map[info_id];
     match info {
@@ -3145,11 +3267,7 @@ var {} = {{}};
           )));
         }
 
-        let used_name = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        );
+        let used_name = exports_info.get_used_name(exports_info_artifact, None, &export_name);
         if let Some(ref export_id) = export_id
           && let Some(direct_export) = info.export_map.as_ref().and_then(|map| map.get(export_id))
         {
@@ -3209,15 +3327,10 @@ var {} = {{}};
           FindTargetResult::NoTarget => {}
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
-              let exports_info = exports_info_artifact.get_prefetched_exports_info(
-                &target.module,
-                PrefetchExportsInfoMode::Nested(&export),
-              );
-              if let Some(UsedName::Inlined(inlined)) = ExportsInfoGetter::get_used_name(
-                GetUsedNameParam::WithNames(&exports_info),
-                None,
-                &export,
-              ) {
+              let exports_info = exports_info_artifact.get_exports_info_data(&target.module);
+              if let Some(UsedName::Inlined(inlined)) =
+                exports_info.get_used_name(exports_info_artifact, None, &export)
+              {
                 return Some(Ref::Inline(inlined.inlined_value().render(
                   &to_normal_comment(&format!(
                     "inlined export {}",
@@ -3265,12 +3378,9 @@ var {} = {{}};
 
         if info.namespace_export_symbol.is_some() {
           // That's how webpack write https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L463-L471
-          let used_name = ExportsInfoGetter::get_used_name(
-            GetUsedNameParam::WithNames(&exports_info),
-            None,
-            &export_name,
-          )
-          .expect("should have export name");
+          let used_name = exports_info
+            .get_used_name(exports_info_artifact, None, &export_name)
+            .expect("should have export name");
           return Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,
@@ -3296,11 +3406,9 @@ var {} = {{}};
         None
       }
       ModuleInfo::External(info) => {
-        if let Some(used_name) = ExportsInfoGetter::get_used_name(
-          GetUsedNameParam::WithNames(&exports_info),
-          None,
-          &export_name,
-        ) {
+        if let Some(used_name) =
+          exports_info.get_used_name(exports_info_artifact, None, &export_name)
+        {
           Some(match used_name {
             UsedName::Normal(used_name) => Ref::Symbol(SymbolRef::new(
               info.module,

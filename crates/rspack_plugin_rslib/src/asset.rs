@@ -32,11 +32,11 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
 
     // entry resource
     if source_types.is_empty()
-      && self
-        .0
-        .parsed_asset_config
+      && module
+        .build_info()
+        .asset
         .as_ref()
-        .is_some_and(|config| !config.is_inline() && !config.is_source())
+        .is_some_and(|asset| !asset.data_url.is_inline() && !asset.data_url.is_source())
     {
       return &[SourceType::JavaScript, SourceType::Asset];
     }

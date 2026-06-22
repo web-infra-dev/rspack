@@ -20,6 +20,7 @@ import { isNil } from '../util';
 import { assertNotNill } from '../util/assertNotNil';
 import { cleverMerge } from '../util/cleverMerge';
 import type {
+  CacheNormalized,
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
@@ -33,28 +34,36 @@ import {
 } from './target';
 import type {
   Context,
+  CssAutoOrModuleParserOptions,
   CssGeneratorOptions,
+  CssModuleGeneratorOptions,
+  CssModuleParserOptions,
+  CssParserOptions,
   ExternalsPresets,
   InfrastructureLogging,
   JavascriptParserOptions,
   JsonGeneratorOptions,
+  HashFunction,
   Library,
   LibraryOptions,
   Loader,
   Mode,
   ModuleOptions,
+  Name,
   Node,
   Optimization,
   Performance,
   ResolveOptions,
   RuleSetRules,
-  SnapshotOptions,
+  WasmLoadingType,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
+  compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
   F(options, 'target', () => {
@@ -90,27 +99,23 @@ export const applyRspackOptionsDefaults = (
   D(options, 'lazyCompilation', false);
   D(options, 'bail', false);
 
-  // but Rspack currently does not support this option
-  F(options, 'cache', () => development);
+  F(options, 'cache', () =>
+    development ? { type: 'memory' as const } : false,
+  );
+  applyCacheDefaults(options.cache!, {
+    context: options.context!,
+    name: options.name,
+    mode: options.mode,
+    compilerIndex,
+  });
 
   applyIncrementalDefaults(options);
 
-  applyExperimentsDefaults(options.experiments);
+  applyExperimentsDefaults(options.experiments, { production });
 
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
-  });
-
-  applySnapshotDefaults(options.snapshot, { production });
-
-  applyModuleDefaults(options.module, {
-    asyncWebAssembly: options.experiments.asyncWebAssembly!,
-    targetProperties,
-    mode: options.mode,
-    uniqueName: options.output.uniqueName,
-    deferImport: options.experiments.deferImport,
-    outputModule: options.output.module,
   });
 
   applyOutputDefaults(options, {
@@ -124,6 +129,18 @@ export const applyRspackOptionsDefaults = (
     entry: options.entry,
   });
 
+  applyModuleDefaults(options.module, {
+    asyncWebAssembly: options.experiments.asyncWebAssembly!,
+    targetProperties,
+    mode: options.mode,
+    uniqueName: options.output.uniqueName,
+    deferImport: options.experiments.deferImport,
+    sourceImport: options.experiments.sourceImport,
+    outputModule: options.output.module,
+    hashFunction: options.output.hashFunction!,
+    hashSalt: options.output.hashSalt,
+  });
+
   applyExternalsPresetsDefaults(options.externalsPresets, {
     targetProperties,
     buildHttp: Boolean(options.experiments.buildHttp),
@@ -131,12 +148,16 @@ export const applyRspackOptionsDefaults = (
   });
 
   F(options, 'externalsType', () => {
-    return options.output.library
-      ? // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
-        (options.output.library.type as any)
-      : options.output.module
-        ? 'module-import'
-        : 'var';
+    if (options.output.library?.type) {
+      // Keep modern-module libraries on the existing output.module default for
+      // compatibility. `externalsType: "modern-module"` must be enabled
+      // explicitly for now, and will become the default in the next major.
+      if (options.output.library.type !== 'modern-module') {
+        // loose type 'string', actual type is "commonjs" | "var" | "commonjs2"....
+        return options.output.library.type as any;
+      }
+    }
+    return options.output.module ? 'module-import' : 'var';
   });
 
   applyNodeDefaults(options.node, {
@@ -189,6 +210,47 @@ export const applyRspackOptionsDefaults = (
       };
 };
 
+const applyCacheDefaults = (
+  cache: CacheNormalized,
+  {
+    context,
+    name,
+    mode,
+    compilerIndex,
+  }: {
+    context: string;
+    name?: Name;
+    mode?: Mode;
+    compilerIndex?: number;
+  },
+) => {
+  if (cache === false) return;
+  switch (cache.type) {
+    case 'memory':
+      break;
+    case 'persistent':
+      D(cache, 'version', '');
+      F(cache, 'buildDependencies', () => []);
+      F(cache.snapshot, 'immutablePaths', () => []);
+      F(cache.snapshot, 'unmanagedPaths', () => []);
+      F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+      D(cache.storage, 'type', 'filesystem');
+      D(cache.storage, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache.storage, 'maxGenerations', 3);
+      F(cache.storage, 'directory', () => {
+        const modeName = mode || 'production';
+        const compilerName = name ? `${name}-${modeName}` : modeName;
+        const cacheName = compilerIndex
+          ? `${compilerName}-${compilerIndex}`
+          : compilerName;
+        return path.resolve(context, 'node_modules/.cache/rspack', cacheName);
+      });
+      D(cache, 'portable', false);
+      D(cache, 'readonly', false);
+      break;
+  }
+};
+
 export const applyRspackOptionsBaseDefaults = (
   options: RspackOptionsNormalized,
 ) => {
@@ -208,10 +270,14 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+  experiments: ExperimentsNormalized,
+  { production }: { production: boolean },
+) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
+  D(experiments, 'sourceImport', false);
 
   D(experiments, 'buildHttp', undefined);
   if (experiments.buildHttp && typeof experiments.buildHttp === 'object') {
@@ -223,7 +289,8 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'useInputFileSystem', false);
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', false);
+  D(experiments, 'pureFunctions', production);
+  D(experiments, 'runtimeMode', 'webpack');
 };
 
 const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
@@ -247,18 +314,15 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
   }
 };
 
-const applySnapshotDefaults = (
-  _snapshot: SnapshotOptions,
-  _env: { production: boolean },
-) => {};
-
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
   {
     deferImport,
+    sourceImport,
     outputModule,
   }: {
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
   },
 ) => {
@@ -283,7 +347,9 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'typeReexportsPresence', 'no-tolerant');
   D(parserOptions, 'jsx', false);
   D(parserOptions, 'deferImport', deferImport);
+  D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
+  D(parserOptions, 'createRequire', false);
 };
 
 const applyCssGeneratorOptionsDefaults = (
@@ -296,6 +362,59 @@ const applyCssGeneratorOptionsDefaults = (
     !targetProperties || targetProperties.document === false,
   );
   D(generatorOptions, 'esModule', true);
+};
+
+const applyCssParserOptionsDefaults = (parserOptions: CssParserOptions) => {
+  D(parserOptions, 'namedExports', true);
+  D(parserOptions, 'url', true);
+  D(parserOptions, 'import', true);
+};
+
+const applyCssModuleGeneratorOptionsDefaults = (
+  generatorOptions: CssModuleGeneratorOptions,
+  {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  }: {
+    hashFunction: HashFunction;
+    hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
+    localIdentName: string;
+    targetProperties: TargetProperties | false;
+  },
+) => {
+  D(
+    generatorOptions,
+    'exportsOnly',
+    !targetProperties || targetProperties.document === false,
+  );
+  D(generatorOptions, 'esModule', true);
+  D(generatorOptions, 'exportsConvention', 'as-is');
+  D(generatorOptions, 'localIdentName', localIdentName);
+  D(generatorOptions, 'localIdentHashSalt', hashSalt);
+  D(generatorOptions, 'localIdentHashFunction', hashFunction);
+  D(generatorOptions, 'localIdentHashDigest', 'base64url');
+  D(generatorOptions, 'localIdentHashDigestLength', 6);
+};
+
+const applyCssModuleParserOptionsDefaults = (
+  parserOptions: CssModuleParserOptions,
+) => {
+  applyCssParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'animation', true);
+  D(parserOptions, 'container', true);
+  D(parserOptions, 'customIdents', true);
+  D(parserOptions, 'dashedIdents', true);
+  D(parserOptions, 'function', true);
+  D(parserOptions, 'grid', true);
+};
+
+const applyCssAutoOrModuleParserOptionsDefaults = (
+  parserOptions: CssAutoOrModuleParserOptions,
+) => {
+  applyCssModuleParserOptionsDefaults(parserOptions);
+  D(parserOptions, 'pure', false);
 };
 
 const applyJsonGeneratorOptionsDefaults = (
@@ -312,14 +431,20 @@ const applyModuleDefaults = (
     mode,
     uniqueName,
     deferImport,
+    sourceImport,
     outputModule,
+    hashFunction,
+    hashSalt,
   }: {
     asyncWebAssembly: boolean;
     targetProperties: false | TargetProperties;
     mode?: Mode;
     uniqueName?: string;
     deferImport?: boolean;
+    sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
+    hashFunction: HashFunction;
+    hashSalt?: RspackOptionsNormalized['output']['hashSalt'];
   },
 ) => {
   assertNotNill(module.parser);
@@ -336,6 +461,7 @@ const applyModuleDefaults = (
   assertNotNill(module.parser.javascript);
   applyJavascriptParserOptionsDefaults(module.parser.javascript, {
     deferImport,
+    sourceImport,
     outputModule,
   });
 
@@ -352,18 +478,19 @@ const applyModuleDefaults = (
   applyJsonGeneratorOptionsDefaults(module.generator.json);
   F(module.parser, 'css', () => ({}));
   assertNotNill(module.parser.css);
-  D(module.parser.css, 'namedExports', true);
-  D(module.parser.css, 'url', true);
+  applyCssParserOptionsDefaults(module.parser.css);
 
   F(module.parser, 'css/auto', () => ({}));
   assertNotNill(module.parser['css/auto']);
-  D(module.parser['css/auto'], 'namedExports', true);
-  D(module.parser['css/auto'], 'url', true);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/auto']);
+
+  F(module.parser, 'css/global', () => ({}));
+  assertNotNill(module.parser['css/global']);
+  applyCssModuleParserOptionsDefaults(module.parser['css/global']);
 
   F(module.parser, 'css/module', () => ({}));
   assertNotNill(module.parser['css/module']);
-  D(module.parser['css/module'], 'namedExports', true);
-  D(module.parser['css/module'], 'url', true);
+  applyCssAutoOrModuleParserOptionsDefaults(module.parser['css/module']);
 
   F(module.generator, 'css', () => ({}));
   assertNotNill(module.generator.css);
@@ -373,25 +500,37 @@ const applyModuleDefaults = (
 
   F(module.generator, 'css/auto', () => ({}));
   assertNotNill(module.generator['css/auto']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/auto'], {
-    targetProperties,
-  });
-  D(module.generator['css/auto'], 'exportsConvention', 'as-is');
   const localIdentName =
     mode === 'development'
       ? uniqueName && uniqueName.length > 0
         ? '[uniqueName]-[id]-[local]'
         : '[id]-[local]'
       : '[fullhash]';
-  D(module.generator['css/auto'], 'localIdentName', localIdentName);
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/auto'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  });
 
   F(module.generator, 'css/module', () => ({}));
   assertNotNill(module.generator['css/module']);
-  applyCssGeneratorOptionsDefaults(module.generator['css/module'], {
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/module'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
     targetProperties,
   });
-  D(module.generator['css/module'], 'exportsConvention', 'as-is');
-  D(module.generator['css/module'], 'localIdentName', localIdentName);
+
+  F(module.generator, 'css/global', () => ({}));
+  assertNotNill(module.generator['css/global']);
+  applyCssModuleGeneratorOptionsDefaults(module.generator['css/global'], {
+    hashFunction,
+    hashSalt,
+    localIdentName,
+    targetProperties,
+  });
+
   // https://github.com/webpack/webpack/blob/main/lib/config/defaults.js#L839
   A(module, 'defaultRules', () => {
     const esm = {
@@ -609,6 +748,11 @@ const applyOutputDefaults = (
   );
   F(environment, 'bigIntLiteral', () => tp && optimistic(tp.bigIntLiteral));
   F(environment, 'const', () => tp && optimistic(tp.const));
+  F(
+    environment,
+    'computedProperty',
+    () => tp && optimistic(tp.computedProperty),
+  );
   F(environment, 'methodShorthand', () => tp && optimistic(tp.methodShorthand));
   F(environment, 'arrowFunction', () => tp && optimistic(tp.arrowFunction));
   F(environment, 'asyncFunction', () => tp && optimistic(tp.asyncFunction));
@@ -864,7 +1008,7 @@ const applyOutputDefaults = (
     return Array.from(enabledChunkLoadingTypes);
   });
   A(output, 'enabledWasmLoadingTypes', () => {
-    const enabledWasmLoadingTypes = new Set<string>();
+    const enabledWasmLoadingTypes = new Set<WasmLoadingType>();
     if (output.wasmLoading) {
       enabledWasmLoadingTypes.add(output.wasmLoading);
     }
@@ -983,16 +1127,23 @@ const applyNodeDefaults = (
     if (targetProperties && targetProperties.global) return false;
     return 'warn';
   });
-  F(node, '__dirname', () => {
-    if (targetProperties && targetProperties.node)
-      return outputModule ? 'node-module' : 'eval-only';
+  const handlerForNames = () => {
+    if (targetProperties) {
+      if (targetProperties.node) {
+        return outputModule ? 'node-module' : 'eval-only';
+      }
+      if (
+        outputModule &&
+        targetProperties.node === null &&
+        targetProperties.web === null
+      ) {
+        return 'eval-only';
+      }
+    }
     return 'warn-mock';
-  });
-  F(node, '__filename', () => {
-    if (targetProperties && targetProperties.node)
-      return outputModule ? 'node-module' : 'eval-only';
-    return 'warn-mock';
-  });
+  };
+  F(node, '__dirname', handlerForNames);
+  F(node, '__filename', handlerForNames);
 };
 
 const applyPerformanceDefaults = (
@@ -1172,19 +1323,25 @@ const getResolveDefaults = ({
     },
   };
 
-  resolveOptions.byDependency!['css-import'] = {
+  const styleConditions = [];
+
+  styleConditions.push(mode === 'development' ? 'development' : 'production');
+  styleConditions.push('style');
+
+  const cssResolveOptions = {
     // We avoid using any main files because we have to be consistent with CSS `@import`
     // and CSS `@import` does not handle `main` files in directories,
     // you should always specify the full URL for styles
     mainFiles: [],
     mainFields: ['style', '...'],
-    conditionNames: [
-      mode === 'development' ? 'development' : 'production',
-      'style',
-    ],
+    conditionNames: styleConditions,
     extensions: ['.css'],
     preferRelative: true,
   };
+
+  resolveOptions.byDependency!['css-import'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-local-module'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-import-global-module'] = cssResolveOptions;
 
   return resolveOptions;
 };

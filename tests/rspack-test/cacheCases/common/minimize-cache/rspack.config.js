@@ -25,7 +25,7 @@ module.exports = {
           const s = stats.toJson({
             all: false,
             assets: true,
-            logging: 'log',
+            logging: 'verbose',
           });
 
           const jsAssets = s.assets.filter((a) => a.name?.endsWith('.js'));
@@ -36,7 +36,9 @@ module.exports = {
           const logEntries = s.logging[PLUGIN_NAME]?.entries ?? [];
           const cacheLogEntry = logEntries.find(
             (e) =>
-              e.message && e.message.includes('minimize persistent cache:'),
+              e.type === 'cache' &&
+              e.message &&
+              e.message.startsWith('minimize persistent cache:'),
           );
 
           if (updateIndex === 5) {
@@ -49,12 +51,13 @@ module.exports = {
           expect(cacheLogEntry).toBeTruthy();
 
           const match = cacheLogEntry.message.match(
-            /minimize persistent cache: (\d+) hit, (\d+) miss/,
+            /minimize persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
           );
           expect(match).toBeTruthy();
 
           const hits = parseInt(match[1], 10);
-          const misses = parseInt(match[2], 10);
+          const total = parseInt(match[2], 10);
+          const misses = total - hits;
 
           if (updateIndex === 0) {
             // Cold build, cache is empty → all misses

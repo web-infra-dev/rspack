@@ -92,6 +92,17 @@ impl ProvideSharedModule {
   pub fn share_key(&self) -> &str {
     &self.name
   }
+
+  pub fn share_scope(&self) -> &ShareScope {
+    &self.share_scope
+  }
+
+  pub fn version(&self) -> Option<&str> {
+    match &self.version {
+      ProvideVersion::Version(version) => Some(version),
+      ProvideVersion::False => None,
+    }
+  }
 }
 
 impl Identifiable for ProvideSharedModule {

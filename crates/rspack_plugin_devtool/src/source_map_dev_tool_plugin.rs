@@ -27,10 +27,12 @@ use rspack_util::{
   fx_hash::FxIndexMap,
   identifier::make_paths_absolute,
   node_path::NodePath,
+  source_map::SourceMapKind,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use sugar_path::SugarPath;
 use thread_local::ThreadLocal;
+use url::Url;
 
 use crate::{
   ModuleFilenameTemplateFn, SourceReference, generate_debug_id::generate_debug_id,
@@ -47,10 +49,72 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
+fn starts_with_url_scheme(s: &str) -> bool {
+  let Some((scheme, _)) = s.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  matches!(chars.next(), Some(c) if c.is_ascii_alphabetic())
+    && chars.all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.'))
+}
+
+fn starts_with_windows_drive_letter(s: &str) -> bool {
+  let bytes = s.as_bytes();
+  bytes.len() >= 2
+    && bytes[0].is_ascii_alphabetic()
+    && matches!(bytes[1], b':' | b'|')
+    && (bytes.len() == 2 || matches!(bytes[2], b'/' | b'\\' | b'?' | b'#'))
+}
+
+fn is_relative_source_name(s: &str) -> bool {
+  // Source map `sources` entries are URL references. Per ECMA-426
+  // "9 Source map format", each source is a potentially relative URL; per
+  // "9.3 Resolving sources", non-absolute sources are resolved against the
+  // source map URL.
+  //
+  // WHATWG URL "4.3 URL writing" gives the useful forms here:
+  // - absolute URLs: `webpack://...`, `file://...`, `data:...`
+  // - scheme-relative URLs: `//host/path`
+  // - path-absolute URLs: `/path`
+  // - path-relative, scheme-less URLs: `index.js`, `./index.js`, `../index.js`
+  //
+  // Only path-relative, scheme-less URLs depend on the source map location, so
+  // only they need to be canonicalized before names are deduplicated across
+  // assets.
+  //
+  // WHATWG URL "4.2 URL miscellaneous" defines "Windows drive letter",
+  // "normalized Windows drive letter", and "starts with a Windows drive
+  // letter"; keep those Windows absolute paths (`C:/...`, `C:\...`, `C|/...`)
+  // and backslash-rooted Windows paths (`\\server\share`) verbatim.
+  !s.is_empty()
+    && !s.starts_with(['/', '\\'])
+    && !starts_with_url_scheme(s)
+    && !starts_with_windows_drive_letter(s)
+}
+
+fn normalize_relative_source_name_url(
+  source_name: &str,
+  source_map_path: Option<&Utf8Path>,
+) -> Option<String> {
+  let source_map_path = source_map_path?;
+  let base_url = Url::from_file_path(source_map_path.as_std_path()).ok()?;
+  base_url.join(source_name).ok().map(|url| url.to_string())
+}
+
+fn relative_source_name_from_url(
+  source_url: &str,
+  source_map_path: Option<&Utf8Path>,
+) -> Option<String> {
+  let source_map_path = source_map_path?;
+  let source_map_url = Url::from_file_path(source_map_path.as_std_path()).ok()?;
+  let source_url = Url::parse(source_url).ok()?;
+  source_map_url.make_relative(&source_url)
+}
+
 /// Compute source references from a source map's sources list.
 fn compute_source_references(
   compilation: &Compilation,
-  source_map: &SourceMap,
+  source_map: &SourceMap<'_>,
 ) -> Vec<SourceReference> {
   source_map
     .sources()
@@ -67,7 +131,7 @@ fn compute_source_references(
           None => SourceReference::Source(Arc::from(source_name)),
         }
       } else {
-        SourceReference::Source(Arc::from(source_name.clone()))
+        SourceReference::Source(Arc::from(source_name.as_ref()))
       }
     })
     .collect()
@@ -126,6 +190,15 @@ pub struct SourceMapDevToolPluginOptions {
   pub debug_ids: bool,
 }
 
+impl SourceMapDevToolPluginOptions {
+  pub fn module_source_map_kind(&self) -> SourceMapKind {
+    SourceMapKind::from_module(self.module)
+      .with_cheap(!self.columns)
+      .with_no_sources(self.no_sources)
+      .with_inline(self.filename.is_none())
+  }
+}
+
 enum SourceMappingUrlComment {
   String(String),
   Fn(AppendFn),
@@ -139,8 +212,66 @@ enum SourceMappingUrlCommentRef<'a> {
 struct SourceMapTask {
   pub asset_filename: Arc<str>,
   pub source: BoxSource,
-  pub source_map: SourceMap,
+  pub source_map: SourceMap<'static>,
+  pub unresolved_source_map_path: Option<Utf8PathBuf>,
   pub source_references: Vec<SourceReference>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+enum SourceName {
+  /// A source name that should be emitted exactly as generated.
+  Verbatim(String),
+  /// A canonical resource URL used for deduplication, rendered relative to each source map.
+  CanonicalResourceUrl(String),
+}
+
+impl SourceName {
+  fn new(source_name: String, source_map_path: Option<&Utf8Path>) -> Self {
+    if is_relative_source_name(&source_name)
+      && let Some(source_url) = normalize_relative_source_name_url(&source_name, source_map_path)
+    {
+      return Self::CanonicalResourceUrl(source_url);
+    }
+
+    Self::Verbatim(source_name)
+  }
+
+  fn push(&mut self, ch: char) {
+    match self {
+      SourceName::Verbatim(source_name) | SourceName::CanonicalResourceUrl(source_name) => {
+        source_name.push(ch)
+      }
+    }
+  }
+}
+
+#[derive(Debug, Clone)]
+struct SourceNameWithBaseUrl {
+  source_name: SourceName,
+  unresolved_source_map_path: Option<Utf8PathBuf>,
+}
+
+impl SourceNameWithBaseUrl {
+  fn new(source_name: String, unresolved_source_map_path: Option<Utf8PathBuf>) -> Self {
+    let source_name = SourceName::new(
+      source_name,
+      unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+    );
+    Self {
+      source_name,
+      unresolved_source_map_path,
+    }
+  }
+
+  fn render_for_source_map<'a>(&'a self, source_map_path: Option<&Utf8Path>) -> Cow<'a, str> {
+    match &self.source_name {
+      SourceName::Verbatim(source_name) => Cow::Borrowed(source_name),
+      SourceName::CanonicalResourceUrl(source_url) => {
+        relative_source_name_from_url(source_url, source_map_path)
+          .map_or_else(|| Cow::Borrowed(source_url.as_str()), Cow::Owned)
+      }
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -149,10 +280,9 @@ pub(crate) struct MappedAsset {
   pub(crate) source_map: Option<(String, CompilationAsset)>,
 }
 
-type TaskAndSourceNames = (
-  SourceMapTask,
-  Vec<(SourceReference, (String, Option<Utf8PathBuf>))>,
-);
+type ReferenceToSourceNameMapping = FxIndexMap<SourceReference, SourceNameWithBaseUrl>;
+
+type TaskAndSourceNames = (SourceMapTask, Vec<(SourceReference, SourceNameWithBaseUrl)>);
 
 #[plugin]
 #[derive(Debug)]
@@ -231,6 +361,8 @@ impl SourceMapDevToolPlugin {
 
   // Only used when resolving [relative-resource-path].
   // It does not provide values for placeholders, so no rendering is performed here.
+  // External source maps use the source map file path as the base; inline source maps
+  // use the emitted asset path as the base because the source map lives in that asset.
   async fn get_unresolved_source_map_path(
     &self,
     compilation: &Compilation,
@@ -254,7 +386,7 @@ impl SourceMapDevToolPlugin {
         let filename = compilation.get_asset_path(template, data).await?;
         Ok(Some(output_path.node_join(filename.as_str())))
       }
-      None => Ok(None),
+      None => Ok(Some(output_path.node_join(asset_filename))),
     }
   }
 
@@ -300,10 +432,7 @@ impl SourceMapDevToolPlugin {
     output_path: &Utf8Path,
     compilation_assets: Vec<(String, &CompilationAsset)>,
     map_options: &MapOptions,
-  ) -> Result<(
-    Vec<SourceMapTask>,
-    FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
-  )> {
+  ) -> Result<(Vec<SourceMapTask>, ReferenceToSourceNameMapping)> {
     let need_match = self.test.is_some() || self.include.is_some() || self.exclude.is_some();
     let condition_object = AssetConditionsObject {
       test: self.test.as_ref(),
@@ -313,203 +442,203 @@ impl SourceMapDevToolPlugin {
     let tls = ThreadLocal::new();
 
     let results: Vec<Result<Option<TaskAndSourceNames>>> = match &self.module_filename_template {
-      ModuleFilenameTemplate::String(template) => {
-        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
-          for (asset_filename, asset) in compilation_assets {
-            let is_match = if need_match {
-              match_object(&condition_object, &asset_filename)
-            } else {
-              true
-            };
-            if !is_match {
-              continue;
-            }
-            let source = match asset.get_source() {
-              Some(s) => s.clone(),
-              None => continue,
-            };
-
-            let map_options = map_options.clone();
-            let s = unsafe {
-              token.used((
-                self,
-                compilation,
-                file_to_chunk,
-                output_path,
-                template,
-                &tls,
-              ))
-            };
-            s.spawn(
-              |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
-                let source_map = {
-                  let object_pool = tls.get_or(ObjectPool::default);
-                  match source.map(object_pool, &map_options) {
-                    Some(sm) => sm,
-                    None => return Ok(None),
-                  }
-                };
-
-                let source_references = compute_source_references(compilation, &source_map);
-
-                let asset_filename: Arc<str> = Arc::from(asset_filename);
-                let unresolved_source_map_path = plugin
-                  .get_unresolved_source_map_path(compilation, output_path, &asset_filename)
-                  .await?;
-
-                let chunk = file_to_chunk.get(asset_filename.as_ref());
-                let path_data = PathData::default()
-                  .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
-                  .chunk_name_optional(chunk.and_then(|c| c.name()))
-                  .chunk_hash_optional(chunk.and_then(|c| {
-                    c.rendered_hash(
-                      &compilation.chunk_hashes_artifact,
-                      compilation.options.output.hash_digest_length,
-                    )
-                  }));
-
-                let filename = Filename::from(plugin.namespace.clone());
-                let namespace = compilation.get_path(&filename, path_data).await?;
-
-                let mut source_name_entries = Vec::with_capacity(source_references.len());
-                for source_reference in &source_references {
-                  if let SourceReference::Source(sn) = source_reference
-                    && is_schema_source(sn.as_ref())
-                  {
-                    source_name_entries.push((
-                      source_reference.clone(),
-                      (sn.to_string(), unresolved_source_map_path.clone()),
-                    ));
-                    continue;
-                  }
-
-                  let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
-                    source_reference,
-                    compilation,
-                    template,
-                    &compilation.options.output,
-                    &namespace,
-                    unresolved_source_map_path.as_ref().map(|p| p.as_path()),
-                  );
-                  source_name_entries.push((
-                    source_reference.clone(),
-                    (source_name, unresolved_source_map_path.clone()),
-                  ));
-                }
-
-                let task = SourceMapTask {
-                  asset_filename,
-                  source,
-                  source_map,
-                  source_references,
-                };
-
-                Ok(Some((task, source_name_entries)))
-              },
-            );
+      ModuleFilenameTemplate::String(template) => rspack_parallel::scope::<
+        _,
+        Result<Option<TaskAndSourceNames>>,
+      >(|token| {
+        for (asset_filename, asset) in compilation_assets {
+          let is_match = if need_match {
+            match_object(&condition_object, &asset_filename)
+          } else {
+            true
+          };
+          if !is_match {
+            continue;
           }
-        })
-        .await
-        .into_iter()
-        .map(|r| r.to_rspack_result().flatten())
-        .collect::<Vec<_>>()
-      }
-      ModuleFilenameTemplate::Fn(f) => {
-        rspack_parallel::scope::<_, Result<Option<TaskAndSourceNames>>>(|token| {
-          for (asset_filename, asset) in compilation_assets {
-            let is_match = if need_match {
-              match_object(&condition_object, &asset_filename)
-            } else {
-              true
-            };
-            if !is_match {
-              continue;
-            }
-            let source = match asset.get_source() {
-              Some(s) => s.clone(),
-              None => continue,
-            };
+          let source = match asset.get_source() {
+            Some(s) => s.clone(),
+            None => continue,
+          };
 
-            let asset_filename: Arc<str> = Arc::from(asset_filename);
-            let map_options = map_options.clone();
-            let s = unsafe {
-              token.used((
-                self,
-                compilation,
-                output_path,
-                f,
-                source,
-                asset_filename,
-                &tls,
-              ))
-            };
-            s.spawn(
-              |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
-                let source_map = {
-                  let object_pool = tls.get_or(ObjectPool::default);
-                  match source.map(object_pool, &map_options) {
-                    Some(sm) => sm,
-                    None => return Ok(None),
-                  }
-                };
+          let map_options = map_options.clone();
+          let s = unsafe {
+            token.used((
+              self,
+              compilation,
+              file_to_chunk,
+              output_path,
+              template,
+              &tls,
+            ))
+          };
+          s.spawn(
+            |(plugin, compilation, file_to_chunk, output_path, template, tls)| async move {
+              let source_map = {
+                let object_pool = tls.get_or(ObjectPool::default);
+                match source.clone().map_static(object_pool, &map_options) {
+                  Some(sm) => sm,
+                  None => return Ok(None),
+                }
+              };
 
-                let source_references = compute_source_references(compilation, &source_map);
+              let source_references = compute_source_references(compilation, &source_map);
 
-                let mut source_name_entries = Vec::with_capacity(source_references.len());
-                for source_reference in &source_references {
-                  let unresolved_source_map_path = plugin
-                    .get_unresolved_source_map_path(compilation, output_path, &asset_filename)
-                    .await?;
+              let asset_filename: Arc<str> = Arc::from(asset_filename);
+              let unresolved_source_map_path = plugin
+                .get_unresolved_source_map_path(compilation, output_path, &asset_filename)
+                .await?;
 
-                  if let SourceReference::Source(sn) = source_reference
-                    && is_schema_source(sn.as_ref())
-                  {
-                    source_name_entries.push((
-                      source_reference.clone(),
-                      (sn.to_string(), unresolved_source_map_path),
-                    ));
-                    continue;
-                  }
-
-                  let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
-                    source_reference,
-                    compilation,
-                    f,
-                    &compilation.options.output,
-                    &plugin.namespace,
-                    unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+              let chunk = file_to_chunk.get(asset_filename.as_ref());
+              let path_data = PathData::default()
+                .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
+                .chunk_name_optional(chunk.and_then(|c| c.name()))
+                .chunk_hash_optional(chunk.and_then(|c| {
+                  c.rendered_hash(
+                    &compilation.chunk_hashes_artifact,
+                    compilation.options.output.hash_digest_length,
                   )
-                  .await?;
+                }));
+
+              let filename = Filename::from(plugin.namespace.clone());
+              let namespace = compilation.get_path(&filename, path_data).await?;
+
+              let mut source_name_entries = Vec::with_capacity(source_references.len());
+              for source_reference in &source_references {
+                if let SourceReference::Source(sn) = source_reference
+                  && is_schema_source(sn.as_ref())
+                {
                   source_name_entries.push((
                     source_reference.clone(),
-                    (source_name, unresolved_source_map_path),
+                    SourceNameWithBaseUrl::new(sn.to_string(), unresolved_source_map_path.clone()),
                   ));
+                  continue;
                 }
 
-                let task = SourceMapTask {
-                  asset_filename,
-                  source,
-                  source_map,
-                  source_references,
-                };
+                let source_name = ModuleFilenameHelpers::create_filename_of_string_template(
+                  source_reference,
+                  compilation,
+                  template,
+                  &compilation.options.output,
+                  &namespace,
+                  unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+                );
+                source_name_entries.push((
+                  source_reference.clone(),
+                  SourceNameWithBaseUrl::new(source_name, unresolved_source_map_path.clone()),
+                ));
+              }
 
-                Ok(Some((task, source_name_entries)))
-              },
-            );
+              let task = SourceMapTask {
+                asset_filename,
+                source,
+                source_map,
+                unresolved_source_map_path,
+                source_references,
+              };
+
+              Ok(Some((task, source_name_entries)))
+            },
+          );
+        }
+      })
+      .await
+      .into_iter()
+      .map(|r| r.to_rspack_result().flatten())
+      .collect::<Vec<_>>(),
+      ModuleFilenameTemplate::Fn(f) => rspack_parallel::scope::<
+        _,
+        Result<Option<TaskAndSourceNames>>,
+      >(|token| {
+        for (asset_filename, asset) in compilation_assets {
+          let is_match = if need_match {
+            match_object(&condition_object, &asset_filename)
+          } else {
+            true
+          };
+          if !is_match {
+            continue;
           }
-        })
-        .await
-        .into_iter()
-        .map(|r| r.to_rspack_result().flatten())
-        .collect::<Vec<_>>()
-      }
+          let source = match asset.get_source() {
+            Some(s) => s.clone(),
+            None => continue,
+          };
+
+          let asset_filename: Arc<str> = Arc::from(asset_filename);
+          let map_options = map_options.clone();
+          let s = unsafe {
+            token.used((
+              self,
+              compilation,
+              output_path,
+              f,
+              source,
+              asset_filename,
+              &tls,
+            ))
+          };
+          s.spawn(
+            |(plugin, compilation, output_path, f, source, asset_filename, tls)| async move {
+              let source_map = {
+                let object_pool = tls.get_or(ObjectPool::default);
+                match source.clone().map_static(object_pool, &map_options) {
+                  Some(sm) => sm,
+                  None => return Ok(None),
+                }
+              };
+
+              let source_references = compute_source_references(compilation, &source_map);
+              let unresolved_source_map_path = plugin
+                .get_unresolved_source_map_path(compilation, output_path, &asset_filename)
+                .await?;
+
+              let mut source_name_entries = Vec::with_capacity(source_references.len());
+              for source_reference in &source_references {
+                if let SourceReference::Source(sn) = source_reference
+                  && is_schema_source(sn.as_ref())
+                {
+                  source_name_entries.push((
+                    source_reference.clone(),
+                    SourceNameWithBaseUrl::new(sn.to_string(), unresolved_source_map_path.clone()),
+                  ));
+                  continue;
+                }
+
+                let source_name = ModuleFilenameHelpers::create_filename_of_fn_template(
+                  source_reference,
+                  compilation,
+                  f,
+                  &compilation.options.output,
+                  &plugin.namespace,
+                  unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+                )
+                .await?;
+                source_name_entries.push((
+                  source_reference.clone(),
+                  SourceNameWithBaseUrl::new(source_name, unresolved_source_map_path.clone()),
+                ));
+              }
+
+              let task = SourceMapTask {
+                asset_filename,
+                source,
+                source_map,
+                unresolved_source_map_path,
+                source_references,
+              };
+
+              Ok(Some((task, source_name_entries)))
+            },
+          );
+        }
+      })
+      .await
+      .into_iter()
+      .map(|r| r.to_rspack_result().flatten())
+      .collect::<Vec<_>>(),
     };
 
     let mut tasks: Vec<SourceMapTask> = Vec::with_capacity(results.len());
-    let mut reference_to_source_name_mapping: FxIndexMap<
-      SourceReference,
-      (String, Option<Utf8PathBuf>),
-    > = FxIndexMap::default();
+    let mut reference_to_source_name_mapping = ReferenceToSourceNameMapping::default();
 
     for result in results {
       let Some((task, source_name_entries)) = result? else {
@@ -528,13 +657,10 @@ impl SourceMapDevToolPlugin {
   async fn deduplicate_source_names(
     &self,
     compilation: &Compilation,
-    reference_to_source_name_mapping: &mut FxIndexMap<
-      SourceReference,
-      (String, Option<Utf8PathBuf>),
-    >,
+    reference_to_source_name_mapping: &mut ReferenceToSourceNameMapping,
   ) -> Result<()> {
     let output_options = &compilation.options.output;
-    let mut used_names_set = HashSet::<&String>::with_capacity_and_hasher(
+    let mut used_names_set = HashSet::<SourceName>::with_capacity_and_hasher(
       reference_to_source_name_mapping.len(),
       Default::default(),
     );
@@ -560,14 +686,13 @@ impl SourceMapDevToolPlugin {
           ident_a.len().cmp(&ident_b.len())
         });
 
-    for (source_reference, (source_name, unresolved_source_map_path)) in sorted_iter {
-      let mut has_name = used_names_set.contains(source_name);
-      if !has_name {
-        used_names_set.insert(source_name);
+    for (source_reference, source_name_entry) in sorted_iter {
+      if used_names_set.insert(source_name_entry.source_name.clone()) {
         continue;
       }
 
-      let mut new_source_name = match &self.fallback_module_filename_template {
+      let unresolved_source_map_path = &source_name_entry.unresolved_source_map_path;
+      let new_source_name = match &self.fallback_module_filename_template {
         ModuleFilenameTemplate::String(s) => {
           ModuleFilenameHelpers::create_filename_of_string_template(
             source_reference,
@@ -590,21 +715,22 @@ impl SourceMapDevToolPlugin {
           .await?
         }
       };
+      let mut new_source_name = SourceName::new(
+        new_source_name,
+        unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+      );
 
-      has_name = used_names_set.contains(&new_source_name);
-      if !has_name {
-        *source_name = new_source_name;
-        used_names_set.insert(source_name);
+      if used_names_set.insert(new_source_name.clone()) {
+        source_name_entry.source_name = new_source_name;
         continue;
       }
 
       // Otherwise, append stars until we have a valid name
-      while has_name {
+      while used_names_set.contains(&new_source_name) {
         new_source_name.push('*');
-        has_name = used_names_set.contains(&new_source_name);
       }
-      *source_name = new_source_name;
-      used_names_set.insert(source_name);
+      used_names_set.insert(new_source_name.clone());
+      source_name_entry.source_name = new_source_name;
     }
 
     Ok(())
@@ -615,7 +741,7 @@ impl SourceMapDevToolPlugin {
     &self,
     compilation: &Compilation,
     file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
+    reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
     tasks: Vec<SourceMapTask>,
   ) -> Result<Vec<MappedAsset>> {
     let mapped_assets = rspack_parallel::scope::<_, Result<_>>(|token| {
@@ -624,6 +750,7 @@ impl SourceMapDevToolPlugin {
            asset_filename,
            source,
            source_map,
+           unresolved_source_map_path,
            source_references,
          }| {
           let s = unsafe {
@@ -635,6 +762,7 @@ impl SourceMapDevToolPlugin {
               asset_filename,
               source,
               source_map,
+              unresolved_source_map_path,
               source_references,
             ))
           };
@@ -647,6 +775,7 @@ impl SourceMapDevToolPlugin {
               asset_filename,
               source,
               source_map,
+              unresolved_source_map_path,
               source_references,
             )| async move {
               Self::create_mapped_asset(
@@ -657,6 +786,7 @@ impl SourceMapDevToolPlugin {
                 asset_filename,
                 source,
                 source_map,
+                unresolved_source_map_path,
                 source_references,
               )
               .await
@@ -673,38 +803,29 @@ impl SourceMapDevToolPlugin {
     mapped_assets.into_iter().collect::<Result<Vec<_>>>()
   }
 
-  /// Create a single MappedAsset: update the source map and emit asset + optional source map file.
-  #[allow(clippy::too_many_arguments)]
-  async fn create_mapped_asset(
-    plugin: &SourceMapDevToolPlugin,
-    compilation: &Compilation,
-    file_to_chunk: &HashMap<&str, &Chunk>,
-    reference_to_source_name_mapping: &FxIndexMap<SourceReference, (String, Option<Utf8PathBuf>)>,
-    asset_filename: Arc<str>,
-    source: BoxSource,
-    mut source_map: SourceMap,
-    source_references: Vec<SourceReference>,
-  ) -> Result<MappedAsset> {
+  fn source_map_to_json<'a>(
+    &'a self,
+    mut source_map: SourceMap<'a>,
+    reference_to_source_name_mapping: &'a ReferenceToSourceNameMapping,
+    asset_filename: &'a str,
+    source_map_path: Option<&'a Utf8Path>,
+    source_references: &'a [SourceReference],
+    debug_id: Option<&'a str>,
+  ) -> String {
     // Update source_map with deduplicated source names
-    source_map.set_file(Some(asset_filename.clone()));
-    source_map.set_sources(
-      source_references
-        .iter()
-        .map(|source_reference| {
-          reference_to_source_name_mapping
-            .get(source_reference)
-            .unwrap_or_else(|| {
-              panic!(
-                "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
-              )
-            })
-            .0
-            .clone()
+    source_map.set_file(Some(Cow::Borrowed(asset_filename)));
+    source_map.set_sources(source_references.iter().map(|source_reference| {
+      reference_to_source_name_mapping
+        .get(source_reference)
+        .unwrap_or_else(|| {
+          panic!(
+            "SourceMapDevToolPlugin: missing source name for reference '{source_reference:?}' in asset '{asset_filename}'."
+          )
         })
-        .collect::<Vec<_>>(),
-    );
+        .render_for_source_map(source_map_path)
+    }));
 
-    if let Some(asset_conditions) = &plugin.ignore_list {
+    if let Some(asset_conditions) = &self.ignore_list {
       let ignore_list = source_map
         .sources()
         .iter()
@@ -717,23 +838,51 @@ impl SourceMapDevToolPlugin {
           }
         })
         .collect::<Vec<_>>();
-      source_map.set_ignore_list(Some(ignore_list));
+      source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
     }
 
-    if plugin.no_sources {
-      source_map.set_sources_content([]);
-    }
-    if let Some(source_root) = &plugin.source_root {
-      source_map.set_source_root(Some(source_root.clone()));
+    if self.no_sources {
+      source_map.set_sources_content(vec![]);
     }
 
+    if let Some(source_root) = &self.source_root {
+      source_map.set_source_root(Some(Cow::Borrowed(source_root.as_ref())));
+    }
+
+    if let Some(debug_id) = debug_id {
+      source_map.set_debug_id(Some(Cow::Borrowed(debug_id)));
+    }
+
+    source_map.to_json()
+  }
+
+  /// Create a single MappedAsset: update the source map and emit asset + optional source map file.
+  #[allow(clippy::too_many_arguments)]
+  async fn create_mapped_asset(
+    plugin: &SourceMapDevToolPlugin,
+    compilation: &Compilation,
+    file_to_chunk: &HashMap<&str, &Chunk>,
+    reference_to_source_name_mapping: &ReferenceToSourceNameMapping,
+    asset_filename: Arc<str>,
+    source: BoxSource,
+    source_map: SourceMap<'static>,
+    unresolved_source_map_path: Option<Utf8PathBuf>,
+    source_references: Vec<SourceReference>,
+  ) -> Result<MappedAsset> {
     // Generate debug ID and serialize source map
-    let debug_id = plugin.debug_ids.then(|| {
-      let debug_id = generate_debug_id(&asset_filename, &source.buffer());
-      source_map.set_debug_id(Some(debug_id.clone()));
-      debug_id
-    });
-    let source_map_json = source_map.to_json();
+    let debug_id = plugin
+      .debug_ids
+      .then(|| generate_debug_id(&asset_filename, &source.buffer()));
+    let asset_filename_ref = asset_filename.as_ref();
+
+    let source_map_json = plugin.source_map_to_json(
+      source_map.as_borrowed(),
+      reference_to_source_name_mapping,
+      asset_filename_ref,
+      unresolved_source_map_path.as_ref().map(|p| p.as_path()),
+      &source_references,
+      debug_id.as_deref(),
+    );
 
     let mut asset = compilation
       .assets()

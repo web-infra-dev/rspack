@@ -100,12 +100,17 @@ export class RspackCLI {
     options: CommonOptionsForBuildAndServe,
     rspackCommand: Command,
   ) {
-    let { config, pathMap } = await this.loadConfig(options);
-    config = await this.buildConfig(config, pathMap, options, rspackCommand);
+    const { config: rawConfig, pathMap } = await this.loadConfig(options);
+    const config = await this.buildConfig(
+      rawConfig,
+      pathMap,
+      options,
+      rspackCommand,
+    );
     return config;
   }
 
-  async createCompiler(
+  createCompiler(
     config: RspackOptions | MultiRspackOptions,
     callback?: (e: Error | null, res?: Stats | MultiStats) => void,
   ) {

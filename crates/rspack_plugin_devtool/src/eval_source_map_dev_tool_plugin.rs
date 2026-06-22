@@ -1,11 +1,11 @@
-use std::{hash::Hash, sync::Arc};
+use std::{borrow::Cow, hash::Hash, sync::Arc};
 
 use derive_more::Debug;
 use futures::future::join_all;
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
+  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
-  Module, ModuleIdentifier, PathData, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
+  Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
@@ -20,6 +20,7 @@ use rspack_util::{
   base64,
   fx_hash::FxDashMap,
   identifier::make_paths_absolute,
+  json_stringify_str,
 };
 
 use crate::{
@@ -101,7 +102,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let output_options = &compilation.options.output;
   let chunk = compilation
@@ -139,8 +140,9 @@ async fn render_module_content(
   if let Some(cached_source) = self.cache.get(module_hash) {
     render_source.source = cached_source.value().clone();
     return Ok(());
-  } else if let Some(mut map) =
-    origin_source.map(&ObjectPool::default(), &MapOptions::new(self.columns))
+  } else if let Some(mut map) = origin_source
+    .clone()
+    .map(&ObjectPool::default(), &MapOptions::new(self.columns))
   {
     let source = {
       let source = origin_source.source().into_string_lossy();
@@ -158,7 +160,7 @@ async fn render_module_content(
               None => SourceReference::Source(Arc::from(source)),
             }
           } else {
-            SourceReference::Source(Arc::from(source.clone()))
+            SourceReference::Source(Arc::from(source.as_ref()))
           }
         });
         let path_data = PathData::default()
@@ -224,21 +226,21 @@ async fn render_module_content(
             }
           })
           .collect::<Vec<_>>();
-        map.set_ignore_list(Some(ignore_list));
+        map.set_ignore_list(Some(Cow::Owned(ignore_list)));
       }
 
       if self.no_sources {
-        map.set_sources_content([]);
+        map.set_sources_content(vec![]);
       }
 
-      map.set_source_root(self.source_root.clone());
-      map.set_file(Some(module.identifier().to_string()));
+      map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
+      map.set_file(Some(Cow::Borrowed(module.identifier().as_str())));
 
       if self.debug_ids {
-        map.set_debug_id(Some(generate_debug_id(
+        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
           module.identifier().as_str(),
           source.as_bytes(),
-        )));
+        ))));
       }
 
       let module_ids = &compilation.module_ids_artifact;
@@ -257,8 +259,7 @@ async fn render_module_content(
 //# sourceURL=webpack-internal:///{module_id}
 "#
       );
-      let module_content =
-        simd_json::to_string(&format!("{{{source}{footer}\n}}")).expect("should convert to string");
+      let module_content = json_stringify_str(&format!("{{{source}{footer}\n}}"));
       RawStringSource::from(format!(
         "eval({});",
         if compilation.options.output.trusted_types.is_some() {

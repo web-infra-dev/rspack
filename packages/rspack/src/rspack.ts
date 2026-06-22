@@ -29,7 +29,9 @@ import { deprecate, isNil } from './util';
 import { validateRspackConfig } from './util/validateConfig';
 
 function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
-  const compilers = options.map(createCompiler);
+  const compilers = options.map((option, index) =>
+    createCompiler(option, index),
+  );
   const compiler = new MultiCompiler(
     compilers,
     options as MultiCompilerOptions,
@@ -46,7 +48,10 @@ function createMultiCompiler(options: MultiRspackOptions): MultiCompiler {
   return compiler;
 }
 
-function createCompiler(userOptions: RspackOptions): Compiler {
+function createCompiler(
+  userOptions: RspackOptions,
+  compilerIndex?: number,
+): Compiler {
   const options = getNormalizedRspackOptions(userOptions);
   applyRspackOptionsBaseDefaults(options);
 
@@ -70,7 +75,7 @@ function createCompiler(userOptions: RspackOptions): Compiler {
     }
   }
 
-  const tp = applyRspackOptionsDefaults(compiler.options);
+  const tp = applyRspackOptionsDefaults(compiler.options, compilerIndex);
   if (tp) {
     compiler.platform = tp.platform;
     compiler.target = { esVersion: tp.esVersion, targets: tp.targets };

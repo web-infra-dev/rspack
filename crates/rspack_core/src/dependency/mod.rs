@@ -17,7 +17,9 @@ mod static_exports_dependency;
 
 use std::sync::Arc;
 
-pub use cached_const_dependency::{CachedConstDependency, CachedConstDependencyTemplate};
+pub use cached_const_dependency::{
+  CachedConstDependency, CachedConstDependencyPlace, CachedConstDependencyTemplate,
+};
 pub use const_dependency::{ConstDependency, ConstDependencyTemplate};
 pub use context_dependency::{AsContextDependency, ContextDependency};
 pub use context_element_dependency::ContextElementDependency;
@@ -36,7 +38,8 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 pub use runtime_requirements_dependency::{
-  RuntimeRequirementsDependency, RuntimeRequirementsDependencyTemplate,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeRequirementsDependency,
+  RuntimeRequirementsDependencyTemplate,
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::Serialize;
@@ -232,6 +235,10 @@ impl ImportAttributes {
     self.0.get(k).map(|v| v.as_str())
   }
 
+  pub fn iter(&self) -> impl Iterator<Item = (&str, &str)> {
+    self.0.iter().map(|(k, v)| (k.as_str(), v.as_str()))
+  }
+
   pub fn insert(&mut self, k: String, v: String) -> Option<String> {
     self.0.insert(k, v)
   }
@@ -249,6 +256,10 @@ pub enum ImportPhase {
 impl ImportPhase {
   pub fn is_defer(&self) -> bool {
     matches!(self, ImportPhase::Defer)
+  }
+
+  pub fn is_source(&self) -> bool {
+    matches!(self, ImportPhase::Source)
   }
 
   pub fn as_str(&self) -> &'static str {

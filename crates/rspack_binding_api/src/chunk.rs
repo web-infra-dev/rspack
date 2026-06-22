@@ -2,14 +2,24 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Object, ToNapiValue},
+  bindgen_prelude::{Either3, Object, ToNapiValue},
 };
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId};
+use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
 use crate::{chunk_group::ChunkGroupWrapper, compilation::entries::EntryOptionsDTO};
+
+type JsChunkId<'a> = Either<&'a str, u32>;
+
+fn to_js_chunk_id(id: &ChunkId) -> JsChunkId<'_> {
+  if let Some(id) = id.as_number() {
+    Either::B(id)
+  } else {
+    Either::A(id.as_str())
+  }
+}
 
 #[napi]
 pub struct Chunk {
@@ -46,19 +56,27 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
-  pub fn id(&self) -> napi::Result<Either<&str, ()>> {
-    let (compilation, chunk) = self.as_ref()?;
+  #[napi(getter, ts_return_type = "string | number | undefined")]
+  pub fn id(&self) -> napi::Result<Either3<&str, u32, ()>> {
+    let (_, chunk) = self.as_ref()?;
     Ok(match chunk.id() {
-      Some(id) => Either::A(id.as_str()),
-      None => Either::B(()),
+      Some(id) => match to_js_chunk_id(id) {
+        Either::A(id) => Either3::A(id),
+        Either::B(id) => Either3::B(id),
+      },
+      None => Either3::C(()),
     })
   }
 
-  #[napi(getter)]
-  pub fn ids(&self) -> napi::Result<Vec<&str>> {
-    let (compilation, chunk) = self.as_ref()?;
-    Ok(chunk.id().map(|id| vec![id.as_str()]).unwrap_or_default())
+  #[napi(getter, ts_return_type = "Array<string | number>")]
+  pub fn ids(&self) -> napi::Result<Vec<JsChunkId<'_>>> {
+    let (_, chunk) = self.as_ref()?;
+    Ok(
+      chunk
+        .id()
+        .map(|id| vec![to_js_chunk_id(id)])
+        .unwrap_or_default(),
+    )
   }
 
   #[napi(getter)]

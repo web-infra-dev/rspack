@@ -1,11 +1,13 @@
 import path from 'node:path';
 import rspack, {
   type RspackOptions,
+  type Stats,
   type StatsCompilation,
 } from '@rspack/core';
 import { isJavaScript } from '../helper';
+import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { HotUpdatePlugin } from '../helper/hot-update';
-import checkArrayExpectation from '../helper/legacy/checkArrayExpectation';
+import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type {
@@ -54,11 +56,20 @@ function createCacheProcessor(
     },
     check: async (env: ITestEnv, context: ITestContext) => {
       await check(env, context, name);
+      const stats = context.getCompiler().getStats();
+      if (stats) {
+        matchStatsSnapshot(
+          env,
+          context.getSource(),
+          updatePlugin.getUpdateIndex(),
+          stats as Stats,
+        );
+      }
     },
     after: async (context: ITestContext) => {
       await afterExecute(context, name);
     },
-    afterAll: async (context: ITestContext) => {
+    afterAll: (context: ITestContext) => {
       const updateIndex = updatePlugin.getUpdateIndex();
       const totalUpdates = updatePlugin.getTotalUpdates();
       if (updateIndex + 1 !== totalUpdates) {
@@ -104,6 +115,34 @@ export function createCacheCase(
 }
 
 const creators: Map<TTarget, BasicCaseCreator> = new Map();
+
+function matchStatsSnapshot(
+  env: ITestEnv,
+  source: string,
+  updateIndex: number,
+  stats: Stats,
+) {
+  const content = normalizePlaceholder(
+    stats
+      .toString({
+        all: false,
+        logging: false,
+        loggingDebug: /^rspack\.persistentCache$/,
+        colors: false,
+      })
+      .replace(/[0-9]+(\.[0-9]+)? ms/g, 'xx ms'),
+  ).trim();
+
+  if (!content.includes('rspack.persistentCache')) {
+    return;
+  }
+
+  env
+    .expect(content)
+    .toMatchFileSnapshotSync(
+      path.resolve(source, '__snapshots__', `stats-${updateIndex}.txt`),
+    );
+}
 
 async function generateOptions(
   context: ITestContext,
@@ -244,30 +283,8 @@ function createRunner(
     });
   };
 
-  const checkStats = async (stats: StatsCompilation) => {
-    const compilerOptions = compiler.getOptions();
-    const updateIndex = updatePlugin.getUpdateIndex();
-    await checkArrayExpectation(
-      source,
-      stats,
-      'error',
-      `errors${updateIndex}`,
-      'Error',
-      compilerOptions,
-    );
-    await checkArrayExpectation(
-      source,
-      stats,
-      'warning',
-      `warnings${updateIndex}`,
-      'Warning',
-      compilerOptions,
-    );
-  };
-
-  const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
-    await updatePlugin.goNext();
-    const stats = await compiler.build();
+  const checkStats = async (stats: Stats) => {
+    matchStatsSnapshot(env, source, updatePlugin.getUpdateIndex(), stats);
     const jsonStats = stats.toJson({
       assets: true,
       chunks: true,
@@ -276,8 +293,32 @@ function createRunner(
       entrypoints: true,
       chunkGroups: true,
       // errorDetails: true
-    });
-    await checkStats(jsonStats);
+    }) as StatsCompilation;
+    const compilerOptions = compiler.getOptions();
+    const updateIndex = updatePlugin.getUpdateIndex();
+    await checkArrayExpectation(
+      source,
+      jsonStats,
+      'error',
+      `errors${updateIndex}`,
+      'Error',
+      compilerOptions,
+    );
+    await checkArrayExpectation(
+      source,
+      jsonStats,
+      'warning',
+      `warnings${updateIndex}`,
+      'Warning',
+      compilerOptions,
+    );
+    return jsonStats;
+  };
+
+  const nextHmr = async (m: any, options?: any): Promise<StatsCompilation> => {
+    await updatePlugin.goNext();
+    const stats = await compiler.build();
+    const jsonStats = await checkStats(stats);
 
     const updatedModules = await m.hot.check(options || true);
     if (!updatedModules) {
@@ -295,14 +336,7 @@ function createRunner(
 
     compiler.createCompiler();
     const stats = await compiler.build();
-    const jsonStats = stats.toJson({
-      assets: true,
-      chunks: true,
-      entrypoints: true,
-      chunkGroups: true,
-      // errorDetails: true
-    });
-    await checkStats(jsonStats);
+    const jsonStats = await checkStats(stats);
 
     env.it(`NEXT_START run with compilerIndex==${compilerIndex}`, async () => {
       return getWebRunner().run(file);
@@ -326,15 +360,7 @@ function createRunner(
 
     compiler.createCompiler();
     const stats = await compiler.build();
-    const jsonStats = stats.toJson({
-      assets: true,
-      chunks: true,
-      entrypoints: true,
-      chunkGroups: true,
-      // errorDetails: true
-    });
-
-    await checkStats(jsonStats);
+    const jsonStats = await checkStats(stats);
 
     env.it(
       `NEXT_MOVE_DIR_START run with compilerIndex==${compilerIndex}`,
@@ -342,7 +368,7 @@ function createRunner(
         return getWebRunner().run(file);
       },
     );
-    return jsonStats as StatsCompilation;
+    return jsonStats;
   };
 
   return getWebRunner();

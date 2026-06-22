@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::absolute_to_request;
+use rspack_util::identifier::push_absolute_to_request;
 use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
@@ -15,57 +15,30 @@ pub fn to_module_export_name(name: &str) -> String {
 }
 
 pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
-  let context = context.as_ref();
-  request
-    .split('!')
-    .map(|r| absolute_to_request(context.as_str(), r))
-    .collect::<Vec<Cow<str>>>()
-    .join("!")
+  let context = context.as_ref().as_str();
+  let mut result = String::with_capacity(request.len());
+  let mut last = 0;
+
+  for (index, byte) in request.bytes().enumerate() {
+    if byte == b'!' {
+      push_absolute_to_request(context, &request[last..index], &mut result);
+      result.push('!');
+      last = index + 1;
+    }
+  }
+
+  push_absolute_to_request(context, &request[last..], &mut result);
+  result
 }
 
-macro_rules! ident_table {
-  ( $( range: $range_start:literal, $range_end:expr ; )* $( unit: $unit:expr ; )* ) => {{
-    let mut table = 0u128;
-
-    $(
-      assert!($range_start <= 128);
-      assert!($range_end <= 128);
-      let mut curr = $range_start;
-      while curr <= $range_end {
-        table |= 1 << curr;
-        curr += 1;
-      }
-    )*
-
-    $(
-      assert!($unit <= 128);
-      table |= 1 << $unit;
-    )*
-
-    table
-  }}
-}
-
+#[inline]
 fn is_ident_first_safe(b: u8) -> bool {
-  const TABLE: u128 = ident_table! {
-    range: b'A', b'Z';
-    range: b'a', b'z';
-    unit : b'$';
-    unit : b'_';
-  };
-
-  b < 128 && (TABLE & (1 << b)) != 0
+  matches!(b, b'A'..=b'Z' | b'a'..=b'z' | b'$' | b'_')
 }
 
+#[inline]
 fn is_ident_safe(b: u8) -> bool {
-  const TABLE: u128 = ident_table! {
-    range: b'0', b'9';
-    range: b'A', b'Z';
-    range: b'a', b'z';
-    unit : b'$';
-  };
-
-  b < 128 && (TABLE & (1 << b)) != 0
+  matches!(b, b'0'..=b'9' | b'A'..=b'Z' | b'a'..=b'z' | b'$')
 }
 
 #[inline]
@@ -124,41 +97,51 @@ pub fn escape_identifier(v: &str) -> Cow<'_, str> {
 fn escape_identifier_impl(v: &str, out: &mut String) -> bool {
   let vstr = v;
   let v = v.as_bytes();
-  let mut pos = 0;
-  let mut is_safe = true;
 
   // hot path
-  if v.iter().all(|&b| is_ident_safe(b)) {
+  let Some(first_invalid) = v.iter().position(|&b| !is_ident_safe(b)) else {
     return true;
-  }
+  };
 
-  for i in 0..v.len() {
-    match (is_ident_safe(v[i]), is_safe) {
-      (true, true) => (),
-      (false, true) => {
+  // # Safety
+  //
+  // `first_invalid` is either an ASCII byte offset or the first byte of a
+  // non-ASCII character, so slicing before it stays on a UTF-8 boundary.
+  out.push_str(&vstr[..first_invalid]);
+  out.push('_');
+
+  let start = first_invalid + 1;
+  let mut pos = start;
+  let mut is_safe = false;
+  for i in start..v.len() {
+    if is_ident_safe(v[i]) {
+      if !is_safe {
+        pos = i;
+        is_safe = true;
+      }
+    } else {
+      if is_safe {
         // # Safety
         //
-        // always ascii
-        let s = &vstr[pos..i];
-        out.push_str(s);
+        // `pos` and `i` are ASCII byte offsets because they are only assigned
+        // while `is_ident_safe` is true.
+        out.push_str(&vstr[pos..i]);
         out.push('_');
-        pos = i + 1;
         is_safe = false;
       }
-      (false, false) => pos = i + 1,
-      (true, false) => is_safe = true,
     }
   }
 
-  if pos != 0 {
+  if is_safe {
     // # Safety
     //
-    // always ascii
+    // `pos` is an ASCII byte offset because it is only assigned while
+    // `is_ident_safe` is true.
     let s = &vstr[pos..];
     out.push_str(s);
   }
 
-  pos == 0
+  false
 }
 
 pub fn stringify_loaders_and_resource<'a>(
@@ -217,4 +200,23 @@ fn test_to_identifier_with_escaped() {
     "with_space"
   );
   assert_eq!(to_identifier_with_escaped("a.b".into()), "a_b");
+}
+
+#[test]
+fn test_contextify_preserves_loader_segments_and_queries() {
+  assert_eq!(
+    contextify(
+      "/workspace/app",
+      "/workspace/app/loaders/a.js!/workspace/app/src/index.js?foo=1"
+    ),
+    "./loaders/a.js!./src/index.js?foo=1"
+  );
+}
+
+#[test]
+fn test_contextify_preserves_empty_segments_and_regex_segments() {
+  assert_eq!(
+    contextify("/workspace/app", "!!/regexp/!/workspace/app/src/index.js"),
+    "!!/regexp/!./src/index.js"
+  );
 }

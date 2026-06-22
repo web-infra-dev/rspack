@@ -17,7 +17,7 @@ chunk {889} (runtime: main) main.js (main) xx bytes [entry] [rendered]
     cjs require ./a [237] ./index.js 1:9-14
   ./index.js [237] xx bytes {889} [depth 0] [built] [code generated] [2 warnings]
     [no exports used]
-    Statement with side_effects in source code at ./index.js<LINE_COL>-16
+    Statement with side_effects in source code at ./index.js<LINE_COL>-8
     ModuleConcatenation bailout: Module is not an ECMAScript module
     entry ./index
   

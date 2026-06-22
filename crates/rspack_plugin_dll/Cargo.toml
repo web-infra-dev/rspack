@@ -22,6 +22,7 @@ async-trait = { workspace = true }
 rustc-hash  = { workspace = true }
 serde       = { workspace = true, features = ["derive"] }
 serde_json  = { workspace = true }
+simd-json   = { workspace = true }
 tracing     = { workspace = true }
 
 [lints]

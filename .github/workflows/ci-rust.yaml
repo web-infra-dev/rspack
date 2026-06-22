@@ -30,7 +30,7 @@ jobs:
     name: Rust Test Required Check
     needs: [rust_tests]
     if: ${{ always() && !cancelled() }}
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     steps:
       - name: Log
         run: echo ${{ needs.*.result }}

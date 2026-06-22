@@ -6,11 +6,12 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
+use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{ArcPath, ArcPathSet};
 
 use self::strategy::{StrategyHelper, ValidateResult};
 pub use self::{
-  option::{PathMatcher, SnapshotOptions},
+  option::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions},
   scope::SnapshotScope,
   strategy::Strategy,
 };
@@ -57,9 +58,22 @@ impl Snapshot {
       return Some(v);
     }
     Some(match scope {
-      SnapshotScope::FILE => helper.file_hash(path).await,
+      SnapshotScope::FILE => {
+        helper
+          .file_strategy(path, options.dependencies_strategy())
+          .await
+      }
       SnapshotScope::MISSING => Strategy::Missing,
-      SnapshotScope::CONTEXT | SnapshotScope::BUILD => helper.dir_hash(path).await,
+      SnapshotScope::CONTEXT => {
+        helper
+          .dir_strategy(path, options.context_dependencies_strategy())
+          .await
+      }
+      SnapshotScope::BUILD => {
+        helper
+          .dir_strategy(path, SnapshotStrategyOptions::hash())
+          .await
+      }
     })
   }
 
@@ -133,13 +147,15 @@ impl Snapshot {
         let helper = helper.clone();
         let codec = codec.clone();
         async move {
-          let path: ArcPath = codec.decode(&key).expect("should decode success");
-          let strategy: Strategy = codec.decode(&value).expect("should decode success");
-          let validate = helper.validate(&path, &strategy).await;
-          (path, validate)
+          let path = codec.decode::<ArcPath>(&key)?;
+          let validate = match codec.decode::<Strategy>(&value) {
+            Ok(strategy) => helper.validate(&path, &strategy).await,
+            Err(_) => ValidateResult::Modified,
+          };
+          Ok::<_, rspack_error::Error>((path, validate))
         }
       })
-      .fut_consume(|(path, validate)| match validate {
+      .try_fut_consume(|(path, validate)| match validate {
         ValidateResult::Modified => {
           modified_path.insert(path);
         }
@@ -150,7 +166,7 @@ impl Snapshot {
           no_change_path.insert(path);
         }
       })
-      .await;
+      .await?;
 
     Ok((is_hot_start, modified_path, deleted_path, no_change_path))
   }

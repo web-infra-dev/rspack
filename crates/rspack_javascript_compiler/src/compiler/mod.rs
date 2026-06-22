@@ -36,7 +36,7 @@ pub struct TransformOutput {
   pub code: String,
 
   /// The source map for the transformed code
-  pub map: Option<SourceMap>,
+  pub map: Option<SourceMap<'static>>,
 
   /// The warning diagnostics for the transformed code
   pub diagnostics: Vec<String>,
@@ -47,4 +47,11 @@ impl TransformOutput {
     self.diagnostics = diagnostics;
     self
   }
+}
+
+#[derive(Debug, Clone)]
+pub struct IsolatedDtsTransformOutput {
+  pub code: String,
+  pub references: Vec<String>,
+  pub diagnostics: Vec<String>,
 }

@@ -71,10 +71,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType = LiteralUnion<
-  'fetch-streaming' | 'fetch' | 'async-node',
-  string
->;
+export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -304,14 +301,14 @@ export type OutputModule = boolean;
 /** Tell Rspack to remove a module from the module instance cache (require.cache) if it throws an exception when it is required. */
 export type StrictModuleExceptionHandling = boolean;
 
-/** Handle error in module loading as per EcmaScript Modules spec at a performance cost. */
+/** Handle error in module loading as per ECMAScript Modules spec at a performance cost. */
 export type StrictModuleErrorHandling = boolean;
 
 /** Indicates what global object will be used to mount the library. */
 export type GlobalObject = string;
 
 /** List of wasm loading types enabled for use by entry points. */
-export type EnabledWasmLoadingTypes = string[];
+export type EnabledWasmLoadingTypes = ('...' | WasmLoadingType)[];
 
 /** The name of the native import() function. */
 export type ImportFunctionName = string;
@@ -409,13 +406,16 @@ export type Environment = {
   /** The environment supports const and let for variable declarations. */
   const?: boolean;
 
+  /** The environment supports computed property names in object literals ('{ [expr]: value }'). */
+  computedProperty?: boolean;
+
   /** The environment supports destructuring ('{ a, b } = obj'). */
   destructuring?: boolean;
 
   /** The environment supports 'document' variable. */
   document?: boolean;
 
-  /** The environment supports an async import() function to import EcmaScript modules. */
+  /** The environment supports an async import() function to import ECMAScript modules. */
   dynamicImport?: boolean;
 
   /** The environment supports an async import() when creating a worker, only for web targets at the moment. */
@@ -545,7 +545,7 @@ export type Output = {
   strictModuleExceptionHandling?: StrictModuleExceptionHandling;
 
   /**
-   * Handle error in module loading as per EcmaScript Modules spec at a performance cost.
+   * Handle error in module loading as per ECMAScript Modules spec at a performance cost.
    * @default false
    * */
   strictModuleErrorHandling?: StrictModuleErrorHandling;
@@ -934,6 +934,9 @@ export type RuleSetRule = RuleSetRuleUseAndLoader & {
   /** Matches all modules that match this resource, and will match against the category of the dependency that introduced the current module */
   dependency?: RuleSetCondition;
 
+  /** Matches all modules by the import phase that introduced the current module. */
+  phase?: RuleSetCondition;
+
   /** Matches all modules that match this resource, and will match against Resource */
   resource?: RuleSetCondition;
 
@@ -1051,22 +1054,7 @@ export type CssParserOptions = {
    * Allow to enable/disables `@import` at-rules handling.
    * @default true
    * */
-  resolveImport?: CssParserResolveImport;
-};
-
-/** Options object for `css/auto` modules. */
-export type CssAutoParserOptions = {
-  /**
-   * Use ES modules named export for CSS exports.
-   * @default true
-   * */
-  namedExports?: CssParserNamedExports;
-
-  /**
-   * Allow to enable/disables handling the CSS functions url.
-   * @default true
-   * */
-  url?: CssParserUrl;
+  import?: boolean;
 
   /**
    * Allow to enable/disables `@import` at-rules handling.
@@ -1075,7 +1063,7 @@ export type CssAutoParserOptions = {
   resolveImport?: CssParserResolveImport;
 };
 
-/** Options object for `css/module` modules. */
+/** Options object for `css/global` modules. */
 export type CssModuleParserOptions = {
   /**
    * Use ES modules named export for CSS exports.
@@ -1093,7 +1081,58 @@ export type CssModuleParserOptions = {
    * Allow to enable/disables `@import` at-rules handling.
    * @default true
    * */
+  import?: boolean;
+
+  /**
+   * Allow to filter handling of `@import` at-rules.
+   * @default true
+   * */
   resolveImport?: CssParserResolveImport;
+
+  /**
+   * Enable/disable renaming of `@keyframes`.
+   * @default true
+   */
+  animation?: boolean;
+
+  /**
+   * Enable/disable renaming of container names.
+   * @default true
+   */
+  container?: boolean;
+
+  /**
+   * Enable/disable renaming of custom identifiers.
+   * @default true
+   */
+  customIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of dashed identifiers, e.g. custom properties.
+   * @default true
+   */
+  dashedIdents?: boolean;
+
+  /**
+   * Enable/disable renaming of CSS function names.
+   * @default true
+   */
+  function?: boolean;
+
+  /**
+   * Enable/disable renaming of grid names.
+   * @default true
+   */
+  grid?: boolean;
+};
+
+/** Options object for `css/auto` and `css/module` modules. */
+export type CssAutoOrModuleParserOptions = CssModuleParserOptions & {
+  /**
+   * Enable strict pure mode: every selector must contain at least one local class or id selector.
+   * @default false
+   */
+  pure?: boolean;
 };
 
 type ExportsPresence = 'error' | 'warn' | 'auto' | false;
@@ -1228,6 +1267,12 @@ export type JavascriptParserOptions = {
    */
   commonjsMagicComments?: boolean;
 
+  /**
+   * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
+   * @default false
+   */
+  createRequire?: boolean | string;
+
   /** Whether to tolerant exportsPresence for type reexport */
   typeReexportsPresence?: 'no-tolerant' | 'tolerant' | 'tolerant-no-check';
 
@@ -1240,6 +1285,13 @@ export type JavascriptParserOptions = {
    * @default false
    */
   deferImport?: boolean;
+
+  /**
+   * Whether to enable source phase import.
+   * This option is controlled by `experiments.sourceImport` and should not be set directly.
+   * @default false
+   */
+  sourceImport?: boolean;
 
   /**
    * Whether to enable import.meta.resolve().
@@ -1273,10 +1325,13 @@ export type ParserOptionsByModuleTypeKnown = {
   css?: CssParserOptions;
 
   /** Parser options for `css/auto` modules. */
-  'css/auto'?: CssAutoParserOptions;
+  'css/auto'?: CssAutoOrModuleParserOptions;
+
+  /** Parser options for `css/global` modules. */
+  'css/global'?: CssModuleParserOptions;
 
   /** Parser options for `css/module` modules. */
-  'css/module'?: CssModuleParserOptions;
+  'css/module'?: CssAutoOrModuleParserOptions;
 
   /** Parser options for `javascript` modules. */
   javascript?: JavascriptParserOptions;
@@ -1390,6 +1445,14 @@ export type CssGeneratorLocalIdentName = string;
 
 export type CssGeneratorEsModule = boolean;
 
+export type CssGeneratorLocalIdentHashDigest = string;
+
+export type CssGeneratorLocalIdentHashDigestLength = number;
+
+export type CssGeneratorLocalIdentHashFunction = string;
+
+export type CssGeneratorLocalIdentHashSalt = string;
+
 /** Generator options for css modules. */
 export type CssGeneratorOptions = {
   /**
@@ -1402,8 +1465,8 @@ export type CssGeneratorOptions = {
   esModule?: CssGeneratorEsModule;
 };
 
-/** Generator options for css/auto modules. */
-export type CssAutoGeneratorOptions = {
+/** Generator options for css/auto, css/global and css/module modules. */
+export type CssModuleGeneratorOptions = {
   /**
    * Customize how CSS export names are exported to javascript modules
    * @default 'as-is'
@@ -1416,15 +1479,32 @@ export type CssAutoGeneratorOptions = {
    */
   exportsOnly?: CssGeneratorExportsOnly;
 
+  /**
+   * Digest types used for the hash.
+   */
+  localIdentHashDigest?: CssGeneratorLocalIdentHashDigest;
+
+  /**
+   * Number of chars which are used for the hash.
+   */
+  localIdentHashDigestLength?: CssGeneratorLocalIdentHashDigestLength;
+
+  /**
+   * Algorithm used for generation the hash.
+   */
+  localIdentHashFunction?: CssGeneratorLocalIdentHashFunction;
+
+  /**
+   * Any string which is added to the hash to salt it.
+   */
+  localIdentHashSalt?: CssGeneratorLocalIdentHashSalt;
+
   /** Customize the format of the local class names generated for CSS modules */
   localIdentName?: CssGeneratorLocalIdentName;
 
   /** This configuration is available for improved ESM-CJS interoperability purposes. */
   esModule?: CssGeneratorEsModule;
 };
-
-/** Generator options for css/module modules. */
-export type CssModuleGeneratorOptions = CssAutoGeneratorOptions;
 
 /** Generator options for json modules. */
 export type JsonGeneratorOptions = {
@@ -1449,7 +1529,10 @@ export type GeneratorOptionsByModuleTypeKnown = {
   css?: CssGeneratorOptions;
 
   /** Generator options for css/auto modules. */
-  'css/auto'?: CssAutoGeneratorOptions;
+  'css/auto'?: CssModuleGeneratorOptions;
+
+  /** Generator options for css/global modules. */
+  'css/global'?: CssModuleGeneratorOptions;
 
   /** Generator options for css/module modules. */
   'css/module'?: CssModuleGeneratorOptions;
@@ -1570,6 +1653,7 @@ export type ExternalsType =
   | 'promise'
   | 'import'
   | 'module-import'
+  | 'modern-module'
   | 'script'
   | 'node-commonjs'
   | 'commonjs-import';
@@ -1825,10 +1909,6 @@ export type Node = false | NodeOptions;
 export type Loader = Record<string, any>;
 //#endregion
 
-//#region Snapshot
-export type SnapshotOptions = {};
-//#endregion
-
 //#region Cache
 /**
  * Snapshot options for determining which files have been modified.
@@ -1859,9 +1939,22 @@ export type CacheStorageOptions = {
   type: 'filesystem';
   /**
    * Cache directory path.
-   * @default 'node_modules/.cache/rspack'
+   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
    */
   directory?: string;
+  /**
+   * Maximum age of unused filesystem cache in seconds. Must be an integer
+   * between 1 and 4294967295, or Infinity to disable age-based cleanup.
+   * @default 7 * 24 * 60 * 60
+   */
+  maxAge?: number;
+  /**
+   * Maximum number of filesystem cache generations to retain in the cache
+   * directory. Must be an integer between 1 and 4294967295, or Infinity to
+   * disable generation-based cleanup.
+   * @default 3
+   */
+  maxGenerations?: number;
 };
 
 /**
@@ -2932,10 +3025,21 @@ export type Experiments = {
    */
   deferImport?: boolean;
   /**
+   * Enable source phase import feature
+   * @default false
+   */
+  sourceImport?: boolean;
+  /**
    * Enable pure-function-based side-effects analysis.
    * @default false
    */
   pureFunctions?: boolean;
+  /**
+   * Select runtime proxy context behavior. `webpack` keeps the webpack startup hook,
+   * while `rspack` uses `__rspack_context`.
+   * @default "webpack"
+   */
+  runtimeMode?: 'webpack' | 'rspack';
 };
 //#endregion
 
@@ -3162,10 +3266,6 @@ export type RspackOptions = {
    * Options for the stats output.
    */
   stats?: StatsValue;
-  /**
-   * Options for snapshotting.
-   */
-  snapshot?: SnapshotOptions;
   /**
    * Optimization options.
    */

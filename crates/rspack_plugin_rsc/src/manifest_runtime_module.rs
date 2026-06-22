@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use indoc::formatdoc;
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
@@ -23,6 +23,10 @@ impl RscManifestRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RscManifestRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::RSC_MANIFEST
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -59,13 +63,11 @@ impl RuntimeModule for RscManifestRuntimeModule {
       )
     })?;
 
-    let entry_state = plugin_state.entries.get(&entry_name).ok_or_else(|| {
-      rspack_error::error!(
-        "RSC entry state not found for entry {:?} (compiler ID: {}).",
-        entry_name,
-        server_compiler_id.as_u32()
-      )
-    })?;
+    let Some(entry_state) = plugin_state.entries.get(&entry_name) else {
+      // Worker entries are represented as named entrypoints in the chunk graph,
+      // but they are not top-level RSC compilation entries.
+      return Ok(String::new());
+    };
     let server_manifest = &entry_state.server_actions;
     let client_manifest = &entry_state.client_modules;
     let server_consumer_module_map = entry_state.server_consumer_module_map.as_ref();
@@ -80,15 +82,16 @@ impl RuntimeModule for RscManifestRuntimeModule {
       client_manifest,
       server_consumer_module_map,
       module_loading,
-      entry_css_files: &entry_state.entry_css_files,
-      entry_js_files: &entry_state.entry_js_files,
+      server_entries: &entry_state.server_entries,
+      bootstrap_scripts: &entry_state.bootstrap_scripts,
+      css_link_props: &plugin_state.css_link_props,
     };
 
     Ok(formatdoc! {
       r#"
-        {require_name}.rscM = JSON.parse({rsc_manifest_json});
+        {rsc_manifest} = JSON.parse({rsc_manifest_json});
       "#,
-      require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+      rsc_manifest = runtime_template.render_runtime_globals(&RuntimeGlobals::RSC_MANIFEST),
       rsc_manifest_json = to_json_string_literal(&rsc_manifest).to_rspack_result()?,
     })
   }

@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{borrow::Cow, sync::Arc};
 
 use rspack_error::Result;
 use rspack_sources::{Mapping, OriginalLocation, encode_mappings};
+use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 use swc_core::{
   base::sourcemap,
@@ -24,10 +25,14 @@ use super::{JavaScriptCompiler, TransformOutput};
 
 #[derive(Default, Clone, Debug)]
 pub struct SourceMapConfig {
-  pub enable: bool,
-  pub inline_sources_content: bool,
-  pub emit_columns: bool,
+  pub source_map_kind: SourceMapKind,
   pub names: FxHashMap<BytePos, Atom>,
+}
+
+impl SourceMapConfig {
+  pub fn enabled(&self) -> bool {
+    self.source_map_kind.source_map()
+  }
 }
 
 impl SourceMapGenConfig for SourceMapConfig {
@@ -41,11 +46,14 @@ impl SourceMapGenConfig for SourceMapConfig {
   }
 
   fn inline_sources_content(&self, _: &FileName) -> bool {
-    self.inline_sources_content
+    // Ideally transform should keep the original source via `original_source`, but
+    // NormalModule historically wraps loader output with `WithoutOriginalOptions`.
+    // Keep the old behavior of carrying it through SWC's inline source content.
+    self.source_map_kind.source_map()
   }
 
   fn emit_columns(&self, _f: &FileName) -> bool {
-    self.emit_columns
+    self.source_map_kind.emit_columns()
   }
 
   fn name_for_bytepos(&self, pos: BytePos) -> Option<&str> {
@@ -82,7 +90,7 @@ impl JavaScriptCompiler {
     } = options;
     let mut src_map_buf = vec![];
 
-    if source_map_config.enable {
+    if source_map_config.enabled() {
       let mut v = IdentCollector {
         names: Default::default(),
       };
@@ -99,7 +107,7 @@ impl JavaScriptCompiler {
           source_map.clone(),
           "\n",
           &mut buf,
-          source_map_config.enable.then_some(&mut src_map_buf),
+          source_map_config.enabled().then_some(&mut src_map_buf),
         );
 
         w.preamble(preamble)?;
@@ -125,7 +133,7 @@ impl JavaScriptCompiler {
       unsafe { String::from_utf8_unchecked(buf) }
     };
 
-    let map = if source_map_config.enable {
+    let map = if source_map_config.enabled() {
       let combined_source_map =
         source_map.build_source_map(&src_map_buf, input_source_map.cloned(), source_map_config);
 
@@ -152,18 +160,22 @@ impl JavaScriptCompiler {
         mappings,
         combined_source_map
           .sources()
-          .map(ToString::to_string)
+          .map(|source| Cow::Owned(source.to_string()))
           .collect::<Vec<_>>(),
         combined_source_map
           .source_contents()
-          .map(|byte_str| Arc::from(byte_str.map(ToString::to_string).unwrap_or_default()))
+          .map(|byte_str| Cow::Owned(byte_str.map(ToString::to_string).unwrap_or_default()))
           .collect::<Vec<_>>(),
         combined_source_map
           .names()
-          .map(ToString::to_string)
+          .map(|name| Cow::Owned(name.to_string()))
           .collect::<Vec<_>>(),
       );
-      rspack_source_map.set_file(combined_source_map.get_file().map(ToString::to_string));
+      rspack_source_map.set_file(
+        combined_source_map
+          .get_file()
+          .map(|s| Cow::Owned(s.to_string())),
+      );
 
       Some(rspack_source_map)
     } else {

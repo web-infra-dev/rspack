@@ -12,16 +12,16 @@ use futures::future::BoxFuture;
 use indicatif::{MultiProgress, ProgressBar, ProgressDrawTarget, ProgressStyle};
 use rspack_collections::IdentifierMap;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, Compilation,
-  CompilationAfterOptimizeModules, CompilationAfterProcessAssets, CompilationBuildModule,
-  CompilationChunkIds, CompilationFinishModules, CompilationId, CompilationModuleIds,
-  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeCodeGeneration,
-  CompilationOptimizeDependencies, CompilationOptimizeModules, CompilationOptimizeTree,
-  CompilationParams, CompilationProcessAssets, CompilationSeal, CompilationSucceedModule,
-  CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit, CompilerFinishMake,
-  CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact, ModuleIdentifier,
-  ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact, SideEffectsStateArtifact,
-  build_module_graph::BuildModuleGraphArtifact,
+  AsyncModulesArtifact, BoxModule, ChunkByUkey, ChunkNamedIdArtifact, CircularModulesInfo,
+  Compilation, CompilationAfterOptimizeModules, CompilationAfterProcessAssets,
+  CompilationBuildModule, CompilationChunkIds, CompilationFinishModules, CompilationId,
+  CompilationModuleIds, CompilationOptimizeChunkModules, CompilationOptimizeChunks,
+  CompilationOptimizeCodeGeneration, CompilationOptimizeDependencies, CompilationOptimizeModules,
+  CompilationOptimizeTree, CompilationParams, CompilationProcessAssets, CompilationSeal,
+  CompilationSucceedModule, CompilerAfterEmit, CompilerClose, CompilerCompilation, CompilerEmit,
+  CompilerFinishMake, CompilerId, CompilerMake, CompilerThisCompilation, ExportsInfoArtifact,
+  ModuleIdentifier, ModuleIdsArtifact, Plugin, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, build_module_graph::BuildModuleGraphArtifact,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -471,6 +471,7 @@ async fn optimize_dependencies(
 async fn optimize_modules(
   &self,
   _compilation: &Compilation,
+  _circular_modules: &mut CircularModulesInfo,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
   self.sealing_hooks_report("optimize modules", 7).await?;

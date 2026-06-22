@@ -6,7 +6,9 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_hook::{plugin, plugin_hook};
 
-use crate::id_helpers::{assign_ascending_chunk_ids, compare_chunks_natural};
+use crate::id_helpers::{
+  NaturalChunkCompareCache, assign_ascending_chunk_ids, compare_chunks_natural,
+};
 
 #[plugin]
 #[derive(Debug, Default)]
@@ -31,7 +33,7 @@ async fn chunk_ids(
 
   let module_ids = &compilation.module_ids_artifact;
   let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
-  let mut ordered_chunk_modules_cache = Default::default();
+  let mut chunk_compare_cache = NaturalChunkCompareCache::default();
 
   let chunks = chunk_by_ukey
     .values()
@@ -43,7 +45,7 @@ async fn chunk_ids(
         module_ids,
         a,
         b,
-        &mut ordered_chunk_modules_cache,
+        &mut chunk_compare_cache,
       )
     })
     .map(|chunk| chunk.ukey())

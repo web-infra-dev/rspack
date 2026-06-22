@@ -21,11 +21,12 @@ use rspack_sources::BoxSource;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, DynHash},
-  fx_hash::FxIndexMap,
+  fx_hash::{FxIndexMap, FxIndexSet},
   source_map::ModuleSourceMapConfig,
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
@@ -33,9 +34,9 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  PrefetchExportsInfoMode, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
   SharedPluginDriver, SideEffectsStateArtifact, SourceType,
   concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
   get_target, value_cache_versions::ValueCacheVersions,
@@ -77,10 +78,178 @@ pub struct RscMeta {
 
   #[cacheable(with=AsVec<AsPreset>)]
   pub client_refs: Vec<Wtf8Atom>,
+
+  /// Whether this server component uses `import.meta.rspackRsc`.
+  ///
+  /// RSC client manifest collection uses this to find the module's transitive
+  /// CSS dependencies, so they can be exposed through `entryCssFiles` and
+  /// rendered by `loadCss()`.
+  pub import_meta_rsc: bool,
+
   pub is_cjs: bool,
 
   #[cacheable(with=AsMap<AsPreset, AsPreset>)]
   pub action_ids: FxIndexMap<Atom, Atom>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum CanonicalizedDataUrlOption {
+  Source,
+  Bytes,
+  Asset(bool),
+}
+
+impl CanonicalizedDataUrlOption {
+  pub fn is_source(&self) -> bool {
+    matches!(self, Self::Source)
+  }
+
+  pub fn is_bytes(&self) -> bool {
+    matches!(self, Self::Bytes)
+  }
+
+  pub fn is_inline(&self) -> bool {
+    matches!(self, Self::Asset(true))
+  }
+
+  pub fn is_resource(&self) -> bool {
+    matches!(self, Self::Asset(false))
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct CssExport {
+  #[cacheable(with=AsPreset)]
+  pub ident: SmolStr,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub from: Option<SmolStr>,
+  pub id: Option<DependencyId>,
+  #[cacheable(with=AsPreset)]
+  pub orig_name: SmolStr,
+}
+
+pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
+pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum CssLayer {
+  Anonymous,
+  Named(#[cacheable(with=AsPreset)] SmolStr),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssModuleRenderCondition {
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub media: Option<SmolStr>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub supports: Option<SmolStr>,
+  pub layer: Option<CssLayer>,
+}
+
+impl CssModuleRenderCondition {
+  pub fn new(media: Option<SmolStr>, supports: Option<SmolStr>, layer: Option<CssLayer>) -> Self {
+    Self {
+      media,
+      supports,
+      layer,
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.media.is_none() && self.supports.is_none() && self.layer.is_none()
+  }
+}
+
+pub fn iter_css_module_render_conditions<'a>(
+  inherited_render_conditions: &'a [CssModuleRenderCondition],
+  render_condition: &'a CssModuleRenderCondition,
+) -> impl Iterator<Item = &'a CssModuleRenderCondition> {
+  inherited_render_conditions
+    .iter()
+    .chain(std::iter::once(render_condition))
+    .filter(|condition| !condition.is_empty())
+}
+
+pub fn css_module_render_conditions_identifier<'a>(
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> Option<String> {
+  let mut key = String::new();
+  let mut count = 0;
+  for condition in conditions
+    .into_iter()
+    .filter(|condition| !condition.is_empty())
+  {
+    count += 1;
+    let layer = match &condition.layer {
+      Some(CssLayer::Anonymous) => "<anonymous>",
+      Some(CssLayer::Named(layer)) => layer.as_str(),
+      None => "",
+    };
+    push_css_module_identifier_part(&mut key, layer);
+    push_css_module_identifier_part(&mut key, condition.supports.as_deref().unwrap_or_default());
+    push_css_module_identifier_part(&mut key, condition.media.as_deref().unwrap_or_default());
+  }
+
+  if count == 0 {
+    None
+  } else {
+    Some(format!("conditions={count}{key}"))
+  }
+}
+
+pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
+  identifier.push('|');
+  identifier.push_str(&value.len().to_string());
+  identifier.push(':');
+  identifier.push_str(value);
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssBuildInfo {
+  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  pub exports: CssExports,
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub local_names: CssLocalNames,
+  /// Conditions inherited from parent CSS modules.
+  ///
+  /// Webpack stores the current module condition before inherited conditions.
+  /// Rspack stores inherited conditions from outermost to innermost
+  pub inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  pub render_condition: CssModuleRenderCondition,
+}
+
+impl CssBuildInfo {
+  pub fn exports(&self) -> Option<&CssExports> {
+    (!self.exports.is_empty()).then_some(&self.exports)
+  }
+
+  pub fn local_names(&self) -> Option<&CssLocalNames> {
+    (!self.local_names.is_empty()).then_some(&self.local_names)
+  }
+
+  pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct IsolatedDts {
+  pub resource_path: String,
+  pub code: String,
+  pub references: Vec<String>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct AssetBuildInfo {
+  pub data_url: CanonicalizedDataUrlOption,
+  pub filename: Option<Filename>,
 }
 
 #[cacheable]
@@ -103,6 +272,8 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
+  pub asset: Option<Box<AssetBuildInfo>>,
+  pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
@@ -113,6 +284,8 @@ pub struct BuildInfo {
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
+  pub import_phase: ImportPhase,
+  pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
   #[cacheable(with=AsPreset)]
@@ -138,6 +311,8 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
+      asset: None,
+      css: None,
       side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
@@ -146,6 +321,8 @@ impl Default for BuildInfo {
       inline_exports: false,
       collected_typescript_info: None,
       rsc: None,
+      import_phase: ImportPhase::Evaluation,
+      isolated_dts: None,
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),
     }
@@ -236,8 +413,6 @@ pub struct BuildMeta {
   pub default_object: BuildMetaDefaultObject,
   #[serde(skip_serializing_if = "Option::is_none")]
   pub side_effect_free: Option<bool>,
-  #[serde(skip_serializing_if = "Option::is_none")]
-  pub exports_final_name: Option<Vec<(String, String)>>,
 }
 
 // webpack build info
@@ -489,12 +664,12 @@ fn get_exports_type_impl(
         }
 
         let name = Atom::from("__esModule");
-        let exports_info = exports_info_artifact
-          .get_prefetched_exports_info_optional(&identifier, PrefetchExportsInfoMode::Default);
-        if let Some(export_info) = exports_info
-          .as_ref()
-          .map(|info| info.get_read_only_export_info(&name))
-        {
+        let exports_info = exports_info_artifact.get_exports_info_optional(&identifier);
+        if let Some(export_info) = exports_info.as_ref().map(|info| {
+          info
+            .as_data(exports_info_artifact)
+            .get_read_only_export_info(&name)
+        }) {
           if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
             handle_default(default_object)
           } else {

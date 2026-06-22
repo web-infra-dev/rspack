@@ -1,10 +1,10 @@
 use std::hash::Hash;
 
 use rspack_core::{
-  AsyncModulesArtifact, CanInlineUse, ChunkUkey, Compilation,
+  AsyncModulesArtifact, CanInlineUse, ChunkCodeTemplate, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportsInfoArtifact, LibraryExport, LibraryOptions, LibraryType,
-  ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  ModuleIdentifier, Plugin, RuntimeGlobals, RuntimeModule, RuntimeVariable,
   SideEffectsStateArtifact, UsageState, get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
@@ -77,16 +77,17 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   _module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());
   };
   if let Some(export) = options.export {
+    let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
     let mut s = ConcatSource::default();
     s.add(render_source.source.clone());
     s.add(RawStringSource::from(format!(
-      "__webpack_exports__ = __webpack_exports__{};",
+      "{exports_name} = {exports_name}{};",
       property_access(export, 0)
     )));
     render_source.source = s.boxed();

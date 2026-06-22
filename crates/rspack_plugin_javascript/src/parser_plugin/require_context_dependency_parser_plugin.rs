@@ -3,7 +3,7 @@ use rspack_core::{
 };
 use rspack_regex::RspackRegex;
 use rspack_util::SpanExt;
-use swc_core::{common::Spanned, ecma::ast::CallExpr};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan};
 
 use super::JavascriptParserPlugin;
 use crate::{
@@ -14,8 +14,13 @@ use crate::{
 pub struct RequireContextDependencyParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireContextDependencyParserPlugin {
+  fn call(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
     if for_name != "require.context" {
       return None;
     }
@@ -71,20 +76,13 @@ impl JavascriptParserPlugin for RequireContextDependencyParserPlugin {
         ContextOptions {
           mode,
           recursive,
-          reg_exp,
-          include: None,
-          exclude: None,
+          pattern: reg_exp.into(),
           category: DependencyCategory::CommonJS,
           request: request_expr.string().clone(),
           context: request_expr.string().clone(),
-          namespace_object: rspack_core::ContextNameSpaceObject::Unset,
-          group_options: None,
-          replaces: Vec::new(),
           start: expr.span().real_lo(),
           end: expr.span().real_hi(),
-          referenced_specifiers: None,
-          attributes: None,
-          phase: None,
+          ..Default::default()
         },
         expr.span.into(),
         parser.in_try,

@@ -45,7 +45,7 @@ You can run Rspack tests by running `./x test unit` or `pnpm run test:unit` at t
 You can also go to the `tests/rspack-test` folder and run `npm run test` to run test cases and add some arguments:
 
 - **When refreshing test snapshots is needed**: Add `-u`, like `npm run test -- -u`
-- **When filtering test cases is needed**: Add `-t`. Pattern matching supports regex, see [rstest](https://rstest.rs/config/test/testNamePattern) for details.
+- **When filtering test cases is needed**: Add `-t`. Pattern matching supports regex, see [rstest](https://rstest.rs/guide/basic/test-filter#filter-by-test-name) for details.
 
 ### Running tests
 
@@ -107,27 +107,25 @@ The existing test types are:
 
 Please prioritize adding test cases within the above test types.
 
-{/* If there are no suitable types, please follow the guidelines for [adding new test types](./test-advanced). */}
-
 ### Normal
 
-| Test Entry            | `tests/Normal.test.js`                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/normalCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/normalCases)                      |
-| Output Directory      | `tests/js/normal`                                                                                                           |
-| Default Configuration | [NormalProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/normal.ts#L35) |
-| Run Output            | `Yes`                                                                                                                       |
+| Test Entry            | `tests/Normal.test.js`                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Case Directory        | [`tests/normalCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/normalCases)             |
+| Output Directory      | `tests/js/normal`                                                                                                  |
+| Default Configuration | [NormalProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/normal.ts) |
+| Run Output            | `Yes`                                                                                                              |
 
 The writing of the case is the same as a regular rspack project, but it does not include the `rspack.config.js` file and will use the provided configuration for building.
 
 ### Config
 
-| Test Entry            | `tests/Config.test.js`                                                                                                      |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/configCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases)                      |
-| Output Directory      | `tests/js/config`                                                                                                           |
-| Default Configuration | [ConfigProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/config.ts#L51) |
-| Run Output            | `Yes`                                                                                                                       |
+| Test Entry            | `tests/Config.test.js`                                                                                             |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Case Directory        | [`tests/configCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/configCases)             |
+| Output Directory      | `tests/js/config`                                                                                                  |
+| Default Configuration | [ConfigProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/config.ts) |
+| Run Output            | `Yes`                                                                                                              |
 
 This test case is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js` and control various behaviors during testing by adding a `test.config.js`. The structure of the `test.config.js` file is as follows:
 
@@ -156,12 +154,12 @@ module.exports = {
 
 ### Hot
 
-| Test Entry            | `Hot{Target}.test.js`                                                                                                 |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/hotCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hotCases)                      |
-| Output Directory      | `tests/js/hot-{target}`                                                                                               |
-| Default Configuration | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hot.ts#L86) |
-| Run Output            | `Yes`                                                                                                                 |
+| Test Entry            | `Hot{Target}.test.js`                                                                                        |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Case Directory        | [`tests/hotCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hotCases)             |
+| Output Directory      | `tests/js/hot-{target}`                                                                                      |
+| Default Configuration | [HotProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hot.ts) |
+| Run Output            | `Yes`                                                                                                        |
 
 This test case is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js`.
 
@@ -218,12 +216,12 @@ The snapshot structure is as follows:
 
 ### Watch
 
-| Entry File            | `Watch.test.js`                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/watchCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/watchCases)                      |
-| Output Directory      | `tests/js/watch`                                                                                                          |
-| Default Configuration | [WatchProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/watch.ts#L99) |
-| Run Output            | `Yes`                                                                                                                     |
+| Entry File            | `Watch.test.js`                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/watchCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/watchCases)             |
+| Output Directory      | `tests/js/watch`                                                                                                 |
+| Default Configuration | [WatchProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/watch.ts) |
+| Run Output            | `Yes`                                                                                                            |
 
 As the Watch build needs to be performed in multiple steps, you can specify the build configuration by adding a `rspack.config.js`. The directory structure of its cases is special and will use incrementing numbers to represent change batches:
 
@@ -239,12 +237,12 @@ In the test code, you can use the `WATCH_STEP` variable to get the current batch
 
 ### StatsOutput
 
-| Test Entry            | `StatsOutput.test.js`                                                                                                      |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/statsOutputCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/statsOutputCases)           |
-| Output Directory      | `tests/js/statsOutput`                                                                                                     |
-| Default Configuration | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats.ts#L190) |
-| Run Output            | `No`                                                                                                                       |
+| Test Entry            | `StatsOutput.test.js`                                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/statsOutputCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/statsOutputCases)        |
+| Output Directory      | `tests/js/statsOutput`                                                                                                  |
+| Default Configuration | [StatsProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/stats-output.ts) |
+| Run Output            | `No`                                                                                                                    |
 
 The writing of the cases is the same as in a regular rspack project. After running, the console output information will be captured in snapshots and stored in `tests/rspack-test/__snapshots__/StatsOutput.test.js.snap`.
 
@@ -254,12 +252,12 @@ As some StatsOutput test cases contain hashes, when you modify the output code, 
 
 ### Stats API
 
-| Entry File            | `StatsAPI.test.js`                                                                                                |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | `tests/statsAPICases`                                                                                             |
-| Output Directory      | `None`                                                                                                            |
-| Default Configuration | [`None`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/stats-api.ts) |
-| Run Output            | `No`                                                                                                              |
+| Entry File            | `StatsAPI.test.js`                                                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Case Directory        | `tests/statsAPICases`                                                                                        |
+| Output Directory      | `None`                                                                                                       |
+| Default Configuration | [`None`](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/stats-api.ts) |
+| Run Output            | `No`                                                                                                         |
 
 This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
@@ -280,23 +278,23 @@ module.exports = {
 
 ### Diagnostic
 
-| Entry File            | `Diagnostics.test.js`                                                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/diagnosticsCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/diagnosticsCases)                    |
-| Output Directory      | `tests/js/diagnostics`                                                                                                              |
-| Default Configuration | [DiagnosticProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/diagnostic.ts#L71) |
-| Run Output            | `No`                                                                                                                                |
+| Entry File            | `Diagnostics.test.js`                                                                                                      |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/diagnosticsCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/diagnosticsCases)           |
+| Output Directory      | `tests/js/diagnostics`                                                                                                     |
+| Default Configuration | [DiagnosticProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/diagnostic.ts) |
+| Run Output            | `No`                                                                                                                       |
 
 This test case is similar to a typical rspack project and can specify build configurations by adding a `rspack.config.js`. Additionally, it will add a `stats.err` file in the case directory to store snapshots of warnings/errors. To refresh, use the `-u` parameter.
 
 ### Hash
 
-| Entry File            | `Hash.test.js`                                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/hashCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hashCases)                      |
-| Output Directory      | None                                                                                                                    |
-| Default Configuration | [HashProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hash.ts#L53) |
-| Run Output            | No                                                                                                                      |
+| Entry File            | `Hash.test.js`                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/hashCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hashCases)             |
+| Output Directory      | None                                                                                                           |
+| Default Configuration | [HashProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hash.ts) |
+| Run Output            | No                                                                                                             |
 
 This test case is similar to a typical rspack project, but it will add a `test.config.js` file in the case directory and specify a `validate()` method to check the hash information in the `stats` object after the build is complete:
 
@@ -314,12 +312,12 @@ module.exports = {
 
 ### Compiler
 
-| Entry File            | `Compiler.test.js`                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Case Directory        | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases)   |
-| Output Directory      | None                                                                                                         |
-| Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/simple.ts) |
-| Run Output            | No                                                                                                           |
+| Entry File            | `Compiler.test.js`                                                                                         |
+| --------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/compilerCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/compilerCases) |
+| Output Directory      | None                                                                                                       |
+| Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/compiler.ts)  |
+| Run Output            | No                                                                                                         |
 
 This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
@@ -345,12 +343,12 @@ module.exports = {
 
 ### Defaults
 
-| Entry File            | `Defaults.test.js`                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/defaultCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/defaultCases)       |
-| Output Directory      | None                                                                                                           |
-| Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/defaults.ts) |
-| Run Output            | No                                                                                                             |
+| Entry File            | `Defaults.test.js`                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/defaultCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/defaultCases)  |
+| Output Directory      | None                                                                                                      |
+| Default Configuration | [None](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/defaults.ts) |
+| Run Output            | No                                                                                                        |
 
 This test does not execute real builds; it only generates build configurations and observes the differences from the default configuration. The basic default configuration will be snapshot and stored in `tests/rspack-test/__snapshots__/Defaults.test.js.snap`.
 
@@ -378,12 +376,12 @@ The details for the Error test are as follows:
 
 ### Error
 
-| Entry File            | `Error.test.js`                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | [`tests/errorCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/errorCases)                      |
-| Output Directory      | None                                                                                                                      |
-| Default Configuration | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/error.ts#L84) |
-| Run Output            | No                                                                                                                        |
+| Entry File            | `Error.test.js`                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/errorCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/errorCases)             |
+| Output Directory      | None                                                                                                             |
+| Default Configuration | [ErrorProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/error.ts) |
+| Run Output            | No                                                                                                               |
 
 This test uses `tests/rspack-test/fixtures` as the source code for the build, so the test case is written as a single file. Its structure is as follows:
 
@@ -407,12 +405,12 @@ module.exports = {
 
 ### Hook
 
-| Entry File            | `Hook.test.js`                                                                                                           |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Case Directory        | [`tests/hookCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hookCases)                       |
-| Output Directory      | None                                                                                                                     |
-| Default Configuration | [HookProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/hook.ts#L190) |
-| Run Output            | No                                                                                                                       |
+| Entry File            | `Hook.test.js`                                                                                                 |
+| --------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | [`tests/hookCases`](https://github.com/web-infra-dev/rspack/tree/main/tests/rspack-test/hookCases)             |
+| Output Directory      | None                                                                                                           |
+| Default Configuration | [HookProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/hook.ts) |
+| Run Output            | No                                                                                                             |
 
 This test records the input and output of the hook and stores it in the snapshot `hooks.snap.txt`. The snapshot of the final product code is stored in `output.snap.txt`.
 
@@ -438,23 +436,23 @@ module.exports = {
 
 ### TreeShaking
 
-| Entry File            | `TreeShaking.test.js`                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | `tests/treeShakingCases`                                                                                                              |
-| Output Directory      | `tests/js/treeShaking`                                                                                                                |
-| Default Configuration | [TreeShakingProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/treeshaking.ts#L19) |
-| Run Output            | No                                                                                                                                    |
+| Entry File            | `TreeShaking.test.js`                                                                                                        |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | `tests/treeShakingCases`                                                                                                     |
+| Output Directory      | `tests/js/treeShaking`                                                                                                       |
+| Default Configuration | [TreeShakingProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/treeshaking.ts) |
+| Run Output            | No                                                                                                                           |
 
 In this test case, the configuration is similar to a regular rspack project. You can specify the build configuration by adding a `rspack.config.js`, but the final product is snapshot and stored in `__snapshots__/treeshaking.snap.txt`.
 
 ### Builtin
 
-| Entry File            | `Builtin.test.js`                                                                                                             |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Case Directory        | `tests/builtinCases`                                                                                                          |
-| Output Directory      | `tests/js/builtin`                                                                                                            |
-| Default Configuration | [BuiltinProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/processor/builtin.ts#L27) |
-| Run Output            | No                                                                                                                            |
+| Entry File            | `Builtin.test.js`                                                                                                    |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Case Directory        | `tests/builtinCases`                                                                                                 |
+| Output Directory      | `tests/js/builtin`                                                                                                   |
+| Default Configuration | [BuiltinProcessor](https://github.com/web-infra-dev/rspack/blob/main/packages/rspack-test-tools/src/case/builtin.ts) |
+| Run Output            | No                                                                                                                   |
 
 This test case is similar to a regular rspack project, and you can specify the build configuration by adding a `rspack.config.js`. However, depending on the directory, different snapshots of the products will be generated and stored in `__snapshots__/output.snap.txt`:
 

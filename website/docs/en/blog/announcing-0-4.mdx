@@ -2,11 +2,20 @@
 description: 'Rspack 0.4 is out, removing support for some builtin features.'
 date: 2023-11-22 17:31:00
 sidebar: false
+authors:
+  - name: Rspack Team
+    avatar: 'https://assets.rspack.rs/rspack/rspack-logo-with-background.png'
+    title: '@rspack_dev'
+    x: 'https://x.com/rspack_dev'
 ---
 
-_November 02, 2023_
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 # Announcing Rspack 0.4
+
+November 22, 2023
+
+<BlogAuthors />
 
 ## Major changes
 
@@ -56,7 +65,6 @@ export default {
             emotion: true, // The same as `builtins`
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -90,7 +98,6 @@ export default {
 +         targets: "chrome >= 48"
 +        }
         }
-        type: 'javascript/auto',
       },
     ],
   }
@@ -111,7 +118,7 @@ For JS-related types, only the following will be retained:
 - `"javascript/esm"`
 - `"javascript/dynamic"`
 
-Refer to [this](/config/experiments#experimentsrspackfuturedisabletransformbydefault) for the complete migration guide.
+Refer to [this](https://v0.rspack.rs/config/experiments#experimentsrspackfuturedisabletransformbydefault) for the complete migration guide.
 
 Check out our previous discussion [here](https://github.com/web-infra-dev/rspack/discussions/4070).
 

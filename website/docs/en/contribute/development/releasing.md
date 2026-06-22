@@ -65,7 +65,8 @@ git push origin release/vx.y.z
    - [Release Full](https://github.com/web-infra-dev/rspack/actions/workflows/release.yml): Publish npm packages to registry
    - [Release Crates](https://github.com/web-infra-dev/rspack/actions/workflows/release-crates.yml): Publish Rust crates to crates.io
 7. After the release, merge the PR to the `main` branch.
-8. Generate the [GitHub release note](https://github.com/web-infra-dev/rspack/releases), and add highlights information.
+8. Use the `create-draft-release-notes` skill to create a draft [GitHub release note](https://github.com/web-infra-dev/rspack/releases).
+9. Review the draft release note, optionally add release highlights, and publish it.
 
 ## Canary release
 

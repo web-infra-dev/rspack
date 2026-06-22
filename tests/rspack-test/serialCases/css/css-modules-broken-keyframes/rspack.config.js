@@ -3,10 +3,17 @@ const path = require('path');
 
 /** @type {function(any, any): import("@rspack/core").Configuration} */
 module.exports = (env, { testPath }) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    './use-style_js.bundle0.js': 'commonjs ./use-style_js.bundle0.js',
+  },
   target: 'web',
   mode: 'production',
   output: {
     uniqueName: 'my-app',
+  },
+  node: {
+    __dirname: false,
   },
   module: {
     rules: [

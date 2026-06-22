@@ -20,6 +20,10 @@ impl StartupChunkDependenciesRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::STARTUP
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),
@@ -72,7 +76,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
           ),
           _ => format!(
             "return Promise.all({}.map({}, {})).then(next);",
-            serde_json::to_string(&chunk_ids).expect("Invalid json to string"),
+            simd_json::to_string(&chunk_ids).expect("invalid json to_string"),
             runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
             runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
           ),

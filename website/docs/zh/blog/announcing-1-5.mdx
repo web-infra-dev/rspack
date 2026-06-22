@@ -2,11 +2,20 @@
 description: 'Rspack 1.5 版本发布，支持 Barrel 文件优化、常量内联优化，新增了内置文件系统监听器、虚拟模块插件和 Rust 扩展机制，并不再支持 Node 16。'
 date: 2025-08-26 11:00:00
 sidebar: false
+authors:
+  - name: Rspack Team
+    avatar: 'https://assets.rspack.rs/rspack/rspack-logo-with-background.png'
+    title: '@rspack_dev'
+    x: 'https://x.com/rspack_dev'
 ---
 
-_2025 年 8 月 26 日_
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 # Rspack 1.5 发布公告
+
+2025 年 8 月 26 日
+
+<BlogAuthors />
 
 ![Rspack 1.5](https://assets.rspack.rs/rspack/rspack-banner-v1-5.png)
 
@@ -52,7 +61,7 @@ export * from './hooks';
 
 虽然这种模式简化了模块导入的使用方式，但是在构建过程中会带来性能问题：当导入 barrel 文件中的某个模块时，Rspack 需要解析和构建 barrel 文件依赖的所有模块，即使实际只使用了其中的一小部分。
 
-为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/config/experiments#experimentslazybarrel) 功能，它能够自动识别无副作用的 barrel 文件，对其中的重导出进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel 文件的项目尤其有效，能够带来显著的构建性能提升。
+为了解决这一问题，Rspack 1.5 引入了实验性的 [lazyBarrel](/guide/optimization/lazy-barrel) 功能，它能够自动识别无副作用的 barrel 文件，对其中的重导出进行延迟构建优化，只在真正需要时才会解析和构建相关模块，从而显著减少不必要的模块解析和构建开销。这一优化对于包含大量 barrel 文件的项目尤其有效，能够带来显著的构建性能提升。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -80,7 +89,7 @@ export default {
 | 模块路径解析次数 | 181,078 次 | 137,232 次 | `-24%` |
 | 模块构建次数     | 38,046 次  | 29,405 次  | `-23%` |
 
-我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中为所有项目默认启用该功能。详见 [experiments.lazyBarrel 文档](/config/experiments#experimentslazybarrel)。
+我们已经在 Rsbuild 1.5 中默认开启了 barrel 文件优化，并计划在 Rspack 1.6 中为所有项目默认启用该功能。详见 [experiments.lazyBarrel 文档](/guide/optimization/lazy-barrel)。
 
 ### 更快的文件系统监听器
 
@@ -155,7 +164,7 @@ rspack({}, (err, stats) => {
 
 在组织项目代码时，我们通常会将常量集中管理，例如 `constants.js` 或者 TypeScript 项目中包含 enums 的 `types.ts` 文件。
 
-Rspack 引入了 [experiments.inlineConst](/config/experiments#experimentsinlineconst) 和 [experiments.inlineEnum](/config/experiments#experimentsinlineenum) 两个实验性功能，用于对常量进行跨模块内联优化。这些优化可以帮助压缩工具更加进行准确的静态分析，消除无用代码分支，从而进一步减小产物的体积。
+Rspack 引入了 [experiments.inlineConst](/config/optimization#optimizationinlineexports) 和 [experiments.inlineEnum](/config/optimization#optimizationinlineexports) 两个实验性功能，用于对常量进行跨模块内联优化。这些优化可以帮助压缩工具更加进行准确的静态分析，消除无用代码分支，从而进一步减小产物的体积。
 
 `inlineConst` 能够对模块图中叶子节点模块中的常量进行跨模块内联，例如以下示例：
 
@@ -185,7 +194,7 @@ applyFont(fontStyle);
 })();
 ```
 
-> 详见 [experiments.inlineConst 文档](/config/experiments#experimentsinlineconst)，该功能计划在 v1.6 中默认启用。
+> 详见 [experiments.inlineConst 文档](/config/optimization#optimizationinlineexports)，该功能计划在 v1.6 中默认启用。
 
 `inlineEnum` 会对 TypeScript 的 enums 进行跨模块内联优化，工作原理与 `inlineConst` 类似。
 
@@ -210,7 +219,7 @@ console.log(Kind.A);
 
 需要注意的是，启用 `inlineEnum` 后，Rspack 默认会内联所有 enums。如果你希望只内联 const enums，可以参考此 [示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum)。
 
-> 详见 [experiments.inlineEnum](/config/experiments#experimentsinlineenum)。
+> 详见 [experiments.inlineEnum](/config/optimization#optimizationinlineexports)。
 
 ### 类型重导出分析
 
@@ -230,13 +239,13 @@ export type MyType = {
 
 这是因为 Rspack 在解析模块时，采用独立的方式处理每个模块，导致类型的导出（例子中的 `MyType`）被错误识别为一个值而非类型，由于在 `./types.ts` 中找不到相应的值导出，因此触发了上述警告。
 
-Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) 配置，用于改进对 Typescript 类型导出的识别。开启此配置后，Rspack 能够正确识别跨模块分析类型重导出，从而避免误报警告。
+Rspack 1.5 引入了 [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 配置，用于改进对 TypeScript 类型导出的识别。开启此配置后，Rspack 能够正确识别跨模块分析类型重导出，从而避免误报警告。
 
-> 详见 [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence)。
+> 详见 [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence)。
 
 ### 内置虚拟模块插件
 
-在 Rspack 1.4 中，我们引入了[自定义 InputFileSystem](/blog/announcing-1-4#custom-input-file-system) 功能，配合 `webpack-virtual-modules` 插件可以支持虚拟模块。然而，当虚拟模块数量较大时，该方式仍然存在性能瓶颈。
+在 Rspack 1.4 中，我们引入了[自定义 InputFileSystem](/blog/announcing-1-4#自定义文件读取系统) 功能，配合 `webpack-virtual-modules` 插件可以支持虚拟模块。然而，当虚拟模块数量较大时，该方式仍然存在性能瓶颈。
 
 为了更好地支持虚拟模块，Rspack 1.5 新增了内置的 [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)，它基于 Rust 实现，将虚拟模块的存储和管理迁移到 Rust 层，有效减少了模块读取和解析的开销，在处理大量虚拟模块时能够保持更好的性能表现。
 
@@ -339,7 +348,7 @@ export default {
 
 ### 稳定化 lazy compilation
 
-经过充分验证，[experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项已从实验性特性升级为稳定特性，并移动到了 Rspack 配置顶层：
+经过充分验证，[experiments.lazyCompilation](/config/lazy-compilation) 配置项已从实验性特性升级为稳定特性，并移动到了 Rspack 配置顶层：
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -354,7 +363,7 @@ export default {
 
 ### 废弃的选项
 
-Rspack 的 [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) 选项用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 支持。
+Rspack 的 [experiments.topLevelAwait](/guide/migration/rspack_1.x#其他实验性配置变更) 选项用于控制对 top level await 的支持，一直以来都是默认开启的。经过观察，我们发现没有实际场景需要关闭 top level await 支持，因此我们决定废弃这个选项，并计划在 Rspack 2.0 中移除它，届时将无法禁用 top level await 支持。
 
 ## Rstack 进展
 
@@ -383,9 +392,9 @@ Rslint 仍处于早期阶段，我们正在积极开发更多功能和规则支�
 开箱即用一直是 Rsbuild 的核心设计理念。在 Rsbuild 1.5 中，我们默认启用了多项 Rspack 的最新特性，带来更优秀的构建性能，包括：
 
 - 启用 [lazyCompilation](/config/lazy-compilation) 来按需编译动态导入的模块，这可以提升开发服务器的启动速度。
-- 启用 [lazyBarrel](/config/experiments#experimentslazybarrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
-- 启用 [inlineEnum](/config/experiments#experimentsinlineenum) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
-- 启用 [typeReexportsPresence](/config/experiments#experimentsinlineenum) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
+- 启用 [lazyBarrel](/guide/optimization/lazy-barrel) 来优化 barrel 文件的构建速度，减少不必要的模块解析。
+- 启用 [inlineEnum](/config/optimization#optimizationinlineexports) 来内联 TypeScript 枚举，这可以减少枚举被编译后的包体积。
+- 启用 [typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) 来正确识别 TypeScript 类型重导出，提升类型处理的准确性。
 
 > 将 Rsbuild 升级至最新版本后，上述特性将默认启用，无需任何额外配置。
 
@@ -430,7 +439,7 @@ Rsdoctor 1.2 版本带来了多项重要更新，新增了对聚合模块的精�
 
 经过两个月的持续迭代和 10 多个版本的优化，Rstest 0.2 在功能和稳定性方面都有了显著改进，带来以下新特性：
 
-- **Mock API**：Rstest 现在提供了完整的 [mock API](https://rstest.rs/api/rstest/mockModules)，用于在测试环境中替换模块的实际实现，支持对 ES 模块进行模拟操作。
+- **Mock API**：Rstest 现在提供了完整的 [mock API](https://rstest.rs/zh/api/runtime-api/rstest/mock-modules)，用于在测试环境中替换模块的实际实现，支持对 ES 模块进行模拟操作。
 - **Watch 模式优化**：在 watch 模式下，Rstest 现在支持增量重新运行。当测试文件或其依赖的模块发生变化时，Rstest 会只重新运行相关的测试文件，从而提升测试执行效率。
 - **CLI 快捷键**：watch 模式现在提供了键盘快捷键，你可以使用快捷键来执行各种常用操作。
 

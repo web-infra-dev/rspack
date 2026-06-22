@@ -1,6 +1,5 @@
 ---
 source: crates/rspack/tests/defaults.rs
-assertion_line: 22
 expression: options
 ---
 CompilerOptions {
@@ -97,6 +96,7 @@ CompilerOptions {
         script_type: "",
         environment: Environment {
             const: false,
+            computed_property: false,
             method_shorthand: true,
             arrow_function: false,
             node_prefix_for_core_modules: false,
@@ -656,6 +656,7 @@ CompilerOptions {
                 resource_query: None,
                 resource_fragment: None,
                 dependency: None,
+                phase: None,
                 issuer: None,
                 issuer_layer: None,
                 scheme: None,
@@ -674,6 +675,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -690,6 +692,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 1,
                                 side_effects: None,
                                 type: Some(
                                     JsAuto,
@@ -707,7 +710,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.json$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -715,6 +721,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -724,6 +731,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 2,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -747,6 +755,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -763,6 +772,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 3,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -780,7 +790,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.mjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -788,6 +801,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -797,6 +811,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 4,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -872,7 +887,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -880,6 +898,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -898,6 +917,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 5,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -973,7 +993,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.cjs$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -981,6 +1004,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -990,6 +1014,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 6,
                                 side_effects: None,
                                 type: Some(
                                     JsDynamic,
@@ -1007,7 +1032,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.js$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1015,6 +1043,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1033,6 +1062,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 7,
                                 side_effects: None,
                                 type: Some(
                                     JsDynamic,
@@ -1056,6 +1086,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1081,6 +1112,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 8,
                                 side_effects: None,
                                 type: Some(
                                     JsEsm,
@@ -1156,7 +1188,10 @@ CompilerOptions {
                         ModuleRule {
                             rspack_resource: None,
                             test: Some(
-                                "Func(...)",
+                                RspackRegex {
+                                    flags: "",
+                                    source: "\\.wasm$",
+                                },
                             ),
                             include: None,
                             exclude: None,
@@ -1164,6 +1199,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1182,6 +1218,7 @@ CompilerOptions {
                                         resource_query: None,
                                         resource_fragment: None,
                                         dependency: None,
+                                        phase: None,
                                         issuer: None,
                                         issuer_layer: None,
                                         scheme: None,
@@ -1200,6 +1237,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 10,
                                             side_effects: None,
                                             type: None,
                                             layer: None,
@@ -1243,6 +1281,7 @@ CompilerOptions {
                                 ],
                             ),
                             effect: ModuleRuleEffect {
+                                id: 9,
                                 side_effects: None,
                                 type: Some(
                                     WasmAsync,
@@ -1266,6 +1305,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1291,6 +1331,7 @@ CompilerOptions {
                                         resource_query: None,
                                         resource_fragment: None,
                                         dependency: None,
+                                        phase: None,
                                         issuer: None,
                                         issuer_layer: None,
                                         scheme: None,
@@ -1309,6 +1350,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 12,
                                             side_effects: None,
                                             type: None,
                                             layer: None,
@@ -1352,6 +1394,7 @@ CompilerOptions {
                                 ],
                             ),
                             effect: ModuleRuleEffect {
+                                id: 11,
                                 side_effects: None,
                                 type: Some(
                                     WasmAsync,
@@ -1377,6 +1420,7 @@ CompilerOptions {
                             dependency: Some(
                                 "url",
                             ),
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1394,6 +1438,7 @@ CompilerOptions {
                                         resource_query: None,
                                         resource_fragment: None,
                                         dependency: None,
+                                        phase: None,
                                         issuer: None,
                                         issuer_layer: None,
                                         scheme: Some(
@@ -1410,6 +1455,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 14,
                                             side_effects: None,
                                             type: Some(
                                                 AssetInline,
@@ -1433,6 +1479,7 @@ CompilerOptions {
                                         resource_query: None,
                                         resource_fragment: None,
                                         dependency: None,
+                                        phase: None,
                                         issuer: None,
                                         issuer_layer: None,
                                         scheme: None,
@@ -1442,6 +1489,7 @@ CompilerOptions {
                                         one_of: None,
                                         rules: None,
                                         effect: ModuleRuleEffect {
+                                            id: 15,
                                             side_effects: None,
                                             type: Some(
                                                 AssetResource,
@@ -1460,6 +1508,7 @@ CompilerOptions {
                             ),
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 13,
                                 side_effects: None,
                                 type: None,
                                 layer: None,
@@ -1481,6 +1530,7 @@ CompilerOptions {
                             resource_query: None,
                             resource_fragment: None,
                             dependency: None,
+                            phase: None,
                             issuer: None,
                             issuer_layer: None,
                             scheme: None,
@@ -1499,6 +1549,7 @@ CompilerOptions {
                             one_of: None,
                             rules: None,
                             effect: ModuleRuleEffect {
+                                id: 16,
                                 side_effects: None,
                                 type: Some(
                                     Json,
@@ -1516,6 +1567,7 @@ CompilerOptions {
                     ],
                 ),
                 effect: ModuleRuleEffect {
+                    id: 0,
                     side_effects: None,
                     type: None,
                     layer: None,
@@ -1537,6 +1589,7 @@ CompilerOptions {
                 resource_query: None,
                 resource_fragment: None,
                 dependency: None,
+                phase: None,
                 issuer: None,
                 issuer_layer: None,
                 scheme: None,
@@ -1548,6 +1601,7 @@ CompilerOptions {
                     [],
                 ),
                 effect: ModuleRuleEffect {
+                    id: 17,
                     side_effects: None,
                     type: None,
                     layer: None,
@@ -1654,10 +1708,12 @@ CompilerOptions {
                             commonjs_magic_comments: Some(
                                 false,
                             ),
+                            create_require: None,
                             jsx: Some(
                                 false,
                             ),
                             defer_import: None,
+                            source_import: None,
                             import_meta_resolve: None,
                             side_effects_free: None,
                         },
@@ -1687,7 +1743,9 @@ CompilerOptions {
     experiments: Experiments {
         css: false,
         defer_import: false,
+        source_import: false,
         pure_functions: false,
+        runtime_mode: Webpack,
     },
     incremental: IncrementalOptions {
         silent: true,

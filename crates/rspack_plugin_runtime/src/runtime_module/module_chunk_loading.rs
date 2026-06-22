@@ -13,7 +13,7 @@ use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
-    utils::{get_initial_chunk_ids, stringify_chunks},
+    utils::{get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks},
   },
 };
 
@@ -69,11 +69,17 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeG
 
 #[impl_runtime_module]
 #[derive(Debug)]
-pub struct ModuleChunkLoadingRuntimeModule {}
+pub struct ModuleChunkLoadingRuntimeModule {
+  omit_on_demand_loading: bool,
+}
 
 impl ModuleChunkLoadingRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_default(runtime_template)
+    Self::with_default(runtime_template, false)
+  }
+
+  pub fn without_on_demand_loading(runtime_template: &RuntimeTemplate) -> Self {
+    Self::with_default(runtime_template, true)
   }
 
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
@@ -91,6 +97,7 @@ impl ModuleChunkLoadingRuntimeModule {
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
     *MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
       | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+      | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
     *MODULE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
@@ -154,6 +161,16 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::BASE_URI
+      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+      | RuntimeGlobals::HMR_MODULE_DATA
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -212,7 +229,8 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
     let with_external_install_chunk =
       runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
-    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      && !self.omit_on_demand_loading;
     let with_on_chunk_load = runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED);
     let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     let with_hmr_manifest = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
@@ -268,10 +286,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       "#,
       match with_hmr {
         true => {
-          let state_expression = format!(
-            "{}_module",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
-          );
+          let state_expression = render_hmr_runtime_state_expression(runtime_template, "module");
           format!("{state_expression} = {state_expression} || ")
         }
         false => String::new(),

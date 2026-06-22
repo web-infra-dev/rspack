@@ -1,5 +1,6 @@
 use std::{borrow::Cow, fmt::Write, hash::Hash, sync::Arc};
 
+use concat_string::concat_string;
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use futures::future::BoxFuture;
@@ -34,7 +35,7 @@ use crate::{
   ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
   ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, to_path,
+  impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -122,10 +123,59 @@ pub enum ContextTypePrefix {
 
 #[cacheable]
 #[derive(Debug, Clone)]
+pub enum ContextModulePattern {
+  None,
+  RegExp(RspackRegex),
+  Glob(Vec<String>),
+}
+
+impl ContextModulePattern {
+  pub fn reg_exp(&self) -> Option<&RspackRegex> {
+    match self {
+      Self::RegExp(reg_exp) => Some(reg_exp),
+      Self::None | Self::Glob(_) => None,
+    }
+  }
+
+  pub fn glob_patterns(&self) -> Option<&[String]> {
+    match self {
+      Self::None | Self::RegExp(_) => None,
+      Self::Glob(glob_patterns) => Some(glob_patterns),
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    matches!(self, Self::None)
+  }
+
+  pub fn glob_patterns_to_string(glob_patterns: &[String]) -> String {
+    glob_patterns.iter().join(", ")
+  }
+
+  pub fn to_pretty_string(&self, source: bool) -> Option<String> {
+    match self {
+      Self::None => None,
+      Self::RegExp(reg_exp) => Some(reg_exp.to_pretty_string(source)),
+      Self::Glob(glob_patterns) => Some(Self::glob_patterns_to_string(glob_patterns)),
+    }
+  }
+}
+
+impl From<Option<RspackRegex>> for ContextModulePattern {
+  fn from(reg_exp: Option<RspackRegex>) -> Self {
+    match reg_exp {
+      Some(reg_exp) => Self::RegExp(reg_exp),
+      None => Self::None,
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ContextOptions {
   pub mode: ContextMode,
   pub recursive: bool,
-  pub reg_exp: Option<RspackRegex>,
+  pub pattern: ContextModulePattern,
   pub include: Option<RspackRegex>,
   pub exclude: Option<RspackRegex>,
   pub category: DependencyCategory,
@@ -138,8 +188,35 @@ pub struct ContextOptions {
   pub end: u32,
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
+  pub glob_import: Option<String>,
+  pub glob_exhaustive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
+}
+
+impl Default for ContextOptions {
+  fn default() -> Self {
+    Self {
+      mode: ContextMode::Sync,
+      recursive: false,
+      pattern: ContextModulePattern::None,
+      include: None,
+      exclude: None,
+      category: DependencyCategory::Unknown,
+      request: String::new(),
+      context: String::new(),
+      namespace_object: ContextNameSpaceObject::Unset,
+      group_options: None,
+      replaces: Vec::new(),
+      start: 0,
+      end: 0,
+      referenced_specifiers: None,
+      glob_import: None,
+      glob_exhaustive: false,
+      attributes: None,
+      phase: None,
+    }
+  }
 }
 
 #[cacheable]
@@ -160,6 +237,12 @@ pub struct ContextModuleOptions {
 pub enum FakeMapValue {
   Bit(FakeNamespaceObjectMode),
   Map(HashMap<String, FakeNamespaceObjectMode>),
+}
+
+struct ContextBlockInfo {
+  user_request: String,
+  dep_id: DependencyId,
+  block_id: AsyncDependenciesBlockIdentifier,
 }
 
 pub type ResolveContextModuleDependencies = Arc<
@@ -189,13 +272,26 @@ impl ContextModule {
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
   ) -> Self {
+    Self::new_with_strict(resolve_dependencies, options, None)
+  }
+
+  pub(crate) fn new_with_strict(
+    resolve_dependencies: ResolveContextModuleDependencies,
+    options: ContextModuleOptions,
+    strict: Option<bool>,
+  ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn,
@@ -444,12 +540,174 @@ impl ContextModule {
     }
   }
 
+  fn get_empty_object_export_source(&self, runtime_template: &mut ModuleCodeTemplate) -> String {
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {};\n"
+    )
+  }
+
+  fn append_glob_map_entry(entries: &mut String, index: usize, user_request: &str, value: &str) {
+    if index > 0 {
+      entries.push_str(",\n");
+    }
+    entries.push_str("\n  ");
+    entries.push_str(&json_stringify(user_request));
+    entries.push_str(": ");
+    entries.push_str(value);
+  }
+
+  fn get_glob_object_export_source(
+    &self,
+    runtime_template: &mut ModuleCodeTemplate,
+    entries: String,
+  ) -> String {
+    concat_string!(
+      "\n",
+      runtime_template.render_module_argument(ModuleArgument::Module),
+      ".exports = {\n",
+      entries,
+      "\n};\n"
+    )
+  }
+
+  fn get_glob_import_property_access(&self) -> Option<String> {
+    self
+      .options
+      .context_options
+      .glob_import
+      .as_deref()
+      .filter(|import| *import != "*")
+      .map(|import| property_access([import], 0))
+  }
+
+  fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
+    let module_graph = compilation.get_module_graph();
+    let mut block_info: Vec<_> = self
+      .get_blocks()
+      .iter()
+      .filter_map(|b| {
+        let block = module_graph.block_by_id(b)?;
+        let dep = block.get_dependencies().first()?;
+        let dependency = module_graph.dependency_by_id(dep);
+        let user_request = dependency
+          .as_module_dependency()
+          .map(|d| d.user_request().to_string())
+          .or_else(|| {
+            dependency
+              .as_context_dependency()
+              .map(|d| d.request().to_string())
+          })?;
+        Some(ContextBlockInfo {
+          user_request,
+          dep_id: *dep,
+          block_id: block.identifier(),
+        })
+      })
+      .collect();
+    block_info.sort_unstable_by(|a, b| a.user_request.cmp(&b.user_request));
+    block_info
+  }
+
+  fn get_glob_source(
+    &self,
+    compilation: &Compilation,
+    runtime_template: &mut ModuleCodeTemplate,
+  ) -> String {
+    match &self.options.context_options.mode {
+      ContextMode::Lazy => {
+        if self.get_blocks().is_empty() {
+          return self.get_empty_object_export_source(runtime_template);
+        }
+        let block_info = self.get_sorted_context_block_info(compilation);
+
+        let mut entries = String::with_capacity(block_info.len() * 96);
+        for (i, info) in block_info.iter().enumerate() {
+          let mut import_promise = runtime_template.module_namespace_promise(
+            compilation,
+            self.identifier,
+            &info.dep_id,
+            Some(&info.block_id),
+            &info.user_request,
+            DependencyCategory::Esm.as_str(),
+            false,
+            self.options.context_options.phase.unwrap_or_default(),
+          );
+          if let Some(access) = self.get_glob_import_property_access() {
+            import_promise = concat_string!(
+              import_promise,
+              ".then(function(m) { return m",
+              access,
+              "; })"
+            );
+          }
+          Self::append_glob_map_entry(
+            &mut entries,
+            i,
+            &info.user_request,
+            &concat_string!("function() { return ", import_promise, "; }"),
+          );
+        }
+
+        self.get_glob_object_export_source(runtime_template, entries)
+      }
+      _ => {
+        if self.get_dependencies().is_empty() {
+          return self.get_empty_object_export_source(runtime_template);
+        }
+        let dependencies = self.get_dependencies();
+        let map = self.get_user_request_map(dependencies, compilation);
+        let fake_map = self.get_fake_map(dependencies, compilation);
+        let return_module_object = self.get_return_module_object_source(
+          &fake_map,
+          false,
+          None,
+          "fakeMap[id]",
+          runtime_template,
+        );
+
+        let mut entries = String::with_capacity(map.len() * 64);
+        let glob_import_access = self.get_glob_import_property_access();
+        for (i, (user_request, module_id)) in map.iter().enumerate() {
+          let module_id_expr = if let Some(id) = module_id {
+            let mut module_expr = format!(
+              "function() {{ var id = {}; return {return_module_object}; }}()",
+              json_stringify(id)
+            );
+            if let Some(access) = &glob_import_access {
+              module_expr.push_str(access);
+            }
+            module_expr
+          } else {
+            concat_string!("undefined /* ", json_stringify(user_request), " */")
+          };
+          Self::append_glob_map_entry(&mut entries, i, user_request, &module_id_expr);
+        }
+
+        concat_string!(
+          "\n",
+          self.get_fake_map_init_statement(&fake_map),
+          "\n",
+          runtime_template.render_module_argument(ModuleArgument::Module),
+          ".exports = {\n",
+          entries,
+          "\n};\n"
+        )
+      }
+    }
+  }
+
   #[inline]
   fn get_source_string(
     &self,
     compilation: &Compilation,
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
+    if let ContextModulePattern::Glob(_) = &self.options.context_options.pattern {
+      return self.get_glob_source(compilation, runtime_template);
+    }
+
     match self.options.context_options.mode {
       ContextMode::Lazy => {
         if !self.get_blocks().is_empty() {
@@ -595,20 +853,40 @@ impl ContextModule {
 
     let chunks_position = if has_fake_map { 2 } else { 1 };
     let async_deps_position = chunks_position + 1;
+    let fetch_priority = match &self.options.context_options.group_options {
+      Some(GroupOptions::ChunkGroup(group)) => group.fetch_priority,
+      _ => None,
+    };
+    let fetch_priority_arg = fetch_priority
+      .map(|x| format!(r#", "{x}""#))
+      .unwrap_or_default();
+    if fetch_priority.is_some() {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
     let request_prefix = if has_no_chunk {
       "Promise.resolve()".to_string()
     } else if has_multiple_or_no_chunks {
-      format!(
-        "Promise.all(ids[{chunks_position}].map({}))",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
-      )
+      let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
+      if fetch_priority.is_some() {
+        format!(
+          r#"Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId{fetch_priority_arg}); }}))"#
+        )
+      } else {
+        format!(
+          "Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId); }}))"
+        )
+      }
     } else {
       let mut chunks_position_buffer = itoa::Buffer::new();
       let chunks_position_str = chunks_position_buffer.format(chunks_position);
       format!(
-        "{}(ids[{}][0])",
+        "{}(ids[{}][0]{})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-        chunks_position_str
+        chunks_position_str,
+        fetch_priority_arg
       )
     };
     let return_module_object = self.get_return_module_object_source(
@@ -850,8 +1128,8 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -859,7 +1137,7 @@ impl ContextModule {
         }}
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -867,10 +1145,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      __rspack_context.id = {id};
-      {module}.exports = __rspack_context;
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      __rspack_context_module.id = {id};
+      {module}.exports = __rspack_context_module;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -962,11 +1240,11 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -974,10 +1252,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      {module}.exports = __rspack_context;
-      __rspack_context.id = {id};
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      {module}.exports = __rspack_context_module;
+      __rspack_context_module.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -1090,9 +1368,9 @@ impl Module for ContextModule {
       id += " ";
       id += &self.options.addon;
     }
-    if let Some(regexp) = &self.options.context_options.reg_exp {
+    if let Some(regexp) = self.options.context_options.pattern.to_pretty_string(true) {
       id += " ";
-      id += &regexp.to_pretty_string(true);
+      id += &regexp;
     }
     if let Some(include) = &self.options.context_options.include {
       id += " include: ";
@@ -1115,6 +1393,13 @@ impl Module for ContextModule {
           }
         })
         .join(", ");
+    }
+    if let Some(import) = &self.options.context_options.glob_import {
+      id += " globImport: ";
+      id += import;
+    }
+    if self.options.context_options.glob_exhaustive {
+      id += " globExhaustive";
     }
     Some(Cow::Owned(id))
   }
@@ -1294,9 +1579,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|";
     id += &options.addon;
   }
-  if let Some(regexp) = &options.context_options.reg_exp {
+  if let Some(pattern) = options.context_options.pattern.to_pretty_string(false) {
     id += "|";
-    id += &regexp.to_pretty_string(false);
+    id += &pattern;
   }
   if let Some(include) = &options.context_options.include {
     id += "|include: ";
@@ -1318,6 +1603,13 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
         }
       })
       .join(", ");
+  }
+  if let Some(import) = &options.context_options.glob_import {
+    id += "|globImport: ";
+    id += import;
+  }
+  if options.context_options.glob_exhaustive {
+    id += "|globExhaustive";
   }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
@@ -1344,7 +1636,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   };
   if let Some(attributes) = &options.context_options.attributes {
     id += "|importAttributes: ";
-    id += &serde_json::to_string(attributes).expect("json stringify failed");
+    id += &simd_json::to_string(attributes).expect("json stringify failed");
   }
   if let Some(phase) = &options.context_options.phase {
     id += "|importPhase: ";

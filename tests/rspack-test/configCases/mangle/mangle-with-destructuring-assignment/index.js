@@ -65,7 +65,7 @@ it("should mangle when destructuring json", async () => {
 	expect(values[0]).toBe("foo");
 	expect(values[1]).toBe(3);
 
-	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json.js"));
+	const generatedJson = eval("require")(path.resolve(__dirname, "data.json.js"));
 	expect(generatedJson).toEqual({
 		"W": {
 			"Q": [
@@ -83,7 +83,7 @@ it("should mangle when destructuring json 2", async () => {
 	expect(prop1).toBe(1);
 	expect(prop2).toBe(2);
 
-	const generatedJson = __non_webpack_require__(path.resolve(__dirname, "data.json_2.js"));
+	const generatedJson = eval("require")(path.resolve(__dirname, "data.json_2.js"));
 	expect(generatedJson).toEqual({
 		"W": {
 			"Q": [

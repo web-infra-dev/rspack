@@ -1,6 +1,6 @@
 <%- ENSURE_CHUNK_HANDLERS %>.consumes = function(chunkId, promises) {
-	var moduleIdToConsumeDataMapping = <%- REQUIRE %>.consumesLoadingData.moduleIdToConsumeDataMapping
-	var chunkMapping = <%- REQUIRE %>.consumesLoadingData.chunkMapping;
+	var moduleIdToConsumeDataMapping = <%- REQUIRE_SCOPE %>.consumesLoadingData.moduleIdToConsumeDataMapping
+	var chunkMapping = <%- REQUIRE_SCOPE %>.consumesLoadingData.chunkMapping;
 	if(<%- HAS_OWN_PROPERTY %>(chunkMapping, chunkId)) {
 		chunkMapping[chunkId].forEach(function(id) {
 			if(<%- HAS_OWN_PROPERTY %>(installedModules, id)) return promises.push(installedModules[id]);

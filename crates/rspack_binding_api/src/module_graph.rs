@@ -2,7 +2,7 @@ use std::ptr::NonNull;
 
 use napi::{Either, Env, JsString, bindgen_prelude::Array};
 use napi_derive::napi;
-use rspack_core::{Compilation, ModuleGraph, PrefetchExportsInfoMode, RuntimeSpec};
+use rspack_core::{Compilation, ModuleGraph, RuntimeSpec};
 
 use crate::{
   dependencies::DependencyObject,
@@ -101,12 +101,38 @@ impl JsModuleGraph {
     };
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(&js_module.identifier, PrefetchExportsInfoMode::Default);
+      .get_exports_info_data(&js_module.identifier);
     let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
     Ok(match used_exports {
       rspack_core::UsedExports::Unknown => None,
       rspack_core::UsedExports::UsedNamespace(b) => Some(Either::A(b)),
       rspack_core::UsedExports::UsedNames(vec) => Some(Either::B(
+        vec
+          .into_iter()
+          .map(|atom| env.create_string(atom.as_str()))
+          .collect::<napi::Result<Vec<_>>>()?,
+      )),
+    })
+  }
+
+  #[napi(
+    ts_args_type = "module: Module",
+    ts_return_type = "true | string[] | null"
+  )]
+  pub fn get_provided_exports<'a>(
+    &self,
+    env: &'a Env,
+    js_module: ModuleObjectRef,
+  ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
+    let (compilation, _) = self.as_ref()?;
+    let exports_info = compilation
+      .exports_info_artifact
+      .get_exports_info_data(&js_module.identifier);
+    let provided = exports_info.get_provided_exports();
+    Ok(match provided {
+      rspack_core::ProvidedExports::Unknown => None,
+      rspack_core::ProvidedExports::ProvidedAll => Some(Either::A(true)),
+      rspack_core::ProvidedExports::ProvidedNames(vec) => Some(Either::B(
         vec
           .into_iter()
           .map(|atom| env.create_string(atom.as_str()))

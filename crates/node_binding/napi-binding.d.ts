@@ -69,6 +69,7 @@ export interface NormalModule extends Module {
 	readonly loaders: JsLoaderItem[];
 	get matchResource(): string | undefined;
 	set matchResource(val: string | undefined);
+	get error(): RspackError | undefined;
 }
 
 export interface ConcatenatedModule extends Module {
@@ -122,8 +123,8 @@ export declare class AsyncDependenciesBlock {
 
 export declare class Chunk {
   get name(): string | undefined
-  get id(): string | undefined
-  get ids(): Array<string>
+  get id(): string | number | undefined
+  get ids(): Array<string | number>
   get idNameHints(): Array<string>
   get filenameTemplate(): string | undefined
   get cssFilenameTemplate(): string | undefined
@@ -216,6 +217,7 @@ export declare class Dependency {
   get type(): string
   get category(): string
   get request(): string | undefined
+  get attributes(): Record<string, string> | undefined
   get critical(): boolean
   set critical(val: boolean)
   get ids(): Array<string> | undefined
@@ -333,7 +335,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: Array<BuiltinPlugin>, registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -410,6 +412,7 @@ export declare class JsModuleGraph {
   getModule(dependency: Dependency): Module | null
   getResolvedModule(dependency: Dependency): Module | null
   getUsedExports(module: Module, runtime: string | string[]): boolean | Array<string> | null
+  getProvidedExports(module: Module): true | string[] | null
   getIssuer(module: Module): Module | null
   getExportsInfo(module: Module): JsExportsInfo
   getConnection(dependency: Dependency): ModuleGraphConnection | null
@@ -565,6 +568,7 @@ export declare enum BuiltinPluginName {
   NamedModuleIdsPlugin = 'NamedModuleIdsPlugin',
   NaturalModuleIdsPlugin = 'NaturalModuleIdsPlugin',
   DeterministicModuleIdsPlugin = 'DeterministicModuleIdsPlugin',
+  SyncModuleIdsPlugin = 'SyncModuleIdsPlugin',
   HashedModuleIdsPlugin = 'HashedModuleIdsPlugin',
   NaturalChunkIdsPlugin = 'NaturalChunkIdsPlugin',
   NamedChunkIdsPlugin = 'NamedChunkIdsPlugin',
@@ -602,6 +606,7 @@ export declare enum BuiltinPluginName {
   DllReferenceAgencyPlugin = 'DllReferenceAgencyPlugin',
   LibManifestPlugin = 'LibManifestPlugin',
   FlagAllModulesAsUsedPlugin = 'FlagAllModulesAsUsedPlugin',
+  CssHttpExternalsRspackPlugin = 'CssHttpExternalsRspackPlugin',
   HttpExternalsRspackPlugin = 'HttpExternalsRspackPlugin',
   CopyRspackPlugin = 'CopyRspackPlugin',
   HtmlRspackPlugin = 'HtmlRspackPlugin',
@@ -613,6 +618,8 @@ export declare enum BuiltinPluginName {
   RsdoctorPlugin = 'RsdoctorPlugin',
   RstestPlugin = 'RstestPlugin',
   RslibPlugin = 'RslibPlugin',
+  CircularModulesInfoPlugin = 'CircularModulesInfoPlugin',
+  CircularCheckRspackPlugin = 'CircularCheckRspackPlugin',
   CircularDependencyRspackPlugin = 'CircularDependencyRspackPlugin',
   URLPlugin = 'URLPlugin',
   JsLoaderRspackPlugin = 'JsLoaderRspackPlugin',
@@ -741,7 +748,6 @@ export interface JsBuildMeta {
   exportsType?: undefined | 'unset' | 'default' | 'namespace' | 'flagged' | 'dynamic'
   defaultObject?: undefined | 'false' | 'redirect' | 'redirect-warn'
   sideEffectFree?: boolean
-  exportsFinalName?: Array<[string, string]> | undefined
 }
 
 export interface JsBuildTimeExecutionOption {
@@ -1055,9 +1061,15 @@ export interface JsRscClientPluginOptions {
   coordinator: JsCoordinator
 }
 
+export interface JsRscCssLinkOptions {
+  precedence?: string | boolean
+  props?: Record<string, string>
+}
+
 export interface JsRscServerPluginOptions {
   coordinator: JsCoordinator
-  onServerComponentChanges?: (() => void) | undefined | null
+  cssLink?: JsRscCssLinkOptions | undefined | null
+  onServerComponentChanges?: (() => void | Promise<void>) | undefined | null
   onManifest?: ((arg: string) => Promise<undefined>) | undefined | null
 }
 
@@ -1177,6 +1189,7 @@ export interface JsRsdoctorModuleGraph {
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
   connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
+  exportUsageEdges: Array<[number, Array<string> | null, number, Array<string> | null]>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1321,10 +1334,10 @@ export interface JsStatsAsset {
   emitted: boolean
   chunkNames: Array<string>
   chunkIdHints: Array<string>
-  chunks: Array<string | undefined | null>
+  chunks: Array<string | number | undefined | null>
   auxiliaryChunkNames: Array<string>
   auxiliaryChunkIdHints: Array<string>
-  auxiliaryChunks: Array<string | undefined | null>
+  auxiliaryChunks: Array<string | number | undefined | null>
 }
 
 export interface JsStatsAssetInfo {
@@ -1361,17 +1374,17 @@ export interface JsStatsChunk {
   type: string
   files: Array<string>
   auxiliaryFiles: Array<string>
-  id?: string
+  id?: string | number | undefined
   idHints: Array<string>
   hash?: string
   entry: boolean
   initial: boolean
   names: Array<string>
   size: number
-  parents?: Array<string>
-  children?: Array<string>
-  siblings?: Array<string>
-  childrenByOrder: Record<string, Array<string>>
+  parents?: Array<string | number> | undefined
+  children?: Array<string | number> | undefined
+  siblings?: Array<string | number> | undefined
+  childrenByOrder: Record<string, Array<string | number>>
   runtime: Array<string>
   reason?: string
   rendered: boolean
@@ -1382,7 +1395,7 @@ export interface JsStatsChunk {
 
 export interface JsStatsChunkGroup {
   name: string
-  chunks: Array<string>
+  chunks: Array<string | number>
   assets: Array<JsStatsChunkGroupAsset>
   assetsSize: number
   auxiliaryAssets?: Array<JsStatsChunkGroupAsset>
@@ -1471,7 +1484,7 @@ export interface JsStatsModuleCommonAttributes {
   failed?: boolean
   errors?: number
   warnings?: number
-  chunks?: Array<string>
+  chunks?: Array<string | number> | undefined
   assets?: Array<string>
   reasons?: Array<JsStatsModuleReason>
   providedExports?: Array<string>
@@ -1909,6 +1922,14 @@ export interface RawCacheOptionsPersistent {
   readonly?: boolean
 }
 
+export interface RawCircularCheckRspackPluginOptions {
+  failOnError?: boolean
+  exclude?: RegExp
+  include?: RegExp
+  onDetected?: (module: Module, paths: string[]) => void
+}
+
+/** Deprecated. Use `RawCircularCheckRspackPluginOptions` instead. */
 export interface RawCircularDependencyRspackPluginOptions {
   failOnError?: boolean
   exclude?: RegExp
@@ -2085,17 +2106,18 @@ export interface RawCopyRspackPluginOptions {
   patterns: Array<RawCopyPattern>
 }
 
-export interface RawCssAutoGeneratorOptions {
-  exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
-  exportsOnly?: boolean
-  localIdentName?: string
-  esModule?: boolean
-}
-
-export interface RawCssAutoParserOptions {
+export interface RawCssAutoOrModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  container?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
+  function?: boolean
+  grid?: boolean
+  pure?: boolean
 }
 
 export interface RawCssChunkingPluginOptions {
@@ -2133,6 +2155,10 @@ export interface RawCssImportContext {
 export interface RawCssModuleGeneratorOptions {
   exportsConvention?: "as-is" | "camel-case" | "camel-case-only" | "dashes" | "dashes-only"
   exportsOnly?: boolean
+  localIdentHashDigest?: string
+  localIdentHashDigestLength?: number
+  localIdentHashFunction?: string
+  localIdentHashSalt?: string
   localIdentName?: string
   esModule?: boolean
 }
@@ -2140,13 +2166,30 @@ export interface RawCssModuleGeneratorOptions {
 export interface RawCssModuleParserOptions {
   namedExports?: boolean
   url?: boolean
+  import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+  animation?: boolean
+  container?: boolean
+  customIdents?: boolean
+  dashedIdents?: boolean
+  function?: boolean
+  grid?: boolean
 }
 
 export interface RawCssParserOptions {
   namedExports?: boolean
   url?: boolean
+  import?: boolean
   resolveImport?: boolean | ((context: { url: string, media: string | undefined, resourcePath: string, supports: string | undefined, layer: string | undefined }) => boolean)
+}
+
+export interface RawDeterministicModuleIdsPluginOptions {
+  context?: string
+  test?: (module: Module) => boolean
+  maxLength?: number
+  salt?: number
+  fixedLength?: boolean
+  failOnConflict?: boolean
 }
 
 export interface RawDllEntryPluginOptions {
@@ -2200,6 +2243,7 @@ export interface RawEntryDynamicResult {
 
 export interface RawEnvironment {
   const: boolean
+  computedProperty: boolean
   methodShorthand: boolean
   arrowFunction: boolean
   nodePrefixForCoreModules: boolean
@@ -2232,7 +2276,9 @@ export interface RawExperiments {
   useInputFileSystem?: false | Array<RegExp>
   css?: boolean
   deferImport: boolean
+  sourceImport: boolean
   pureFunctions: boolean
+  runtimeMode?: "webpack" | "rspack"
 }
 
 export interface RawExposeOptions {
@@ -2255,6 +2301,7 @@ export interface RawExternalItemFnResult {
 
 export interface RawExternalsPluginOptions {
   type: string
+  fallbackType?: string
   externals: (string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]
   placeInInitial: boolean
 }
@@ -2297,12 +2344,13 @@ export interface RawFuncUseCtx {
 }
 
 export interface RawGeneratorOptions {
-  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/module" | "json"
+  type: "asset" | "asset/inline" | "asset/resource" | "css" | "css/auto" | "css/global" | "css/module" | "json"
   asset?: RawAssetGeneratorOptions
   assetInline?: RawAssetInlineGeneratorOptions
   assetResource?: RawAssetResourceGeneratorOptions
   css?: RawCssGeneratorOptions
-  cssAuto?: RawCssAutoGeneratorOptions
+  cssAuto?: RawCssModuleGeneratorOptions
+  cssGlobal?: RawCssModuleGeneratorOptions
   cssModule?: RawCssModuleGeneratorOptions
   json?: RawJsonGeneratorOptions
 }
@@ -2347,7 +2395,6 @@ export interface RawHtmlRspackPluginOptions {
 }
 
 export interface RawHttpExternalsRspackPluginOptions {
-  css: boolean
   webAsync: boolean
 }
 
@@ -2433,8 +2480,10 @@ export interface RawJavascriptParserOptions {
   overrideStrict?: string
   importMeta?: string
   commonjsMagicComments?: boolean
+  createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }
 deferImport?: boolean
+sourceImport?: boolean
 /**
  * This option is experimental in Rspack only and subject to change or be removed anytime.
  * @experimental
@@ -2498,6 +2547,7 @@ export interface RawLazyCompilationOption {
   entries: boolean
   imports: boolean
   client: string
+  reservedExternals: Array<string>
 }
 
 export interface RawLibManifestPluginOptions {
@@ -2645,6 +2695,7 @@ export interface RawModuleRule {
   issuer?: RawRuleSetCondition
   issuerLayer?: RawRuleSetCondition
   dependency?: RawRuleSetCondition
+  phase?: RawRuleSetCondition
   scheme?: RawRuleSetCondition
   mimetype?: RawRuleSetCondition
   oneOf?: Array<RawModuleRule>
@@ -2772,11 +2823,12 @@ export interface RawOutputOptions {
 }
 
 export interface RawParserOptions {
-  type: "asset" | "css" | "css/auto" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
+  type: "asset" | "css" | "css/auto" | "css/global" | "css/module" | "javascript" | "javascript/auto" | "javascript/dynamic" | "javascript/esm" | "json"
   asset?: RawAssetParserOptions
   css?: RawCssParserOptions
-  cssAuto?: RawCssAutoParserOptions
-  cssModule?: RawCssModuleParserOptions
+  cssAuto?: RawCssAutoOrModuleParserOptions
+  cssGlobal?: RawCssModuleParserOptions
+  cssModule?: RawCssAutoOrModuleParserOptions
   javascript?: RawJavascriptParserOptions
   json?: RawJsonParserOptions
 }
@@ -2892,6 +2944,7 @@ export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
   sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
+  exportUsageGraph?: boolean
 }
 
 export interface RawRslibPluginOptions {
@@ -2910,6 +2963,12 @@ export interface RawRslibPluginOptions {
    * @default `false`
    */
   autoCjsNodeBuiltin?: boolean
+  /** Emit isolated declaration files for modules transformed by `builtin:swc-loader` */
+  emitDts?: RawSwcEmitDtsOptions
+}
+
+export interface RawRstestDynamicImportOriginOptions {
+  functionName?: string
 }
 
 export interface RawRstestPluginOptions {
@@ -2919,6 +2978,12 @@ export interface RawRstestPluginOptions {
   manualMockRoot: string
   preserveNewUrl?: Array<string>
   globals?: boolean
+injectDynamicImportOrigin?: boolean | { functionName?: string }
+injectRequireResolveOrigin?: boolean | { functionName?: string }
+}
+
+export interface RawRstestRequireResolveOriginOptions {
+  functionName?: string
 }
 
 export interface RawRuleSetCondition {
@@ -3021,12 +3086,19 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
+  maxAge: number
+  maxGenerations: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {
   integrityCallback?: (data: RawIntegrityData) => void
   hashFuncNames: Array<string>
   htmlPlugin: "JavaScript" | "Native" | "Disabled"
+}
+
+export interface RawSwcEmitDtsOptions {
+  rootDir: string
+  declarationDir: string
 }
 
 export interface RawSwcJsMinimizerOptions {
@@ -3044,6 +3116,20 @@ export interface RawSwcJsMinimizerRspackPluginOptions {
   exclude?: string | RegExp | (string | RegExp)[]
   extractComments?: RawExtractComments
   minimizerOptions: RawSwcJsMinimizerOptions
+}
+
+export declare enum RawSyncModuleIdsPluginMode {
+  Read = 'read',
+  Create = 'create',
+  Merge = 'merge',
+  Update = 'update'
+}
+
+export interface RawSyncModuleIdsPluginOptions {
+  path: string
+  context?: string
+  test?: (module: Module) => boolean
+  mode?: 'read' | 'create' | 'merge' | 'update'
 }
 
 export interface RawToOptions {
@@ -3284,7 +3370,7 @@ export interface TsconfigOptions {
    */
   configFile: string
   /**
-   * Support for Typescript Project References.
+   * Support for TypeScript Project References.
    *
    * * `'auto'`: use the `references` field from tsconfig of `config_file`.
    * * `string[]`: manually provided relative or absolute path.

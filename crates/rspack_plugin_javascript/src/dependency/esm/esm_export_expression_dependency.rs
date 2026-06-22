@@ -4,14 +4,14 @@ use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
   DependencyId, DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ESMExportInitFragment, ExportNameOrSpec, ExportsInfoArtifact, ExportsInfoGetter,
-  ExportsOfExportsSpec, ExportsSpec, ForwardId, GetUsedNameParam, ModuleGraph,
-  ModuleGraphCacheArtifact, PrefetchExportsInfoMode, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access, rspack_sources::ReplacementEnforce,
+  DependencyType, ESMExportBinding, ESMExportInitFragment, ExportNameOrSpec, ExportSpec,
+  ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ForwardId, ModuleGraph,
+  ModuleGraphCacheArtifact, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
-use crate::parser_plugin::JS_DEFAULT_KEYWORD;
+use crate::{ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -46,6 +46,7 @@ pub struct ESMExportExpressionDependency {
   range_stmt: DependencyRange,
   prefix: String,
   declaration: Option<DeclarationId>,
+  const_value: Option<ConstValue>,
   loc: Option<DependencyLocation>,
 }
 
@@ -55,6 +56,7 @@ impl ESMExportExpressionDependency {
     range_stmt: DependencyRange,
     prefix: String,
     declaration: Option<DeclarationId>,
+    const_value: Option<ConstValue>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
@@ -62,6 +64,7 @@ impl ESMExportExpressionDependency {
       range,
       range_stmt,
       declaration,
+      const_value,
       prefix,
       loc,
     }
@@ -89,9 +92,14 @@ impl Dependency for ESMExportExpressionDependency {
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
     Some(ExportsSpec {
-      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::String(
-        JS_DEFAULT_KEYWORD.clone(),
-      )]),
+      exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
+        name: JS_DEFAULT_KEYWORD.clone(),
+        inlinable: self
+          .const_value
+          .as_ref()
+          .and_then(|const_value| const_value.as_inlinable().cloned()),
+        ..Default::default()
+      })]),
       priority: Some(1),
       can_mangle: None,
       terminal_binding: Some(true),
@@ -166,6 +174,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
     } = code_generatable_context;
 
     let module_identifier = module.identifier();
+    let is_circular_module = compilation
+      .circular_modules
+      .is_circular_module(&module_identifier);
 
     if let Some(declaration) = &dep.declaration {
       let name = match declaration {
@@ -183,15 +194,15 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
 
       if let Some(scope) = concatenation_scope {
         scope.register_export(JS_DEFAULT_KEYWORD.clone(), name.to_string());
-      } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
-        ),
-        *runtime,
-        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
-      ) && let UsedName::Normal(used) = used
+      } else if let Some(used) = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module_identifier)
+        .get_used_name(
+          &compilation.exports_info_artifact,
+          *runtime,
+          std::slice::from_ref(&JS_DEFAULT_KEYWORD),
+        )
+        && let UsedName::Normal(used) = used
       {
         init_fragments.push(Box::new(ESMExportInitFragment::new(
           module.get_exports_argument(),
@@ -202,8 +213,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
               .collect_vec()
               .join("")
               .into(),
-            Atom::from(format!("/* export default binding */ {name}")),
+            ESMExportBinding::Getter(Atom::from(format!("/* export default binding */ {name}"))),
           )],
+          is_circular_module,
         )));
       } else {
         // do nothing for unused or inlined
@@ -224,17 +236,22 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
           "/* export default */ {} {DEFAULT_EXPORT} = ",
           if supports_const { "const" } else { "var" }
         )
-      } else if let Some(used) = ExportsInfoGetter::get_used_name(
-        GetUsedNameParam::WithNames(
-          &compilation
-            .exports_info_artifact
-            .get_prefetched_exports_info(&module_identifier, PrefetchExportsInfoMode::Default),
-        ),
-        *runtime,
-        std::slice::from_ref(&JS_DEFAULT_KEYWORD),
-      ) {
+      } else if let Some(used) = compilation
+        .exports_info_artifact
+        .get_exports_info_data(&module_identifier)
+        .get_used_name(
+          &compilation.exports_info_artifact,
+          *runtime,
+          std::slice::from_ref(&JS_DEFAULT_KEYWORD),
+        )
+      {
         if let UsedName::Normal(used) = used {
           if supports_const {
+            let binding = if matches!(is_circular_module, Some(false)) {
+              ESMExportBinding::Value(DEFAULT_EXPORT.into())
+            } else {
+              ESMExportBinding::Getter(DEFAULT_EXPORT.into())
+            };
             init_fragments.push(Box::new(ESMExportInitFragment::new(
               module.get_exports_argument(),
               vec![(
@@ -244,8 +261,9 @@ impl DependencyTemplate for ESMExportExpressionDependencyTemplate {
                   .collect_vec()
                   .join("")
                   .into(),
-                DEFAULT_EXPORT.into(),
+                binding,
               )],
+              is_circular_module,
             )));
             format!("/* export default */ const {DEFAULT_EXPORT} = ")
           } else {

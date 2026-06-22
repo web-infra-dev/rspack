@@ -297,7 +297,7 @@ async fn optimize_dependencies(
           // Mark used exports
           for export_info in exports_info_data.exports_mut().values_mut() {
             export_info.set_used_conditionally(
-              Box::new(|used| *used == rspack_core::UsageState::Unknown),
+              |used| *used == rspack_core::UsageState::Unknown,
               rspack_core::UsageState::Unused,
               None,
             );

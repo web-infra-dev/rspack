@@ -1,5 +1,5 @@
 import { Button } from "aaaaa";
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 
 it("should generate css successfully", () => {
 	const dir = fs.readdirSync(__dirname);

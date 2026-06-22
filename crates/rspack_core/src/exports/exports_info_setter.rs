@@ -9,7 +9,7 @@ use crate::{
 impl ExportsInfoData {
   pub fn set_used_for_side_effects_only(&mut self, runtime: Option<&RuntimeSpec>) -> bool {
     self.side_effects_only_info_mut().set_used_conditionally(
-      Box::new(|value| value == &UsageState::Unused),
+      |value| value == &UsageState::Unused,
       UsageState::Used,
       runtime,
     )
@@ -132,7 +132,7 @@ impl ExportsInfoData {
     }
     let other_exports_info = self.other_exports_info_mut();
     if other_exports_info.set_used_conditionally(
-      Box::new(|value| value < &UsageState::Unknown),
+      |value| value < &UsageState::Unknown,
       UsageState::Unknown,
       runtime,
     ) {

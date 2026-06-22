@@ -2,8 +2,8 @@ use std::{borrow::Cow, sync::Arc};
 
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  BoxChunkInitFragment, ChunkGraph, ChunkUkey, Compilation, ImportSpec, ModuleGraph,
-  ModuleIdentifier, RuntimeCodeTemplate, RuntimeGlobals, find_new_name,
+  BoxChunkInitFragment, ChunkCodeTemplate, ChunkGraph, ChunkUkey, Compilation, ImportSpec,
+  ModuleGraph, ModuleIdentifier, RuntimeGlobals, find_new_name,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_util::fx_hash::{FxHashMap, FxHashSet, FxIndexMap, FxIndexSet};
@@ -163,7 +163,7 @@ impl ExternalInterop {
   pub fn render(
     &self,
     compilation: &Compilation,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &ChunkCodeTemplate,
   ) -> ConcatSource {
     let mut source = ConcatSource::default();
     let name = self.required_symbol.as_ref();
@@ -293,7 +293,7 @@ pub struct ChunkLinkContext {
   pub module_external_namespace_imports: FxHashMap<RawImportSource, Atom>,
 
   /**
-  `const symbol = __webpack_require__(module_id)`
+  `const symbol = __rspack_require(module_id)`
   */
   pub required: IdentifierIndexMap<ExternalInterop>,
 
@@ -331,7 +331,7 @@ pub struct ChunkLinkContext {
   pub used_names: FxHashSet<Atom>,
 
   /**
-  whether `__webpack_require__` is exported by a runtime module instead of chunk exports
+  whether `__rspack_require` is exported by a runtime module instead of chunk exports
   */
   pub exports_require_via_runtime_module: bool,
 }

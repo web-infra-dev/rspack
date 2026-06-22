@@ -1,0 +1,6 @@
+module_type: Server
+server_refs: []
+client_refs: []
+import_meta_rsc: false
+is_cjs: false
+action_ids: [7cd7300b3a327ac30acf7f3331539670b902e44a4fa90021b9bb918e6741e18e80:$$RSC_SERVER_ACTION_0]

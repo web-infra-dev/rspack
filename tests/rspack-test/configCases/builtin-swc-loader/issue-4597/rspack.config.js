@@ -1,6 +1,9 @@
 const path = require('path');
 
 const config = {
+  externals: {
+    fs: 'node-commonjs fs',
+  },
   target: 'web',
   node: false,
   module: {

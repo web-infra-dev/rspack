@@ -1,5 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   node: false,
   entry: {
@@ -9,16 +13,16 @@ module.exports = {
     rules: [
       {
         test: /\.css/,
-        type: 'css/auto',
+        type: 'css',
       },
     ],
     parser: {
-      'css/auto': {
-        resolveImport: false,
+      css: {
+        import: false,
       },
     },
     generator: {
-      'css/auto': {
+      css: {
         exportsOnly: false,
       },
     },

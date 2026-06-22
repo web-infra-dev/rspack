@@ -2,6 +2,9 @@ const { CssExtractRspackPlugin } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+  },
   target: 'web',
   node: {
     __filename: false,

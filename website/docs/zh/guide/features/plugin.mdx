@@ -49,7 +49,7 @@ module.exports = {
   </Tab>
 </Tabs>
 
-如果你正在寻找更多的 Rspack 插件，请查看 [插件](/plugins/index) 列表。
+如果你正在寻找更多的 Rspack 插件，请查看 [插件](/plugins/) 列表。
 
 你也可以参考 [Plugin 兼容](/guide/compatibility/plugin) 列表，查看已通过 Rspack 兼容性测试的 webpack 插件。
 
@@ -117,7 +117,7 @@ module.exports = {
 
 ### 插件结构
 
-作为插件的作者，插件的结构非常简单：只需要实现一个 `apply` 方法，这个方法接受一个 `Compiler` 实例，并会在 Rspack 插件初始化时被调用。详细的 API 可以参考 [Plugin API](/api/plugin-api/index)。
+作为插件的作者，插件的结构非常简单：只需要实现一个 `apply` 方法，这个方法接受一个 `Compiler` 实例，并会在 Rspack 插件初始化时被调用。详细的 API 可以参考 [Plugin API](/api/plugin-api/)。
 
 <Tabs>
   <Tab label="ESM">
@@ -168,6 +168,44 @@ export class MyPlugin implements RspackPluginInstance {
     compiler.hooks.compilation.tap(PLUGIN_NAME, (compilation) => {
       console.log('The Rspack build process is starting!');
     });
+  }
+}
+```
+
+## 发布插件
+
+### 声明 peer dependencies
+
+将插件发布为 npm 包时，如果这个插件仅面向 Rspack，将 `@rspack/core` 声明为 optional peer dependency 即可。版本范围应根据插件实际依赖的 API 来决定；如果使用了某个 Rspack 新版本引入的 API，需要将最低版本限制为该版本。
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    }
+  }
+}
+```
+
+如果这个插件同时适配 Rspack 和 webpack，则将 `@rspack/core` 和 `webpack` 都声明为 optional peer dependencies：
+
+```json title="package.json"
+{
+  "peerDependencies": {
+    "@rspack/core": "^1.0.0 || ^2.0.0",
+    "webpack": "^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@rspack/core": {
+      "optional": true
+    },
+    "webpack": {
+      "optional": true
+    }
   }
 }
 ```

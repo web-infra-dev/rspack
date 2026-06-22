@@ -17,6 +17,7 @@ pub struct CssComposeDependency {
   #[cacheable(with=AsVec<AsPreset>)]
   names: Vec<Atom>,
   range: DependencyRange,
+  source_order: Option<i32>,
   factorize_info: FactorizeInfo,
 }
 
@@ -27,8 +28,13 @@ impl CssComposeDependency {
       request,
       names,
       range,
+      source_order: None,
       factorize_info: Default::default(),
     }
+  }
+
+  pub fn set_source_order(&mut self, source_order: i32) {
+    self.source_order = Some(source_order);
   }
 }
 
@@ -48,6 +54,10 @@ impl Dependency for CssComposeDependency {
 
   fn range(&self) -> Option<DependencyRange> {
     Some(self.range)
+  }
+
+  fn source_order(&self) -> Option<i32> {
+    self.source_order
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

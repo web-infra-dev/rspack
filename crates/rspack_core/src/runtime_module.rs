@@ -35,34 +35,32 @@ pub trait RuntimeModule:
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String>;
-  async fn generate_with_custom(&self, compilation: &Compilation) -> rspack_error::Result<String> {
+  async fn generate_with_custom(
+    &self,
+    context: &RuntimeModuleGenerateContext<'_>,
+  ) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
       Ok(custom_source)
     } else {
-      let runtime_template = compilation.runtime_template.create_runtime_code_template();
-      let context = RuntimeModuleGenerateContext {
-        compilation,
-        runtime_template: &runtime_template,
-      };
-      self.generate(&context).await
+      self.generate(context).await
     }
   }
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::default()
   }
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::default()
+  }
 }
 
-#[async_trait]
 pub trait AttachableRuntimeModule {
   fn attach(&mut self, chunk: ChunkUkey);
 }
 
-#[async_trait]
 pub trait NamedRuntimeModule {
   fn name(&self) -> Identifier;
 }
 
-#[async_trait]
 pub trait CustomSourceRuntimeModule {
   fn set_custom_source(&mut self, source: String);
   fn get_custom_source(&self) -> Option<String>;

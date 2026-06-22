@@ -1,25 +1,25 @@
-._style_module_css-no-space {
-	.class {
+.style_module_css-no-space {
+.class {
 		color: red;
 	}
 
-	.class {
+.class {
 		color: red;
 	}
 
-	._style_module_css-class {
+.style_module_css-class {
 		color: red;
 	}
 
-	._style_module_css-class {
+.style_module_css-class {
 		color: red;
 	}
 
-	#_style_module_css-hash {
+#style_module_css-hash {
 		color: red;
 	}
 
-	{
+{
 		color: red;
 	}
 }

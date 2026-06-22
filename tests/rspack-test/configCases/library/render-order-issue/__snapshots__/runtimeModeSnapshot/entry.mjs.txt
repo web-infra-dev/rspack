@@ -1,0 +1,75 @@
+import * as __rspack_external_externals1 from "externals1";
+import * as __rspack_external_externals0 from "externals0";
+var __rspack_modules = ({
+"./bar.js"() {
+
+;// CONCATENATED MODULE: external "externals0"
+
+;// CONCATENATED MODULE: ./bar.js
+
+__rspack_external_externals0.v;
+
+},
+"./entry.js"(module, __unused_rspack_exports, __rspack_context) {
+module.exports.entry1 = __rspack_context.r("./entry1.js")
+module.exports.entry2 = __rspack_context.r("./entry2.js")
+
+},
+"./entry1.js"(module, __unused_rspack_exports, __rspack_context) {
+module.exports = __rspack_context.r("./foo.js")
+module.exports.name = "entry1"
+
+},
+"./entry2.js"(module, __unused_rspack_exports, __rspack_context) {
+module.exports = __rspack_context.r("./bar.js")
+module.exports.name = "entry2"
+
+},
+"./foo.js"() {
+
+;// CONCATENATED MODULE: external "externals1"
+
+;// CONCATENATED MODULE: ./foo.js
+
+__rspack_external_externals1.v;
+
+},
+
+});
+// The module cache
+var __rspack_module_cache = {};
+
+var __rspack_context={};
+
+// The require function
+function __rspack_require(moduleId) {
+
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+
+}
+
+__rspack_context.r = __rspack_require;
+
+// startup
+// Load entry module and return exports
+// This entry module used 'module' so it can't be inlined
+var __rspack_exports = __rspack_context.r("./entry.js");
+var __rspack_exportsentry1 = __rspack_exports.entry1;
+var __rspack_exportsentry2 = __rspack_exports.entry2;
+export { __rspack_exportsentry1 as entry1, __rspack_exportsentry2 as entry2 };
+
+var __rspack_exports_default = { entry1: __rspack_exportsentry1, entry2: __rspack_exportsentry2 };
+export default __rspack_exports_default;

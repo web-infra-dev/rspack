@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.hot-update.js, size: 6024
+- Update: main.hot-update.js, size: 6038
 
 ## Manifest
 
@@ -174,14 +174,18 @@ function cssReload(moduleId, options) {
 // webpack/runtime/define_property_getters
 (() => {
 
-										__webpack_require__.d = function (exports, definition) {
-												for (var key in definition) {
-														if (__webpack_require__.o(definition, key) && !__webpack_require__.o(exports, key)) {
-																Object.defineProperty(exports, key, { configurable: true, enumerable: true, get: definition[key] });
-														}
-												}
-										};
-										
+__webpack_require__.d = function (exports, getters, values) {
+  var define = function (defs, kind) {
+    for(var key in defs) {
+      if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+        Object.defineProperty(exports, key, { configurable: true, enumerable: true, [kind]: defs[key] });
+      }
+    }
+  }
+  define(getters, "get");
+  define(values, "value");
+};
+
 })();
 // webpack/runtime/get_full_hash
 (() => {

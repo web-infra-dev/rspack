@@ -1,6 +1,6 @@
 use rspack_core::{
-  OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeTemplate, impl_runtime_module,
+  Compilation, OnPolicyCreationFailure, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
 };
 
 use crate::get_chunk_runtime_requirements;
@@ -17,6 +17,10 @@ impl GetTrustedTypesPolicyRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

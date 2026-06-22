@@ -1,0 +1,39 @@
+ERROR in ./foo.ts
+  × Module build failed:
+  ├─▶   × Failed to generate declaration files.
+  │   
+  ╰─▶   ×   x TS9007: Function must have an explicit return type annotation with --isolatedDeclarations.
+        │    ,-[<TEST_ROOT>/statsOutputCases/rslib-emit-isolated-dts-error/foo.ts<LINE_COL>]
+        │  1 | export function foo(value: number) {
+        │    :                 ^^^
+        │  2 |   return value;
+        │  3 | }
+        │    `----
+        │
+
+ERROR in ./index.ts
+  × Module build failed (from builtin:swc-loader):
+  ├─▶   × Failed to generate declaration files.
+  │   
+  ╰─▶   ×   x TS9016: Objects that contain shorthand properties can't be inferred with --isolatedDeclarations.
+        │    ,-[<TEST_ROOT>/statsOutputCases/rslib-emit-isolated-dts-error/index.ts<LINE_COL>]
+        │  1 | const shorthand = "baz";
+        │  2 | export const shorthandObject = { shorthand };
+        │    :                                ^^^^^^^^^^^^^
+        │    `----
+        │
+
+ERROR in ./sum.ts
+  × Module build failed (from builtin:swc-loader):
+  ├─▶   × Failed to generate declaration files.
+  │   
+  ╰─▶   ×   x TS9007: Function must have an explicit return type annotation with --isolatedDeclarations.
+        │    ,-[<TEST_ROOT>/statsOutputCases/rslib-emit-isolated-dts-error/sum.ts<LINE_COL>]
+        │  1 | export function sum(left: number, right: number) {
+        │    :                 ^^^
+        │  2 |   return left + right;
+        │  3 | }
+        │    `----
+        │
+
+Rspack compiled with 3 errors

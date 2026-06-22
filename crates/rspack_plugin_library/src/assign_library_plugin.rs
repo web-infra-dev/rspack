@@ -3,13 +3,13 @@ use std::{hash::Hash, sync::LazyLock};
 use futures::future::join_all;
 use regex::Regex;
 use rspack_core::{
-  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkUkey,
+  AsyncModulesArtifact, BoxModule, CanInlineUse, Chunk, ChunkCodeTemplate, ChunkUkey,
   CodeGenerationDataTopLevelDeclarations, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationFinishModules, CompilationParams,
   CompilerCompilation, EntryData, ExportProvided, ExportsInfoArtifact, Filename, LibraryExport,
   LibraryName, LibraryNonUmdObject, LibraryOptions, ModuleIdentifier, PathData, Plugin,
-  PrefetchExportsInfoMode, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeVariable,
-  SideEffectsStateArtifact, SourceType, UsageState, get_entry_runtime, property_access,
+  RuntimeGlobals, RuntimeModule, RuntimeVariable, SideEffectsStateArtifact, SourceType, UsageState,
+  get_entry_runtime, property_access,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -213,7 +213,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -248,7 +248,7 @@ async fn render_startup(
   chunk_ukey: &ChunkUkey,
   module: &ModuleIdentifier,
   render_source: &mut RenderSource,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());
@@ -271,10 +271,10 @@ async fn render_startup(
     let export_target = access_with_init(&full_name_resolved, self.options.prefix.len(), true);
     let exports_info = compilation
       .exports_info_artifact
-      .get_prefetched_exports_info(module, PrefetchExportsInfoMode::Default);
+      .get_exports_info_data(module);
     let mut provided = vec![];
     let exports_name = runtime_template.render_runtime_variable(&RuntimeVariable::Exports);
-    for (_, export_info) in exports_info.exports() {
+    for export_info in exports_info.exports().values() {
       if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
         continue;
       }
@@ -301,7 +301,7 @@ async fn render_startup(
     if has_provided {
       source.add(RawStringSource::from(format!(
         "  if({}.indexOf(__rspack_i) === -1) {{\n",
-        serde_json::to_string(&provided).to_rspack_result()?
+        simd_json::to_string(&provided).to_rspack_result()?
       )));
     }
     source.add(RawStringSource::from(format!(
