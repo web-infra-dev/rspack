@@ -464,7 +464,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
@@ -1795,6 +1795,16 @@ export interface NativeWatcherOptions {
    * It can be a single path, an array of paths, or a regular expression.
    */
   ignored?: string | string[] | RegExp
+}
+
+/**
+ * A single, undelayed file system event delivered to the `callbackUndelayed`
+ * callback. Passed as one object so napi-rs delivers it as a single JS
+ * argument unambiguously (a tuple would arrive as an array).
+ */
+export interface NativeWatchUndelayedEvent {
+  kind: string
+  path: string
 }
 
 export interface NodeFsStats {
