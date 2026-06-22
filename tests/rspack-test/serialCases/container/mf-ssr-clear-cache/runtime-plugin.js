@@ -1,22 +1,23 @@
 const path = require("path");
 
-function clearLocalRemoteRequireCache(remoteEntryPath) {
-	const Module = __non_webpack_require__("node:module");
-	const nativeRequireCache =
-		__non_webpack_require__.cache || Module._cache || {};
-	const remoteDir = path.dirname(remoteEntryPath);
-	for (const cachePath of Object.keys(nativeRequireCache)) {
-		const basename = path.basename(cachePath);
-		if (
-			path.dirname(cachePath) === remoteDir &&
-			(basename === "remoteEntry.js" || basename.startsWith("remote-"))
-		) {
-			delete nativeRequireCache[cachePath];
-			if (Module._cache && Module._cache !== nativeRequireCache) {
-				delete Module._cache[cachePath];
-			}
-		}
+function getRemoteEntry(remoteInfo) {
+	const entry =
+		remoteInfo.entry ||
+		remoteInfo.external ||
+		remoteInfo.url ||
+		remoteInfo.entryUrl;
+	const normalizedEntry = Array.isArray(entry) ? entry[0] : entry;
+	if (!normalizedEntry) {
+		throw new Error(
+			`remoteA is missing entry: ${JSON.stringify(remoteInfo, null, 2)}`
+		);
 	}
+	const entryUrl = String(normalizedEntry).split("@").pop();
+	const { pathname } = new URL(entryUrl, "http://localhost");
+	return {
+		entry: entryUrl,
+		filename: decodeURIComponent(pathname).replace(/^\/+/, "")
+	};
 }
 
 module.exports = function () {
@@ -26,14 +27,13 @@ module.exports = function () {
 			if (remoteInfo.name !== "remoteA" && remoteInfo.alias !== "remoteA") {
 				return;
 			}
-			const remoteEntryPath = path.resolve(__dirname, "remoteEntry.js");
-			globalThis.__mfSsrClearCacheRemoteServer.clearProviderRuntime();
-			clearLocalRemoteRequireCache(remoteEntryPath);
+			const { entry, filename } = getRemoteEntry(remoteInfo);
+			const remoteEntryPath = path.resolve(__dirname, filename);
 			const remoteEntry =
 				__non_webpack_require__(remoteEntryPath)[remoteInfo.entryGlobalName];
 			return globalThis.__mfSsrClearCacheRemoteServer.wrapRemoteEntry(
 				remoteEntry,
-				remoteInfo.entry
+				entry
 			);
 		}
 	};

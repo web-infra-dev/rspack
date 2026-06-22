@@ -229,7 +229,11 @@ impl Module for ContainerEntryModule {
         blocks.push(Box::new(block));
       }
       dependencies.push(Box::new(StaticExportsDependency::new(
-        StaticExportsSpec::Array(vec!["get".into(), "init".into()]),
+        StaticExportsSpec::Array(vec![
+          "get".into(),
+          "init".into(),
+          "__webpack_clear_cache__".into(),
+        ]),
         false,
       )));
     }
@@ -348,22 +352,41 @@ impl Module for ContainerEntryModule {
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let get_container = format!("{require_name}.getContainer");
       let init_container = format!("{require_name}.initContainer");
+      let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
+      let clear_cache = runtime_template.basic_function(
+        "",
+        &format!(
+          r#"
+for(var id in {module_cache}) {{
+	delete {module_cache}[id];
+}}"#
+        ),
+      );
 
       format!(
         r#"
+var clearCache = {clear_cache};
 {}({}, {{
 	get: {},
-	init: {}
+	init: {},
+	__webpack_clear_cache__: {}
 }});"#,
         define_property_getters,
         runtime_template.render_exports_argument(ExportsArgument::Exports),
         runtime_template.returning_function(&get_container, ""),
         runtime_template.returning_function(&init_container, ""),
+        runtime_template.returning_function("clearCache", ""),
       )
     } else {
+      let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
       format!(
         r#"
 var moduleMap = {module_map_str};
+var clearCache = function() {{
+  for(var id in {module_cache}) {{
+    delete {module_cache}[id];
+  }}
+}}
 var get = function(module, getScope) {{
   {current_remote_get_scope} = getScope;
   getScope = (
@@ -384,9 +407,11 @@ var init = function(shareScope, initScope) {{
 }}
 {define_property_getters}({exports}, {{
 	get: {export_get},
-	init: {export_init}
+	init: {export_init},
+	__webpack_clear_cache__: {export_clear_cache}
 }});"#,
         exports = runtime_template.render_exports_argument(ExportsArgument::Exports),
+        module_cache = module_cache,
         current_remote_get_scope =
           runtime_template.render_runtime_globals(&RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE),
         has_own_property =
@@ -408,6 +433,7 @@ var init = function(shareScope, initScope) {{
         ),
         export_get = runtime_template.returning_function("get", ""),
         export_init = runtime_template.returning_function("init", ""),
+        export_clear_cache = runtime_template.returning_function("clearCache", ""),
       )
     };
     code_generation_result =
@@ -417,7 +443,15 @@ var init = function(shareScope, initScope) {{
       code_generation_result
         .data
         .insert(CodeGenerationRuntimeRequirementsWrite {
-          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+          runtime_requirements: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+            | RuntimeGlobals::MODULE_CACHE,
+        });
+    }
+    if self.enhanced {
+      code_generation_result
+        .data
+        .insert(CodeGenerationRuntimeRequirementsWrite {
+          runtime_requirements: RuntimeGlobals::MODULE_CACHE,
         });
     }
     if self.enhanced {

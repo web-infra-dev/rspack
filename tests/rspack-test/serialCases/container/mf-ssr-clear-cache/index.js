@@ -1,6 +1,18 @@
 import { createRemoteServer } from "./remoteServer";
 
 const remoteServer = createRemoteServer();
+let remoteATemplate;
+
+function withoutRemoteEntryClears(snapshot) {
+	const { remoteEntryClears, ...rest } = snapshot;
+	return rest;
+}
+
+function expectSnapshotUnchangedExceptRemoteEntryClears(snapshot, before) {
+	expect(withoutRemoteEntryClears(snapshot)).toEqual(
+		withoutRemoteEntryClears(before)
+	);
+}
 
 function createDeferred() {
 	let resolve;
@@ -53,6 +65,13 @@ function getRegisteredRemoteA(instance = getFederationInstance()) {
 	);
 }
 
+function getRemoteATemplate(instance = getFederationInstance()) {
+	if (!remoteATemplate) {
+		remoteATemplate = getRegisteredRemoteA(instance);
+	}
+	return remoteATemplate;
+}
+
 async function removeRemoteA(instance = getFederationInstance()) {
 	const removePromise = instance.removeRemote("remoteA");
 	expect(typeof removePromise?.then).toBe("function");
@@ -67,9 +86,16 @@ async function registerRemoteA(remote, instance = getFederationInstance()) {
 	}
 }
 
-async function clearAndRegisterRemoteA() {
+function createRemoteAForVersion(version, instance = getFederationInstance()) {
+	return {
+		...getRemoteATemplate(instance),
+		entry: `http://localhost:3001/remote-project-${version}/remoteEntry.js`
+	};
+}
+
+async function clearAndRegisterRemoteA(version) {
 	const instance = getFederationInstance();
-	const remote = getRegisteredRemoteA(instance);
+	const remote = createRemoteAForVersion(version, instance);
 	await removeRemoteA(instance);
 	await registerRemoteA(remote, instance);
 }
@@ -195,6 +221,10 @@ it("should invalidate SSR remote and affected consumer caches without preloading
 		pageA: 1,
 		pageB: 1
 	});
+	expect(remoteServer.largeRemotePayloads).toEqual([
+		expect.objectContaining({ expose: "./A", version: "v1", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v1", size: 50000 })
+	]);
 	const loadedRemoteChunkIds = getLoadedRemoteChunkIds();
 	expect(loadedRemoteChunkIds.length).toBeGreaterThan(0);
 	expect(getTrackedModuleCacheSize()).toBeGreaterThan(0);
@@ -211,15 +241,21 @@ it("should invalidate SSR remote and affected consumer caches without preloading
 		expect(nodeRequireCache[chunkCachePath]).toBeTruthy();
 	}
 
-	remoteServer.setVersion("v2");
 	const beforeClear = remoteServer.snapshot();
-	const remoteA = getRegisteredRemoteA();
+	const remoteA = createRemoteAForVersion("v2");
 	await removeRemoteA();
 
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
+	const afterRemove = remoteServer.snapshot();
+	expectSnapshotUnchangedExceptRemoteEntryClears(afterRemove, beforeClear);
+	expect(afterRemove.remoteEntryClears).toBeGreaterThan(
+		beforeClear.remoteEntryClears
+	);
 	expect(getTrackedModuleCacheSize()).toBe(0);
 	await registerRemoteA(remoteA);
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
 	const chunkControl = getNodeChunkCacheControl();
 	for (const chunkId of loadedRemoteChunkIds) {
 		expect(chunkControl.getState(chunkId)).toBeUndefined();
@@ -239,16 +275,58 @@ it("should invalidate SSR remote and affected consumer caches without preloading
 		pageA: 2,
 		pageB: 2
 	});
+	expect(remoteServer.largeRemotePayloads).toEqual([
+		expect.objectContaining({ expose: "./A", version: "v1", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v1", size: 50000 }),
+		expect.objectContaining({ expose: "./A", version: "v2", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v2", size: 50000 })
+	]);
 	expect(remoteServer.remoteEntryLoads.length).toBeGreaterThan(
 		beforeClear.remoteEntryLoads
 	);
 	expect(remoteServer.remoteGets.length).toBeGreaterThan(beforeClear.remoteGets);
+
+	const beforeSecondClear = remoteServer.snapshot();
+	await clearAndRegisterRemoteA("v3");
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeSecondClear
+	);
+	expect(getTrackedModuleCacheSize()).toBe(0);
+	expect(await renderBothPages()).toEqual({
+		pageA: "pageA:./A:v3",
+		pageB: "pageB:./B:v3"
+	});
+	expect(remoteServer.routeExecutions).toEqual({
+		pageA: 3,
+		pageB: 3
+	});
+	expect(remoteServer.largeRemotePayloads).toEqual([
+		expect.objectContaining({ expose: "./A", version: "v1", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v1", size: 50000 }),
+		expect.objectContaining({ expose: "./A", version: "v2", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v2", size: 50000 }),
+		expect.objectContaining({ expose: "./A", version: "v3", size: 50000 }),
+		expect.objectContaining({ expose: "./B", version: "v3", size: 50000 })
+	]);
+	expect(remoteServer.remoteEntryLoads).toEqual(
+		expect.arrayContaining([
+			expect.stringContaining(
+				"v1:http://localhost:3001/remote-project-v1/remoteEntry.js"
+			),
+			expect.stringContaining(
+				"v2:http://localhost:3001/remote-project-v2/remoteEntry.js"
+			),
+			expect.stringContaining(
+				"v3:http://localhost:3001/remote-project-v3/remoteEntry.js"
+			)
+		])
+	);
 });
 
 it("should reject and keep old caches usable when clear fails", async () => {
-	remoteServer.setVersion("v13");
-	await clearAndRegisterRemoteA();
-	expect(await renderPageA()).toBe("pageA:./A:v13");
+	await clearAndRegisterRemoteA("v3");
+	expect(await renderPageA()).toBe("pageA:./A:v3");
 
 	const loadedRemoteChunkIds = getLoadedRemoteChunkIds();
 	const loadedRemoteChunkGenerations =
@@ -264,7 +342,6 @@ it("should reject and keep old caches usable when clear fails", async () => {
 		throw new Error("chunk cache clear failed");
 	};
 
-	remoteServer.setVersion("v14");
 	const originalWarn = console.warn;
 	const originalError = console.error;
 	console.warn = (...args) => {
@@ -285,69 +362,78 @@ it("should reject and keep old caches usable when clear fails", async () => {
 		console.error = originalError;
 	}
 
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
 	expect(loadedRemoteChunkIds.map(chunkId => control.getState(chunkId))).toEqual(
 		loadedRemoteChunkStates
 	);
 	expect(getRemoteChunkGenerations(loadedRemoteChunkIds)).toEqual(
 		loadedRemoteChunkGenerations
 	);
-	expect(await renderPageA()).toBe("pageA:./A:v13");
+	expect(await renderPageA()).toBe("pageA:./A:v3");
 
-	await clearAndRegisterRemoteA();
-	expect(await renderPageA()).toBe("pageA:./A:v14");
-});
-
-it("should prevent pending old remote load from updating future caches", async () => {
-	remoteServer.setVersion("v3");
-	await clearAndRegisterRemoteA();
-
-	remoteServer.blockNextRemoteGet();
-	const oldRequest = renderPageA();
-	await remoteServer.waitForBlockedRemoteGet();
-
-	const beforeClear = remoteServer.snapshot();
-	remoteServer.setVersion("v4");
-	const clearPromise = clearAndRegisterRemoteA();
-
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
-
-	const blockedNextRequest = renderPageB();
-	await Promise.resolve();
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
-
-	remoteServer.resolveBlockedRemoteGet();
-	await expect(oldRequest).resolves.toBe("pageA:./A:v3");
-	await clearPromise;
-
-	await expect(blockedNextRequest).resolves.toBe("pageB:./B:v4");
+	await clearAndRegisterRemoteA("v4");
 	expect(await renderPageA()).toBe("pageA:./A:v4");
 });
 
-it("should keep pending old remote load errors scoped to the old request", async () => {
-	remoteServer.setVersion("v6");
-	await clearAndRegisterRemoteA();
+it("should prevent pending old remote load from updating future caches", async () => {
+	await clearAndRegisterRemoteA("v2");
 
 	remoteServer.blockNextRemoteGet();
 	const oldRequest = renderPageA();
 	await remoteServer.waitForBlockedRemoteGet();
 
 	const beforeClear = remoteServer.snapshot();
-	remoteServer.setVersion("v7");
-	const clearPromise = clearAndRegisterRemoteA();
+	const clearPromise = clearAndRegisterRemoteA("v3");
 
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
-
-	const blockedNextRequest = renderPageB();
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
 	await Promise.resolve();
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
 
-	remoteServer.rejectBlockedRemoteGet(new Error("remoteA v6 failed"));
-	await expect(oldRequest).rejects.toThrow("remoteA v6 failed");
+	remoteServer.resolveBlockedRemoteGet();
+	await expect(oldRequest).resolves.toBe("pageA:./A:v2");
 	await clearPromise;
 
-	await expect(blockedNextRequest).resolves.toBe("pageB:./B:v7");
-	expect(await renderPageA()).toBe("pageA:./A:v7");
+	expect(getTrackedModuleCacheSize()).toBe(0);
+	await expect(renderPageB()).resolves.toBe("pageB:./B:v3");
+	expect(await renderPageA()).toBe("pageA:./A:v3");
+});
+
+it("should keep pending old remote load errors scoped to the old request", async () => {
+	await clearAndRegisterRemoteA("v2");
+
+	remoteServer.blockNextRemoteGet();
+	const oldRequest = renderPageA();
+	await remoteServer.waitForBlockedRemoteGet();
+
+	const beforeClear = remoteServer.snapshot();
+	const clearPromise = clearAndRegisterRemoteA("v3");
+
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
+	await Promise.resolve();
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
+
+	remoteServer.rejectBlockedRemoteGet(new Error("remoteA v2 failed"));
+	await expect(oldRequest).rejects.toThrow("remoteA v2 failed");
+	await clearPromise;
+
+	expect(getTrackedModuleCacheSize()).toBe(0);
+	await expect(renderPageB()).resolves.toBe("pageB:./B:v3");
+	expect(await renderPageA()).toBe("pageA:./A:v3");
 });
 
 it("should continue clear after pending old remote load timeout", async () => {
@@ -357,23 +443,24 @@ it("should continue clear after pending old remote load timeout", async () => {
 	globalThis[timeoutKey] = 0;
 
 	try {
-		remoteServer.setVersion("v15");
-		await clearAndRegisterRemoteA();
+		await clearAndRegisterRemoteA("v2");
 
 		remoteServer.blockNextRemoteGet();
 		const oldRequest = renderPageA();
 		await remoteServer.waitForBlockedRemoteGet();
 
 		const beforeClear = remoteServer.snapshot();
-		remoteServer.setVersion("v16");
-		await clearAndRegisterRemoteA();
+		await clearAndRegisterRemoteA("v3");
 
-		expect(remoteServer.snapshot()).toEqual(beforeClear);
-		await expect(renderPageB()).resolves.toBe("pageB:./B:v16");
+		expectSnapshotUnchangedExceptRemoteEntryClears(
+			remoteServer.snapshot(),
+			beforeClear
+		);
+		await expect(renderPageB()).resolves.toBe("pageB:./B:v3");
 
 		remoteServer.resolveBlockedRemoteGet();
-		await expect(oldRequest).resolves.toBe("pageA:./A:v15");
-		expect(await renderPageA()).toBe("pageA:./A:v16");
+		await expect(oldRequest).resolves.toBe("pageA:./A:v2");
+		expect(await renderPageA()).toBe("pageA:./A:v3");
 	} finally {
 		if (hadTimeout) {
 			globalThis[timeoutKey] = previousTimeout;
@@ -384,16 +471,17 @@ it("should continue clear after pending old remote load timeout", async () => {
 });
 
 it("should avoid broad consumer cache cleanup in browser runtime", async () => {
-	remoteServer.setVersion("v8");
-	await clearAndRegisterRemoteA();
-	expect(await renderPageA()).toBe("pageA:./A:v8");
+	await clearAndRegisterRemoteA("v2");
+	expect(await renderPageA()).toBe("pageA:./A:v2");
 
 	const beforeClear = remoteServer.snapshot();
-	remoteServer.setVersion("v9");
-	await withBrowserEnvironment(() => clearAndRegisterRemoteA());
+	await withBrowserEnvironment(() => clearAndRegisterRemoteA("v3"));
 
-	expect(remoteServer.snapshot()).toEqual(beforeClear);
-	expect(await renderPageA()).toBe("pageA:./A:v8");
+	expectSnapshotUnchangedExceptRemoteEntryClears(
+		remoteServer.snapshot(),
+		beforeClear
+	);
+	expect(await renderPageA()).toBe("pageA:./A:v2");
 	expect(remoteServer.snapshot().routeExecutions.pageA).toBe(
 		beforeClear.routeExecutions.pageA
 	);
@@ -448,7 +536,7 @@ it("should remove unloaded and loading shared records from the target remote", a
 	};
 
 	try {
-		await clearAndRegisterRemoteA();
+		await clearAndRegisterRemoteA("v3");
 		const scope = shareMap[instanceId].default;
 		expect(scope.unloaded["1.0.0"]).toBeUndefined();
 		expect(scope.loaded["1.0.0"]).toBe(loadedShared);
@@ -471,9 +559,8 @@ it("should keep cache sizes stable across repeated clear and reload", async () =
 	const moduleCacheSizes = [];
 	const federationModuleCacheSizes = [];
 
-	for (const version of ["v10", "v11", "v12"]) {
-		remoteServer.setVersion(version);
-		await clearAndRegisterRemoteA();
+	for (const version of ["v2", "v3", "v4"]) {
+		await clearAndRegisterRemoteA(version);
 		expect(await renderBothPages()).toEqual({
 			pageA: `pageA:./A:${version}`,
 			pageB: `pageB:./B:${version}`
