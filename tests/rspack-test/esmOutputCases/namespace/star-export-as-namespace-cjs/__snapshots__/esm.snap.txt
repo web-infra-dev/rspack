@@ -12,13 +12,9 @@ exports.foo = 123
 
 },
 });
-// ./bar.js
+// ./index.js
 const foo_0 = __webpack_require__("./foo.js");
 var foo_0_namespace = /*#__PURE__*/__webpack_require__.t(foo_0, 2);
-
-
-
-// ./index.js
 
 let foo = 234
 

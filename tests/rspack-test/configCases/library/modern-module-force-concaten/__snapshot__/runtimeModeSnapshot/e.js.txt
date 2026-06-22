@@ -6,13 +6,14 @@ module.exports = 'bar'
 
 },
 });
+
+
+
+
+
 const bar = __rspack_context.r("100");
 var bar_default = /*#__PURE__*/__rspack_context.n(bar);
 var bar_default_0 = bar_default();
-
-
-
-
 
 var e_foo = (/* inlined export .foo */"foo");
 export { bar_default_0 as bar, e_foo as foo };
