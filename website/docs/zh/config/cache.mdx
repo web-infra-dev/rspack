@@ -222,33 +222,33 @@ export default {
 
 指定 `snapshot.managedPaths` 中不应被视为包管理器管理的路径。这些路径下的文件会回退到基于内容哈希的缓存校验。
 
-### snapshot.module
+### snapshot.dependencies
 
 - **类型：** `{ hash?: boolean; timestamp?: boolean }`
 
 - **默认值：** development 和 none 模式下为 `{ timestamp: true }`，production 模式下为 `{ hash: true, timestamp: true }`
 
-控制构建 module 时使用的快照策略。`snapshot.module` 配置在顶层 `snapshot` 选项中。
+控制 `compilation.fileDependencies` 记录路径的快照策略。`snapshot.dependencies` 配置在顶层 `snapshot` 选项中。
 
 - `hash: true` 会比较文件内容哈希。
 - `timestamp: true` 会比较文件时间戳。
 - 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
 
-与 webpack 一致，除非设置了 `hash: true`，module 快照都会使用 timestamp 模式。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
+策略对象未设置 `hash: true` 时，`timestamp` 默认开启。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
 
-### snapshot.contextModule
+### snapshot.contextDependencies
 
 - **类型：** `{ hash?: boolean; timestamp?: boolean }`
 
 - **默认值：** `{ timestamp: true }`
 
-控制构建 context module 时使用的快照策略，例如由带上下文的动态 `import` 或 `require` 创建的模块。`snapshot.contextModule` 配置在顶层 `snapshot` 选项中。
+控制 `compilation.contextDependencies` 记录路径的快照策略。`snapshot.contextDependencies` 配置在顶层 `snapshot` 选项中。
 
 - `hash: true` 会比较递归内容哈希。
 - `timestamp: true` 会比较递归时间戳哈希，包含目录项和子项时间戳。
 - 两者同时启用时，Rspack 会先检查时间戳，并且只在时间戳发生变化后比较哈希，因此内容未变化时仍可以复用缓存。
 
-与 webpack 一致，除非设置了 `hash: true`，context module 快照都会使用 timestamp 模式。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
+策略对象未设置 `hash: true` 时，`timestamp` 默认开启。设置 `hash: true` 但不设置 `timestamp: true` 时，Rspack 会使用仅 hash 模式。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -256,7 +256,7 @@ export default {
     type: 'persistent',
   },
   snapshot: {
-    contextModule: {
+    contextDependencies: {
       hash: true,
     },
   },
@@ -421,7 +421,7 @@ export default {
 
 4. 迁移 `snapshot`
 
-将路径相关的 snapshot 选项迁移到 `cache.snapshot` 中。`snapshot.module` 和 `snapshot.contextModule` 保留在顶层 `snapshot` 选项中。
+将路径相关的 snapshot 选项迁移到 `cache.snapshot` 中。依赖策略配置保留在顶层 `snapshot` 选项中，对应 `snapshot.dependencies` 和 `snapshot.contextDependencies`。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -429,18 +429,18 @@ export default {
 -   immutablePaths: [path.join(__dirname, "constant")],
 -   managedPaths: [path.join(__dirname, "node_modules")],
 -   unmanagedPaths: [],
--   module: {
+-   dependencies: {
 -     timestamp: true
 -   },
--   contextModule: {
+-   contextDependencies: {
 -     timestamp: true
 -   }
 - },
 + snapshot: {
-+   module: {
++   dependencies: {
 +     timestamp: true
 +   },
-+   contextModule: {
++   contextDependencies: {
 +     timestamp: true
 +   }
 + },
@@ -505,8 +505,8 @@ function transform(webpackConfig, rspackConfig) {
     unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
   };
   rspackConfig.snapshot = {
-    module: webpackConfig.snapshot?.module,
-    contextModule: webpackConfig.snapshot?.contextModule,
+    dependencies: webpackConfig.snapshot?.module,
+    contextDependencies: webpackConfig.snapshot?.contextModule,
   };
   rspackConfig.cache.storage = {
     type: 'filesystem',

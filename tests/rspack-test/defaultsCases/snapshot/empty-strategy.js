@@ -3,8 +3,8 @@ module.exports = {
 	description: "empty snapshot strategies",
 	options: () => ({
 		snapshot: {
-			module: {},
-			contextModule: {}
+			dependencies: {},
+			contextDependencies: {}
 		}
 	}),
 	diff: e =>

@@ -254,16 +254,16 @@ const applySnapshotDefaults = (
   snapshot: SnapshotNormalized,
   { production }: { production: boolean },
 ) => {
-  F(snapshot, 'module', () =>
+  F(snapshot, 'dependencies', () =>
     production ? { timestamp: true, hash: true } : { timestamp: true },
   );
-  F(snapshot, 'contextModule', () => ({ timestamp: true }));
-  applySnapshotStrategyDefaults(snapshot.module);
-  applySnapshotStrategyDefaults(snapshot.contextModule);
+  F(snapshot, 'contextDependencies', () => ({ timestamp: true }));
+  applySnapshotStrategyDefaults(snapshot.dependencies);
+  applySnapshotStrategyDefaults(snapshot.contextDependencies);
 };
 
 const applySnapshotStrategyDefaults = (
-  strategy: SnapshotNormalized['module'],
+  strategy: SnapshotNormalized['dependencies'],
 ) => {
   if (strategy && strategy.hash !== true) {
     D(strategy, 'timestamp', true);

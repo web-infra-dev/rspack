@@ -129,8 +129,8 @@ function getRawCache(
       immutablePaths: cache.snapshot.immutablePaths!,
       unmanagedPaths: cache.snapshot.unmanagedPaths!,
       managedPaths: cache.snapshot.managedPaths!,
-      module: snapshot?.module,
-      contextModule: snapshot?.contextModule,
+      dependencies: snapshot?.dependencies,
+      contextDependencies: snapshot?.contextDependencies,
     },
   };
 }

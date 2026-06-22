@@ -23,8 +23,8 @@ pub struct RawSnapshotOptions {
   pub unmanaged_paths: Vec<RawPathMatcher>,
   #[napi(ts_type = r#"Array<string|RegExp>"#)]
   pub managed_paths: Vec<RawPathMatcher>,
-  pub r#module: Option<RawSnapshotStrategyOptions>,
-  pub context_module: Option<RawSnapshotStrategyOptions>,
+  pub dependencies: Option<RawSnapshotStrategyOptions>,
+  pub context_dependencies: Option<RawSnapshotStrategyOptions>,
 }
 
 #[derive(Debug, Default)]
@@ -66,14 +66,14 @@ impl From<RawSnapshotOptions> for SnapshotOptions {
         .collect(),
     );
 
-    let options = if let Some(module) = value.r#module {
-      options.with_module_strategy(module.into())
+    let options = if let Some(dependencies) = value.dependencies {
+      options.with_dependencies_strategy(dependencies.into())
     } else {
       options
     };
 
-    if let Some(context_module) = value.context_module {
-      return options.with_context_module_strategy(context_module.into());
+    if let Some(context_dependencies) = value.context_dependencies {
+      return options.with_context_dependencies_strategy(context_dependencies.into());
     }
 
     options
@@ -111,26 +111,26 @@ mod tests {
   fn should_use_default_snapshot_strategies_when_omitted() {
     let options: rspack_core::cache::persistent::snapshot::SnapshotOptions =
       RawSnapshotOptions::default().into();
-    let module_strategy = options.module_strategy();
-    assert!(!module_strategy.hash);
-    assert!(module_strategy.timestamp);
+    let dependencies_strategy = options.dependencies_strategy();
+    assert!(!dependencies_strategy.hash);
+    assert!(dependencies_strategy.timestamp);
 
-    let context_module_strategy = options.context_module_strategy();
-    assert!(!context_module_strategy.hash);
-    assert!(context_module_strategy.timestamp);
+    let context_dependencies_strategy = options.context_dependencies_strategy();
+    assert!(!context_dependencies_strategy.hash);
+    assert!(context_dependencies_strategy.timestamp);
   }
 
   #[test]
-  fn should_apply_raw_module_strategy() {
+  fn should_apply_raw_dependencies_strategy() {
     let options: rspack_core::cache::persistent::snapshot::SnapshotOptions = RawSnapshotOptions {
-      r#module: Some(RawSnapshotStrategyOptions {
+      dependencies: Some(RawSnapshotStrategyOptions {
         hash: Some(true),
         timestamp: Some(true),
       }),
       ..Default::default()
     }
     .into();
-    let strategy = options.module_strategy();
+    let strategy = options.dependencies_strategy();
     assert!(strategy.hash);
     assert!(strategy.timestamp);
   }

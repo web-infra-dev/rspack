@@ -4,10 +4,10 @@ module.exports = {
     type: 'persistent',
   },
   snapshot: {
-    module: {
+    dependencies: {
       hash: true,
     },
-    contextModule: {
+    contextDependencies: {
       timestamp: true,
     },
   },

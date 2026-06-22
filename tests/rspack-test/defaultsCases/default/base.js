@@ -723,10 +723,10 @@ module.exports = {
 			    ],
 			  },
 			  snapshot: Object {
-			    contextModule: Object {
+			    contextDependencies: Object {
 			      timestamp: true,
 			    },
-			    module: Object {
+			    dependencies: Object {
 			      timestamp: true,
 			    },
 			  },

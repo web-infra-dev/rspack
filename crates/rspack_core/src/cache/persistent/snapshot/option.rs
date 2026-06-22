@@ -29,8 +29,8 @@ pub struct SnapshotOptions {
   unmanaged_paths: Vec<PathMatcher>,
   /// managed_paths, snapshot will use lib version strategy
   managed_paths: Vec<PathMatcher>,
-  module: SnapshotStrategyOptions,
-  context_module: SnapshotStrategyOptions,
+  dependencies: SnapshotStrategyOptions,
+  context_dependencies: SnapshotStrategyOptions,
 }
 
 #[cacheable]
@@ -78,22 +78,22 @@ impl SnapshotOptions {
     }
   }
 
-  pub fn with_context_module_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
-    self.context_module = strategy;
+  pub fn with_context_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.context_dependencies = strategy;
     self
   }
 
-  pub fn with_module_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
-    self.module = strategy;
+  pub fn with_dependencies_strategy(mut self, strategy: SnapshotStrategyOptions) -> Self {
+    self.dependencies = strategy;
     self
   }
 
-  pub fn module_strategy(&self) -> SnapshotStrategyOptions {
-    self.module
+  pub fn dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.dependencies
   }
 
-  pub fn context_module_strategy(&self) -> SnapshotStrategyOptions {
-    self.context_module
+  pub fn context_dependencies_strategy(&self) -> SnapshotStrategyOptions {
+    self.context_dependencies
   }
 
   pub fn is_immutable_path(&self, path_str: &str) -> bool {
@@ -128,16 +128,16 @@ mod tests {
   use super::{PathMatcher, SnapshotOptions};
 
   #[test]
-  fn should_default_snapshot_strategies_align_with_webpack_development() {
+  fn should_default_snapshot_strategies_use_timestamp() {
     let options = SnapshotOptions::default();
 
-    let module_strategy = options.module_strategy();
-    assert!(!module_strategy.hash);
-    assert!(module_strategy.timestamp);
+    let dependencies_strategy = options.dependencies_strategy();
+    assert!(!dependencies_strategy.hash);
+    assert!(dependencies_strategy.timestamp);
 
-    let context_module_strategy = options.context_module_strategy();
-    assert!(!context_module_strategy.hash);
-    assert!(context_module_strategy.timestamp);
+    let context_dependencies_strategy = options.context_dependencies_strategy();
+    assert!(!context_dependencies_strategy.hash);
+    assert!(context_dependencies_strategy.timestamp);
   }
 
   #[test]

@@ -2046,13 +2046,13 @@ export type SnapshotStrategyOptions = {
  */
 export type SnapshotOptions = {
   /**
-   * Snapshots for building modules.
+   * Snapshots for file dependencies.
    */
-  module?: SnapshotStrategyOptions;
+  dependencies?: SnapshotStrategyOptions;
   /**
-   * Snapshots for building context modules.
+   * Snapshots for context dependencies.
    */
-  contextModule?: SnapshotStrategyOptions;
+  contextDependencies?: SnapshotStrategyOptions;
 };
 //#endregion
 

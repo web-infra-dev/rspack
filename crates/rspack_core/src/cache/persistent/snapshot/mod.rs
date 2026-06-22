@@ -57,11 +57,15 @@ impl Snapshot {
       return Some(v);
     }
     Some(match scope {
-      SnapshotScope::FILE => helper.file_strategy(path, options.module_strategy()).await,
+      SnapshotScope::FILE => {
+        helper
+          .file_strategy(path, options.dependencies_strategy())
+          .await
+      }
       SnapshotScope::MISSING => Strategy::Missing,
       SnapshotScope::CONTEXT => {
         helper
-          .dir_strategy(path, options.context_module_strategy())
+          .dir_strategy(path, options.context_dependencies_strategy())
           .await
       }
       SnapshotScope::BUILD => {
@@ -298,7 +302,7 @@ mod tests {
   }
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-  async fn should_context_module_strategy_work() {
+  async fn should_context_dependencies_strategy_work() {
     let fs = Arc::new(MemoryFileSystem::default());
     let codec = Arc::new(CacheCodec::new(None));
 
@@ -308,7 +312,8 @@ mod tests {
       .unwrap();
 
     let timestamp_only = Snapshot::new(
-      SnapshotOptions::default().with_context_module_strategy(SnapshotStrategyOptions::timestamp()),
+      SnapshotOptions::default()
+        .with_context_dependencies_strategy(SnapshotStrategyOptions::timestamp()),
       fs.clone(),
       codec.clone(),
     );
@@ -356,7 +361,7 @@ mod tests {
 
     let timestamp_and_hash = Snapshot::new(
       SnapshotOptions::default()
-        .with_context_module_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
+        .with_context_dependencies_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
       fs.clone(),
       codec,
     );
@@ -383,7 +388,7 @@ mod tests {
   }
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-  async fn should_module_strategy_work() {
+  async fn should_dependencies_strategy_work() {
     let fs = Arc::new(MemoryFileSystem::default());
     let codec = Arc::new(CacheCodec::new(None));
 
@@ -391,7 +396,7 @@ mod tests {
     fs.write("/file.js".into(), "abc".as_bytes()).await.unwrap();
 
     let timestamp_only = Snapshot::new(
-      SnapshotOptions::default().with_module_strategy(SnapshotStrategyOptions::timestamp()),
+      SnapshotOptions::default().with_dependencies_strategy(SnapshotStrategyOptions::timestamp()),
       fs.clone(),
       codec.clone(),
     );
@@ -416,7 +421,7 @@ mod tests {
 
     let timestamp_and_hash = Snapshot::new(
       SnapshotOptions::default()
-        .with_module_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
+        .with_dependencies_strategy(SnapshotStrategyOptions::hash_and_timestamp()),
       fs.clone(),
       codec,
     );
