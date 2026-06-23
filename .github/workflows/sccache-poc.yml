@@ -49,29 +49,25 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Decisive: plain `cargo build` of the binding cdylib (no napi env injection),
-      # twice. rspack_cacheable is reproducible under plain cargo, so if the warm hit
-      # rate now jumps high, napi's per-build env (NAPI_TYPE_DEF_TMP_FOLDER / Date.now)
-      # is what poisons the sccache keys in the real build.
-      - name: Cargo build cold (no napi)
-        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-      - run: sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
-
-      - name: Reset for warm
+      # Find which crates are non-reproducible. Build the full binding TWICE WITHOUT
+      # sccache (so each compile is fresh, not cache-restored), then diff the content
+      # hash of every dep rmeta/rlib. Crates whose bytes differ are non-reproducible;
+      # the lowest of them is the cascade root that poisons sccache keys.
+      - name: Probe which deps are non-reproducible
+        env:
+          RUSTC_WRAPPER: ''
         run: |
-          rm -rf target
-          sccache --stop-server || true
-          rm -f "$SCCACHE_ERROR_LOG"
-          sccache --start-server
-          sccache --zero-stats
-
-      - name: Cargo build warm (no napi)
-        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-      - name: Warm coverage (plain cargo)
-        run: |
-          echo "### WARM (plain cargo, no napi) ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
-          sccache --stop-server || true
-          echo "=== remaining MISS crates ==="
-          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -40 || echo "(none)"
+          probe() {
+            rm -rf target
+            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto 2>/dev/null
+            find target -path '*/ci/deps/*' \( -name '*.rmeta' -o -name '*.rlib' \) -exec sha256sum {} \; \
+              | sed -E 's# .*/(lib[^/]+)$#  \1#' | sort -k2 > "$1.hashes"
+          }
+          probe /tmp/p1
+          probe /tmp/p2
+          echo "=== total dep artifacts: $(wc -l < /tmp/p1.hashes) ==="
+          echo "=== NON-REPRODUCIBLE crates (bytes differ across identical builds) ==="
+          diff /tmp/p1.hashes /tmp/p2.hashes | grep -E '^[<>]' \
+            | awk '{print $3}' | sed -E 's/-[0-9a-f]+\.(rmeta|rlib)$//' | sort -u | head -80
+          echo "=== count ==="
+          diff /tmp/p1.hashes /tmp/p2.hashes | grep -E '^<' | wc -l
