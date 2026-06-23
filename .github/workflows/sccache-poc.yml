@@ -49,24 +49,24 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Comprehensive args diff: capture every rustc command (plain, no sccache) across
-      # two full builds, sorted by crate, and diff. Shows exactly which crate's args
-      # change build-to-build (e.g. a --extern path whose metahash is nondeterministic).
-      - name: Diff rustc commands across two full builds
+      # Commands are identical yet workspace crates miss -> sccache key depends on
+      # something beyond args. Build one tiny workspace crate twice with FULL trace and
+      # dump its hash-key inputs so we can see exactly what differs cold vs warm.
+      - name: Trace one workspace crate's sccache key
         env:
-          RUSTC_WRAPPER: ''
+          SCCACHE_LOG: trace
         run: |
-          probe() {
+          run_build() {
             rm -rf target
-            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto -v 2>&1 \
-              | grep -oE 'rustc --crate-name [a-z0-9_]+ .*' \
-              | sed -E 's#=/[^ ]*/(lib[a-z0-9_]+-[0-9a-f]+\.r(meta|lib))#=\1#g; s#/[^ ]*/(crates/[a-z0-9_/.]+)#\1#g; s#/[^ ]*/(registry/src/[^ ]+)#\1#g' \
-              | sort > "$1.cmds"
+            sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
+            cargo build --profile ci -p rspack_workspace 2>/dev/null
+            cp "$SCCACHE_ERROR_LOG" "$1"
           }
-          probe /tmp/c1
-          probe /tmp/c2
-          echo "=== crates whose rustc command DIFFERS across builds ==="
-          diff /tmp/c1.cmds /tmp/c2.cmds | grep -E '^<' \
-            | grep -oE 'crate-name [a-z0-9_]+' | sort -u | head -60
-          echo "=== sample diff (first differing lines) ==="
-          diff /tmp/c1.cmds /tmp/c2.cmds | head -20
+          run_build /tmp/t1.log   # cold (store)
+          run_build /tmp/t2.log   # warm (should hit; if miss, key changed)
+          echo "=== rspack_workspace hit/miss cold vs warm ==="
+          grep -iE 'rspack_workspace.*cache (hit|miss)' /tmp/t1.log | tail -2
+          grep -iE 'rspack_workspace.*cache (hit|miss)' /tmp/t2.log | tail -2
+          echo "=== trace lines around rspack_workspace hashing (warm) ==="
+          grep -iE 'rspack_workspace|hash|digest|env|--extern|preprocessor' /tmp/t2.log \
+            | grep -iv 'cache miss for|config' | head -60
