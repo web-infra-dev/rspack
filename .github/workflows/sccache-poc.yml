@@ -49,28 +49,23 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Roots have identical args/env yet changing keys. sccache also hashes the crate's
-      # SOURCE files (via --emit=dep-info), which include build-script-generated files in
-      # OUT_DIR. Hash each root's OUT_DIR across two builds (no sccache) to catch a
-      # non-deterministic generated file = the true root input.
-      - name: Probe root crates' OUT_DIR reproducibility
-        env:
-          RUSTC_WRAPPER: ''
+      # Last unchecked input: the process ENV sccache hashes. Wrap rustc to dump swc_core's
+      # full environment in two builds and diff -> reveals the non-deterministic env var.
+      - name: Capture swc_core rustc env (cold vs warm)
         run: |
-          probe() {
-            rm -rf target
-            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto 2>/dev/null
-            for c in libmimalloc_sys swc_core swc swc_plugin_runner; do
-              for od in target/ci/build/${c}-*/out; do
-                [ -d "$od" ] || continue
-                find "$od" -type f -exec sha256sum {} \; \
-                  | sed -E "s# .*/build/${c}-[0-9a-f]+/# ${c}/#" | sort
-              done
-            done > "$1"
+          cat > /tmp/wrap.sh <<'EOF'
+          #!/usr/bin/env bash
+          case " $* " in
+            *" --crate-name swc_core "*) env | sort | grep -vE '^(_|SHLVL|OLDPWD)=' > "/tmp/env_${BUILDTAG}.txt" ;;
+          esac
+          exec "$@"
+          EOF
+          chmod +x /tmp/wrap.sh
+          build() {
+            export BUILDTAG="$1"; rm -rf target
+            RUSTC_WRAPPER=/tmp/wrap.sh cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto 2>/dev/null
           }
-          probe /tmp/o1
-          probe /tmp/o2
-          echo "=== OUT_DIR diff (empty = reproducible) ==="
-          if diff /tmp/o1 /tmp/o2; then echo "OUT_DIR REPRODUCIBLE"; else echo "OUT_DIR DIFFERS -> root input found ^"; fi
-          echo "=== files present (cold) ==="
-          sed -E 's/^[0-9a-f]+ +//' /tmp/o1 | sort -u | head -40
+          build cold
+          build warm
+          echo "=== swc_core rustc ENV diff (cold vs warm) ==="
+          if diff /tmp/env_cold.txt /tmp/env_warm.txt; then echo "ENV IDENTICAL"; else echo "ENV DIFFERS ^ <- root cause"; fi
