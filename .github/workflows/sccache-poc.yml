@@ -1,11 +1,9 @@
 name: sccache-poc
 
 # Goal: raise the second identical-commit build's sccache coverage above 95%.
-# One run, two jobs on a self-hosted Linux runner:
-#   cold  -> builds the linux-gnu ci binding, populating the sccache GHA cache.
-#   warm  -> needs(cold), rebuilds the same commit; its sccache hit rate IS the
-#            "second identical-commit build" coverage. SCCACHE_LOG=debug captures
-#            which crates still miss so we can drive them down.
+# Single self-hosted job, local SCCACHE_DIR (no backend confound) so the number
+# reflects pure determinism: build cold -> rm -rf target -> build warm. The warm
+# hit rate is the coverage; SCCACHE_LOG=debug pinpoints crates that still miss.
 
 on:
   push:
@@ -17,53 +15,15 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  cold:
-    name: cold (populate sccache)
+  measure:
+    name: sccache coverage (linux-gnu ci)
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     defaults:
       run:
         shell: bash
     env:
       RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: 'true'
-    steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - uses: ./.github/actions/pnpm/setup
-      - name: Install Binding Dependencies
-        run: |
-          cd ./crates/node_binding
-          pnpm i --ignore-workspace --no-lockfile
-          cd ../../
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          key: sccache-poc
-          save-if: false
-          use-cache: false
-      - run: rustup target add x86_64-unknown-linux-gnu
-      - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
-      - run: cargo codegen
-      - name: Trim paths
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
-      - name: Build (cold)
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-          USE_NAPI_CROSS: '1'
-        run: pnpm build:binding:ci
-      - run: sccache --show-stats
-
-  warm:
-    name: warm (measure coverage)
-    needs: cold
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    defaults:
-      run:
-        shell: bash
-    env:
-      RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: 'true'
+      SCCACHE_DIR: /tmp/sccache-cache
       SCCACHE_LOG: debug
       SCCACHE_ERROR_LOG: /tmp/sccache-server.log
     steps:
@@ -87,16 +47,34 @@ jobs:
         run: |
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
-      - name: Build (warm = second identical-commit build)
+
+      - name: Build cold (populate sccache)
         env:
           RUST_TARGET: x86_64-unknown-linux-gnu
           USE_NAPI_CROSS: '1'
         run: pnpm build:binding:ci
+      - run: sccache --show-stats
+
+      - name: Reset for warm build
+        run: |
+          rm -rf target
+          wc -l < "$SCCACHE_ERROR_LOG" > /tmp/warm_marker
+          sccache --zero-stats
+
+      - name: Build warm (second identical-commit build)
+        env:
+          RUST_TARGET: x86_64-unknown-linux-gnu
+          USE_NAPI_CROSS: '1'
+        run: pnpm build:binding:ci
+
       - name: Coverage + miss breakdown
         run: |
           sccache --show-stats
           sccache --stop-server || true
-          echo "=== top MISS outputs (crate-level) ==="
-          grep -iE 'cache miss' "$SCCACHE_ERROR_LOG" 2>/dev/null \
-            | grep -oE '\[[^]]*\]' | sort | uniq -c | sort -rn | head -80 \
-            || echo "(no miss lines in $SCCACHE_ERROR_LOG)"
+          start=$(cat /tmp/warm_marker 2>/dev/null || echo 1)
+          echo "=== raw sample of warm 'Cache miss' lines ==="
+          tail -n +"$start" "$SCCACHE_ERROR_LOG" | grep -i 'cache miss' | head -5 || true
+          echo "=== warm MISS outputs (crate-level, top) ==="
+          tail -n +"$start" "$SCCACHE_ERROR_LOG" | grep -i 'cache miss' \
+            | grep -oE '\] \[[^]]+\]' | sed -E 's/^\] //' \
+            | sort | uniq -c | sort -rn | head -60 || echo "(no miss lines)"
