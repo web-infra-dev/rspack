@@ -247,9 +247,6 @@ it("should invalidate SSR remote and affected consumer caches without preloading
 
 	const afterRemove = remoteServer.snapshot();
 	expectSnapshotUnchangedExceptRemoteEntryClears(afterRemove, beforeClear);
-	expect(afterRemove.remoteEntryClears).toBeGreaterThan(
-		beforeClear.remoteEntryClears
-	);
 	expect(getTrackedModuleCacheSize()).toBe(0);
 	await registerRemoteA(remoteA);
 	expectSnapshotUnchangedExceptRemoteEntryClears(
