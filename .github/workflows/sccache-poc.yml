@@ -44,21 +44,26 @@ jobs:
       - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - run: cargo codegen
 
-      # Reproducibility probe: build the proc-macro crates twice (rm target between)
-      # and diff the resulting dylibs. If a proc-macro .so differs byte-for-byte, every
-      # crate using it gets a different --extern hash in sccache -> miss every build.
-      - name: Probe proc-macro dylib reproducibility
+      # Why does rspack_cacheable miss every build? Capture its rustc command line in
+      # two builds and diff. Command differs -> an arg varies; command identical ->
+      # input content varies. Also diff its compiled rmeta to see if output is stable.
+      - name: Probe rspack_cacheable rustc command + output reproducibility
         run: |
-          set -x
-          build_and_hash() {
-            cargo build --profile ci \
-              -p rspack_cacheable_macros -p rspack_macros \
-              -p rspack_napi_macros -p rspack_binding_builder_macros 2>/dev/null
-            find target -name 'lib*macros*.so' -exec sha256sum {} \; \
-              | sed -E 's# .*/(lib[^/]+\.so)$#  \1#' | sort -k2
+          probe() {
+            rm -rf target
+            cargo build --profile ci -p rspack_cacheable -v 2>&1 \
+              | grep -oE 'rustc --crate-name rspack_cacheable .*' | head -1 \
+              | tr ' ' '\n' > "$1.cmd" || true
+            find target -path '*/deps/librspack_cacheable-*.rmeta' \
+              -exec sha256sum {} \; | awk '{print $1}' | sort > "$1.out"
           }
-          echo "=== build 1 dylib hashes ==="; build_and_hash > /tmp/h1.txt; cat /tmp/h1.txt
-          rm -rf target
-          echo "=== build 2 dylib hashes ==="; build_and_hash > /tmp/h2.txt; cat /tmp/h2.txt
-          echo "=== DIFF (empty = reproducible) ==="
-          diff /tmp/h1.txt /tmp/h2.txt && echo "REPRODUCIBLE" || echo "NON-REPRODUCIBLE -> root cause"
+          probe /tmp/b1
+          probe /tmp/b2
+          echo "=== rmeta output diff (empty = reproducible) ==="
+          if diff /tmp/b1.out /tmp/b2.out; then echo "RMETA REPRODUCIBLE"; else echo "RMETA DIFFERS -> nondeterministic output"; fi
+          echo "b1 rmeta: $(cat /tmp/b1.out)"
+          echo "b2 rmeta: $(cat /tmp/b2.out)"
+          echo "=== CMD diff (empty = identical args) ==="
+          if diff /tmp/b1.cmd /tmp/b2.cmd; then echo "ARGS IDENTICAL"; else echo "ARGS DIFFER ^"; fi
+          echo "=== rustc args sample (b1) ==="
+          cat /tmp/b1.cmd
