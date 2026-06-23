@@ -54,11 +54,13 @@ externalstypecommonjs
 faga295
 fansenze
 fargs
-fetchcompileasyncwasmplugin
 feishu
+feng
+fetchcompileasyncwasmplugin
 fi3ework
 fnames
 funs
+gengkun
 Hana
 HerringtonDarkholme
 htmlrspackplugin
@@ -76,8 +78,8 @@ intlify
 IWANABETHATGUY
 jantimon
 JavaScript
-Jiahan
 jerrykingxyz
+Jiahan
 jkzing
 jridgewell
 jscexperimentalplugins
