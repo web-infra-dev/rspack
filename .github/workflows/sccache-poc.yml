@@ -1,19 +1,10 @@
 name: sccache-poc
-
-# PoC: measure sccache (GitHub Actions Cache backend) hit rate on the linux-gnu
-# ci binding build. Target/fingerprint cache is disabled here so sccache is the
-# only cache, giving a clean signal. Run twice: run A populates the GHA cache,
-# run B (re-run) should show high hits on unchanged crates.
-
 on:
   push:
     branches: [ci-measure-cargo-cache-utilization]
   workflow_dispatch:
-
 env:
   CARGO_INCREMENTAL: 0
-  CARGO_TERM_COLOR: always
-
 jobs:
   build:
     name: sccache PoC (linux-gnu ci)
@@ -24,49 +15,16 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup
-
-      - name: Install Binding Dependencies
-        run: |
-          cd ./crates/node_binding
-          pnpm i --ignore-workspace --no-lockfile
-          cd ../../
-
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
           key: sccache-poc
           save-if: false
-          use-cache: false # isolate: sccache is the only cache
-
-      - name: Setup Rust Target
-        run: rustup target add x86_64-unknown-linux-gnu
-
-      - name: Run Cargo codegen
-        run: cargo codegen
-
-      - name: Trim paths
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
-
+          use-cache: false
       - name: Free disk cache
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
-
-      - name: Setup sccache
-        uses: mozilla/sccache-action@9e7fa8a12102821edf02ca5dbea1acd0f89a2696 # v0.0.10
-
-      - name: Build binding (ci) with sccache
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-          USE_NAPI_CROSS: '1'
-          RUSTC_WRAPPER: sccache
-          SCCACHE_GHA_ENABLED: 'true'
-        run: pnpm build:binding:ci
-
-      - name: sccache stats
-        run: sccache --show-stats
+      - run: echo done
