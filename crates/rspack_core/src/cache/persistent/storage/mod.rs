@@ -4,7 +4,7 @@ use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
 pub use rspack_storage::{BoxStorage, MemoryStorage, Storage};
-use rspack_storage::{FileSystemOptions, FileSystemStorage};
+use rspack_storage::{FileSystemOptions, FileSystemStorage, Version};
 
 /// Storage Options
 ///
@@ -29,7 +29,7 @@ pub fn create_storage(
     StorageOptions::FileSystem { directory } => {
       let option = FileSystemOptions {
         directory,
-        version,
+        version: Version::new(version),
         max_versions,
         max_pack_size: 500 * 1024,
         expire: max_age,
