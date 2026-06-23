@@ -137,8 +137,12 @@ fn get_source_for_import(
   attributes: &Option<ImportAttributes>,
   phase: ImportPhase,
 ) -> String {
-  let import_function = if phase.is_source() {
-    format!("{}.source", compilation.options.output.import_function_name)
+  let import_function = if phase != ImportPhase::Evaluation {
+    format!(
+      "{}.{}",
+      compilation.options.output.import_function_name,
+      phase.as_str()
+    )
   } else {
     compilation.options.output.import_function_name.clone()
   };
