@@ -49,29 +49,25 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # sccache logs each crate's "Hash key" at debug. Capture the key map in cold and
-      # warm full builds; crates whose key changes are the misses. Cross-referencing with
-      # the dep graph (offline) pinpoints the cascade root (changed key, all deps stable).
-      - name: Capture per-crate sccache hash keys (cold vs warm)
+      # Cascade roots are libmimalloc_sys + swc/swc_core/swc_plugin_runner. Capture the
+      # exact sccache args (get_cached_or_compile) for them in cold vs warm, plus the
+      # build-script-emitted rustc-env/cfg, to find the non-deterministic INPUT.
+      - name: Probe root crates' args + build-script env
         run: |
-          keys() {
-            grep -oE '\[[a-z0-9_]+\]: Hash key: [0-9a-f]+' "$1" \
-              | sed -E 's/\[([a-z0-9_]+)\]: Hash key: ([0-9a-f]+)/\1 \2/' | sort -u
+          ROOTS='libmimalloc_sys|swc_core|swc_plugin_runner|swc[^_]'
+          capture() {
+            rm -rf target
+            sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
+            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto -v 2>"$1.cargov" >/dev/null
+            grep -oE '\[(libmimalloc_sys|swc_core|swc_plugin_runner|swc)\]: get_cached_or_compile: \[.*\]' "$SCCACHE_ERROR_LOG" | sort > "$1.args"
+            # build-script-emitted rustc-env / rustc-cfg for the roots
+            grep -E 'cargo::?rustc-(env|cfg)' "$1.cargov" | grep -iE 'mimalloc|swc' | sort -u > "$1.bsenv" || true
           }
-          rm -rf target
-          sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
-          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-          keys "$SCCACHE_ERROR_LOG" > /tmp/cold_keys.txt
-          rm -rf target
-          sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server; sccache --zero-stats
-          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-          keys "$SCCACHE_ERROR_LOG" > /tmp/warm_keys.txt
-          echo "### WARM stats ###"; sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
-          echo "=== crates whose Hash key CHANGED (cold->warm) = the misses ==="
-          comm -23 <(cut -d' ' -f1 /tmp/cold_keys.txt|sort -u) <(join /tmp/cold_keys.txt /tmp/warm_keys.txt -o 1.1 -j 1 | sort -u) 2>/dev/null || true
-          join -j1 <(sort /tmp/cold_keys.txt) <(sort /tmp/warm_keys.txt) 2>/dev/null \
-            | awk '$2!=$3{print $1}' | sort -u > /tmp/changed.txt
-          echo "changed-key crates ($(wc -l < /tmp/changed.txt)):"; cat /tmp/changed.txt
-          echo "=== BASE64 of cold/warm/changed for offline analysis ==="
-          echo "COLDKEYS_B64:$(base64 -w0 /tmp/cold_keys.txt)"
-          echo "WARMKEYS_B64:$(base64 -w0 /tmp/warm_keys.txt)"
+          capture /tmp/c
+          capture /tmp/w
+          echo "=== ARGS diff for root crates (cold vs warm) ==="
+          diff /tmp/c.args /tmp/w.args && echo "ROOT ARGS IDENTICAL" || echo "ROOT ARGS DIFFER ^"
+          echo "=== build-script rustc-env/cfg diff ==="
+          diff /tmp/c.bsenv /tmp/w.bsenv && echo "BUILD-SCRIPT ENV IDENTICAL" || echo "BUILD-SCRIPT ENV DIFFERS ^"
+          echo "=== libmimalloc_sys full args (cold) ==="
+          grep 'libmimalloc_sys' /tmp/c.args | head -1 | tr ',' '\n' | grep -iE 'env|cfg|extern|metadata|out-dir|L ' | head -30
