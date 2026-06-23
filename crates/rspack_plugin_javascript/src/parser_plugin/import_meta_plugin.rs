@@ -3,6 +3,7 @@ use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
   DependencyRange, ImportMeta, RscMeta, RscModuleType, RuntimeGlobals,
   RuntimeRequirementsDependency, property_access,
+  runtime_mode::RuntimeMode as ExperimentRuntimeMode,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
@@ -62,7 +63,6 @@ type ImportMetaMember =
 type ImportMetaDestructuring =
   for<'p> fn(&ImportMetaPlugin, &mut JavascriptParser<'p>, &'static str, Span) -> String;
 type ImportMetaCall = for<'p> fn(&ImportMetaPlugin, &mut JavascriptParser<'p>, &CallExpr) -> bool;
-type ImportMetaRuntimeMember = for<'p> fn(&mut JavascriptParser<'p>, Span, RuntimeGlobals) -> bool;
 
 #[derive(Clone, Copy)]
 struct ImportMetaApi {
@@ -77,7 +77,7 @@ struct ImportMetaApi {
   skip_undefined_evaluate: bool,
   condition: ImportMetaApiCondition,
   runtime_global: Option<RuntimeGlobals>,
-  runtime_member: Option<ImportMetaRuntimeMember>,
+  runtime_call: bool,
 }
 
 static IMPORT_META_APIS: &[ImportMetaApi] = &[
@@ -103,7 +103,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: false,
     condition: |_| true,
     runtime_global: None,
-    runtime_member: None,
+    runtime_call: false,
   },
   ImportMetaApi {
     name: expr_name::IMPORT_META_RESOLVE,
@@ -128,7 +128,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: false,
     condition: |parser| parser.javascript_options.import_meta_resolve == Some(true),
     runtime_global: None,
-    runtime_member: None,
+    runtime_call: false,
   },
   ImportMetaApi {
     name: expr_name::IMPORT_META_VERSION,
@@ -152,7 +152,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: false,
     condition: |_| true,
     runtime_global: None,
-    runtime_member: None,
+    runtime_call: false,
   },
   ImportMetaApi {
     name: expr_name::IMPORT_META_MAIN,
@@ -175,7 +175,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: None,
-    runtime_member: None,
+    runtime_call: false,
   },
   ImportMetaApi {
     name: expr_name::IMPORT_META_RSPACK_RSC,
@@ -197,7 +197,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: is_rsc_layer,
     runtime_global: None,
-    runtime_member: None,
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackPublicPath",
@@ -211,7 +211,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::PUBLIC_PATH),
-    runtime_member: Some(normal_import_meta_runtime_member),
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackBaseUri",
@@ -225,7 +225,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::BASE_URI),
-    runtime_member: Some(normal_import_meta_runtime_member),
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackShareScopes",
@@ -239,7 +239,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::SHARE_SCOPE_MAP),
-    runtime_member: Some(normal_import_meta_runtime_member),
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackInitSharing",
@@ -253,7 +253,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::INITIALIZE_SHARING),
-    runtime_member: Some(normal_import_meta_runtime_member),
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackNonce",
@@ -267,7 +267,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::SCRIPT_NONCE),
-    runtime_member: Some(normal_import_meta_runtime_member),
+    runtime_call: false,
   },
   ImportMetaApi {
     name: "import.meta.rspackVersion",
@@ -281,7 +281,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::RSPACK_VERSION),
-    runtime_member: Some(call_import_meta_runtime_member),
+    runtime_call: true,
   },
   ImportMetaApi {
     name: "import.meta.rspackHash",
@@ -295,7 +295,7 @@ static IMPORT_META_APIS: &[ImportMetaApi] = &[
     skip_undefined_evaluate: true,
     condition: |_| true,
     runtime_global: Some(RuntimeGlobals::GET_FULL_HASH),
-    runtime_member: Some(call_import_meta_runtime_member),
+    runtime_call: true,
   },
 ];
 
@@ -309,37 +309,30 @@ impl ImportMetaApi {
     if let Some(member) = self.member {
       return Some(member(plugin, parser, member_expr));
     }
-    let runtime_member = self.runtime_member?;
-    Some(runtime_member(
-      parser,
-      member_expr.span(),
-      self.runtime_global?,
+    let runtime_global = self.runtime_global?;
+    let dep: RuntimeRequirementsDependency = if self.runtime_call {
+      RuntimeRequirementsDependency::call(member_expr.span().into(), runtime_global)
+    } else {
+      RuntimeRequirementsDependency::new(member_expr.span().into(), runtime_global)
+    };
+    parser.add_presentational_dependency(Box::new(dep));
+    Some(true)
+  }
+
+  fn runtime_destructuring(
+    &self,
+    parser: &mut JavascriptParser,
+    property: &'static str,
+  ) -> Option<String> {
+    let runtime_global = self.runtime_global?;
+    parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+      runtime_global,
+    )));
+    Some(format!(
+      "{property}: {}",
+      render_import_meta_runtime_global(parser, runtime_global, self.runtime_call)?
     ))
   }
-}
-
-fn normal_import_meta_runtime_member(
-  parser: &mut JavascriptParser,
-  span: Span,
-  runtime_global: RuntimeGlobals,
-) -> bool {
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
-    span.into(),
-    runtime_global,
-  )));
-  true
-}
-
-fn call_import_meta_runtime_member(
-  parser: &mut JavascriptParser,
-  span: Span,
-  runtime_global: RuntimeGlobals,
-) -> bool {
-  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::call(
-    span.into(),
-    runtime_global,
-  )));
-  true
 }
 
 fn import_meta_api_from_name(name: &str) -> Option<&'static ImportMetaApi> {
@@ -348,6 +341,32 @@ fn import_meta_api_from_name(name: &str) -> Option<&'static ImportMetaApi> {
 
 fn import_meta_api_from_property(property: &str) -> Option<&'static ImportMetaApi> {
   IMPORT_META_APIS.iter().find(|api| api.property == property)
+}
+
+fn render_import_meta_runtime_global(
+  parser: &JavascriptParser,
+  runtime_global: RuntimeGlobals,
+  runtime_call: bool,
+) -> Option<String> {
+  let content = if parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
+  {
+    format!(
+      "{}{}",
+      parser.parser_runtime_requirements.context,
+      property_access([runtime_global.rspack_context_property_name()?], 0)
+    )
+  } else {
+    format!(
+      "{}{}",
+      parser.parser_runtime_requirements.require,
+      property_access([runtime_global.property_name()?], 0)
+    )
+  };
+  Some(if runtime_call {
+    format!("{content}()")
+  } else {
+    content
+  })
 }
 
 fn should_skip_import_meta_undefined_evaluate(parser: &JavascriptParser, property: &str) -> bool {
@@ -654,9 +673,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
           let destructuring = import_meta_api_from_property(prop.id.as_ref())
             .filter(|api| (api.condition)(parser))
             .and_then(|api| {
-              api
-                .destructuring
-                .map(|destructuring| destructuring(self, parser, api.property, span))
+              if let Some(destructuring) = api.destructuring {
+                Some(destructuring(self, parser, api.property, span))
+              } else {
+                api.runtime_destructuring(parser, api.property)
+              }
             });
           content.push(destructuring.unwrap_or_else(|| {
             format!(
@@ -719,10 +740,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     for_name: &str,
   ) -> Option<bool> {
     let api = import_meta_api_from_name(for_name)?;
-    api
-      .call
-      .filter(|_| (api.condition)(parser))
-      .map(|call| call(self, parser, call_expr))
+    if !(api.condition)(parser) {
+      return None;
+    }
+    if let Some(call) = api.call {
+      return Some(call(self, parser, call_expr));
+    }
+    if api.type_of == Some("function")
+      && let Some(runtime_global) = api.runtime_global
+    {
+      parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::new(
+        call_expr.callee.span().into(),
+        runtime_global,
+      )));
+      parser.walk_expr_or_spread(&call_expr.args);
+      return Some(true);
+    }
+    None
   }
 
   fn unhandled_expression_member_chain(

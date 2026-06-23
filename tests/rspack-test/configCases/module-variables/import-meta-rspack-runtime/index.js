@@ -15,4 +15,22 @@ it("should expose rspack runtime module variables on import.meta", function () {
 
 	expect(typeof import.meta.rspackHash).toBe("string");
 	expect(import.meta.rspackHash.length > 0).toBe(true);
+
+	function callRspackInitSharing() {
+		return import.meta.rspackInitSharing("default");
+	}
+	expect(typeof callRspackInitSharing).toBe("function");
+
+	const {
+		rspackPublicPath,
+		rspackInitSharing,
+		rspackVersion,
+		rspackHash
+	} = import.meta;
+	expect(rspackPublicPath).toBe("/a");
+	expect(rspackInitSharing).toBe(__webpack_require__.I);
+	expect(typeof rspackVersion).toBe("string");
+	expect(rspackVersion.length > 0).toBe(true);
+	expect(typeof rspackHash).toBe("string");
+	expect(rspackHash.length > 0).toBe(true);
 });
