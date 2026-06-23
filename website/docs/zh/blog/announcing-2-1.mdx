@@ -95,6 +95,39 @@ export default {
 
 ### Native CSS 新能力 \{#native-css}
 
+Rspack 2.1 进一步完善了 Native CSS 能力。新增的
+[`css/global`](/guide/tech/css#内置-css-支持) 模块类型可以通过
+[`module.rules[].type`](/config/module-rules#rulestype) 启用，它以“默认全局、按需
+`:local`”的方式解析 CSS Modules，与 `css/module` 的“默认局部、按需 `:global`”
+以及 `css/auto` 的文件名自动判断形成更完整的作用域模型。
+
+CSS Modules 的类名生成也变得更可配置。你可以通过
+[`module.generator["css/auto"].localIdentName`](/config/module-generator#cssautolocalidentname)、
+[`localIdentHashDigest`](/config/module-generator#cssautolocalidenthashdigest)、
+[`localIdentHashDigestLength`](/config/module-generator#cssautolocalidenthashdigestlength)、
+[`localIdentHashFunction`](/config/module-generator#cssautolocalidenthashfunction) 和
+[`localIdentHashSalt`](/config/module-generator#cssautolocalidenthashsalt) 等选项，
+在开发环境可读性、生产构建稳定性和 webpack/css-loader 迁移兼容性之间灵活取舍。
+
+解析侧也补齐了更多精细开关：可以通过
+[`module.parser["css/auto"].import`](/config/module-parser#cssautoimport) 与
+[`resolveImport`](/config/module-parser#cssautoresolveimport) 控制 `@import` 处理，通过
+[`animation`](/config/module-parser#cssautoanimation)、
+[`customIdents`](/config/module-parser#cssautocustomidents)、
+[`dashedIdents`](/config/module-parser#cssautodashedidents)、
+[`container`](/config/module-parser#cssautocontainer)、
+[`function`](/config/module-parser#cssautofunction) 和
+[`grid`](/config/module-parser#cssautogrid) 分别控制 `@keyframes` / `animation-name`、
+自定义标识符、CSS 自定义属性、container name、CSS function、grid area / line name 等在
+CSS Modules 中的重命名行为；还可以通过 [`pure`](/config/module-parser#cssautopure)
+模式要求 CSS Module 中的选择器必须包含本地 class 或 id，
+从而更适合严格隔离样式的组件库场景。
+
+此外，Rspack 还完善了 CSS Modules 的组合语义，包括跨文件 `composes`、`:import` /
+`:export`、`@value` 以及 re-export 场景下的依赖顺序处理。对于复杂样式模块，生成的
+CSS 顺序和导出结果会更接近 webpack/css-loader 的行为，
+也降低了迁移时遇到样式顺序差异的风险。
+
 ### 支持 `createRequire` \{#create-require}
 
 在 ESM 模块中没有内置的 `require`，因此 Node.js 提供了 [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename)，允许你在 ESM 中创建一个 `require` 函数，用于加载 CommonJS 模块。在以往的版本中，Rspack 无法静态分析通过这种方式创建出的 `require`，因此其加载的模块也无法被正常打包。
