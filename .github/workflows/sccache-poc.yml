@@ -49,24 +49,35 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Commands are identical yet workspace crates miss -> sccache key depends on
-      # something beyond args. Build one tiny workspace crate twice with FULL trace and
-      # dump its hash-key inputs so we can see exactly what differs cold vs warm.
-      - name: Trace one workspace crate's sccache key
+      # A/B fix attempt: kill the two parallel-nondeterminism sources (parallel frontend
+      # + 256 codegen units) and measure whether sccache coverage on the second build
+      # of an identical commit jumps toward the >95% target.
+      - name: Disable parallel frontend (-Zthreads)
+        run: sed -i '/-Zthreads/d' .cargo/config.toml
+
+      - name: Cargo build cold
         env:
-          SCCACHE_LOG: trace
+          CARGO_PROFILE_CI_CODEGEN_UNITS: '1'
+        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+
+      - name: Reset for warm
         run: |
-          run_build() {
-            rm -rf target
-            sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
-            cargo build --profile ci -p rspack_workspace 2>/dev/null
-            cp "$SCCACHE_ERROR_LOG" "$1"
-          }
-          run_build /tmp/t1.log   # cold (store)
-          run_build /tmp/t2.log   # warm (should hit; if miss, key changed)
-          echo "=== rspack_workspace hit/miss cold vs warm ==="
-          grep -iE 'rspack_workspace.*cache (hit|miss)' /tmp/t1.log | tail -2
-          grep -iE 'rspack_workspace.*cache (hit|miss)' /tmp/t2.log | tail -2
-          echo "=== trace lines around rspack_workspace hashing (warm) ==="
-          grep -iE 'rspack_workspace|hash|digest|env|--extern|preprocessor' /tmp/t2.log \
-            | grep -iv 'cache miss for|config' | head -60
+          rm -rf target
+          sccache --stop-server || true
+          rm -f "$SCCACHE_ERROR_LOG"
+          sccache --start-server
+          sccache --zero-stats
+
+      - name: Cargo build warm
+        env:
+          CARGO_PROFILE_CI_CODEGEN_UNITS: '1'
+        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+
+      - name: Warm coverage
+        run: |
+          echo "### WARM (codegen-units=1, no -Zthreads) ###"
+          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
+          sccache --stop-server || true
+          echo "=== remaining MISS crates ==="
+          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
+            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -40 || echo "(none)"
