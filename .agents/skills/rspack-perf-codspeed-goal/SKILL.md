@@ -127,11 +127,12 @@ Run these steps in order for every round.
    - Ask the user only for a true product or semantic decision, missing credentials/access, or a blocker that cannot be resolved through code, CI, GitHub, or review analysis.
 
 10. Perform terminal CodSpeed explain request.
-   - Run this only after the workflow is terminal: either the target is reached or the round limit has been reached.
-   - If the final trusted CodSpeed result shows any performance improvement, add a PR comment exactly: `@codspeedbot explain why this PR is faster`.
-   - Add this comment even when the target threshold was not reached, as long as the final trusted CodSpeed result is faster than the relevant base or previous retained round.
-   - Do not add the comment when the final CodSpeed result is provisional, unreliable, neutral, or slower.
-   - Record whether this comment was added in the fixed progress comment and final report.
+
+    - Run this only after the workflow is terminal: either the target is reached or the round limit has been reached.
+    - If the final trusted CodSpeed result shows any performance improvement, add a PR comment exactly: `@codspeedbot explain why this PR is faster`.
+    - Add this comment even when the target threshold was not reached, as long as the final trusted CodSpeed result is faster than the relevant base or previous retained round.
+    - Do not add the comment when the final CodSpeed result is provisional, unreliable, neutral, or slower.
+    - Record whether this comment was added in the fixed progress comment and final report.
 
 ## Progress Comment Format
 
@@ -145,9 +146,9 @@ Scope: `<requested scope>`
 Current status: `<running|passed|failed|blocked>`
 Latest head: `<sha>`
 
-| Round | Commit | Change | Local correctness | Local flakiness | Subagent review | CI | Review comments | CodSpeed | Meets target | Next action |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | `<sha>` | `<summary>` | `<tests/checks/format>` | `<none or ignored cases>` | `<pass/notes>` | `<state>` | `<resolved/pending>` | `<delta or pending>` | `<yes/no/pending>` | `<next>` |
+| Round | Commit  | Change      | Local correctness       | Local flakiness           | Subagent review | CI        | Review comments      | CodSpeed             | Meets target       | Next action |
+| ----- | ------- | ----------- | ----------------------- | ------------------------- | --------------- | --------- | -------------------- | -------------------- | ------------------ | ----------- |
+| 1     | `<sha>` | `<summary>` | `<tests/checks/format>` | `<none or ignored cases>` | `<pass/notes>`  | `<state>` | `<resolved/pending>` | `<delta or pending>` | `<yes/no/pending>` | `<next>`    |
 ```
 
 Update, do not duplicate, this comment. Keep entries concise but specific enough that the full commit history and performance result history are visible.
