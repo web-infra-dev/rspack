@@ -226,6 +226,22 @@ jobs:
       contents: write
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
     steps:
+      - name: Start Docker daemon
+        if: runner.environment == 'self-hosted'
+        shell: bash
+        run: |
+          nohup sudo dockerd >/tmp/dockerd.log 2>&1 &
+
+          for _ in {1..30}; do
+            if docker info >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 1
+          done
+
+          cat /tmp/dockerd.log
+          exit 1
+
       - name: Trigger Ecosystem CI
         uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@0e65507af053729fa482e81bbdf95cb46e363aa9 # v0.3.2
         with:
