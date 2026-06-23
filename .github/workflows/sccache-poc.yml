@@ -17,7 +17,7 @@ env:
 jobs:
   build:
     name: sccache PoC (linux-gnu ci)
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    runs-on: ubuntu-22.04
     defaults:
       run:
         shell: bash
@@ -47,12 +47,23 @@ jobs:
       - name: Run Cargo codegen
         run: cargo codegen
 
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      - name: Free disk cache
+        uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
+        with:
+          tool-cache: false
+
       - name: Setup sccache
         uses: mozilla/sccache-action@1583d6b38d7be47f593cb472781bbb21cab4321e # v0.0.10
 
       - name: Build binding (ci) with sccache
         env:
           RUST_TARGET: x86_64-unknown-linux-gnu
+          USE_NAPI_CROSS: '1'
           RUSTC_WRAPPER: sccache
           SCCACHE_GHA_ENABLED: 'true'
         run: pnpm build:binding:ci
