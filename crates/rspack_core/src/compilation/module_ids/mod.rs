@@ -68,15 +68,22 @@ impl PassExt for ModuleIdsPass {
     }
 
     // Call beforeModuleIds hook - allows plugins to assign custom IDs
-    let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
-    compilation
+    if !compilation
       .plugin_driver
-      .clone()
       .compilation_hooks
       .before_module_ids
-      .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
+      .is_empty()
+    {
+      let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+      compilation
+        .plugin_driver
+        .clone()
+        .compilation_hooks
+        .before_module_ids
+        .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+        .await
+        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
+    }
 
     // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
     // when they call get_used_module_ids_and_modules
