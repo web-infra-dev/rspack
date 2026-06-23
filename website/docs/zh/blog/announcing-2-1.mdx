@@ -165,6 +165,20 @@ const value = require('./value.cjs');
 
 ### Rspack magic comments \{#magic-comments}
 
+Rspack 2.1.0 为 [magic comments](/api/runtime-api/module-methods#magic-comments)
+增加了 `rspack` 前缀。现在可以使用
+[`rspackChunkName`](/api/runtime-api/module-methods#rspackchunkname)、
+[`rspackMode`](/api/runtime-api/module-methods#rspackmode)、
+[`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch)、
+[`rspackPreload`](/api/runtime-api/module-methods#rspackpreload)、
+[`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority)、
+[`rspackInclude`](/api/runtime-api/module-methods#rspackinclude)、
+[`rspackExclude`](/api/runtime-api/module-methods#rspackexclude)、
+[`rspackExports`](/api/runtime-api/module-methods#rspackexports) 和
+[`rspackIgnore`](/api/runtime-api/module-methods#rspackignore) 来描述动态导入行为。
+原有的 `webpack*` 写法仍然完整兼容，因此现有项目无需迁移；
+新代码则推荐使用 `rspack*`，语义更贴近 Rspack 自身。
+
 ### 支持 Source Phase Imports \{#source-phase-imports}
 
 Rspack 2.1 支持 TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) 提案中面向 WebAssembly 的用法。开启 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后，你可以通过静态的 `import source` 或动态的 `import.source()` 导入 `.wasm` 模块。
