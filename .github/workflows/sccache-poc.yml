@@ -49,35 +49,29 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # A/B fix attempt: kill the two parallel-nondeterminism sources (parallel frontend
-      # + 256 codegen units) and measure whether sccache coverage on the second build
-      # of an identical commit jumps toward the >95% target.
-      - name: Disable parallel frontend (-Zthreads)
-        run: sed -i '/-Zthreads/d' .cargo/config.toml
-
-      - name: Cargo build cold
-        env:
-          CARGO_PROFILE_CI_CODEGEN_UNITS: '1'
-        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-
-      - name: Reset for warm
+      # sccache logs each crate's "Hash key" at debug. Capture the key map in cold and
+      # warm full builds; crates whose key changes are the misses. Cross-referencing with
+      # the dep graph (offline) pinpoints the cascade root (changed key, all deps stable).
+      - name: Capture per-crate sccache hash keys (cold vs warm)
         run: |
+          keys() {
+            grep -oE '\[[a-z0-9_]+\]: Hash key: [0-9a-f]+' "$1" \
+              | sed -E 's/\[([a-z0-9_]+)\]: Hash key: ([0-9a-f]+)/\1 \2/' | sort -u
+          }
           rm -rf target
-          sccache --stop-server || true
-          rm -f "$SCCACHE_ERROR_LOG"
-          sccache --start-server
-          sccache --zero-stats
-
-      - name: Cargo build warm
-        env:
-          CARGO_PROFILE_CI_CODEGEN_UNITS: '1'
-        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-
-      - name: Warm coverage
-        run: |
-          echo "### WARM (codegen-units=1, no -Zthreads) ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
-          sccache --stop-server || true
-          echo "=== remaining MISS crates ==="
-          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -40 || echo "(none)"
+          sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
+          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+          keys "$SCCACHE_ERROR_LOG" > /tmp/cold_keys.txt
+          rm -rf target
+          sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server; sccache --zero-stats
+          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+          keys "$SCCACHE_ERROR_LOG" > /tmp/warm_keys.txt
+          echo "### WARM stats ###"; sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
+          echo "=== crates whose Hash key CHANGED (cold->warm) = the misses ==="
+          comm -23 <(cut -d' ' -f1 /tmp/cold_keys.txt|sort -u) <(join /tmp/cold_keys.txt /tmp/warm_keys.txt -o 1.1 -j 1 | sort -u) 2>/dev/null || true
+          join -j1 <(sort /tmp/cold_keys.txt) <(sort /tmp/warm_keys.txt) 2>/dev/null \
+            | awk '$2!=$3{print $1}' | sort -u > /tmp/changed.txt
+          echo "changed-key crates ($(wc -l < /tmp/changed.txt)):"; cat /tmp/changed.txt
+          echo "=== BASE64 of cold/warm/changed for offline analysis ==="
+          echo "COLDKEYS_B64:$(base64 -w0 /tmp/cold_keys.txt)"
+          echo "WARMKEYS_B64:$(base64 -w0 /tmp/warm_keys.txt)"
