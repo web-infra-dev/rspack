@@ -135,12 +135,6 @@ export type KnownStatsModule = {
   source?: string | Buffer;
 };
 
-export type KnownStatsProfile = {
-  total: number;
-  resolving: number;
-  building: number;
-};
-
 export type StatsModule = KnownStatsModule & Record<string, any>;
 
 export type KnownStatsModuleIssuer = {
@@ -730,13 +724,4 @@ export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
     errors: result,
     filtered,
   };
-};
-
-export const warningFromStatsWarning = (
-  warning: binding.JsStatsError,
-): Error => {
-  const res = new Error(warning.message);
-  res.name = warning.name || 'StatsWarning';
-  Object.assign(res, warning);
-  return res;
 };

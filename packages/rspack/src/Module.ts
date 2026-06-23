@@ -8,7 +8,6 @@ import './BuildInfo';
 export type ResourceDataWithData = ResourceData & {
   data?: Record<string, any>;
 };
-export type CreateData = binding.JsCreateData;
 export type ContextInfo = binding.ContextInfo;
 export type ResolveData = binding.JsResolveData;
 

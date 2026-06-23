@@ -76,5 +76,3 @@ export const mergeEtags = (first: Etag, second: Etag): Etag => {
   }
   return mergedEtag;
 };
-
-export default mergeEtags;
