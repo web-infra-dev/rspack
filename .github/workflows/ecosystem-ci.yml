@@ -46,8 +46,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  ecosystem_ci_dispatch:
-    name: Dispatch ecosystem CI
+  setup_ecosystem_ci_runner:
+    name: Setup ecosystem CI runner
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     if: github.repository == 'web-infra-dev/rspack'
     steps:
@@ -55,7 +55,11 @@ jobs:
         if: runner.environment == 'self-hosted'
         shell: bash
         run: |
-          nohup sudo dockerd >/tmp/dockerd.log 2>&1 &
+          if docker info >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          nohup sudo env -u RUNNER_TRACKING_ID dockerd >/tmp/dockerd.log 2>&1 &
 
           for _ in {1..30}; do
             if docker info >/dev/null 2>&1; then
@@ -67,6 +71,12 @@ jobs:
           cat /tmp/dockerd.log
           exit 1
 
+  ecosystem_ci_dispatch:
+    name: Dispatch ecosystem CI
+    needs: setup_ecosystem_ci_runner
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+    if: github.repository == 'web-infra-dev/rspack'
+    steps:
       - name: Get PR info
         id: pr-info
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

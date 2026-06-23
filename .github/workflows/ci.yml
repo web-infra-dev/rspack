@@ -217,20 +217,21 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
     uses: ./.github/workflows/size-limit.yml
 
-  ecosystem_ci_per_commit:
-    name: Run ecosystem CI per commit
+  setup_ecosystem_ci_runner:
+    name: Setup ecosystem CI runner
     needs: [check-changed, build-linux]
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 40
-    permissions:
-      contents: write
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
     steps:
       - name: Start Docker daemon
         if: runner.environment == 'self-hosted'
         shell: bash
         run: |
-          nohup sudo dockerd >/tmp/dockerd.log 2>&1 &
+          if docker info >/dev/null 2>&1; then
+            exit 0
+          fi
+
+          nohup sudo env -u RUNNER_TRACKING_ID dockerd >/tmp/dockerd.log 2>&1 &
 
           for _ in {1..30}; do
             if docker info >/dev/null 2>&1; then
@@ -242,6 +243,15 @@ jobs:
           cat /tmp/dockerd.log
           exit 1
 
+  ecosystem_ci_per_commit:
+    name: Run ecosystem CI per commit
+    needs: [check-changed, build-linux, setup_ecosystem_ci_runner]
+    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 40
+    permissions:
+      contents: write
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
+    steps:
       - name: Trigger Ecosystem CI
         uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@0e65507af053729fa482e81bbdf95cb46e363aa9 # v0.3.2
         with:
