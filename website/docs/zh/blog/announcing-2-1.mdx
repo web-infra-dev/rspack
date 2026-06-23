@@ -62,15 +62,80 @@ const value = require('./value.cjs');
 
 ### 支持 Source Phase Imports \{#source-phase-imports}
 
+Rspack 2.1 支持 TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) 提案中面向 WebAssembly 的用法。开启 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后，你可以通过静态的 `import source` 或动态的 `import.source()` 导入 `.wasm` 模块。
+
+与普通 WebAssembly 导入不同，source phase import 不会在导入时直接实例化 Wasm 模块，而是返回编译后的 [`WebAssembly.Module`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module)。这使你可以自行控制实例化过程，例如使用不同的 imports 多次实例化同一个 Wasm 模块，或在多个 Web Worker 中复用同一个编译结果，避免重复编译。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+```js title="index.js"
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+也可以使用动态导入：
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+此外，Rspack 新增了 [`module.rules[].phase`](/config/module-rules#rulesphase)，用于根据模块的导入阶段匹配规则。你可以区分普通导入的 `evaluation`、`import defer` 的 `defer`，以及 Source Phase Imports 的 `source`，从而为同一个资源在不同导入方式下配置不同的 loader、parser 选项或模块类型。
+
 ### TS Checker 插件与 tsgo 支持 \{#tsgo-support}
 
 ### 新的持久化缓存清理机制 \{#cache-cleanup}
+
+Rspack 的持久化缓存会根据缓存版本进行隔离。当 `cache.version`、影响缓存的配置或 Rspack 版本发生变化时，Rspack 会在缓存目录中创建新的缓存版本，避免不同配置之间复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录的场景下，旧缓存版本也可能持续累积，占用越来越多磁盘空间。
+
+Rspack 2.1 为持久化缓存新增了自动清理机制，通过 `cache.maxAge` 和 `cache.maxVersions` 控制缓存目录中保留的旧版本：
+
+- [`cache.maxAge`](/config/cache#maxage)：缓存版本允许保持未访问状态的最长时间，默认值为 `7 * 24 * 60 * 60`（7 天）；
+- [`cache.maxVersions`](/config/cache#maxversions)：当前缓存目录最多保留的缓存版本数量，默认值为 `3`。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxAge: 7 * 24 * 60 * 60,
+    maxVersions: 3,
+  },
+};
+```
+
+当缓存版本超过保留数量，或长时间没有被访问时，Rspack 会优先清理较旧、较少使用的缓存版本。这样可以在保留近期可复用缓存的同时，避免持久化缓存目录无限增长。对于需要完全手动管理缓存的场景，也可以将 `maxAge` 或 `maxVersions` 设置为 `Infinity`，分别关闭基于时间或版本数量的清理。
 
 ## 性能提升
 
 ### 构建性能优化 \{#build-performance}
 
-### Circular Check 插件提速 \{#circular-check}
+### 更快的循环引用检查 \{#circular-check}
+
+Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin)。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+};
+```
+
+相比旧插件，新的 CircularCheckRspackPlugin 主要有两方面改进：
+
+- **性能更好**：旧插件的检测方式更接近按入口展开循环路径，在大型模块图中容易产生重复遍历。新的插件使用更适合循环检测的图算法，一次分析即可找出循环组件，并从每个循环组件生成可读的循环路径，因此在大型项目中有更低的检测开销。
+- **API 设计更合理**：旧插件的 API 设计不够直观，也和 webpack 生态中常用的 `circular-dependency-plugin` API 不一致。新的插件回到更直接的“检测并报告循环依赖”模型，提供与 webpack 生态更一致的选项设计，整体更容易理解和迁移。
+
+如果你正在使用 `CircularDependencyRspackPlugin`，建议迁移到 `CircularCheckRspackPlugin`。对于只需要忽略部分 warning 的场景，可以配合 [`ignoreWarnings`](/config/other-options#ignorewarnings) 使用。
 
 ## 产物优化
 
@@ -111,11 +176,85 @@ export default {
 
 查看 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions) 了解更多。
 
-### 分支感知的依赖裁剪
+### 分支感知的依赖裁剪 \{#branch-aware-dependency-pruning}
 
-### 分支感知的 ESM 导出存在检测
+Rspack 2.1 改进了内联常量场景下的依赖分析。当 `if` 语句或三元表达式的条件依赖于已内联的布尔导出时，Rspack 现在会把分支条件记录到分支内部的依赖上；如果后续能够判断某个分支不会被执行，该分支中的依赖就会被标记为非活跃，从而参与 tree shaking 和 chunk 裁剪。
+
+```js title="env.js"
+export const IS_DEV = false;
+```
+
+```js title="index.js"
+import { IS_DEV } from './env';
+
+if (IS_DEV) {
+  import('./debug-tools');
+} else {
+  import('./app');
+}
+```
+
+在上面的例子中，`IS_DEV` 可以被内联为 `false`，因此 `if` 分支中的 `./debug-tools` 依赖不会再被视为活跃依赖。相比之前同时保留两个分支依赖的行为，这可以减少无效模块进入产物，也能避免为不可达分支生成不必要的动态导入 chunk。
+
+这项优化也支持由 `!`、`&&`、`||` 等组合而成的简单布尔表达式，以及三元表达式中的分支依赖。对于条件无法静态判断的代码，Rspack 仍会保留原有行为，确保运行时语义不受影响。
+
+### 分支感知的 ESM 导出存在检测 \{#branch-aware-export-presence}
+
+Rspack 会在编译阶段检测 ESM 导入是否访问了不存在的导出，并给出 `export ... was not found` 这类告警。过去这类检测无法理解 `if ("name" in ns)` 这样的运行时存在性判断，因此即使代码已经先检查某个导出是否存在，分支内部的访问仍可能产生误报。
+
+Rspack 2.1 增强了对 ESM namespace 上 `in` 表达式的分析能力。当导出访问被同一个 `in` 检查保护时，Rspack 会识别出这个分支条件，不再为该访问报告缺失导出告警。
+
+```js title="index.js"
+import * as feature from './feature';
+
+if ('debug' in feature) {
+  feature.debug();
+}
+```
+
+在上面的例子中，如果 `./feature` 没有导出 `debug`，`'debug' in feature` 会在运行时返回 `false`，分支内部的 `feature.debug()` 不会执行。Rspack 现在能够理解这一点，因此不会再对这段被保护的访问发出缺失导出告警。
+
+这项检测同样适用于由 `!`、`&&`、`||` 和三元表达式组合而成的分支条件，也支持 namespace import、命名导出的 namespace 对象以及嵌套成员访问。对于没有被相同 `in` 检查保护的访问，Rspack 仍会继续报告告警，确保真实的缺失导出问题不会被隐藏。
 
 ### `export const` 值绑定优化
+
+Rspack 2.1 精简了 ESM `export const` 的导出代码。在此前的版本中，Rspack 会为 ESM 导出统一生成 getter 函数，用于保持 ESM live binding 语义：
+
+```js
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+```
+
+但对于非循环模块中的 `export const`，导出的值在模块初始化后不会再变化，不需要每次都通过 getter 读取。Rspack 2.1 会在生产构建中结合循环模块信息进行判断：当确认当前模块不在循环依赖中时，`export const` 会以只读值的形式定义到 namespace 对象上，从而减少生成代码和运行时 getter 调用开销。
+
+```js title="产物示意"
+// 优化前：访问 namespace.value 时会执行 getter 函数
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+
+// Rspack 2.1：非循环模块中的 const 导出会直接定义为只读值
+// 这样访问 namespace.value 时不再需要执行 getter 函数
+__webpack_require__.d(
+  __webpack_exports__,
+  {},
+  {
+    value: value,
+  },
+);
+```
+
+```js title="constants.js"
+export const answer = 42;
+
+const message = 'hello';
+export { message };
+
+export default 'default value';
+```
+
+上面的具名 `const` 导出，以及默认导出中的常量值都可以受益于这项优化。对于 `let`、函数导出以及循环模块中的 `const` 导出，Rspack 仍会保留 getter 形式，以确保可变导出和循环依赖场景下的语义保持正确。后续我们也会继续尝试基于 reassignment 分析识别更多不会被重新赋值的导出，让更多场景可以使用更轻量的值绑定形式。
 
 ## Rstack 进展
 
