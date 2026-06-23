@@ -1,6 +1,9 @@
 it("should expose rspack runtime module variables on import.meta", function () {
 	expect(typeof import.meta.rspackPublicPath).toBe("string");
 	expect(import.meta.rspackPublicPath).toBe("/");
+	import.meta.rspackPublicPath = "/a";
+	expect(import.meta.rspackPublicPath).toBe("/a");
+	expect(__webpack_require__.p).toBe("/a");
 
 	expect(typeof import.meta.rspackBaseUri).toBe("string");
 	expect(typeof import.meta.rspackShareScopes).toBe("object");
