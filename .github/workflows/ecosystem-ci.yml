@@ -52,7 +52,6 @@ jobs:
     if: github.repository == 'web-infra-dev/rspack'
     steps:
       - name: Ensure Docker
-        if: runner.environment == 'self-hosted'
         run: docker ps || nohup sudo dockerd >/dev/null 2>&1 &
 
       - name: Get PR info
