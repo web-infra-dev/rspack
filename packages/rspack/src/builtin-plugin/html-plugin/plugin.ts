@@ -54,7 +54,8 @@ const HtmlRspackPluginImpl = create(
         };
       }
     }
-    const scriptLoading = c.scriptLoading ?? 'defer';
+    const scriptLoading =
+      c.scriptLoading ?? (this.options.output.module ? 'module' : 'defer');
     const configInject = c.inject ?? true;
     const inject =
       configInject === true

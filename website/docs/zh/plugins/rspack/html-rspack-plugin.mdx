@@ -249,7 +249,7 @@ type HtmlRspackPluginOptions = {
     {
       name: '`scriptLoading`',
       type: '`"blocking" | "defer" | "module" | "systemjs-module" | undefined`',
-      default: '`"defer"`',
+      default: '启用 `output.module` 时为 `"module"`，否则为 `"defer"`',
       description:
         '现代浏览器支持使用 `defer` 来异步加载 JavaScript，设置为 `"module"` 则会添加 `type="module"` 同时使用 `defer`',
     },
