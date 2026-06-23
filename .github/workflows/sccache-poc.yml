@@ -43,45 +43,22 @@ jobs:
       - run: rustup target add x86_64-unknown-linux-gnu
       - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - run: cargo codegen
-      - name: Trim paths
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
 
-      # A/B: the nightly parallel frontend is a known non-reproducible-build source,
-      # which would make every workspace crate miss sccache on rebuild. Strip it and
-      # measure whether warm coverage jumps.
-      - name: Disable parallel frontend (-Zthreads)
+      # Reproducibility probe: build the proc-macro crates twice (rm target between)
+      # and diff the resulting dylibs. If a proc-macro .so differs byte-for-byte, every
+      # crate using it gets a different --extern hash in sccache -> miss every build.
+      - name: Probe proc-macro dylib reproducibility
         run: |
-          sed -i '/-Zthreads/d' .cargo/config.toml
-          echo "remaining Zthreads lines:"; grep -c Zthreads .cargo/config.toml || true
-
-      - name: Build cold (populate sccache)
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-          USE_NAPI_CROSS: '1'
-        run: pnpm build:binding:ci
-      - run: sccache --show-stats
-
-      - name: Reset for warm build
-        run: |
+          set -x
+          build_and_hash() {
+            cargo build --profile ci \
+              -p rspack_cacheable_macros -p rspack_macros \
+              -p rspack_napi_macros -p rspack_binding_builder_macros 2>/dev/null
+            find target -name 'lib*macros*.so' -exec sha256sum {} \; \
+              | sed -E 's# .*/(lib[^/]+\.so)$#  \1#' | sort -k2
+          }
+          echo "=== build 1 dylib hashes ==="; build_and_hash > /tmp/h1.txt; cat /tmp/h1.txt
           rm -rf target
-          sccache --stop-server || true
-          rm -f "$SCCACHE_ERROR_LOG"
-          sccache --start-server
-          sccache --zero-stats
-
-      - name: Build warm (second identical-commit build)
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-          USE_NAPI_CROSS: '1'
-        run: pnpm build:binding:ci
-
-      - name: Warm coverage + miss breakdown
-        run: |
-          echo "### WARM (no -Zthreads) ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
-          sccache --stop-server || true
-          echo "=== remaining MISS crates ==="
-          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -50 || echo "(none)"
+          echo "=== build 2 dylib hashes ==="; build_and_hash > /tmp/h2.txt; cat /tmp/h2.txt
+          echo "=== DIFF (empty = reproducible) ==="
+          diff /tmp/h1.txt /tmp/h2.txt && echo "REPRODUCIBLE" || echo "NON-REPRODUCIBLE -> root cause"
