@@ -51,9 +51,6 @@ jobs:
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     if: github.repository == 'web-infra-dev/rspack'
     steps:
-      - name: Ensure Docker
-        run: docker ps || nohup sudo dockerd >/dev/null 2>&1 &
-
       - name: Get PR info
         id: pr-info
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -68,7 +65,7 @@ jobs:
             core.setOutput('repo', pr.head.repo.full_name);
 
       - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_dispatch@0e65507af053729fa482e81bbdf95cb46e363aa9 # v0.3.2
+        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_dispatch@ci/dockerless-workflow-dispatch
         with:
           github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           ecosystem-owner: web-infra-dev
