@@ -22,7 +22,7 @@ pub fn create_storage(
   options: StorageOptions,
   version: String,
   max_age: u64,
-  max_generations: u32,
+  max_versions: u32,
   fs: Arc<dyn IntermediateFileSystem>,
 ) -> BoxStorage {
   match options {
@@ -30,7 +30,7 @@ pub fn create_storage(
       let option = FileSystemOptions {
         directory,
         version,
-        max_generations,
+        max_versions,
         max_pack_size: 500 * 1024,
         expire: max_age,
         fs,

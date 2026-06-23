@@ -19,7 +19,7 @@ async fn refresh_metadata(
   fs: ScopeFileSystem,
   version: String,
   expire: u64,
-  max_generations: u32,
+  max_versions: u32,
   next_meta_refresh_time: Arc<Mutex<u64>>,
 ) {
   let now = Meta::current_timestamp();
@@ -37,7 +37,7 @@ async fn refresh_metadata(
   // sync with versions that still exist on disk.
   let versions = fs.list_child().await.unwrap_or_default();
   let Ok((removed_versions, next_refresh_time)) = meta
-    .refresh(&version, expire, max_generations, &versions)
+    .refresh(&version, expire, max_versions, &versions)
     .await
   else {
     return;
@@ -120,12 +120,12 @@ impl Storage for FileSystemStorage {
     let fs = self.fs.clone();
     let version = self.options.version.clone();
     let expire = self.options.expire;
-    let max_generations = self.options.max_generations;
+    let max_versions = self.options.max_versions;
     let next_meta_refresh_time = self.next_meta_refresh_time.clone();
 
     self.task_queue.add_task(async move {
       if db.save(changes, max_pack_size).await {
-        refresh_metadata(fs, version, expire, max_generations, next_meta_refresh_time).await;
+        refresh_metadata(fs, version, expire, max_versions, next_meta_refresh_time).await;
       }
     });
   }

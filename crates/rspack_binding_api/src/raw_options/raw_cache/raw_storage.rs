@@ -8,7 +8,7 @@ pub struct RawStorageOptions {
   pub r#type: String,
   pub directory: String,
   pub max_age: u32,
-  pub max_generations: u32,
+  pub max_versions: u32,
 }
 
 impl RawStorageOptions {
@@ -19,7 +19,7 @@ impl RawStorageOptions {
           directory: self.directory.into(),
         },
         self.max_age.into(),
-        self.max_generations,
+        self.max_versions,
       )),
       storage_type => Err(rspack_error::error!(
         "unsupported storage type {storage_type}"

@@ -32,7 +32,7 @@ type CacheOptions =
         type: 'filesystem';
         directory?: string;
         maxAge?: number;
-        maxGenerations?: number;
+        maxVersions?: number;
       };
     };
 ```
@@ -258,7 +258,7 @@ export default {
 
 ### storage
 
-- **Type:** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
+- **Type:** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxVersions?: number }`
 
 Configure cache storage. Currently only filesystem storage is supported.
 
@@ -269,7 +269,7 @@ export default {
     storage: {
       type: 'filesystem',
       maxAge: 7 * 24 * 60 * 60,
-      maxGenerations: 10,
+      maxVersions: 10,
     },
   },
 };
@@ -320,7 +320,7 @@ Configure different [`config.name`](/config/other-options#name) values for diffe
 - **Type:** `number` (positive integer, in seconds) or `Infinity`
 - **Default:** `7 * 24 * 60 * 60` (7 days)
 
-The maximum time, in seconds, that a cache generation can remain unused. During cleanup, Rspack removes cache generations that have not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
+The maximum time, in seconds, that a cache version can remain unused. During cleanup, Rspack removes cache versions that have not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -334,12 +334,12 @@ export default {
 };
 ```
 
-#### storage.maxGenerations
+#### storage.maxVersions
 
 - **Type:** `number` (positive integer) or `Infinity`
 - **Default:** `3`
 
-This is a generational cleanup policy that controls how many cache generations can be retained in the current cache directory. When the number of generations exceeds the limit, Rspack removes old inactive generations. Set `maxGenerations` to `Infinity` to disable generation-based cleanup.
+This is a version-count cleanup policy that controls how many cache versions can be retained in the current cache directory. When the number of versions exceeds the limit, Rspack removes old inactive versions. Set `maxVersions` to `Infinity` to disable version-based cleanup.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -347,7 +347,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      maxGenerations: 10,
+      maxVersions: 10,
     },
   },
 };

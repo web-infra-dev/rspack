@@ -75,7 +75,7 @@ impl Meta {
     Ok(())
   }
 
-  /// Updates the active version and removes versions rejected by age or generation limits.
+  /// Updates the active version and removes versions rejected by age or version limits.
   ///
   /// Returns `(removed_versions, next_check_time)`.
   /// - `removed_versions`: version directories that should be deleted.
@@ -84,7 +84,7 @@ impl Meta {
     &mut self,
     active_version: &str,
     expire_seconds: u64,
-    max_generations: u32,
+    max_versions: u32,
     versions: &[String],
   ) -> Result<(Vec<String>, u64)> {
     let now = Self::current_timestamp();
@@ -110,9 +110,9 @@ impl Meta {
       });
     }
 
-    if max_generations != 0 {
+    if max_versions != 0 {
       // `versions` is already scoped to the current storage directory, so every
-      // non-hidden, non-active entry is a generation candidate.
+      // non-hidden, non-active entry is a version candidate.
       let mut candidates = versions
         .iter()
         .filter(|version| version.as_str() != active_version && !version.starts_with(['_', '.']))
@@ -123,10 +123,8 @@ impl Meta {
           )
         })
         .collect::<Vec<_>>();
-      let retained_inactive_generations = max_generations.saturating_sub(1) as usize;
-      let remove_count = candidates
-        .len()
-        .saturating_sub(retained_inactive_generations);
+      let retained_inactive_versions = max_versions.saturating_sub(1) as usize;
+      let remove_count = candidates.len().saturating_sub(retained_inactive_versions);
       candidates.sort_unstable_by(|(version_a, timestamp_a), (version_b, timestamp_b)| {
         timestamp_a
           .cmp(timestamp_b)

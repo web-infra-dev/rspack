@@ -236,7 +236,7 @@ const applyCacheDefaults = (
       F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
       D(cache.storage, 'type', 'filesystem');
       D(cache.storage, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      D(cache.storage, 'maxGenerations', 3);
+      D(cache.storage, 'maxVersions', 3);
       F(cache.storage, 'directory', () => {
         const modeName = mode || 'production';
         const compilerName = name ? `${name}-${modeName}` : modeName;

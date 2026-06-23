@@ -34,7 +34,7 @@ type CacheOptions =
         type: 'filesystem';
         directory?: string;
         maxAge?: number;
-        maxGenerations?: number;
+        maxVersions?: number;
       };
     };
 ```
@@ -260,7 +260,7 @@ export default {
 
 ### storage
 
-- **类型：** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxGenerations?: number }`
+- **类型：** `{ type: 'filesystem'; directory?: string; maxAge?: number; maxVersions?: number }`
 
 配置缓存存储。目前仅支持文件系统存储。
 
@@ -271,7 +271,7 @@ export default {
     storage: {
       type: 'filesystem',
       maxAge: 7 * 24 * 60 * 60,
-      maxGenerations: 10,
+      maxVersions: 10,
     },
   },
 };
@@ -336,7 +336,7 @@ export default {
 };
 ```
 
-#### storage.maxGenerations
+#### storage.maxVersions
 
 - **类型：** `number`（正整数）或 `Infinity`
 - **默认值：** `3`
@@ -349,7 +349,7 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      maxGenerations: 10,
+      maxVersions: 10,
     },
   },
 };

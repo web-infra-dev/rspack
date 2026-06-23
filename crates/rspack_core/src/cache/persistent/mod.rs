@@ -45,9 +45,9 @@ pub struct PersistentCacheOptions {
   /// Filesystem cache max age in seconds.
   #[cacheable(with=Skip)]
   pub max_age: u64,
-  /// Filesystem generation count limit for the current storage directory.
+  /// Filesystem version count limit for the current storage directory.
   #[cacheable(with=Skip)]
-  pub max_generations: u32,
+  pub max_versions: u32,
 }
 
 /// Persistent cache implementation
@@ -79,7 +79,6 @@ impl PersistentCache {
       None
     };
     let codec = Arc::new(CacheCodec::new(project_root));
-    let max_generations = option.max_generations;
     // use codec.encode to transform the absolute path in option,
     // it will ensure that same project in different directory have the same version.
     let option_bytes = codec
@@ -98,7 +97,7 @@ impl PersistentCache {
       option.storage.clone(),
       version,
       option.max_age,
-      max_generations,
+      option.max_versions,
       intermediate_filesystem,
     );
     let snapshot = Arc::new(Snapshot::new(

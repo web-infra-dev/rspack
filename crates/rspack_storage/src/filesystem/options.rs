@@ -15,8 +15,8 @@ pub struct FileSystemOptions {
   pub max_pack_size: usize,
   /// Data expiration time (seconds), 0 means never expire
   pub expire: u64,
-  /// Maximum number of generations retained in the storage directory. 0 means disabled.
-  pub max_generations: u32,
+  /// Maximum number of versions retained in the storage directory. 0 means disabled.
+  pub max_versions: u32,
   /// File system implementation
   pub fs: Arc<dyn IntermediateFileSystem>,
 }

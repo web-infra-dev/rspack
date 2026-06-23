@@ -313,7 +313,7 @@ export const getNormalizedRspackOptions = (
                 path.resolve(context, d),
               ),
               maxAge: storage.maxAge,
-              maxGenerations: storage.maxGenerations,
+              maxVersions: storage.maxVersions,
             })),
           };
         }
@@ -625,7 +625,7 @@ export type CacheNormalized =
         type: 'filesystem';
         directory?: string;
         maxAge?: number;
-        maxGenerations?: number;
+        maxVersions?: number;
       };
       portable?: boolean;
       readonly?: boolean;

@@ -1949,12 +1949,12 @@ export type CacheStorageOptions = {
    */
   maxAge?: number;
   /**
-   * Maximum number of filesystem cache generations to retain in the cache
+   * Maximum number of filesystem cache versions to retain in the cache
    * directory. Must be an integer between 1 and 4294967295, or Infinity to
-   * disable generation-based cleanup.
+   * disable version-based cleanup.
    * @default 3
    */
-  maxGenerations?: number;
+  maxVersions?: number;
 };
 
 /**
