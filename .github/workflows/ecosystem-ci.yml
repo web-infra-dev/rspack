@@ -51,6 +51,10 @@ jobs:
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     if: github.repository == 'web-infra-dev/rspack'
     steps:
+      - name: Ensure Docker
+        if: runner.environment == 'self-hosted'
+        run: docker ps || nohup sudo dockerd >/dev/null 2>&1 &
+
       - name: Get PR info
         id: pr-info
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
