@@ -121,12 +121,13 @@ impl ConcatenationScope {
   pub fn create_module_reference(
     &mut self,
     module: &ModuleIdentifier,
-    options: ModuleReferenceOptions,
+    mut options: ModuleReferenceOptions,
   ) -> String {
     let info = self
       .modules_map
       .get(module)
       .expect("should have module info");
+    options.index = info.index();
 
     let export_data = if !options.ids.is_empty() {
       hex::encode(simd_json::to_string(&options.ids).expect("should serialize to json string"))
@@ -222,6 +223,13 @@ impl ConcatenationScope {
     })
   }
 
+  pub fn is_module_reference(name: &str) -> bool {
+    name
+      .strip_suffix(MODULE_REFERENCE_PROPERTY_ACCESS_SUFFIX)
+      .unwrap_or(name)
+      .starts_with(MODULE_REFERENCE_PREFIX)
+  }
+
   pub fn is_module_concatenated(&self, module: &ModuleIdentifier) -> bool {
     matches!(
       self.modules_map.get(module).expect("should have module"),
@@ -287,14 +295,15 @@ mod tests {
       .get(&referenced_module_id)
       .and_then(|refs| refs.get(&module_ref))
       .expect("should store created module reference");
-    assert_module_reference_options_eq(stored, &options);
 
-    let parsed = ConcatenationScope::match_module_reference(&module_ref)
-      .expect("should parse full module reference");
     let expected = ModuleReferenceOptions {
       index: 7,
       ..options
     };
+    assert_module_reference_options_eq(stored, &expected);
+
+    let parsed = ConcatenationScope::match_module_reference(&module_ref)
+      .expect("should parse full module reference");
     assert_module_reference_options_eq(&parsed, &expected);
   }
 
