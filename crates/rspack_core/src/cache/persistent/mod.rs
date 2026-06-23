@@ -24,7 +24,7 @@ use self::{
   context::CacheContext,
   occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{StorageOptions, create_storage},
+  storage::{StorageOptions, Version, create_storage},
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
@@ -91,7 +91,7 @@ impl PersistentCache {
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      hex::encode(hasher.finish().to_ne_bytes())
+      Version::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
     let storage = create_storage(
       option.storage.clone(),

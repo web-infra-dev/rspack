@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use super::{ScopeFileSystem, Version};
 use crate::{Error, Result};
@@ -88,7 +88,7 @@ impl Meta {
     active_version: &Version,
     expire_seconds: u64,
     max_versions: u32,
-    existing_versions: &[Version],
+    existing_versions: &HashSet<Version>,
   ) -> Result<(Vec<Version>, u64)> {
     let now = Self::current_timestamp();
     self.access_times.insert(active_version.clone(), now);
@@ -145,7 +145,7 @@ impl Meta {
 
 #[cfg(test)]
 mod test {
-  use super::{Meta, Result, ScopeFileSystem, Version};
+  use super::{HashSet, Meta, Result, ScopeFileSystem, Version};
 
   const V1: &str = "rspack_v_0000000000000001";
   const V2: &str = "rspack_v_0000000000000002";
@@ -155,7 +155,7 @@ mod test {
     Version::parse(value).expect("valid test version")
   }
 
-  fn existing_versions(values: &[&str]) -> Vec<Version> {
+  fn existing_versions(values: &[&str]) -> HashSet<Version> {
     values.iter().filter_map(Version::parse).collect()
   }
 

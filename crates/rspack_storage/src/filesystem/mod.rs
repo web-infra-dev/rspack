@@ -7,7 +7,7 @@ mod version;
 
 use std::sync::{Arc, Mutex};
 
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
 pub use self::{options::FileSystemOptions, version::Version};
@@ -42,7 +42,7 @@ async fn refresh_metadata(
     .unwrap_or_default()
     .into_iter()
     .filter_map(Version::parse)
-    .collect::<Vec<_>>();
+    .collect::<HashSet<_>>();
   let Ok((removed_versions, next_refresh_time)) = meta
     .refresh(&version, expire, max_versions, &existing_versions)
     .await
@@ -55,8 +55,8 @@ async fn refresh_metadata(
 
   // Persist metadata before deleting directories so concurrent refreshes can
   // recover even if removal is interrupted.
-  for version in removed_versions {
-    let _ = fs.child_fs(version.as_str()).remove().await;
+  for removed_version in removed_versions {
+    let _ = fs.child_fs(removed_version.as_str()).remove().await;
   }
   *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
 }
