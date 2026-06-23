@@ -48,6 +48,14 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
+      # A/B: the nightly parallel frontend is a known non-reproducible-build source,
+      # which would make every workspace crate miss sccache on rebuild. Strip it and
+      # measure whether warm coverage jumps.
+      - name: Disable parallel frontend (-Zthreads)
+        run: |
+          sed -i '/-Zthreads/d' .cargo/config.toml
+          echo "remaining Zthreads lines:"; grep -c Zthreads .cargo/config.toml || true
+
       - name: Build cold (populate sccache)
         env:
           RUST_TARGET: x86_64-unknown-linux-gnu
@@ -69,38 +77,11 @@ jobs:
           USE_NAPI_CROSS: '1'
         run: pnpm build:binding:ci
 
-      - name: Warm stats + capture miss set
+      - name: Warm coverage + miss breakdown
         run: |
-          echo "### WARM ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
+          echo "### WARM (no -Zthreads) ###"
+          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
           sccache --stop-server || true
+          echo "=== remaining MISS crates ==="
           grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort -u > /tmp/warm_miss.txt
-          echo "warm unique miss outputs: $(wc -l < /tmp/warm_miss.txt)"
-
-      - name: Reset for warm2 build
-        run: |
-          rm -rf target
-          sccache --stop-server || true
-          rm -f "$SCCACHE_ERROR_LOG"
-          sccache --start-server
-          sccache --zero-stats
-
-      - name: Build warm2 (third identical-commit build)
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-          USE_NAPI_CROSS: '1'
-        run: pnpm build:binding:ci
-
-      - name: Warm2 stats + compare miss sets
-        run: |
-          echo "### WARM2 ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
-          sccache --stop-server || true
-          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort -u > /tmp/warm2_miss.txt
-          echo "warm2 unique miss outputs: $(wc -l < /tmp/warm2_miss.txt)"
-          echo "=== miss in BOTH warm and warm2 (nondeterministic every build) ==="
-          comm -12 /tmp/warm_miss.txt /tmp/warm2_miss.txt | head -80
-          echo "=== miss in warm ONLY (cold-vs-warm one-time) ==="
-          comm -23 /tmp/warm_miss.txt /tmp/warm2_miss.txt | head -40
+            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -50 || echo "(none)"
