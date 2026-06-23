@@ -24,3 +24,11 @@ build
 
 echo "### COVERAGE = build2 sccache hit rate ###"
 sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls' || true
+
+# diagnostics: which crates still miss (helps Windows where coverage is low)
+if [ -n "${SCCACHE_ERROR_LOG:-}" ] && [ -f "$SCCACHE_ERROR_LOG" ]; then
+  sccache --stop-server || true
+  echo "### MISS crates on build2 ###"
+  grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
+    | grep -oiE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -50 || echo "(none)"
+fi
