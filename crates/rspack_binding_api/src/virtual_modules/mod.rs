@@ -31,6 +31,10 @@ impl JsVirtualFileStore {
     Self(store)
   }
 
+  pub(crate) fn store(&self) -> Arc<RwLock<dyn VirtualFileStore>> {
+    self.0.clone()
+  }
+
   #[napi]
   pub fn write_virtual_file_sync(&self, path: String, content: String) {
     if let Ok(mut store) = self.0.write() {

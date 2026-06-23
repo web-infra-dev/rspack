@@ -2,6 +2,7 @@ mod analyzer;
 mod disk_watcher;
 mod executor;
 mod ignored;
+mod input_file_system;
 mod paths;
 mod scanner;
 mod time_info;
@@ -13,6 +14,7 @@ use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::Executor;
 pub use ignored::FsWatcherIgnored;
+pub use input_file_system::{DiskInputFileSystem, WatchInputFileSystem};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::ArcPath;
@@ -95,12 +97,27 @@ pub struct FsWatcher {
 }
 
 impl FsWatcher {
-  /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
+  /// Creates a new [`FsWatcher`] whose existence checks consult the real disk.
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
+    Self::with_input_file_system(options, ignored, Arc::new(DiskInputFileSystem))
+  }
+
+  /// Creates a new [`FsWatcher`] that resolves path existence through
+  /// `input_fs` (e.g. a virtual-module-aware file system) instead of the real
+  /// disk, so a virtual module absent from disk is not misreported as removed.
+  pub fn with_input_file_system(
+    options: FsWatcherOptions,
+    ignored: FsWatcherIgnored,
+    input_fs: Arc<dyn WatchInputFileSystem>,
+  ) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager = Arc::new(PathManager::new(ignored));
-    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx.clone()));
+    let trigger = Arc::new(Trigger::new_with_input_fs(
+      Arc::clone(&path_manager),
+      tx.clone(),
+      input_fs,
+    ));
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
