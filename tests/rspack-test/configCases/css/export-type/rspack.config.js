@@ -14,6 +14,10 @@ const getConfig = (
     concatenateModules: false,
   },
 ) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   devtool: false,
   target: 'web',
   mode: 'development',

@@ -10,7 +10,7 @@ import icssText, { button as icssTextButton } from "./icss-text.modules.css";
 import icssStylesheet, { "sheet-button" as icssStylesheetButton } from "./icss-stylesheet.modules.css";
 import fooStylesheet from "./foo.css" with { type: "css" };
 
-const path = __non_webpack_require__("path");
+const path = require("path");
 
 it("should export CSS text as default when exportType is text (css/module)", () => {
   expect(typeof moduleText).toBe("string");

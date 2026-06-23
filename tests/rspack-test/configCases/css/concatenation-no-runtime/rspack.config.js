@@ -10,6 +10,10 @@ const exportTypes = ['text', 'css-style-sheet', 'style', 'link'];
  * @returns {Configuration} a single config that builds an isolated bundle
  */
 const makeConfig = (exportType) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   mode: 'production',
   devtool: false,
