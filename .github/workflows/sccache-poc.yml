@@ -49,25 +49,24 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Find which crates are non-reproducible. Build the full binding TWICE WITHOUT
-      # sccache (so each compile is fresh, not cache-restored), then diff the content
-      # hash of every dep rmeta/rlib. Crates whose bytes differ are non-reproducible;
-      # the lowest of them is the cascade root that poisons sccache keys.
-      - name: Probe which deps are non-reproducible
+      # Comprehensive args diff: capture every rustc command (plain, no sccache) across
+      # two full builds, sorted by crate, and diff. Shows exactly which crate's args
+      # change build-to-build (e.g. a --extern path whose metahash is nondeterministic).
+      - name: Diff rustc commands across two full builds
         env:
           RUSTC_WRAPPER: ''
         run: |
           probe() {
             rm -rf target
-            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto 2>/dev/null
-            find target -path '*/ci/deps/*' \( -name '*.rmeta' -o -name '*.rlib' \) -exec sha256sum {} \; \
-              | sed -E 's# .*/(lib[^/]+)$#  \1#' | sort -k2 > "$1.hashes"
+            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto -v 2>&1 \
+              | grep -oE 'rustc --crate-name [a-z0-9_]+ .*' \
+              | sed -E 's#=/[^ ]*/(lib[a-z0-9_]+-[0-9a-f]+\.r(meta|lib))#=\1#g; s#/[^ ]*/(crates/[a-z0-9_/.]+)#\1#g; s#/[^ ]*/(registry/src/[^ ]+)#\1#g' \
+              | sort > "$1.cmds"
           }
-          probe /tmp/p1
-          probe /tmp/p2
-          echo "=== total dep artifacts: $(wc -l < /tmp/p1.hashes) ==="
-          echo "=== NON-REPRODUCIBLE crates (bytes differ across identical builds) ==="
-          diff /tmp/p1.hashes /tmp/p2.hashes | grep -E '^[<>]' \
-            | awk '{print $3}' | sed -E 's/-[0-9a-f]+\.(rmeta|rlib)$//' | sort -u | head -80
-          echo "=== count ==="
-          diff /tmp/p1.hashes /tmp/p2.hashes | grep -E '^<' | wc -l
+          probe /tmp/c1
+          probe /tmp/c2
+          echo "=== crates whose rustc command DIFFERS across builds ==="
+          diff /tmp/c1.cmds /tmp/c2.cmds | grep -E '^<' \
+            | grep -oE 'crate-name [a-z0-9_]+' | sort -u | head -60
+          echo "=== sample diff (first differing lines) ==="
+          diff /tmp/c1.cmds /tmp/c2.cmds | head -20
