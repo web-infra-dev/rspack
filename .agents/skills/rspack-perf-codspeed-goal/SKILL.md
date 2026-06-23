@@ -19,7 +19,7 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
 - Prefer the GitHub connector/plugin for GitHub operations; use `gh` only when the connector cannot perform the required action. Avoid the 1Password `gh` shell plugin unless explicitly requested.
 - Preserve behavior unless the user explicitly accepts a semantic change.
 - Keep changes scoped to the requested ownership boundary. Expand scope only when the measured bottleneck or correctness fix requires it, and explain the expansion.
-- Use local verification for correctness and CI/CodSpeed for final external validation. Do not run local CodSpeed benches or other local performance benchmarks; the local environment cannot run CodSpeed reliably, so performance evidence must come from CI/CodSpeed comments.
+- Use local verification for correctness and CI/CodSpeed for final external validation. Local performance benchmarks are optional triage signals only when the repository documents a reliable command for the requested benchmark; final performance evidence must still come from CI/CodSpeed comments.
 - Use append-only commits for normal optimization rounds. Do not routinely amend previous commits or force-push; use history rewriting only for an explicit user-requested rebase or another unavoidable repository operation.
 
 ## Initial Setup
@@ -28,7 +28,8 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
    - Check the working tree before changing code.
    - Stop if uncommitted user changes would be overwritten or mixed into the optimization.
    - Fetch latest `origin/main`.
-   - Use a clean branch or worktree based on fetched `origin/main`, unless the user explicitly asks to continue an existing PR branch.
+   - If the user supplies an existing PR URL, branch, or head SHA, continue from that PR head unless they explicitly ask for a fresh branch or PR.
+   - Otherwise use a clean branch or worktree based on fetched `origin/main`.
    - Confirm the optimization branch contains no unrelated commits or file changes.
 
 2. Establish the target.
@@ -42,7 +43,7 @@ The agent owns the loop. After the user gives the target benchmark, threshold, a
    - Maintain one persistent PR comment that records every round and every pushed commit.
    - Reuse the existing progress comment if present; otherwise create one.
    - Update this comment after every pushed round and after every terminal CodSpeed decision.
-   - Include commit SHA, round number, summary of code change, local correctness validation result, any ignored local flaky test cases, subagent review result, CI state, CodSpeed result, review-comment state, target threshold, pass/fail status, and next action.
+   - Include only the round number, commit SHA, summary of code change, and CodSpeed result.
 
 ## Per-Round Checklist
 
@@ -59,7 +60,7 @@ Run these steps in order for every round.
    - Run the relevant lint/check command for the touched language, including `clippy` or Rust check coverage for Rust changes.
    - Run format verification, not broad formatting churn, unless formatting is already required.
    - For Rspack, follow repository guidance: JavaScript/TypeScript changes need the relevant JS build before JS tests; Rust changes need the relevant Rust binding build before Rust tests; mixed changes need the full dev build.
-   - Do not attempt to run CodSpeed benches locally. They are not expected to work in the local environment; only run correctness-oriented build, test, lint/check, clippy, and format verification.
+   - Do not require local CodSpeed benches. When Rspack documents a reliable local benchmark command for the requested benchmark, you may run it as a pre-push signal to catch obvious slowdowns before spending CI/CodSpeed rounds.
    - Some local test cases, especially native watcher and swc-related cases, may be flaky in local runs. If such a known-flaky case fails and the failure is unrelated to the scoped change, record it as ignored local flakiness and continue; do not let it block the round.
    - If a local correctness command fails, fix it locally and repeat local verification before pushing.
    - Do not substitute CodSpeed performance data for correctness evidence.
@@ -68,7 +69,7 @@ Run these steps in order for every round.
    - Before every commit/push, dispatch an independent subagent over the current diff.
    - Ask it to focus on correctness, behavior preservation, ordering, deduplication, hashing/equality, diagnostics, concurrency, cancellation, and cache lifetime where relevant.
    - If the subagent reports a real concern, fix it and repeat local verification plus subagent review.
-   - If the concern is not valid, record the technical reason in the progress comment.
+   - If the concern is not valid, record the technical reason in a review reply or final report.
 
 4. Commit and push.
    - Review the diff for accidental unrelated edits.
@@ -76,7 +77,7 @@ Run these steps in order for every round.
    - Push the branch as a new commit on top of the prior round. Do not amend the previous optimization commit for normal iteration.
    - Use `--force-with-lease` only after an explicit rebase or another unavoidable history rewrite, not as the default round workflow.
    - Request or re-request GitHub Copilot code review for the latest head SHA.
-   - Update the fixed progress comment with the new commit SHA and pre-push validation summary.
+   - Update the fixed progress comment with the new commit SHA and change summary.
 
 5. Start CI/CodSpeed tracking.
    - Fetch workflow runs once after pushing to confirm CI started.
@@ -96,14 +97,14 @@ Run these steps in order for every round.
      - If clearly unrelated and known flaky, rerun only the failed job or jobs once, then recheck the same head SHA.
      - If caused by stale generated output or version mismatch, update the relevant source/generated files locally and start a new round.
    - For any failed test-related action, fetch the failure logs, identify the failing test or build step, fix the cause when it is related or plausibly related to the optimization, and start a new round. Do not treat CI as trustworthy while any test-related action is failed, cancelled, missing, or still pending.
-   - If CI is still pending, update the progress comment and create another 10-minute follow-up before yielding.
+   - If CI is still pending, create another 10-minute follow-up before yielding.
 
 7. Handle code review comments before performance evaluation completes.
    - Inspect unresolved code review comments and review threads for the latest PR head SHA before declaring the performance evaluation complete.
    - Include Copilot and human reviewer comments.
    - Resolve outdated threads directly.
    - If a live comment is reasonable, implement the fix, reply with what changed, resolve the thread, and start a new round with local verification and subagent review.
-   - If a live comment is not reasonable, reply with the technical reason and supporting evidence, resolve the thread, update the progress comment, and continue the same evaluation if no code changed.
+   - If a live comment is not reasonable, reply with the technical reason and supporting evidence, resolve the thread, and continue the same evaluation if no code changed.
    - Do not declare success while any non-outdated review comment or requested-change thread remains unresolved.
 
 8. Read and interpret CodSpeed feedback.
@@ -115,11 +116,12 @@ Run these steps in order for every round.
    - Compare the current commit's performance result with the previous round's result when both are available.
    - Check for meaningful regressions in other benchmarks before declaring success.
    - Treat environment warnings as reportable context. Discard a result only when the comparison is unreliable.
-   - Update the fixed progress comment with the CodSpeed result and pass/fail status.
+   - Update the fixed progress comment with the CodSpeed result.
 
 9. Decide the next action independently.
    - If local correctness, required CI, review comments, and CodSpeed target all pass, report success with exact commit SHA, benchmark values, percentage delta, and PR status.
-   - If the current commit does not improve performance versus the previous round, revert that commit's code changes with a new follow-up commit, update the progress comment, and start the next round from the reverted code state.
+   - If a performance-focused round does not improve performance versus the previous round, revert that commit's code changes with a new follow-up commit, update the progress comment with the reverted state, and start the next round from the reverted code state.
+   - If a round only fixes correctness, CI, or review feedback, keep the fix when validation improves even if the CodSpeed result is neutral.
    - If CodSpeed improves versus the previous round but remains below threshold and the round limit is not reached, immediately choose the next scoped optimization direction and start the next round.
    - If review or CI requires code changes, start the next round focused on that fix before additional performance work.
    - If the round limit is reached, stop and report the best observed result, all attempted directions, current CI/review state, and the reason for stopping.
@@ -146,12 +148,12 @@ Scope: `<requested scope>`
 Current status: `<running|passed|failed|blocked>`
 Latest head: `<sha>`
 
-| Round | Commit  | Change      | Local correctness       | Local flakiness           | Subagent review | CI        | Review comments      | CodSpeed             | Meets target       | Next action |
-| ----- | ------- | ----------- | ----------------------- | ------------------------- | --------------- | --------- | -------------------- | -------------------- | ------------------ | ----------- |
-| 1     | `<sha>` | `<summary>` | `<tests/checks/format>` | `<none or ignored cases>` | `<pass/notes>`  | `<state>` | `<resolved/pending>` | `<delta or pending>` | `<yes/no/pending>` | `<next>`    |
+| Round | Commit  | Change      | CodSpeed             |
+| ----- | ------- | ----------- | -------------------- |
+| 1     | `<sha>` | `<summary>` | `<delta or pending>` |
 ```
 
-Update, do not duplicate, this comment. Keep entries concise but specific enough that the full commit history and performance result history are visible.
+Update, do not duplicate, this comment. Keep entries concise but specific enough that the commit history and performance result history are visible.
 
 ## Rspack Scope
 
