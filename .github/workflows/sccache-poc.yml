@@ -58,7 +58,9 @@ jobs:
       - name: Reset for warm build
         run: |
           rm -rf target
-          wc -l < "$SCCACHE_ERROR_LOG" > /tmp/warm_marker
+          sccache --stop-server || true
+          rm -f "$SCCACHE_ERROR_LOG"
+          sccache --start-server
           sccache --zero-stats
 
       - name: Build warm (second identical-commit build)
@@ -71,10 +73,9 @@ jobs:
         run: |
           sccache --show-stats
           sccache --stop-server || true
-          start=$(cat /tmp/warm_marker 2>/dev/null || echo 1)
-          echo "=== raw sample of warm 'Cache miss' lines ==="
-          tail -n +"$start" "$SCCACHE_ERROR_LOG" | grep -i 'cache miss' | head -5 || true
-          echo "=== warm MISS outputs (crate-level, top) ==="
-          tail -n +"$start" "$SCCACHE_ERROR_LOG" | grep -i 'cache miss' \
-            | grep -oE '\] \[[^]]+\]' | sed -E 's/^\] //' \
+          echo "=== raw sample of warm 'cache miss' lines ==="
+          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" | head -8 || echo "(none)"
+          echo "=== warm MISS crates (top) ==="
+          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
+            | grep -oE '\[[A-Za-z0-9_.-]+\]' \
             | sort | uniq -c | sort -rn | head -60 || echo "(no miss lines)"
