@@ -114,13 +114,18 @@ impl Meta {
     }
 
     if max_versions != 0 {
-      // Only versions that are both tracked by `_meta` and present on disk are
-      // candidates. Untracked directory entries are ignored.
-      let mut candidates = self
-        .access_times
+      // Valid version directories on disk are candidates even when `_meta` has
+      // no timestamp for them. Treat missing timestamps as the oldest entries so
+      // orphaned cache versions can still be reclaimed by maxVersions cleanup.
+      let mut candidates = existing_versions
         .iter()
-        .filter(|(version, _)| *version != active_version && existing_versions.contains(version))
-        .map(|(version, timestamp)| (version.clone(), *timestamp))
+        .filter(|version| *version != active_version)
+        .map(|version| {
+          (
+            version.clone(),
+            self.access_times.get(version).copied().unwrap_or_default(),
+          )
+        })
         .collect::<Vec<_>>();
       let retained_inactive_versions = max_versions.saturating_sub(1) as usize;
       let remove_count = candidates.len().saturating_sub(retained_inactive_versions);
@@ -229,21 +234,16 @@ mod test {
   }
 
   #[tokio::test]
-  async fn max_versions_only_removes_tracked_cache_versions() -> Result<()> {
-    let untracked_version = "rspack_v_0000000000000004";
+  async fn max_versions_removes_valid_orphan_cache_versions() -> Result<()> {
+    let orphan_version = "rspack_v_0000000000000004";
     let mut meta = Meta::default();
     meta.access_times.insert(version(V1), 1);
     meta.access_times.insert(version(V2), 2);
 
-    let versions = existing_versions(&[untracked_version, "ordinary-directory", V1, V2]);
+    let versions = existing_versions(&[orphan_version, "ordinary-directory", V1, V2]);
     let (expired, _) = meta.refresh(&version(V3), 0, 2, &versions).await?;
 
-    assert_eq!(expired, vec![version(V1)]);
-    assert!(
-      !expired
-        .iter()
-        .any(|version| version.as_str() == untracked_version)
-    );
+    assert_eq!(expired, vec![version(V1), version(orphan_version)]);
     assert!(
       !expired
         .iter()
