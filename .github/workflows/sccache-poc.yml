@@ -44,26 +44,34 @@ jobs:
       - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - run: cargo codegen
 
-      # Why does rspack_cacheable miss every build? Capture its rustc command line in
-      # two builds and diff. Command differs -> an arg varies; command identical ->
-      # input content varies. Also diff its compiled rmeta to see if output is stable.
-      - name: Probe rspack_cacheable rustc command + output reproducibility
+      - name: Trim paths
         run: |
-          probe() {
-            rm -rf target
-            cargo build --profile ci -p rspack_cacheable -v 2>&1 \
-              | grep -oE 'rustc --crate-name rspack_cacheable .*' | head -1 \
-              | tr ' ' '\n' > "$1.cmd" || true
-            find target -path '*/deps/librspack_cacheable-*.rmeta' \
-              -exec sha256sum {} \; | awk '{print $1}' | sort > "$1.out"
-          }
-          probe /tmp/b1
-          probe /tmp/b2
-          echo "=== rmeta output diff (empty = reproducible) ==="
-          if diff /tmp/b1.out /tmp/b2.out; then echo "RMETA REPRODUCIBLE"; else echo "RMETA DIFFERS -> nondeterministic output"; fi
-          echo "b1 rmeta: $(cat /tmp/b1.out)"
-          echo "b2 rmeta: $(cat /tmp/b2.out)"
-          echo "=== CMD diff (empty = identical args) ==="
-          if diff /tmp/b1.cmd /tmp/b2.cmd; then echo "ARGS IDENTICAL"; else echo "ARGS DIFFER ^"; fi
-          echo "=== rustc args sample (b1) ==="
-          cat /tmp/b1.cmd
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+
+      # Decisive: plain `cargo build` of the binding cdylib (no napi env injection),
+      # twice. rspack_cacheable is reproducible under plain cargo, so if the warm hit
+      # rate now jumps high, napi's per-build env (NAPI_TYPE_DEF_TMP_FOLDER / Date.now)
+      # is what poisons the sccache keys in the real build.
+      - name: Cargo build cold (no napi)
+        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+      - run: sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
+
+      - name: Reset for warm
+        run: |
+          rm -rf target
+          sccache --stop-server || true
+          rm -f "$SCCACHE_ERROR_LOG"
+          sccache --start-server
+          sccache --zero-stats
+
+      - name: Cargo build warm (no napi)
+        run: cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
+      - name: Warm coverage (plain cargo)
+        run: |
+          echo "### WARM (plain cargo, no napi) ###"
+          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
+          sccache --stop-server || true
+          echo "=== remaining MISS crates ==="
+          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
+            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -40 || echo "(none)"
