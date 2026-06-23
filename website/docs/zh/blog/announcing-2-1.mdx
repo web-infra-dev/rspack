@@ -123,4 +123,13 @@ export default {
 
 ### TanStack RSC 支持
 
+我们正在与 TanStack 团队合作推进 RSC 在更多框架中的落地，目前已经取得阶段性成果：[TanStack Start 已正式支持 Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support)。这意味着开发者在构建 TanStack Start 应用时，也可以选择由 Rspack 驱动的 Rsbuild。
+
+Rspack 在 RSC 方向上的核心目标，是提供通用的 RSC 框架构建能力：让上层框架能够基于自己的路由、渲染和服务端运行时方案接入 RSC，同时复用同一套高性能构建基础设施。
+
+如果你想在 Rspack / Rsbuild 技术栈中尝试 RSC，可以参考以下示例：
+
+- [rstackjs/rstack-examples 中的 tanstack-start 示例](https://github.com/rstackjs/rstack-examples/tree/main/rsbuild/tanstack-start)：展示了如何在 TanStack Start 中使用 Rsbuild。
+- [rstackjs/rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件集成示例，也会持续承载我们在通用 RSC 构建能力上的探索。
+
 ## 升级指南
