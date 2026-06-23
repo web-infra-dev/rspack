@@ -1,9 +1,11 @@
 name: sccache-poc
 
-# Goal: raise the second identical-commit build's sccache coverage above 95%.
-# Single self-hosted job, local SCCACHE_DIR (no backend confound) so the number
-# reflects pure determinism: build cold -> rm -rf target -> build warm. The warm
-# hit rate is the coverage; SCCACHE_LOG=debug pinpoints crates that still miss.
+# Goal: second identical-commit build cache coverage > 95%.
+# Production-shaped two-layer cache: the target/fingerprint cache restores dependency
+# artifacts as fresh (so swc_core/mimalloc etc. are NOT recompiled -> no cascade), and
+# sccache serves the workspace crates that the fingerprint cache strips. Measured by:
+# build1 (cold) -> clean ONLY workspace members (simulates the dep-cache restore) ->
+# build2 -> sccache hit rate on build2 == second identical-commit coverage.
 
 on:
   push:
@@ -13,27 +15,21 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
+  RUSTC_WRAPPER: sccache
 
 jobs:
-  measure:
+  linux:
     name: sccache coverage (linux-gnu ci)
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     defaults:
       run:
         shell: bash
-    env:
-      RUSTC_WRAPPER: sccache
-      SCCACHE_DIR: /tmp/sccache-cache
-      SCCACHE_LOG: debug
-      SCCACHE_ERROR_LOG: /tmp/sccache-server.log
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - uses: ./.github/actions/pnpm/setup
       - name: Install Binding Dependencies
         run: |
-          cd ./crates/node_binding
-          pnpm i --ignore-workspace --no-lockfile
-          cd ../../
+          cd ./crates/node_binding && pnpm i --ignore-workspace --no-lockfile && cd ../../
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
         with:
@@ -43,31 +39,39 @@ jobs:
       - run: rustup target add x86_64-unknown-linux-gnu
       - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
       - run: cargo codegen
-
       - name: Trim paths
         run: |
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
-
-      # PRODUCTION-SHAPED test: target cache (deps fresh) + sccache (workspace crates).
-      # build1 stores everything; then simulate Swatinem restore by cleaning ONLY the
-      # workspace members (deps kept fresh, so swc_core etc. are NOT recompiled -> no
-      # cascade). build2 recompiles only workspace crates -> they should hit sccache.
       - name: Combined cache coverage (target deps fresh + sccache)
+        run: bash .github/sccache-coverage.sh
+
+  windows:
+    name: sccache coverage (windows-msvc ci)
+    runs-on: ${{ fromJSON(vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"') }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      CARGO_PROFILE_CI_DEBUG: 'false' # MSVC: no PDB so sccache can cache
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: ./.github/actions/pnpm/setup
+      - name: Install Binding Dependencies
         run: |
-          members=$(cargo metadata --no-deps --format-version 1 \
-            | python3 -c 'import json,sys;print(" ".join(p["name"] for p in json.load(sys.stdin)["packages"]))')
-          echo "workspace members: $(echo $members | wc -w)"
-          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-          echo "### build1 done ###"; sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]'
-          # simulate Swatinem: strip workspace member artifacts, keep dependency artifacts
-          for m in $members; do cargo clean --profile ci -p "$m" 2>/dev/null || true; done
-          sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server; sccache --zero-stats
-          echo "### build2: only workspace crates recompile, deps stay fresh ###"
-          cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto
-          echo "### build2 sccache (= second identical-commit coverage) ###"
-          sccache --show-stats | grep -iE 'hits rate|Cache (hits|misses) +[0-9]|Non-cacheable calls'
-          sccache --stop-server || true
-          echo "=== remaining MISS crates ==="
-          grep -i 'cache miss' "$SCCACHE_ERROR_LOG" \
-            | grep -oE '\[[A-Za-z0-9_.-]+\]' | sort | uniq -c | sort -rn | head -40 || echo "(none)"
+          cd ./crates/node_binding && pnpm i --ignore-workspace --no-lockfile && cd ../../
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          key: sccache-poc
+          save-if: false
+          use-cache: false
+      - run: rustup target add x86_64-pc-windows-msvc
+      - uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+      - run: cargo codegen
+      - name: Trim paths
+        run: |
+          echo $'\n' >> .cargo/config.toml
+          echo 'trim-paths = true' >> .cargo/config.toml
+      - name: Combined cache coverage (target deps fresh + sccache)
+        run: bash .github/sccache-coverage.sh
