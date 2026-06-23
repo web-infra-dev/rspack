@@ -217,35 +217,9 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
     uses: ./.github/workflows/size-limit.yml
 
-  setup_ecosystem_ci_runner:
-    name: Setup ecosystem CI runner
-    needs: [check-changed, build-linux]
-    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
-    steps:
-      - name: Start Docker daemon
-        if: runner.environment == 'self-hosted'
-        shell: bash
-        run: |
-          if docker info >/dev/null 2>&1; then
-            exit 0
-          fi
-
-          nohup sudo env -u RUNNER_TRACKING_ID dockerd >/tmp/dockerd.log 2>&1 &
-
-          for _ in {1..30}; do
-            if docker info >/dev/null 2>&1; then
-              exit 0
-            fi
-            sleep 1
-          done
-
-          cat /tmp/dockerd.log
-          exit 1
-
   ecosystem_ci_per_commit:
     name: Run ecosystem CI per commit
-    needs: [check-changed, build-linux, setup_ecosystem_ci_runner]
+    needs: [check-changed, build-linux]
     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 40
     permissions:
