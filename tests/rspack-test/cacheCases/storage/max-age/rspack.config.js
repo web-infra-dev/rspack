@@ -43,10 +43,10 @@ module.exports = {
   context: __dirname,
   cache: {
     type: 'persistent',
+    maxAge: 1,
     storage: {
       type: 'filesystem',
       directory: cacheDir,
-      maxAge: 1,
     },
   },
   plugins: [

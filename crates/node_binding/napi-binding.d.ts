@@ -1916,6 +1916,8 @@ export interface RawCacheOptionsMemory {
 export interface RawCacheOptionsPersistent {
   buildDependencies?: Array<string>
   version?: string
+  maxAge: number
+  maxVersions: number
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
@@ -3086,8 +3088,6 @@ export interface RawStatsOptions {
 export interface RawStorageOptions {
   type: "filesystem"
   directory: string
-  maxAge: number
-  maxVersions: number
 }
 
 export interface RawSubresourceIntegrityPluginOptions {
