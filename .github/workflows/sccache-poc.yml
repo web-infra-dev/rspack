@@ -1,10 +1,9 @@
 name: sccache-poc
 
-# PoC: prove sccache reuses compilation and measure its hit rate, without the
-# org-blocked mozilla/sccache-action. One job builds the linux-gnu ci binding
-# twice: build 1 (cold) populates sccache's local cache, then `rm -rf target`
-# forces cargo to recompile everything, and build 2's rustc calls hit sccache.
-# `--zero-stats` between builds isolates build 2's hit rate.
+# PoC: measure sccache hit rate with the GitHub Actions Cache backend.
+# Target/fingerprint cache is disabled so sccache is the only cache.
+# Run twice: run A populates the GHA cache (cold, all miss), run B (re-run)
+# should hit on unchanged crates -> high sccache hit rate across runs.
 
 on:
   push:
@@ -14,11 +13,10 @@ on:
 env:
   CARGO_INCREMENTAL: 0
   CARGO_TERM_COLOR: always
-  RUSTC_WRAPPER: sccache
 
 jobs:
   build:
-    name: sccache PoC (linux-gnu ci)
+    name: sccache PoC GHA (linux-gnu ci)
     runs-on: ubuntu-22.04
     defaults:
       run:
@@ -41,15 +39,10 @@ jobs:
         with:
           key: sccache-poc
           save-if: false
-          use-cache: false
+          use-cache: false # isolate: sccache is the only cache
 
       - name: Setup Rust Target
         run: rustup target add x86_64-unknown-linux-gnu
-
-      - name: Install sccache
-        uses: taiki-e/install-action@25435dc8dd3baed7417e0c96d3fe89013a5b2e09 # v2
-        with:
-          tool: sccache
 
       - name: Run Cargo codegen
         run: cargo codegen
@@ -59,23 +52,15 @@ jobs:
         with:
           tool-cache: false
 
-      - name: Build 1 (cold, populate sccache)
+      - name: Setup sccache (GHA backend)
+        uses: mozilla/sccache-action@7d986dd989559c6ecdb630a3fd2557667be217ad # v0.0.9
+
+      - name: Build binding (ci) with sccache
         env:
           RUST_TARGET: x86_64-unknown-linux-gnu
+          RUSTC_WRAPPER: sccache
+          SCCACHE_GHA_ENABLED: 'true'
         run: pnpm build:binding:ci
 
-      - name: sccache stats after build 1 (cold)
-        run: sccache --show-stats
-
-      - name: Force cargo to recompile everything
-        run: |
-          rm -rf target
-          sccache --zero-stats
-
-      - name: Build 2 (sccache-served recompile)
-        env:
-          RUST_TARGET: x86_64-unknown-linux-gnu
-        run: pnpm build:binding:ci
-
-      - name: sccache stats after build 2 (hit rate)
+      - name: sccache stats
         run: sccache --show-stats
