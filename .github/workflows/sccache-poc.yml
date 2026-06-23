@@ -49,25 +49,28 @@ jobs:
           echo $'\n' >> .cargo/config.toml
           echo 'trim-paths = true' >> .cargo/config.toml
 
-      # Cascade roots are libmimalloc_sys + swc/swc_core/swc_plugin_runner. Capture the
-      # exact sccache args (get_cached_or_compile) for them in cold vs warm, plus the
-      # build-script-emitted rustc-env/cfg, to find the non-deterministic INPUT.
-      - name: Probe root crates' args + build-script env
+      # Roots have identical args/env yet changing keys. sccache also hashes the crate's
+      # SOURCE files (via --emit=dep-info), which include build-script-generated files in
+      # OUT_DIR. Hash each root's OUT_DIR across two builds (no sccache) to catch a
+      # non-deterministic generated file = the true root input.
+      - name: Probe root crates' OUT_DIR reproducibility
+        env:
+          RUSTC_WRAPPER: ''
         run: |
-          ROOTS='libmimalloc_sys|swc_core|swc_plugin_runner|swc[^_]'
-          capture() {
+          probe() {
             rm -rf target
-            sccache --stop-server || true; rm -f "$SCCACHE_ERROR_LOG"; sccache --start-server
-            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto -v 2>"$1.cargov" >/dev/null
-            grep -oE '\[(libmimalloc_sys|swc_core|swc_plugin_runner|swc)\]: get_cached_or_compile: \[.*\]' "$SCCACHE_ERROR_LOG" | sort > "$1.args"
-            # build-script-emitted rustc-env / rustc-cfg for the roots
-            grep -E 'cargo::?rustc-(env|cfg)' "$1.cargov" | grep -iE 'mimalloc|swc' | sort -u > "$1.bsenv" || true
+            cargo build --profile ci -p rspack_node --no-default-features --features plugin,perfetto 2>/dev/null
+            for c in libmimalloc_sys swc_core swc swc_plugin_runner; do
+              for od in target/ci/build/${c}-*/out; do
+                [ -d "$od" ] || continue
+                find "$od" -type f -exec sha256sum {} \; \
+                  | sed -E "s# .*/build/${c}-[0-9a-f]+/# ${c}/#" | sort
+              done
+            done > "$1"
           }
-          capture /tmp/c
-          capture /tmp/w
-          echo "=== ARGS diff for root crates (cold vs warm) ==="
-          diff /tmp/c.args /tmp/w.args && echo "ROOT ARGS IDENTICAL" || echo "ROOT ARGS DIFFER ^"
-          echo "=== build-script rustc-env/cfg diff ==="
-          diff /tmp/c.bsenv /tmp/w.bsenv && echo "BUILD-SCRIPT ENV IDENTICAL" || echo "BUILD-SCRIPT ENV DIFFERS ^"
-          echo "=== libmimalloc_sys full args (cold) ==="
-          grep 'libmimalloc_sys' /tmp/c.args | head -1 | tr ',' '\n' | grep -iE 'env|cfg|extern|metadata|out-dir|L ' | head -30
+          probe /tmp/o1
+          probe /tmp/o2
+          echo "=== OUT_DIR diff (empty = reproducible) ==="
+          if diff /tmp/o1 /tmp/o2; then echo "OUT_DIR REPRODUCIBLE"; else echo "OUT_DIR DIFFERS -> root input found ^"; fi
+          echo "=== files present (cold) ==="
+          sed -E 's/^[0-9a-f]+ +//' /tmp/o1 | sort -u | head -40
