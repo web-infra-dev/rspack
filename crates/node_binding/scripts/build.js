@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { readFileSync, writeFileSync, renameSync } = require("node:fs");
+const { readFileSync, writeFileSync, renameSync, appendFileSync } = require("node:fs");
 const { values, positionals } = require("node:util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -17,6 +17,12 @@ const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
 
 const watch = process.argv.includes("--watch");
+
+// Pure observer (set MEASURE_CARGO_FRESH=1): asks cargo for JSON build messages and
+// reports how many compile units cargo reused (fresh) vs recompiled. This measures the
+// Rust dependency/fingerprint cache utilization and is independent of which cache backend
+// (Swatinem, sccache, ...) is configured. It does not change the build itself.
+const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -103,7 +109,7 @@ async function build() {
 			args.push(`--features ${features.join(",")}`);
 		}
 
-		if (positionals.length > 0 || rustflags.length > 0 || use_build_std) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std || measureFresh) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
 
@@ -119,6 +125,12 @@ async function build() {
 				args.push("-Zbuild-std=panic_abort,std");
 			}
 
+			if (measureFresh) {
+				// `json-render-diagnostics` keeps human-readable errors on stderr while
+				// emitting per-unit `fresh` flags on stdout for utilization accounting.
+				args.push("--message-format=json-render-diagnostics");
+			}
+
 			if (positionals.length > 0) {
 				args.push(...positionals);
 			}
@@ -127,10 +139,14 @@ async function build() {
 		console.log(`Run command: napi ${args.join(" ")}`);
 
 		const cp = spawn("napi", args, {
-			stdio: "inherit",
+			// In measure mode capture stdout to parse cargo's JSON build messages;
+			// stderr stays inherited so rendered diagnostics still surface.
+			stdio: measureFresh ? ["inherit", "pipe", "inherit"] : "inherit",
 			shell: true,
 			env: envs,
 		});
+
+		const freshStats = measureFresh ? collectFreshStats(cp.stdout) : null;
 
 		cp.on("error", reject);
 		cp.on("exit", (code) => {
@@ -161,8 +177,56 @@ async function build() {
 						shell: true,
 					})
 				}
+
+				if (freshStats) {
+					reportFreshStats(freshStats);
+				}
 			}
 			resolve(code);
 		});
 	});
+}
+
+// Parse cargo's JSON build stream, counting reused (fresh) vs recompiled units.
+// Non-JSON lines (napi's own logs) are passed through so the log stays readable.
+function collectFreshStats(stdout) {
+	const stats = { fresh: 0, total: 0 };
+	stdout.setEncoding("utf8");
+	let buffer = "";
+	stdout.on("data", chunk => {
+		buffer += chunk;
+		let nl;
+		while ((nl = buffer.indexOf("\n")) !== -1) {
+			const line = buffer.slice(0, nl);
+			buffer = buffer.slice(nl + 1);
+			let msg;
+			try {
+				msg = JSON.parse(line);
+			} catch {
+				process.stdout.write(line + "\n");
+				continue;
+			}
+			if (msg.reason === "compiler-artifact" && typeof msg.fresh === "boolean") {
+				stats.total += 1;
+				if (msg.fresh) stats.fresh += 1;
+			}
+		}
+	});
+	return stats;
+}
+
+function reportFreshStats({ fresh, total }) {
+	const target = process.env.RUST_TARGET || "host";
+	const pct = total ? ((fresh / total) * 100).toFixed(1) : "0.0";
+	const summary = `${target}: ${fresh}/${total} units fresh = ${pct}% rust cache utilization`;
+	console.log(`\n::notice title=Rust Cache Utilization::${summary}`);
+	if (process.env.GITHUB_STEP_SUMMARY) {
+		appendFileSync(
+			process.env.GITHUB_STEP_SUMMARY,
+			`### Rust cache utilization — \`${target}\`\n\n` +
+				`| fresh | recompiled | total | utilization |\n` +
+				`| ----: | ---------: | ----: | ----------: |\n` +
+				`| ${fresh} | ${total - fresh} | ${total} | **${pct}%** |\n\n`
+		);
+	}
 }
