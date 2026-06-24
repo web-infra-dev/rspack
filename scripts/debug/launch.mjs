@@ -27,38 +27,6 @@ export async function launchRspackCli(additionalArgs) {
 	await launchDebugger(launch);
 }
 
-export async function launchJestWithArgs(additionalArgs) {
-	let args = [
-		"--inspect-brk",
-		"--expose-gc",
-		"--max-old-space-size=8192",
-		"--experimental-vm-modules",
-		"${workspaceFolder}/node_modules/jest-cli/bin/jest",
-		"--runInBand",
-		"--logHeapUsage"
-	];
-	if (additionalArgs) {
-		args.push(...additionalArgs);
-	}
-	let launch = [
-		{
-			name: "rust",
-			type: "lldb",
-			request: "launch",
-			sourceLanguages: ["rust"],
-			program: "node",
-			args,
-			env: {
-				NO_COLOR: JSON.stringify(1),
-				...process.env
-			},
-			cwd: process.cwd()
-		}
-	];
-	console.info(`$ ${yellow("node")} ${args.join(" ")}`);
-	await launchDebugger(launch);
-}
-
 async function launchDebugger(launchConfig) {
 	launchConfig = [
 		...launchConfig,
