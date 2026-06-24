@@ -59,7 +59,6 @@ function ProductList({ products }) {
 }
 ```
 
-
 随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 随之可以通过内置 SWC loader 直接启用 React Compiler。
 
 在 Rspack 中，可以通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 开启 React Compiler：
@@ -407,6 +406,10 @@ export default 'default value';
 上面的具名 `const` 导出，以及默认导出中的常量值都可以受益于这项优化。对于 `let`、函数导出以及循环模块中的 `const` 导出，Rspack 仍会保留 getter 形式，以确保可变导出和循环依赖场景下的语义保持正确。后续我们也会继续尝试基于 reassignment 分析识别更多不会被重新赋值的导出，让更多场景可以使用更轻量的值绑定形式。
 
 ## Rstack 进展
+
+### Rsbuild
+
+Rsbuild 2.1 已经与 Rspack 2.1 同步发布，查看 [Rsbuild 2.1 博客](https://rsbuild.rs/zh/blog/v2-1) 了解更多。
 
 ### rspack-merge
 
