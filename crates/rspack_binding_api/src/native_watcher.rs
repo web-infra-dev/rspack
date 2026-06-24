@@ -37,11 +37,7 @@ impl WatchInputFileSystem for VirtualAwareInputFileSystem {
     let Some(path) = Utf8Path::from_path(path) else {
       return false;
     };
-    self
-      .store
-      .read()
-      .map(|store| store.contains(path))
-      .unwrap_or(false)
+    self.store.read().is_ok_and(|store| store.contains(path))
   }
 }
 

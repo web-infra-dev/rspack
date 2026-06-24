@@ -282,7 +282,15 @@ mod tests {
   /// to `Remove`.
   #[test]
   fn change_for_path_present_in_input_fs_is_not_normalized_to_remove() {
-    let virtual_path = ArcPath::from(Path::new("/__virtual__/dynamic-module.js"));
+    // Absolute on every platform (a bare `/...` is not absolute on Windows, so
+    // `PathManager::update` would absolutize it against cwd and the registered
+    // path would no longer match the event path).
+    let virtual_path = ArcPath::from(
+      std::env::current_dir()
+        .expect("cwd")
+        .join("__virtual__")
+        .join("dynamic-module.js"),
+    );
 
     let path_manager = Arc::new(PathManager::default());
     path_manager
