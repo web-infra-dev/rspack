@@ -3,7 +3,9 @@ mod snapshot;
 
 use std::{collections::VecDeque, sync::Arc};
 
-use rspack_core::cache::persistent::storage::{BoxStorage, StorageOptions, create_storage};
+use rspack_core::cache::persistent::storage::{
+  BoxStorage, StorageOptions, Version, create_storage,
+};
 use rspack_error::{Result, error};
 use rspack_fs::{NativeFileSystem, ReadableFileSystem};
 use rspack_paths::Utf8PathBuf;
@@ -95,12 +97,15 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
   };
 
   // Cache directories are laid out as `<version>`.
-  for version in versions {
-    if version.starts_with(['.', '_']) {
+  for version_name in versions {
+    if version_name.starts_with(['.', '_']) {
       continue;
     }
+    let Some(version) = Version::parse(&version_name) else {
+      continue;
+    };
     if !fs
-      .metadata_sync(&path.join(&version))
+      .metadata_sync(&path.join(&version_name))
       .is_ok_and(|metadata| metadata.is_directory)
     {
       continue;
@@ -110,13 +115,13 @@ pub fn load_storages_from_path(path: &Utf8PathBuf) -> HashMap<String, BoxStorage
       StorageOptions::FileSystem {
         directory: path.clone(),
       },
-      version.clone(),
+      version,
       0,
       0,
       fs.clone(),
     );
 
-    storages.insert(version, storage);
+    storages.insert(version_name, storage);
   }
 
   storages

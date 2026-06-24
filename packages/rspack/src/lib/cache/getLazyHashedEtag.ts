@@ -93,5 +93,3 @@ export const getter = (
   innerMap.set(obj, newHash);
   return newHash;
 };
-
-export default getter;

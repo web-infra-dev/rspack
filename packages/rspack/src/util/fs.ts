@@ -162,7 +162,6 @@ export type JsonObject = { [Key in string]: JsonValue } & {
   [Key in string]?: JsonValue | undefined;
 };
 
-export type NoParamCallback = (err: NodeJS.ErrnoException | null) => void;
 export type StringCallback = (
   err: NodeJS.ErrnoException | null,
   data?: string,
@@ -202,10 +201,6 @@ export type BigIntStatsCallback = (
 export type StatsOrBigIntStatsCallback = (
   err: NodeJS.ErrnoException | null,
   stats?: IStats | IBigIntStats,
-) => void;
-export type NumberCallback = (
-  err: NodeJS.ErrnoException | null,
-  data?: number,
 ) => void;
 export type ReadJsonCallback = (
   err: NodeJS.ErrnoException | Error | null,
@@ -520,25 +515,6 @@ export type InputFileSystem = {
 export type IntermediateFileSystem = InputFileSystem &
   OutputFileSystem &
   IntermediateFileSystemExtras;
-
-export type WriteStreamOptions = {
-  flags?: string;
-  encoding?:
-    | 'ascii'
-    | 'utf8'
-    | 'utf-8'
-    | 'utf16le'
-    | 'utf-16le'
-    | 'ucs2'
-    | 'ucs-2'
-    | 'latin1'
-    | 'binary'
-    | 'base64'
-    | 'base64url'
-    | 'hex';
-  fd?: any;
-  mode?: number;
-};
 
 export type MakeDirectoryOptions = {
   recursive?: boolean;

@@ -76,7 +76,7 @@ export default {
 };
 ```
 
-2. 将 webpack 的 `cache.buildDependencies` 展平为 Rspack [`cache.buildDependencies`](/config/cache#cachebuilddependencies) 所需的文件路径数组。
+2. 将 webpack 的 `cache.buildDependencies` 展平为 Rspack [`cache.buildDependencies`](/config/cache#builddependencies) 所需的文件路径数组。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -97,9 +97,9 @@ export default {
 };
 ```
 
-3. 将 webpack 的 `cache.name` 和 `cache.version` 合并到 Rspack [`cache.version`](/config/cache#cacheversion)。
+3. 将 webpack 的 `cache.name` 和 `cache.version` 合并到 Rspack [`cache.version`](/config/cache#version)。
 
-Rspack 没有单独的 `cache.name` 配置。缓存实例会通过 `cache.version` 和 [`cache.storage.directory`](/config/cache#cachestoragedirectory) 隔离。
+Rspack 没有单独的 `cache.name` 配置。缓存实例会通过 `cache.version` 和 [`cache.storage.directory`](/config/cache#storagedirectory) 隔离。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -114,7 +114,7 @@ export default {
 };
 ```
 
-4. 将 webpack 顶层的 `snapshot` 配置移动到 Rspack [`cache.snapshot`](/config/cache#cachesnapshot)。
+4. 将 webpack 顶层的 `snapshot` 配置移动到 Rspack [`cache.snapshot`](/config/cache#snapshot)。
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -134,7 +134,7 @@ export default {
 };
 ```
 
-5. 将 webpack 的 `cache.cacheDirectory` 移动到 Rspack [`cache.storage.directory`](/config/cache#cachestoragedirectory)。
+5. 将 webpack 的 `cache.cacheDirectory` 移动到 Rspack [`cache.storage.directory`](/config/cache#storagedirectory)。
 
 ```diff title="rspack.config.mjs"
 export default {

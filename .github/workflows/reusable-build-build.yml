@@ -129,6 +129,17 @@ jobs:
         env:
           TARGET_CC: clang
 
+      # `@napi-rs/cross-toolchain` does not support riscv64 right now
+      - name: Build riscv64gc-unknown-linux-gnu
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-gnu' }}
+        run: |
+          sudo apt update
+          sudo apt install -y gcc-riscv64-linux-gnu
+          export CC_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-gcc
+          export CXX_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-g++
+          export AR_riscv64gc_unknown_linux_gnu=riscv64-linux-gnu-ar
+          RUST_TARGET=riscv64gc-unknown-linux-gnu pnpm build:binding:${{ inputs.profile }}
+
       - name: Build x86_64-unknown-linux-musl
         if: ${{ inputs.target == 'x86_64-unknown-linux-musl' }}
         run: RUST_TARGET=x86_64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
@@ -138,6 +149,12 @@ jobs:
       - name: Build aarch64-unknown-linux-musl
         if: ${{ inputs.target == 'aarch64-unknown-linux-musl' }}
         run: RUST_TARGET=aarch64-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
+        env:
+          TARGET_CC: clang
+
+      - name: Build riscv64gc-unknown-linux-musl
+        if: ${{ inputs.target == 'riscv64gc-unknown-linux-musl' }}
+        run: RUST_TARGET=riscv64gc-unknown-linux-musl USE_ZIG=1 pnpm build:binding:${{ inputs.profile }}
         env:
           TARGET_CC: clang
 

@@ -230,13 +230,13 @@ const applyCacheDefaults = (
       break;
     case 'persistent':
       D(cache, 'version', '');
+      D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache, 'maxVersions', 3);
       F(cache, 'buildDependencies', () => []);
       F(cache.snapshot, 'immutablePaths', () => []);
       F(cache.snapshot, 'unmanagedPaths', () => []);
       F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
       D(cache.storage, 'type', 'filesystem');
-      D(cache.storage, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
-      D(cache.storage, 'maxGenerations', 3);
       F(cache.storage, 'directory', () => {
         const modeName = mode || 'production';
         const compilerName = name ? `${name}-${modeName}` : modeName;
