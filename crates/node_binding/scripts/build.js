@@ -217,7 +217,8 @@ function reportFreshStats({ fresh, total }) {
 	const target = process.env.RUST_TARGET || "host";
 	const pct = total ? ((fresh / total) * 100).toFixed(1) : "0.0";
 	const summary = `${target}: ${fresh}/${total} units fresh = ${pct}% rust cache utilization`;
-	console.log(`\n::notice title=Rust Cache Utilization::${summary}`);
+	const escapedSummary = summary.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+	console.log(`\n::notice title=Rust Cache Utilization::${escapedSummary}`);
 	if (process.env.GITHUB_STEP_SUMMARY) {
 		appendFileSync(
 			process.env.GITHUB_STEP_SUMMARY,
