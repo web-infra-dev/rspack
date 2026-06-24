@@ -20,7 +20,8 @@ use rspack_core::{
   },
   has_content_hash_placeholder,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+    BoxSource, ConcatSource, MapOptions, ObjectPool, RawBufferSource, RawStringSource, Source,
+    SourceExt, SourceMap, SourceValue,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -636,9 +637,13 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
+              let raw_source = match source.source() {
+                SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
+                SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
+              };
               let task = SourceMapTask {
                 asset_filename,
-                source,
+                source: raw_source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
@@ -726,9 +731,13 @@ impl SourceMapDevToolPlugin {
                 ));
               }
 
+              let raw_source = match source.source() {
+                SourceValue::String(cow) => RawStringSource::from(cow.into_owned()).boxed(),
+                SourceValue::Buffer(cow) => RawBufferSource::from(cow.into_owned()).boxed(),
+              };
               let task = SourceMapTask {
                 asset_filename,
-                source,
+                source: raw_source,
                 source_map,
                 unresolved_source_map_path,
                 source_references,
