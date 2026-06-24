@@ -195,7 +195,7 @@ function collectFreshStats(stdout) {
 		buffer += chunk;
 		let nl;
 		while ((nl = buffer.indexOf("\n")) !== -1) {
-			const line = buffer.slice(0, nl);
+			const line = buffer.slice(0, nl).replace(/\r$/, "");
 			buffer = buffer.slice(nl + 1);
 			let msg;
 			try {
