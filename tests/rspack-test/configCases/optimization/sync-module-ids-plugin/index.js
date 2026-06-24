@@ -4,8 +4,8 @@ const b = require("./b");
 it("should sync module ids across compilers", () => {
   expect(a + b).toBe("ab");
 
-  const fs = __non_webpack_require__("fs");
-  const path = __non_webpack_require__("path");
+  const fs = require("fs");
+  const path = require("path");
   const ids = JSON.parse(
     fs.readFileSync(path.join(__dirname, "read-module-ids.json"), "utf-8")
   );

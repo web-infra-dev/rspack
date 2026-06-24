@@ -1,8 +1,8 @@
 import * as styles from "./styles.module.css";
 
 it("should work with asset modules", async () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 	const css = fs.readFileSync(
 		path.join(__dirname, `bundle${__STATS_I__}.css`),
 		"utf-8"

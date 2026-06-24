@@ -11,6 +11,10 @@ module.exports = (env, { testPath }) => {
 
   return [
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'create-for-read',
       mode: 'production',
       target: 'node',
@@ -34,6 +38,10 @@ module.exports = (env, { testPath }) => {
       ],
     },
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'read',
       dependencies: ['create-for-read'],
       mode: 'production',
@@ -59,6 +67,10 @@ module.exports = (env, { testPath }) => {
       ],
     },
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'create-for-merge',
       entry: './seed.js',
       mode: 'production',
@@ -83,6 +95,10 @@ module.exports = (env, { testPath }) => {
       ],
     },
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'merge',
       dependencies: ['create-for-merge'],
       entry: './merge.js',
@@ -109,6 +125,10 @@ module.exports = (env, { testPath }) => {
       ],
     },
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'create-for-update',
       entry: './seed-update.js',
       mode: 'production',
@@ -133,6 +153,10 @@ module.exports = (env, { testPath }) => {
       ],
     },
     {
+      externals: {
+        fs: 'node-commonjs fs',
+        path: 'node-commonjs path',
+      },
       name: 'update',
       dependencies: ['create-for-update'],
       entry: './update.js',

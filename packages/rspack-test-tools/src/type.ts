@@ -154,7 +154,11 @@ export interface ITestEnv {
 
 export type TTestConfig = {
   location?: string;
-  validate?: (stats: Stats | MultiStats, stderr?: string) => void;
+  validate?: (
+    stats: Stats | MultiStats,
+    stderr?: string,
+    options?: RspackOptions,
+  ) => MaybePromise<void>;
   noTests?: boolean;
   // Compile from a per-suite copy of the case dir (context = <dist>/src,
   // output = <dist>/dist) instead of in-place from the shared source dir.

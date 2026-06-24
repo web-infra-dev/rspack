@@ -6,6 +6,10 @@ const { rspack } = require('@rspack/core');
 /** @type {(env: Env, options: TestOptions) => import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
   {
+    externals: {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
+    },
     target: 'web',
     mode: 'development',
 
@@ -27,6 +31,10 @@ module.exports = (env, { testPath }) => [
     },
   },
   {
+    externals: {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
+    },
     target: 'web',
     mode: 'production',
     output: {

@@ -157,6 +157,8 @@ quininer
 qwertyui
 recognise
 resolvepnp
+riscv
+riscv64gc
 Rollup
 rome
 rsbuild
@@ -187,7 +189,6 @@ sokra
 solidjs
 statoscope
 struct
-suxin2017
 svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
@@ -227,6 +228,7 @@ xstyled
 xtask
 xxhash
 yannik
+yifancong
 Zack
 Zack Jackson
 zackarychapple

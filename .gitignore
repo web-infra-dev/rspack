@@ -153,6 +153,8 @@ npm/**/*.node
 !npm/darwin-x64/
 !npm/linux-arm64-gnu
 !npm/linux-arm64-musl
+!npm/linux-riscv64-gnu
+!npm/linux-riscv64-musl
 !npm/linux-x64-gnu/
 !npm/linux-x64-musl
 !npm/wasm32-wasi

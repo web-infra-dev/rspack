@@ -96,3 +96,39 @@ fn should_watch_a_single_file() {
     },
   );
 }
+
+#[test]
+fn should_emit_remove_when_a_watched_file_is_deleted() {
+  let mut helper = h!(FsWatcherOptions {
+    aggregate_timeout: Some(1000),
+    ..Default::default()
+  });
+
+  // The file must exist before watching so its deletion is observed.
+  helper.file("a");
+
+  let rx = watch!(helper, "a");
+
+  helper.tick(|| {
+    std::fs::remove_file(helper.join("a")).unwrap();
+  });
+
+  let delete_events = c!();
+  helper.collect_events(
+    rx,
+    |event, _| {
+      // The initial scan and macOS FSEvents can emit an unrelated `change` for
+      // `a` around the deletion; we only require that the deletion itself
+      // surfaces as a `remove`, not a `change`.
+      if let helpers::ChangedEvent::Deleted(_) = event {
+        event.assert_path(helper.join("a"));
+        add!(delete_events);
+      }
+    },
+    |changes, abort| {
+      changes.assert_deleted(helper.join("a"));
+      assert!(load!(delete_events) > 0);
+      *abort = true;
+    },
+  );
+}

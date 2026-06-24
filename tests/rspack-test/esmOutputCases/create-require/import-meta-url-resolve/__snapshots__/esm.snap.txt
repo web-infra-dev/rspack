@@ -27,9 +27,9 @@ const req = /* createRequire() */ undefined;
 const value = __webpack_require__(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 const loader = /*require.resolve*/(/*! ./libCssExtractLoader.js */ "./libCssExtractLoader.js");
 
-it("should consume createRequire(import.meta.url) like webpack", () => {
-	const fs = __rspack_createRequire_require("fs");
-	const path = __rspack_createRequire_require("path");
+it("should consume createRequire(import.meta.url) like webpack", async () => {
+	const fs = await import(/* webpackIgnore: true */ "node:fs");
+	const path = await import(/* webpackIgnore: true */ "node:path");
 	const source = fs.readFileSync(path.join(__rspack_import_meta_dirname__, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
 	const normalizedRoot = "<" + "ROOT>";

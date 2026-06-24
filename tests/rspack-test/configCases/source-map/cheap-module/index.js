@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("fs");
-const sourceMap = __non_webpack_require__("source-map");
+const fs = require("fs");
+const sourceMap = require("source-map");
 require("./index.scss");
 
 it("should only map original lines if cheap module options is used", async () => {

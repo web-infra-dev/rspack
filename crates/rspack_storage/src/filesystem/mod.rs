@@ -3,13 +3,14 @@ mod meta;
 mod options;
 mod scope_fs;
 mod task_queue;
+mod version;
 
 use std::sync::{Arc, Mutex};
 
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
-pub use self::options::FileSystemOptions;
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
+pub use self::{options::FileSystemOptions, version::Version};
 use crate::{Result, Storage};
 
 /// Type alias for in-memory update changes: key -> optional_value
@@ -17,9 +18,9 @@ type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 
 async fn refresh_metadata(
   fs: ScopeFileSystem,
-  version: String,
+  version: Version,
   expire: u64,
-  max_generations: Option<u32>,
+  max_versions: u32,
   next_meta_refresh_time: Arc<Mutex<u64>>,
 ) {
   let now = Meta::current_timestamp();
@@ -35,9 +36,15 @@ async fn refresh_metadata(
   };
   // Cleanup needs the current storage directory entries to keep metadata in
   // sync with versions that still exist on disk.
-  let versions = fs.list_child().await.unwrap_or_default();
+  let existing_versions = fs
+    .list_child()
+    .await
+    .unwrap_or_default()
+    .into_iter()
+    .filter_map(Version::parse)
+    .collect::<HashSet<_>>();
   let Ok((removed_versions, next_refresh_time)) = meta
-    .refresh(&version, expire, max_generations, &versions)
+    .refresh(&version, expire, max_versions, &existing_versions)
     .await
   else {
     return;
@@ -48,8 +55,8 @@ async fn refresh_metadata(
 
   // Persist metadata before deleting directories so concurrent refreshes can
   // recover even if removal is interrupted.
-  for version in removed_versions {
-    let _ = fs.child_fs(&version).remove().await;
+  for removed_version in removed_versions {
+    let _ = fs.child_fs(removed_version.as_str()).remove().await;
   }
   *next_meta_refresh_time.lock().expect("should get lock") = next_refresh_time;
 }
@@ -78,7 +85,7 @@ impl FileSystemStorage {
     let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone());
 
     Self {
-      db: DB::new(fs.child_fs(&options.version)),
+      db: DB::new(fs.child_fs(options.version.as_str())),
       task_queue: TaskQueue::default(),
       updates: Default::default(),
       next_meta_refresh_time: Default::default(),
@@ -120,12 +127,12 @@ impl Storage for FileSystemStorage {
     let fs = self.fs.clone();
     let version = self.options.version.clone();
     let expire = self.options.expire;
-    let max_generations = self.options.max_generations;
+    let max_versions = self.options.max_versions;
     let next_meta_refresh_time = self.next_meta_refresh_time.clone();
 
     self.task_queue.add_task(async move {
       if db.save(changes, max_pack_size).await {
-        refresh_metadata(fs, version, expire, max_generations, next_meta_refresh_time).await;
+        refresh_metadata(fs, version, expire, max_versions, next_meta_refresh_time).await;
       }
     });
   }
