@@ -224,6 +224,18 @@ export default {
 
 ### 构建性能优化 \{#build-performance}
 
+构建性能始终是 Rspack 的核心关注点之一。在样例项目中，Rspack 2.1.0 相比 Rspack 2.0.0，**无缓存生产构建场景提升约 16%，持久化缓存生产构建场景提升约 12%，HMR 场景提升约 5%**。
+
+| 版本                | 生产构建（无缓存） | 生产构建（有缓存） | 热更新     |
+| ------------------- | ------------------ | ------------------ | ---------- |
+| Rspack 1.7.11       | **3.12 s**         | **2.09 s**         | **129 ms** |
+| Rspack 2.0.0        | **2.66 s**         | **1.36 s**         | **113 ms** |
+| Rspack 2.1.0        | **2.22 s**         | **1.20 s**         | **107 ms** |
+
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/28093280576)
+
+这些提升主要来自三个方向：对构建主链路的持续瘦身；对模块图、依赖关系等底层数据结构的优化；以及对 SWC 解析、转换的改进。
+
 ### TS Checker 插件与 tsgo 支持 \{#tsgo-support}
 
 ### 更快的循环引用检查 \{#circular-check}
