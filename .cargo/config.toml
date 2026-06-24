@@ -74,3 +74,4 @@ rustflags = ["-C", "target-feature=+crt-static"]
 # This must be the last line to allow ci script to append flags
 [unstable]
 no-embed-metadata = true
+checksum-freshness = true

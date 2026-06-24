@@ -29,6 +29,7 @@ env:
   # https://github.com/rust-lang/rust-analyzer/blob/25368d24308d6a94ffe8b99f0122bcf5a2175322/.github/workflows/ci.yaml#L11
   CARGO_INCREMENTAL: 0
   MEASURE_CARGO_FRESH: ${{ inputs.profile == 'ci' && '1' || '' }}
+  CARGO_LOG: ${{ inputs.profile == 'ci' && 'cargo::core::compiler::fingerprint=info' || '' }}
 
 jobs:
   build:
