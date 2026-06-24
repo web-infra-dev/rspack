@@ -148,9 +148,7 @@ async function build() {
 
 		const freshStats = measureFresh ? collectFreshStats(cp.stdout) : null;
 
-		cp.on("error", reject);
-		cp.on("exit", (code) => {
-			if (code === CARGO_SAFELY_EXIT_CODE) {
+		cp.on("close", (code) => {
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
 				const dts = path.resolve(__dirname, "..", NAPI_BINDING_DTS);
 				writeFileSync(dts,
