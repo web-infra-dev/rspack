@@ -18,10 +18,6 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 
 const watch = process.argv.includes("--watch");
 
-// Pure observer (set MEASURE_CARGO_FRESH=1): asks cargo for JSON build messages and
-// reports how many compile units cargo reused (fresh) vs recompiled. This measures the
-// Rust dependency/fingerprint cache utilization and is independent of which cache backend
-// (Swatinem, sccache, ...) is configured. It does not change the build itself.
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 
 build().then((value) => {
@@ -126,8 +122,6 @@ async function build() {
 			}
 
 			if (measureFresh) {
-				// `json-render-diagnostics` keeps human-readable errors on stderr while
-				// emitting per-unit `fresh` flags on stdout for utilization accounting.
 				args.push("--message-format=json-render-diagnostics");
 			}
 
@@ -139,8 +133,6 @@ async function build() {
 		console.log(`Run command: napi ${args.join(" ")}`);
 
 		const cp = spawn("napi", args, {
-			// In measure mode capture stdout to parse cargo's JSON build messages;
-			// stderr stays inherited so rendered diagnostics still surface.
 			stdio: measureFresh ? ["inherit", "pipe", "inherit"] : "inherit",
 			shell: true,
 			env: envs,
@@ -185,8 +177,6 @@ async function build() {
 	});
 }
 
-// Parse cargo's JSON build stream, counting reused (fresh) vs recompiled units.
-// Non-JSON lines (napi's own logs) are passed through so the log stays readable.
 function collectFreshStats(stdout) {
 	const stats = { fresh: 0, total: 0 };
 	stdout.setEncoding("utf8");
