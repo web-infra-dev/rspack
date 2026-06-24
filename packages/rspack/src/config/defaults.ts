@@ -20,6 +20,7 @@ import { isNil } from '../util';
 import { assertNotNill } from '../util/assertNotNil';
 import { cleverMerge } from '../util/cleverMerge';
 import type {
+  CacheNormalized,
   EntryDescriptionNormalized,
   EntryNormalized,
   ExperimentsNormalized,
@@ -48,18 +49,21 @@ import type {
   Loader,
   Mode,
   ModuleOptions,
+  Name,
   Node,
   Optimization,
   Performance,
   ResolveOptions,
   RuleSetRules,
-  SnapshotOptions,
+  WasmLoadingType,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
+  compilerIndex?: number,
 ) => {
   F(options, 'context', () => process.cwd());
   F(options, 'target', () => {
@@ -95,19 +99,24 @@ export const applyRspackOptionsDefaults = (
   D(options, 'lazyCompilation', false);
   D(options, 'bail', false);
 
-  // but Rspack currently does not support this option
-  F(options, 'cache', () => development);
+  F(options, 'cache', () =>
+    development ? { type: 'memory' as const } : false,
+  );
+  applyCacheDefaults(options.cache!, {
+    context: options.context!,
+    name: options.name,
+    mode: options.mode,
+    compilerIndex,
+  });
 
   applyIncrementalDefaults(options);
 
-  applyExperimentsDefaults(options.experiments);
+  applyExperimentsDefaults(options.experiments, { production });
 
   applyOptimizationDefaults(options.optimization, {
     production,
     development,
   });
-
-  applySnapshotDefaults(options.snapshot, { production });
 
   applyOutputDefaults(options, {
     context: options.context!,
@@ -201,6 +210,47 @@ export const applyRspackOptionsDefaults = (
       };
 };
 
+const applyCacheDefaults = (
+  cache: CacheNormalized,
+  {
+    context,
+    name,
+    mode,
+    compilerIndex,
+  }: {
+    context: string;
+    name?: Name;
+    mode?: Mode;
+    compilerIndex?: number;
+  },
+) => {
+  if (cache === false) return;
+  switch (cache.type) {
+    case 'memory':
+      break;
+    case 'persistent':
+      D(cache, 'version', '');
+      D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache, 'maxVersions', 3);
+      F(cache, 'buildDependencies', () => []);
+      F(cache.snapshot, 'immutablePaths', () => []);
+      F(cache.snapshot, 'unmanagedPaths', () => []);
+      F(cache.snapshot, 'managedPaths', () => [/[\\/]node_modules[\\/][^.]/]);
+      D(cache.storage, 'type', 'filesystem');
+      F(cache.storage, 'directory', () => {
+        const modeName = mode || 'production';
+        const compilerName = name ? `${name}-${modeName}` : modeName;
+        const cacheName = compilerIndex
+          ? `${compilerName}-${compilerIndex}`
+          : compilerName;
+        return path.resolve(context, 'node_modules/.cache/rspack', cacheName);
+      });
+      D(cache, 'portable', false);
+      D(cache, 'readonly', false);
+      break;
+  }
+};
+
 export const applyRspackOptionsBaseDefaults = (
   options: RspackOptionsNormalized,
 ) => {
@@ -220,7 +270,10 @@ const applyInfrastructureLoggingDefaults = (
   D(infrastructureLogging, 'appendOnly', !tty);
 };
 
-const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
+const applyExperimentsDefaults = (
+  experiments: ExperimentsNormalized,
+  { production }: { production: boolean },
+) => {
   D(experiments, 'futureDefaults', false);
   D(experiments, 'asyncWebAssembly', true);
   D(experiments, 'deferImport', false);
@@ -236,7 +289,7 @@ const applyExperimentsDefaults = (experiments: ExperimentsNormalized) => {
   D(experiments, 'useInputFileSystem', false);
 
   // IGNORE(experiments.pureFunctions): Rspack specific configuration for pure function annotations and hints
-  D(experiments, 'pureFunctions', false);
+  D(experiments, 'pureFunctions', production);
   D(experiments, 'runtimeMode', 'webpack');
 };
 
@@ -261,23 +314,16 @@ const applyIncrementalDefaults = (options: RspackOptionsNormalized) => {
   }
 };
 
-const applySnapshotDefaults = (
-  _snapshot: SnapshotOptions,
-  _env: { production: boolean },
-) => {};
-
 const applyJavascriptParserOptionsDefaults = (
   parserOptions: JavascriptParserOptions,
   {
     deferImport,
     sourceImport,
     outputModule,
-    targetProperties,
   }: {
     deferImport?: boolean;
     sourceImport?: boolean;
     outputModule: RspackOptionsNormalized['output']['module'];
-    targetProperties: false | TargetProperties;
   },
 ) => {
   D(parserOptions, 'dynamicImportMode', 'lazy');
@@ -303,11 +349,7 @@ const applyJavascriptParserOptionsDefaults = (
   D(parserOptions, 'deferImport', deferImport);
   D(parserOptions, 'sourceImport', sourceImport);
   D(parserOptions, 'importMetaResolve', false);
-  D(
-    parserOptions,
-    'createRequire',
-    Boolean(targetProperties && targetProperties.node),
-  );
+  D(parserOptions, 'createRequire', false);
 };
 
 const applyCssGeneratorOptionsDefaults = (
@@ -421,7 +463,6 @@ const applyModuleDefaults = (
     deferImport,
     sourceImport,
     outputModule,
-    targetProperties,
   });
 
   F(module.parser, JSON_MODULE_TYPE, () => ({}));
@@ -967,7 +1008,7 @@ const applyOutputDefaults = (
     return Array.from(enabledChunkLoadingTypes);
   });
   A(output, 'enabledWasmLoadingTypes', () => {
-    const enabledWasmLoadingTypes = new Set<string>();
+    const enabledWasmLoadingTypes = new Set<WasmLoadingType>();
     if (output.wasmLoading) {
       enabledWasmLoadingTypes.add(output.wasmLoading);
     }

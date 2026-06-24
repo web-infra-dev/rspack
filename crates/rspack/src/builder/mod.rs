@@ -47,11 +47,10 @@ use rspack_core::{
   CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
   EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
   ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
-  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
@@ -1745,9 +1744,7 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
-          create_require: target_properties.node.filter(|node| *node).map(|_| {
-            JavascriptParserCreateRequire::Enabled("createRequire from module".to_string())
-          }),
+          create_require: None,
           jsx: Some(false),
           ..Default::default()
         }),
@@ -3551,7 +3548,7 @@ impl OptimizationOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
-          experiments.pure_functions,
+          experiments.pure_functions && side_effects.is_true(),
         ));
     }
 
@@ -3763,7 +3760,7 @@ impl ExperimentsBuilder {
       css: d!(self.css, false),
       defer_import: d!(self.defer_import, false),
       source_import: d!(self.source_import, false),
-      pure_functions: d!(self.pure_functions, false),
+      pure_functions: d!(self.pure_functions, _production),
       runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
@@ -3838,6 +3835,25 @@ mod test {
           .plugins
           .iter()
           .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
+      );
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Development)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder {
+          pure_functions: Some(true),
+          ..Default::default()
+        })
+        .build(&mut context)
+        .unwrap();
+
+      assert!(compiler_options.experiments.pure_functions);
+      assert!(
+        context
+          .plugins
+          .iter()
+          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(false)))
       );
     })
   }

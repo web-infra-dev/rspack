@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
-
-it('should have shebang in entry chunk', () => {
-  const fs = __non_webpack_require__('fs')
-  const path = __non_webpack_require__('path')
+it('should have shebang in entry chunk', async () => {
+  const fs = await import(/* webpackIgnore: true */ 'node:fs')
+  const path = await import(/* webpackIgnore: true */ 'node:path')
 
   const code = fs.readFileSync(path.join(__dirname, 'main.mjs'), 'utf-8')
 

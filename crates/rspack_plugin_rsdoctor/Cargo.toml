@@ -8,22 +8,23 @@ version.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-atomic_refcell        = { workspace = true }
-futures               = { workspace = true }
-json                  = { workspace = true }
-rayon                 = { workspace = true }
-rspack_collections    = { workspace = true }
-rspack_core           = { workspace = true }
-rspack_error          = { workspace = true }
-rspack_hook           = { workspace = true }
-rspack_paths          = { workspace = true }
-rspack_plugin_devtool = { workspace = true }
-rspack_plugin_json    = { workspace = true }
-rspack_util           = { workspace = true }
-rustc-hash            = { workspace = true }
-thread_local          = { workspace = true }
-tokio                 = { workspace = true }
-tracing               = { workspace = true }
+atomic_refcell           = { workspace = true }
+futures                  = { workspace = true }
+json                     = { workspace = true }
+rayon                    = { workspace = true }
+rspack_collections       = { workspace = true }
+rspack_core              = { workspace = true }
+rspack_error             = { workspace = true }
+rspack_hook              = { workspace = true }
+rspack_paths             = { workspace = true }
+rspack_plugin_devtool    = { workspace = true }
+rspack_plugin_javascript = { workspace = true }
+rspack_plugin_json       = { workspace = true }
+rspack_util              = { workspace = true }
+rustc-hash               = { workspace = true }
+thread_local             = { workspace = true }
+tokio                    = { workspace = true }
+tracing                  = { workspace = true }
 
 [package.metadata.cargo-shear]
 ignored = ["tracing"]

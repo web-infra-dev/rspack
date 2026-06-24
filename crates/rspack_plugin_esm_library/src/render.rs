@@ -29,7 +29,7 @@ use crate::{
 /// Returns `true` when the module produces only CSS output (native CSS via
 /// `experiments.css` or the synthetic `CssModule` from `CssExtractRspackPlugin`).
 /// These modules have no JS factory and must be skipped in the ESM render paths
-/// that emit `__webpack_require__` / cross-chunk `import` placeholders.
+/// that emit `__rspack_require` / cross-chunk `import` placeholders.
 ///
 /// This deliberately checks for CSS source types rather than `!JavaScript` so
 /// that other non-JS module kinds (e.g. `RemoteModule` from Module Federation
@@ -225,7 +225,7 @@ impl EsmLibraryPlugin {
       }
 
       if !decl_inner.source().is_empty() {
-        // __webpack_require__.add({ "./src/main.js"(require, exports) { ... } })
+        // __rspack_require.add({ "./src/main.js"(require, exports) { ... } })
         decl_source.add(RawStringSource::from(format!(
           "{}({{\n",
           EsmRegisterModuleRuntimeModule::runtime_id(
@@ -239,9 +239,9 @@ impl EsmLibraryPlugin {
 
     // present as
     // a.js -> (imported symbol, local symbol)
-    // we use webpack_require to load modules that are not scope hoisted
+    // we use rspack_require to load modules that are not scope hoisted
     // and we should also deconflict them
-    // const symbol = __webpack_require__('./main.js')
+    // const symbol = __rspack_require('./main.js')
 
     // render cross module links
     let mut runtime_source = ConcatSource::default();
@@ -276,9 +276,9 @@ var {} = {{}};
         )));
       }
       // A pure runtime chunk has no entry modules of its own; it was split off
-      // by optimize_runtime_chunks and only exists to export __webpack_require__.
+      // by optimize_runtime_chunks and only exists to export __rspack_require.
       // An entry-with-runtime chunk (runtimeChunk: false, not split) uses
-      // __webpack_require__ internally but must not export it.
+      // __rspack_require internally but must not export it.
       let is_pure_runtime_chunk = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -286,8 +286,8 @@ var {} = {{}};
         .is_empty();
 
       // When the entry chunk IS the runtime chunk (runtimeChunk: false without split)
-      // and no runtime modules actually use the __webpack_require__ scope, strip
-      // REQUIRE_SCOPE so we don't emit a useless `var __webpack_require__ = {};`.
+      // and no runtime modules actually use the __rspack_require scope, strip
+      // REQUIRE_SCOPE so we don't emit a useless `var __rspack_require = {};`.
       let has_runtime_modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -316,7 +316,7 @@ var {} = {{}};
       runtime_source.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
       runtime_source.add(RawStringSource::from_static("\n"));
 
-      // Link already decides whether `__webpack_require__` is exported via a runtime module.
+      // Link already decides whether `__rspack_require` is exported via a runtime module.
       // Only pure runtime chunks without that runtime-module export should emit a direct export.
       if is_pure_runtime_chunk
         && !chunk_link.exports_require_via_runtime_module
@@ -436,7 +436,7 @@ var {} = {{}};
 
     for (m, required_info) in &chunk_link.required {
       // Skip CSS-only modules (native CSS or extract-css CssModule). They
-      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      // are loaded by the CSS plugin runtime, not by `__rspack_require`.
       if let Some(module) = module_graph.module_by_identifier(m)
         && is_css_only_module(module.as_ref(), module_graph)
       {
@@ -1012,7 +1012,7 @@ var {} = {{}};
         continue;
       }
       // Skip CSS-only modules (native CSS or extract-css CssModule). They
-      // are loaded by the CSS plugin runtime, not by `__webpack_require__`.
+      // are loaded by the CSS plugin runtime, not by `__rspack_require`.
       if let Some(module) = module_graph.module_by_identifier(id)
         && is_css_only_module(module.as_ref(), module_graph)
       {

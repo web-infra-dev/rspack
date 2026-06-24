@@ -414,7 +414,7 @@ export default {
 
 ## output.enabledWasmLoadingTypes
 
-- **Type:** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
+- **Type:** `('...' | 'fetch' | 'async-node' | 'universal')[]`
 - **Default:** Determined by [`output.wasmLoading`](#outputwasmloading) and [`output.workerWasmLoading`](#outputworkerwasmloading)
 
 List of Wasm loading types enabled for use by entry points.
@@ -1671,7 +1671,7 @@ See [Asset base path](/guide/features/asset-base-path) for more details.
 
 ## output.scriptType
 
-- **Type:** `'module' | 'text/javascript' | boolean`
+- **Type:** `false | 'text/javascript' | 'module'`
 - **Default:** `false`
 
 This option allows loading asynchronous chunks with a custom script type, such as `<script type="module" ...>`.
@@ -1725,11 +1725,24 @@ Tell Rspack to remove a module from the module instance cache (require.cache) if
 
 Controls [Trusted Types](https://web.dev/trusted-types) compatibility. When enabled, Rspack will detect Trusted Types support and, if they are supported, use Trusted Types policies to create script URLs it loads dynamically. Use when the application runs under a [`require-trusted-types-for`](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) Content Security Policy directive.
 
-It is disabled by default (no compatibility, script URLs are strings).
+It is disabled by default (no compatibility, script URLs are strings). Set it to `true` to enable Trusted Types with a policy name derived from [`output.uniqueName`](#outputuniquename).
 
-- When set to `true`, Rspack will use [`output.uniqueName`](#outputuniquename) as the Trusted Types policy name.
-- When set to a non-empty string, its value will be used as a policy name.
-- When set to an object, the policy name is taken from the object's `policyName` property.
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: true,
+  },
+};
+```
+
+### output.trustedTypes.policyName
+
+- **Type:** `string`
+- **Default:** Derived from [`output.uniqueName`](#outputuniquename)
+
+The name of the Trusted Types policy created by Rspack to serve bundle chunks. Use this option when the policy name must match a CSP `trusted-types` allowlist.
+
+If `policyName` is omitted, Rspack derives it from [`output.uniqueName`](#outputuniquename), replacing unsupported characters with `_`. If the derived name is empty, it falls back to `'rspack'`. The string shorthand `trustedTypes: 'my-policy'` is equivalent to setting `trustedTypes.policyName`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1776,7 +1789,7 @@ This option is used to identify a unique name for the current build. It mainly h
 - [output.chunkLoadingGlobal](#outputchunkloadingglobal)
 - [output.hotUpdateGlobal](#outputhotupdateglobal)
 - [output.devtoolNamespace](#outputdevtoolnamespace)
-- [output.trustedTypes.policyName](#outputtrustedtypes)
+- [output.trustedTypes.policyName](#outputtrustedtypespolicyname)
 
 To override the default value:
 
@@ -1790,10 +1803,10 @@ export default {
 
 ## output.wasmLoading
 
-- **Type:** `false | 'fetch', 'async-node'`
+- **Type:** `false | 'fetch' | 'async-node' | 'universal'`
 - **Default:** `'fetch'`
 
-Option to set the method of loading WebAssembly Modules. Methods included by default are `'fetch'` (web/webworker), `'async-node'` (Node.js), but others might be added by plugins.
+Option to set the method of loading WebAssembly Modules. Supported methods are `'fetch'` (web/webworker), `'async-node'` (Node.js), and `'universal'`.
 
 The default value can be affected by different [`target`](/config/target):
 
@@ -1829,7 +1842,7 @@ See [Filename placeholders](/config/filename-placeholders) for more information.
 
 ## output.workerChunkLoading
 
-- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+- **Type:** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 - **Default:** `false`
 
 The new option `workerChunkLoading` controls the chunk loading of workers.
@@ -1863,7 +1876,7 @@ export default {
 
 ## output.workerWasmLoading
 
-- **Type:** `false | 'fetch-streaming' | 'fetch' | 'async-node' | string`
+- **Type:** `false | 'fetch' | 'async-node' | 'universal'`
 - **Default:** `false`
 
 Option to set the method of loading WebAssembly Modules in workers, defaults to the value of [output.wasmLoading](#outputwasmloading).

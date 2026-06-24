@@ -13,10 +13,12 @@ use rspack_core::{
   ExportsInfoArtifact, FactoryMeta, ModuleFactoryCreateData, ModuleIdentifier, ModuleType,
   NormalModuleFactoryBeforeResolve, NormalModuleFactoryParser, ParserAndGenerator, ParserOptions,
   Plugin, PluginExt, ResolveOptionsWithDependencyType, ResolveResult, RuntimeGlobals,
-  RuntimeModule, SideEffectsOptimizeArtifact,
+  RuntimeModule, RuntimeVariable, SideEffectsOptimizeArtifact,
   build_module_graph::BuildModuleGraphArtifact,
   module_declared_side_effect_free,
+  resolver::ResolveInnerError,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
+  runtime_variable_name,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -82,22 +84,28 @@ async fn runtime_module(
     return Ok(());
   };
 
-  let runtime_module_name = runtime_module.name().to_string();
-
-  match runtime_module_name.as_str() {
-    "webpack/runtime/define_property_getters" => {
+  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  match runtime_module.get_constructor_name().as_str() {
+    "DefinePropertyGettersRuntimeModule" => {
       runtime_module.set_custom_source(
         RstestPlugin::generate_define_property_getters_runtime_source(compilation),
       );
     }
-    "webpack/runtime/require_chunk_loading" | "webpack/runtime/module_chunk_loading" => {
-      let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    "RequireChunkLoadingRuntimeModule" | "ModuleChunkLoadingRuntimeModule" => {
       let context = rspack_core::RuntimeModuleGenerateContext {
         compilation,
         runtime_template: &runtime_template,
       };
       let source = runtime_module.generate_with_custom(&context).await?;
-      runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(source));
+      let runtime_scope = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      let legacy_runtime_scope = runtime_variable_name(&RuntimeVariable::Require);
+      let module_factories = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
+      runtime_module.set_custom_source(RstestPlugin::add_rstest_mock_chunk_loading_guard(
+        source,
+        &runtime_scope,
+        legacy_runtime_scope,
+        &module_factories,
+      ));
     }
     _ => {}
   }
@@ -199,11 +207,12 @@ impl RstestPlugin {
       .map(|main_file| request.join("__mocks__").join(main_file))
   }
 
-  async fn resolve_mock_request(&self, data: &mut ModuleFactoryCreateData) {
-    let Some(dep) = data.dependencies.first() else {
-      return;
-    };
+  async fn resolve_mock_request(&self, data: &mut ModuleFactoryCreateData) -> Option<bool> {
+    let dep = data.dependencies.first()?;
     let dependency_category = *dep.category();
+    let has_missing_module_fallback = dep
+      .downcast_ref::<MockModuleIdDependency>()
+      .is_some_and(|dep| dep.has_missing_module_fallback());
     let request = data
       .request
       .strip_prefix(MOCK_TARGET_REQUEST_PREFIX)
@@ -211,19 +220,6 @@ impl RstestPlugin {
       .to_string();
     let stripped = request.strip_prefix("node:").unwrap_or(&request);
     let default_target = self.calc_default_mocked_target(&request);
-
-    if !stripped.starts_with('.') {
-      let resolved_request = default_target.to_string();
-      if let Some(dep) = data
-        .dependencies
-        .first_mut()
-        .and_then(|dep| dep.downcast_mut::<MockModuleIdDependency>())
-      {
-        dep.set_request(resolved_request.clone());
-      }
-      data.request = resolved_request;
-      return;
-    }
 
     let dep = ResolveOptionsWithDependencyType {
       resolve_options: data
@@ -235,24 +231,45 @@ impl RstestPlugin {
     };
     let resolver = data.resolver_factory.get(dep);
 
-    let (resolve_result, resolve_dependencies) = resolver
-      .resolve_with_context(data.context.as_ref(), stripped)
-      .await;
-    let resolved_directory_target = match resolve_result {
-      Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
-        Utf8Path::new(stripped),
-        data.context.as_ref(),
-        &resource.path,
-        resolver.options().main_files().cloned(),
-      ),
-      _ => None,
+    let resolved_directory_target = if stripped.starts_with('.') {
+      let (resolve_result, resolve_dependencies) = resolver
+        .resolve_with_context(data.context.as_ref(), stripped)
+        .await;
+
+      data.add_file_dependencies(resolve_dependencies.file_dependencies);
+      data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
+
+      match resolve_result {
+        Ok(ResolveResult::Resource(resource)) => self.resolve_directory_mock_target(
+          Utf8Path::new(stripped),
+          data.context.as_ref(),
+          &resource.path,
+          resolver.options().main_files().cloned(),
+        ),
+        _ => None,
+      }
+    } else {
+      None
     };
 
-    data.add_file_dependencies(resolve_dependencies.file_dependencies);
-    data.add_missing_dependencies(resolve_dependencies.missing_dependencies);
     let resolved_request = resolved_directory_target
       .unwrap_or(default_target)
       .to_string();
+
+    let (manual_mock_result, manual_mock_dependencies) = resolver
+      .resolve_with_context(data.context.as_ref(), &resolved_request)
+      .await;
+    data.add_file_dependencies(manual_mock_dependencies.file_dependencies);
+    data.add_missing_dependencies(manual_mock_dependencies.missing_dependencies);
+
+    match manual_mock_result {
+      Err(ResolveInnerError::RspackResolver(
+        rspack_resolver::ResolveError::NotFound(_)
+        | rspack_resolver::ResolveError::MatchedAliasNotFound(_, _),
+      )) if has_missing_module_fallback => return Some(false),
+      _ => {}
+    }
+
     if let Some(dep) = data
       .dependencies
       .first_mut()
@@ -261,6 +278,8 @@ impl RstestPlugin {
       dep.set_request(resolved_request.clone());
     }
     data.request = resolved_request;
+
+    None
   }
 
   fn generate_define_property_getters_runtime_source(compilation: &Compilation) -> String {
@@ -288,26 +307,60 @@ impl RstestPlugin {
     )
   }
 
-  fn add_rstest_mock_chunk_loading_guard(source: String) -> String {
+  fn add_rstest_mock_chunk_loading_guard(
+    source: String,
+    runtime_scope: &str,
+    legacy_runtime_scope: &str,
+    module_factories: &str,
+  ) -> String {
     // TODO: Remove this compatibility guard once the minimum supported Rstest version
     // no longer patches the old runtime template on the JavaScript side.
-    const RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules || {}).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories || {}).includes(moduleId)) continue;";
-    const LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD: &str = "if (Object.keys(__webpack_require__.rstest_original_modules).includes(moduleId) || Object.keys(__webpack_require__.rstest_original_module_factories).includes(moduleId)) continue;";
+    let rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({runtime_scope}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
+    );
+    let legacy_rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
+    );
+    let webpack_rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules || {{}}).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories || {{}}).includes(moduleId)) continue;"
+    );
+    let legacy_webpack_rstest_mock_chunk_loading_guard = format!(
+      "if (Object.keys({legacy_runtime_scope}.rstest_original_modules).includes(moduleId) || Object.keys({legacy_runtime_scope}.rstest_original_module_factories).includes(moduleId)) continue;"
+    );
 
-    if source.contains(RSTEST_MOCK_CHUNK_LOADING_GUARD)
-      || source.contains(LEGACY_RSTEST_MOCK_CHUNK_LOADING_GUARD)
+    let source = source
+      .cow_replace(
+        &webpack_rstest_mock_chunk_loading_guard,
+        &rstest_mock_chunk_loading_guard,
+      )
+      .cow_replace(
+        &legacy_webpack_rstest_mock_chunk_loading_guard,
+        &rstest_mock_chunk_loading_guard,
+      )
+      .into_owned();
+
+    if source.contains(&rstest_mock_chunk_loading_guard)
+      || source.contains(&legacy_rstest_mock_chunk_loading_guard)
     {
       return source;
     }
 
     source
+      // require_chunk_loading.ejs declares `moduleId` in the loop initializer.
       .cow_replace(
         "for (var moduleId in moreModules) {",
-        &format!("for (var moduleId in moreModules) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+        &format!("for (var moduleId in moreModules) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
       )
+      // module_chunk_loading.ejs declares `moduleId` before the loop.
       .cow_replace(
-        "for (moduleId in __webpack_modules__) {",
-        &format!("for (moduleId in __webpack_modules__) {{\n\t\t{RSTEST_MOCK_CHUNK_LOADING_GUARD}"),
+        "for (moduleId in moreModules) {",
+        &format!("for (moduleId in moreModules) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
+      )
+      // Covers runtimeMode: "rspack" and other generated code that iterates
+      // the module factories registry directly.
+      .cow_replace(
+        &format!("for (moduleId in {module_factories}) {{"),
+        &format!("for (moduleId in {module_factories}) {{\n\t\t{rstest_mock_chunk_loading_guard}"),
       )
       .into_owned()
   }
@@ -353,8 +406,10 @@ impl RstestPlugin {
 
 #[plugin_hook(NormalModuleFactoryBeforeResolve for RstestPlugin)]
 async fn nmf_before_resolve(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<bool>> {
-  if Self::synthetic_mock_dep(data) {
-    self.resolve_mock_request(data).await;
+  if Self::synthetic_mock_dep(data)
+    && let Some(result) = self.resolve_mock_request(data).await
+  {
+    return Ok(Some(result));
   }
 
   Ok(None)

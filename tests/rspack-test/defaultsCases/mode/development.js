@@ -9,7 +9,9 @@ module.exports = {
 
 			@@ ... @@
 			-   "cache": false,
-			+   "cache": true,
+			+   "cache": Object {
+			+     "type": "memory",
+			+   },
 			@@ ... @@
 			-   "devtool": false,
 			+   "devtool": "cheap-module-source-map",

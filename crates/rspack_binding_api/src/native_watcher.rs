@@ -44,6 +44,15 @@ pub struct NativeWatchResult {
   pub removed_files: Vec<String>,
 }
 
+/// A single, undelayed file system event delivered to the `callbackUndelayed`
+/// callback. Passed as one object so napi-rs delivers it as a single JS
+/// argument unambiguously (a tuple would arrive as an array).
+#[napi(object)]
+pub struct NativeWatchUndelayedEvent {
+  pub kind: String,
+  pub path: String,
+}
+
 #[napi]
 pub struct NativeWatcher {
   watcher: FsWatcher,
@@ -84,7 +93,8 @@ impl NativeWatcher {
     start_time: BigInt,
     #[napi(ts_arg_type = "(err: Error | null, result: NativeWatchResult) => void")]
     callback: Function<'static>,
-    #[napi(ts_arg_type = "(path: string) => void")] callback_undelayed: Function<'static>,
+    #[napi(ts_arg_type = "(event: NativeWatchUndelayedEvent) => void")]
+    callback_undelayed: Function<'static>,
     env: Env,
   ) -> napi::Result<()> {
     if self.closed {
@@ -225,9 +235,9 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
 
 struct JsEventHandlerUndelayed {
   inner: napi::threadsafe_function::ThreadsafeFunction<
-    String,
+    NativeWatchUndelayedEvent,
     napi::Unknown<'static>,
-    String,
+    NativeWatchUndelayedEvent,
     Status,
     false,
     false,
@@ -238,7 +248,7 @@ struct JsEventHandlerUndelayed {
 impl JsEventHandlerUndelayed {
   fn new(callback: Function<'static>) -> napi::Result<Self> {
     let callback = callback
-      .build_threadsafe_function::<String>()
+      .build_threadsafe_function::<NativeWatchUndelayedEvent>()
       .weak::<false>()
       .max_queue_size::<1>()
       .build_callback(
@@ -252,7 +262,21 @@ impl JsEventHandlerUndelayed {
 impl rspack_watcher::EventHandler for JsEventHandlerUndelayed {
   fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
     self.inner.call(
-      changed_file,
+      NativeWatchUndelayedEvent {
+        kind: "change".to_string(),
+        path: changed_file,
+      },
+      napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
+    );
+    Ok(())
+  }
+
+  fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
+    self.inner.call(
+      NativeWatchUndelayedEvent {
+        kind: "remove".to_string(),
+        path: deleted_file,
+      },
       napi::threadsafe_function::ThreadsafeFunctionCallMode::NonBlocking,
     );
     Ok(())

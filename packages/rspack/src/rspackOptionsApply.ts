@@ -264,9 +264,10 @@ export class RspackOptionsApply {
     }
 
     if (options.optimization.sideEffects) {
-      new SideEffectsFlagPlugin(options.experiments.pureFunctions).apply(
-        compiler,
-      );
+      new SideEffectsFlagPlugin(
+        options.experiments.pureFunctions &&
+          options.optimization.sideEffects === true,
+      ).apply(compiler);
     }
     if (options.optimization.providedExports) {
       new FlagDependencyExportsPlugin().apply(compiler);

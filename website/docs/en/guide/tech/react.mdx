@@ -32,7 +32,6 @@ export default {
             detectSyntax: 'auto',
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -105,8 +104,9 @@ Before you start using React Compiler, it's recommended to read the [React Compi
 
 The steps to use React Compiler in Rspack:
 
-1. Upgrade versions of `react` and `react-dom` to 19. If you are unable to upgrade, you can install the extra [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime) package which will allow the compiled code to run on versions prior to 19.
-2. Enable React Compiler in `builtin:swc-loader` through `jsc.transform.reactCompiler`:
+1. Upgrade `@rspack/core` to v2.1.0 or later.
+2. Upgrade versions of `react` and `react-dom` to 19. If you are unable to upgrade, you can install the extra [react-compiler-runtime](https://www.npmjs.com/package/react-compiler-runtime) package which will allow the compiled code to run on versions prior to 19.
+3. Enable React Compiler in `builtin:swc-loader` through `jsc.transform.reactCompiler`:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -128,7 +128,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -159,14 +158,43 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
 };
 ```
 
-The `reactCompiler` options are aligned with the React Compiler configuration. For example, you can use [`compilationMode`](https://react.dev/reference/react-compiler/compilationMode) to control which functions are compiled. For more options, refer to the official [React Compiler configuration documentation](https://react.dev/reference/react-compiler/configuration).
+The `reactCompiler` options are aligned with the React Compiler configuration. For example, you can use [`compilationMode`](https://react.dev/reference/react-compiler/compilationMode) to control which functions are compiled.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: {
+                  compilationMode: 'annotation',
+                },
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+For more options, refer to the official [React Compiler configuration documentation](https://react.dev/reference/react-compiler/configuration).
 
 ### Using Babel
 

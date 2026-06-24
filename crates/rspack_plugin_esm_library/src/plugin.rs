@@ -523,9 +523,9 @@ async fn additional_chunk_runtime_requirements(
   }
 
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
-  // that live on the __webpack_require__ object (same check the runtime plugin
+  // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
-  // `var __webpack_require__ = {};` for chunks whose only requirements are
+  // `var __rspack_require = {};` for chunks whose only requirements are
   // unrelated to the require scope (e.g. STARTUP_NO_DEFAULT added at tree level).
   if runtime_requirements
     .iter()

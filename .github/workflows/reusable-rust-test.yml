@@ -55,16 +55,12 @@ jobs:
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
         run: cargo binstall --no-confirm cargo-workspaces@0.4.0 --force
 
-      - name: Run Cargo Check (all strategy)
-        if: ${{ inputs.cargo-check-strategy == 'all' }}
-        run: cargo check --workspace --all-targets --locked
-
       - name: Run Cargo Check (separated strategy)
         if: ${{ inputs.cargo-check-strategy == 'separated' }}
         run: cargo workspaces exec --ignore-private cargo check --lib --locked
 
       - name: Run Clippy
-        run: cargo clippy --workspace --all-targets --tests -- -D warnings
+        run: cargo clippy --workspace --all-targets --tests --locked -- -D warnings
 
       - name: Run rustfmt
         run: cargo fmt --all -- --check

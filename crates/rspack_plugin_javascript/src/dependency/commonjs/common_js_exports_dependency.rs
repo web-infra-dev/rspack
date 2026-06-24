@@ -2,13 +2,14 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
+  AsContextDependency, AsModuleDependency, ConnectionState, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
-  TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, SideEffectsStateArtifact,
+  TemplateContext, TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
@@ -124,6 +125,17 @@ impl Dependency for CommonJsExportsDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    _module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    _module_chain: &mut IdentifierSet,
+    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
+  ) -> ConnectionState {
+    ConnectionState::Active(false)
+  }
 }
 
 impl AsModuleDependency for CommonJsExportsDependency {}
@@ -208,7 +220,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         // Export a inlinable const from cjs is not possible for now but we compat it here
         let is_inlined = matches!(used, Some(UsedName::Inlined(_)));
         let placeholder_var = format!(
-          "__webpack_{}_export__",
+          "__rspack_{}_export",
           if is_inlined { "inlined" } else { "unused" }
         );
         source.replace(
@@ -250,10 +262,10 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
         } else {
           init_fragments.push(
             NormalInitFragment::new(
-              "var __webpack_unused_export__;\n".to_string(),
+              "var __rspack_unused_export;\n".to_string(),
               InitFragmentStage::StageConstants,
               0,
-              InitFragmentKey::CommonJsExports("__webpack_unused_export__".to_owned()),
+              InitFragmentKey::CommonJsExports("__rspack_unused_export".to_owned()),
               None,
             )
             .boxed(),
@@ -261,7 +273,7 @@ impl DependencyTemplate for CommonJsExportsDependencyTemplate {
           source.replace_static(
             dep.range.start,
             value_range.start,
-            "__webpack_unused_export__ = (",
+            "__rspack_unused_export = (",
             None,
           );
           source.replace_static(value_range.end, dep.range.end, ")", None);

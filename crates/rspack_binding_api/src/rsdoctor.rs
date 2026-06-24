@@ -87,6 +87,8 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
   }
 }
 
+pub type JsRsdoctorExportUsageEdge = (i32, Option<Vec<String>>, i32, Option<Vec<String>>);
+
 #[napi(object)]
 pub struct JsRsdoctorConnection {
   pub ukey: i32,
@@ -394,6 +396,8 @@ pub struct JsRsdoctorModuleGraph {
   pub dependencies: Vec<JsRsdoctorDependency>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
   pub connections_only_imports: Vec<JsRsdoctorConnectionsOnlyImport>,
+  #[napi(ts_type = "Array<[number, Array<string> | null, number, Array<string> | null]>")]
+  pub export_usage_edges: Vec<JsRsdoctorExportUsageEdge>,
 }
 
 impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
@@ -406,6 +410,18 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
         .connections_only_imports
         .into_iter()
         .map(|s| s.into())
+        .collect(),
+      export_usage_edges: value
+        .export_usage_edges
+        .into_iter()
+        .map(|edge| {
+          (
+            edge.origin_module,
+            edge.origin_export,
+            edge.target_module,
+            edge.target_export,
+          )
+        })
         .collect(),
     }
   }
@@ -559,6 +575,7 @@ pub struct RawRsdoctorPluginOptions {
   pub chunk_graph_features: Either<bool, Vec<String>>,
   #[napi(ts_type = "{ module?: boolean; cheap?: boolean } | undefined")]
   pub source_map_features: Option<JsRsdoctorSourceMapFeatures>,
+  pub export_usage_graph: Option<bool>,
 }
 
 #[napi(object)]
@@ -608,6 +625,7 @@ impl From<RawRsdoctorPluginOptions> for RsdoctorPluginOptions {
           .collect::<FxHashSet<_>>(),
       },
       source_map_features,
+      export_usage_graph: value.export_usage_graph.unwrap_or_default(),
     }
   }
 }

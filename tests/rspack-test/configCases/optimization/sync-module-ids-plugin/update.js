@@ -3,8 +3,8 @@ const a = require('./a');
 it('should update module ids by pruning unused records', () => {
   expect(a).toBe('a');
 
-  const fs = __non_webpack_require__('fs');
-  const path = __non_webpack_require__('path');
+  const fs = require('fs');
+  const path = require('path');
   const ids = JSON.parse(
     fs.readFileSync(path.join(__dirname, 'update-module-ids.json'), 'utf-8'),
   );

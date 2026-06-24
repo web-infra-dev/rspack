@@ -466,12 +466,6 @@ export const isReservedRuntimeGlobal = (
   compilerRuntimeGlobals: Record<string, string>,
 ) => Object.values(compilerRuntimeGlobals).includes(r);
 
-export function renderModulePrefix(
-  _compilerOptions: RspackOptionsNormalized,
-): string {
-  return 'webpack/runtime/';
-}
-
 export enum RuntimeVariable {
   Require,
   Context,
@@ -484,8 +478,30 @@ export enum RuntimeVariable {
 
 export function renderRuntimeVariables(
   variable: RuntimeVariable,
-  _compilerOptions?: RspackOptionsNormalized,
+  compilerOptions?: RspackOptionsNormalized,
 ): string {
+  const isRspackRuntimeMode =
+    compilerOptions?.experiments.runtimeMode === 'rspack';
+
+  if (isRspackRuntimeMode) {
+    switch (variable) {
+      case RuntimeVariable.Require:
+        return '__rspack_require';
+      case RuntimeVariable.Context:
+        return '__rspack_context';
+      case RuntimeVariable.Modules:
+        return '__rspack_modules';
+      case RuntimeVariable.ModuleCache:
+        return '__rspack_module_cache';
+      case RuntimeVariable.Module:
+        return '__rspack_module';
+      case RuntimeVariable.Exports:
+        return '__rspack_exports';
+      case RuntimeVariable.StartupExec:
+        return '__rspack_exec';
+    }
+  }
+
   switch (variable) {
     case RuntimeVariable.Require:
       return '__webpack_require__';

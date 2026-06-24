@@ -608,6 +608,62 @@ export default {
 };
 ```
 
+### javascript.createRequire
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Control whether Rspack parses `createRequire()` from Node.js `module` and turns the created `require` function into a statically analyzable dependency context.
+
+When set to `true`, it is equivalent to `"createRequire from module"`. Rspack recognizes imports from both `module` and `node:module` for this default form.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire as r } from 'module';
+
+const require = r(import.meta.url);
+const value = require('./value.cjs');
+```
+
+Rspack also supports namespace and default imports:
+
+```js title="index.js"
+import moduleDefault from 'module';
+import * as moduleNs from 'node:module';
+
+moduleDefault.createRequire(import.meta.url)('./value.cjs');
+moduleNs.createRequire(import.meta.url)('./value.cjs');
+```
+
+The `createRequire()` argument must be statically analyzable as a file URL or an absolute path, such as `import.meta.url`, `new URL('./dir/file.js', import.meta.url)`, or an absolute `file:` URL. When `import.meta.url` is used as the argument, Rspack treats it as the current module URL for the `createRequire` context.
+
+You can use a string value in the form `"<specifier> from <module>"` to customize the imported specifier and module source:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: 'createRequire from module',
+      },
+    },
+  },
+};
+```
+
 ### javascript.requireAlias
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -861,7 +917,7 @@ export default {
 ```
 
 :::warning
-This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
+This option only takes effect when `experiments.pureFunctions` is enabled, which is the default in production mode. Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
 :::
 
 ### ["javascript/auto"]

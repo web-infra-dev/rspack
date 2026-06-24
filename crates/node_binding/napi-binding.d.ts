@@ -464,7 +464,7 @@ export declare class ModuleGraphConnection {
 
 export declare class NativeWatcher {
   constructor(options: NativeWatcherOptions)
-  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (path: string) => void): void
+  watch(files: [Array<string>, Array<string>], directories: [Array<string>, Array<string>], missing: [Array<string>, Array<string>], startTime: bigint, callback: (err: Error | null, result: NativeWatchResult) => void, callbackUndelayed: (event: NativeWatchUndelayedEvent) => void): void
   triggerEvent(kind: 'change' | 'remove' | 'create', path: string): void
   /**
    * # Safety
@@ -1189,6 +1189,7 @@ export interface JsRsdoctorModuleGraph {
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
   connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
+  exportUsageEdges: Array<[number, Array<string> | null, number, Array<string> | null]>
 }
 
 export interface JsRsdoctorModuleGraphModule {
@@ -1796,6 +1797,16 @@ export interface NativeWatcherOptions {
   ignored?: string | string[] | RegExp
 }
 
+/**
+ * A single, undelayed file system event delivered to the `callbackUndelayed`
+ * callback. Passed as one object so napi-rs delivers it as a single JS
+ * argument unambiguously (a tuple would arrive as an array).
+ */
+export interface NativeWatchUndelayedEvent {
+  kind: string
+  path: string
+}
+
 export interface NodeFsStats {
   isFile: boolean
   isDirectory: boolean
@@ -1915,6 +1926,8 @@ export interface RawCacheOptionsMemory {
 export interface RawCacheOptionsPersistent {
   buildDependencies?: Array<string>
   version?: string
+  maxAge: number
+  maxVersions: number
   snapshot?: RawSnapshotOptions
   storage?: RawStorageOptions
   portable?: boolean
@@ -2943,6 +2956,7 @@ export interface RawRsdoctorPluginOptions {
   moduleGraphFeatures: boolean | Array<'graph' | 'ids' | 'sources'>
   chunkGraphFeatures: boolean | Array<'graph' | 'assets'>
   sourceMapFeatures?: { module?: boolean; cheap?: boolean } | undefined
+  exportUsageGraph?: boolean
 }
 
 export interface RawRslibPluginOptions {

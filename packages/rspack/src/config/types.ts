@@ -71,10 +71,7 @@ export type ChunkLoading = false | ChunkLoadingType;
 export type AsyncChunks = boolean;
 
 /** Option to set the method of loading WebAssembly Modules. */
-export type WasmLoadingType = LiteralUnion<
-  'fetch-streaming' | 'fetch' | 'async-node',
-  string
->;
+export type WasmLoadingType = 'fetch' | 'async-node' | 'universal';
 
 /** Option to set the method of loading WebAssembly Modules. */
 export type WasmLoading = false | WasmLoadingType;
@@ -311,7 +308,7 @@ export type StrictModuleErrorHandling = boolean;
 export type GlobalObject = string;
 
 /** List of wasm loading types enabled for use by entry points. */
-export type EnabledWasmLoadingTypes = string[];
+export type EnabledWasmLoadingTypes = ('...' | WasmLoadingType)[];
 
 /** The name of the native import() function. */
 export type ImportFunctionName = string;
@@ -1272,7 +1269,7 @@ export type JavascriptParserOptions = {
 
   /**
    * Enable or disable parsing `import { createRequire } from "module"` and evaluating createRequire().
-   * @default true for Node-like targets, false otherwise
+   * @default false
    */
   createRequire?: boolean | string;
 
@@ -1912,10 +1909,6 @@ export type Node = false | NodeOptions;
 export type Loader = Record<string, any>;
 //#endregion
 
-//#region Snapshot
-export type SnapshotOptions = {};
-//#endregion
-
 //#region Cache
 /**
  * Snapshot options for determining which files have been modified.
@@ -1946,7 +1939,7 @@ export type CacheStorageOptions = {
   type: 'filesystem';
   /**
    * Cache directory path.
-   * @default 'node_modules/.cache/rspack'
+   * @default 'node_modules/.cache/rspack/<name>-<mode>-<compilerIndex>'
    */
   directory?: string;
 };
@@ -1969,6 +1962,19 @@ export type PersistentCacheOptions = {
    * @default ""
    */
   version?: string;
+  /**
+   * Maximum age of unused filesystem cache in seconds. Must be an integer
+   * between 1 and 4294967295, or Infinity to disable age-based cleanup.
+   * @default 7 * 24 * 60 * 60
+   */
+  maxAge?: number;
+  /**
+   * Maximum number of filesystem cache versions to retain in the cache
+   * directory. Must be an integer between 1 and 4294967295, or Infinity to
+   * disable version-based cleanup.
+   * @default 3
+   */
+  maxVersions?: number;
   /**
    * Snapshot options for determining which files have been modified.
    */
@@ -3029,7 +3035,7 @@ export type Experiments = {
    */
   pureFunctions?: boolean;
   /**
-   * Select runtime proxy context behavior. `webpack` keeps `__webpack_require__.x`,
+   * Select runtime proxy context behavior. `webpack` keeps the webpack startup hook,
    * while `rspack` uses `__rspack_context`.
    * @default "webpack"
    */
@@ -3260,10 +3266,6 @@ export type RspackOptions = {
    * Options for the stats output.
    */
   stats?: StatsValue;
-  /**
-   * Options for snapshotting.
-   */
-  snapshot?: SnapshotOptions;
   /**
    * Optimization options.
    */

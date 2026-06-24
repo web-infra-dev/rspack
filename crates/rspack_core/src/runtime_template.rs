@@ -26,7 +26,8 @@ use crate::{
   RuntimeCondition, RuntimeGlobals, RuntimeSpec, UsedName, compile_boolean_matcher_from_lists,
   contextify, property_access,
   runtime_globals::{
-    RuntimeVariable, runtime_globals_to_string, runtime_variable_name, runtime_variable_to_string,
+    RuntimeVariable, rspack_runtime_variable_name, runtime_globals_to_string,
+    runtime_variable_name, runtime_variable_to_string,
   },
   runtime_mode::RuntimeMode,
   to_comment, to_normal_comment,
@@ -294,6 +295,8 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalRenderMode) -> Runtim
           runtime_variable_name(&RuntimeVariable::Context).to_string()
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
           format!("{}.r", runtime_variable_name(&RuntimeVariable::Context))
+        } else if runtime_globals == RuntimeGlobals::EXPORTS {
+          rspack_runtime_variable_name(&RuntimeVariable::Exports).to_string()
         } else if runtime_globals.renderable_require_scope() == runtime_globals {
           if let Some(name) = runtime_globals.rspack_context_property_name() {
             format!(
@@ -312,9 +315,13 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalRenderMode) -> Runtim
         if runtime_globals == RuntimeGlobals::REQUIRE_SCOPE {
           runtime_variable_name(&RuntimeVariable::Context).to_string()
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
-          runtime_variable_name(&RuntimeVariable::Require).to_string()
+          rspack_runtime_variable_name(&RuntimeVariable::Require).to_string()
         } else if runtime_globals == RuntimeGlobals::MODULE_FACTORIES {
-          runtime_variable_name(&RuntimeVariable::Modules).to_string()
+          rspack_runtime_variable_name(&RuntimeVariable::Modules).to_string()
+        } else if runtime_globals == RuntimeGlobals::EXPORTS {
+          rspack_runtime_variable_name(&RuntimeVariable::Exports).to_string()
+        } else if runtime_globals == RuntimeGlobals::MODULE {
+          rspack_runtime_variable_name(&RuntimeVariable::Module).to_string()
         } else if runtime_globals.renderable_require_scope() == runtime_globals {
           runtime_globals.to_lexical_name().map_or_else(
             || runtime_globals_to_string(&runtime_globals),

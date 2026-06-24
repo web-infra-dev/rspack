@@ -16,6 +16,10 @@ class Plugin {
 
 /**@type {import('@rspack/core').Configuration}*/
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   context: __dirname,
   output: {
     chunkFilename: 'chunk.js',

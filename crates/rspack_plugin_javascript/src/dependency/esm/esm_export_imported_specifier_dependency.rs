@@ -36,7 +36,7 @@ use super::{
 };
 use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 
-// Create _webpack_require__.d(__webpack_exports__, {}).
+// Create __rspack_context.d(__rspack_exports, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
 // case3: `export * from 'a'`

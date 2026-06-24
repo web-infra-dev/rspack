@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import type { Compiler } from '../Compiler';
+import { createCompilerRuntimeGlobals } from '../RuntimeGlobals';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
@@ -367,21 +368,22 @@ function getDefaultEntryRuntimeSource(
   const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
     require('./moduleFederationDefaultRuntime.js').default,
   );
+  const compilerRuntimeGlobals = createCompilerRuntimeGlobals(compiler.options);
   const runtimeSource = getDefaultRuntimeSource(
     defaultRuntimeSource,
     compiler.options.experiments.runtimeMode === 'rspack'
       ? `new Proxy(function (moduleId) {
-  return __rspack_context.r(moduleId);
+  return ${compilerRuntimeGlobals.require}(moduleId);
 }, {
   get(_target, key) {
-    return __rspack_context[key];
+    return ${compilerRuntimeGlobals.requireScope}[key];
   },
   set(_target, key, value) {
-    __rspack_context[key] = value;
+    ${compilerRuntimeGlobals.requireScope}[key] = value;
     return true;
   }
 })`
-      : '__webpack_require__',
+      : compilerRuntimeGlobals.require,
   );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(
@@ -422,7 +424,8 @@ function getPublicPathRuntimeSource(compiler: Compiler) {
   if (typeof publicPath !== 'string' || publicPath === 'auto') {
     return undefined;
   }
-  return `if (typeof __webpack_require__.p === "undefined") __webpack_require__.p = ${JSON.stringify(
+  const publicPathRuntimeGlobal = createCompilerRuntimeGlobals().publicPath;
+  return `if (typeof ${publicPathRuntimeGlobal} === "undefined") ${publicPathRuntimeGlobal} = ${JSON.stringify(
     publicPath,
   )}`;
 }

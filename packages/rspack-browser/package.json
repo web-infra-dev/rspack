@@ -1,6 +1,6 @@
 {
   "name": "@rspack/browser",
-  "version": "2.0.8",
+  "version": "2.1.0-rc.0",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
@@ -38,7 +38,7 @@
     "@rspack/lite-tapable": "1.1.2",
     "@swc/types": "0.1.27",
     "memfs": "4.57.7",
-    "webpack-sources": "3.3.4"
+    "webpack-sources": "3.5.0"
   },
   "peerDependencies": {
     "@swc/helpers": "^0.5.23"

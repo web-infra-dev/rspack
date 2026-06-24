@@ -1,6 +1,6 @@
 import * as __rspack_external_externals1 from "externals1";
 import * as __rspack_external_externals0 from "externals0";
-var __webpack_modules__ = ({
+var __rspack_modules = ({
 "./bar.js"() {
 
 ;// CONCATENATED MODULE: external "externals0"
@@ -37,39 +37,39 @@ __rspack_external_externals1.v;
 
 });
 // The module cache
-var __webpack_module_cache__ = {};
+var __rspack_module_cache = {};
 
 var __rspack_context={};
 
 // The require function
-function __webpack_require__(moduleId) {
+function __rspack_require(moduleId) {
 
 // Check if module is in cache
-var cachedModule = __webpack_module_cache__[moduleId];
+var cachedModule = __rspack_module_cache[moduleId];
 if (cachedModule !== undefined) {
 return cachedModule.exports;
 }
 // Create a new module (and put it into the cache)
-var module = (__webpack_module_cache__[moduleId] = {
+var module = (__rspack_module_cache[moduleId] = {
 exports: {}
 });
 // Execute the module function
-__webpack_modules__[moduleId](module, module.exports, __rspack_context);
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
 
 // Return the exports of the module
 return module.exports;
 
 }
 
-__rspack_context.r = __webpack_require__;
+__rspack_context.r = __rspack_require;
 
 // startup
 // Load entry module and return exports
 // This entry module used 'module' so it can't be inlined
-var __webpack_exports__ = __rspack_context.r("./entry.js");
-var __webpack_exports__entry1 = __webpack_exports__.entry1;
-var __webpack_exports__entry2 = __webpack_exports__.entry2;
-export { __webpack_exports__entry1 as entry1, __webpack_exports__entry2 as entry2 };
+var __rspack_exports = __rspack_context.r("./entry.js");
+var __rspack_exportsentry1 = __rspack_exports.entry1;
+var __rspack_exportsentry2 = __rspack_exports.entry2;
+export { __rspack_exportsentry1 as entry1, __rspack_exportsentry2 as entry2 };
 
-var __rspack_exports_default = { entry1: __webpack_exports__entry1, entry2: __webpack_exports__entry2 };
+var __rspack_exports_default = { entry1: __rspack_exportsentry1, entry2: __rspack_exportsentry2 };
 export default __rspack_exports_default;

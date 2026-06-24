@@ -383,8 +383,7 @@ pub(crate) async fn render_runtime_module_sources(
             let generated_requirements =
               module.additional_write_runtime_requirements(compilation);
             if reject_custom_runtime_modules
-              && (module.get_custom_source().is_some()
-                || module.get_constructor_name() == "RuntimeModuleFromJs")
+              && module.get_constructor_name() == "RuntimeModuleFromJs"
             {
               return Err(rspack_error::error!(
                 "Custom runtime modules are not supported when `experiments.runtimeMode` is \"rspack\" (runtime module: {}).",

@@ -21,7 +21,7 @@ use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{ClassMember, Key, PropName};
 
 use crate::{
-  FLAG_DEPENDENCY_EXPORTS_STAGE,
+  FLAG_DEPENDENCY_EXPORTS_STAGE, deferred_pure_check_is_impure,
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency},
 };
 
@@ -199,47 +199,12 @@ async fn finish_modules(
         .deferred_pure_checks
         .iter()
         .any(|deferred_check| {
-          let Some(ref_module) =
-            module_graph.module_identifier_by_dependency_id(&deferred_check.dep_id)
-          else {
-            return true;
-          };
-
-          let target_exports_info = exports_info_artifact
-            .get_exports_info_data(ref_module);
-          let target_export_info =
-            target_exports_info.get_export_info_without_mut_module_graph(&deferred_check.atom);
-          let resolve_filter = |_: &ResolvedExportInfoTarget| true;
-
-          let (ref_module_id, atom) = if let Some(GetTargetResult::Target(target)) = get_target(
-            &target_export_info,
+          deferred_pure_check_is_impure(
             module_graph,
             exports_info_artifact,
-            &resolve_filter,
-            &mut Default::default(),
-          ) {
-            let atom = if target.module == *ref_module {
-              deferred_check.atom.clone()
-            } else {
-              target
-                .export
-                .as_ref()
-                .and_then(|export| export.first().cloned())
-                .unwrap_or_else(|| deferred_check.atom.clone())
-            };
-            (target.module, atom)
-          } else {
-            (*ref_module, deferred_check.atom.clone())
-          };
-
-          let ref_module = module_graph
-            .module_by_identifier(&ref_module_id)
-            .expect("should have module");
-
-          let Some(side_effects_free) = &ref_module.build_info().side_effects_free else {
-            return true;
-          };
-          !side_effects_free.contains(&atom)
+            &deferred_check.dep_id,
+            &deferred_check.atom,
+          )
         });
 
     deferred_side_effect_states.push((

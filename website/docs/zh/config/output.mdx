@@ -410,7 +410,7 @@ export default {
 
 ## output.enabledWasmLoadingTypes
 
-- **类型：** `('fetch-streaming' | 'fetch' | 'async-node' | string | false)[]`
+- **类型：** `('...' | 'fetch' | 'async-node' | 'universal')[]`
 - **默认值：** 根据 [`output.wasmLoading`](#outputwasmloading) 及 [`output.workerWasmLoading`](#outputworkerwasmloading) 的配置推断
 
 开启可用的 Wasm 加载类型的运行时模块打包。
@@ -1662,7 +1662,7 @@ export default {
 
 ## output.scriptType
 
-- **类型：** `'module' | 'text/javascript' | boolean`
+- **类型：** `false | 'text/javascript' | 'module'`
 - **默认值：** `false`
 
 该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
@@ -1716,11 +1716,24 @@ export default {
 
 控制 [Trusted Types](https://web.dev/trusted-types) 兼容性。启用此选项，Rspack 将检测已实现了 Trusted Types，并使用 Trusted Types 来创建它动态加载的脚本 URL。应用在运行带有 [require-trusted-types-for](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/require-trusted-types-for) 内容安全策略指令下的应用程序。
 
-默认情况下是不启用。
+默认情况下是不启用。将其设置为 `true` 时，Rspack 会启用 Trusted Types，并从 [`output.uniqueName`](#outputuniquename) 推导策略名称。
 
-- 当设置为 `true` 时，Rspack 将使用 [`output.uniqueName`](#outputuniquename) 作为 Trusted Types 策略名称。
-- 当设置为非空字符串时，其值将被用作策略名称。
-- 当设置为对象时，策略名称将从对象的 `policyName` 属性中获取。
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    trustedTypes: true,
+  },
+};
+```
+
+### output.trustedTypes.policyName
+
+- **类型：** `string`
+- **默认值：** 从 [`output.uniqueName`](#outputuniquename) 推导
+
+Rspack 创建用于加载 bundle chunk 的 Trusted Types 策略名称。当策略名称需要匹配 CSP `trusted-types` 允许列表时，可以使用此选项。
+
+如果省略 `policyName`，Rspack 会从 [`output.uniqueName`](#outputuniquename) 推导策略名称，并将不支持的字符替换为 `_`。如果推导结果为空，则回退为 `'rspack'`。字符串简写 `trustedTypes: 'my-policy'` 等价于设置 `trustedTypes.policyName`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1767,7 +1780,7 @@ export default {
 - [output.chunkLoadingGlobal](#outputchunkloadingglobal)
 - [output.hotUpdateGlobal](#outputhotupdateglobal)
 - [output.devtoolNamespace](#outputdevtoolnamespace)
-- [output.trustedTypes.policyName](#outputtrustedtypes)
+- [output.trustedTypes.policyName](#outputtrustedtypespolicyname)
 
 你也可以覆盖默认值：
 
@@ -1781,10 +1794,10 @@ export default {
 
 ## output.wasmLoading
 
-- **类型：** `false | 'fetch', 'async-node'`
+- **类型：** `false | 'fetch' | 'async-node' | 'universal'`
 - **默认值：** `'fetch'`
 
-用于设置加载 WebAssembly 模块的方式。默认方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）
+用于设置加载 WebAssembly 模块的方式。支持的方式包括 `'fetch'`（web/webworker）、`'async-node'`（Node.js）和 `'universal'`。
 
 默认值会受不同 [`target`](/config/target) 的影响：
 
@@ -1820,7 +1833,7 @@ export default {
 
 ## output.workerChunkLoading
 
-- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import'`
+- **类型：** `false | 'jsonp' | 'import-scripts' | 'require' | 'async-node' | 'import' | string`
 - **默认值：** `false`
 
 `workerChunkLoading` 控制 chunk 加载方式。
@@ -1854,7 +1867,7 @@ export default {
 
 ## output.workerWasmLoading
 
-- **类型：** `false | 'fetch-streaming' | 'fetch' | 'async-node' | string`
+- **类型：** `false | 'fetch' | 'async-node' | 'universal'`
 - **默认值：** `false`
 
 用来设置在 Worker 中加载 WebAssembly 模块的方式，默认为 [`output.wasmLoading`](#outputwasmloading) 的值。

@@ -12,7 +12,7 @@ use swc_atoms::Atom;
 
 use crate::{ConstValue, is_export_inlined};
 
-// Create _webpack_require__.d(__webpack_exports__, {}) for each export.
+// Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {

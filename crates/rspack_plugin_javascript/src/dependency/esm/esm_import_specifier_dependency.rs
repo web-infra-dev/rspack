@@ -11,8 +11,8 @@ use rspack_core::{
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedByExportsCondition, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
+  property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_util::{ext::DynHash, json_stringify_str};
@@ -27,7 +27,7 @@ use crate::{
   dependency::{
     DependencyBranchGuard, compose_dependency_condition, is_dependency_export_presence_guarded,
   },
-  is_export_inlined,
+  has_impure_deferred_pure_checks, is_export_inlined,
   visitors::DestructuringAssignmentProperties,
 };
 
@@ -173,6 +173,10 @@ impl ESMImportSpecifierDependency {
 
   pub fn set_used_by_exports(&mut self, used_by_exports: Option<UsedByExports>) {
     self.used_by_exports = used_by_exports;
+  }
+
+  pub fn used_by_exports(&self) -> Option<&UsedByExports> {
+    self.used_by_exports.as_ref()
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -761,6 +765,44 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
 
 struct ESMImportSpecifierDependencyCondition;
 
+fn connection_active_for_esm_import_specifier(
+  dependency: &ESMImportSpecifierDependency,
+  connection: &ModuleGraphConnection,
+  runtime: Option<&RuntimeSpec>,
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+) -> bool {
+  if let Some(used_by_exports) = dependency.used_by_exports.as_ref() {
+    if has_impure_deferred_pure_checks(module_graph, exports_info_artifact, used_by_exports) {
+      return true;
+    }
+
+    if used_by_exports.is_false_without_deferred_pure_checks() {
+      return false;
+    }
+  }
+
+  let active_by_used_exports = match dependency.used_by_exports.as_ref() {
+    Some(_) => connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      dependency.used_by_exports.as_ref(),
+    ),
+    None => true,
+  };
+
+  active_by_used_exports
+    && connection_active_inline_value_for_esm_import_specifier(
+      dependency,
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+    )
+}
+
 impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
   fn is_connection_active(
     &self,
@@ -775,38 +817,13 @@ impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {
     let dependency = dependency
       .downcast_ref::<ESMImportSpecifierDependency>()
       .expect("should be ESMImportSpecifierDependency");
-    match dependency.used_by_exports.as_ref() {
-      Some(used_by_exports)
-        if matches!(
-          used_by_exports.condition,
-          UsedByExportsCondition::Bool(false)
-        ) && used_by_exports.deferred_pure_checks.is_empty() =>
-      {
-        false
-      }
-      None => connection_active_inline_value_for_esm_import_specifier(
-        dependency,
-        connection,
-        runtime,
-        module_graph,
-        exports_info_artifact,
-      ),
-      Some(_) => {
-        connection_active_used_by_exports(
-          connection,
-          runtime,
-          module_graph,
-          exports_info_artifact,
-          dependency.used_by_exports.as_ref(),
-        ) && connection_active_inline_value_for_esm_import_specifier(
-          dependency,
-          connection,
-          runtime,
-          module_graph,
-          exports_info_artifact,
-        )
-      }
-    }
+    connection_active_for_esm_import_specifier(
+      dependency,
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+    )
   }
 
   fn get_connection_state(

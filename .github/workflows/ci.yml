@@ -72,15 +72,6 @@ jobs:
       target: x86_64-unknown-linux-gnu
       runner: '"ubuntu-22.04"'
 
-  bench-binding:
-    name: Bench Binding
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/bench-binding.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-
   bench-rust:
     name: Rust Bench
     needs: [check-changed]
@@ -144,9 +135,11 @@ jobs:
       target: wasm32-wasip1-threads
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
+  # TODO: Enable this job after Rspack portable cache is implemented.
   check-cache:
     name: Check Cache Portable
     needs: [test-linux, test-windows]
+    if: ${{ false }}
     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
     steps:
       - name: Checkout
@@ -169,10 +162,7 @@ jobs:
           path: ./cache-windows
           force-use-github-only: true
       - name: Run compare kit
-        run: |
-          echo "success"
-          #  TODO open it after rspack portable cache implementation
-          # cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+        run: cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
 
   test_required_check:
     # this job will be used for GitHub actions to determine required job success or not;
@@ -199,13 +189,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,success' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test
@@ -227,7 +217,7 @@ jobs:
     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
     steps:
       - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@0e65507af053729fa482e81bbdf95cb46e363aa9 # v0.3.2
+        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@f0d685b33462055bb07a8a3620b753696ad5f515 # v0.3.3
         with:
           github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
           ecosystem-owner: web-infra-dev

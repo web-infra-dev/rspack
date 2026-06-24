@@ -11,8 +11,10 @@ module.exports = {
 			-   "cache": false,
 			+   "cache": Object {
 			+     "buildDependencies": Array [],
-			+     "portable": undefined,
-			+     "readonly": undefined,
+			+     "maxAge": 604800,
+			+     "maxVersions": 3,
+			+     "portable": false,
+			+     "readonly": false,
 			+     "snapshot": Object {
 			+       "immutablePaths": Array [],
 			+       "managedPaths": Array [
@@ -21,7 +23,7 @@ module.exports = {
 			+       "unmanagedPaths": Array [],
 			+     },
 			+     "storage": Object {
-			+       "directory": "<cwd>/node_modules/.cache/rspack",
+			+       "directory": "<cwd>/node_modules/.cache/rspack/none",
 			+       "type": "filesystem",
 			+     },
 			+     "type": "persistent",

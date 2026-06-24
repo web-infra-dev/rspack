@@ -24,9 +24,6 @@ const VIRTUAL_ENTRY = './virtual-entry.js';
 const VIRTUAL_ENTRY_NAME = 'virtual-entry';
 const BUILD_SHARED_FALLBACK_STAGE = 102;
 
-export type MakeRequired<T, K extends keyof T> = Required<Pick<T, K>> &
-  Omit<T, K>;
-
 const filterPlugin = (plugin: Plugins[0], excludedPlugins: string[] = []) => {
   if (!plugin) {
     return true;

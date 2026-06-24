@@ -7,7 +7,7 @@ use rspack_core::{
 use swc_atoms::Atom;
 
 // Mark module `__esModule`.
-// Add `__webpack_require__.r(__webpack_exports__);`.
+// Add `__rspack_require.r(__rspack_exports);`.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMCompatibilityDependency;

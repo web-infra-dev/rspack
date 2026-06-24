@@ -6,8 +6,8 @@ import * as esm from "./esm.mjs";
 import { unusedBranchEnabled } from "./flag.js";
 import "./posix-backslash.generated.js";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("should evaluate require/createRequire", () => {
 	expect(

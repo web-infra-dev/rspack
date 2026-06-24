@@ -12,6 +12,8 @@ import type {
 export interface ITestContext {
   getSource(sub?: string): string;
   getDist(sub?: string): string;
+  getCompileSource(sub?: string): string;
+  getCompileDist(sub?: string): string;
   getTemp(sub?: string): string | null;
 
   getCompiler(): ITestCompilerManager;
@@ -152,8 +154,17 @@ export interface ITestEnv {
 
 export type TTestConfig = {
   location?: string;
-  validate?: (stats: Stats | MultiStats, stderr?: string) => void;
+  validate?: (
+    stats: Stats | MultiStats,
+    stderr?: string,
+    options?: RspackOptions,
+  ) => MaybePromise<void>;
   noTests?: boolean;
+  // Compile from a per-suite copy of the case dir (context = <dist>/src,
+  // output = <dist>/dist) instead of in-place from the shared source dir.
+  // Needed for cases whose config writes fixtures into the case dir, so the
+  // parallel Config.* / RuntimeModeConfig.* suites don't race on it.
+  isolateSource?: boolean;
   writeStatsOuptut?: boolean;
   writeStatsJson?: boolean;
   beforeExecute?: (options: RspackOptions) => void;

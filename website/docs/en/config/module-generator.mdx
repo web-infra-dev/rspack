@@ -156,16 +156,13 @@ export default {
 When used as a function, it executes for every module and must return a data URI string.
 
 ```js title="rspack.config.mjs"
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
+import svgToMiniDataURI from 'mini-svg-data-uri';
 
 export default {
   module: {
     generator: {
       asset: {
         dataUrl: ({ content }) => {
-          const svgToMiniDataURI = require('mini-svg-data-uri');
           return svgToMiniDataURI(content);
         },
       },

@@ -12,7 +12,7 @@ it("should load chunk using trusted types with custom policy name", function () 
 
 	const promise = import("./empty?b" /* webpackChunkName: "trusted-types" */);
 	var script = document.head._children.pop();
-	__non_webpack_require__("./trusted-types.web.js");
+	require("./trusted-types.web.js");
 	expect(script.src).toBe("https://test.cases/path/trusted-types.web.js");
 	expect(createScriptURLSpy).toHaveBeenCalledWith(
 		"https://test.cases/path/trusted-types.web.js"

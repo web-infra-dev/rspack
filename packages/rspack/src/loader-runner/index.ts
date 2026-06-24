@@ -48,6 +48,7 @@ import {
   absolutify,
   contextify,
   makePathsRelative,
+  parseResource,
   parseResourceWithoutFragment,
 } from '../util/identifier';
 import { memoize } from '../util/memoize';
@@ -63,74 +64,12 @@ import {
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
 
-function createLoaderObject(
-  loader: JsLoaderItem,
-  compiler: Compiler,
-): LoaderObject {
-  const obj: any = {
-    path: null,
-    query: null,
-    fragment: null,
-    options: null,
-    ident: null,
-    normal: null,
-    pitch: null,
-    raw: null,
-    data: null,
-    pitchExecuted: false,
-    normalExecuted: false,
-  };
-  Object.defineProperty(obj, 'request', {
-    enumerable: true,
-    get: () =>
-      obj.path.replace(/#/g, '\u200b#') +
-      obj.query.replace(/#/g, '\u200b#') +
-      obj.fragment,
-    set: (value: JsLoaderItem) => {
-      const splittedRequest = parseResourceWithoutFragment(value.loader);
-      obj.path = splittedRequest.path;
-      obj.query = splittedRequest.query;
-      obj.fragment = '';
-      obj.options =
-        obj.options === null
-          ? splittedRequest.query
-            ? splittedRequest.query.slice(1)
-            : undefined
-          : obj.options;
+type LoaderObjectOptions = string | (object & { ident?: unknown }) | null;
 
-      if (typeof obj.options === 'string' && obj.options[0] === '?') {
-        const ident = obj.options.slice(1);
-        if (ident === '[[missing ident]]') {
-          throw new Error(
-            'No ident is provided by referenced loader. ' +
-              'When using a function for Rule.use in config you need to ' +
-              "provide an 'ident' property for referenced loader options.",
-          );
-        }
-        obj.options = compiler.__internal__ruleSet.references.get(ident);
-        if (obj.options === undefined) {
-          throw new Error('Invalid ident is provided by referenced loader');
-        }
-        obj.ident = ident;
-      }
-
-      // CHANGE: `rspack_core` returns empty string for `undefined` type.
-      // Comply to webpack test case: tests/webpack-test/cases/loaders/cjs-loader-type/index.js
-      obj.type = value.type === '' ? undefined : value.type;
-      if (obj.options === null) obj.query = '';
-      else if (obj.options === undefined) obj.query = '';
-      else if (typeof obj.options === 'string') obj.query = `?${obj.options}`;
-      else if (obj.ident) obj.query = `??${obj.ident}`;
-      else if (typeof obj.options === 'object' && obj.options.ident)
-        obj.query = `??${obj.options.ident}`;
-      else obj.query = `?${JSON.stringify(obj.options)}`;
-    },
-  });
-  obj.request = loader;
-  if (Object.preventExtensions) {
-    Object.preventExtensions(obj);
-  }
-  return obj;
+function stringifyLoaderRequest(path: string, query: string, fragment: string) {
+  return (
+    path.replace(/#/g, '\u200b#') + query.replace(/#/g, '\u200b#') + fragment
+  );
 }
 
 export class LoaderObject {
@@ -138,11 +77,11 @@ export class LoaderObject {
   path: string;
   query: string;
   fragment: string;
-  options?: string | object;
-  ident: string;
-  normal?: Function;
-  pitch?: Function;
-  raw?: boolean;
+  options?: LoaderObjectOptions;
+  ident: string | null;
+  normal?: Function | null;
+  pitch?: Function | null;
+  raw?: boolean | null;
   type?: 'module' | 'commonjs';
   parallel?: boolean | { maxWorkers?: number };
   /**
@@ -151,30 +90,53 @@ export class LoaderObject {
   loaderItem: JsLoaderItem;
 
   constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
-    const {
-      request,
-      path,
-      query,
-      fragment,
-      options,
-      ident,
-      normal,
-      pitch,
-      raw,
-      type,
-    } = createLoaderObject(loaderItem, compiler);
-    this.request = request;
-    this.path = path;
-    this.query = query;
-    this.fragment = fragment;
-    this.options = options;
-    this.ident = ident;
-    this.normal = normal;
-    this.pitch = pitch;
-    this.raw = raw;
-    this.type = type;
-    this.parallel = ident
-      ? compiler.__internal__ruleSet.references.get(`${ident}$$parallelism`)
+    const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
+    this.path = splittedRequest.path;
+    this.fragment = '';
+    this.options = splittedRequest.query
+      ? splittedRequest.query.slice(1)
+      : undefined;
+    this.ident = null;
+    this.normal = null;
+    this.pitch = null;
+    this.raw = null;
+
+    if (typeof this.options === 'string' && this.options[0] === '?') {
+      const ident = this.options.slice(1);
+      if (ident === '[[missing ident]]') {
+        throw new Error(
+          'No ident is provided by referenced loader. ' +
+            'When using a function for Rule.use in config you need to ' +
+            "provide an 'ident' property for referenced loader options.",
+        );
+      }
+      this.options = compiler.__internal__ruleSet.references.get(ident) as
+        | LoaderObjectOptions
+        | undefined;
+      if (this.options === undefined) {
+        throw new Error('Invalid ident is provided by referenced loader');
+      }
+      this.ident = ident;
+    }
+
+    // CHANGE: `rspack_core` returns empty string for `undefined` type.
+    // Comply to webpack test case: tests/webpack-test/cases/loaders/cjs-loader-type/index.js
+    this.type =
+      loaderItem.type === ''
+        ? undefined
+        : (loaderItem.type as LoaderObject['type']);
+    if (this.options === null) this.query = '';
+    else if (this.options === undefined) this.query = '';
+    else if (typeof this.options === 'string') this.query = `?${this.options}`;
+    else if (this.ident) this.query = `??${this.ident}`;
+    else if (this.options.ident) this.query = `??${this.options.ident}`;
+    else this.query = `?${JSON.stringify(this.options)}`;
+
+    this.request = stringifyLoaderRequest(this.path, this.query, this.fragment);
+    this.parallel = this.ident
+      ? (compiler.__internal__ruleSet.references.get(
+          `${this.ident}$$parallelism`,
+        ) as LoaderObject['parallel'])
       : false;
     this.loaderItem = loaderItem;
     this.loaderItem.data = this.loaderItem.data ?? {};
@@ -232,7 +194,7 @@ class JsSourceMap {
     return isNil(map) ? undefined : toObject(map);
   }
 
-  static __to_binding(map?: object) {
+  static __to_binding(map?: string | object | null) {
     return serializeObject(map);
   }
 }
@@ -273,19 +235,26 @@ export async function runLoaders(
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
-  const uuid = JavaScriptTracer.uuid();
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
 
-  JavaScriptTracer.startAsync({
-    name: 'run_js_loaders',
-    processName: LOADER_PROCESS_NAME,
-    uuid,
-    ph: 'b',
-    args: {
-      is_pitch: pitch,
-      resource: resource,
-    },
-  });
-  const splittedResource = resource && parsePathQueryFragment(resource);
+  if (traceData) {
+    JavaScriptTracer.startAsync({
+      name: 'run_js_loaders',
+      processName: LOADER_PROCESS_NAME,
+      uuid: traceData.uuid,
+      ph: 'b',
+      args: traceData.args,
+    });
+  }
+  const splittedResource = resource && parseResource(resource);
   const resourcePath = splittedResource ? splittedResource.path : undefined;
   const resourceQuery = splittedResource ? splittedResource.query : undefined;
   const resourceFragment = splittedResource
@@ -345,16 +314,14 @@ export async function runLoaders(
     userOptions,
     callback,
   ) {
-    JavaScriptTracer.startAsync({
-      name: 'importModule',
-      processName: LOADER_PROCESS_NAME,
-
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
+    if (traceData) {
+      JavaScriptTracer.startAsync({
+        name: 'importModule',
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
     const options = userOptions ? userOptions : {};
     const context = loaderContext;
     function finalCallback(
@@ -363,15 +330,14 @@ export async function runLoaders(
     ) {
       return function (err?: Error, res?: any) {
         if (err) {
-          JavaScriptTracer.endAsync({
-            name: 'importModule',
-            processName: LOADER_PROCESS_NAME,
-            uuid,
-            args: {
-              is_pitch: pitch,
-              resource: resource,
-            },
-          });
+          if (traceData) {
+            JavaScriptTracer.endAsync({
+              name: 'importModule',
+              processName: LOADER_PROCESS_NAME,
+              uuid: traceData.uuid,
+              args: traceData.args,
+            });
+          }
           onError(err);
         } else {
           for (const dep of res.buildDependencies) {
@@ -389,15 +355,14 @@ export async function runLoaders(
           if (res.cacheable === false) {
             context.cacheable(false);
           }
-          JavaScriptTracer.endAsync({
-            name: 'importModule',
-            processName: LOADER_PROCESS_NAME,
-            uuid,
-            args: {
-              is_pitch: pitch,
-              resource: resource,
-            },
-          });
+          if (traceData) {
+            JavaScriptTracer.endAsync({
+              name: 'importModule',
+              processName: LOADER_PROCESS_NAME,
+              uuid: traceData.uuid,
+              args: traceData.args,
+            });
+          }
           if (res.error) {
             onError(
               compiler.__internal__takeModuleExecutionResult(res.id) ??
@@ -448,7 +413,7 @@ export async function runLoaders(
       );
     },
     set: (value) => {
-      const splittedResource = value && parsePathQueryFragment(value);
+      const splittedResource = value && parseResource(value);
       loaderContext.resourcePath = splittedResource
         ? splittedResource.path
         : undefined;
@@ -970,23 +935,27 @@ export async function runLoaders(
   const isomorphoicRun = async (fn: Function, args: any[]) => {
     const currentLoaderObject = getCurrentLoader(loaderContext);
     const parallelism = enableParallelism(currentLoaderObject);
-    const pitch = loaderState === JsLoaderState.Pitching;
-    const loaderName = extractLoaderName(currentLoaderObject!.request);
+    let loaderName: string | undefined;
+
+    if (traceData || parallelism) {
+      loaderName = extractLoaderName(currentLoaderObject!.request);
+    }
+
+    if (traceData) {
+      JavaScriptTracer.startAsync({
+        name: loaderName!,
+        trackName: loaderName!,
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
+
     let result: any;
-    JavaScriptTracer.startAsync({
-      name: loaderName,
-      trackName: loaderName,
-      processName: LOADER_PROCESS_NAME,
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
     if (parallelism) {
       result =
         (await pool.run(
-          loaderName,
+          loaderName!,
           {
             loaderContext: getWorkerLoaderContext(),
             loaderState,
@@ -1002,16 +971,17 @@ export async function runLoaders(
         convertArgs(args, !!currentLoaderObject?.raw);
       result = (await runSyncOrAsync(fn, loaderContext, args)) || [];
     }
-    JavaScriptTracer.endAsync({
-      name: loaderName,
-      trackName: loaderName,
-      processName: LOADER_PROCESS_NAME,
-      uuid,
-      args: {
-        is_pitch: pitch,
-        resource: resource,
-      },
-    });
+
+    if (traceData) {
+      JavaScriptTracer.endAsync({
+        name: loaderName!,
+        trackName: loaderName!,
+        processName: LOADER_PROCESS_NAME,
+        uuid: traceData.uuid,
+        args: traceData.args,
+      });
+    }
+
     return result;
   };
 
@@ -1059,7 +1029,9 @@ export async function runLoaders(
       }
       case JsLoaderState.Normal: {
         let content = context.content;
-        let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
+        const rawSourceMap = context.sourceMap;
+        let sourceMap: string | object | undefined;
+        let sourceMapParsed = false;
         let additionalData = context.additionalData;
 
         while (loaderContext.loaderIndex >= 0) {
@@ -1081,6 +1053,13 @@ export async function runLoaders(
             currentLoaderObject.normalExecuted = true;
           }
           if (!fn) continue;
+
+          // Parse source map lazily only when a JavaScript loader consumes it.
+          if (!sourceMapParsed) {
+            sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+            sourceMapParsed = true;
+          }
+
           [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
             content,
             sourceMap,
@@ -1089,7 +1068,9 @@ export async function runLoaders(
         }
 
         context.content = isNil(content) ? null : toBuffer(content);
-        context.sourceMap = JsSourceMap.__to_binding(sourceMap);
+        context.sourceMap = sourceMapParsed
+          ? JsSourceMap.__to_binding(sourceMap)
+          : rawSourceMap;
         context.additionalData = additionalData || undefined;
         context.__internal__utf8Hint = typeof content === 'string';
 
@@ -1114,34 +1095,17 @@ export async function runLoaders(
       context.__internal__error = e as RspackError;
     }
   }
-  JavaScriptTracer.endAsync({
-    name: 'run_js_loaders',
-    uuid,
-    args: {
-      is_pitch: pitch,
-      resource: resource,
-    },
-  });
+  if (traceData) {
+    JavaScriptTracer.endAsync({
+      name: 'run_js_loaders',
+      uuid: traceData.uuid,
+      args: traceData.args,
+    });
+  }
 
   if (compiler.options?.cache) {
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
   return context;
-}
-
-const PATH_QUERY_FRAGMENT_REGEXP =
-  /^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
-
-export function parsePathQueryFragment(str: string): {
-  path: string;
-  query: string;
-  fragment: string;
-} {
-  const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
-  return {
-    path: match?.[1].replace(/\u200b(.)/g, '$1') || '',
-    query: match?.[2] ? match[2].replace(/\u200b(.)/g, '$1') : '',
-    fragment: match?.[3] || '',
-  };
 }

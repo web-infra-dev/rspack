@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 it("should lead to conflicting order warning", async () => {
-	__non_webpack_require__("./lazy4_js.bundle0.js");
+	require("./lazy4_js.bundle0.js");
 	await Promise.all([
 		import("./lazy1.css"),
 		import("./lazy2.css"),

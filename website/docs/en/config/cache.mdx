@@ -1,5 +1,5 @@
 ---
-description: 'Rspack caches snapshots and intermediate build artifacts, then reuses them in subsequent builds to improve build speed'
+description: "Configure Rspack's cache strategy, including disabled cache, memory cache, and persistent cache"
 ---
 
 import { ApiMeta, Stability } from '../../../components/ApiMeta';
@@ -9,7 +9,7 @@ import PropertyType from '@components/PropertyType';
 
 <ApiMeta addedVersion="2.0.0" />
 
-Rspack caches snapshots and intermediate build artifacts, then reuses them in subsequent builds to improve build speed.
+The `cache` option controls Rspack's caching strategy and lets Rspack reuse cached data across builds to improve build performance.
 
 - **Type:**
 
@@ -21,6 +21,8 @@ type CacheOptions =
       type: 'persistent';
       buildDependencies?: string[];
       version?: string;
+      maxAge?: number;
+      maxVersions?: number;
       portable?: boolean;
       readonly?: boolean;
       snapshot?: {
@@ -35,21 +37,13 @@ type CacheOptions =
     };
 ```
 
-- **Default:** `true` in development mode, `false` in production mode and none mode
-
-## Disable cache
-
-Configuring `cache` to `false` to disable cache.
-
-```js title="rspack.config.mjs"
-export default {
-  cache: false,
-};
-```
+- **Default:** `{ type: 'memory' }` in development mode (equivalent to `true`), `false` in production mode and none mode
 
 ## Memory cache
 
-Configuring `cache` to `true` or `{ type: "memory" }` to enable memory cache.
+Set `cache` to `true` or `{ type: 'memory' }` to enable in-memory cache. Memory cache is kept only in the current compiler process and is useful for rebuilds, watch mode, and HMR.
+
+Memory cache does not write cache data to disk, so it is cleared when the process exits and cannot speed up a fresh build started later. It is best suited for long-running development workflows where the same compiler instance handles multiple rebuilds.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -57,7 +51,7 @@ export default {
 };
 ```
 
-or
+or:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -69,7 +63,7 @@ export default {
 
 ## Persistent cache
 
-Configuring `cache` to `{ type: "persistent" }` to enable persistent cache.
+Set `cache` to `{ type: 'persistent' }` to enable persistent cache. Persistent cache stores cache data on disk so later build processes can reuse it.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -79,67 +73,104 @@ export default {
 };
 ```
 
-### cache.buildDependencies
+### buildDependencies
 
 - **Type:** `string[]`
-
 - **Default:** `[]`
 
-`cache.buildDependencies` is an array of files containing build dependencies, Rspack will use the hash of each of these files to invalidate the persistent cache.
+`cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the persistent cache when any tracked build dependency changes.
+
+```js title="rspack.config.mjs"
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+export default {
+  cache: {
+    type: 'persistent',
+    buildDependencies: [__filename, join(__dirname, './tsconfig.json')],
+  },
+};
+```
 
 :::tip
-Unlike webpack, Rspack does not include any preset build dependencies by default. It's recommended to add your project config files to `cache.buildDependencies` to ensure the cache is invalidated when configuration changes.
+Unlike webpack, Rspack does not include any preset build dependencies by default. Add project configuration files that are not loaded by Rspack CLI to `cache.buildDependencies` so the cache is invalidated when those files change.
 
 Note: When using Rspack CLI, the config file is automatically added to `cache.buildDependencies`.
 
-When resolving build dependency files, Rspack recursively parses JS/TS files via AST to track transitive dependencies. For packages under `node_modules`, recursive resolution stops and the package's `package.json` is tracked instead.
+When resolving build dependencies, Rspack recursively traverses directories and parses JS/TS files via AST to track transitive dependencies. For dependencies resolved under `node_modules`, recursive resolution stops and the corresponding package's `package.json` is tracked when available.
 :::
+
+### version
+
+- **Type:** `string`
+- **Default:** `""`
+
+`cache.version` is an additional version string included in the persistent cache key. Use it to manually isolate or invalidate persistent cache data.
 
 ```js title="rspack.config.mjs"
 export default {
   cache: {
     type: 'persistent',
-    buildDependencies: [__filename, path.join(__dirname, './tsconfig.json')],
+    version: 'v1',
   },
 };
 ```
 
-### cache.version
-
-- **Type:** `string`
-
-- **Default:** `""`
-
-Cache versions, different versions of caches are isolated from each other.
-
 :::warning
-Don't share the same cache (same `version` and same `storage.directory`) between builds with different configurations. Doing so may cause incorrect cache hits.
+Don't share the same cache (same `cache.version` and same `cache.storage.directory`) between builds with different configurations. Doing so may cause incorrect cache hits.
 :::
 
 :::tip Persistent cache invalidation
 
-In addition to [buildDependencies](#cachebuilddependencies) and [version](#cacheversion) configurations that affect persistent cache invalidation, Rspack also invalidates persistent cache when the following fields change.
+In addition to [buildDependencies](#builddependencies) validation and [version](#version), the persistent cache key also includes the Rspack version, [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and persistent cache options that affect cached content.
 
-- [config.name](/config/other-options#name)
-- [config.mode](/config/mode#mode)
+Changing these values isolates the cache and avoids reusing stale persistent cache data.
 
 :::
 
-### cache.portable
+### maxVersions
+
+- **Type:** `number` (positive integer) or `Infinity`
+- **Default:** `3`
+
+This is a version-count cleanup policy that controls how many cache versions can be retained in the current cache directory. When the number of versions exceeds the limit, Rspack removes old inactive versions. Set `maxVersions` to `Infinity` to disable version-based cleanup.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxVersions: 10,
+  },
+};
+```
+
+### maxAge
+
+- **Type:** `number` (positive integer, in seconds) or `Infinity`
+- **Default:** `7 * 24 * 60 * 60` (7 days)
+
+The maximum time, in seconds, that a cache version can remain unused. During cleanup, Rspack removes cache versions that have not been accessed for longer than `maxAge`. Set `maxAge` to `Infinity` to disable age-based cleanup.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxAge: 7 * 24 * 60 * 60,
+  },
+};
+```
+
+### portable
 
 - **Type:** `boolean`
-
 - **Default:** `false`
 
 Enable portable cache mode. When enabled, the generated cache content can be shared across different platforms and paths within the same project.
 
 Portable cache is built on top of persistent cache and makes the cache platform-independent by converting platform-specific data (e.g., absolute paths to relative paths) during serialization and deserialization.
-
-:::tip Use cases
-
-A typical use case is in CI environments where Windows, Linux, and macOS can share the same cache for acceleration without generating three separate cache copies.
-
-:::
 
 **Example:**
 
@@ -152,16 +183,21 @@ export default {
 };
 ```
 
+:::tip Use cases
+
+A typical use case is in CI environments where Windows, Linux, and macOS can share the same cache for acceleration without generating three separate cache copies.
+
+:::
+
 :::warning Limitations
 
 Files outside the project directory (outside `config.context`) will be converted to relative paths. If these files don't exist in the new environment, it will trigger a rebuild of the related modules.
 
 :::
 
-### cache.readonly
+### readonly
 
 - **Type:** `boolean`
-
 - **Default:** `false`
 
 Enable read-only cache mode. When enabled, the cache will only be read from disk and never written to, which is useful for CI environments where you want to use a pre-warmed cache without modifying it.
@@ -180,45 +216,83 @@ export default {
 };
 ```
 
-### cache.snapshot
+### snapshot
 
 - **Type:** `object`
+- **Default:** `{ immutablePaths: [], managedPaths: [/[\\/]node_modules[\\/][^.]/], unmanagedPaths: [] }`
 
-- **Default:** `{}`
+Configure the snapshot strategy used by persistent cache to determine which dependencies have changed since the previous build.
 
-Configure snapshot strategy. Snapshot is used to determine which files have been modified since the last build. The following configurations are supported:
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      managedPaths: [/[\\/]node_modules[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.immutablePaths
 
 - **Type:** `(RegExp | string)[]`
-
 - **Default:** `[]`
 
-An array of paths to immutable files. On hot restart, changes to these paths will be ignored and the cache will be considered valid without re-checking file contents. Suitable for content-addressed paths that are guaranteed to never change once written.
+An array of immutable paths. When restoring from persistent cache, Rspack treats matching paths as unchanged and does not re-check their contents. This is suitable for content-addressed paths that never change after being written.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      immutablePaths: [/[\\/]\.yarn[\\/]cache[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.managedPaths
 
 - **Type:** `(RegExp | string)[]`
-
 - **Default:** `[/[\\/]node_modules[\\/][^.]/]`
 
-An array of paths managed by the package manager. On hot restart, Rspack will use the `version` field in the corresponding `package.json` to determine whether a package has changed, instead of hashing file contents. This speeds up cache validation for packages that are only updated via the package manager.
+An array of paths managed by the package manager. When restoring from persistent cache, Rspack uses the `version` field in the corresponding `package.json` to determine whether a package has changed, instead of hashing file contents. This speeds up cache validation for packages that are only updated through the package manager.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      managedPaths: [/[\\/]node_modules[\\/]/],
+    },
+  },
+};
+```
 
 #### snapshot.unmanagedPaths
 
 - **Type:** `(RegExp | string)[]`
-
 - **Default:** `[]`
 
-Specifies paths within `snapshot.managedPaths` that should not be treated as managed by the package manager. Files in these paths will fall back to content-hash-based cache validation.
+Specifies paths within [`cache.snapshot.managedPaths`](#snapshotmanagedpaths) that should not be treated as managed by the package manager. Files in these paths fall back to content-hash-based cache validation.
 
-### cache.storage
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    snapshot: {
+      unmanagedPaths: [/[\\/]node_modules[\\/]my-linked-package[\\/]/],
+    },
+  },
+};
+```
+
+### storage
 
 - **Type:** `{ type: 'filesystem'; directory?: string }`
 
-- **Default:** `{ type: 'filesystem', directory: 'node_modules/.cache/rspack' }`
-
-Configure cache storage. Currently only file system storage is supported. The cache directory can be set through `directory`. The default is `node_modules/.cache/rspack`.
+Configure cache storage. Currently only filesystem storage is supported.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -226,16 +300,49 @@ export default {
     type: 'persistent',
     storage: {
       type: 'filesystem',
-      directory: 'node_modules/.cache/rspack',
+    },
+  },
+};
+```
+
+#### storage.type
+
+- **Type:** `'filesystem'`
+- **Default:** `'filesystem'`
+
+Use `type` to configure the cache storage type. Currently only filesystem storage is supported.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      type: 'filesystem',
+    },
+  },
+};
+```
+
+#### storage.directory
+
+- **Type:** `string`
+- **Default:** `node_modules/.cache/rspack/<mode>` or `node_modules/.cache/rspack/<name>-<mode>`
+
+Use `directory` to configure the cache directory. The default directory is resolved from [`config.context`](/config/#context), [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and the multi-compiler index. In multi-compiler mode, later compilers append `-<index>` to avoid sharing the same directory.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    storage: {
+      directory: '.rspack-cache',
     },
   },
 };
 ```
 
 :::tip
-Rspack will generate a cache folder in the `storage.directory` based on [config.name](/config/other-options#name), [config.mode](/config/mode#mode), the file contents in [buildDependencies](#cachebuilddependencies) and [version](#cacheversion).
-
-Rspack will automatically clean up cache folders that have not been accessed for a long time (7 days) at startup.
+Configure different [`config.name`](/config/other-options#name) values for different compilers so they use different `cache.storage.directory` values and avoid cache conflicts.
 :::
 
 ### Inspect persistent cache logs
@@ -270,131 +377,16 @@ export default {
 };
 ```
 
-## Migrating from webpack config
+## Disable cache
 
-The Rspack cache configuration is different from the webpack cache configuration. You can refer to the following steps to migrate the webpack cache configuration.
+Set `cache` to `false` to disable both memory cache and persistent cache. Disabling cache is generally not recommended because it can make rebuilds during development significantly slower.
 
-1. According to the cache type, set the Rspack cache type. Continue with the next step for persistent cache, and stop here for other types of cache.
-
-```diff title="rspack.config.mjs"
+```js title="rspack.config.mjs"
 export default {
-- cache: {
--   type: 'filesystem',
-- },
-+ cache: {
-+   type: 'persistent',
-+ },
+  cache: false,
 };
 ```
 
-2. Migrate `cache.buildDependencies`
+## Migrating from webpack
 
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   buildDependencies: {
--     config: [__filename, path.join(__dirname, "package.json")],
--     ts: [path.join(__dirname, "tsconfig.json")]
--   }
-- },
-+ cache: {
-+   type: "persistent",
-+   buildDependencies: [
-+     __filename,
-+     path.join(__dirname, "package.json"),
-+     path.join(__dirname, "tsconfig.json")
-+   ]
-+ },
-};
-```
-
-3. Migrate `cache.version` and `cache.name`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   name: `${config.name}-${config.mode}-${otherFlags}`,
--   version: appVersion
-- },
-+ cache: {
-+   type: "persistent",
-+   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
-+ },
-};
-```
-
-4. Migrate `snapshot`
-
-```diff title="rspack.config.mjs"
-export default {
-- snapshot: {
--   immutablePaths: [path.join(__dirname, "constant")],
--   managedPaths: [path.join(__dirname, "node_modules")],
--   unmanagedPaths: []
-- },
-+ cache: {
-+   type: "persistent",
-+   snapshot: {
-+     immutablePaths: [path.join(__dirname, "constant")],
-+     managedPaths: [path.join(__dirname, "node_modules")],
-+     unmanagedPaths: []
-+   }
-+ },
-};
-```
-
-5. Migrate `cache.cacheDirectory`
-
-```diff title="rspack.config.mjs"
-export default {
-- cache: {
--   cacheDirectory: path.join(__dirname, "node_modules/.cache/test")
-- },
-+ cache: {
-+   type: "persistent",
-+   storage: {
-+     type: "filesystem",
-+     directory: path.join(__dirname, "node_modules/.cache/test")
-+   }
-+ },
-};
-```
-
-Sample migration code:
-
-```js
-function transform(webpackConfig, rspackConfig) {
-  if (webpackConfig.cache === undefined) {
-    webpackConfig.cache = webpackConfig.mode === 'development';
-  }
-  // 1. if using disable cache, just set `cache` = false
-  if (!webpackConfig.cache) {
-    rspackConfig.cache = false;
-    return;
-  }
-  // 2. if using memory cache, just set `cache` = true
-  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
-    rspackConfig.cache = true;
-    return;
-  }
-  // 3. using persistent cache, set `cache` = { type: "persistent" }
-  rspackConfig.cache = { type: 'persistent' };
-  // 4. building `cache` from webpack config
-  rspackConfig.cache.buildDependencies = Object.values(
-    webpackConfig.cache.buildDependencies || {},
-  ).flat();
-  rspackConfig.cache.version = [
-    webpackConfig.cache.name,
-    webpackConfig.cache.version,
-  ].join();
-  rspackConfig.cache.snapshot = {
-    immutablePaths: webpackConfig.snapshot?.immutablePaths,
-    managedPaths: webpackConfig.snapshot?.managedPaths,
-    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
-  };
-  rspackConfig.cache.storage = {
-    type: 'filesystem',
-    directory: webpackConfig.cache?.cacheDirectory,
-  };
-}
-```
+See [Migrate from webpack - Cache configuration](/guide/migration/webpack#cache-configuration) for how to migrate webpack cache configuration to Rspack.

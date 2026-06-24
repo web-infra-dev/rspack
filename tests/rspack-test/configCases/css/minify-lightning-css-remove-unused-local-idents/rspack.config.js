@@ -2,6 +2,10 @@ const { rspack } = require('@rspack/core');
 
 /** @type {import("@rspack/core").Configuration} */
 const common = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   node: {
     __dirname: false,

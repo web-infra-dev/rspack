@@ -521,9 +521,12 @@ impl JavascriptParser<'_> {
           self.walk_expression(init);
           continue;
         }
-        if drive
-          .can_rename(self, &renamed_identifier)
-          .unwrap_or_default()
+        if !(self.javascript_options.is_create_require_enabled()
+          && renamed_identifier == CREATE_REQUIRE_EVALUATED_TAG
+          && matches!(init, Expr::Call(_) | Expr::New(_)))
+          && drive
+            .can_rename(self, &renamed_identifier)
+            .unwrap_or_default()
         {
           if !drive
             .rename(self, init, &renamed_identifier)

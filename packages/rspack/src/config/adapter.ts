@@ -40,6 +40,7 @@ import {
   type PitchLoaderDefinitionFunction,
 } from './adapterRuleUse';
 import type {
+  CacheNormalized,
   ExperimentsNormalized,
   ModuleOptionsNormalized,
   OutputNormalized,
@@ -79,6 +80,8 @@ export type {
   PitchLoaderDefinitionFunction,
 };
 
+const MAX_U32 = 0xffffffff;
+
 // invariant: `options` is normalized with default value applied
 export const getRawOptions = (
   options: RspackOptionsNormalized,
@@ -101,7 +104,7 @@ export const getRawOptions = (
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
-    cache: options.cache || false,
+    cache: getRawCache(options.cache!),
     experiments,
     incremental: options.incremental,
     node: getRawNode(options.node),
@@ -110,6 +113,34 @@ export const getRawOptions = (
     __references: {},
   };
 };
+
+function getRawCache(cache: CacheNormalized): RawOptions['cache'] {
+  if (cache === false) return false;
+  if (cache.type === 'memory') return cache;
+  const toRawStorageLimit = (name: string, value: number) => {
+    if (value === Infinity) return 0;
+    if (!Number.isSafeInteger(value) || value < 1 || value > MAX_U32) {
+      throw new Error(
+        `Invalid Rspack configuration: "${name}" must be a positive integer (1..${MAX_U32}) or Infinity, get \`${value}\`.`,
+      );
+    }
+    return value;
+  };
+  return {
+    ...cache,
+    maxAge: toRawStorageLimit('cache.maxAge', cache.maxAge!),
+    maxVersions: toRawStorageLimit('cache.maxVersions', cache.maxVersions!),
+    storage: {
+      ...cache.storage,
+      directory: cache.storage.directory!,
+    },
+    snapshot: {
+      immutablePaths: cache.snapshot.immutablePaths!,
+      unmanagedPaths: cache.snapshot.unmanagedPaths!,
+      managedPaths: cache.snapshot.managedPaths!,
+    },
+  };
+}
 
 function getRawOutput(output: Output): RawOutputOptions {
   return {

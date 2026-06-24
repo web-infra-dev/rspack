@@ -342,7 +342,7 @@ class Compiler {
     new JsLoaderRspackPlugin(this).apply(this);
     new ExecuteModulePlugin().apply(this);
     // Trace hook interception only pays off once global tracing is already on.
-    if (!IS_BROWSER && JavaScriptTracer.state === 'on') {
+    if (!IS_BROWSER && JavaScriptTracer.isEnabled()) {
       new TraceHookPlugin().apply(this);
     }
 

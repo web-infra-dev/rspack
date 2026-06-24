@@ -199,7 +199,7 @@ The baseURI of the resource referenced by this entry.
 #### EntryDescription.filename
 
 <PropertyType
-  type="string"
+  type="string | ((pathData: PathData, assetInfo?: AssetInfo) => string)"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
@@ -224,13 +224,13 @@ The entry that the current entry depends on. With `dependOn` option you can shar
 #### EntryDescription.wasmLoading
 
 <PropertyType
-  type="'fetch' | 'async-node'"
+  type="false | 'fetch' | 'async-node' | 'universal'"
   defaultValueList={[{ defaultValue: 'undefined' }]}
 />
 
-Option to set the method of loading WebAssembly Modules. Methods included by default are `'fetch'` (web/WebWorker), `'async-node'` (Node.js), but others might be added by plugins.
+Option to set the method of loading WebAssembly Modules for this entry. When omitted, the value of [`output.wasmLoading`](/config/output#outputwasmloading) is used.
 
-The default value can be affected by different [target](/config/target):
+The default value of [`output.wasmLoading`](/config/output#outputwasmloading) can be affected by different [target](/config/target):
 
 - Defaults to `'fetch'` if target is set to `'web'`, `'webworker'`, `'electron-renderer'` or `'node-webkit'`.
 - Defaults to `'async-node'` if target is set to `'node'`, `'async-node'`, `'electron-main'` or `'electron-preload'`.

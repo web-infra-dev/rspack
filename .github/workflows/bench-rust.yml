@@ -125,9 +125,9 @@ jobs:
               if [ -n "${{ inputs.bench_filter }}" ]; then
                 bench_args+=("${{ inputs.bench_filter }}")
               fi
-              taskset -c 176-191 env RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
+              RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run "${bench_args[@]}"
             else
-              taskset -c 176-191 pnpm run bench:rust
+              pnpm run bench:rust
             fi
           token: ${{ secrets.CODSPEED_TOKEN }}
           runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6

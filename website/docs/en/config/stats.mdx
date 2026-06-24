@@ -168,6 +168,12 @@ Whether to display information about the built modules to information about the 
 
 How many items of chunk modules should be displayed (groups will be collapsed to fit this space).
 
+### stats.chunkModulesSort
+
+<PropertyType type="string" defaultValueList={[{ defaultValue: '"name"' }]} />
+
+Sort the chunk modules by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
+
 ### stats.dependentModules
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -307,11 +313,19 @@ Whether to display information about runtime modules.
 
 > The runtime modules are built-in modules of Rspack, used to provide various runtime capabilities.
 
+:::tip
+`stats.runtime` is a compatibility alias for `stats.runtimeModules`. It only takes effect when `stats.runtimeModules` is not specified; if both are set, `stats.runtimeModules` takes precedence.
+:::
+
 ### stats.cachedModules
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 Whether to display information about cached (not built) modules.
+
+:::tip
+`stats.cached` is a compatibility alias for `stats.cachedModules`. It only takes effect when `stats.cachedModules` is not specified; if both are set, `stats.cachedModules` takes precedence.
+:::
 
 ### stats.excludeModules
 
@@ -333,6 +347,12 @@ Whether to display information about modules nested in other modules (like with 
 <PropertyType type="number" defaultValueList={[{ defaultValue: '10' }]} />
 
 How many items of nested modules should be displayed (groups will be collapsed to fit this space).
+
+### stats.nestedModulesSort
+
+<PropertyType type="string" />
+
+Sort the nested modules by a given field. All of the [sorting fields](/config/stats#sorting-fields) are allowed to be used. Use `!` prefix in the value to reverse the sort order by a given field.
 
 ## Module grouping options
 
@@ -493,11 +513,26 @@ Whether to display stack traces in the logging output for errors, warnings and t
 
 ### stats.colors
 
-<PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
+- **Type:**
+
+```ts
+type StatsColorOptions = {
+  bold?: string;
+  cyan?: string;
+  green?: string;
+  magenta?: string;
+  red?: string;
+  yellow?: string;
+};
+
+type StatsColors = boolean | StatsColorOptions;
+```
+
+- **Default:** environment-dependent
 
 Whether to output in the different colors.
 
-Defaults to `true` when executing `rspack build` in an environment that supports color output.
+When an object is provided, it customizes the ANSI escape sequences used for each supported color. By default, Rspack enables colors when the current environment supports color output.
 
 ## Compilation options
 
@@ -524,12 +559,6 @@ Whether to display the build date and the build time information.
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'true' }]} />
 
 Whether to add information about the Rspack version used.
-
-### stats.context
-
-<PropertyType type="string" />
-
-Whether to display the [base directory](/config/context) as an absolute path for shortening the module specifier.
 
 ### stats.publicPath
 
