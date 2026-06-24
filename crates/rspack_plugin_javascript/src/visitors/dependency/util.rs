@@ -33,6 +33,9 @@ pub mod expr_name {
   pub const IMPORT_META_HOT: &str = "import.meta.webpackHot";
   pub const IMPORT_META_HOT_ACCEPT: &str = "import.meta.webpackHot.accept";
   pub const IMPORT_META_HOT_DECLINE: &str = "import.meta.webpackHot.decline";
+  pub const IMPORT_META_HOT_ALIAS: &str = "import.meta.hot";
+  pub const IMPORT_META_HOT_ALIAS_ACCEPT: &str = "import.meta.hot.accept";
+  pub const IMPORT_META_HOT_ALIAS_DECLINE: &str = "import.meta.hot.decline";
   pub const IMPORT_META_CONTEXT: &str = "import.meta.webpackContext";
   pub const IMPORT_META_GLOB: &str = "import.meta.glob";
 }

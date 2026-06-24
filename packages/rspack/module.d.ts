@@ -234,6 +234,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   url: string;
   env: ImportMetaEnv;
+  hot?: Rspack.Hot;
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,

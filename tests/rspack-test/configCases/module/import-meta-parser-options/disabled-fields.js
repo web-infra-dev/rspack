@@ -13,6 +13,7 @@ export default {
 	dirname: import.meta.dirname,
 	filename: import.meta.filename,
 	globType: typeof import.meta.glob,
+	hotAliasType: typeof import.meta.hot,
 	hotType: typeof import.meta.webpackHot,
 	main: import.meta.main,
 	sourceDirname,
