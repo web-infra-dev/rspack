@@ -95,6 +95,36 @@ export default {
 
 ![Rust React Compiler benchmark](https://assets.rspack.rs/rspack/assets/rspack-v2-1-react-compiler-benchmark.png)
 
+### 支持 `import.meta.glob` \{#import-meta-glob}
+
+Rspack 新增了对 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob)
+的支持，让批量导入模块拥有更统一的跨生态写法。无论你来自 Vite，
+还是正在关注 Turbopack，都可以使用同一套 `import.meta.glob` 语法在 Rspack 中按
+glob 模式收集模块，减少迁移时对 `require.context`、自定义插件或框架专属 API 的依赖。
+
+```js
+const pages = import.meta.glob('./pages/**/*.js');
+
+for (const path in pages) {
+  const mod = await pages[path]();
+}
+```
+
+默认情况下，匹配到的模块会以懒加载函数的形式返回；也可以通过 `{ eager: true }`
+直接同步引入，或使用 `import: 'default'` 只提取默认导出：
+
+```js
+const icons = import.meta.glob('./icons/*.svg', {
+  eager: true,
+  import: 'default',
+});
+```
+
+这意味着在 Vite、Turbopack 和 Rspack 之间，常见的文件路由、组件自动注册、
+文档/内容集合等场景可以共享更接近的源码结构。Rspack 会在编译期静态分析
+glob 表达式并把匹配模块纳入依赖图，在保持高性能构建的同时，
+进一步补齐现代前端工具链的统一开发体验。
+
 ### Native CSS 新能力 \{#native-css}
 
 Rspack 2.1 进一步完善了 Native CSS 能力。新增的
@@ -163,36 +193,6 @@ const value = require('./value.cjs');
 
 该选项默认值为 `false`，与 webpack 的行为保持一致。查看 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 了解更多。
 
-### 支持 `import.meta.glob` \{#import-meta-glob}
-
-Rspack 新增了对 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob)
-的支持，让批量导入模块拥有更统一的跨生态写法。无论你来自 Vite，
-还是正在关注 Turbopack，都可以使用同一套 `import.meta.glob` 语法在 Rspack 中按
-glob 模式收集模块，减少迁移时对 `require.context`、自定义插件或框架专属 API 的依赖。
-
-```js
-const pages = import.meta.glob('./pages/**/*.js');
-
-for (const path in pages) {
-  const mod = await pages[path]();
-}
-```
-
-默认情况下，匹配到的模块会以懒加载函数的形式返回；也可以通过 `{ eager: true }`
-直接同步引入，或使用 `import: 'default'` 只提取默认导出：
-
-```js
-const icons = import.meta.glob('./icons/*.svg', {
-  eager: true,
-  import: 'default',
-});
-```
-
-这意味着在 Vite、Turbopack 和 Rspack 之间，常见的文件路由、组件自动注册、
-文档/内容集合等场景可以共享更接近的源码结构。Rspack 会在编译期静态分析
-glob 表达式并把匹配模块纳入依赖图，在保持高性能构建的同时，
-进一步补齐现代前端工具链的统一开发体验。
-
 ### Rspack magic comments \{#magic-comments}
 
 Rspack 2.1.0 为 [magic comments](/api/runtime-api/module-methods#magic-comments)
@@ -240,8 +240,6 @@ const instance = await WebAssembly.instantiate(wasmModule);
 
 此外，Rspack 新增了 [`module.rules[].phase`](/config/module-rules#rulesphase)，用于根据模块的导入阶段匹配规则。你可以区分普通导入的 `evaluation`、`import defer` 的 `defer`，以及 Source Phase Imports 的 `source`，从而为同一个资源在不同导入方式下配置不同的 loader、parser 选项或模块类型。
 
-### TS Checker 插件与 tsgo 支持 \{#tsgo-support}
-
 ### 新的持久化缓存清理机制 \{#cache-cleanup}
 
 Rspack 的持久化缓存会根据缓存版本进行隔离。当 `cache.version`、影响缓存的配置或 Rspack 版本发生变化时，Rspack 会在缓存目录中创建新的缓存版本，避免不同配置之间复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录的场景下，旧缓存版本也可能持续累积，占用越来越多磁盘空间。
@@ -266,6 +264,8 @@ export default {
 ## 性能提升
 
 ### 构建性能优化 \{#build-performance}
+
+### TS Checker 插件与 tsgo 支持 \{#tsgo-support}
 
 ### 更快的循环引用检查 \{#circular-check}
 
