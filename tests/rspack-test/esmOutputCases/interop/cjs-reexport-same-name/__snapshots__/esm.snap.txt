@@ -24,12 +24,6 @@ exports.N = 200;
 },
 });
 // ./index.js
-const a = __webpack_require__("./a.cjs");
-var G = a.G;
-var U = a.U;
-const b = __webpack_require__("./b.cjs");
-var N = b.N;
-var U_0 = b.U;
 
 
 
@@ -42,6 +36,14 @@ it('should correctly handle two CJS modules with same-named exports', async () =
 	expect(mod.unique_a).toBe(100);
 	expect(mod.unique_b).toBe(200);
 });
+
+const a = __webpack_require__("./a.cjs");
+var G = a.G;
+var U = a.U;
+
+const b = __webpack_require__("./b.cjs");
+var N = b.N;
+var U_0 = b.U;
 
 export { G as unique_a, N as unique_b, U as valueA, U_0 as valueB };
 
