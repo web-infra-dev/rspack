@@ -7,7 +7,7 @@ mod version;
 
 use std::sync::{Arc, Mutex};
 
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
 pub use self::{options::FileSystemOptions, version::Version};
@@ -34,18 +34,8 @@ async fn refresh_metadata(
     Err(error) if error.is_not_found() => Meta::default(),
     Err(_) => return,
   };
-  // Cleanup needs the current storage directory entries to keep metadata in
-  // sync with versions that still exist on disk.
-  let existing_versions = fs
-    .list_child()
-    .await
-    .unwrap_or_default()
-    .into_iter()
-    .filter_map(Version::parse)
-    .collect::<HashSet<_>>();
-  let Ok((removed_versions, next_refresh_time)) = meta
-    .refresh(&version, expire, max_versions, &existing_versions)
-    .await
+  let Ok((removed_versions, next_refresh_time)) =
+    meta.refresh(&fs, &version, expire, max_versions).await
   else {
     return;
   };
