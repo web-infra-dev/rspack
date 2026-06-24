@@ -80,8 +80,8 @@ impl Meta {
 
   /// Updates the active version and removes versions rejected by age or version limits.
   ///
-  /// Returns `(removed_versions, next_check_time)`.
-  /// - `removed_versions`: version directories that should be deleted.
+  /// Returns `(stale_versions, next_check_time)`.
+  /// - `stale_versions`: version directories that should be deleted.
   /// - `next_check_time`: the earliest time the metadata needs another refresh.
   pub async fn refresh(
     &mut self,
@@ -94,7 +94,7 @@ impl Meta {
     self.access_times.insert(active_version.clone(), now);
 
     let mut next_check_time = now + 60 * 60;
-    let mut removed_versions = vec![];
+    let mut stale_versions = vec![];
 
     if expire_seconds != 0 {
       // Check again after roughly a quarter of the configured max age, unless
@@ -103,7 +103,7 @@ impl Meta {
       self.access_times.retain(|version, time| {
         let expiry_time = *time + expire_seconds;
         if expiry_time < now {
-          removed_versions.push(version.clone());
+          stale_versions.push(version.clone());
           return false;
         }
         if expiry_time < next_check_time {
@@ -142,14 +142,14 @@ impl Meta {
 
       for (version, _) in candidates.into_iter().take(remove_count) {
         self.access_times.remove(&version);
-        removed_versions.push(version);
+        stale_versions.push(version);
       }
     }
 
-    removed_versions.sort_unstable();
-    removed_versions.dedup();
+    stale_versions.sort_unstable();
+    stale_versions.dedup();
 
-    Ok((removed_versions, next_check_time))
+    Ok((stale_versions, next_check_time))
   }
 }
 
