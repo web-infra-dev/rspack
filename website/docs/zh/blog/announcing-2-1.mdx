@@ -35,29 +35,7 @@ import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
 
 ### 支持 React Compiler \{#react-compiler}
 
-[`React Compiler`](https://react.dev/learn/react-compiler/introduction) 是 React 官方推出的构建时优化工具。它可以理解 [Rules of React](https://react.dev/reference/rules)，在编译阶段自动为组件和 Hook 添加合适的 memoization，从而减少不必要的重新渲染和重复计算。过去开发者往往需要手动使用 `useMemo`、`useCallback` 和 `React.memo` 来控制这些优化，而 React Compiler 的目标是让大多数这类优化由编译器自动完成，例如：
-
-```jsx
-import { useMemo } from 'react';
-
-function ProductList({ products }) {
-  const processedData = useMemo(() => {
-    return expensiveProcessing(products);
-  }, [products]);
-
-  return <List data={processedData} />;
-}
-```
-
-启用 React Compiler 后，可以直接编写更自然的 React 代码，由编译器负责插入必要的优化：
-
-```jsx
-function ProductList({ products }) {
-  const processedData = expensiveProcessing(products);
-
-  return <List data={processedData} />;
-}
-```
+[`React Compiler`](https://react.dev/learn/react-compiler/introduction) 是 React 官方推出的构建时优化工具，它能在编译阶段自动为组件和 Hook 添加合适的 memoization 以代替手动使用 `useMemo`、`useCallback` 和 `React.memo`。
 
 随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 随之可以通过内置 SWC loader 直接启用 React Compiler。
 
