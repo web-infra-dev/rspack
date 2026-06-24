@@ -17,17 +17,17 @@ runs:
       if: ${{ runner.environment == 'github-hosted' }}
       uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
       with:
-        prefix-key: 'RCache-G-4.1'
+        prefix-key: 'RCache-G-4.3'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         cache-all-crates: 'true'
         cache-workspace-crates: 'true'
 
     - name: Cache to local
-      uses: rstackjs/rust-cache@f16fdc0ddc74ba57dbaed86ec6afd85c995414fd # cache-workspace-crates
+      uses: rstackjs/rust-cache@4f4cd4363af998b2679214ca34d7af05db52ae8f # cache-workspace-crates + rlib fix
       if: ${{ runner.environment == 'self-hosted' }}
       with:
-        prefix-key: 'RCache-L-6.1'
+        prefix-key: 'RCache-L-6.3'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         fullmatch-only: 'true'
