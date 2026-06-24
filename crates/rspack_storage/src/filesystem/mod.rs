@@ -46,7 +46,7 @@ async fn move_stale_versions(
   stale_fs.ensure_exist().await?;
 
   for version in stale_versions {
-    ScopeFileSystem::move_to(fs, &stale_fs, version.as_str()).await?;
+    ScopeFileSystem::move_to(fs, stale_fs, version.as_str()).await?;
   }
   Ok(())
 }
