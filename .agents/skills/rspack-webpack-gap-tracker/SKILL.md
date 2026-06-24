@@ -1,6 +1,6 @@
 ---
 name: rspack-webpack-gap-tracker
-description: Use when tracking, auditing, or updating Rspack compatibility gaps against webpack, including missing webpack features, completed compatibility features, and missing webpack test coverage.
+description: Use when tracking, auditing, or updating Rspack compatibility gaps against webpack, including missing webpack features, built-in and ecosystem plugin compatibility gaps, completed compatibility features, and missing webpack test coverage.
 ---
 
 # Rspack Webpack Gap Tracker
@@ -34,6 +34,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
 4. Search for missing functionality from these directions:
    - New webpack release features since the last recorded update.
    - Differences between webpack's config object and Rspack's config object.
+   - Differences between Rspack built-in plugins and webpack built-in plugins, plus commonly-used webpack ecosystem plugins that Rspack provides built-in alternatives for.
    - Rspack PRs merged since the last recorded update, especially large changes and PRs labeled or titled as features.
    - Existing issue entries and completed entries, to avoid re-recording already tracked work.
 5. If the gap is native CSS-related, record it in #14002 instead of #14556.
@@ -46,6 +47,7 @@ Last updated: YYYY-MM-DD HH:mm:ss Z
 
 - Webpack releases and changelog for new feature candidates.
 - Webpack config schema/types and Rspack config schema/types for option-level gaps.
+- Webpack built-in plugin docs/source, Rspack built-in plugin exports/source, and webpack ecosystem plugin docs/source for plugin-compatibility gaps.
 - GitHub merged PRs in `web-infra-dev/rspack` since the last update.
 - Existing Rspack issues and the completed-feature comment for deduplication.
 - `tests/rspack-test/` and the local webpack checkout, when available, for test coverage comparison.
