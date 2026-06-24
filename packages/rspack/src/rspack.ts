@@ -172,4 +172,3 @@ function rspack(
 
 // deliberately alias rspack as webpack
 export { createCompiler, createMultiCompiler, MultiStats, rspack, Stats };
-export default rspack;

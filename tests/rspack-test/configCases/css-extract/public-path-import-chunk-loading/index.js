@@ -3,7 +3,7 @@ export function loadFoo() {
 }
 
 it("should inject public path runtime for async extracted css with import chunk loading", () => {
-  const fs = __non_webpack_require__("fs");
+  const fs = require("fs");
   const source = fs.readFileSync(`${__STATS__.outputPath}/main.js`, "utf-8");
 
   expect(typeof loadFoo).toBe("function");

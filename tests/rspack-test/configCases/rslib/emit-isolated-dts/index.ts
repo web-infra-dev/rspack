@@ -10,8 +10,8 @@ export { mtsValue };
 
 export const foo: Foo = { value: "bar" };
 
-const fs = __non_webpack_require__("node:fs");
-const path = __non_webpack_require__("node:path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 it("should emit declaration assets only through RslibPlugin", () => {
   const dts = fs.readFileSync(

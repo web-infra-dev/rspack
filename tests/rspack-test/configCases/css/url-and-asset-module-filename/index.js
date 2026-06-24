@@ -1,5 +1,5 @@
 it(`should generate correct url public path with css filename`, async () => {
-	const path = __non_webpack_require__("path");
+	const path = require("path");
 	const h1 = document.createElement('h1');
 	document.body.appendChild(h1);
 	const h2 = document.createElement('h2');

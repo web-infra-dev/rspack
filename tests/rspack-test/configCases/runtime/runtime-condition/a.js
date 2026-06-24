@@ -7,8 +7,8 @@ it("should have correct runtime id", () => {
 });
 
 it("should include runtime condition check code", () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+	const fs = require("fs");
+	const path = require("path");
 
 	const source = fs.readFileSync(
 		path.join(

@@ -24,7 +24,7 @@
   "devDependencies": {
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
-    "@napi-rs/cli": "3.7.1",
+    "@napi-rs/cli": "3.7.2",
     "@napi-rs/wasm-runtime": "1.1.5",
     "emnapi": "1.11.1",
     "typescript": "^6.0.3"
@@ -43,7 +43,9 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc"
+      "aarch64-pc-windows-msvc",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl"
     ],
     "wasm": {
       "initialMemory": 16384,

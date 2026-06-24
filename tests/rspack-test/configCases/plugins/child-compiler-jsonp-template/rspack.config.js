@@ -2,6 +2,9 @@ const path = require('path');
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './child.js': 'commonjs ./child.js',
+  },
   mode: 'development',
   target: 'web',
   module: {

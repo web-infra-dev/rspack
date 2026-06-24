@@ -74,6 +74,30 @@ export default {
 };
 ```
 
+## devServer.app
+
+- **Type:**
+
+```ts
+type DevServerApp = () => Promise<ConnectApplication>;
+```
+
+- **Default:** a [`connect-next`](https://github.com/rstackjs/connect-next) app
+
+Provide a custom application instance for the dev server middleware stack.
+
+By default, `@rspack/dev-server` creates a `connect-next` app. If you need Express-only APIs such as `app.get()`, `app.post()`, or `res.send()`, provide your own Express app explicitly:
+
+```js title="rspack.config.mjs"
+import express from 'express';
+
+export default {
+  devServer: {
+    app: async () => express(),
+  },
+};
+```
+
 ## devServer.client
 
 - **Type:** `object`
@@ -471,6 +495,33 @@ Specifying `local-ipv4` as host will try to resolve the host option as your loca
 
 Specifying local-ipv6 as host will try to resolve the host option as your local IPv6 address.
 
+## devServer.ipc
+
+- **Type:** `boolean | string`
+- **Default:** `undefined`
+
+Listen on an IPC socket instead of a host and port.
+
+When set to `true`, `@rspack/dev-server` uses a default socket path named `rspack-dev-server.sock` in the operating system temporary directory, or a Windows named pipe path on Windows. When set to a string, that string is used as the custom socket path.
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: true,
+  },
+};
+```
+
+Use a custom socket path:
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    ipc: '/tmp/rspack-dev-server.sock',
+  },
+};
+```
+
 ## devServer.hot
 
 - **Type:** `boolean | 'only'`
@@ -837,6 +888,23 @@ module.exports = {
   </Tab>
 </Tabs>
 
+## devServer.setupExitSignals
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Whether `@rspack/dev-server` registers `SIGINT` and `SIGTERM` handlers to gracefully stop the dev server and close the compiler before exiting the process.
+
+Set it to `false` when another process manager or test runner owns signal handling.
+
+```js title="rspack.config.mjs"
+export default {
+  devServer: {
+    setupExitSignals: false,
+  },
+};
+```
+
 ## devServer.setupMiddlewares
 
 - **Type:** `function (middlewares, devServer)`
@@ -882,18 +950,6 @@ export default {
 
       return middlewares;
     },
-  },
-};
-```
-
-By default, `@rspack/dev-server` creates a [`connect-next`](https://github.com/rstackjs/connect-next) app. If you need Express-only APIs, provide your own app explicitly:
-
-```js title="rspack.config.mjs"
-import express from 'express';
-
-export default {
-  devServer: {
-    app: async () => express(),
   },
 };
 ```

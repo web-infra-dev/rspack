@@ -3,7 +3,17 @@ module.exports = {
   target: 'web',
   node: false,
   devtool: 'source-map',
-  externals: ['source-map'],
+  externals: [
+    {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
+    },
+    {
+      '@rspack/test-tools/helper/util/checkSourceMap':
+        'commonjs @rspack/test-tools/helper/util/checkSourceMap',
+    },
+    'source-map',
+  ],
   externalsType: 'commonjs',
   module: {
     rules: [

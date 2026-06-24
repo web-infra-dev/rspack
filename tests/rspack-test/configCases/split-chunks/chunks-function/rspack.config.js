@@ -1,5 +1,8 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './lib1.js': 'commonjs ./lib1.js',
+  },
   entry: {
     main: './index',
     lib1: {

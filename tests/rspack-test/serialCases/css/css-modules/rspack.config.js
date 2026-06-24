@@ -4,6 +4,10 @@ const path = require('path');
 /** @type {function(any, any): import("@rspack/core").Configuration[]} */
 module.exports = (env, { testPath }) => [
   {
+    externals: {
+      './249.bundle1.js': 'commonjs ./249.bundle1.js',
+      './use-style_js.bundle0.js': 'commonjs ./use-style_js.bundle0.js',
+    },
     target: 'web',
     mode: 'development',
     module: {
@@ -21,6 +25,10 @@ module.exports = (env, { testPath }) => [
     },
   },
   {
+    externals: {
+      './249.bundle1.js': 'commonjs ./249.bundle1.js',
+      './use-style_js.bundle0.js': 'commonjs ./use-style_js.bundle0.js',
+    },
     target: 'web',
     mode: 'production',
     output: {

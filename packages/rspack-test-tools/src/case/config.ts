@@ -24,7 +24,7 @@ import {
 import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { createMultiCompilerRunner, getMultiCompilerRunnerKey } from './runner';
 
-export type TConfigCaseConfig = Omit<TTestConfig, 'validate'>;
+export type TConfigCaseConfig = TTestConfig;
 type TConfigCaseOptions = Partial<IBasicCaseCreatorOptions> & {
   rspackOptions?: RspackOptions;
 };

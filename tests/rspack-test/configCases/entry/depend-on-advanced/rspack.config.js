@@ -5,6 +5,9 @@
 /** @type {Configuration} */
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    './lazy.js': 'commonjs ./lazy.js',
+  },
   entry() {
     return Promise.resolve({
       app: { import: './app.js', dependOn: ['other-vendors'] },

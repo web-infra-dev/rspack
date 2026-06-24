@@ -1,6 +1,6 @@
 import { E1, E2 } from "./enum";
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const generated = /** @type {string} */ (require("fs").readFileSync(__filename, "utf-8"));
 
 it("should not inline for non-const enum for const-only mode", () => {
   // START:A

@@ -289,6 +289,8 @@ export const getNormalizedRspackOptions = (
           return {
             type: 'persistent',
             version: cache.version,
+            maxAge: cache.maxAge,
+            maxVersions: cache.maxVersions,
             portable: cache.portable,
             readonly: cache.readonly,
             buildDependencies: nestedArray(cache.buildDependencies, (deps) =>
@@ -312,8 +314,6 @@ export const getNormalizedRspackOptions = (
               directory: optionalNestedConfig(storage.directory, (d) =>
                 path.resolve(context, d),
               ),
-              maxAge: storage.maxAge,
-              maxGenerations: storage.maxGenerations,
             })),
           };
         }
@@ -616,6 +616,8 @@ export type CacheNormalized =
       type: 'persistent';
       buildDependencies: string[];
       version?: string;
+      maxAge?: number;
+      maxVersions?: number;
       snapshot: {
         immutablePaths?: (string | RegExp)[];
         unmanagedPaths?: (string | RegExp)[];
@@ -624,8 +626,6 @@ export type CacheNormalized =
       storage: {
         type: 'filesystem';
         directory?: string;
-        maxAge?: number;
-        maxGenerations?: number;
       };
       portable?: boolean;
       readonly?: boolean;

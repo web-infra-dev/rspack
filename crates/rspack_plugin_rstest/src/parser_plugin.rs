@@ -378,20 +378,27 @@ impl RstestParserPlugin {
 
           if has_b {
             let second_arg = Span::new(first_arg.span().end, first_arg.span().end);
-            parser.add_dependency(Box::new(MockModuleIdDependency::new(
-              format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
-              second_arg.into(),
-              false,
-              true,
-              if is_esm {
-                rspack_core::DependencyCategory::Esm
-              } else {
-                rspack_core::DependencyCategory::CommonJS
-              },
-              // Render the synthetic target id followed by the clean request
-              // literal, yielding `rstest_mock(<id>, <targetId>, "X")`.
-              Some(format!(", {}", json_stringify_str(&lit_str))),
-            )));
+            parser.add_dependency(Box::new(
+              MockModuleIdDependency::new(
+                format!("{MOCK_TARGET_REQUEST_PREFIX}{lit_str}"),
+                second_arg.into(),
+                false,
+                true,
+                if is_esm {
+                  rspack_core::DependencyCategory::Esm
+                } else {
+                  rspack_core::DependencyCategory::CommonJS
+                },
+                // Render the synthetic target id followed by the clean request
+                // literal, yielding `rstest_mock(<id>, <targetId>, "X")`.
+                Some(format!(", {}", json_stringify_str(&lit_str))),
+              )
+              // `rs.mock('X')` first tries to resolve a manual mock target. If no
+              // `__mocks__` file exists, fall back to Vitest-style automocking by
+              // passing `{ mock: true }` to the runtime, equivalent to
+              // `rs.mock('X', { mock: true })`.
+              .with_missing_module_fallback("{ mock: true }".to_string()),
+            ));
           }
         }
       }
