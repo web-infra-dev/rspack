@@ -81,7 +81,10 @@ pub const fn rspack_workspace_version() -> &'static str {{
 }}
 "#
   );
-  fs::write(out_path, content)?;
+  let unchanged = fs::read_to_string(out_path).is_ok_and(|existing| existing == content);
+  if !unchanged {
+    fs::write(out_path, content)?;
+  }
   Ok(())
 }
 
