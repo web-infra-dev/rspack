@@ -229,6 +229,7 @@ declare namespace Rspack {
 
 interface ImportMeta {
   url: string;
+  hot?: Rspack.Hot;
   webpackHot?: Rspack.Hot;
   webpackContext: (
     request: string,
