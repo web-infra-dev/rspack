@@ -7,8 +7,7 @@ use std::future::Future;
 
 pub use devtool::{
   CachedSourceMapDevToolPluginAsset, CachedSourceMapDevToolPluginEntry,
-  SourceMapDevToolPluginCacheArtifact, SourceMapDevToolPluginCacheKey,
-  SourceMapDevToolPluginOccasion,
+  SourceMapDevToolPluginCacheArtifact, SourceMapDevToolPluginOccasion,
 };
 pub use make::MakeOccasion;
 pub use meta::MetaOccasion;
