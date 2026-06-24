@@ -180,7 +180,7 @@ async function build() {
 }
 
 function collectFreshStats(stdout) {
-	const stats = { fresh: 0, total: 0 };
+	const stats = { fresh: 0, total: 0, notFresh: [] };
 	stdout.setEncoding("utf8");
 	let buffer = "";
 	stdout.on("data", chunk => {
@@ -199,25 +199,29 @@ function collectFreshStats(stdout) {
 			if (msg.reason === "compiler-artifact" && typeof msg.fresh === "boolean") {
 				stats.total += 1;
 				if (msg.fresh) stats.fresh += 1;
+				else if (msg.target && msg.target.name) stats.notFresh.push(msg.target.name);
 			}
 		}
 	});
 	return stats;
 }
 
-function reportFreshStats({ fresh, total }) {
+function reportFreshStats({ fresh, total, notFresh = [] }) {
 	const target = process.env.RUST_TARGET || "host";
 	const pct = total ? ((fresh / total) * 100).toFixed(1) : "0.0";
 	const summary = `${target}: ${fresh}/${total} units fresh = ${pct}% rust cache utilization`;
 	const escapedSummary = summary.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
 	console.log(`\n::notice title=Rust Cache Utilization::${escapedSummary}`);
+	const recompiled = [...new Set(notFresh)].sort();
+	console.log(`::notice title=Recompiled Units::${target}: ${recompiled.join(", ")}`);
 	if (process.env.GITHUB_STEP_SUMMARY) {
 		appendFileSync(
 			process.env.GITHUB_STEP_SUMMARY,
 			`### Rust cache utilization — \`${target}\`\n\n` +
 				`| fresh | recompiled | total | utilization |\n` +
 				`| ----: | ---------: | ----: | ----------: |\n` +
-				`| ${fresh} | ${total - fresh} | ${total} | **${pct}%** |\n\n`
+				`| ${fresh} | ${total - fresh} | ${total} | **${pct}%** |\n\n` +
+				`<details><summary>${recompiled.length} recompiled units</summary>\n\n${recompiled.join(", ")}\n\n</details>\n\n`
 		);
 	}
 }
