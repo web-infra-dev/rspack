@@ -103,9 +103,9 @@ const icons = import.meta.glob('./icons/*.svg', {
 glob 表达式并把匹配模块纳入依赖图，在保持高性能构建的同时，
 进一步补齐现代前端工具链的统一开发体验。
 
-### Native CSS 新能力 \{#native-css}
+### Built-in CSS support \{#native-css}
 
-Rspack 2.1 进一步完善了 [Native CSS](/guide/tech/css#内置-css-支持) 能力。
+Rspack 2.1 进一步完善了 [Built-in CSS support](/guide/tech/css#内置-css-支持) 能力。
 新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”
 的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
 
@@ -115,7 +115,7 @@ container、CSS function、grid 名称以及 pure 模式等行为。同时，跨
 `:import` / `:export`、`@value` 和 re-export 等组合语义也更加接近
 webpack/css-loader，降低复杂样式模块迁移时的差异。
 
-详细配置可参考 [CSS 指南](/guide/tech/css#内置-css-支持)、
+详细配置可参考 [Built-in CSS support 文档](/guide/tech/css#内置-css-支持)、
 [`module.generator` 的 CSS 选项](/config/module-generator#cssauto) 和
 [`module.parser` 的 CSS 选项](/config/module-parser#cssauto)。
 
