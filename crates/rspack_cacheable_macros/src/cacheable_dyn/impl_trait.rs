@@ -64,7 +64,7 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
             impl #ty_generics LayoutRaw for dyn #trait_ident #ty_generics #where_clause {
                 fn layout_raw(
                     metadata: <Self as ptr_meta::Pointee>::Metadata,
-                ) -> Result<Layout, LayoutError> {
+                ) -> std::result::Result<Layout, LayoutError> {
                     Ok(metadata.layout())
                 }
             }
@@ -73,7 +73,7 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 fn serialize_unsized(
                     &self,
                     serializer: &mut Serializer
-                ) -> Result<usize, Error> {
+                ) -> std::result::Result<usize, Error> {
                     self.serialize_dyn(serializer)
                 }
             }
@@ -101,7 +101,7 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                     &self,
                     deserializer: &mut Deserializer,
                     out: *mut dyn #trait_ident #ty_generics
-                ) -> Result<(), Error> {
+                ) -> std::result::Result<(), Error> {
                     self.deserialize_dyn(deserializer, out)
                 }
 
@@ -113,7 +113,7 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
             impl #ty_generics LayoutRaw for dyn #deserialize_trait_ident #ty_generics #where_clause {
                 fn layout_raw(
                     metadata: <Self as ptr_meta::Pointee>::Metadata,
-                ) -> Result<Layout, LayoutError> {
+                ) -> std::result::Result<Layout, LayoutError> {
                     Ok(metadata.layout())
                 }
             }
@@ -124,7 +124,7 @@ pub fn impl_trait(mut input: ItemTrait, args: DynArgs) -> TokenStream {
                 unsafe fn check_bytes(
                     value: *const Self,
                     context: &mut Validator,
-                ) -> Result<(), Error> {
+                ) -> std::result::Result<(), Error> {
                     let vtable = VTablePtr::new(ptr_meta::metadata(value));
                     if let Some(check_bytes_dyn) = CHECK_BYTES_REGISTRY.get(&vtable) {
                         check_bytes_dyn(value.cast(), context)?;

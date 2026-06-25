@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap;
@@ -16,14 +16,12 @@ pub const SCOPE: &str = "occasion_minimize";
 
 #[cacheable]
 struct Entry {
-  #[cacheable(with=AsPreset)]
   pub source: BoxSource,
   pub extracted_comments: Option<ExtractedCommentsEntry>,
 }
 
 #[cacheable]
 struct ExtractedCommentsEntry {
-  #[cacheable(with=AsPreset)]
   pub source: BoxSource,
   pub comments_file_name: String,
 }

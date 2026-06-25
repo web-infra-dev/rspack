@@ -1,9 +1,6 @@
 use std::{borrow::Cow, hash::Hash};
 
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsOption, AsPreset},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
@@ -27,7 +24,6 @@ pub struct RawModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
   source_str: String,
-  #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
   identifier: ModuleIdentifier,
   readable_identifier: String,

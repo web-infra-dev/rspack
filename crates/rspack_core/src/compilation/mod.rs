@@ -1273,7 +1273,6 @@ pub type CompilationAssets = HashMap<String, CompilationAsset>;
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CompilationAsset {
-  #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: BindingCell<AssetInfo>,
 }

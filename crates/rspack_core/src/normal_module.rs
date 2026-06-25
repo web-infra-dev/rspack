@@ -10,7 +10,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsInner},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -125,7 +125,6 @@ pub struct NormalModule {
   loaders: Vec<BoxLoader>,
 
   /// Built source of this module (passed with loaders)
-  #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
 
   /// Resolve options derived from [Rule.resolve]

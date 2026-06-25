@@ -3980,7 +3980,6 @@ dependencies = [
  "rspack-allocative",
  "rspack_cacheable_macros",
  "rspack_resolver",
- "rspack_sources",
  "rustc-hash",
  "serde_json",
  "simd-json",
@@ -5366,7 +5365,7 @@ version = "0.101.0-rc.0"
 dependencies = [
  "memchr",
  "regex",
- "rkyv 0.8.16",
+ "rspack_cacheable",
  "rustc-hash",
  "serde",
  "simd-json",

@@ -88,7 +88,7 @@ pub fn impl_impl(mut input: ItemImpl, args: DynArgs) -> TokenStream {
                   &self,
                   deserializer: &mut Deserializer,
                   out: *mut dyn #trait_ident
-              ) -> Result<(), Error> {
+              ) -> std::result::Result<(), Error> {
                   unsafe {
                       <Self as DeserializeUnsized<#target_ident, _>>::deserialize_unsized(self, deserializer, out.cast())
                   }

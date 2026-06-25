@@ -1,9 +1,9 @@
-use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes, with::AsPreset};
+use rspack_cacheable::{enable_cacheable as cacheable, from_bytes, to_bytes};
 use rspack_sources::{BoxSource, ObjectPool, RawBufferSource, RawStringSource, SourceExt};
 
 #[cacheable]
 #[derive(Debug)]
-struct Data(#[cacheable(with=AsPreset)] BoxSource);
+struct Data(BoxSource);
 
 #[test]
 fn test_rspack_source() {

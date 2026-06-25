@@ -59,6 +59,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
+#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableSourceMapSource>)]
 #[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
@@ -67,6 +68,58 @@ pub struct SourceMapSource {
   original_source: Option<Box<str>>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
+}
+
+#[rspack_cacheable::cacheable]
+#[doc(hidden)]
+pub struct CacheableSourceMapSource {
+  value: String,
+  name: String,
+  source_map: String,
+  original_source: Option<String>,
+  inner_source_map: Option<String>,
+  remove_original_source: bool,
+}
+
+type ArchivedSourceMapSource =
+  <SourceMapSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
+
+impl rspack_cacheable::with::AsConverter<SourceMapSource> for CacheableSourceMapSource {
+  fn serialize(
+    data: &SourceMapSource,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(Self {
+      value: data.value().to_string(),
+      name: data.name().to_string(),
+      source_map: data.source_map().to_json(),
+      original_source: data.original_source().map(ToString::to_string),
+      inner_source_map: data.inner_source_map().map(SourceMap::to_json),
+      remove_original_source: data.remove_original_source(),
+    })
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<SourceMapSource> {
+    let source_map = SourceMap::from_json(self.source_map)
+      .map_err(|_| rspack_cacheable::Error::MessageError("invalid cached source map JSON"))?;
+    let inner_source_map = match self.inner_source_map {
+      Some(source_map) => Some(SourceMap::from_json(source_map).map_err(|_| {
+        rspack_cacheable::Error::MessageError("invalid cached inner source map JSON")
+      })?),
+      None => None,
+    };
+    Ok(SourceMapSource::new(SourceMapSourceOptions {
+      value: self.value,
+      name: self.name,
+      source_map,
+      original_source: self.original_source.map(Into::into),
+      inner_source_map,
+      remove_original_source: self.remove_original_source,
+    }))
+  }
 }
 
 impl SourceMapSource {
@@ -119,6 +172,7 @@ impl SourceMapSource {
   }
 }
 
+#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))

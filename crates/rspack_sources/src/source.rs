@@ -107,6 +107,7 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
+#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
@@ -140,6 +141,10 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
 }
 
 impl Source for BoxSource {
+  fn __dyn_id(&self) -> u64 {
+    self.as_ref().__dyn_id()
+  }
+
   #[inline]
   fn source(&self) -> SourceValue<'_> {
     self.as_ref().source()

@@ -60,10 +60,40 @@ use crate::{
 ///   .unwrap()
 /// );
 /// ```
+#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableConcatSource>)]
 #[derive(Default)]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   is_optimized: OnceLock<Vec<BoxSource>>,
+}
+
+#[rspack_cacheable::cacheable]
+#[doc(hidden)]
+pub struct CacheableConcatSource {
+  children: Vec<BoxSource>,
+}
+
+type ArchivedConcatSource = <ConcatSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
+
+impl rspack_cacheable::with::AsConverter<ConcatSource> for CacheableConcatSource {
+  fn serialize(
+    data: &ConcatSource,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(Self {
+      children: data.optimized_children().to_vec(),
+    })
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<ConcatSource> {
+    Ok(ConcatSource {
+      children: Mutex::new(self.children),
+      is_optimized: OnceLock::new(),
+    })
+  }
 }
 
 impl Clone for ConcatSource {
@@ -172,6 +202,7 @@ impl ConcatSource {
   }
 }
 
+#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
 impl Source for ConcatSource {
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();

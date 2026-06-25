@@ -38,12 +38,14 @@ use crate::{
 ///   "start1\nstart2\nreplaced!\nend1\nend2"
 /// );
 /// ```
+#[rspack_cacheable::cacheable]
 pub struct ReplaceSource {
   inner: BoxSource,
   replacements: Vec<Replacement>,
 }
 
 /// Enforce replacement order when two replacement start and end are both equal
+#[rspack_cacheable::cacheable]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReplacementEnforce {
   /// pre
@@ -56,6 +58,7 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
+#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableReplacement>)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
@@ -64,6 +67,47 @@ pub struct Replacement {
   name: Option<Cow<'static, str>>,
   enforce: ReplacementEnforce,
   insertion_order: u32,
+}
+
+#[rspack_cacheable::cacheable]
+#[doc(hidden)]
+pub struct CacheableReplacement {
+  start: u32,
+  end: u32,
+  content: String,
+  name: Option<String>,
+  enforce: ReplacementEnforce,
+  insertion_order: u32,
+}
+
+impl rspack_cacheable::with::AsConverter<Replacement> for CacheableReplacement {
+  fn serialize(
+    data: &Replacement,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Self> {
+    Ok(Self {
+      start: data.start,
+      end: data.end,
+      content: data.content.to_string(),
+      name: data.name.as_ref().map(ToString::to_string),
+      enforce: data.enforce,
+      insertion_order: data.insertion_order,
+    })
+  }
+
+  fn deserialize(
+    self,
+    _guard: &rspack_cacheable::ContextGuard,
+  ) -> rspack_cacheable::Result<Replacement> {
+    Ok(Replacement {
+      start: self.start,
+      end: self.end,
+      content: Cow::Owned(self.content),
+      name: self.name.map(Cow::Owned),
+      enforce: self.enforce,
+      insertion_order: self.insertion_order,
+    })
+  }
 }
 
 impl Replacement {
@@ -312,6 +356,7 @@ impl ReplaceSource {
   }
 }
 
+#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
 impl Source for ReplaceSource {
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {

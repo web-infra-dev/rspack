@@ -31,10 +31,6 @@ mod source_content_lines;
 mod source_map_source;
 mod with_utf16;
 
-/// Feature for rspack persistent cache serialization/deserialization.
-#[cfg(feature = "rspack_cacheable")]
-pub mod cacheable;
-
 pub use cached_source::CachedSource;
 pub use concat_source::ConcatSource;
 pub use error::{Error, Result};

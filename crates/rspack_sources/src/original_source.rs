@@ -35,6 +35,7 @@ use crate::{
 ///   "AAAA;AACA",
 /// );
 /// ```
+#[rspack_cacheable::cacheable]
 #[derive(Clone, Eq)]
 pub struct OriginalSource {
   value: Box<str>,
@@ -61,6 +62,7 @@ impl OriginalSource {
   }
 }
 
+#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
 impl Source for OriginalSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))

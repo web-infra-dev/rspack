@@ -233,7 +233,7 @@ rspack_plugin_swc_js_minimizer         = { version = "=0.101.0-rc.0", path = "cr
 rspack_plugin_wasm                     = { version = "=0.101.0-rc.0", path = "crates/rspack_plugin_wasm", default-features = false }
 rspack_plugin_worker                   = { version = "=0.101.0-rc.0", path = "crates/rspack_plugin_worker", default-features = false }
 rspack_regex                           = { version = "=0.101.0-rc.0", path = "crates/rspack_regex", default-features = false }
-rspack_sources                         = { version = "=0.101.0-rc.0", path = "crates/rspack_sources", default-features = false, features = ["rspack_cacheable"] }
+rspack_sources                         = { version = "=0.101.0-rc.0", path = "crates/rspack_sources", default-features = false }
 rspack_storage                         = { version = "=0.101.0-rc.0", path = "crates/rspack_storage", default-features = false }
 rspack_swc_plugin_import               = { version = "=0.101.0-rc.0", path = "crates/swc_plugin_import", default-features = false }
 rspack_swc_plugin_ts_collector         = { version = "=0.101.0-rc.0", path = "crates/swc_plugin_ts_collector", default-features = false }
