@@ -89,6 +89,7 @@ kaffi
 kuaishou
 Kyrylo
 lightningcss
+Lingyu
 lingyucoder
 linux
 lippzhang

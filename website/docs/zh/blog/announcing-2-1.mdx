@@ -24,6 +24,9 @@ authors:
   - name: Chenwei Dai
     avatar: 'https://github.com/Timeless0911.png'
     github: 'Timeless0911'
+  - name: Lingyu Wang
+    avatar: 'https://github.com/LingyuCoder.png'
+    github: 'LingyuCoder'
 ---
 
 import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
@@ -61,7 +64,7 @@ export default {
                 react: {
                   runtime: 'automatic',
                 },
-                reactCompiler: true,
+                reactCompiler: true, // [!code highlight]
               },
             },
           },
@@ -111,7 +114,7 @@ const icons = import.meta.glob('./icons/*.svg', {
 glob 表达式并把匹配模块纳入依赖图，在保持高性能构建的同时，
 进一步补齐现代前端工具链的统一开发体验。
 
-### Built-in CSS support \{#native-css}
+### 完善 Built-in CSS 支持 \{#builtin-css-features}
 
 Rspack 2.1 进一步完善了 [Built-in CSS support](/guide/tech/css#内置-css-支持) 能力。
 新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”
@@ -358,7 +361,7 @@ if ('debug' in feature) {
 
 这项检测同样适用于由 `!`、`&&`、`||` 和三元表达式组合而成的分支条件，也支持 namespace import、命名导出的 namespace 对象以及嵌套成员访问。对于没有被相同 `in` 检查保护的访问，Rspack 仍会继续报告告警，确保真实的缺失导出问题不会被隐藏。
 
-### `export const` 值绑定优化
+### `export const` 值绑定优化 \{#export-const-getter}
 
 Rspack 2.1 精简了 ESM `export const` 的导出代码。在此前的版本中，Rspack 会为 ESM 导出统一生成 getter 函数，用于保持 ESM live binding 语义：
 
@@ -400,11 +403,11 @@ export default 'default value';
 
 ## Rstack 进展
 
-### Rsbuild 2.1
+### Rsbuild 2.1 \{#rsbuild-2-1}
 
 Rsbuild 2.1 已经与 Rspack 2.1 同步发布，查看 [Rsbuild 2.1 博客](https://rsbuild.rs/zh/blog/v2-1) 了解更多。
 
-### Rslib 0.23
+### Rslib 0.23 \{#rslib-0-23}
 
 Rslib 新增了基于 `isolatedDeclarations` 的快速类型生成方式。开启 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated) 后，Rslib 会在 Rspack 构建过程中使用 SWC 的 `fast_dts` 能力，直接为依赖图中的 TypeScript 模块输出类型声明文件。
 
@@ -435,7 +438,7 @@ export default defineConfig({
 
 > 更多详情参考 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated)。
 
-### rspack-merge
+### rspack-merge \{#rspack-merge}
 
 我们发布了 [rspack-merge](https://github.com/rstackjs/rspack-merge)，
 这是一个面向 Rspack 配置合并场景打造的轻量级工具。它保留了开发者熟悉的
@@ -447,7 +450,7 @@ export default defineConfig({
 
 ## 生态
 
-### TanStack RSC 支持
+### TanStack RSC 支持 \{#tanstack-rsc-support}
 
 我们正与 TanStack 团队合作完善 TanStack Start 的 Rsbuild 支持，并已取得阶段性成果：[TanStack Start 已正式支持 Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support)。开发者现在可以使用由 Rspack 驱动的 Rsbuild 构建 TanStack Start 应用，获得包括 RSC 在内的完整框架能力。
 
@@ -457,5 +460,3 @@ Rspack / Rsbuild 在 RSC 方向上的核心目标，是提供通用的 RSC 框�
 
 - [Tanstack Start 示例](https://github.com/rstackjs/rstack-examples/tree/main/rsbuild/tanstack-start)：展示了如何在 TanStack Start 中使用 Rsbuild。
 - [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件集成示例，也会持续承载我们在通用 RSC 构建能力上的探索。
-
-## 升级指南
