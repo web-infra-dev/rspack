@@ -41,13 +41,13 @@ import { PackageManagerTabs } from '@theme';
 
 ![Rspack 2.1 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.1.png)
 
-## 新特性
+## 性能提升
 
-### 支持 React Compiler \{#react-compiler}
+### React Compiler Rust 版本 \{#react-compiler}
 
 [`React Compiler`](https://react.dev/learn/react-compiler/introduction) 是 React 官方推出的构建时优化工具，它能在编译阶段自动为组件和 Hook 添加合适的 memoization 以代替手动使用 `useMemo`、`useCallback` 和 `React.memo`。
 
-随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 随之可以通过内置 SWC loader 直接启用 React Compiler。
+过去，React Compiler 主要通过 `babel-loader` 接入，这会引入额外的 Babel 转换开销，并增加项目的构建时间。随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 随之可以通过内置 SWC loader 直接启用 React Compiler。
 
 在 Rspack 中，可以通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 开启 React Compiler：
 
@@ -85,6 +85,57 @@ export default {
 | -------------- | ------------------- | -------------------- | ---------- |
 | `rspack dev`   | **0.78 s**          | **10.60 s**          | **13.58x** |
 | `rspack build` | **1.26 s**          | **9.38 s**           | **7.45x**  |
+
+### 构建性能优化 \{#build-performance}
+
+构建性能始终是 Rspack 的核心关注点之一。在样例项目中，Rspack 2.1.0 相比 Rspack 2.0.0，**无缓存生产构建场景提升约 16%，持久化缓存生产构建场景提升约 12%，HMR 场景提升约 5%**。
+
+| 版本          | 生产构建（无缓存） | 生产构建（有缓存） | 热更新     |
+| ------------- | ------------------ | ------------------ | ---------- |
+| Rspack 1.7.11 | **3.12 s**         | **2.09 s**         | **129 ms** |
+| Rspack 2.0.0  | **2.66 s**         | **1.36 s**         | **113 ms** |
+| Rspack 2.1.0  | **2.22 s**         | **1.20 s**         | **107 ms** |
+
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/28093280576)
+
+这些提升主要来自三个方向：对构建主链路的持续瘦身；对模块图、依赖关系等底层数据结构的优化；以及对 SWC 解析、转换的改进。
+
+### TS Checker 插件支持 tsgo \{#tsgo-support}
+
+TypeScript 类型检查常常是构建链路中最耗时的环节之一。[`ts-checker-rspack-plugin`](https://github.com/rstackjs/ts-checker-rspack-plugin) 现在支持使用 TypeScript Go 进行类型检查，整体构建耗时可减少约 **60%**。
+
+在项目中安装最新的 TypeScript RC 版本即可。
+
+<PackageManagerTabs command="add typescript@rc -D" />
+
+```js title="rspack.config.mjs"
+import { TsCheckerRspackPlugin } from 'ts-checker-rspack-plugin';
+
+export default {
+  plugins: [new TsCheckerRspackPlugin()],
+};
+```
+
+### 更快的循环引用检查 \{#circular-check}
+
+Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin)。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+};
+```
+
+相比旧插件，新的 CircularCheckRspackPlugin 主要有两方面改进：
+
+- **性能更好**：旧插件的检测方式更接近按入口展开循环路径，在大型模块图中容易产生重复遍历。新的插件使用更适合循环检测的图算法，一次分析即可找出循环组件，并从每个循环组件生成可读的循环路径，因此在大型项目中有更低的检测开销。
+- **API 设计更合理**：旧插件的 API 设计不够直观，也和 webpack 生态中常用的 `circular-dependency-plugin` API 不一致。新的插件回到更直接的“检测并报告循环依赖”模型，提供与 webpack 生态更一致的选项设计，整体更容易理解和迁移。
+
+如果你正在使用 `CircularDependencyRspackPlugin`，建议迁移到 `CircularCheckRspackPlugin`。对于只需要忽略部分 warning 的场景，可以配合 [`ignoreWarnings`](/config/other-options#ignorewarnings) 使用。
+
+## 新特性
 
 ### 支持 `import.meta.glob` \{#import-meta-glob}
 
@@ -232,57 +283,6 @@ export default {
 ```
 
 当缓存版本超过保留数量，或长时间没有被访问时，Rspack 会优先清理较旧、较少使用的缓存版本。这样可以在保留近期可复用缓存的同时，避免持久化缓存目录无限增长。对于需要完全手动管理缓存的场景，也可以将 `maxAge` 或 `maxVersions` 设置为 `Infinity`，分别关闭基于时间或版本数量的清理。
-
-## 性能提升
-
-### 构建性能优化 \{#build-performance}
-
-构建性能始终是 Rspack 的核心关注点之一。在样例项目中，Rspack 2.1.0 相比 Rspack 2.0.0，**无缓存生产构建场景提升约 16%，持久化缓存生产构建场景提升约 12%，HMR 场景提升约 5%**。
-
-| 版本          | 生产构建（无缓存） | 生产构建（有缓存） | 热更新     |
-| ------------- | ------------------ | ------------------ | ---------- |
-| Rspack 1.7.11 | **3.12 s**         | **2.09 s**         | **129 ms** |
-| Rspack 2.0.0  | **2.66 s**         | **1.36 s**         | **113 ms** |
-| Rspack 2.1.0  | **2.22 s**         | **1.20 s**         | **107 ms** |
-
-> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/28093280576)
-
-这些提升主要来自三个方向：对构建主链路的持续瘦身；对模块图、依赖关系等底层数据结构的优化；以及对 SWC 解析、转换的改进。
-
-### 更快的循环引用检查 \{#circular-check}
-
-Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin)。
-
-```js title="rspack.config.mjs"
-import { rspack } from '@rspack/core';
-
-export default {
-  plugins: [new rspack.CircularCheckRspackPlugin()],
-};
-```
-
-相比旧插件，新的 CircularCheckRspackPlugin 主要有两方面改进：
-
-- **性能更好**：旧插件的检测方式更接近按入口展开循环路径，在大型模块图中容易产生重复遍历。新的插件使用更适合循环检测的图算法，一次分析即可找出循环组件，并从每个循环组件生成可读的循环路径，因此在大型项目中有更低的检测开销。
-- **API 设计更合理**：旧插件的 API 设计不够直观，也和 webpack 生态中常用的 `circular-dependency-plugin` API 不一致。新的插件回到更直接的“检测并报告循环依赖”模型，提供与 webpack 生态更一致的选项设计，整体更容易理解和迁移。
-
-如果你正在使用 `CircularDependencyRspackPlugin`，建议迁移到 `CircularCheckRspackPlugin`。对于只需要忽略部分 warning 的场景，可以配合 [`ignoreWarnings`](/config/other-options#ignorewarnings) 使用。
-
-### TS Checker 插件支持 tsgo \{#tsgo-support}
-
-TypeScript 类型检查常常是构建链路中最耗时的环节之一。[`ts-checker-rspack-plugin`](https://github.com/rstackjs/ts-checker-rspack-plugin) 现在支持使用 TypeScript Go 进行类型检查，整体构建耗时可减少约 **60%**。
-
-在项目中安装最新的 TypeScript RC 版本即可。
-
-<PackageManagerTabs command="add typescript@rc -D" />
-
-```js title="rspack.config.mjs"
-import { TsCheckerRspackPlugin } from 'ts-checker-rspack-plugin';
-
-export default {
-  plugins: [new TsCheckerRspackPlugin()],
-};
-```
 
 ## 产物优化
 
