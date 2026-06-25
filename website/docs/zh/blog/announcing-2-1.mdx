@@ -233,17 +233,13 @@ const value = require('./value.cjs');
 ### Rspack magic comments \{#magic-comments}
 
 Rspack 2.1 为 [magic comments](/api/runtime-api/module-methods#magic-comments)
-增加了 `rspack` 前缀。现在可以使用
-[`rspackChunkName`](/api/runtime-api/module-methods#rspackchunkname)、
-[`rspackMode`](/api/runtime-api/module-methods#rspackmode)、
-[`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch)、
-[`rspackPreload`](/api/runtime-api/module-methods#rspackpreload)、
-[`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority)、
-[`rspackInclude`](/api/runtime-api/module-methods#rspackinclude)、
-[`rspackExclude`](/api/runtime-api/module-methods#rspackexclude)、
-[`rspackExports`](/api/runtime-api/module-methods#rspackexports) 和
-[`rspackIgnore`](/api/runtime-api/module-methods#rspackignore) 来描述动态导入行为。
-原有的 `webpack*` 写法仍然继续兼容，因此现有项目无需迁移；新代码则推荐使用 `rspack*`，语义更贴近 Rspack 自身。
+增加了 `rspack` 前缀。新代码可以使用 `rspack*` 写法来描述动态导入行为，语义更贴近 Rspack 自身；原有的 `webpack*` 写法仍然继续兼容，因此现有项目无需迁移。
+
+```js
+import(/* rspackChunkName: "dashboard" */ './dashboard');
+```
+
+查看 [magic comments 文档](/api/runtime-api/module-methods#magic-comments) 了解完整用法。
 
 ### 支持 Source Phase Imports \{#source-phase-imports}
 
