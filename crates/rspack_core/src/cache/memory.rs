@@ -225,12 +225,6 @@ impl Cache for MemoryCache {
       compilation.source_map_dev_tool_plugin_cache_artifact = old_compilation
         .source_map_dev_tool_plugin_cache_artifact
         .take();
-      if let Some(artifact) = compilation
-        .source_map_dev_tool_plugin_cache_artifact
-        .as_mut()
-      {
-        artifact.reset_pending_changes();
-      }
     }
   }
 

@@ -1,4 +1,4 @@
-use std::{mem::size_of, sync::Arc};
+use std::sync::Arc;
 
 use rayon::prelude::*;
 use rspack_cacheable::{
@@ -15,7 +15,7 @@ use super::{
 };
 use crate::{AssetInfo, CompilationAsset, RayonConsumer};
 
-pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin_v2";
+pub const SCOPE: &str = "occasion_source_map_dev_tool_plugin";
 
 #[cacheable]
 struct Entry {
@@ -37,68 +37,42 @@ struct SourceMapAssetEntry {
 /// are expected to invalidate the whole persistent cache via
 /// `cache.buildDependencies` or `cache.version`, while this key only
 /// distinguishes assets within a valid cache generation.
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-struct SourceMapDevToolPluginCacheKey {
-  filename: Arc<str>,
-  version: Arc<str>,
+struct CacheKey {
+  filename: String,
+  version: String,
 }
 
-impl SourceMapDevToolPluginCacheKey {
+impl CacheKey {
   fn new(filename: &str, version: &str) -> Option<Self> {
     if version.is_empty() {
       return None;
     }
     Some(Self {
-      filename: Arc::from(filename),
-      version: Arc::from(version),
-    })
-  }
-
-  fn to_bytes(&self) -> Vec<u8> {
-    let filename = self.filename.as_bytes();
-    let version = self.version.as_bytes();
-    let mut bytes = Vec::with_capacity(size_of::<u64>() + filename.len() + version.len());
-    bytes.extend_from_slice(&(filename.len() as u64).to_le_bytes());
-    bytes.extend_from_slice(filename);
-    bytes.extend_from_slice(version);
-    bytes
-  }
-
-  fn from_bytes(bytes: &[u8]) -> Option<Self> {
-    let (filename_len, data) = bytes.split_at_checked(size_of::<u64>())?;
-    let filename_len = u64::from_le_bytes(filename_len.try_into().ok()?);
-    let filename_len = usize::try_from(filename_len).ok()?;
-    let (filename, version) = data.split_at_checked(filename_len)?;
-    Some(Self {
-      filename: Arc::from(String::from_utf8(filename.to_vec()).ok()?),
-      version: Arc::from(String::from_utf8(version.to_vec()).ok()?),
+      filename: filename.to_string(),
+      version: version.to_string(),
     })
   }
 }
 
 #[derive(Debug, Default)]
 pub struct SourceMapDevToolPluginCacheArtifact {
-  entries: FxHashMap<SourceMapDevToolPluginCacheKey, Option<CachedSourceMapDevToolPluginEntry>>,
-  pending_writes: Vec<SourceMapDevToolPluginCacheKey>,
-  pending_removes: Vec<SourceMapDevToolPluginCacheKey>,
+  entries: FxHashMap<CacheKey, Option<CacheEntry>>,
+  pending_writes: Vec<CacheKey>,
+  pending_removes: Vec<CacheKey>,
 }
 
 #[derive(Debug, Clone)]
-pub struct CachedSourceMapDevToolPluginEntry {
+struct CacheEntry {
   pub asset_append: Vec<BoxSource>,
-  pub source_map: Option<CachedSourceMapDevToolPluginAsset>,
-}
-
-#[derive(Debug, Clone)]
-pub struct CachedSourceMapDevToolPluginAsset {
-  pub filename: String,
-  pub source: BoxSource,
+  pub source_map: Option<(String, BoxSource)>,
 }
 
 impl SourceMapDevToolPluginCacheArtifact {
-  fn cache_key(filename: &str, asset: &CompilationAsset) -> Option<SourceMapDevToolPluginCacheKey> {
+  fn cache_key(filename: &str, asset: &CompilationAsset) -> Option<CacheKey> {
     asset.get_source()?;
-    SourceMapDevToolPluginCacheKey::new(filename, &asset.info.version)
+    CacheKey::new(filename, &asset.info.version)
   }
 
   pub fn take(
@@ -114,7 +88,7 @@ impl SourceMapDevToolPluginCacheArtifact {
       return None;
     };
 
-    let CachedSourceMapDevToolPluginEntry {
+    let CacheEntry {
       asset_append,
       source_map,
     } = self.entries.get_mut(&cache_key).and_then(Option::take)?;
@@ -130,12 +104,12 @@ impl SourceMapDevToolPluginCacheArtifact {
     };
 
     let source_asset = CompilationAsset::new(Some(source), (*asset.info).clone());
-    let source_map = source_map.map(|source_map| {
+    let source_map = source_map.map(|(filename, source)| {
       let mut source_map_asset_info = AssetInfo::default().with_development(Some(true));
       source_map_asset_info.version = asset.info.version.clone();
       (
-        source_map.filename,
-        CompilationAsset::new(Some(source_map.source), source_map_asset_info),
+        filename,
+        CompilationAsset::new(Some(source), source_map_asset_info),
       )
     });
 
@@ -167,17 +141,17 @@ impl SourceMapDevToolPluginCacheArtifact {
     });
 
     for item in items {
-      let Some((cache_key, entry)) = Self::cache_entry_from_store_item(item) else {
+      let Some((cache_key, cache_entry)) = Self::cache_entry(item) else {
         continue;
       };
 
       match self.entries.entry(cache_key) {
         std::collections::hash_map::Entry::Occupied(mut occupied) => {
-          occupied.insert(Some(entry));
+          occupied.insert(Some(cache_entry));
         }
         std::collections::hash_map::Entry::Vacant(vacant) => {
           let cache_key = vacant.key().clone();
-          vacant.insert(Some(entry));
+          vacant.insert(Some(cache_entry));
           self.pending_writes.push(cache_key);
         }
       }
@@ -194,38 +168,27 @@ impl SourceMapDevToolPluginCacheArtifact {
     });
   }
 
-  pub fn reset_pending_changes(&mut self) {
-    self.pending_writes.clear();
-    self.pending_removes.clear();
-  }
-
-  fn cache_entry_from_store_item(
+  fn cache_entry(
     item: (
       &str,
       &CompilationAsset,
       &[BoxSource],
       Option<(&str, &CompilationAsset)>,
     ),
-  ) -> Option<(
-    SourceMapDevToolPluginCacheKey,
-    CachedSourceMapDevToolPluginEntry,
-  )> {
+  ) -> Option<(CacheKey, CacheEntry)> {
     let (filename, asset, asset_append, source_map) = item;
     let cache_key = Self::cache_key(filename, asset)?;
     let source_map = match source_map {
       Some((filename, asset)) => {
         let source = asset.get_source()?;
-        Some(CachedSourceMapDevToolPluginAsset {
-          filename: filename.to_string(),
-          source: source.clone(),
-        })
+        Some((filename.to_string(), source.clone()))
       }
       None => None,
     };
 
     Some((
       cache_key,
-      CachedSourceMapDevToolPluginEntry {
+      CacheEntry {
         asset_append: asset_append.to_vec(),
         source_map,
       },
@@ -259,26 +222,38 @@ impl Occasion for SourceMapDevToolPluginOccasion {
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::save", skip_all)]
   fn save(&self, storage: &mut dyn Storage, artifact: &SourceMapDevToolPluginCacheArtifact) {
     for key in &artifact.pending_removes {
-      storage.remove(SCOPE, &key.to_bytes());
+      match self.codec.encode(key) {
+        Ok(key) => storage.remove(SCOPE, &key),
+        Err(err) => {
+          tracing::warn!("source map persistent cache key encode failed: {:?}", err);
+        }
+      }
     }
 
     artifact
       .pending_writes
       .par_iter()
       .filter_map(|key| {
+        let key_bytes = match self.codec.encode(key) {
+          Ok(bytes) => bytes,
+          Err(err) => {
+            tracing::warn!("source map persistent cache key encode failed: {:?}", err);
+            return None;
+          }
+        };
         let entry = artifact.entries.get(key)?.as_ref()?;
         let storage_entry = Entry {
           append: entry.asset_append.clone(),
           source_map: entry
             .source_map
             .as_ref()
-            .map(|source_map| SourceMapAssetEntry {
-              filename: source_map.filename.clone(),
-              source: source_map.source.clone(),
+            .map(|(filename, source)| SourceMapAssetEntry {
+              filename: filename.clone(),
+              source: source.clone(),
             }),
         };
         match self.codec.encode(&storage_entry) {
-          Ok(bytes) => Some((key.to_bytes(), bytes)),
+          Ok(bytes) => Some((key_bytes, bytes)),
           Err(err) => {
             tracing::warn!("source map persistent cache encode failed: {:?}", err);
             None
@@ -302,21 +277,21 @@ impl Occasion for SourceMapDevToolPluginOccasion {
     let entries = items
       .into_par_iter()
       .filter_map(|(key, value)| {
-        let Some(key) = SourceMapDevToolPluginCacheKey::from_bytes(&key) else {
-          tracing::warn!("source map persistent cache key has invalid length");
-          return None;
+        let key = match self.codec.decode::<CacheKey>(&key) {
+          Ok(key) => key,
+          Err(err) => {
+            tracing::warn!("source map persistent cache key decode failed: {:?}", err);
+            return None;
+          }
         };
         match self.codec.decode::<Entry>(&value) {
           Ok(entry) => Some((
             key,
-            Some(CachedSourceMapDevToolPluginEntry {
+            Some(CacheEntry {
               asset_append: entry.append,
               source_map: entry
                 .source_map
-                .map(|source_map| CachedSourceMapDevToolPluginAsset {
-                  filename: source_map.filename,
-                  source: source_map.source,
-                }),
+                .map(|source_map| (source_map.filename, source_map.source)),
             }),
           )),
           Err(err) => {
@@ -325,10 +300,7 @@ impl Occasion for SourceMapDevToolPluginOccasion {
           }
         }
       })
-      .collect::<FxHashMap<
-        SourceMapDevToolPluginCacheKey,
-        Option<CachedSourceMapDevToolPluginEntry>,
-      >>();
+      .collect::<FxHashMap<CacheKey, Option<CacheEntry>>>();
 
     tracing::debug!(
       "recovered {} source map persistent cache entries",
