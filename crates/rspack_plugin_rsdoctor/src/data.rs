@@ -79,6 +79,7 @@ pub struct RsdoctorExportUsageDependency {
   pub target_module_identifier: Identifier,
   pub origin_export: Option<Vec<String>>,
   pub target_export: Option<Vec<String>>,
+  pub loc: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -87,6 +88,8 @@ pub struct RsdoctorExportUsageEdge {
   pub origin_export: Option<Vec<String>>,
   pub target_module: ModuleUkey,
   pub target_export: Option<Vec<String>>,
+  pub dependency_id: String,
+  pub loc: Option<String>,
 }
 
 #[derive(Debug, Default)]
