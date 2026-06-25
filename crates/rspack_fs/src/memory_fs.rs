@@ -136,13 +136,63 @@ impl MemoryFileSystem {
 
   fn _rename_file(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
     if !self.contains_file(from)? {
-      return Err(new_error("from dir not exist"));
+      return Err(new_error("from file not exist"));
     }
+    self._remove_file(to)?;
+
     let mut files = self.files.lock().expect("should get lock");
     let file = files.remove(from).expect("should have file");
     files.insert(to.into(), file);
 
     Ok(())
+  }
+
+  fn _rename_dir(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    if to.starts_with(from) {
+      return Err(new_error("cannot rename into itself"));
+    }
+    if !self.contains_dir(from)? {
+      return Err(new_error("from dir not exist"));
+    }
+    if self.metadata_sync(to).is_ok() {
+      return Err(new_error("target path already exist"));
+    }
+
+    let mut files = self.files.lock().expect("should get lock");
+    let entries = files
+      .keys()
+      .filter(|path| path.starts_with(from))
+      .cloned()
+      .collect::<Vec<_>>();
+    for path in entries {
+      let file = files.remove(&path).expect("should have file");
+      let relative = path.strip_prefix(from).expect("should strip prefix");
+      files.insert(to.join(relative), file);
+    }
+
+    Ok(())
+  }
+
+  fn _rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+    if from == to {
+      return Ok(());
+    }
+
+    let parent = to
+      .parent()
+      .ok_or_else(|| new_error("target parent dir not exist"))?;
+    if !self.contains_dir(parent)? {
+      return Err(new_error("target parent dir not exist"));
+    }
+
+    let metadata = self.metadata_sync(from)?;
+    if metadata.is_file {
+      self._rename_file(from, to)
+    } else if metadata.is_directory {
+      self._rename_dir(from, to)
+    } else {
+      Err(new_error("unsupported source path type"))
+    }
   }
 }
 #[async_trait::async_trait]
@@ -287,7 +337,7 @@ impl ReadableFileSystem for MemoryFileSystem {
 #[async_trait::async_trait]
 impl IntermediateFileSystemExtras for MemoryFileSystem {
   async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
-    self._rename_file(from, to)?;
+    self._rename(from, to)?;
     Ok(())
   }
 

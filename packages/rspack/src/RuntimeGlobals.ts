@@ -466,12 +466,6 @@ export const isReservedRuntimeGlobal = (
   compilerRuntimeGlobals: Record<string, string>,
 ) => Object.values(compilerRuntimeGlobals).includes(r);
 
-export function renderModulePrefix(
-  _compilerOptions: RspackOptionsNormalized,
-): string {
-  return 'webpack/runtime/';
-}
-
 export enum RuntimeVariable {
   Require,
   Context,

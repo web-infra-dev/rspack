@@ -8,10 +8,10 @@ use rspack_fs::ReadableFileSystem;
 use rspack_paths::{ArcPath, AssertUtf8};
 
 use self::{
-  hash_helper::{ContentHash, HashHelper},
+  hash_helper::{ContentHash, HashHelper, TimestampHash},
   package_helper::PackageHelper,
 };
-use super::SnapshotOptions;
+use super::{SnapshotOptions, SnapshotStrategyOptions};
 
 /// Snapshot check strategy
 #[cacheable]
@@ -25,14 +25,28 @@ pub enum Strategy {
 
   /// Check by file hash
   ///
+  /// This strategy will compare the file hash.
+  FileHash { hash: u64 },
+
+  /// Check by file timestamp
+  FileTimestamp { mtime: u64 },
+
+  /// Check by file timestamp and hash
+  ///
   /// This strategy will first compare the modified time,
-  /// and then compare the file hash.
-  FileHash { mtime: u64, hash: u64 },
+  /// and then compare the file hash when the modified time changed.
+  FileTimestampAndHash { mtime: u64, hash: u64 },
 
   /// Check by dir hash
   ///
   /// This strategy will compare the content hash of all files within the directory.
   DirHash { hash: u64 },
+
+  /// Check by dir timestamp hash
+  DirTimestamp { timestamp_hash: u64 },
+
+  /// Check by dir timestamp hash and content hash
+  DirTimestampAndHash { timestamp_hash: u64, hash: u64 },
 
   /// Check missing file
   ///
@@ -52,7 +66,18 @@ impl PartialEq for Strategy {
     match (self, other) {
       (Self::PackageVersion(v1), Self::PackageVersion(v2)) => v1 == v2,
       (Self::FileHash { hash: h1, .. }, Self::FileHash { hash: h2, .. }) => h1 == h2,
+      (Self::FileTimestamp { mtime: m1 }, Self::FileTimestamp { mtime: m2 }) => m1 == m2,
+      (
+        Self::FileTimestampAndHash { hash: h1, .. },
+        Self::FileTimestampAndHash { hash: h2, .. },
+      ) => h1 == h2,
       (Self::DirHash { hash: h1, .. }, Self::DirHash { hash: h2, .. }) => h1 == h2,
+      (Self::DirTimestamp { timestamp_hash: h1 }, Self::DirTimestamp { timestamp_hash: h2 }) => {
+        h1 == h2
+      }
+      (Self::DirTimestampAndHash { hash: h1, .. }, Self::DirTimestampAndHash { hash: h2, .. }) => {
+        h1 == h2
+      }
       (Self::Missing, Self::Missing) => true,
       (Self::Failed, Self::Failed) => true,
       _ => false,
@@ -113,9 +138,35 @@ impl StrategyHelper {
   /// get path file hash strategy
   pub async fn file_hash(&self, path: &ArcPath) -> Strategy {
     if let Some(ContentHash { hash, mtime }) = self.hash_helper.file_hash(path).await {
-      Strategy::FileHash { mtime, hash }
+      Strategy::FileTimestampAndHash { mtime, hash }
     } else {
       Strategy::Missing
+    }
+  }
+
+  /// get path file strategy
+  pub async fn file_strategy(
+    &self,
+    path: &ArcPath,
+    strategy_options: SnapshotStrategyOptions,
+  ) -> Strategy {
+    match (strategy_options.hash, strategy_options.timestamp) {
+      (true, true) => self.file_hash(path).await,
+      (true, false) => {
+        if let Some(ContentHash { hash, .. }) = self.hash_helper.file_hash(path).await {
+          Strategy::FileHash { hash }
+        } else {
+          Strategy::Missing
+        }
+      }
+      (false, true) => {
+        if let Some(mtime) = self.modified_time(path).await {
+          Strategy::FileTimestamp { mtime }
+        } else {
+          Strategy::Missing
+        }
+      }
+      (false, false) => Strategy::Failed,
     }
   }
 
@@ -125,6 +176,46 @@ impl StrategyHelper {
       Strategy::DirHash { hash }
     } else {
       Strategy::Failed
+    }
+  }
+
+  /// get path context strategy
+  pub async fn dir_strategy(
+    &self,
+    path: &ArcPath,
+    strategy_options: SnapshotStrategyOptions,
+  ) -> Strategy {
+    match (strategy_options.hash, strategy_options.timestamp) {
+      (true, true) => {
+        let Some(TimestampHash {
+          hash: timestamp_hash,
+          ..
+        }) = self.hash_helper.dir_timestamp_hash(path).await
+        else {
+          return Strategy::Failed;
+        };
+        if let Some(ContentHash { hash, .. }) = self.hash_helper.dir_hash(path).await {
+          Strategy::DirTimestampAndHash {
+            timestamp_hash,
+            hash,
+          }
+        } else {
+          Strategy::Failed
+        }
+      }
+      (true, false) => self.dir_hash(path).await,
+      (false, true) => {
+        if let Some(TimestampHash {
+          hash: timestamp_hash,
+          ..
+        }) = self.hash_helper.dir_timestamp_hash(path).await
+        {
+          Strategy::DirTimestamp { timestamp_hash }
+        } else {
+          Strategy::Failed
+        }
+      }
+      (false, false) => Strategy::Failed,
     }
   }
 
@@ -141,7 +232,28 @@ impl StrategyHelper {
           ValidateResult::Modified
         }
       }
-      Strategy::FileHash { mtime, hash } => {
+      Strategy::FileHash { hash } => {
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.file_hash(path).await
+        else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::FileTimestamp { mtime } => {
+        let Some(modified_time) = self.modified_time(path).await else {
+          return ValidateResult::Deleted;
+        };
+        if &modified_time == mtime {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::FileTimestampAndHash { mtime, hash } => {
         let Some(modified_time) = self.modified_time(path).await else {
           return ValidateResult::Deleted;
         };
@@ -159,6 +271,43 @@ impl StrategyHelper {
         }
       }
       Strategy::DirHash { hash } => {
+        let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_hash == hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::DirTimestamp { timestamp_hash } => {
+        let Some(TimestampHash {
+          hash: cur_timestamp_hash,
+          ..
+        }) = self.hash_helper.dir_timestamp_hash(path).await
+        else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_timestamp_hash == timestamp_hash {
+          ValidateResult::NoChanged
+        } else {
+          ValidateResult::Modified
+        }
+      }
+      Strategy::DirTimestampAndHash {
+        timestamp_hash,
+        hash,
+      } => {
+        let Some(TimestampHash {
+          hash: cur_timestamp_hash,
+          ..
+        }) = self.hash_helper.dir_timestamp_hash(path).await
+        else {
+          return ValidateResult::Deleted;
+        };
+        if &cur_timestamp_hash == timestamp_hash {
+          return ValidateResult::NoChanged;
+        }
         let Some(ContentHash { hash: cur_hash, .. }) = self.hash_helper.dir_hash(path).await else {
           return ValidateResult::Deleted;
         };

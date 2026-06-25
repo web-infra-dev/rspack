@@ -175,6 +175,10 @@ export async function check(
         warnings.push(...statsJson.warnings);
       }
     }
+
+    if (typeof testConfig.validate === 'function') {
+      await testConfig.validate(stats, undefined, options);
+    }
   }
   await checkArrayExpectation(
     context.getSource(),

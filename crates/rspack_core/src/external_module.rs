@@ -14,8 +14,8 @@ use crate::{
   BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
   DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
+  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
   NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
   StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
   extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
@@ -135,10 +135,21 @@ fn get_source_for_import(
   module_and_specifiers: Option<&ExternalRequestValue>,
   compilation: &Compilation,
   attributes: &Option<ImportAttributes>,
+  phase: ImportPhase,
 ) -> String {
+  let import_function = if phase != ImportPhase::Evaluation {
+    format!(
+      "{}.{}",
+      compilation.options.output.import_function_name,
+      phase.as_str()
+    )
+  } else {
+    compilation.options.output.import_function_name.clone()
+  };
+
   format!(
     "{}({}).then(function(module) {{ return module{}; }})",
-    compilation.options.output.import_function_name,
+    import_function,
     {
       let attributes_str = if let Some(attributes) = attributes {
         format!(
@@ -167,16 +178,54 @@ fn get_source_for_import(
   )
 }
 
-fn module_external_fragment_key(base: &str, attributes: &Option<ImportAttributes>) -> String {
+fn module_external_fragment_key(
+  base: &str,
+  attributes: &Option<ImportAttributes>,
+  phase: ImportPhase,
+) -> String {
+  let phase_str = if phase == ImportPhase::Evaluation {
+    String::new()
+  } else {
+    format!("|phase={}", phase.as_str())
+  };
   if let Some(attributes) = attributes {
     format!(
-      "{}|{}",
+      "{}{}|{}",
       base,
+      phase_str,
       simd_json::to_string(attributes).expect("json stringify failed")
     )
   } else {
-    base.to_string()
+    format!("{base}{phase_str}")
   }
+}
+
+fn module_external_import_statement(
+  module_and_specifiers: &ExternalRequestValue,
+  ident: &str,
+  attributes: &Option<ImportAttributes>,
+  phase: ImportPhase,
+) -> String {
+  let request = json_stringify_str(module_and_specifiers.primary());
+  let mut import_statement = String::from("import");
+  if phase != ImportPhase::Evaluation {
+    import_statement.push(' ');
+    import_statement.push_str(phase.as_str());
+  }
+  import_statement.push(' ');
+  if !phase.is_source() {
+    import_statement.push_str("* as ");
+  }
+  import_statement.push_str("__rspack_external_");
+  import_statement.push_str(ident);
+  import_statement.push_str(" from ");
+  import_statement.push_str(&request);
+  if let Some(attributes) = attributes {
+    import_statement.push_str(" with ");
+    import_statement.push_str(&simd_json::to_string(attributes).expect("json stringify failed"));
+  }
+  import_statement.push_str(";\n");
+  import_statement
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -278,39 +327,31 @@ fn module_external_remapping_property_key(exposed_name: &str) -> String {
 fn get_source_for_module_external(
   module_and_specifiers: &ExternalRequestValue,
   ident: &str,
-  attributes: &Option<ImportAttributes>,
+  dependency_meta: &DependencyMeta,
   exports_info_artifact: &crate::ExportsInfoArtifact,
   exports_info: &crate::ExportsInfoData,
   runtime: Option<&RuntimeSpec>,
   runtime_template: &mut ModuleCodeTemplate,
 ) -> (Option<String>, String, ChunkInitFragments) {
-  let mut chunk_init_fragments: ChunkInitFragments = Default::default();
-  let attributes_str = if let Some(attributes) = attributes {
-    format!(
-      " with {}",
-      simd_json::to_string(attributes).expect("json stringify failed"),
-    )
-  } else {
-    String::new()
-  };
-
-  chunk_init_fragments.push(
+  let chunk_init_fragments: ChunkInitFragments = vec![
     NormalInitFragment::new(
-      format!(
-        "import * as __rspack_external_{ident} from {}{};\n",
-        json_stringify_str(module_and_specifiers.primary()),
-        attributes_str
+      module_external_import_statement(
+        module_and_specifiers,
+        ident,
+        &dependency_meta.attributes,
+        dependency_meta.phase,
       ),
       InitFragmentStage::StageESMImports,
       0,
       InitFragmentKey::ModuleExternal(module_external_fragment_key(
         module_and_specifiers.primary(),
-        attributes,
+        &dependency_meta.attributes,
+        dependency_meta.phase,
       )),
       None,
     )
     .boxed(),
-  );
+  ];
 
   let base_access = format!(
     "__rspack_external_{ident}{}",
@@ -422,6 +463,7 @@ pub type MetaExternalType = Option<ExternalTypeEnum>;
 pub struct DependencyMeta {
   pub external_type: MetaExternalType,
   pub attributes: Option<ImportAttributes>,
+  pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
 }
 
@@ -448,7 +490,12 @@ impl ExternalModule {
               simd_json::to_string(attrs).expect("invalid json to_string")
             )
           });
-        format!("external {resolved_type} {request_str}{attrs_str}")
+        let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
+          String::new()
+        } else {
+          format!(" phase={}", dependency_meta.phase.as_str())
+        };
+        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}")
       }),
       request,
       external_type,
@@ -627,7 +674,12 @@ impl ExternalModule {
       "import" => format!(
         "{} = {};",
         get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-        get_source_for_import(request, compilation, &self.dependency_meta.attributes)
+        get_source_for_import(
+          request,
+          compilation,
+          &self.dependency_meta.attributes,
+          self.dependency_meta.phase,
+        )
       ),
       "var" | "promise" | "const" | "let" | "assign" => {
         let external_variable = if let Some(request) = request {
@@ -759,7 +811,7 @@ impl ExternalModule {
                 safe_to_optimize
               };
 
-            let force_namespace = request.has_rest();
+            let force_namespace = request.has_rest() || self.dependency_meta.phase.is_source();
 
             match used_exports {
               UsedExports::UsedNamespace(true) | UsedExports::Unknown => {
@@ -800,7 +852,7 @@ impl ExternalModule {
                       get_source_for_module_external(
                         request,
                         id.as_ref(),
-                        &self.dependency_meta.attributes,
+                        &self.dependency_meta,
                         &compilation.exports_info_artifact,
                         exports_info,
                         runtime,
@@ -818,11 +870,11 @@ impl ExternalModule {
                   } else {
                     chunk_init_fragments.push(
                       NormalInitFragment::new(
-                        format!(
-                          "import * as __rspack_external_{} from {}{};\n",
+                        module_external_import_statement(
+                          request,
                           id.as_ref(),
-                          json_stringify_str(request.primary()),
-                          attributes.unwrap_or_default()
+                          &self.dependency_meta.attributes,
+                          self.dependency_meta.phase,
                         ),
                         InitFragmentStage::StageESMImports,
                         module_graph
@@ -831,6 +883,7 @@ impl ExternalModule {
                         InitFragmentKey::ModuleExternal(module_external_fragment_key(
                           request.primary(),
                           &self.dependency_meta.attributes,
+                          self.dependency_meta.phase,
                         )),
                         None,
                       )
@@ -871,7 +924,7 @@ impl ExternalModule {
             let (init, expression, module_external_fragments) = get_source_for_module_external(
               request,
               id.as_ref(),
-              &self.dependency_meta.attributes,
+              &self.dependency_meta,
               &compilation.exports_info_artifact,
               exports_info,
               runtime,
@@ -894,7 +947,12 @@ impl ExternalModule {
           format!(
             "{} = {};",
             get_namespace_object_export(concatenation_scope, supports_const, runtime_template),
-            get_source_for_import(request, compilation, &self.dependency_meta.attributes)
+            get_source_for_import(
+              request,
+              compilation,
+              &self.dependency_meta.attributes,
+              self.dependency_meta.phase,
+            )
           )
         }
       }

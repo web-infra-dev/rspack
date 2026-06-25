@@ -23,6 +23,10 @@ const shared = {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   // entry:'./index.js',
   optimization: {
     minimize: true,

@@ -17,6 +17,8 @@ use rspack_core::{CacheOptions, cache::persistent::PersistentCacheOptions};
 pub struct RawCacheOptionsPersistent {
   pub build_dependencies: Option<Vec<String>>,
   pub version: Option<String>,
+  pub max_age: u32,
+  pub max_versions: u32,
   pub snapshot: Option<RawSnapshotOptions>,
   pub storage: Option<RawStorageOptions>,
   pub portable: Option<bool>,
@@ -27,7 +29,7 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
   type Error = rspack_error::Error;
 
   fn try_from(value: RawCacheOptionsPersistent) -> rspack_error::Result<Self> {
-    let (storage, max_age, max_generations) = value.storage.unwrap_or_default().normalize()?;
+    let storage = value.storage.unwrap_or_default().normalize()?;
     Ok(Self {
       build_dependencies: value
         .build_dependencies
@@ -40,8 +42,8 @@ impl TryFrom<RawCacheOptionsPersistent> for PersistentCacheOptions {
       storage,
       portable: value.portable.unwrap_or_default(),
       readonly: value.readonly.unwrap_or_default(),
-      max_age,
-      max_generations,
+      max_age: value.max_age.into(),
+      max_versions: value.max_versions,
     })
   }
 }

@@ -3,6 +3,10 @@ module.exports = {
   target: 'web',
   node: false,
   externals: [
+    {
+      fs: 'node-commonjs fs',
+      path: 'node-commonjs path',
+    },
     function ({ request, dependencyType }, callback) {
       if (/^(\/\/|custom?:\/\/)/.test(request)) {
         if (dependencyType === 'css-import')

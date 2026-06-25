@@ -2,7 +2,7 @@ import "./a"
 import { isAsyncModule, hasAsyncModuleRuntime } from "../utils"
 
 module; // bailout inline entry modules optimization
-const fs = __non_webpack_require__("fs");
+const fs = require("fs");
 
 it("should have correct value", async () => {
   expect(globalThis.case1).toBe(parseInt(WATCH_STEP, 10))

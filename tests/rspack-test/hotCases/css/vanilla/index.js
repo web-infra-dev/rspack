@@ -1,8 +1,8 @@
 import "./style.css";
 
 const getFile = name =>
-	__non_webpack_require__("fs").readFileSync(
-		__non_webpack_require__("path").join(__dirname, name),
+	require("fs").readFileSync(
+		require("path").join(__dirname, name),
 		"utf-8"
 	);
 
