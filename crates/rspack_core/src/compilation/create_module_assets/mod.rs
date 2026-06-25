@@ -35,7 +35,9 @@ pub async fn create_module_assets(
       continue;
     }
 
-    module_assets.reserve(assets.len());
+    if assets.len() > 1 {
+      module_assets.reserve(assets.len());
+    }
     for (name, asset) in assets {
       module_assets.push((name.clone(), asset.clone()));
     }
