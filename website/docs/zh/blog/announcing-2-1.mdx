@@ -403,6 +403,19 @@ export default 'default value';
 
 上面的具名 `const` 导出，以及默认导出中的常量值都可以受益于这项优化。对于 `let`、函数导出以及循环模块中的 `const` 导出，Rspack 仍会保留 getter 形式，以确保可变导出和循环依赖场景下的语义保持正确。后续我们也会继续尝试基于 reassignment 分析识别更多不会被重新赋值的导出，让更多场景可以使用更轻量的值绑定形式。
 
+## 生态
+
+### TanStack RSC 支持 \{#tanstack-rsc-support}
+
+我们正与 TanStack 团队合作完善 TanStack Start 的 Rsbuild 支持，并已取得阶段性成果：[TanStack Start 已正式支持 Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support)。开发者现在可以使用 Rsbuild 构建 TanStack Start 应用，获得包括 RSC 在内的完整框架能力。
+
+我们在 RSC 方向上的核心目标，是提供通用的 RSC 构建能力，让上层框架能够基于自己的路由、渲染和服务端运行时方案接入 RSC，复用统一的构建基础设施。
+
+如果你想在 Rspack 技术栈中尝试 RSC，可以参考：
+
+- [TanStack Start 指南](https://rsbuild.rs/zh/guide/framework/react#tanstack-start)：介绍如何在 TanStack Start 中使用 Rsbuild
+- [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件
+
 ## Rstack 进展
 
 ### Rsbuild 2.1 \{#rsbuild-2-1}
@@ -449,16 +462,3 @@ export default defineConfig({
 
 `rspack-merge` 使用 TypeScript 编写，发布现代 ESM 构建产物，
 并保持运行时零依赖，让配置合并保持简单、可靠且足够轻量。
-
-## 生态
-
-### TanStack RSC 支持 \{#tanstack-rsc-support}
-
-我们正与 TanStack 团队合作完善 TanStack Start 的 Rsbuild 支持，并已取得阶段性成果：[TanStack Start 已正式支持 Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support)。开发者现在可以使用由 Rspack 驱动的 Rsbuild 构建 TanStack Start 应用，获得包括 RSC 在内的完整框架能力。
-
-Rspack / Rsbuild 在 RSC 方向上的核心目标，是提供通用的 RSC 框架构建能力：让上层框架能够基于自己的路由、渲染和服务端运行时方案接入 RSC，同时复用同一套高性能构建基础设施。
-
-如果你想在 Rspack / Rsbuild 技术栈中尝试 RSC，可以参考以下示例：
-
-- [Tanstack Start 示例](https://github.com/rstackjs/rstack-examples/tree/main/rsbuild/tanstack-start)：展示了如何在 TanStack Start 中使用 Rsbuild。
-- [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件集成示例，也会持续承载我们在通用 RSC 构建能力上的探索。
