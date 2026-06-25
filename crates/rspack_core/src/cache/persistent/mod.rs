@@ -130,6 +130,7 @@ impl PersistentCache {
       return;
     }
     self.initialized = true;
+    self.ctx.cleanup_stale();
 
     // build_deps is the first validation step. If it fails or the build
     // dependencies have changed, only the BUILD scope is reset here; each

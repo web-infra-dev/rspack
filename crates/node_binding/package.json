@@ -55,7 +55,9 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc"
+      "aarch64-pc-windows-msvc",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl"
     ],
     "wasm": {
       "initialMemory": 16384,
@@ -72,6 +74,8 @@
     "@rspack/binding-darwin-x64": "workspace:*",
     "@rspack/binding-linux-arm64-gnu": "workspace:*",
     "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-linux-riscv64-gnu": "workspace:*",
+    "@rspack/binding-linux-riscv64-musl": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-linux-x64-musl": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",

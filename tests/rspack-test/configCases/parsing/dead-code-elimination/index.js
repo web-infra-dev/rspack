@@ -111,6 +111,29 @@ it("Shouldn't eliminate hoisted function in sloppy mode", () => {
 		expect(true).toBe(false);
 	}
 });
+
+it("Shouldn't hoist const/let from dead for-of/for-in branch", () => {
+	// Bug: const/let in for-of inside if(false) was incorrectly hoisted as var,
+	// causing a duplicate declaration with any outer let/const of the same name.
+	let output = "start";
+	if (false) {
+		for (const output of [1, 2, 3]) {
+			console.log(output);
+		}
+	}
+	expect(output).toBe("start");
+});
+
+it("Shouldn't hoist const/let from dead for-in branch", () => {
+	let key = "start";
+	if (false) {
+		for (const key in { a: 1 }) {
+			console.log(key);
+		}
+	}
+	expect(key).toBe("start");
+});
+
 if (true) {
 	return;
 }

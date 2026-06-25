@@ -135,6 +135,16 @@ jobs:
       target: wasm32-wasip1-threads
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
 
+  build-riscv64:
+    name: Build riscv64
+    needs: [check-changed]
+    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+    uses: ./.github/workflows/reusable-build-build.yml
+    with:
+      target: riscv64gc-unknown-linux-gnu
+      profile: 'ci'
+      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+
   # TODO: Enable this job after Rspack portable cache is implemented.
   check-cache:
     name: Check Cache Portable
@@ -176,6 +186,7 @@ jobs:
         test-windows,
         test-mac,
         build-wasm,
+        build-riscv64,
         test-wasm,
         check-changed,
         size-limit,
@@ -189,13 +200,13 @@ jobs:
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: Test check
         if: ${{ needs.check-changed.outputs.code_changed == 'true'
           && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,skipped,skipped' }}
+          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,skipped' }}
         run: echo "Test Failed" && exit 1
 
       - name: No check to Run test

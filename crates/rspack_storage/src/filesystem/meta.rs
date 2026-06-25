@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
+use rustc_hash::FxHashMap as HashMap;
 
 use super::{ScopeFileSystem, Version};
 use crate::{Error, Result};
@@ -80,21 +80,21 @@ impl Meta {
 
   /// Updates the active version and removes versions rejected by age or version limits.
   ///
-  /// Returns `(removed_versions, next_check_time)`.
-  /// - `removed_versions`: version directories that should be deleted.
+  /// Returns `(stale_versions, next_check_time)`.
+  /// - `stale_versions`: version directories that should be deleted.
   /// - `next_check_time`: the earliest time the metadata needs another refresh.
   pub async fn refresh(
     &mut self,
+    fs: &ScopeFileSystem,
     active_version: &Version,
     expire_seconds: u64,
     max_versions: u32,
-    existing_versions: &HashSet<Version>,
   ) -> Result<(Vec<Version>, u64)> {
     let now = Self::current_timestamp();
     self.access_times.insert(active_version.clone(), now);
 
     let mut next_check_time = now + 60 * 60;
-    let mut removed_versions = vec![];
+    let mut stale_versions = vec![];
 
     if expire_seconds != 0 {
       // Check again after roughly a quarter of the configured max age, unless
@@ -103,7 +103,7 @@ impl Meta {
       self.access_times.retain(|version, time| {
         let expiry_time = *time + expire_seconds;
         if expiry_time < now {
-          removed_versions.push(version.clone());
+          stale_versions.push(version.clone());
           return false;
         }
         if expiry_time < next_check_time {
@@ -117,14 +117,19 @@ impl Meta {
       // Valid version directories on disk are candidates even when `_meta` has
       // no timestamp for them. Treat missing timestamps as the oldest entries so
       // orphaned cache versions can still be reclaimed by maxVersions cleanup.
-      let mut candidates = existing_versions
-        .iter()
-        .filter(|version| *version != active_version)
-        .map(|version| {
-          (
-            version.clone(),
-            self.access_times.get(version).copied().unwrap_or_default(),
-          )
+      let mut candidates = fs
+        .list_child()
+        .await
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|version| {
+          let version = Version::parse(version)?;
+          if &version == active_version {
+            return None;
+          }
+
+          let timestamp = self.access_times.get(&version).copied().unwrap_or_default();
+          Some((version, timestamp))
         })
         .collect::<Vec<_>>();
       let retained_inactive_versions = max_versions.saturating_sub(1) as usize;
@@ -137,20 +142,20 @@ impl Meta {
 
       for (version, _) in candidates.into_iter().take(remove_count) {
         self.access_times.remove(&version);
-        removed_versions.push(version);
+        stale_versions.push(version);
       }
     }
 
-    removed_versions.sort_unstable();
-    removed_versions.dedup();
+    stale_versions.sort_unstable();
+    stale_versions.dedup();
 
-    Ok((removed_versions, next_check_time))
+    Ok((stale_versions, next_check_time))
   }
 }
 
 #[cfg(test)]
 mod test {
-  use super::{HashSet, Meta, Result, ScopeFileSystem, Version};
+  use super::{Meta, Result, ScopeFileSystem, Version};
 
   const V1: &str = "rspack_v_0000000000000001";
   const V2: &str = "rspack_v_0000000000000002";
@@ -160,8 +165,11 @@ mod test {
     Version::parse(value).expect("valid test version")
   }
 
-  fn existing_versions(values: &[&str]) -> HashSet<Version> {
-    values.iter().filter_map(Version::parse).collect()
+  async fn create_child_dirs(fs: &ScopeFileSystem, values: &[&str]) -> Result<()> {
+    for value in values {
+      fs.child_fs(*value).ensure_exist().await?;
+    }
+    Ok(())
   }
 
   #[tokio::test]
@@ -182,8 +190,7 @@ mod test {
     meta.save(&fs).await?;
 
     let mut meta = Meta::load(&fs).await?;
-    let versions = existing_versions(&[V1, V2]);
-    let (mut expired, _next_time) = meta.refresh(&version(V3), 1, 0, &versions).await?;
+    let (mut expired, _next_time) = meta.refresh(&fs, &version(V3), 1, 0).await?;
     expired.sort();
     assert_eq!(expired, vec![version(V1), version(V2)]);
     assert!(meta.access_times.contains_key(&version(V3)));
@@ -218,8 +225,7 @@ mod test {
     assert_eq!(meta.access_times.len(), 1);
     assert!(meta.access_times.contains_key(&version(V1)));
 
-    let versions = existing_versions(&["../outside", "keep-me", "0000000000000001", V1]);
-    let (expired, _) = meta.refresh(&version(V2), 1, 0, &versions).await?;
+    let (expired, _) = meta.refresh(&fs, &version(V2), 1, 0).await?;
 
     assert_eq!(expired, vec![version(V1)]);
     assert!(
@@ -236,12 +242,15 @@ mod test {
   #[tokio::test]
   async fn max_versions_removes_valid_orphan_cache_versions() -> Result<()> {
     let orphan_version = "rspack_v_0000000000000004";
+    let fs = ScopeFileSystem::new_memory_fs("/max_versions_orphan".into());
+    fs.ensure_exist().await?;
+    create_child_dirs(&fs, &[orphan_version, "ordinary-directory", V1, V2]).await?;
+
     let mut meta = Meta::default();
     meta.access_times.insert(version(V1), 1);
     meta.access_times.insert(version(V2), 2);
 
-    let versions = existing_versions(&[orphan_version, "ordinary-directory", V1, V2]);
-    let (expired, _) = meta.refresh(&version(V3), 0, 2, &versions).await?;
+    let (expired, _) = meta.refresh(&fs, &version(V3), 0, 2).await?;
 
     assert_eq!(expired, vec![version(V1), version(orphan_version)]);
     assert!(
