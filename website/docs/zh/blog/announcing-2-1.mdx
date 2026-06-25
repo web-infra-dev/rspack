@@ -76,7 +76,10 @@ export default {
 
 我们也对 Rspack 中的 React Compiler 集成进行了基准测试。在仅统计启用 React Compiler 后额外增加的构建耗时的情况下，Rust React Compiler 相比 Babel React Compiler 有性能提升约为 **7x 到 13x**。
 
-![Rust React Compiler benchmark](https://assets.rspack.rs/rspack/assets/rspack-v2-1-react-compiler-benchmark.png)
+| 命令           | Rust React Compiler | Babel React Compiler | 提升       |
+| -------------- | ------------------- | -------------------- | ---------- |
+| `rspack dev`   | **0.78 s**          | **10.60 s**          | **13.58x** |
+| `rspack build` | **1.26 s**          | **9.38 s**           | **7.45x**  |
 
 ### 支持 `import.meta.glob` \{#import-meta-glob}
 
