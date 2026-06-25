@@ -47,9 +47,16 @@ import { PackageManagerTabs } from '@theme';
 
 [`React Compiler`](https://react.dev/learn/react-compiler/introduction) 是 React 官方推出的构建时优化工具，它能在编译阶段自动为组件和 Hook 添加合适的 memoization 以代替手动使用 `useMemo`、`useCallback` 和 `React.memo`。
 
-过去，React Compiler 主要通过 `babel-loader` 接入，这会引入额外的 Babel 转换开销，并增加项目的构建时间。随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 随之可以通过内置 SWC loader 直接启用 React Compiler。
+过去，React Compiler 主要通过 `babel-loader` 接入，这会引入额外的 Babel 转换开销，并增加项目的构建时间。随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经接入 Rust React Compiler。Rspack 2.1 现在允许你通过内置 SWC loader 直接启用 React Compiler。
 
-在 Rspack 中，可以通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 开启 React Compiler：
+在我们的基准测试中，React Compiler Rust 版本相比 Babel 版本性能提升约 **7-13 倍**：
+
+| 命令           | React Compiler (Rust) | React Compiler (Babel) | 提升      |
+| -------------- | --------------------- | ---------------------- | --------- |
+| `rspack dev`   | **0.7 s**             | **10.6 s**             | **13.5x** |
+| `rspack build` | **1.2 s**             | **9.3 s**              | **7.4x**  |
+
+通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 开启 React Compiler：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -78,13 +85,6 @@ export default {
 ```
 
 更多配置方式可以参考 [Rspack React Compiler 指南](/guide/tech/react#react-compiler)。
-
-我们也对 Rspack 中的 React Compiler 集成进行了基准测试。在仅统计启用 React Compiler 后额外增加的构建耗时的情况下，Rust React Compiler 相比 Babel React Compiler 有性能提升约为 **7x 到 13x**。
-
-| 命令           | Rust React Compiler | Babel React Compiler | 提升       |
-| -------------- | ------------------- | -------------------- | ---------- |
-| `rspack dev`   | **0.78 s**          | **10.60 s**          | **13.58x** |
-| `rspack build` | **1.26 s**          | **9.38 s**           | **7.45x**  |
 
 ### 构建性能优化 \{#build-performance}
 
