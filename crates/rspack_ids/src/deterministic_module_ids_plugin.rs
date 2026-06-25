@@ -1,8 +1,5 @@
-use std::borrow::Cow;
-
 use derive_more::Debug;
 use rayon::prelude::*;
-use rspack_collections::IdentifierMap;
 use rspack_core::{
   ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,
@@ -102,29 +99,22 @@ async fn module_ids(
     .collect::<Vec<_>>();
   let used_ids_len = used_ids.len();
 
-  let module_names = modules
-    .par_iter()
-    .map(|m| (m.identifier(), get_full_module_name(m, context)))
-    .collect::<IdentifierMap<String>>();
+  let modules_with_names = modules
+    .into_par_iter()
+    .map(|m| (m, get_full_module_name(m, context)))
+    .collect::<Vec<_>>();
 
   assign_deterministic_ids(
-    modules,
-    |m| {
-      Cow::Borrowed(
-        module_names
-          .get(&m.identifier())
-          .expect("should have generated full module name")
-          .as_str(),
-      )
-    },
-    |a, b| {
+    modules_with_names,
+    |(_, name)| name.as_str(),
+    |(a, _), (b, _)| {
       compare_modules_by_pre_order_index_or_identifier(
         module_graph,
         &a.identifier(),
         &b.identifier(),
       )
     },
-    |module, id| {
+    |(module, _), id| {
       if !used_ids.insert(id.to_string()) {
         conflicts += 1;
         return false;

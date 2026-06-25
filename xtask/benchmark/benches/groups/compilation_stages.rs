@@ -1399,14 +1399,21 @@ fn get_modules_needing_ids(
 
 async fn run_module_ids_hook(compilation: &mut Compilation) -> Result<()> {
   let mut module_ids_artifact = compilation.module_ids_artifact.steal();
-  let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
-  compilation
+  if !compilation
     .plugin_driver
-    .clone()
     .compilation_hooks
     .before_module_ids
-    .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
-    .await?;
+    .is_empty()
+  {
+    let modules_needing_ids = get_modules_needing_ids(compilation, &module_ids_artifact);
+    compilation
+      .plugin_driver
+      .clone()
+      .compilation_hooks
+      .before_module_ids
+      .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
+      .await?;
+  }
   compilation.module_ids_artifact = module_ids_artifact.into();
 
   let mut diagnostics = vec![];

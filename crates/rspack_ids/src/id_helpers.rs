@@ -166,9 +166,9 @@ pub fn get_hash(s: impl Hash, length: usize) -> String {
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn assign_deterministic_ids<'a, T>(
+pub fn assign_deterministic_ids<T>(
   mut items: Vec<T>,
-  get_name: impl Fn(&T) -> Cow<'a, str>,
+  get_name: impl for<'b> Fn(&'b T) -> &'b str,
   comparator: impl FnMut(&T, &T) -> Ordering,
   mut assign_id: impl FnMut(&T, usize) -> bool,
   ranges: &[usize],
@@ -196,10 +196,10 @@ pub fn assign_deterministic_ids<'a, T>(
   for item in items {
     let ident = get_name(&item);
     let mut i = salt;
-    let mut id = get_number_hash_combined(ident.as_ref(), i, range);
+    let mut id = get_number_hash_combined(ident, i, range);
     while !assign_id(&item, id) {
       i += 1;
-      id = get_number_hash_combined(ident.as_ref(), i, range);
+      id = get_number_hash_combined(ident, i, range);
     }
   }
 }
@@ -251,20 +251,19 @@ mod tests {
 
   #[test]
   fn assign_deterministic_ids_accepts_borrowed_names() {
-    let items = vec![1usize, 2usize, 3usize];
-    let names = FxHashMap::from_iter([
+    let items = vec![
       (1usize, "module-a".to_string()),
       (2usize, "module-b".to_string()),
       (3usize, "module-c".to_string()),
-    ]);
+    ];
     let mut assigned = FxHashMap::default();
 
     assign_deterministic_ids(
       items,
-      |item| std::borrow::Cow::Borrowed(names.get(item).expect("should have name").as_str()),
+      |(_, name)| name.as_str(),
       |a, b| a.cmp(b),
       |item, id| {
-        assigned.insert(*item, id);
+        assigned.insert(item.0, id);
         true
       },
       &[1000],

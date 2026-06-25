@@ -29,7 +29,199 @@ fn format_bailout_reason(msg: &str) -> String {
 #[derive(Clone, Debug)]
 enum Warning {
   Id(ModuleIdentifier),
-  Problem(String),
+  Problem(ConcatenationProblem),
+}
+
+#[derive(Clone, Debug)]
+enum ConcatenationProblem {
+  MissingChunks {
+    module: ModuleIdentifier,
+    missing_chunks: Vec<ChunkUkey>,
+    chunks: Vec<ChunkUkey>,
+  },
+  ReferencedFromNonModule {
+    module: ModuleIdentifier,
+  },
+  RuntimeDependent {
+    module: ModuleIdentifier,
+    expected_runtime: RuntimeSpec,
+    modules: Vec<(ModuleIdentifier, RuntimeCondition)>,
+  },
+  ReferencedFromDifferentChunks {
+    module: ModuleIdentifier,
+    modules: Vec<ModuleIdentifier>,
+  },
+  UnsupportedSyntax {
+    module: ModuleIdentifier,
+    modules: Vec<(ModuleIdentifier, Vec<String>)>,
+  },
+}
+
+impl ConcatenationProblem {
+  fn module(&self) -> ModuleIdentifier {
+    match self {
+      Self::MissingChunks { module, .. }
+      | Self::ReferencedFromNonModule { module }
+      | Self::RuntimeDependent { module, .. }
+      | Self::ReferencedFromDifferentChunks { module, .. }
+      | Self::UnsupportedSyntax { module, .. } => *module,
+    }
+  }
+
+  fn collect_readable_identifier_modules(&self, modules: &mut IdentifierSet) {
+    modules.insert(self.module());
+    match self {
+      Self::RuntimeDependent {
+        modules: origin_modules,
+        ..
+      } => {
+        modules.extend(origin_modules.iter().map(|(module, _)| *module));
+      }
+      Self::ReferencedFromDifferentChunks {
+        modules: origin_modules,
+        ..
+      } => {
+        modules.extend(origin_modules.iter().copied());
+      }
+      Self::UnsupportedSyntax {
+        modules: origin_modules,
+        ..
+      } => {
+        modules.extend(origin_modules.iter().map(|(module, _)| *module));
+      }
+      Self::MissingChunks { .. } | Self::ReferencedFromNonModule { .. } => {}
+    }
+  }
+
+  fn format(&self, module_graph: &ModuleGraph, compilation: &Compilation) -> String {
+    let module = self.module();
+    let module_readable_identifier = get_cached_readable_identifier(
+      &module,
+      module_graph,
+      &compilation.module_static_cache,
+      &compilation.options.context,
+    );
+
+    match self {
+      Self::MissingChunks {
+        missing_chunks,
+        chunks,
+        ..
+      } => {
+        let chunk_by_ukey = &compilation.build_chunk_graph_artifact.chunk_by_ukey;
+        let mut missing_chunks = missing_chunks
+          .iter()
+          .map(|chunk| {
+            chunk_by_ukey
+              .expect_get(chunk)
+              .name()
+              .unwrap_or("unnamed chunk(s)")
+              .to_string()
+          })
+          .collect::<Vec<_>>();
+        missing_chunks.sort_unstable();
+        let mut chunks = chunks
+          .iter()
+          .map(|chunk| {
+            chunk_by_ukey
+              .expect_get(chunk)
+              .name()
+              .unwrap_or("unnamed chunk(s)")
+              .to_string()
+          })
+          .collect::<Vec<_>>();
+        chunks.sort_unstable();
+        format!(
+          "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
+          module_readable_identifier,
+          missing_chunks.join(", "),
+          chunks.join(", ")
+        )
+      }
+      Self::ReferencedFromNonModule { .. } => {
+        format!("Module {module_readable_identifier} is referenced")
+      }
+      Self::RuntimeDependent {
+        expected_runtime,
+        modules,
+        ..
+      } => {
+        format!(
+          "Module {} is runtime-dependent referenced by these modules: {}",
+          module_readable_identifier,
+          modules
+            .iter()
+            .map(|(origin_module, runtime_condition)| {
+              let readable_identifier = get_cached_readable_identifier(
+                origin_module,
+                module_graph,
+                &compilation.module_static_cache,
+                &compilation.options.context,
+              );
+              format!(
+                "{} (expected runtime {}, module is only referenced in {})",
+                readable_identifier,
+                expected_runtime,
+                runtime_condition.as_spec().expect("should be spec")
+              )
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+        )
+      }
+      Self::ReferencedFromDifferentChunks { modules, .. } => {
+        let mut names: Vec<_> = modules
+          .iter()
+          .map(|mid| {
+            get_cached_readable_identifier(
+              mid,
+              module_graph,
+              &compilation.module_static_cache,
+              &compilation.options.context,
+            )
+          })
+          .collect();
+        names.sort();
+        format!(
+          "Module {} is referenced from different chunks by these modules: {}",
+          module_readable_identifier,
+          names.join(", ")
+        )
+      }
+      Self::UnsupportedSyntax { modules, .. } => {
+        let names = modules
+          .iter()
+          .map(|(origin_module, dependency_names)| {
+            let readable_identifier = get_cached_readable_identifier(
+              origin_module,
+              module_graph,
+              &compilation.module_static_cache,
+              &compilation.options.context,
+            );
+            format!(
+              "{} (referenced with {})",
+              readable_identifier,
+              dependency_names.join(",")
+            )
+          })
+          .collect::<Vec<_>>();
+
+        format!(
+          "Module {} is referenced from these modules with unsupported syntax: {}",
+          module_readable_identifier,
+          names.join(", ")
+        )
+      }
+    }
+  }
+}
+
+impl Warning {
+  fn collect_readable_identifier_modules(&self, modules: &mut IdentifierSet) {
+    if let Self::Problem(problem) = self {
+      problem.collect_readable_identifier_modules(modules);
+    }
+  }
 }
 
 #[derive(Debug, Clone)]
@@ -137,9 +329,18 @@ impl<T> RuntimeIdentifierCache<T> {
 }
 
 impl ModuleConcatenationPlugin {
-  fn format_bailout_warning(&self, module: ModuleIdentifier, warning: &Warning) -> String {
+  fn format_bailout_warning(
+    &self,
+    module: ModuleIdentifier,
+    warning: &Warning,
+    module_graph: &ModuleGraph,
+    compilation: &Compilation,
+  ) -> String {
     match warning {
-      Warning::Problem(id) => format_bailout_reason(&format!("Cannot concat with {module}: {id}")),
+      Warning::Problem(problem) => format_bailout_reason(&format!(
+        "Cannot concat with {module}: {}",
+        problem.format(module_graph, compilation)
+      )),
       Warning::Id(id) => {
         let reason = self.get_inner_bailout_reason(id);
         let reason_with_prefix = match reason {
@@ -302,13 +503,6 @@ impl ModuleConcatenationPlugin {
       statistics.cache_hit += 1;
       Arc::clone(incomings)
     } else {
-      let module_readable_identifier = get_cached_readable_identifier(
-        module_id,
-        module_graph,
-        &compilation.module_static_cache,
-        &compilation.options.context,
-      );
-
       if !possible_modules.contains(module_id) {
         statistics.invalid_module += 1;
         let problem = Warning::Id(*module_id);
@@ -325,36 +519,13 @@ impl ModuleConcatenationPlugin {
         .collect();
 
       if !missing_chunks.is_empty() {
-        let problem_string = {
-          let mut missing_chunks_list = missing_chunks
-            .iter()
-            .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(chunk);
-              chunk.name().unwrap_or("unnamed chunk(s)")
-            })
-            .collect::<Vec<_>>();
-          missing_chunks_list.sort_unstable();
-
-          let mut chunks = cached
-            .chunks
-            .iter()
-            .map(|&chunk| {
-              let chunk = chunk_by_ukey.expect_get(&chunk);
-              chunk.name().unwrap_or("unnamed chunk(s)")
-            })
-            .collect::<Vec<_>>();
-          chunks.sort_unstable();
-
-          format!(
-            "Module {} is not in the same chunk(s) (expected in chunk(s) {}, module is in chunk(s) {})",
-            module_readable_identifier,
-            missing_chunks_list.join(", "),
-            chunks.join(", ")
-          )
-        };
+        let problem = Warning::Problem(ConcatenationProblem::MissingChunks {
+          module: *module_id,
+          missing_chunks: missing_chunks.into_iter().copied().collect(),
+          chunks: cached.chunks.iter().copied().collect(),
+        });
 
         statistics.incorrect_chunks += 1;
-        let problem = Warning::Problem(problem_string);
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
@@ -379,23 +550,8 @@ impl ModuleConcatenationPlugin {
 
         // TODO: ADD module connection explanations
         if has_active_non_modules_connections {
-          let problem = {
-            // let importing_explanations = active_non_modules_connections
-            //   .iter()
-            //   .flat_map(|&c| c.explanation())
-            //   .collect::<HashSet<_>>();
-            // let mut explanations: Vec<_> = importing_explanations.into_iter().collect();
-            // explanations.sort();
-            format!(
-              "Module {module_readable_identifier} is referenced",
-              // if !explanations.is_empty() {
-              //   format!("by: {}", explanations.join(", "))
-              // } else {
-              //   "in an unsupported way".to_string()
-              // }
-            )
-          };
-          let problem = Warning::Problem(problem);
+          let problem =
+            Warning::Problem(ConcatenationProblem::ReferencedFromNonModule { module: *module_id });
           statistics.incorrect_dependency += 1;
           failure_cache.insert(*module_id, problem.clone());
           return Some(problem);
@@ -574,32 +730,14 @@ impl ModuleConcatenationPlugin {
           }
 
           if !other_runtime_connections.is_empty() {
-            let problem = {
-              format!(
-                "Module {} is runtime-dependent referenced by these modules: {}",
-                module_readable_identifier,
-                other_runtime_connections
-                  .iter()
-                  .map(|(origin_module, runtime_condition)| {
-                    let readable_identifier = get_cached_readable_identifier(
-                      origin_module,
-                      module_graph,
-                      &compilation.module_static_cache,
-                      &compilation.options.context,
-                    );
-                    format!(
-                      "{} (expected runtime {}, module is only referenced in {})",
-                      readable_identifier,
-                      runtime,
-                      runtime_condition.as_spec().expect("should be spec")
-                    )
-                  })
-                  .collect::<Vec<_>>()
-                  .join(", ")
-              )
-            };
-
-            let problem = Warning::Problem(problem);
+            let problem = Warning::Problem(ConcatenationProblem::RuntimeDependent {
+              module: *module_id,
+              expected_runtime: runtime.clone(),
+              modules: other_runtime_connections
+                .into_iter()
+                .map(|(origin_module, runtime_condition)| (*origin_module, runtime_condition))
+                .collect(),
+            });
             statistics.incorrect_runtime_condition += 1;
             failure_cache.insert(*module_id, problem.clone());
             return Some(problem);
@@ -608,43 +746,20 @@ impl ModuleConcatenationPlugin {
       }
 
       if !other_chunk_modules.is_empty() {
-        let problem = {
-          let mut names: Vec<_> = other_chunk_modules
-            .into_iter()
-            .map(|mid| {
-              get_cached_readable_identifier(
-                &mid,
-                module_graph,
-                &compilation.module_static_cache,
-                &compilation.options.context,
-              )
-            })
-            .collect();
-          names.sort();
-          format!(
-            "Module {} is referenced from different chunks by these modules: {}",
-            module_readable_identifier,
-            names.join(", ")
-          )
-        };
-
         statistics.incorrect_chunks_of_importer += 1;
-        let problem = Warning::Problem(problem);
+        let problem = Warning::Problem(ConcatenationProblem::ReferencedFromDifferentChunks {
+          module: *module_id,
+          modules: other_chunk_modules,
+        });
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
       }
 
       if !non_esm_modules.is_empty() {
         let problem = {
-          let names: Vec<_> = non_esm_modules
+          let modules = non_esm_modules
             .iter()
             .map(|origin_module| {
-              let readable_identifier = get_cached_readable_identifier(
-                origin_module,
-                module_graph,
-                &compilation.module_static_cache,
-                &compilation.options.context,
-              );
               let mut names = incomings
                 .from_modules
                 .get(origin_module)
@@ -666,21 +781,15 @@ impl ModuleConcatenationPlugin {
                 })
                 .collect::<Vec<_>>();
               names.sort();
-              format!(
-                "{} (referenced with {})",
-                readable_identifier,
-                names.join(",")
-              )
+              (*origin_module, names)
             })
-            .collect();
+            .collect::<Vec<_>>();
 
-          format!(
-            "Module {} is referenced from these modules with unsupported syntax: {}",
-            module_readable_identifier,
-            names.join(", ")
-          )
+          Warning::Problem(ConcatenationProblem::UnsupportedSyntax {
+            module: *module_id,
+            modules,
+          })
         };
-        let problem = Warning::Problem(problem);
         statistics.incorrect_module_dependency += 1;
         failure_cache.insert(*module_id, problem.clone());
         return Some(problem);
@@ -944,6 +1053,7 @@ impl ModuleConcatenationPlugin {
     let mut stats_candidates = 0;
     let mut stats_size_sum = 0;
     let mut stats_empty_configurations = 0;
+    let mut empty_config_warnings = Vec::new();
 
     let start = logger.time("find modules to concatenate");
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
@@ -952,8 +1062,6 @@ impl ModuleConcatenationPlugin {
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
-    let module_static_cache = &compilation.module_static_cache;
-    let compilation_context = &compilation.options.context;
     let cache_modules = relevant_modules
       .iter()
       .chain(possible_inners.iter())
@@ -984,13 +1092,6 @@ impl ModuleConcatenationPlugin {
             .expect_get(chunk)
             .runtime()
         }));
-
-        let _ = get_cached_readable_identifier(
-          &module_id,
-          module_graph,
-          module_static_cache,
-          compilation_context,
-        );
 
         let connections = module
           .get_dependencies()
@@ -1197,13 +1298,7 @@ impl ModuleConcatenationPlugin {
         concat_configurations.push(current_configuration);
       } else {
         stats_empty_configurations += 1;
-        let module_graph = compilation.get_module_graph_mut();
-        let optimization_bailouts = module_graph.get_optimization_bailout_mut(current_root);
-        for warning in current_configuration.get_warnings_sorted() {
-          optimization_bailouts.push(OptimizationBailoutItem::Message(
-            self.format_bailout_warning(warning.0, &warning.1),
-          ));
-        }
+        empty_config_warnings.push((*current_root, current_configuration.get_warnings_sorted()));
       }
     }
 
@@ -1272,6 +1367,47 @@ impl ModuleConcatenationPlugin {
       let modules_set = config.get_modules();
       used_modules.extend(modules_set.iter().copied());
       batch.push(config);
+    }
+
+    let mut readable_identifier_modules = IdentifierSet::default();
+    for config in &batch {
+      readable_identifier_modules.extend(config.get_modules().iter().copied());
+    }
+    for (_, warnings) in &empty_config_warnings {
+      for (_, warning) in warnings {
+        warning.collect_readable_identifier_modules(&mut readable_identifier_modules);
+      }
+    }
+    let module_graph = compilation.get_module_graph();
+    let module_static_cache = &compilation.module_static_cache;
+    let compilation_context = &compilation.options.context;
+    readable_identifier_modules
+      .into_par_iter()
+      .for_each(|module_id| {
+        let _ = get_cached_readable_identifier(
+          &module_id,
+          module_graph,
+          module_static_cache,
+          compilation_context,
+        );
+      });
+
+    for (current_root, warnings) in empty_config_warnings {
+      let module_graph = compilation.get_module_graph();
+      let messages = warnings
+        .iter()
+        .map(|warning| {
+          OptimizationBailoutItem::Message(self.format_bailout_warning(
+            warning.0,
+            &warning.1,
+            module_graph,
+            compilation,
+          ))
+        })
+        .collect::<Vec<_>>();
+      let module_graph = compilation.get_module_graph_mut();
+      let optimization_bailouts = module_graph.get_optimization_bailout_mut(&current_root);
+      optimization_bailouts.extend(messages);
     }
 
     let new_modules = rspack_parallel::scope::<_, Result<_>>(|token| {

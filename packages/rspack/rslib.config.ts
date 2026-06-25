@@ -79,6 +79,20 @@ const commonLibConfig: LibConfig = {
   },
 };
 
+// TODO: Remove this workaround once rslib/rspack fixes runtime chunk naming
+// for bundled multi-lib builds.
+const withRuntimeChunk = (name: string): Pick<LibConfig, 'tools'> => ({
+  tools: {
+    rspack: {
+      optimization: {
+        runtimeChunk: {
+          name,
+        },
+      },
+    },
+  },
+});
+
 const mfRuntimePlugin: RsbuildPlugin = {
   name: 'mf-runtime',
   setup(api) {
@@ -224,6 +238,7 @@ export default defineConfig({
       output: {
         externals: [externalAlias, './moduleFederationDefaultRuntime.js'],
       },
+      ...withRuntimeChunk('rslib-runtime-index'),
     }),
     merge(commonLibConfig, {
       source: {
@@ -246,6 +261,7 @@ export default defineConfig({
           worker: './src/loader-runner/worker.ts',
         },
       },
+      ...withRuntimeChunk('rslib-runtime-worker'),
     }),
   ],
 });
