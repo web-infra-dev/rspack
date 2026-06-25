@@ -69,6 +69,7 @@ import { PackageManagerTabs } from '@theme';
   - [Rsbuild 2.1](#rsbuild-2-1)
   - [Rslib 0.23](#rslib-0-23)
   - [rspack-merge](#rspack-merge)
+  - [Rslint 0.6](#rslint-0-6)
 
 ## 性能提升
 
@@ -478,3 +479,25 @@ export default [serverConfig, clientConfig];
 ```
 
 `rspack-merge` 使用 TypeScript 编写，发布现代 ESM 构建产物，并保持运行时零依赖，让配置合并保持简单、可靠且足够轻量。
+
+### Rslint 0.6 \{#rslint-0-6}
+
+**内置大量规则**：Rslint 已移植 ESLint core 以及 `@typescript-eslint`、`react`、`jsx-a11y`、`jest`、`promise` 等社区插件的规则，目前[内置规则](https://rslint.rs/rules/)超过 400 条，常用规则开箱即用。
+
+**兼容 ESLint 插件**：在内置规则之外，Rslint 现在还可以直接运行社区 ESLint 插件的规则，与内置原生规则一同工作。只需在配置中以自定义前缀挂载插件，插件产生的诊断会合并进同一份报告，autofix 也能通过 `--fix` 和编辑器的 `source.fixAll` 一并应用，并且在 CLI 与 VS Code 扩展中表现一致。
+
+```js title="rslint.config.mjs"
+import examplePlugin from 'eslint-plugin-example';
+
+export default [
+  {
+    files: ['**/*.ts'],
+    plugins: { example: examplePlugin },
+    rules: {
+      'example/some-rule': 'error',
+    },
+  },
+];
+```
+
+更多用法和当前限制参考 [ESLint 插件兼容指南](https://rslint.rs/guide/eslint-plugins)。
