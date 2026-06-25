@@ -25,7 +25,7 @@ Use the project's existing blog metadata and component conventions. If the produ
 Each feature section should usually follow this pattern:
 
 - Describe the change clearly so readers understand its background, purpose, use cases, and user-facing benefits such as performance gains.
-- If a code or configuration example is useful, include one precise and concise example that makes the change easy to understand at a glance.
+- Avoid exhaustive API lists; select the key APIs or behaviors readers need, and when useful, use one precise code or configuration example to make the change clear at a glance.
 
 ## Headings
 
@@ -38,7 +38,9 @@ Each feature section should usually follow this pattern:
 
 - Be professional, direct, and understated.
 - Avoid vague claims such as "greatly improved" unless the improvement is explained or quantified.
+- Avoid slogan-like positioning in feature updates unless intentionally discussing product vision.
 - Qualify benchmark numbers with enough context to make them credible.
+- When presenting performance gains, bold only the key improvement numbers, avoid frequent emphasis, and use tables or images when they make the comparison clearer at a glance.
 - Use product and ecosystem terms consistently.
 - Write naturally in the target language; do not let the prose read like a literal translation from another language.
 

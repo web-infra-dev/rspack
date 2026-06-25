@@ -1,13 +1,13 @@
 ---
 name: create-draft-release-notes
-description: Create or update draft GitHub releases for the current project's main GitHub repository, then organize GitHub-generated release notes into user-friendly sections without rewriting release note items. Use for preparing, formatting, categorizing, creating, or updating GitHub release notes or draft releases, including optional highlights when the user asks for them.
+description: Create or update draft GitHub release notes, or output organized Markdown when draft creation is unavailable. Use for release notes, draft releases, release PR checks, npm staged publishing checks, and optional highlights.
 ---
 
 # Create Draft Release Notes
 
 ## Overview
 
-Create a GitHub draft release, organize the generated notes by conventional commit type, and save the organized body back to the draft. Preserve each release note item exactly; only split accidentally joined bullets, move bullets into sections, and adjust headings. Add a top `## Highlights` section only when the user explicitly asks for highlights.
+Create a GitHub draft release when possible, organize the generated notes by conventional commit type, and save the organized body back to the draft. If `gh` cannot create or edit the draft, return the organized Markdown in the conversation with manual creation steps. Preserve each release note item exactly; only split accidentally joined bullets, move bullets into sections, and adjust headings. Add a top `## Highlights` section only when the user explicitly asks for highlights.
 
 ## Security Notes
 
@@ -28,36 +28,59 @@ Input: a release tag/title such as `v2.0.6`. If title and tag differ, ask for th
    release_title="$release_tag"
    ```
 
-3. Verify access and ensure the release does not already exist:
+3. Verify access and whether the release already exists:
 
    ```bash
    gh auth status
-   gh repo view "$repo" --json nameWithOwner --jq '.nameWithOwner'
+   gh repo view "$repo" --json nameWithOwner,defaultBranchRef,viewerPermission
    gh release view "$release_tag" -R "$repo" --json tagName,isDraft,url
    ```
 
    If the release exists, stop unless the user explicitly asked to update that draft.
 
-4. Infer the previous tag:
+   If `gh` is not logged in, `viewerPermission` is below `WRITE`, or release create/edit later fails for permissions, continue with the [Markdown Fallback Workflow](#markdown-fallback-workflow).
+
+4. Infer the default branch and previous tag:
 
    ```bash
+   default_branch="$(gh repo view "$repo" --json defaultBranchRef --jq '.defaultBranchRef.name')"
    previous_tag="$(gh release list -R "$repo" --exclude-drafts --exclude-pre-releases --limit 1 --json tagName --jq '.[0].tagName')"
    gh release list -R "$repo" --exclude-drafts --exclude-pre-releases --limit 5
    ```
 
    Ask for confirmation if the previous tag is missing, surprising, or part of a non-standard range.
 
-5. Before creating anything, state the repo and range: `previous_tag -> release_tag`. If the user did not explicitly ask to create the draft in this turn, ask for confirmation.
+5. Check the latest release PR before generating notes. Prefer repository conventions; otherwise search release-like PR titles or branches targeting the default branch.
 
-6. Create the draft with GitHub-generated notes:
+   ```bash
+   gh pr list -R "$repo" --base "$default_branch" --state open --search "release in:title" --limit 20 --json number,title,url,headRefName,updatedAt
+   gh pr list -R "$repo" --base "$default_branch" --state all --search "release in:title" --limit 10 --json number,title,state,mergedAt,url,headRefName,headRefOid,updatedAt
+   ```
+
+   If a release PR for this release is still open, or the latest release PR candidate has `mergedAt: null`, stop and ask the user to merge it into the default branch first.
+
+6. If the repository uses npm staged publishing, verify packages from the latest merged release PR are already live on npm.
+
+   ```bash
+   rg -n "\b(npm|pnpm)\s+stage(\s+publish)?\b" package.json pnpm-workspace.yaml .github 2>/dev/null
+   release_pr_number="<latest-merged-release-pr-number>"
+   gh pr diff "$release_pr_number" -R "$repo" --name-only | rg '(^|/)package\.json$'
+   npm view "$package_name@$package_version" version --json
+   ```
+
+   For changed public packages, read `name` and `version` from the PR head or merged branch. Skip `"private": true`. If any version is missing from npm, stop and list the missing packages; tell the user to approve the staged packages with `npm stage approve <stage-id>` or from the npm website's Staged Packages tab, then rerun the workflow.
+
+7. Before creating anything, state the repo and range: `previous_tag -> release_tag`. If the user did not explicitly ask to create the draft in this turn, ask for confirmation.
+
+8. Create the draft with GitHub-generated notes:
 
    ```bash
    gh release create "$release_tag" -R "$repo" --draft --generate-notes --notes-start-tag "$previous_tag" --title "$release_title"
    ```
 
-   Add `--verify-tag` when the release must use an existing remote tag.
+   Add `--verify-tag` when the release must use an existing remote tag. If this fails because of auth or permissions, switch to the [Markdown Fallback Workflow](#markdown-fallback-workflow).
 
-7. Organize the draft body:
+9. Organize the draft body:
 
    ```bash
    tmp_dir="$(mktemp -d)"
@@ -65,17 +88,45 @@ Input: a release tag/title such as `v2.0.6`. If title and tag differ, ask for th
    node .agents/skills/create-draft-release-notes/scripts/create-draft-release-notes.mjs "$tmp_dir/generated.md" > "$tmp_dir/organized.md"
    ```
 
-8. Select the final notes file. Use `$tmp_dir/organized.md` by default. If the user asked for highlights, run the [Optional Highlights Workflow](#optional-highlights-workflow), write the result to `$tmp_dir/final.md`, and use that file instead.
+10. Select the final notes file. Use `$tmp_dir/organized.md` by default. If the user asked for highlights, run the [Optional Highlights Workflow](#optional-highlights-workflow), write the result to `$tmp_dir/final.md`, and use that file instead.
 
-9. Save the final body:
+11. Save the final body:
+
+    ```bash
+    gh release edit "$release_tag" -R "$repo" --draft --title "$release_title" --notes-file "$tmp_dir/organized.md"
+    ```
+
+    Replace `$tmp_dir/organized.md` with `$tmp_dir/final.md` when highlights were generated. If editing fails because of auth or permissions, return the final notes through the [Markdown Fallback Workflow](#markdown-fallback-workflow).
+
+12. Return the draft URL with `gh release view "$release_tag" -R "$repo" --json url --jq '.url'`.
+
+## Markdown Fallback Workflow
+
+Use this whenever `gh` is not logged in or cannot create/edit the draft release. Still run the release PR and staged publishing checks whenever repository metadata is available.
+
+1. Generate notes without creating a release when read access is available:
 
    ```bash
-   gh release edit "$release_tag" -R "$repo" --draft --title "$release_title" --notes-file "$tmp_dir/organized.md"
+   tmp_dir="$(mktemp -d)"
+   gh api "repos/$repo/releases/generate-notes" \
+     -f tag_name="$release_tag" \
+     -f previous_tag_name="$previous_tag" \
+     -f name="$release_title" \
+     --jq '.body' > "$tmp_dir/generated.md"
+   node .agents/skills/create-draft-release-notes/scripts/create-draft-release-notes.mjs "$tmp_dir/generated.md" > "$tmp_dir/organized.md"
    ```
 
-   Replace `$tmp_dir/organized.md` with `$tmp_dir/final.md` when highlights were generated.
+   If generated notes cannot be fetched, ask the user to provide the GitHub-generated Markdown or log in with repository read access.
 
-10. Return the draft URL with `gh release view "$release_tag" -R "$repo" --json url --jq '.url'`.
+2. Apply the [Optional Highlights Workflow](#optional-highlights-workflow) if requested.
+
+3. Return the final Markdown in a fenced `markdown` block and state that no draft was created because of auth or permissions.
+
+4. Give concise manual creation guidance:
+   - Open `https://github.com/<owner>/<repo>/releases/new`.
+   - Use tag `$release_tag` and title `$release_title`.
+   - Paste the Markdown body exactly as provided.
+   - Save it as a draft release after any missing staged npm packages have been approved.
 
 ## Markdown-Only Workflow
 
