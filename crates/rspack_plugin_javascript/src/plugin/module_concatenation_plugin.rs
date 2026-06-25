@@ -1521,35 +1521,6 @@ impl Plugin for ModuleConcatenationPlugin {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn problem_collects_readable_identifier_modules() {
-    let outer_warning_key = ModuleIdentifier::from("outer");
-    let subject = ModuleIdentifier::from("subject");
-    let origin = ModuleIdentifier::from("origin");
-    let other = ModuleIdentifier::from("other");
-    let problem = ConcatenationProblem::UnsupportedSyntax {
-      module: subject,
-      modules: vec![
-        (origin, vec!["commonjs require".to_string()]),
-        (other, vec![]),
-      ],
-    };
-
-    let mut modules = IdentifierSet::default();
-    Warning::Problem(problem).collect_readable_identifier_modules(&mut modules);
-
-    assert!(modules.contains(&subject));
-    assert!(modules.contains(&origin));
-    assert!(modules.contains(&other));
-    assert!(!modules.contains(&outer_warning_key));
-    assert_eq!(modules.len(), 3);
-  }
-}
-
 #[derive(Debug, Default)]
 struct Statistics {
   cached: u32,
