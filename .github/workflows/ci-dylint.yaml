@@ -1,16 +1,16 @@
 name: CI-Dylint
 
 on:
-  pull_request:
-    types: [opened, synchronize]
-    paths:
-      - '.github/workflows/ci-dylint.yaml'
-      - '.github/actions/rustup/**'
-      - 'crates/**'
-      - 'linting/**'
-      - 'Cargo.lock'
-      - 'Cargo.toml'
-      - 'rust-toolchain.toml'
+  #   pull_request:
+  #     types: [opened, synchronize]
+  #     paths:
+  #       - '.github/workflows/ci-dylint.yaml'
+  #       - '.github/actions/rustup/**'
+  #       - 'crates/**'
+  #       - 'linting/**'
+  #       - 'Cargo.lock'
+  #       - 'Cargo.toml'
+  #       - 'rust-toolchain.toml'
   merge_group:
     types: [checks_requested]
   workflow_dispatch:

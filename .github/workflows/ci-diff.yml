@@ -1,13 +1,13 @@
 name: CI Diff
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    # Ignore md files in PR to skip workflow when only documentation changes
-    paths-ignore:
-      - '**/*.md'
-      - 'website/**'
-
+  #   pull_request:
+  #     types: [opened, synchronize, reopened]
+  #     # Ignore md files in PR to skip workflow when only documentation changes
+  #     paths-ignore:
+  #       - '**/*.md'
+  #       - 'website/**'
+  #
   push:
     branches:
       - main

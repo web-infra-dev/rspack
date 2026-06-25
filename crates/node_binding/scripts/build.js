@@ -19,6 +19,7 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
+const debugFresh = measureFresh && process.env.MEASURE_CARGO_FRESH_DEBUG === "1";
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -46,6 +47,10 @@ async function build() {
 		const rustflags = []
 		const features = [];
 		const envs = { ...process.env };
+		if (debugFresh) {
+			// Ask cargo to log why each unit is considered dirty so cache misses are explainable.
+			envs.CARGO_LOG = "cargo::core::compiler::fingerprint=info";
+		}
 		const use_build_std = values.profile === "release"
 			|| values.profile === "release-debug"
 			|| values.profile === "release-wasi"
@@ -133,12 +138,13 @@ async function build() {
 		console.log(`Run command: napi ${args.join(" ")}`);
 
 		const cp = spawn("napi", args, {
-			stdio: measureFresh ? ["inherit", "pipe", "inherit"] : "inherit",
+			stdio: measureFresh ? ["inherit", "pipe", debugFresh ? "pipe" : "inherit"] : "inherit",
 			shell: true,
 			env: envs,
 		});
 
 		const freshStats = measureFresh ? collectFreshStats(cp.stdout) : null;
+		const dirtyReasons = debugFresh ? collectDirtyReasons(cp.stderr) : null;
 
 		cp.on("error", reject);
 		cp.on("close", (code) => {
@@ -173,6 +179,9 @@ async function build() {
 				if (freshStats) {
 					reportFreshStats(freshStats);
 				}
+				if (dirtyReasons) {
+					reportDirtyReasons(dirtyReasons);
+				}
 			}
 			resolve(code);
 		});
@@ -204,6 +213,65 @@ function collectFreshStats(stdout) {
 		}
 	});
 	return stats;
+}
+
+function collectDirtyReasons(stderr) {
+	// Parse `CARGO_LOG=cargo::core::compiler::fingerprint=info` output, pairing each
+	// "fingerprint error for <crate> ..." with its following "err: <reason>" line.
+	const reasons = new Map();
+	const ansi = /\x1b\[[0-9;]*m/g;
+	stderr.setEncoding("utf8");
+	let buffer = "";
+	let current = null;
+	stderr.on("data", chunk => {
+		process.stderr.write(chunk); // tee raw logs so the full trace stays in the CI output
+		buffer += chunk;
+		let nl;
+		while ((nl = buffer.indexOf("\n")) !== -1) {
+			const line = buffer.slice(0, nl).replace(/\r$/, "").replace(ansi, "");
+			buffer = buffer.slice(nl + 1);
+			const head = line.match(/fingerprint error for (\S+)/);
+			if (head) {
+				current = head[1];
+				continue;
+			}
+			const err = line.match(/\berr:\s*(.+)$/);
+			if (err && current) {
+				if (!reasons.has(current)) reasons.set(current, new Set());
+				reasons.get(current).add(err[1].trim());
+				current = null;
+			}
+		}
+	});
+	return reasons;
+}
+
+function reportDirtyReasons(reasons) {
+	const target = process.env.RUST_TARGET || "host";
+	if (!reasons.size) {
+		console.log(`::notice title=Recompile Reasons::${target}: no fingerprint errors captured`);
+		return;
+	}
+	const lines = [...reasons.entries()]
+		.sort((a, b) => a[0].localeCompare(b[0]))
+		.map(([crate, set]) => `${crate}: ${[...set].join(" | ")}`);
+	console.log(`::group::Recompile reasons (cargo fingerprint) — ${target}`);
+	for (const l of lines) console.log(l);
+	console.log("::endgroup::");
+	if (process.env.GITHUB_STEP_SUMMARY) {
+		appendFileSync(
+			process.env.GITHUB_STEP_SUMMARY,
+			`### Recompile reasons — \`${target}\`\n\n` +
+				`| crate | fingerprint reason |\n| ----- | ------------------ |\n` +
+				lines
+					.map(l => {
+						const i = l.indexOf(": ");
+						return `| ${l.slice(0, i)} | ${l.slice(i + 2)} |`;
+					})
+					.join("\n") +
+				`\n\n`
+		);
+	}
 }
 
 function reportFreshStats({ fresh, total, notFresh = [] }) {

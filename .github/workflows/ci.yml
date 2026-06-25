@@ -10,6 +10,11 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
+      cargo_fresh_debug:
+        type: boolean
+        description: 'Log cargo fingerprint dirty reasons to debug Rust cache misses'
+        required: false
+        default: false
   pull_request:
     types: [opened, synchronize]
   push:
@@ -62,190 +67,193 @@ jobs:
       target: x86_64-unknown-linux-gnu
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+      cargo_fresh_debug: true # [cache-debug] forced on for this investigation branch (PR events carry no inputs)
 
-  test-linux:
-    name: Test Linux
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
 
-  bench-rust:
-    name: Rust Bench
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/bench-rust.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      runner: '"ubuntu-22.04"'
-
-  bench-rust-walltime:
-    name: Rust Bench Walltime
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
-    uses: ./.github/workflows/bench-rust.yml
-    with:
-      target: x86_64-unknown-linux-gnu
-      measurement: walltime
-      bench_target: walltime
-      runner: '"physical-1-exclusive"'
-
-  test-windows:
-    name: Test Windows
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: x86_64-pc-windows-msvc
-      profile: 'ci'
-      runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
-      test-runner: '"windows-latest"'
-      test: true
-
-  test-mac:
-    name: Test Mac ARM64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build.yml
-    with:
-      target: aarch64-apple-darwin
-      profile: 'ci'
-      runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
-      test-runner: ${{ '"macos-latest"' }}
-      test: true
-
-  build-wasm:
-    name: Build WASM
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: wasm32-wasip1-threads
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  test-wasm:
-    name: Test WASM
-    needs: [check-changed, build-wasm]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-test.yml
-    with:
-      target: wasm32-wasip1-threads
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  build-riscv64:
-    name: Build riscv64
-    needs: [check-changed]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
-    uses: ./.github/workflows/reusable-build-build.yml
-    with:
-      target: riscv64gc-unknown-linux-gnu
-      profile: 'ci'
-      runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-
-  # TODO: Enable this job after Rspack portable cache is implemented.
-  check-cache:
-    name: Check Cache Portable
-    needs: [test-linux, test-windows]
-    if: ${{ false }}
-    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
-      - name: Install Rust Toolchain
-        uses: ./.github/actions/rustup
-        with:
-          key: test_cache
-          save-if: true
-      - name: Download linux cache
-        uses: ./.github/actions/artifact/download
-        with:
-          name: testCase-persistentCache-linux
-          path: ./cache-linux
-          force-use-github-only: true
-      - name: Download windows cache
-        uses: ./.github/actions/artifact/download
-        with:
-          name: testCase-persistentCache-windows
-          path: ./cache-windows
-          force-use-github-only: true
-      - name: Run compare kit
-        run: cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
-
-  test_required_check:
-    # this job will be used for GitHub actions to determine required job success or not;
-    # When code changed, it will check if any of the test jobs failed.
-    # When *only* doc changed, it will run as success directly
-    name: Test Required Check
-    needs:
-      [
-        build-linux,
-        test-linux,
-        test-windows,
-        test-mac,
-        build-wasm,
-        build-riscv64,
-        test-wasm,
-        check-changed,
-        size-limit,
-        check-cache,
-      ]
-    if: ${{ always() && !cancelled() }}
-    runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
-    steps:
-      - name: Log
-        run: echo ${{ join(needs.*.result, ',') }}
-      - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true'
-          && github.event_name == 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,skipped' }}
-        run: echo "Test Failed" && exit 1
-
-      - name: Test check
-        if: ${{ needs.check-changed.outputs.code_changed == 'true'
-          && github.event_name != 'pull_request'
-          && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,skipped' }}
-        run: echo "Test Failed" && exit 1
-
-      - name: No check to Run test
-        run: echo "Success"
-
-  size-limit:
-    name: Binary Size Limit
-    needs: [check-changed, build-linux]
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
-    uses: ./.github/workflows/size-limit.yml
-
-  ecosystem_ci_per_commit:
-    name: Run ecosystem CI per commit
-    needs: [check-changed, build-linux]
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    permissions:
-      contents: write
-    if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
-    steps:
-      - name: Trigger Ecosystem CI
-        uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@f0d685b33462055bb07a8a3620b753696ad5f515 # v0.3.3
-        with:
-          github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
-          ecosystem-owner: web-infra-dev
-          ecosystem-repo: rspack
-          workflow-file: rspack-ecosystem-ci-from-commit.yml
-          client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded","sourceRunId":"${{ github.run_id }}","sourceRepo":"web-infra-dev/rspack"}'
-
-  # TODO: enable it after self hosted runners are ready
-  # pkg-preview:
-  #   name: Pkg Preview
-  #   needs:
-  #     - test-linux
-  #     - test-windows
-  #     - cargo-deny
-  #     - lint
-  #     - rust_check
-  #     - rust_test
-  #   # after merged to main branch
-  #   if: ${{ !failure() && github.event_name == 'push' }}
-  #   uses: ./.github/workflows/preview-commit.yml
+#   test-linux:
+#     name: Test Linux
+#     needs: [check-changed, build-linux]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build-test.yml
+#     with:
+#       target: x86_64-unknown-linux-gnu
+#       runner: '"ubuntu-22.04"'
+#
+#   bench-rust:
+#     name: Rust Bench
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/bench-rust.yml
+#     with:
+#       target: x86_64-unknown-linux-gnu
+#       runner: '"ubuntu-22.04"'
+#
+#   bench-rust-walltime:
+#     name: Rust Bench Walltime
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' && (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')) }}
+#     uses: ./.github/workflows/bench-rust.yml
+#     with:
+#       target: x86_64-unknown-linux-gnu
+#       measurement: walltime
+#       bench_target: walltime
+#       runner: '"physical-1-exclusive"'
+#
+#   test-windows:
+#     name: Test Windows
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build.yml
+#     with:
+#       target: x86_64-pc-windows-msvc
+#       profile: 'ci'
+#       runner: ${{ vars.WINDOWS_SELF_HOSTED_RUNNER_LABELS || '"windows-latest"' }}
+#       test-runner: '"windows-latest"'
+#       test: true
+#
+#   test-mac:
+#     name: Test Mac ARM64
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build.yml
+#     with:
+#       target: aarch64-apple-darwin
+#       profile: 'ci'
+#       runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
+#       test-runner: ${{ '"macos-latest"' }}
+#       test: true
+#
+#   build-wasm:
+#     name: Build WASM
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build-build.yml
+#     with:
+#       target: wasm32-wasip1-threads
+#       profile: 'ci'
+#       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+#
+#   test-wasm:
+#     name: Test WASM
+#     needs: [check-changed, build-wasm]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build-test.yml
+#     with:
+#       target: wasm32-wasip1-threads
+#       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+#
+#   build-riscv64:
+#     name: Build riscv64
+#     needs: [check-changed]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' }}
+#     uses: ./.github/workflows/reusable-build-build.yml
+#     with:
+#       target: riscv64gc-unknown-linux-gnu
+#       profile: 'ci'
+#       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+#
+#   # TODO: Enable this job after Rspack portable cache is implemented.
+#   check-cache:
+#     name: Check Cache Portable
+#     needs: [test-linux, test-windows]
+#     if: ${{ false }}
+#     runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+#       - name: Install Rust Toolchain
+#         uses: ./.github/actions/rustup
+#         with:
+#           key: test_cache
+#           save-if: true
+#       - name: Download linux cache
+#         uses: ./.github/actions/artifact/download
+#         with:
+#           name: testCase-persistentCache-linux
+#           path: ./cache-linux
+#           force-use-github-only: true
+#       - name: Download windows cache
+#         uses: ./.github/actions/artifact/download
+#         with:
+#           name: testCase-persistentCache-windows
+#           path: ./cache-windows
+#           force-use-github-only: true
+#       - name: Run compare kit
+#         run: cargo run -p rspack_tools -- compare ./cache-linux ./cache-windows
+#
+#   test_required_check:
+#     # this job will be used for GitHub actions to determine required job success or not;
+#     # When code changed, it will check if any of the test jobs failed.
+#     # When *only* doc changed, it will run as success directly
+#     name: Test Required Check
+#     needs:
+#       [
+#         build-linux,
+#         test-linux,
+#         test-windows,
+#         test-mac,
+#         build-wasm,
+#         build-riscv64,
+#         test-wasm,
+#         check-changed,
+#         size-limit,
+#         check-cache,
+#       ]
+#     if: ${{ always() && !cancelled() }}
+#     runs-on: ${{ fromJSON(vars.CI_LINUX_MINI_RUNNER || '"ubuntu-latest"') }}
+#     steps:
+#       - name: Log
+#         run: echo ${{ join(needs.*.result, ',') }}
+#       - name: Test check
+#         if: ${{ needs.check-changed.outputs.code_changed == 'true'
+#           && github.event_name == 'pull_request'
+#           && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,success,skipped' }}
+#         run: echo "Test Failed" && exit 1
+#
+#       - name: Test check
+#         if: ${{ needs.check-changed.outputs.code_changed == 'true'
+#           && github.event_name != 'pull_request'
+#           && join(needs.*.result, ',')!='success,success,success,success,success,success,success,success,skipped,skipped' }}
+#         run: echo "Test Failed" && exit 1
+#
+#       - name: No check to Run test
+#         run: echo "Success"
+#
+#   size-limit:
+#     name: Binary Size Limit
+#     needs: [check-changed, build-linux]
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'pull_request' }}
+#     uses: ./.github/workflows/size-limit.yml
+#
+#   ecosystem_ci_per_commit:
+#     name: Run ecosystem CI per commit
+#     needs: [check-changed, build-linux]
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 40
+#     permissions:
+#       contents: write
+#     if: ${{ needs.check-changed.outputs.code_changed == 'true' && github.event_name == 'push' }}
+#     steps:
+#       - name: Trigger Ecosystem CI
+#         uses: rstackjs/rstack-ecosystem-ci/.github/actions/ecosystem_ci_per_commit@f0d685b33462055bb07a8a3620b753696ad5f515 # v0.3.3
+#         with:
+#           github-token: ${{ secrets.REPO_RSTACK_ECO_CI_GITHUB_TOKEN }}
+#           ecosystem-owner: web-infra-dev
+#           ecosystem-repo: rspack
+#           workflow-file: rspack-ecosystem-ci-from-commit.yml
+#           client-payload: '{"commitSHA":"${{ github.sha }}","updateComment":true,"repo":"web-infra-dev/rspack","suite":"-","suiteRefType":"precoded","suiteRef":"precoded","sourceRunId":"${{ github.run_id }}","sourceRepo":"web-infra-dev/rspack"}'
+#
+#   # TODO: enable it after self hosted runners are ready
+#   # pkg-preview:
+#   #   name: Pkg Preview
+#   #   needs:
+#   #     - test-linux
+#   #     - test-windows
+#   #     - cargo-deny
+#   #     - lint
+#   #     - rust_check
+#   #     - rust_test
+#   #   # after merged to main branch
+#   #   if: ${{ !failure() && github.event_name == 'push' }}
+#   #   uses: ./.github/workflows/preview-commit.yml
+#
