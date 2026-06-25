@@ -24,7 +24,7 @@ runs:
         cache-all-crates: 'true'
 
     - name: Cache to local
-      uses: rstackjs/rust-cache@63150d5565b253e99497cbe4226561b3297fd0dc # feat/cache-workspace-crates
+      uses: rstackjs/rust-cache@294670d9b2e7123011ba691897c24a5ee48cb816 # v0.0.3
       if: ${{ runner.environment == 'self-hosted' }}
       with:
         prefix-key: 'RCache-L-6-test1'
