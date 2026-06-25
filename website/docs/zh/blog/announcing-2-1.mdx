@@ -288,14 +288,11 @@ export default {
 
 ### `pureFunctions` 稳定化 \{#pure-functions}
 
-Rspack 2.0 引入了实验性的 [`experiments.pureFunctions`](/config/experiments#experimentspurefunctions)，用于在跨模块场景下对无副作用函数进行更细粒度的 tree shaking。它包含两部分能力：
+Rspack 2.0 引入了实验性的 [`pureFunctions`](/config/experiments#experimentspurefunctions)，用于在跨模块场景下对无副作用函数调用进行更细粒度的 tree shaking。经过一段时间的迭代和验证，Rspack 2.1 将这项能力在生产模式下默认开启，无需再手动设置 `experiments.pureFunctions: true`。
 
-- [`/*#__NO_SIDE_EFFECTS__*/`](/guide/optimization/tree-shaking#no_side_effects-注解) 注解，在**函数定义处**声明该函数调用无副作用；
-- [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 配置，面向无法直接修改源码的第三方库，手动将顶层标识符标记为“调用无副作用”。
+这项能力主要覆盖两类场景：可以在函数定义处添加 [`/*#__NO_SIDE_EFFECTS__*/`](/guide/optimization/tree-shaking#no_side_effects-注解) 注解，也可以通过 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 配置标记无副作用函数。当被标记函数的调用结果未被使用时，Rspack 会在 tree shaking 时安全移除这类调用。
 
-当被标记函数的调用结果未被使用时，该调用会在 tree shaking 时被安全移除。
-
-在 Rspack 2.0 中，这项能力还需要手动设置 `experiments.pureFunctions: true` 才能启用。经过一段时间的迭代和验证，**从 Rspack 2.1 开始，`pureFunctions` 在生产模式下默认开启**，无需额外配置即可生效。这意味着 `/*#__NO_SIDE_EFFECTS__*/` 注解和 `pureFunctions` 配置将在生产构建中开箱即用：
+例如，下面的 `join` 函数已声明为无副作用函数。如果调用返回值没有被使用，该调用会被自动移除：
 
 ```js title="utils.js"
 /*#__NO_SIDE_EFFECTS__*/
@@ -311,7 +308,7 @@ import { join } from './utils';
 join('btn', 'primary');
 ```
 
-该能力依赖 [`optimization.sideEffects`](/config/optimization#optimizationsideeffects) 为 `true`（在生产模式下默认即为 `true`）。如果你希望关闭这项分析，可以将 `experiments.pureFunctions` 显式设为 `false`：
+如果你希望关闭这项分析，可以禁用 `experiments.pureFunctions`：
 
 ```js title="rspack.config.mjs"
 export default {
