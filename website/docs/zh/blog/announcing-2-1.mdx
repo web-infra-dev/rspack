@@ -54,11 +54,11 @@ import { PackageManagerTabs } from '@theme';
   - [更快的循环依赖检查](#circular-check)
 - 新特性
   - [支持 `import.meta.glob`](#import-meta-glob)
-  - [完善 Built-in CSS 支持](#builtin-css-features)
-  - [支持 `createRequire`](#create-require)
-  - [Rspack magic comments](#magic-comments)
-  - [支持 Source Phase Imports](#source-phase-imports)
-  - [新的持久化缓存清理机制](#cache-cleanup)
+  - [改进内置 CSS 支持](#builtin-css-features)
+  - [支持解析 `createRequire`](#create-require)
+  - [Rspack 魔法注释](#magic-comments)
+  - [支持 Source phase imports](#source-phase-imports)
+  - [自动清理持久化缓存](#cache-cleanup)
 - 产物优化
   - [`pureFunctions` 稳定化](#pure-functions)
   - [分支感知的依赖裁剪](#branch-aware-dependency-pruning)
@@ -66,12 +66,12 @@ import { PackageManagerTabs } from '@theme';
   - [`export const` 值绑定优化](#export-const-getter)
 - 生态
   - [TanStack RSC 支持](#tanstack-rsc-support)
-  - [Rsbuild 2.1](#rsbuild-2-1)
-  - [Rslib 0.23](#rslib-0-23)
-  - [Rstest 0.10](#rstest-0-10)
+  - [Rsbuild](#rsbuild)
+  - [Rslib](#rslib)
+  - [Rstest](#rstest)
+  - [Rslint](#rslint)
+  - [Rspress](#rspress)
   - [rspack-merge](#rspack-merge)
-  - [Rslint 0.6](#rslint-0-6)
-  - [Rspress 2.0.15](#rspress)
 
 ## 性能提升
 
@@ -181,19 +181,19 @@ for (const path in pages) {
 }
 ```
 
-这项功能已经在 Vite 和 Turbopack 中实现。Rspack 新增支持后，开发者可以在不同生态工具之间使用更一致、更熟悉的写法，减少切换工具时的认知成本。
-这也让同时支持多种工具链的框架和库作者，可以复用更接近的实现。
-查看 [`import.meta.glob` 文档](/api/runtime-api/module-variables#importmetaglob) 了解完整用法。
+这项功能已经在 Vite 和 Turbopack 中实现。Rspack 新增支持后，开发者可以在不同生态工具之间使用更一致、更熟悉的写法，减少切换工具时的认知成本。这也让同时支持多种构建工具的框架和库作者，可以复用更接近的实现。
 
-### 完善 Built-in CSS 支持 \{#builtin-css-features}
+> 查看 [`import.meta.glob` 文档](/api/runtime-api/module-variables#importmetaglob) 了解完整用法。
 
-Rspack 2.1 进一步完善了 [Built-in CSS support](/guide/tech/css#内置-css-支持) 能力。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
+### 改进内置 CSS 支持 \{#builtin-css-features}
 
-CSS Modules 相关能力也继续补齐，覆盖更多 CSS Modules 功能。
+Rspack 2.1 进一步改进了 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
 
-详细配置可参考 [Built-in CSS support 文档](/guide/tech/css#内置-css-支持)、[`module.generator` 的 CSS 选项](/config/module-generator#cssauto) 和 [`module.parser` 的 CSS 选项](/config/module-parser#cssauto)。
+CSS Modules 相关能力也继续补齐，支持更多 CSS Modules 语法与行为。
 
-### 支持 `createRequire` \{#create-require}
+相关配置可参考 [`module.generator`](/config/module-generator#cssauto) 和 [`module.parser`](/config/module-parser#cssauto) 的 CSS 选项。
+
+### 支持解析 `createRequire` \{#create-require}
 
 ESM 模块中没有内置的 `require`，因此 Node.js 提供了 [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename)，允许你在 ESM 中创建一个 `require` 函数，用于加载 CommonJS 模块。在以往版本中，Rspack 无法静态分析通过这种方式创建出的 `require`，因此由它加载的模块也无法被正常打包。
 
@@ -226,16 +226,17 @@ const value = require('./value.cjs');
 
 该选项默认关闭，查看 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 了解更多。
 
-### Rspack magic comments \{#magic-comments}
+### Rspack 魔法注释 \{#magic-comments}
 
-Rspack 2.1 为 [magic comments](/api/runtime-api/module-methods#magic-comments)
-增加了 `rspack` 前缀。新代码可以优先使用 `rspack*` 写法来传递编译提示；原有的 `webpack*` 写法仍然继续兼容，因此现有项目无需迁移。
+Rspack 2.1 为 [magic comments](/api/runtime-api/module-methods#magic-comments) 增加了 `rspack` 前缀支持。现在你可以使用 `rspack` 前缀声明编译提示：
 
 ```js
 import(/* rspackChunkName: "dashboard" */ './dashboard');
 ```
 
-查看 [magic comments 文档](/api/runtime-api/module-methods#magic-comments) 了解完整用法。
+原有的 `webpack` 前缀仍然兼容，因此现有项目无需迁移。
+
+> 查看 [magic comments 文档](/api/runtime-api/module-methods#magic-comments) 了解更多。
 
 ### 支持 Source phase imports \{#source-phase-imports}
 
@@ -268,9 +269,9 @@ const instance = await WebAssembly.instantiate(wasmModule);
 
 此外，Rspack 新增了 [`module.rules[].phase`](/config/module-rules#rulesphase)，用于按模块的导入阶段匹配规则。你可以区分普通导入的 `evaluation`、`import defer` 的 `defer`，以及 Source Phase Imports 的 `source`，从而为同一个资源在不同导入方式下配置不同的 loader、parser 选项或模块类型。
 
-### 新的持久化缓存清理机制 \{#cache-cleanup}
+### 自动清理持久化缓存 \{#cache-cleanup}
 
-Rspack 的持久化缓存会根据缓存版本进行隔离。当 `cache.version`、影响缓存的配置或 Rspack 版本发生变化时，Rspack 会在缓存目录中创建新的缓存版本，避免不同配置之间复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录的场景下，旧缓存版本可能持续累积，占用越来越多磁盘空间。
+Rspack 的持久化缓存按版本隔离。当 `cache.version`、缓存相关配置或 Rspack 版本变化时，Rspack 会创建新的缓存版本，避免复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录时，旧缓存版本可能持续累积并占用磁盘空间。
 
 Rspack 2.1 为持久化缓存新增了自动清理机制，通过 `cache.maxAge` 和 `cache.maxVersions` 控制缓存目录中保留的旧版本：
 
@@ -418,15 +419,13 @@ export default 'default value';
 - [TanStack Start 指南](https://rsbuild.rs/zh/guide/framework/react#tanstack-start)：介绍如何在 TanStack Start 中使用 Rsbuild
 - [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件
 
-## Rstack 进展
-
-### Rsbuild 2.1 \{#rsbuild-2-1}
+### Rsbuild \{#rsbuild}
 
 Rsbuild 2.1 已经与 Rspack 2.1 同步发布，查看 [Rsbuild 2.1 博客](https://rsbuild.rs/zh/blog/v2-1) 了解更多。
 
-### Rslib 0.23 \{#rslib-0-23}
+### Rslib \{#rslib}
 
-Rslib 新增了基于 `isolatedDeclarations` 的快速类型生成方式。开启 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated) 后，Rslib 会在 Rspack 构建过程中使用 SWC 的 `fast_dts` 能力，直接为依赖图中的 TypeScript 模块输出类型声明文件。
+Rslib 新增了基于 `isolatedDeclarations` 的快速类型生成方式。开启 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated) 后，Rslib 会在 Rspack 构建过程中使用 SWC 的类型生成能力，直接为依赖图中的 TypeScript 模块输出类型声明文件。
 
 ```ts title="rslib.config.ts"
 import { defineConfig } from '@rslib/core';
@@ -457,35 +456,35 @@ export default defineConfig({
 
 > 更多详情参考 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated)。
 
-### Rstest 0.10 \{#rstest-0-10}
+### Rstest \{#rstest}
 
 Rstest 0.10 聚焦测试效率与稳定性，新增 `--changed` / `--related` 测试过滤能力，可只运行受源码改动影响的测试，显著缩短大型项目在本地开发和 CI 中的反馈时间。
 
 `--changed` 会自动从 Git 工作区中检测发生变化的源文件，包括 unstaged、staged 和 untracked 文件，并只运行相关测试：
 
 ```bash
-npx rstest run --changed
+rstest run --changed
 ```
 
 你也可以指定某个 commit 或分支作为对比范围：
 
 ```bash
-npx rstest run --changed=HEAD~1
-npx rstest run --changed=origin/main
+rstest run --changed=HEAD~1
+rstest run --changed=origin/main
 ```
 
 `--related` 则可以显式传入源文件，只运行依赖这些文件的测试。它也提供了与 Jest 兼容的 `--findRelatedTests` 别名：
 
 ```bash
-npx rstest run --related src/button.ts
-npx rstest run --findRelatedTests src/button.ts
+rstest run --related src/button.ts
+rstest run --findRelatedTests src/button.ts
 ```
 
 如果只想预览受影响的测试文件，可以搭配 `rstest list` 使用：
 
 ```bash
-npx rstest list --changed --filesOnly
-npx rstest list --related src/button.ts --filesOnly
+rstest list --changed --filesOnly
+rstest list --related src/button.ts --filesOnly
 ```
 
 同时，Rstest 0.10 还包含以下改进：
@@ -497,9 +496,9 @@ npx rstest list --related src/button.ts --filesOnly
 - 新增 `--trace` 性能分析能力，方便定位测试运行中的性能瓶颈。
 - 优化 worker 输出归因，让日志和崩溃信息更容易定位。
 
-更多信息请参考 [Rstest 0.10 博客](https://rstest.rs/blog/announcing-0-10)。
+> 更多信息请参考 [Rstest 0.10 博客](https://rstest.rs/zh/blog/announcing-0-10)。
 
-### Rslint 0.6 \{#rslint-0-6}
+### Rslint \{#rslint}
 
 **内置大量规则**：Rslint 已移植 ESLint core 以及 `@typescript-eslint`、`react`、`jsx-a11y`、`jest`、`promise` 等社区插件的规则，目前[内置规则](https://rslint.rs/rules/)超过 400 条，常用规则开箱即用。
 
@@ -521,9 +520,9 @@ export default [
 
 更多用法和当前限制参考 [ESLint 插件兼容指南](https://rslint.rs/guide/eslint-plugins)。
 
-### Rspress 2.0.15 \{#rspress-2-0-15}
+### Rspress \{#rspress}
 
-Rspress 现在提供了更多可安装的 AI skill，例如：
+Rspress 现在提供了更多 Agent Skills，例如：
 
 - `rspress-docs-generator`：为当前项目生成一个 Rspress 文档站
 - `rspress-custom-theme`：生成一个自定义的 Rspress 主题
@@ -532,7 +531,7 @@ Rspress 现在提供了更多可安装的 AI skill，例如：
 
 ![Rspress 自定义主题 skill](https://assets.rspack.rs/rspress/assets/rspress-custom-theme-skill.png)
 
-这些 skill 既可以直接安装到现有项目中，也可以在项目初始化时直接选择。更多信息参考 [Rspress - AI 指南](https://rspress.rs/guide/start/ai)。
+这些 skill 既可以直接安装到现有项目中，也可以在项目初始化时直接选择。更多信息参考 [Rspress - AI 指南](https://rspress.rs/zh/guide/start/ai)。
 
 ### rspack-merge \{#rspack-merge}
 
