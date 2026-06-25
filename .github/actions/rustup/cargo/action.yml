@@ -17,7 +17,7 @@ runs:
       if: ${{ runner.environment == 'github-hosted' }}
       uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
       with:
-        prefix-key: 'RCache-G-3'
+        prefix-key: 'RCache-G-exp.1'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         cache-workspace-crates: 'true'
@@ -27,7 +27,7 @@ runs:
       uses: rstackjs/rust-cache@294670d9b2e7123011ba691897c24a5ee48cb816 # v0.0.3
       if: ${{ runner.environment == 'self-hosted' }}
       with:
-        prefix-key: 'RCache-L-8'
+        prefix-key: 'RCache-L-exp.1'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         fullmatch-only: 'true'
