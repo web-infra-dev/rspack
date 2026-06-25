@@ -35,17 +35,35 @@ pub async fn create_module_assets(
       continue;
     }
 
-    module_assets.reserve(assets.len());
-    for (name, asset) in assets {
-      module_assets.push((name.clone(), asset.clone()));
-    }
     // assets of executed modules are not in this compilation
     if let Some(chunks) = chunk_graph.try_get_module_chunks(identifier) {
-      for chunk in chunks {
+      module_assets.reserve(assets.len());
+      if chunks.len() == 1 {
+        let chunk = chunks
+          .iter()
+          .next()
+          .expect("chunk set should not be empty when len is 1");
         let chunk = chunk_by_ukey.expect_get_mut(chunk);
-        for name in assets.keys() {
-          chunk.add_auxiliary_file(name.clone());
+        for (name, asset) in assets {
+          let name = name.clone();
+          module_assets.push((name.clone(), asset.clone()));
+          chunk.add_auxiliary_file(name);
         }
+      } else {
+        for (name, asset) in assets {
+          module_assets.push((name.clone(), asset.clone()));
+        }
+        for chunk in chunks {
+          let chunk = chunk_by_ukey.expect_get_mut(chunk);
+          for name in assets.keys() {
+            chunk.add_auxiliary_file(name.clone());
+          }
+        }
+      }
+    } else {
+      module_assets.reserve(assets.len());
+      for (name, asset) in assets {
+        module_assets.push((name.clone(), asset.clone()));
       }
     }
   }
