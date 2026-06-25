@@ -20,12 +20,16 @@ runs:
         prefix-key: 'RCache-G-2'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
+        cache-workspace-crates: 'true'
+        cache-all-crates: 'true'
 
     - name: Cache to local
-      uses: rstackjs/rust-cache@8269079380bc35105b3ed8b0f1f7c9557c6dec93 # v2.7.8
+      uses: rstackjs/rust-cache@63150d5565b253e99497cbe4226561b3297fd0dc # feat/cache-workspace-crates
       if: ${{ runner.environment == 'self-hosted' }}
       with:
-        prefix-key: 'RCache-L-5'
+        prefix-key: 'RCache-L-6-test1'
         shared-key: ${{ inputs.key }}
         save-if: ${{ inputs.save-if }}
         fullmatch-only: 'true'
+        cache-workspace-crates: 'true'
+        cache-all-crates: 'true'
