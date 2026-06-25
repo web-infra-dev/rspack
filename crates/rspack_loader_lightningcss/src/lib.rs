@@ -8,7 +8,9 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
-  printer::{PrinterOptions, PseudoClasses},
+  printer::{
+    OriginalLocation as LightningOriginalLocation, PrinterOptions, PseudoClasses, SourceMapWriter,
+  },
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
@@ -17,8 +19,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
   rspack_sources::{
-    MapOptions, Mapping, ObjectPool, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions, encode_mappings,
+    MapOptions, Mapping, ObjectPool, OriginalLocation as RspackOriginalLocation, SourceExt,
+    SourceMap, SourceMapSource, SourceMapSourceOptions, encode_mappings,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
@@ -32,7 +34,74 @@ pub use plugin::LightningcssLoaderPlugin;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
-pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static, 'static>)>;
+pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static>)>;
+
+#[derive(Default)]
+struct RspackSourceMapWriter {
+  sources: Vec<Cow<'static, str>>,
+  sources_content: Vec<Cow<'static, str>>,
+  names: Vec<Cow<'static, str>>,
+  mappings: Vec<Mapping>,
+}
+
+impl RspackSourceMapWriter {
+  fn finish(self) -> SourceMap<'static> {
+    SourceMap::new(
+      encode_mappings(self.mappings.into_iter()),
+      self.sources,
+      self.sources_content,
+      self.names,
+    )
+  }
+}
+
+impl SourceMapWriter for RspackSourceMapWriter {
+  fn add_source(&mut self, source: &str) -> u32 {
+    if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
+      index as u32
+    } else {
+      self.sources.push(Cow::Owned(source.to_string()));
+      (self.sources.len() - 1) as u32
+    }
+  }
+
+  fn add_name(&mut self, name: &str) -> u32 {
+    if let Some(index) = self.names.iter().position(|n| n.as_ref() == name) {
+      index as u32
+    } else {
+      self.names.push(Cow::Owned(name.to_string()));
+      (self.names.len() - 1) as u32
+    }
+  }
+
+  fn set_source_content(&mut self, source_index: u32, source_content: &str) {
+    let source_index = source_index as usize;
+    if self.sources_content.len() <= source_index {
+      self
+        .sources_content
+        .resize_with(source_index + 1, || Cow::Borrowed(""));
+    }
+    self.sources_content[source_index] = Cow::Owned(source_content.to_string());
+  }
+
+  fn add_mapping(
+    &mut self,
+    generated_line: u32,
+    generated_column: u32,
+    original: Option<LightningOriginalLocation>,
+  ) {
+    self.mappings.push(Mapping {
+      generated_line: generated_line + 1,
+      generated_column,
+      original: original.map(|original| RspackOriginalLocation {
+        source_index: original.source,
+        original_line: original.original_line + 1,
+        original_column: original.original_column,
+        name_index: original.name,
+      }),
+    });
+  }
+}
 
 #[cacheable]
 #[derive(Debug)]
@@ -176,10 +245,10 @@ impl LightningCssLoader {
       })
       .to_rspack_result()?;
 
-    let mut parcel_source_map = if loader_context.context.source_map_kind.enabled() {
-      let mut sm = parcel_sourcemap::SourceMap::new(&loader_context.context.options.context);
-      sm.add_source(&filename);
-      sm.set_source_content(0, &content_str).to_rspack_result()?;
+    let mut source_map = if loader_context.context.source_map_kind.enabled() {
+      let mut sm = RspackSourceMapWriter::default();
+      let source_index = sm.add_source(&filename);
+      sm.set_source_content(source_index, &content_str);
       Some(sm)
     } else {
       None
@@ -188,7 +257,7 @@ impl LightningCssLoader {
     let content = stylesheet
       .to_css(PrinterOptions {
         minify: self.config.minify.unwrap_or(false),
-        source_map: parcel_source_map.as_mut(),
+        source_map: source_map.as_mut(),
         project_root: None,
         targets,
         analyze_dependencies: None,
@@ -206,60 +275,8 @@ impl LightningCssLoader {
       })
       .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
-    if let Some(parcel_source_map) = parcel_source_map {
-      let mappings = encode_mappings(parcel_source_map.get_mappings().iter().map(|mapping| {
-        // Parcel source map uses 0-based line numbers, while Rspack source map uses 1-based
-        Mapping {
-          generated_line: mapping.generated_line + 1,
-          generated_column: mapping.generated_column,
-          original: mapping.original.map(|original| OriginalLocation {
-            source_index: original.source,
-            original_line: original.original_line + 1,
-            original_column: original.original_column,
-            name_index: original.name,
-          }),
-        }
-      }));
-
-      let mut posix_context = loader_context
-        .context
-        .options
-        .context
-        .cow_replace("\\", "/");
-      if !posix_context.ends_with('/') {
-        posix_context.to_mut().push('/');
-      }
-      let posix_context = posix_context.into_owned();
-
-      let rspack_source_map = SourceMap::new(
-        mappings,
-        // Parcel stores sources relative to project_root, while Rspack source maps
-        // use absolute module paths for downstream loader/plugin handling.
-        parcel_source_map
-          .get_sources()
-          .iter()
-          .map(|source| {
-            Cow::Owned(if source.starts_with('/') || source.contains(':') {
-              source.clone()
-            } else {
-              let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
-              absolute_source.push_str(&posix_context);
-              absolute_source.push_str(source);
-              absolute_source
-            })
-          })
-          .collect::<Vec<_>>(),
-        parcel_source_map
-          .get_sources_content()
-          .iter()
-          .map(|source_content| Cow::Owned(source_content.clone()))
-          .collect::<Vec<_>>(),
-        parcel_source_map
-          .get_names()
-          .iter()
-          .map(|name| Cow::Owned(name.clone()))
-          .collect::<Vec<_>>(),
-      );
+    if let Some(source_map) = source_map {
+      let rspack_source_map = source_map.finish();
 
       let posix_name = filename.cow_replace("\\", "/");
       let source_map_source = SourceMapSource::new(SourceMapSourceOptions {
@@ -299,10 +316,7 @@ impl Loader<RunnerContext> for LightningCssLoader {
   }
 }
 
-pub fn to_static(
-  stylesheet: StyleSheet,
-  options: ParserOptions<'static, 'static>,
-) -> StyleSheet<'static, 'static> {
+pub fn to_static(stylesheet: StyleSheet, options: ParserOptions<'static>) -> StyleSheet<'static> {
   let sources = stylesheet.sources.clone();
   let rules = stylesheet.rules.clone().into_owned();
 

@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   collections::HashSet,
   hash::Hash,
   sync::{Arc, LazyLock, RwLock},
@@ -6,7 +7,7 @@ use std::{
 
 pub use lightningcss::targets::Browsers;
 use lightningcss::{
-  printer::PrinterOptions,
+  printer::{OriginalLocation as LightningOriginalLocation, PrinterOptions, SourceMapWriter},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
 };
@@ -16,8 +17,8 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    MapOptions, Mapping, ObjectPool, OriginalLocation as RspackOriginalLocation, RawStringSource,
+    Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions, encode_mappings,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -28,6 +29,83 @@ use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+
+#[derive(Default)]
+struct RspackSourceMapWriter {
+  sources: Vec<Cow<'static, str>>,
+  sources_content: Vec<Cow<'static, str>>,
+  names: Vec<Cow<'static, str>>,
+  mappings: Vec<Mapping>,
+  source_root: Option<Cow<'static, str>>,
+}
+
+impl RspackSourceMapWriter {
+  fn with_source_root(source_root: Option<&str>) -> Self {
+    Self {
+      source_root: source_root.map(|source_root| Cow::Owned(source_root.to_string())),
+      ..Default::default()
+    }
+  }
+
+  fn finish(self) -> SourceMap<'static> {
+    let mut source_map = SourceMap::new(
+      encode_mappings(self.mappings.into_iter()),
+      self.sources,
+      self.sources_content,
+      self.names,
+    );
+    source_map.set_source_root(self.source_root);
+    source_map
+  }
+}
+
+impl SourceMapWriter for RspackSourceMapWriter {
+  fn add_source(&mut self, source: &str) -> u32 {
+    if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
+      index as u32
+    } else {
+      self.sources.push(Cow::Owned(source.to_string()));
+      (self.sources.len() - 1) as u32
+    }
+  }
+
+  fn add_name(&mut self, name: &str) -> u32 {
+    if let Some(index) = self.names.iter().position(|n| n.as_ref() == name) {
+      index as u32
+    } else {
+      self.names.push(Cow::Owned(name.to_string()));
+      (self.names.len() - 1) as u32
+    }
+  }
+
+  fn set_source_content(&mut self, source_index: u32, source_content: &str) {
+    let source_index = source_index as usize;
+    if self.sources_content.len() <= source_index {
+      self
+        .sources_content
+        .resize_with(source_index + 1, || Cow::Borrowed(""));
+    }
+    self.sources_content[source_index] = Cow::Owned(source_content.to_string());
+  }
+
+  fn add_mapping(
+    &mut self,
+    generated_line: u32,
+    generated_column: u32,
+    original: Option<LightningOriginalLocation>,
+  ) {
+    self.mappings.push(Mapping {
+      generated_line: generated_line + 1,
+      generated_column,
+      original: original.map(|original| RspackOriginalLocation {
+        source_index: original.source,
+        original_line: original.original_line + 1,
+        original_column: original.original_column,
+        name_index: original.name,
+      }),
+    });
+  }
+}
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
@@ -170,16 +248,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           matches!(&minimizer_options.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
         );
 
-        let mut source_map = input_source_map
-          .as_ref()
-          .map(|input_source_map| -> Result<_> {
-            let mut sm =
-              parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or("/"));
-            sm.add_source(filename);
-            sm.set_source_content(0, &input).to_rspack_result()?;
-            Ok(sm)
-          })
-          .transpose()?;
+        let mut source_map = input_source_map.as_ref().map(|input_source_map| {
+          let mut sm = RspackSourceMapWriter::with_source_root(input_source_map.source_root());
+          let source_index = sm.add_source(filename);
+          sm.set_source_content(source_index, &input);
+          sm
+        });
         let result = {
           let warnings: Arc<RwLock<Vec<_>>> = Default::default();
           let mut stylesheet = StyleSheet::parse(
@@ -259,16 +333,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             .to_rspack_result()?
         };
 
-        let minimized_source = if let Some(mut source_map) = source_map {
+        let minimized_source = if let Some(source_map) = source_map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
             name: filename,
-            source_map: SourceMap::from_json(
-              source_map
-                .to_json(None)
-                .to_rspack_result()?,
-            )
-            .expect("should be able to generate source-map"),
+            source_map: source_map.finish(),
             original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
