@@ -6,7 +6,7 @@
   "private": true,
   "main": "./packages/rspack/dist/index.js",
   "scripts": {
-    "x": "zx x.mjs",
+    "x": "zx scripts/x.mjs",
     "setup": "pnpm install && pnpm run build:cli:dev",
     "dev": "pnpm --filter @rspack/cli run dev",
     "clean": "pnpm --filter @rspack/cli run clean",

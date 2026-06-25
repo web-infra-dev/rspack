@@ -18,6 +18,7 @@ jobs:
           days-before-pr-close: -1
           days-before-issue-close: 14
           stale-issue-label: 'need reproduction'
+          remove-issue-stale-when-updated: false
           close-issue-message: |
             Since the issue was labeled with `need reproduction`, but no response in 14 days. This issue will be closed. Feel free to comment and reopen it if you have any further questions.
 

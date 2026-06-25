@@ -136,12 +136,12 @@ const coreTeam: Member[] = [
   {
     id: 'fi3ework',
     avatar: 'https://github.com/fi3ework.png',
-    x: 'https://x.com/f13wk',
+    x: 'https://x.com/fi3ework27',
     desc: 'Rspack core team, creator of vite-plugin-checker, webpack contributor',
   },
   {
-    id: 'easy1090',
-    avatar: 'https://github.com/easy1090.png',
+    id: 'yifancong',
+    avatar: 'https://github.com/yifancong.png',
     x: 'https://x.com/yifan56737904',
     desc: 'Rspack core team',
   },
@@ -270,8 +270,8 @@ export const RandomContributorsList = () => {
       desc: 'Rspack & Rolldown core team',
     },
     {
-      id: 'suxin2017',
-      avatar: 'https://github.com/suxin2017.png',
+      id: 'xin2017338',
+      avatar: 'https://github.com/xin2017338.png',
       x: 'https://x.com/suxin2017',
       desc: 'Rspack core team, Biome contributor',
     },

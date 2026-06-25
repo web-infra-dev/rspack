@@ -4,16 +4,10 @@ import 'zx/globals';
 
 import { Command } from 'commander';
 
-import {
-  launchJestWithArgs,
-  launchRspackCli,
-} from './scripts/debug/launch.mjs';
-import {
-  createTagName,
-  getCargoVersion,
-} from './scripts/release/cargo-version.mjs';
-import { publish_handler } from './scripts/release/publish.mjs';
-import { version_handler } from './scripts/release/version.mjs';
+import { launchRspackCli } from './debug/launch.mjs';
+import { createTagName, getCargoVersion } from './release/cargo-version.mjs';
+import { publish_handler } from './release/publish.mjs';
+import { version_handler } from './release/version.mjs';
 
 process.env.CARGO_TERM_COLOR = 'always'; // Assume every terminal that using zx supports color
 process.env.FORCE_COLOR = 3; // Fix zx losing color output in subprocesses
@@ -25,30 +19,6 @@ program
   .description('CLI for development of Rspack')
   .showHelpAfterError(true)
   .showSuggestionAfterError(true);
-
-// x ready
-program
-  .command('ready')
-  .alias('r')
-  .description('ready to create a pull request, build and run all tests')
-  .action(async () => {
-    await $`cargo check`;
-    await $`cargo lint`;
-    await $`cargo test`;
-    await $`pnpm install`;
-    await $`pnpm run build:cli:release`;
-    await $`pnpm run test:unit`;
-    console.log(chalk.green('All passed.'));
-  });
-
-// x install
-program
-  .command('install')
-  .alias('i')
-  .description('install all dependencies')
-  .action(async () => {
-    await $`pnpm install`;
-  });
 
 // x clean
 const cleanCommand = program
@@ -70,7 +40,6 @@ cleanCommand
 
 // x build
 const buildCommand = program.command('build').alias('b').description('build');
-const watchCommand = program.command('watch').alias('w').description('watch');
 
 buildCommand
   .option('-a', 'build all')
@@ -86,21 +55,6 @@ buildCommand
       }
       b && (await $`pnpm --filter @rspack/binding build:${mode}`);
       j && (await $`pnpm --filter "@rspack/*" build ${f ? '--force' : ''}`);
-    } catch (e) {
-      process.exit(e.exitCode);
-    }
-  });
-
-watchCommand
-  .option('-a', 'watch all')
-  .option('-b', 'watch rust binding')
-  .option('-j', 'watch js packages')
-  .option('-r', 'release')
-  .action(async ({ a, b = a, j = a, r }) => {
-    const mode = r ? 'release' : 'dev';
-    try {
-      b && (await $`pnpm --filter @rspack/binding watch:${mode}`);
-      j && (await $`pnpm --filter "@rspack/*" watch`);
     } catch (e) {
       process.exit(e.exitCode);
     }
@@ -181,35 +135,6 @@ program
   .argument('[args...]', 'Arguments pass through to rspack cli')
   .action(async () => {
     await launchRspackCli(getVariadicArgs());
-  });
-
-// x jest / x j
-const jestCommand = program.command('jest').alias('j').description(`
-  $ x jest -- [your-jest-args...]
-  $ x jest --debug -- -t <test-name-pattern>
-  $ x j -d -- [test-path-pattern]
-  $ x jd -- [your-jest-args...]
-`);
-
-jestCommand
-  .option('-d, --debug', 'Launch debugger in VSCode')
-  .argument('[args...]', 'Arguments pass through to rspack cli')
-  .action(async ({ debug }) => {
-    if (!debug) {
-      await $`pnpm exec jest ${getVariadicArgs()}`;
-      return;
-    }
-    await launchJestWithArgs(getVariadicArgs());
-  });
-
-// x jd
-program
-  .command('jest-debug')
-  .alias('jd')
-  .description('Alias for `x jest --debug`')
-  .argument('[args...]', 'Arguments pass through to rspack cli')
-  .action(async () => {
-    await launchJestWithArgs(getVariadicArgs());
   });
 
 program
@@ -343,7 +268,7 @@ program
   .action(publish_handler);
 let argv = process.argv.slice(2); // remove the `node` and script call
 if (argv[0] && /x.mjs/.test(argv[0])) {
-  // Called from `zx x.mjs`
+  // Called from `zx scripts/x.mjs`
   argv = argv.slice(1);
 }
 program.parse(argv, { from: 'user' });

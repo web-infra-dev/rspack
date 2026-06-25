@@ -55,6 +55,13 @@ impl CacheContext {
     &self.logger
   }
 
+  pub fn cleanup_stale(&self) {
+    if self.readonly {
+      return;
+    }
+    self.storage.cleanup_stale();
+  }
+
   /// Validates build dependencies and sets `invalid` + `load_failed` on
   /// failure.  Resets the BUILD scope when invalid and not readonly.
   ///

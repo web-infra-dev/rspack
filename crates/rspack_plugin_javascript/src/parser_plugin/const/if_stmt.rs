@@ -74,7 +74,9 @@ pub fn get_hoisted_declarations<'a>(
         stmt_stack.push(Statement::from(&r#for.body));
       }
       Statement::ForIn(stmt) => {
-        if let ForHead::VarDecl(var_decl) = &stmt.left {
+        if let ForHead::VarDecl(var_decl) = &stmt.left
+          && matches!(var_decl.kind, VarDeclKind::Var)
+        {
           for decl in &var_decl.decls {
             collect_declaration_from_pat(&decl.name, &mut declarations);
           }
@@ -82,7 +84,9 @@ pub fn get_hoisted_declarations<'a>(
         stmt_stack.push(Statement::from(&stmt.body));
       }
       Statement::ForOf(stmt) => {
-        if let ForHead::VarDecl(var_decl) = &stmt.left {
+        if let ForHead::VarDecl(var_decl) = &stmt.left
+          && matches!(var_decl.kind, VarDeclKind::Var)
+        {
           for decl in &var_decl.decls {
             collect_declaration_from_pat(&decl.name, &mut declarations);
           }
