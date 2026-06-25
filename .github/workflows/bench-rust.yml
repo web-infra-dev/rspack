@@ -116,6 +116,9 @@ jobs:
         timeout-minutes: 30
         env:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
+          # self-hosted physical runner runs as root but does not export HOME;
+          # the codspeed runner installer sources $HOME/.cargo/env
+          HOME: /root
         with:
           mode: walltime
           run: |
