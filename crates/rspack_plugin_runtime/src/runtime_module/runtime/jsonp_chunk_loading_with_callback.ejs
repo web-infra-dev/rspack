@@ -10,7 +10,7 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 				<%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
 			}
 		}
-		if (runtime) var result = runtime(<%- REQUIRE %>);
+		if (runtime) var result = runtime(<%- REQUIRE_SCOPE %>);
 	}
 	if (parentChunkLoadingFunction) parentChunkLoadingFunction(data);
 	for (; i < chunkIds.length; i++) {

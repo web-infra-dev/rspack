@@ -10,7 +10,7 @@ it("should be able to attach to an existing script tag", () => {
 
 	expect(document.head._children).toHaveLength(1);
 
-	__non_webpack_require__("./the-chunk.js");
+	require("./the-chunk.js");
 	script.onload();
 
 	return promise.then(module => {

@@ -737,9 +737,9 @@ chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind
 self["rspackHotUpdate"]("vendors-node_modules_vendor_js", {
 "./node_modules/vendor.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 
 

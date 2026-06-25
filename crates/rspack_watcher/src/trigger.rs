@@ -113,6 +113,26 @@ impl Trigger {
   /// - `/path`
   /// - `/path/to`
   pub fn on_event(&self, path: &ArcPath, kind: FsEventKind) {
+    // Drop events inside ignored subtrees. The recursive-root watch delivers
+    // events for unregistered paths (e.g. the build-output dir); left through,
+    // `find_associated_event` bubbles them to a registered parent and triggers
+    // a spurious rebuild.
+    if self.path_manager.is_ignored_path(path.as_ref()) {
+      return;
+    }
+
+    // A watched path that no longer exists on disk is a removal, regardless of
+    // how the OS reported the event. macOS FSEvents reports an unlink as a
+    // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
+    // path is gone into a `Remove`, keeping the event kind consistent with
+    // inotify (which already reports `Remove`). Done before the stale-event
+    // filter below, which only applies to `Change`/`Create`.
+    let kind = if kind == FsEventKind::Change && !path.exists() {
+      FsEventKind::Remove
+    } else {
+      kind
+    };
+
     let is_registered_file = self.path_manager.access().files().0.contains(path);
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files

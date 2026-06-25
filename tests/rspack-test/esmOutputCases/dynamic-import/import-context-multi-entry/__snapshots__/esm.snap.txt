@@ -1,0 +1,331 @@
+```mjs title=a.mjs
+import { __webpack_require__ } from "./runtime-main.mjs";
+
+__webpack_require__.add({
+"./modules-a/a.js"
+/*!************************!*\
+  !*** ./modules-a/a.js ***!
+  \************************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* export default */ const __rspack_default_export = ("a");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=b.mjs
+import { __webpack_require__ } from "./runtime-other.mjs";
+
+__webpack_require__.add({
+"./modules-b/b.js"
+/*!************************!*\
+  !*** ./modules-b/b.js ***!
+  \************************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+/* export default */ const __rspack_default_export = ("b");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime-main.mjs";
+
+__webpack_require__.add({
+"./modules-a lazy ./modules-a/*.js"
+/*!***********************************************************************!*\
+  !*** ./modules-a|lazy|nonrecursive|./modules-a/*.js|namespace object ***!
+  \***********************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+
+module.exports = {
+
+  "./modules-a/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules-a/a.js */ "./modules-a/a.js")); }
+};
+
+
+},
+});
+// ./entry-a.js
+it("should load entry a glob", async () => {
+  const modules = __webpack_require__(/*! ./modules-a/ */ "./modules-a lazy ./modules-a/*.js");
+
+  expect(Object.keys(modules)).toEqual(["./modules-a/a.js"]);
+
+  const value = await modules["./modules-a/a.js"]();
+  expect(value.default).toBe("a");
+});
+
+export {};
+
+```
+
+```mjs title=other.mjs
+import { __webpack_require__ } from "./runtime-other.mjs";
+
+__webpack_require__.add({
+"./modules-b lazy ./modules-b/*.js"
+/*!***********************************************************************!*\
+  !*** ./modules-b|lazy|nonrecursive|./modules-b/*.js|namespace object ***!
+  \***********************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+
+module.exports = {
+
+  "./modules-b/b.js": function() { return __webpack_require__.e(/*! esm */ "b").then(__webpack_require__.bind(__webpack_require__, /*! ./modules-b/b.js */ "./modules-b/b.js")); }
+};
+
+
+},
+});
+// ./entry-b.js
+it("should load entry b glob", async () => {
+  const modules = __webpack_require__(/*! ./modules-b/ */ "./modules-b lazy ./modules-b/*.js");
+
+  expect(Object.keys(modules)).toEqual(["./modules-b/b.js"]);
+
+  const value = await modules["./modules-b/b.js"]();
+  expect(value.default).toBe("b");
+});
+
+export {};
+
+```
+
+```mjs title=runtime-main.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+
+export { __webpack_require__ };
+
+```
+
+```mjs title=runtime-other.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"b": function() { return import("./b.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+
+export { __webpack_require__ };
+
+```

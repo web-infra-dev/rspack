@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -15,6 +16,10 @@ impl RuntimeIdRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeIdRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::RUNTIME_ID
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -48,7 +53,8 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
         context
           .runtime_template
           .render_runtime_globals(&RuntimeGlobals::RUNTIME_ID),
-        serde_json::to_string(&id).expect("Invalid json string")
+        id.as_deref()
+          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
       ))
     } else {
       unreachable!("should attach chunk for css_loading")

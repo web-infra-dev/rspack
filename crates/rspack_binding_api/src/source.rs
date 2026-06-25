@@ -29,7 +29,7 @@ impl<'jsobject> TryFrom<JsSourceFromJs<'jsobject>> for BoxSource {
       Either::A(string) => {
         if let Some(json) = value.map {
           let source_map =
-            SourceMap::from_json(&json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
+            SourceMap::from_json(json).map_err(|e| napi::Error::from_reason(format!("{e}")))?;
           Ok(
             SourceMapSource::new(WithoutOriginalOptions {
               value: string,
@@ -62,16 +62,17 @@ impl From<String> for JsSourceToJs {
   }
 }
 
-impl TryFrom<&dyn Source> for JsSourceToJs {
+impl TryFrom<&BoxSource> for JsSourceToJs {
   type Error = napi::Error;
 
-  fn try_from(value: &dyn Source) -> Result<Self> {
+  fn try_from(value: &BoxSource) -> Result<Self> {
     match value.source() {
       SourceValue::String(string) => {
-        let map = to_map(value);
+        let map = value.map(&ObjectPool::default(), &MapOptions::default());
+        let json = map.map(|m| m.to_json());
         Ok(JsSourceToJs {
           source: Either::A(string.into_owned()),
-          map,
+          map: json,
         })
       }
       SourceValue::Buffer(bytes) => Ok(JsSourceToJs {
@@ -90,7 +91,7 @@ impl From<JsSourceToJs> for BoxSource {
           value: string,
           name: "inmemory://from js",
           #[allow(clippy::unwrap_used)]
-          source_map: SourceMap::from_json(map.as_ref()).unwrap(),
+          source_map: SourceMap::from_json(map).unwrap(),
         })
         .boxed(),
         None => RawStringSource::from(string).boxed(),
@@ -98,9 +99,4 @@ impl From<JsSourceToJs> for BoxSource {
       Either::B(buffer) => RawBufferSource::from(buffer.to_vec()).boxed(),
     }
   }
-}
-
-fn to_map(source: &dyn Source) -> Option<String> {
-  let map = source.map(&ObjectPool::default(), &MapOptions::default());
-  map.map(|m| m.to_json())
 }

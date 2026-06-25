@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: test.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 552
+- Update: main.LAST_HASH.hot-update.js, size: 550
 
 ## Manifest
 
@@ -35,10 +35,10 @@
 self["rspackHotUpdate"]("main", {
 "./report-child-assets-loader.js!./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "assets", () => (assets),
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  assets: () => (assets),
+  "default": () => (__rspack_default_export)
+});
 const assets = ["test.js"];
 /* export default */ const __rspack_default_export = (2);
 

@@ -24,7 +24,7 @@ use self::{
   context::CacheContext,
   occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
   snapshot::{Snapshot, SnapshotOptions},
-  storage::{StorageOptions, create_storage},
+  storage::{StorageOptions, Version, create_storage},
 };
 use super::Cache;
 use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
@@ -42,6 +42,12 @@ pub struct PersistentCacheOptions {
   pub portable: bool,
   #[cacheable(with=Skip)]
   pub readonly: bool,
+  /// Filesystem cache max age in seconds.
+  #[cacheable(with=Skip)]
+  pub max_age: u64,
+  /// Filesystem version count limit for the current storage directory.
+  #[cacheable(with=Skip)]
+  pub max_versions: u32,
 }
 
 /// Persistent cache implementation
@@ -85,9 +91,15 @@ impl PersistentCache {
       rspack_pkg_version!().hash(&mut hasher);
       compiler_options.name.hash(&mut hasher);
       compiler_options.mode.hash(&mut hasher);
-      hex::encode(hasher.finish().to_ne_bytes())
+      Version::new(hex::encode(hasher.finish().to_ne_bytes()))
     };
-    let storage = create_storage(option.storage.clone(), version, intermediate_filesystem);
+    let storage = create_storage(
+      option.storage.clone(),
+      version,
+      option.max_age,
+      option.max_versions,
+      intermediate_filesystem,
+    );
     let snapshot = Arc::new(Snapshot::new(
       option.snapshot.clone(),
       input_filesystem.clone(),
@@ -118,6 +130,7 @@ impl PersistentCache {
       return;
     }
     self.initialized = true;
+    self.ctx.cleanup_stale();
 
     // build_deps is the first validation step. If it fails or the build
     // dependencies have changed, only the BUILD scope is reset here; each

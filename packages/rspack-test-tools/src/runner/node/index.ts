@@ -66,6 +66,7 @@ export class NodeRunner implements ITestRunner {
   protected globalContext: IGlobalContext | null = null;
   protected baseModuleScope: IModuleScope | null = null;
   protected requirers: Map<string, TRunnerRequirer> = new Map();
+  protected runQueue: Promise<void> | undefined;
   constructor(protected _options: INodeRunnerOptions) {}
 
   protected log(message: string) {
@@ -73,6 +74,22 @@ export class NodeRunner implements ITestRunner {
   }
 
   run(file: string): Promise<unknown> {
+    // Keep runs on the same NodeRunner serialized. ESM linking/evaluation can
+    // continue asynchronously after runFile returns a promise; if another run
+    // recreates baseModuleScope/requirers before that continuation finishes,
+    // dynamic lookups through this.requirers may mix SourceTextModules from
+    // different vm.Context instances and Node will reject the link.
+    const run = this.runQueue
+      ? this.runQueue.then(() => this.runFile(file))
+      : this.runFile(file);
+    this.runQueue = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    return run;
+  }
+
+  protected runFile(file: string): Promise<unknown> {
     if (!this.globalContext) {
       this.globalContext = this.createGlobalContext();
     }
@@ -510,8 +527,38 @@ export class NodeRunner implements ITestRunner {
           importModuleDynamically: async (
             specifier: any,
             module: { context: any },
+            importAttributes?: { type?: string },
           ) => {
             this.log(`import: ${specifier} from ${file?.path}`);
+            if (importAttributes?.type === 'bytes') {
+              const request = String(specifier).split('?')[0]!;
+              const importedFile = this.getFile(
+                request,
+                path.dirname(file!.path),
+              );
+              if (!importedFile) {
+                throw new Error(`Bytes import not found: ${request}`);
+              }
+              const Uint8ArrayInContext = vm.runInContext(
+                'Uint8Array',
+                module.context,
+              ) as Uint8ArrayConstructor;
+              const bytes = new Uint8ArrayInContext(
+                fs.readFileSync(importedFile.path),
+              );
+              const bytesModule = new vm.SyntheticModule(
+                ['default'],
+                function () {
+                  this.setExport('default', bytes);
+                },
+                { context: module.context },
+              );
+              await bytesModule.link(() => {
+                throw new Error('Unexpected import in bytes module');
+              });
+              await bytesModule.evaluate();
+              return bytesModule;
+            }
             const result = await _require(path.dirname(file!.path), specifier, {
               esmMode: EEsmMode.Evaluated,
             });

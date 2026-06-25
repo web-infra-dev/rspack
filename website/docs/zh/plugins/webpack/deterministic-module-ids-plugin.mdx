@@ -1,0 +1,101 @@
+---
+description: '为模块分配较短且在多次编译间保持稳定的数字 id'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />
+
+# DeterministicModuleIdsPlugin
+
+`DeterministicModuleIdsPlugin` 会基于模块标识符为模块分配较短的数字 id。生成的 id 在多次编译之间保持稳定，因此适合用于长期缓存。
+
+`optimization.moduleIds: 'deterministic'` 内部会使用该插件。只有在需要自定义 deterministic id 生成行为时，才需要直接使用该插件。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicModuleIdsPlugin({
+      maxLength: 4,
+    }),
+  ],
+};
+```
+
+## 选项
+
+### context
+
+- **类型：** `string`
+- **默认值：** `compiler.context`
+
+生成 id 前，用于创建相对模块标识符的上下文。
+
+### test
+
+- **类型：** `(module: Module) => boolean`
+- **默认值：** `undefined`
+
+用于筛选哪些模块由该插件分配 deterministic id。未设置时，会包含所有需要 id 的模块。
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicModuleIdsPlugin({
+      test: (module) => module.type.startsWith('css'),
+    }),
+  ],
+};
+```
+
+### maxLength
+
+- **类型：** `number`
+- **默认值：** `3`
+
+作为起始 id 空间使用的最大 id 位数。生成的数字 id 空间从 `10 ** maxLength` 开始。
+
+### salt
+
+- **类型：** `number`
+- **默认值：** `0`
+
+生成 id 时使用的哈希盐值。调整该值可以在相同 id 空间中尝试不同的哈希起始值。
+
+### fixedLength
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用后，Rspack 不会为了寻找更大的 id 空间而增加 id 长度。
+
+### failOnConflict
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+启用后，如果 deterministic id 分配出现冲突，Rspack 会报告错误。默认情况下，Rspack 会通过使用更大的 id 空间来解决冲突。
+
+## 与 optimization.moduleIds 一起使用
+
+对于常见的长期缓存场景，建议优先使用内置的优化选项：
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    moduleIds: 'deterministic',
+  },
+};
+```
+
+只有在需要上述自定义选项时，才直接使用 `DeterministicModuleIdsPlugin`。

@@ -1,10 +1,10 @@
 use rspack_core::{
-  ChunkUkey, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
+  ChunkUkey, Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
-use crate::utils::json_stringify;
+use crate::utils::{json_stringify, module_require_scope_name};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -71,7 +71,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     };
     let mut runtime_template = compilation.runtime_template.create_module_code_template();
     let module_map = data.module_map.render(&mut runtime_template);
-    let require_name = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    let require_name = module_require_scope_name(compilation, &mut runtime_template);
     let mut source = format!(
       r#"
     {require_name}.initializeExposesData = {{

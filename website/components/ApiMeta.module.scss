@@ -19,6 +19,15 @@
   font-weight: 600;
   border-radius: 6px;
   line-height: 18px;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
 }
 
 .tag {
@@ -44,4 +53,30 @@
 
 .specific {
   background-color: hsl(262deg, 10%, 90%);
+}
+
+:global(.dark) {
+  .tagInline {
+    color: #e1e1e1;
+  }
+
+  .added {
+    background-color: hsl(162deg 60% 25%);
+  }
+
+  .deprecated {
+    background-color: hsl(36deg 60% 28%);
+  }
+
+  .removed {
+    background-color: hsl(0deg 50% 28%);
+  }
+
+  .experimental {
+    background-color: hsl(262deg 50% 30%);
+  }
+
+  .specific {
+    background-color: hsl(262deg 10% 30%);
+  }
 }

@@ -9,11 +9,11 @@ use rspack_core::{
   ExternalItem, ExternalItemFnCtx, ExternalItemFnResult, ExternalItemValue,
   ResolveOptionsWithDependencyType, ResolverFactory,
 };
-use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
   error::ErrorCode,
   normal_module_factory::ContextInfo,
   options::raw_resolve::{
@@ -31,6 +31,7 @@ pub struct RawHttpExternalsRspackPluginOptions {
 #[napi(object, object_to_js = false)]
 pub struct RawExternalsPluginOptions {
   pub r#type: String,
+  pub fallback_type: Option<String>,
   #[napi(
     ts_type = "(string | RegExp | Record<string, string | boolean | string[] | Record<string, string[]>> | ((...args: any[]) => any))[]"
   )]
@@ -175,7 +176,7 @@ impl RawExternalItemFnCtx {
             match resolver.resolve(Path::new(&context), &request).await {
               Ok(rspack_core::ResolveResult::Resource(resource)) => {
                 let resolve_request = ResolveRequest::from(resource);
-                Ok(match serde_json::to_string(&resolve_request) {
+                Ok(match simd_json::to_string(&resolve_request) {
                   Ok(json) => Either::<String, ()>::A(json),
                   Err(_) => Either::B(()),
                 })

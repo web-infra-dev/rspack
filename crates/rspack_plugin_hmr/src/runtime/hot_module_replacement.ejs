@@ -20,18 +20,19 @@ var queuedInvalidatedModules;
 <%- HMR_MODULE_DATA %> = currentModuleData;
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
 	var module = options.module;
-	var require = createRequire(options.require, options.id);
+	var require = createRequire(options.require, options.id<% if (_is_rspack_runtime_mode) { %>, options.context<% } %>);
 	module.hot = createModuleHotObject(options.id, module);
 	module.parents = currentParents;
 	module.children = [];
 	currentParents = [];
 	options.require = require;
+	<% if (_is_rspack_runtime_mode) { %>options.context.r = require;<% } %>
 });
 
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %> = {};
 <%- HMR_INVALIDATE_MODULE_HANDLERS %> = {};
 
-function createRequire(require, moduleId) {
+function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
 	var me = installedModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
@@ -78,7 +79,7 @@ function createRequire(require, moduleId) {
 	}
 
 	fn.e = function (chunkId, fetchPriority) {
-		return trackBlockingPromise(require.e(chunkId, fetchPriority));
+		return trackBlockingPromise(<% if (_is_rspack_runtime_mode) { %>context.e<% } else { %>require.e<% } %>(chunkId, fetchPriority));
 	};
 
 	return fn;

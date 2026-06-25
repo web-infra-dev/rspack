@@ -16,8 +16,7 @@ it('should handle export star combined with explicit named re-exports', async ()
 	expect(mod.sharedExplicit).toBe('a-version');
 });
 
-var index_fromA = (/* inlined export .fromA */"a");
 var index_fromB = (/* inlined export .fromB */"b");
-export { index_fromA as fromA, index_fromB as fromB, shared, shared as sharedExplicit };
+export { fromA, index_fromB as fromB, shared, shared as sharedExplicit };
 
 ```

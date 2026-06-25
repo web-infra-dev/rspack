@@ -134,10 +134,15 @@ export default {
 };
 ```
 
-Note that only `webpackIgnore` comment is supported at the moment:
+Note that only the `rspackIgnore` and `webpackIgnore` comments are supported at the moment.
+
+:::tip
+Since Rspack 2.1.0, prefer `rspackIgnore`. `webpackIgnore` remains supported for compatibility.
+:::
 
 ```js
-const x = require(/* webpackIgnore: true */ 'x');
+const x = require(/* rspackIgnore: true */ 'x');
+const y = require(/* webpackIgnore: true */ 'y');
 ```
 
 ### javascript.dynamicImportMode
@@ -147,7 +152,7 @@ const x = require(/* webpackIgnore: true */ 'x');
   defaultValueList={[{ defaultValue: "'lazy'" }]}
 />
 
-Specifies global mode for dynamic import, see [`webpackMode`](/api/runtime-api/module-methods#webpackmode) for more details.
+Specifies global mode for dynamic import, see [`rspackMode`](/api/runtime-api/module-methods#rspackmode) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -168,7 +173,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Specifies global prefetch for dynamic import, see [`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch) for more details.
+Specifies global prefetch for dynamic import, see [`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -189,7 +194,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Specifies global preload for dynamic import, see [`webpackPreload`](/api/runtime-api/module-methods#webpackpreload) for more details.
+Specifies global preload for dynamic import, see [`rspackPreload`](/api/runtime-api/module-methods#rspackpreload) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -212,7 +217,7 @@ export default {
   defaultValueList={[{ defaultValue: "'auto'" }]}
 />
 
-Specifies global `fetchPriority` for dynamic import, see [`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority) for more details.
+Specifies global `fetchPriority` for dynamic import, see [`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority) for more details.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -603,6 +608,62 @@ export default {
 };
 ```
 
+### javascript.createRequire
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+Control whether Rspack parses `createRequire()` from Node.js `module` and turns the created `require` function into a statically analyzable dependency context.
+
+When set to `true`, it is equivalent to `"createRequire from module"`. Rspack recognizes imports from both `module` and `node:module` for this default form.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire as r } from 'module';
+
+const require = r(import.meta.url);
+const value = require('./value.cjs');
+```
+
+Rspack also supports namespace and default imports:
+
+```js title="index.js"
+import moduleDefault from 'module';
+import * as moduleNs from 'node:module';
+
+moduleDefault.createRequire(import.meta.url)('./value.cjs');
+moduleNs.createRequire(import.meta.url)('./value.cjs');
+```
+
+The `createRequire()` argument must be statically analyzable as a file URL or an absolute path, such as `import.meta.url`, `new URL('./dir/file.js', import.meta.url)`, or an absolute `file:` URL. When `import.meta.url` is used as the argument, Rspack treats it as the current module URL for the `createRequire` context.
+
+You can use a string value in the form `"<specifier> from <module>"` to customize the imported specifier and module source:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: 'createRequire from module',
+      },
+    },
+  },
+};
+```
+
 ### javascript.requireAlias
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -856,7 +917,7 @@ export default {
 ```
 
 :::warning
-This option only takes effect when `experiments.pureFunctions` is enabled, and Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
+This option only takes effect when `experiments.pureFunctions` is enabled, which is the default in production mode. Rspack emits a warning if a configured name does not appear as a top-level binding in the matched module.
 :::
 
 ### ["javascript/auto"]
@@ -1118,7 +1179,7 @@ export default {
 ### ["css/auto"].customIdents
 
 - **Type:** `boolean`
-- **Default:** `false`
+- **Default:** `true`
 
 Enable or disable renaming custom identifiers, such as local `@counter-style` and `@font-palette-values` names.
 
@@ -1128,6 +1189,25 @@ export default {
     parser: {
       'css/auto': {
         customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].container
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS container names and their usages, such as `container-name`, `container`, and `@container`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        container: true,
       },
     },
   },
@@ -1147,6 +1227,65 @@ export default {
     parser: {
       'css/auto': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].function
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS function names and their usages, such as `@function --fn` and `--fn()`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].grid
+
+- **Type:** `boolean`
+- **Default:** `true`
+
+Enable or disable renaming local CSS grid line and area names and their usages, such as `grid-template-areas`, `grid-area`, and `grid-row`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].pure
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Enable strict pure mode for CSS Modules. When enabled, every selector in a CSS Module must contain at least one local class or id selector.
+
+For `css/auto`, this check only applies to files that are treated as CSS Modules.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        pure: true,
       },
     },
   },
@@ -1229,54 +1368,6 @@ export default {
     parser: {
       css: {
         import: true,
-      },
-    },
-  },
-};
-```
-
-### css.animation
-
-Same as [`module.parser["css/auto"].animation`](#cssautoanimation).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        animation: true,
-      },
-    },
-  },
-};
-```
-
-### css.customIdents
-
-Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        customIdents: true,
-      },
-    },
-  },
-};
-```
-
-### css.dashedIdents
-
-Same as [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents).
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        dashedIdents: true,
       },
     },
   },
@@ -1381,6 +1472,22 @@ export default {
 };
 ```
 
+### ["css/global"].container
+
+Same as [`module.parser["css/auto"].container`](#cssautocontainer).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"].customIdents
 
 Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
@@ -1407,6 +1514,38 @@ export default {
     parser: {
       'css/global': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].function
+
+Same as [`module.parser["css/auto"].function`](#cssautofunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].grid
+
+Same as [`module.parser["css/auto"].grid`](#cssautogrid).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        grid: true,
       },
     },
   },
@@ -1511,6 +1650,22 @@ export default {
 };
 ```
 
+### ["css/module"].container
+
+Same as [`module.parser["css/auto"].container`](#cssautocontainer).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/module"].customIdents
 
 Same as [`module.parser["css/auto"].customIdents`](#cssautocustomidents).
@@ -1537,6 +1692,54 @@ export default {
     parser: {
       'css/module': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].function
+
+Same as [`module.parser["css/auto"].function`](#cssautofunction).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].grid
+
+Same as [`module.parser["css/auto"].grid`](#cssautogrid).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].pure
+
+Same as [`module.parser["css/auto"].pure`](#cssautopure).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        pure: true,
       },
     },
   },

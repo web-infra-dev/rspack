@@ -16,10 +16,10 @@ use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
 
 /// Source map extractor result
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ExtractSourceMapResult {
   pub source: String,
-  pub source_map: Option<SourceMap>,
+  pub source_map: Option<SourceMap<'static>>,
   pub file_dependencies: Option<FxHashSet<PathBuf>>,
 }
 
@@ -286,8 +286,8 @@ pub async fn extract_source_map(
   };
 
   // Create SourceMap directly from JSON
-  let mut source_map =
-    SourceMap::from_json(content).map_err(|e| format!("Failed to parse source map: {e}"))?;
+  let mut source_map = SourceMap::from_json(content.to_string())
+    .map_err(|e| format!("Failed to parse source map: {e}"))?;
 
   let context = if !source_url.is_empty() {
     Utf8Path::new(&source_url).parent().unwrap_or(base_context)
@@ -305,7 +305,11 @@ pub async fn extract_source_map(
   };
 
   // Get sources from SourceMap and take ownership
-  let sources = source_map.sources().to_vec();
+  let sources = source_map
+    .sources()
+    .iter()
+    .map(|source| source.to_string())
+    .collect::<Vec<_>>();
   let source_root = source_map.source_root().map(|s| s.to_string());
 
   // Pre-collect all source content to avoid borrowing issues
@@ -354,16 +358,16 @@ pub async fn extract_source_map(
   }
 
   // Build the final SourceMap using setter methods - consume resolved_sources to avoid cloning
-  let (sources_vec, sources_content_vec): (Vec<String>, Vec<Arc<str>>) = resolved_sources
+  let (sources_vec, sources_content_vec): (Vec<String>, Vec<Cow<'_, str>>) = resolved_sources
     .into_iter()
-    .map(|(url, content)| (url, Arc::from(content.unwrap_or_default())))
+    .map(|(url, content)| (url, Cow::Owned(content.unwrap_or_default())))
     .unzip();
 
   source_map.set_sources(sources_vec);
   source_map.set_sources_content(sources_content_vec);
 
   // Remove source_root as per original logic
-  source_map.set_source_root(None::<String>);
+  source_map.set_source_root(None);
 
   // Optimize string replacement to avoid unnecessary cloning
   let new_source = if replacement_string.is_empty() {

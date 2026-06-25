@@ -1,59 +1,82 @@
 ---
-description: 'Whether to enable incremental build, which significantly speeds up rebuilds and HMR by only rebuilding the changed parts'
+description: 'Whether to enable incremental builds. When enabled, Rspack reuses unaffected intermediate results during rebuilds and HMR to reduce the work that must be recomputed.'
 ---
-
-import { ApiMeta } from '../../../components/ApiMeta';
 
 # Incremental
 
-<ApiMeta addedVersion="1.1.0-beta.0" />
-
-Whether to enable incremental build, which significantly speeds up rebuilds and HMR by only rebuilding the changed parts.
+`incremental` controls Rspack's incremental build capability. When enabled, Rspack reuses unaffected intermediate results during rebuilds and Hot Module Replacement (HMR), and only recalculates the stages and assets affected by the change.
 
 - **Type:** `boolean | 'none' | 'safe' | 'advance' | 'advance-silent' | Incremental`
 - **Default:** `'advance-silent'`
 
-Two configuration ways are provided:
+:::tip
+When [`cache`](/config/cache) is disabled, Rspack disables the incremental build stages. Keep cache enabled if you want to use incremental builds during development, watch, or HMR.
+:::
 
-1. Presets: including `boolean | 'none' | 'safe' | 'advance' | 'advance-silent'`
-   - `false | 'none'`: Disable incremental, and it will not be enabled for any stage.
-   - `'safe'`: Enable incremental for the `buildModuleGraph` and `emitAssets` stages.
-   - `true | 'advance-silent'`: Enable incremental for all stages to maximize performance for rebuilds and HMR. This is the default behavior of Rspack.
-   - `'advance'`: The same as above, but it will detect cases that are unfriendly to incremental and throw warnings to users (e.g., incorrect configurations). This option can help you to identify potential issues affecting incremental build performance.
-2. **Detailed object configuration**: `Incremental`, which allows fine-grained control over whether the incremental is enabled for each stage.
+## Configuration
 
-   {/* prettier-ignore */}
-   <details>
-      <summary style={{ display: 'list-item' }}>Detailed type of `Incremental`</summary>
-      <blockquote>
-        <p>
-        ```ts
-        type Incremental = {
-          // Whether to throw a warning when encountering situations that are not friendly for incremental.
-          silent?: boolean;
-          // The following configuration is used to control whether the incremental of each stage is enabled.
-          buildModuleGraph?: boolean;
-          finishModules?: boolean;
-          optimizeDependencies?: boolean;
-          buildChunkGraph?: boolean;
-          moduleIds?: boolean;
-          chunkIds?: boolean;
-          modulesHashes?: boolean;
-          modulesCodegen?: boolean;
-          modulesRuntimeRequirements?: boolean;
-          chunksRuntimeRequirements?: boolean;
-          chunksHashes?: boolean;
-          chunkAsset?: boolean;
-          emitAssets?: boolean;
-        };
-        ```
-        </p>
-      </blockquote>
-    </details>
+`incremental` can be configured with presets or a detailed object.
 
-Usually, we recommend configuring in the preset way, and the detailed object configuration is only provided to facilitate bug troubleshooting.
+Most projects can use the default value; configure this option explicitly only when you need to disable incremental builds, fall back to a more conservative strategy, or diagnose incremental build issues.
 
-Incremental only improves the rebuild performance and have no impact on the initial build. However, when persistent cache is available, initial builds are also treated as rebuilds too, and can benefit from incremental for performance.
+| Value                       | Behavior                                                                                                                                                                                                               |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `false` / `'none'`          | Disable incremental builds for all stages.                                                                                                                                                                             |
+| `'safe'`                    | Enable incremental builds only for the `buildModuleGraph`, `buildChunkGraph`, and `emitAssets` stages.                                                                                                                 |
+| `true` / `'advance-silent'` | Enable all incremental stages and silently handle cases that are not friendly to incremental builds. This is the default behavior of Rspack.                                                                           |
+| `'advance'`                 | Enable the same stages as `'advance-silent'`, but emit warnings when configuration or plugin behavior causes Rspack to disable incremental passes. This helps identify what is limiting incremental build performance. |
+
+## Examples
+
+By default, you do not need to configure `incremental` explicitly. To surface warnings when configuration or plugin behavior disables incremental passes during development, use `'advance'`:
+
+```js title="rspack.config.mjs"
+export default {
+  incremental: 'advance',
+};
+```
+
+You can also configure `incremental` with an object to control each build stage individually. Object configuration is mainly intended for debugging or temporary workarounds; presets are recommended for normal usage.
+
+```js title="rspack.config.mjs"
+export default {
+  incremental: {
+    silent: false,
+    modulesCodegen: false,
+  },
+};
+```
+
+## Type definition
+
+```ts
+type Incremental = {
+  // Whether to suppress warnings for cases that are not friendly to incremental builds.
+  // Set this to false to emit warnings.
+  silent?: boolean;
+  // The following options control whether incremental builds are enabled for each stage.
+  buildModuleGraph?: boolean;
+  finishModules?: boolean;
+  optimizeDependencies?: boolean;
+  buildChunkGraph?: boolean;
+  optimizeChunkModules?: boolean;
+  moduleIds?: boolean;
+  chunkIds?: boolean;
+  modulesHashes?: boolean;
+  modulesCodegen?: boolean;
+  modulesRuntimeRequirements?: boolean;
+  chunksRuntimeRequirements?: boolean;
+  chunksHashes?: boolean;
+  chunkAsset?: boolean;
+  emitAssets?: boolean;
+};
+```
+
+## Performance impact
+
+Incremental builds mainly improve rebuilds and HMR when reusable compilation state already exists. They do not make an initial build faster when no state can be reused.
+
+When persistent cache is enabled and hit, Rspack can restore part of the compilation state from cache, so the build after startup can also benefit from incremental builds.
 
 The table below shows the results of incremental in different scenarios:
 
@@ -65,4 +88,4 @@ The table below shows the results of incremental in different scenarios:
 |  cold start  |          ❌          |
 | rebuild/HMR  |          ✅          |
 
-Starting from v1.4.0, Rspack enables incremental builds using `'advance-silent'` mode by default. In previous versions, it only activated incremental builds for the `buildModuleGraph` and `emitAssets` phase by default with `'safe'` mode.
+In the table, "hot" means reusable compilation state or persistent cache is available, while "cold" means no reusable state is available.

@@ -1,9 +1,10 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AffectType, AsModuleDependency, ContextDependency, ContextOptions, ContextTypePrefix, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ModuleGraph,
-  ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  AffectType, AsModuleDependency, Context, ContextDependency, ContextOptions, ContextTypePrefix,
+  Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo,
+  ModuleGraph, ModuleGraphCacheArtifact, ResourceIdentifier, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
 
@@ -15,6 +16,7 @@ pub struct RequireResolveContextDependency {
   id: DependencyId,
   options: ContextOptions,
   range: DependencyRange,
+  context: Option<Context>,
   resource_identifier: ResourceIdentifier,
   optional: bool,
   critical: Option<Diagnostic>,
@@ -22,12 +24,21 @@ pub struct RequireResolveContextDependency {
 }
 
 impl RequireResolveContextDependency {
-  pub fn new(options: ContextOptions, range: DependencyRange, optional: bool) -> Self {
-    let resource_identifier = create_resource_identifier_for_context_dependency(None, &options);
+  pub fn new(
+    options: ContextOptions,
+    range: DependencyRange,
+    optional: bool,
+    context: Option<Context>,
+  ) -> Self {
+    let resource_identifier = create_resource_identifier_for_context_dependency(
+      context.as_ref().map(|c| c.as_str()),
+      &options,
+    );
     Self {
       id: DependencyId::new(),
       options,
       range,
+      context,
       resource_identifier,
       optional,
       critical: None,
@@ -48,6 +59,10 @@ impl Dependency for RequireResolveContextDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::RequireResolveContext
+  }
+
+  fn get_context(&self) -> Option<&Context> {
+    self.context.as_ref()
   }
 
   fn range(&self) -> Option<DependencyRange> {
@@ -81,7 +96,7 @@ impl ContextDependency for RequireResolveContextDependency {
   }
 
   fn get_context(&self) -> Option<&str> {
-    None
+    self.context.as_ref().map(|c| c.as_str())
   }
 
   fn resource_identifier(&self) -> &str {

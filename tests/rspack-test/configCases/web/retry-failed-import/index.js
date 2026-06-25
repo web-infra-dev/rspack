@@ -41,7 +41,7 @@ it("should be able to retry a failed import()", () => {
 
 			expect(document.head._children).toHaveLength(1);
 
-			__non_webpack_require__("./the-chunk.js");
+			require("./the-chunk.js");
 			document.head._children[0].onload();
 
 			return promise.then(module => {

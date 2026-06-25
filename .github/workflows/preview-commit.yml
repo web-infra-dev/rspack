@@ -21,7 +21,7 @@ jobs:
     outputs:
       changed: ${{ steps.filter.outputs.changed == 'true' }}
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4
         id: filter
         with:
@@ -42,10 +42,14 @@ jobs:
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: aarch64-unknown-linux-gnu
             runner: "'ubuntu-latest'"
+          - target: riscv64gc-unknown-linux-gnu
+            runner: "'ubuntu-latest'"
           - target: x86_64-unknown-linux-musl
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
           - target: aarch64-unknown-linux-musl
             runner: ${{ needs.get-runner-labels.outputs.LINUX_RUNNER_LABELS }}
+          - target: riscv64gc-unknown-linux-musl
+            runner: "'ubuntu-latest'"
           - target: i686-pc-windows-msvc
             runner: ${{ needs.get-runner-labels.outputs.WINDOWS_RUNNER_LABELS }}
           - target: x86_64-pc-windows-msvc
@@ -70,7 +74,7 @@ jobs:
     needs:
       - build
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
 
       - name: Pnpm Setup
         uses: ./.github/actions/pnpm/setup

@@ -76,6 +76,10 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     *AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS
   }
+
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::PUBLIC_PATH
+  }
 }
 
 fn auto_public_path_template(

@@ -182,7 +182,7 @@ impl<'a> LocalIdentOptions<'a> {
           .expect("should have convention for module_type css/auto, css/global or css/module"),
       );
       let convention_names =
-        serde_json::to_string(&convention_names).expect("css export names should be serializable");
+        simd_json::to_string(&convention_names).expect("css export names should be serializable");
       let local_ident_name = json_stringify_str(local_ident_name);
       hasher.write(b"exportsConvention|");
       hasher.write(convention_names.as_bytes());
@@ -240,11 +240,21 @@ impl<'a> LocalIdentOptions<'a> {
       .and_then(|s| s.to_str())
       .unwrap_or_default();
     let id = PathData::prepare_id(CSS_MODULE_ID_PLACEHOLDER);
+    let hash = if self
+      .local_ident_name
+      .template
+      .template()
+      .is_some_and(|template| template.contains("[local]"))
+    {
+      self.module_hash(module_hash_options)
+    } else {
+      local_ident_hash.as_str()
+    };
     let local_ident = LocalIdentNameRenderOptions {
       path_data: PathData::default()
         .filename(&self.relative_resource)
         .chunk_name(chunk_name)
-        .hash(self.module_hash(module_hash_options))
+        .hash(hash)
         .content_hash(content_hash)
         .id(id.as_ref()),
       local,
@@ -271,6 +281,10 @@ pub fn replace_css_module_id_placeholder<'a>(
   compilation: &Compilation,
   module: &dyn Module,
 ) -> Cow<'a, str> {
+  if let Some(custom_property_ident) = local_ident.strip_prefix("--") {
+    let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
+    return Cow::Owned(format!("--{local_ident}"));
+  }
   if !local_ident.contains(CSS_MODULE_ID_PLACEHOLDER) {
     return Cow::Borrowed(local_ident);
   }

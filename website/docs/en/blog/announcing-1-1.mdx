@@ -65,7 +65,7 @@ In the early versions of Rspack 0.x, we implemented [experiments.incrementalRebu
 
 However, this feature only enabled incrementality for the `make` and `emitAssets` stages of the rebuild. For many projects, the loader in the `make` stage takes a lot of time. At that time, this feature had a relatively obvious performance improvement in rebuild for these projects. But there are still some projects that take a lot of time in stages other than `make`. Therefore, we optimized and expanded this feature and gradually introduced this feature into other stages, such as `buildChunkGraph`, `providedExports`, `moduleCodegen`, etc.
 
-In Rspack v1.1, we introduced [experiments.incremental](/config/experiments#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
+In Rspack v1.1, we introduced [experiments.incremental](/config/deprecated-options#experimentsincremental) as the successor and superset of `experiments.incrementalRebuild`, aiming to bring further rebuild performance improvement and faster HMR to developers.
 
 In a case of 10000 React components, the HMR becomes 38% faster:
 
@@ -88,7 +88,7 @@ export default {
 };
 ```
 
-> See [experiments.incremental](/config/experiments#experimentsincremental) for more details.
+> See [experiments.incremental](/config/deprecated-options#experimentsincremental) for more details.
 
 This is still an experimental feature and we need more work to stabilize it. If you are interested, give it a try and send bug reports and feedback to [#8106](https://github.com/web-infra-dev/rspack/issues/8106).
 

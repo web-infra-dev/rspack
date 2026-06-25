@@ -181,6 +181,11 @@ impl Cache for MemoryCache {
         &mut compilation.cgc_runtime_requirements_artifact,
         &mut old_compilation.cgc_runtime_requirements_artifact,
       );
+      recover_artifact(
+        incremental,
+        &mut compilation.runtime_proxy_metadata_artifact,
+        &mut old_compilation.runtime_proxy_metadata_artifact,
+      );
     }
   }
 

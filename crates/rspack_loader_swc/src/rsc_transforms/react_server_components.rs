@@ -9,8 +9,8 @@ use regex::Regex;
 use rspack_core::{RscMeta, RscModuleType};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
-use swc::atoms::Wtf8Atom;
 use swc_core::{
+  atoms::{Wtf8Atom, atom},
   common::{FileName, Span, errors::HANDLER, util::take::Take},
   ecma::{
     ast::*,
@@ -50,6 +50,7 @@ pub struct Options {
 struct DirectiveImportCollection {
   pub is_server_entry: bool,
   pub is_client_entry: bool,
+  pub is_action_file: bool,
   pub imports: Vec<ModuleImports>,
   pub export_names: Vec<Wtf8Atom>,
 }
@@ -80,6 +81,8 @@ enum RSCErrorKind {
   RedundantDirectives(Span),
   ErrClientDirective(Span),
   ErrReactApi((String, Span)),
+  ErrServerImport((String, Span)),
+  ErrClientImport((String, Span)),
 }
 
 impl VisitMut for ReactServerComponents<'_> {
@@ -221,6 +224,18 @@ fn report_error(error_kind: RSCErrorKind) {
 
       (msg, vec![span])
     }
+    RSCErrorKind::ErrServerImport((source, span)) => (
+      format!(
+        "You're importing a module that depends on \"{source}\". This package only works in a Client Component. To fix, mark the file (or its parent) with the `\"use client\"` directive.\n\n"
+      ),
+      vec![span],
+    ),
+    RSCErrorKind::ErrClientImport((source, span)) => (
+      format!(
+        "You're importing a module that depends on \"{source}\". This package only works in a Server Component or a top-level `\"use server\"` module.\n\n"
+      ),
+      vec![span],
+    ),
   };
 
   HANDLER.with(|handler| handler.struct_span_err(spans, msg.as_str()).emit())
@@ -392,6 +407,7 @@ fn collect_top_level_directives_and_imports(module: &Module) -> DirectiveImportC
   DirectiveImportCollection {
     is_server_entry,
     is_client_entry,
+    is_action_file,
     imports,
     export_names,
   }
@@ -403,6 +419,8 @@ struct ReactServerComponentValidator {
   disable_client_api_checks: bool,
   filepath: String,
   invalid_server_lib_apis_mapping: FxHashMap<&'static str, Vec<&'static str>>,
+  invalid_server_imports: Vec<Wtf8Atom>,
+  invalid_client_imports: Vec<Wtf8Atom>,
   pub directive_import_collection: Option<DirectiveImportCollection>,
   imports: ImportMap,
 }
@@ -453,6 +471,12 @@ impl ReactServerComponentValidator {
           ],
         ),
       ]),
+      invalid_server_imports: vec![
+        atom!("client-only").into(),
+        atom!("react-dom/client").into(),
+        atom!("react-dom/server").into(),
+      ],
+      invalid_client_imports: vec![atom!("server-only").into()],
       imports: ImportMap::default(),
     }
   }
@@ -482,16 +506,37 @@ impl ReactServerComponentValidator {
   }
 
   fn assert_server_graph(&self, imports: &[ModuleImports]) {
-    if self.disable_client_api_checks {
-      return;
-    }
     if self.is_from_node_modules(&self.filepath) {
       return;
     }
     for import in imports {
-      let source = import.source.0.clone();
-      if let Some(source_str) = source.as_str() {
+      let source = &import.source.0;
+      if self.invalid_server_imports.contains(source) {
+        report_error(RSCErrorKind::ErrServerImport((
+          source.to_string_lossy().into_owned(),
+          import.source.1,
+        )));
+      }
+
+      if let Some(source_str) = source.as_str()
+        && !self.disable_client_api_checks
+      {
         self.assert_invalid_server_lib_apis(source_str, import);
+      }
+    }
+  }
+
+  fn assert_client_graph(&self, imports: &[ModuleImports]) {
+    if self.is_from_node_modules(&self.filepath) {
+      return;
+    }
+    for import in imports {
+      let source = &import.source.0;
+      if self.invalid_client_imports.contains(source) {
+        report_error(RSCErrorKind::ErrClientImport((
+          source.to_string_lossy().into_owned(),
+          import.source.1,
+        )));
       }
     }
   }
@@ -520,6 +565,8 @@ impl Visit for ReactServerComponentValidator {
       // * middleware
       // * app/pages api routes
       self.assert_server_graph(&directive_import_collection.imports)
+    } else if !self.is_react_server_layer && !directive_import_collection.is_action_file {
+      self.assert_client_graph(&directive_import_collection.imports)
     }
     self.directive_import_collection = Some(directive_import_collection);
 

@@ -1,6 +1,7 @@
 Object {
   btn--info_is-disabled_1: ./style.module.css__btn--info_is-disabled_1,
   btn-info_is-disabled: ./style.module.css__btn-info_is-disabled,
+  color-red: --./style.module.css__color-red,
   foo: bar,
   foo_bar: ./style.module.css__foo_bar,
   my-btn-info_is-disabled: value,

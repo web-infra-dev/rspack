@@ -7,7 +7,7 @@
 - Bundle: bundle.js
 - Bundle: common_js_2.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 42480
+- Update: main.LAST_HASH.hot-update.js, size: 42334
 
 ## Manifest
 
@@ -39,10 +39,10 @@
 self["rspackHotUpdate"]("main", {
 "./module.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (/* reexport default from dynamic */ common__rspack_import_0_default.a),
-  "getValue", () => (getValue)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (/* reexport default from dynamic */ common__rspack_import_0_default.a),
+  getValue: () => (getValue)
+});
 /* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
 /* import */ var common__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(common__rspack_import_0);
 
@@ -60,7 +60,7 @@ __webpack_require__.n = (module) => {
 	var getter = module && module.__esModule ?
 		() => (module['default']) :
 		() => (module);
-	__webpack_require__.d(getter, ["a", getter]);
+	__webpack_require__.d(getter, { a: getter });
 	return getter;
 };
 
@@ -83,21 +83,16 @@ __webpack_require__.t = function(value, mode) {
 		if((mode & 16) && typeof value.then === 'function') return value;
 	}
 	var ns = Object.create(null);
-	__webpack_require__.r(ns);
-	var def = [], defLoc = -1;
+  __webpack_require__.r(ns);
+	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach((key) => {
-			def.push(key, () => (value[key]));
-			if(defLoc === -1 && key === 'default') defLoc = def.length - 1;
-		});
+		Object.getOwnPropertyNames(current).forEach((key) => { def[key] = () => (value[key]) });
 	}
-	if(defLoc >= 0) def.splice(defLoc, 1, 0, value);
-	else def.push('default', 0, value);
+	def['default'] = () => (value);
 	__webpack_require__.d(ns, def);
 	return ns;
 };
-
 })();
 // webpack/runtime/get_full_hash
 (() => {
@@ -106,7 +101,7 @@ __webpack_require__.h = () => ("CURRENT_HASH")
 // webpack/runtime/consumes_loading
 (() => {
 
-__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }, "webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
+__webpack_require__.consumesLoadingData = { chunkMapping: {"main":["webpack/sharing/consume/default/common/./common?1"],"webpack_sharing_consume_default_common2_common_2":["webpack/sharing/consume/default/common2/./common?2"]}, moduleIdToConsumeDataMapping: {"webpack/sharing/consume/default/common/./common?1": { shareScope: "default", shareKey: "common", import: "./common?1", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: true, fallback: () => (() => (__webpack_require__("./common.js?1"))), treeShakingMode: null }, "webpack/sharing/consume/default/common2/./common?2": { shareScope: "default", shareKey: "common2", import: "./common?2", requiredVersion: "1.1.1", strictVersion: true, singleton: false, eager: false, fallback: () => (__webpack_require__.e("common_js_2").then(() => (() => (__webpack_require__("./common.js?2"))))), treeShakingMode: null }}, initialConsumes: ["webpack/sharing/consume/default/common/./common?1"] };
 var splitAndConvert = function(str) {
   return str.split(".").map(function(item) {
     return +item == item ? +item : item;

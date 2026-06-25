@@ -223,7 +223,7 @@ pub(crate) async fn code_generation_modules(
           }
         }
 
-        (job.module, job.runtimes, codegen_res)
+        (job.module, job.runtimes, codegen_res.map(Box::new))
       })
     })
   })
@@ -235,7 +235,7 @@ pub(crate) async fn code_generation_modules(
 
   for (module, runtimes, codegen_res) in results {
     let codegen_res = match codegen_res {
-      Ok(codegen_res) => codegen_res,
+      Ok(codegen_res) => *codegen_res,
       Err(err) => {
         let mut diagnostic = Diagnostic::from(err);
         diagnostic.module_identifier = Some(module);

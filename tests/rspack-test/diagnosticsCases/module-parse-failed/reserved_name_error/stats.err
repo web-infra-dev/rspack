@@ -1,10 +1,10 @@
 ERROR in ./index.js
   × Module parse failed:
   ╰─▶   × JavaScript parse error: `let` cannot be used as an identifier in strict mode
-         ╭─[2:10]
+         ╭─[2:4]
        1 │ "use strict";
        2 │ var let = let;
-         ·           ───
+         ·     ───
          ╰────
       
   help: 
@@ -13,10 +13,10 @@ ERROR in ./index.js
 ERROR in ./index.js
   × Module parse failed:
   ╰─▶   × JavaScript parse error: `let` cannot be used as an identifier in strict mode
-         ╭─[2:4]
+         ╭─[2:10]
        1 │ "use strict";
        2 │ var let = let;
-         ·     ───
+         ·           ───
          ╰────
       
   help: 

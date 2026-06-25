@@ -16,6 +16,7 @@ function foo() {
 
 
 
+
 const values = [];
 
 if ((/* inlined export .IS_DEV */true)) {
@@ -122,6 +123,25 @@ if (((/* inlined export .IS_DEV1 */false) || (/* inlined export .IS_DEV2 */true)
   values.push(bar());
 }
 
+values.push(((/* inlined export .IS_DEV */true) ? foo : bar)());
+values.push(((/* inlined export .IS_DEV1 */false) ? bar : alt)());
+
+if ((/* inlined export .IS_DEV */true)) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if ((/* inlined export .IS_DEV1 */false)) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
 if ((/* inlined export .IS_DEV */true)) {
   if ((/* inlined export .IS_DEV1 */false)) {
     console.log(bar);
@@ -182,6 +202,10 @@ it("should drop inactive ESM branch dependencies guarded by inlined booleans", (
     "foo",
     "alt",
     "foo",
+    "foo",
+    "alt",
+    "foo",
+    "alt",
     "foo",
     "foo",
     "alt",

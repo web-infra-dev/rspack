@@ -15,6 +15,11 @@ inputs:
     default: false
     required: false
     type: boolean
+  use-cache:
+    description: 'Set to false to disable cache entirely (no restore and no save), e.g. for release builds that must build from scratch'
+    default: true
+    required: false
+    type: boolean
 
 runs:
   using: composite
@@ -37,7 +42,7 @@ runs:
 
     - name: Restore rustup cache
       id: restore
-      if: ${{ inputs.save-if == 'true' && runner.os != 'Windows' }}
+      if: ${{ inputs.use-cache == 'true' && inputs.save-if == 'true' && runner.os != 'Windows' }}
       uses: ./.github/actions/cache/restore
       with:
         path: ~/.rustup/toolchains
@@ -57,12 +62,13 @@ runs:
 
     - name: Save rustup cache
       uses: ./.github/actions/cache/save
-      if: ${{ inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
+      if: ${{ inputs.use-cache == 'true' && inputs.save-if == 'true' && steps.restore.outputs.cache-hit != 'true' && runner.os != 'Windows' }}
       with:
         path: ~/.rustup/toolchains
         key: rustup-cache-v4-${{ runner.os }}-${{ steps.get-toolchain.outputs.toolchain }}
 
     - name: Cargo cache
+      if: ${{ inputs.use-cache == 'true' }}
       uses: ./.github/actions/rustup/cargo
       with:
         key: ${{ inputs.key }}

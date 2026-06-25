@@ -1,0 +1,7 @@
+import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
+
+
+
+
+
+export * from "external1-alias";

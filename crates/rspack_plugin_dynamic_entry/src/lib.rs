@@ -100,6 +100,12 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
 
     *imported_dependencies = next_imported_dependencies;
   } else {
+    // Cold branch must still seed `imported_dependencies` — otherwise the
+    // next Hot rebuild reallocates dep ids and breaks every downstream
+    // lookup that relies on dep id continuity across compiles.
+    let mut imported_dependencies = self.imported_dependencies.borrow_mut();
+    let mut next_imported_dependencies: FxHashMap<Arc<str>, FxHashMap<EntryOptions, DependencyId>> =
+      Default::default();
     for EntryDynamicResult { import, options } in decs {
       for entry in import {
         let entry_dependency: BoxDependency = Box::new(EntryDependency::new(
@@ -108,11 +114,16 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
           options.layer.clone(),
           false,
         ));
+        next_imported_dependencies
+          .entry(entry.clone().into())
+          .or_default()
+          .insert(options.clone(), *entry_dependency.id());
         compilation
           .add_entry(entry_dependency, options.clone())
           .await?;
       }
     }
+    *imported_dependencies = next_imported_dependencies;
   }
 
   Ok(())

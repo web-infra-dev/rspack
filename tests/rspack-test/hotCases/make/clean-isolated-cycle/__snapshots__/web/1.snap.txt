@@ -34,9 +34,9 @@
 self["rspackHotUpdate"]("main", {
 "./file.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _cycle2_a__rspack_import_0 = __webpack_require__("./cycle2/a.js");
 
 /* export default */ const __rspack_default_export = (2);

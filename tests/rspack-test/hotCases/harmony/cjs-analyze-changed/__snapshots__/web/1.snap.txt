@@ -41,9 +41,9 @@ exports["default"] = 1;
 "./reexport.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _file__rspack_import_0 = __webpack_require__("./file.js");
 
 /* export default */ const __rspack_default_export = (_file__rspack_import_0["default"]);

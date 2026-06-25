@@ -1,5 +1,5 @@
 use rspack_core::{
-  Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  Compilation, Filename, PublicPath, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeTemplate, has_hash_placeholder, impl_runtime_module,
 };
 
@@ -17,6 +17,10 @@ impl PublicPathRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::PUBLIC_PATH
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

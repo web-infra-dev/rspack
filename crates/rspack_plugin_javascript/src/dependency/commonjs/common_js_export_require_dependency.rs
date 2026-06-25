@@ -14,7 +14,7 @@ use rspack_core::{
   to_normal_comment,
 };
 use rustc_hash::FxHashSet;
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 use super::ExportsBase;
 use crate::dependency::commonjs::OBJECT_PROTOTYPE_METHODS;

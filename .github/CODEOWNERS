@@ -90,6 +90,5 @@ Cargo.toml
 
 # Tests
 
-/tests/bench
 /tests/e2e
 /tests/rspack-test

@@ -3,9 +3,9 @@ use std::{path::PathBuf, sync::Arc};
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
   Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Optimization, Resolve, RuleSetCondition,
+  ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
 };
-use rspack_fs::{MemoryFileSystem, NativeFileSystem};
+use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
 use serde_json::json;
 
@@ -16,6 +16,7 @@ pub struct BuilderOptions {
   pub project: &'static str,
   pub entry: &'static str,
   pub swc_loader: bool,
+  pub native_output_filesystem: bool,
 }
 
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
@@ -28,6 +29,12 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     .unwrap()
     .join(options.project);
 
+  let output_filesystem: Arc<dyn WritableFileSystem> = if options.native_output_filesystem {
+    Arc::new(NativeFileSystem::new(false))
+  } else {
+    Arc::new(MemoryFileSystem::default())
+  };
+
   builder
     .context(dir.to_string_lossy().to_string())
     .entry("main", options.entry)
@@ -39,7 +46,11 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     })
     .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
-    .output_filesystem(Arc::new(MemoryFileSystem::default()));
+    .output_filesystem(output_filesystem);
+
+  if options.native_output_filesystem {
+    builder.output(OutputOptions::builder().compare_before_emit(false));
+  }
 
   if options.swc_loader {
     builder

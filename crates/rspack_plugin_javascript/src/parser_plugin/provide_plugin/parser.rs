@@ -4,10 +4,8 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rspack_core::DependencyRange;
 use rustc_hash::FxHashSet as HashSet;
-use swc_core::{
-  atoms::Atom,
-  common::{Span, Spanned},
-};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, Ident, MemberExpr, Span};
 
 use super::{super::JavascriptParserPlugin, ProvideValue, VALUE_DEP_PREFIX};
 use crate::{dependency::ProvideDependency, visitors::JavascriptParser};
@@ -62,15 +60,15 @@ impl ProvideParserPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for ProvideParserPlugin {
-  fn can_rename(&self, _parser: &mut JavascriptParser, str: &str) -> Option<bool> {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ProvideParserPlugin {
+  fn can_rename(&self, _parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
     self.names.contains(str).then_some(true)
   }
 
   fn call(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::CallExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
     if self.add_provide_dep(for_name, expr.callee.span(), parser) {
@@ -83,8 +81,8 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     self
@@ -94,8 +92,8 @@ impl JavascriptParserPlugin for ProvideParserPlugin {
 
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     self

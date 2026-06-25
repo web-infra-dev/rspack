@@ -39,7 +39,7 @@ impl Sources {
     let source_type = rspack_core::SourceType::from(source_type.as_str());
     self.with_ref(|sources| match sources.get(&source_type) {
       Some(source) => {
-        let source = source.as_ref().try_into()?;
+        let source = source.try_into()?;
         Ok(Some(source))
       }
       None => Ok(None),

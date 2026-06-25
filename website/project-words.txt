@@ -44,6 +44,8 @@ dhruvkelawala
 disabletransformbydefault
 ecma
 edusperoni
+elecmonkey
+elecmonkeyjs
 esbuild
 etags
 evanw
@@ -53,6 +55,7 @@ faga295
 fansenze
 fargs
 feishu
+fetchcompileasyncwasmplugin
 fi3ework
 fnames
 funs
@@ -73,8 +76,8 @@ intlify
 IWANABETHATGUY
 jantimon
 JavaScript
-Jiahan
 jerrykingxyz
+Jiahan
 jkzing
 jridgewell
 jscexperimentalplugins
@@ -152,6 +155,8 @@ quininer
 qwertyui
 recognise
 resolvepnp
+riscv
+riscv64gc
 Rollup
 rome
 rsbuild
@@ -182,7 +187,6 @@ sokra
 solidjs
 statoscope
 struct
-suxin2017
 svgr
 swcjsminimizerplugin
 swcjsminimizerrspackplugin
@@ -222,6 +226,7 @@ xstyled
 xtask
 xxhash
 yannik
+yifancong
 Zack
 Zack Jackson
 zackarychapple

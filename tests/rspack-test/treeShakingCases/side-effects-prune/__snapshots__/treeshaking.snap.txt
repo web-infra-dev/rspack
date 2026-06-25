@@ -11,9 +11,9 @@
 
 },
 "./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "something", () => (something)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  something: () => (something)
+});
 const secret = "888";
 const result = 20000;
 const something = function () {};

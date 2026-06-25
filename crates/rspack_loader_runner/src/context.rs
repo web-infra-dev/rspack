@@ -42,7 +42,7 @@ pub struct LoaderContext<Context: Send> {
   pub parse_meta: ParseMeta,
 
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
+  pub(crate) source_map: Option<Box<SourceMap<'static>>>,
   pub(crate) additional_data: Option<AdditionalData>,
 
   pub cacheable: bool,
@@ -123,8 +123,8 @@ impl<Context: Send> LoaderContext<Context> {
     self.content.as_ref()
   }
 
-  pub fn source_map(&self) -> Option<&SourceMap> {
-    self.source_map.as_ref()
+  pub fn source_map(&self) -> Option<&SourceMap<'static>> {
+    self.source_map.as_deref()
   }
 
   pub fn additional_data(&self) -> Option<&AdditionalData> {
@@ -135,18 +135,24 @@ impl<Context: Send> LoaderContext<Context> {
     self.content.take()
   }
 
-  pub fn take_source_map(&mut self) -> Option<SourceMap> {
-    self.source_map.take()
+  pub fn take_source_map(&mut self) -> Option<SourceMap<'static>> {
+    self.source_map.take().map(|source_map| *source_map)
   }
 
   pub fn take_additional_data(&mut self) -> Option<AdditionalData> {
     self.additional_data.take()
   }
 
-  pub fn take_all(&mut self) -> (Option<Content>, Option<SourceMap>, Option<AdditionalData>) {
+  pub fn take_all(
+    &mut self,
+  ) -> (
+    Option<Content>,
+    Option<SourceMap<'static>>,
+    Option<AdditionalData>,
+  ) {
     (
       self.content.take(),
-      self.source_map.take(),
+      self.take_source_map(),
       self.additional_data.take(),
     )
   }
@@ -172,14 +178,14 @@ impl<Context: Send> LoaderContext<Context> {
   pub fn __finish_with(&mut self, patch: impl Into<LoaderPatch>) {
     let patch = patch.into();
     self.content = patch.content;
-    self.source_map = patch.source_map;
+    self.source_map = patch.source_map.map(Box::new);
     self.additional_data = patch.additional_data;
   }
 }
 
 pub struct LoaderPatch {
   pub(crate) content: Option<Content>,
-  pub(crate) source_map: Option<SourceMap>,
+  pub(crate) source_map: Option<SourceMap<'static>>,
   pub(crate) additional_data: Option<AdditionalData>,
 }
 
@@ -196,11 +202,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap)> for LoaderPatch
+impl<T> From<(T, SourceMap<'static>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap)) -> Self {
+  fn from(value: (T, SourceMap<'static>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -209,11 +215,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap>)> for LoaderPatch
+impl<T> From<(T, Option<SourceMap<'static>>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap>)) -> Self {
+  fn from(value: (T, Option<SourceMap<'static>>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -222,11 +228,11 @@ where
   }
 }
 
-impl<T> From<(T, SourceMap, AdditionalData)> for LoaderPatch
+impl<T> From<(T, SourceMap<'static>, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, SourceMap, AdditionalData)) -> Self {
+  fn from(value: (T, SourceMap<'static>, AdditionalData)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: Some(value.1),
@@ -235,11 +241,11 @@ where
   }
 }
 
-impl<T> From<(T, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
+impl<T> From<(T, Option<SourceMap<'static>>, Option<AdditionalData>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (T, Option<SourceMap>, Option<AdditionalData>)) -> Self {
+  fn from(value: (T, Option<SourceMap<'static>>, Option<AdditionalData>)) -> Self {
     Self {
       content: Some(value.0.into()),
       source_map: value.1,
@@ -261,11 +267,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap)> for LoaderPatch
+impl<T> From<(Option<T>, SourceMap<'static>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap)) -> Self {
+  fn from(value: (Option<T>, SourceMap<'static>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -274,11 +280,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, Option<SourceMap>)> for LoaderPatch
+impl<T> From<(Option<T>, Option<SourceMap<'static>>)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, Option<SourceMap>)) -> Self {
+  fn from(value: (Option<T>, Option<SourceMap<'static>>)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,
@@ -287,11 +293,11 @@ where
   }
 }
 
-impl<T> From<(Option<T>, SourceMap, AdditionalData)> for LoaderPatch
+impl<T> From<(Option<T>, SourceMap<'static>, AdditionalData)> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, SourceMap, AdditionalData)) -> Self {
+  fn from(value: (Option<T>, SourceMap<'static>, AdditionalData)) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: Some(value.1),
@@ -300,11 +306,22 @@ where
   }
 }
 
-impl<T> From<(Option<T>, Option<SourceMap>, Option<AdditionalData>)> for LoaderPatch
+impl<T>
+  From<(
+    Option<T>,
+    Option<SourceMap<'static>>,
+    Option<AdditionalData>,
+  )> for LoaderPatch
 where
   T: Into<Content>,
 {
-  fn from(value: (Option<T>, Option<SourceMap>, Option<AdditionalData>)) -> Self {
+  fn from(
+    value: (
+      Option<T>,
+      Option<SourceMap<'static>>,
+      Option<AdditionalData>,
+    ),
+  ) -> Self {
     Self {
       content: value.0.map(|c| c.into()),
       source_map: value.1,

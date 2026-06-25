@@ -134,10 +134,15 @@ export default {
 };
 ```
 
-目前仅支持 `webpackIgnore` 注释：
+目前仅支持 `rspackIgnore` 和 `webpackIgnore` 注释。
+
+:::tip
+从 Rspack 2.1.0 开始，推荐使用 `rspackIgnore`。`webpackIgnore` 仍会被兼容支持。
+:::
 
 ```js
-const x = require(/* webpackIgnore: true */ 'x');
+const x = require(/* rspackIgnore: true */ 'x');
+const y = require(/* webpackIgnore: true */ 'y');
 ```
 
 ### javascript.dynamicImportMode
@@ -147,7 +152,7 @@ const x = require(/* webpackIgnore: true */ 'x');
   defaultValueList={[{ defaultValue: "'lazy'" }]}
 />
 
-指定动态导入的全局模式，详见[`webpackMode`](/api/runtime-api/module-methods#webpackmode)。
+指定动态导入的全局模式，详见 [`rspackMode`](/api/runtime-api/module-methods#rspackmode)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -168,7 +173,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-指定动态导入的全局 prefetch，详见[`webpackPrefetch`](/api/runtime-api/module-methods#webpackprefetch)。
+指定动态导入的全局 prefetch，详见 [`rspackPrefetch`](/api/runtime-api/module-methods#rspackprefetch)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -189,7 +194,7 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-指定动态导入的全局 preload，详见[`webpackPreload`](/api/runtime-api/module-methods#webpackpreload)。
+指定动态导入的全局 preload，详见 [`rspackPreload`](/api/runtime-api/module-methods#rspackpreload)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -212,7 +217,7 @@ export default {
   defaultValueList={[{ defaultValue: "'auto'" }]}
 />
 
-指定动态导入的全局 `fetchPriority`，详见[`webpackFetchPriority`](/api/runtime-api/module-methods#webpackfetchpriority)。
+指定动态导入的全局 `fetchPriority`，详见 [`rspackFetchPriority`](/api/runtime-api/module-methods#rspackfetchpriority)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -603,6 +608,62 @@ export default {
 };
 ```
 
+### javascript.createRequire
+
+<PropertyType
+  type="boolean | string"
+  defaultValueList={[{ defaultValue: 'false' }]}
+/>
+
+控制 Rspack 是否解析来自 Node.js `module` 的 `createRequire()`，并将创建出的 `require` 函数转换为可静态分析的依赖上下文。
+
+当设置为 `true` 时，等价于 `"createRequire from module"`。对于这种默认形式，Rspack 会同时识别来自 `module` 和 `node:module` 的导入。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire as r } from 'module';
+
+const require = r(import.meta.url);
+const value = require('./value.cjs');
+```
+
+Rspack 也支持 namespace import 和 default import：
+
+```js title="index.js"
+import moduleDefault from 'module';
+import * as moduleNs from 'node:module';
+
+moduleDefault.createRequire(import.meta.url)('./value.cjs');
+moduleNs.createRequire(import.meta.url)('./value.cjs');
+```
+
+`createRequire()` 的参数必须能被静态分析为 file URL 或绝对路径，例如 `import.meta.url`、`new URL('./dir/file.js', import.meta.url)` 或绝对 `file:` URL。当 `import.meta.url` 作为参数使用时，Rspack 会将其作为当前模块 URL 来计算 `createRequire` 的上下文。
+
+你也可以使用 `"<specifier> from <module>"` 形式的字符串来自定义导入的 specifier 和模块来源：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: 'createRequire from module',
+      },
+    },
+  },
+};
+```
+
 ### javascript.requireAlias
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
@@ -856,7 +917,7 @@ export default {
 ```
 
 :::warning
-该选项只有在启用 `experiments.pureFunctions` 时才会生效；如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
+该选项只有在启用 `experiments.pureFunctions` 时才会生效；该实验选项在生产模式下默认开启。如果在命中的模块中找不到对应的顶层绑定，Rspack 会发出警告。
 :::
 
 ### ["javascript/auto"]
@@ -1118,7 +1179,7 @@ export default {
 ### ["css/auto"].customIdents
 
 - **类型：** `boolean`
-- **默认值：** `false`
+- **默认值：** `true`
 
 启用或禁用对自定义标识符的重命名，例如本地 `@counter-style` 和 `@font-palette-values` 名称。
 
@@ -1128,6 +1189,25 @@ export default {
     parser: {
       'css/auto': {
         customIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].container
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS container 名称及其使用处的重命名，例如 `container-name`、`container` 和 `@container`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        container: true,
       },
     },
   },
@@ -1147,6 +1227,65 @@ export default {
     parser: {
       'css/auto': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].function
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS function 名称及其使用处的重命名，例如 `@function --fn` 和 `--fn()`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].grid
+
+- **类型：** `boolean`
+- **默认值：** `true`
+
+启用或禁用对本地 CSS grid 线名和区域名及其使用处的重命名，例如 `grid-template-areas`、`grid-area` 和 `grid-row`。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/auto"].pure
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+为 CSS Modules 启用严格 pure 模式。启用后，CSS Module 中的每个选择器都必须至少包含一个本地 class 或 id 选择器。
+
+对于 `css/auto`，该检查只会应用到被识别为 CSS Modules 的文件。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        pure: true,
       },
     },
   },
@@ -1229,54 +1368,6 @@ export default {
     parser: {
       css: {
         import: true,
-      },
-    },
-  },
-};
-```
-
-### css.animation
-
-和 [`module.parser["css/auto"].animation`](#cssautoanimation) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        animation: true,
-      },
-    },
-  },
-};
-```
-
-### css.customIdents
-
-和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        customIdents: true,
-      },
-    },
-  },
-};
-```
-
-### css.dashedIdents
-
-和 [`module.parser["css/auto"].dashedIdents`](#cssautodashedidents) 一样。
-
-```js title="rspack.config.mjs"
-export default {
-  module: {
-    parser: {
-      css: {
-        dashedIdents: true,
       },
     },
   },
@@ -1381,6 +1472,22 @@ export default {
 };
 ```
 
+### ["css/global"].container
+
+和 [`module.parser["css/auto"].container`](#cssautocontainer) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/global"].customIdents
 
 和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
@@ -1407,6 +1514,38 @@ export default {
     parser: {
       'css/global': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].function
+
+和 [`module.parser["css/auto"].function`](#cssautofunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].grid
+
+和 [`module.parser["css/auto"].grid`](#cssautogrid) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        grid: true,
       },
     },
   },
@@ -1511,6 +1650,22 @@ export default {
 };
 ```
 
+### ["css/module"].container
+
+和 [`module.parser["css/auto"].container`](#cssautocontainer) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        container: true,
+      },
+    },
+  },
+};
+```
+
 ### ["css/module"].customIdents
 
 和 [`module.parser["css/auto"].customIdents`](#cssautocustomidents) 一样。
@@ -1537,6 +1692,54 @@ export default {
     parser: {
       'css/module': {
         dashedIdents: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].function
+
+和 [`module.parser["css/auto"].function`](#cssautofunction) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        function: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].grid
+
+和 [`module.parser["css/auto"].grid`](#cssautogrid) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        grid: true,
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].pure
+
+和 [`module.parser["css/auto"].pure`](#cssautopure) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        pure: true,
       },
     },
   },

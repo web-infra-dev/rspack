@@ -16,7 +16,7 @@ use swc_core::ecma::atoms::Atom;
 
 use crate::{
   ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
-  merge_runtime,
+  merge_runtime, property_name,
 };
 
 static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
@@ -383,32 +383,63 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
     let runtime_template = context.runtime_template();
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
-    let exports = format!(
-      "[\n  {}\n]",
-      self
-        .export_map
-        .iter()
-        .map(|(name, binding)| {
-          let name = rspack_util::json_stringify_str(name);
-          match binding {
-            ESMExportBinding::Getter(value) => format!(
-              "{}, {}",
-              name,
-              runtime_template.returning_function(value, "")
-            ),
-            ESMExportBinding::Value(value) => format!("{name}, 0, {value}"),
-          }
-        })
-        .collect::<Vec<_>>()
-        .join(",\n  ")
-    );
 
-    let content = format!(
-      "{}({}, {});\n",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-      runtime_template.render_exports_argument(self.exports_argument),
-      exports
-    );
+    let mut content =
+      runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
+    content.push('(');
+    content.push_str(&runtime_template.render_exports_argument(self.exports_argument));
+    content.push_str(", {");
+
+    let mut getters = self
+      .export_map
+      .iter()
+      .filter_map(|(key, value)| match value {
+        ESMExportBinding::Getter(getter) => Some((key, getter)),
+        _ => None,
+      });
+    if let Some((key, getter)) = getters.next() {
+      content.push_str("\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
+    }
+    for (key, getter) in getters {
+      content.push_str(",\n  ");
+      content.push_str(&property_name(key)?);
+      content.push_str(": ");
+      content.push_str(&runtime_template.returning_function(getter, ""));
+    }
+    content.push_str("\n}");
+
+    let mut values_content = String::new();
+    let mut values = self
+      .export_map
+      .iter()
+      .filter_map(|(key, value)| match value {
+        ESMExportBinding::Value(value) => Some((key, value)),
+        _ => None,
+      });
+    if let Some((key, value)) = values.next() {
+      values_content.push_str("\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+    for (key, value) in values {
+      values_content.push_str(",\n  ");
+      values_content.push_str(&property_name(key)?);
+      values_content.push_str(": ");
+      values_content.push_str(value);
+    }
+
+    if values_content.is_empty() {
+      content.push_str(");\n");
+    } else {
+      content.push_str(", {");
+      content.push_str(&values_content);
+      content.push_str("\n});\n");
+    }
+
     let res = if matches!(self.is_circular_module, None | Some(true)) {
       InitFragmentContents {
         start: content,

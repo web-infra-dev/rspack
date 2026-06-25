@@ -1,8 +1,8 @@
 import * as animation from "./animation-name.module.css";
 import * as styles from "./options.module.css";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 const css = () =>
   fs.readFileSync(path.resolve(__dirname, "bundle0.css"), "utf-8");
@@ -23,7 +23,16 @@ it("should support disabling dashed and custom identifier renaming", () => {
   const content = css();
   expect(content).toContain("--brand-color: red");
   expect(content).toContain("color: var(--brand-color)");
+  expect(content).toContain("container-name: summary");
+  expect(content).toContain("container: card / inline-size");
+  expect(content).toContain("@container summary (min-width: 400px)");
   expect(content).toContain("@counter-style thumbs");
+  expect(content).toContain("--transparent(var(--brand-color), 0.8)");
+  expect(content).toContain("@function --transparent(--color, --alpha)");
+  expect(content).toContain('"header header"');
+  expect(content).toContain('"sidebar main"');
+  expect(content).toContain("grid-area: header");
+  expect(content).toContain("grid-row: sidebar");
   expect(content).toContain("list-style: thumbs");
 });
 

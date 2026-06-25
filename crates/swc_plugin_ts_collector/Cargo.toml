@@ -8,7 +8,7 @@ version.workspace = true
 
 [dependencies]
 rustc-hash = { workspace = true }
-swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit", "ecma_parser"] }
+swc_core   = { workspace = true, features = ["common", "ecma_ast", "ecma_visit", "ecma_parser", "ecma_utils"] }
 
 [dev-dependencies]
 glob                       = "0.3.3"

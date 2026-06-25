@@ -8,6 +8,11 @@ if (<%- SCRIPT_NONCE %>) {
   linkTag.nonce = <%- SCRIPT_NONCE %>;
 }
 linkTag.href = fullhref;
+<% if (_with_fetch_priority) { %>
+if (fetchPriority) {
+  linkTag.setAttribute("fetchpriority", fetchPriority);
+}
+<% } %>
 <% if (_cross_origin == "use-credentials") { %>
 linkTag.crossOrigin = "use-credentials";
 <% } else if (_cross_origin != "") { %>

@@ -160,7 +160,7 @@ impl<'a> Iterator for ChunkModules<'a> {
 /// - input:  `{"a":1}`
 /// - output: "\"{\\\"a\\\":1}\""
 pub fn to_json_string_literal<T: ?Sized + Serialize>(value: &T) -> Result<String> {
-  serde_json::to_string(&serde_json::to_string(value).to_rspack_result()?).to_rspack_result()
+  simd_json::to_string(&simd_json::to_string(value).to_rspack_result()?).to_rspack_result()
 }
 
 pub fn encode_uri_path(file: &str) -> String {

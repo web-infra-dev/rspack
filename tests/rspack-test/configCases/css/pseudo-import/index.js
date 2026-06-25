@@ -1,7 +1,7 @@
 import './style.modules.css';
 
 it("should compile", () => {
-	const path = __non_webpack_require__("path");
+	const path = require("path");
 	const links = Array.from(document.getElementsByTagName("link"));
 	const css = [];
 
@@ -17,7 +17,7 @@ it("should re-export", async () => {
 	const module = await import("./reexport.modules.css");
 	expect(module).toEqual(nsObj({
 		"className": "reexport_modules_css-className",
-		"primary-color": "constructor",
-		"secondary-color": "toString",
+		"primary-color": "red",
+		"secondary-color": "block",
 	}));
 });

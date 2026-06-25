@@ -18,7 +18,7 @@ var applyHandler = function (options) {
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
 	applyHandlers.push(applyHandler);
 	chunkIds.forEach(function (chunkId) {
-		var href = <%- REQUIRE %>.miniCssF(chunkId);
+		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		var oldTag = findStylesheet(href, fullhref);
 		if (!oldTag) return;

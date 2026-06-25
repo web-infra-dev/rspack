@@ -1,6 +1,6 @@
 {
   "name": "@rspack/browser",
-  "version": "2.0.4",
+  "version": "2.1.0-rc.0",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Rspack for running in the browser. This is still in early stage and may not follow the semver.",
@@ -15,7 +15,7 @@
       "types": "./dist/browser/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./wasi-worker-browser.mjs": "./wasi-worker-browser.mjs",
+    "./wasi-worker-browser.mjs": "./dist/wasi-worker-browser.mjs",
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -32,16 +32,16 @@
     "directory": "packages/rspack-browser"
   },
   "dependencies": {
-    "@emnapi/core": "1.10.0",
-    "@emnapi/runtime": "1.10.0",
-    "@napi-rs/wasm-runtime": "1.1.4",
-    "@rspack/lite-tapable": "1.1.0",
-    "@swc/types": "0.1.26",
-    "memfs": "4.57.2",
-    "webpack-sources": "3.3.4"
+    "@emnapi/core": "1.11.1",
+    "@emnapi/runtime": "1.11.1",
+    "@napi-rs/wasm-runtime": "1.1.5",
+    "@rspack/lite-tapable": "1.1.2",
+    "@swc/types": "0.1.27",
+    "memfs": "4.57.7",
+    "webpack-sources": "3.5.0"
   },
   "peerDependencies": {
-    "@swc/helpers": ">=0.5.1"
+    "@swc/helpers": "^0.5.23"
   },
   "peerDependenciesMeta": {
     "@swc/helpers": {

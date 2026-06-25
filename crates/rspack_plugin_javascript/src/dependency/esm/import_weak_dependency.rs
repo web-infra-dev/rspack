@@ -9,7 +9,7 @@ use rspack_core::{
   ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
 use super::create_resource_identifier_for_esm_dependency;
 
@@ -41,7 +41,7 @@ impl ImportWeakDependency {
     optional: bool,
   ) -> Self {
     let resource_identifier =
-      create_resource_identifier_for_esm_dependency(request.as_str(), attributes.as_ref());
+      create_resource_identifier_for_esm_dependency(request.as_str(), phase, attributes.as_ref());
     Self {
       request,
       range,

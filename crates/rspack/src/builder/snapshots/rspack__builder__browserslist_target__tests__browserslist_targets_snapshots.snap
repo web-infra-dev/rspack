@@ -62,6 +62,9 @@ expression: results
             const: Some(
                 false,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 false,
@@ -150,6 +153,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -242,6 +248,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -330,6 +339,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -422,6 +434,9 @@ expression: results
             const: Some(
                 false,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 false,
@@ -510,6 +525,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -602,6 +620,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -690,6 +711,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -782,6 +806,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -870,6 +897,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -962,6 +992,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -1050,6 +1083,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -1142,6 +1178,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -1230,6 +1269,9 @@ expression: results
                 false,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -1322,6 +1364,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -1410,6 +1455,9 @@ expression: results
                 false,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -1502,6 +1550,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -1590,6 +1641,9 @@ expression: results
                 false,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -1682,6 +1736,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -1770,6 +1827,9 @@ expression: results
                 false,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -1862,6 +1922,9 @@ expression: results
             const: Some(
                 false,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 false,
@@ -1950,6 +2013,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -2042,6 +2108,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -2130,6 +2199,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -2222,6 +2294,9 @@ expression: results
             const: Some(
                 false,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 false,
@@ -2310,6 +2385,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -2402,6 +2480,9 @@ expression: results
             const: Some(
                 false,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 false,
@@ -2490,6 +2571,9 @@ expression: results
                 false,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -2582,6 +2666,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -2670,6 +2757,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -2762,6 +2852,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                false,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -2851,6 +2944,9 @@ expression: results
             ),
             const: Some(
                 true,
+            ),
+            computed_property: Some(
+                false,
             ),
             method_shorthand: None,
             arrow_function: Some(
@@ -2942,6 +3038,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -3030,6 +3129,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,
@@ -3123,6 +3225,9 @@ expression: results
             const: Some(
                 true,
             ),
+            computed_property: Some(
+                true,
+            ),
             method_shorthand: None,
             arrow_function: Some(
                 true,
@@ -3196,6 +3301,9 @@ expression: results
                 true,
             ),
             const: Some(
+                true,
+            ),
+            computed_property: Some(
                 true,
             ),
             method_shorthand: None,
@@ -3286,6 +3394,9 @@ expression: results
                 false,
             ),
             const: Some(
+                false,
+            ),
+            computed_property: Some(
                 false,
             ),
             method_shorthand: None,

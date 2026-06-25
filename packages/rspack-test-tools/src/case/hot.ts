@@ -9,7 +9,10 @@ import { HotUpdatePlugin } from '../helper/hot-update/plugin';
 import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
 import { LazyCompilationTestPlugin } from '../plugin';
 import { NodeRunner, WebRunner } from '../runner';
-import { BasicCaseCreator } from '../test/creator';
+import {
+  BasicCaseCreator,
+  type IBasicCaseCreatorOptions,
+} from '../test/creator';
 import type {
   IModuleScope,
   ITestContext,
@@ -18,9 +21,13 @@ import type {
   ITestRunner,
 } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
+import { applyRuntimeModeTestDefines } from './runtime-mode';
 import { cachedStats, type THotStepRuntimeData } from './runner';
 
 type TTarget = RspackOptions['target'];
+type THotCaseOptions = Partial<IBasicCaseCreatorOptions> & {
+  rspackOptions?: RspackOptions;
+};
 
 const creators: Map<TTarget, BasicCaseCreator> = new Map();
 
@@ -30,6 +37,7 @@ export function createHotProcessor(
   temp: string,
   target: TTarget,
   incremental: boolean = false,
+  rspackOptions?: RspackOptions,
 ): THotProcessor {
   const updatePlugin = new HotUpdatePlugin(src, temp);
 
@@ -51,6 +59,8 @@ export function createHotProcessor(
       if (incremental) {
         options.incremental ??= 'advance-silent';
       }
+      mergeRspackOptions(options, rspackOptions);
+      applyRuntimeModeTestDefines(options);
       compiler.setOptions(options);
     },
     compiler: async (context: ITestContext) => {
@@ -96,12 +106,14 @@ function getCreator(target: TTarget) {
         clean: true,
         describe: true,
         target,
-        steps: ({ name, target, src, dist, temp }) => [
+        steps: ({ name, target, src, dist, temp, rspackOptions }) => [
           createHotProcessor(
             name,
             src,
             temp || path.resolve(dist, 'temp'),
             target as TTarget,
+            false,
+            rspackOptions as RspackOptions | undefined,
           ),
         ],
         runner: {
@@ -121,9 +133,25 @@ export function createHotCase(
   dist: string,
   temp: string,
   target: RspackOptions['target'],
+  rspackOptions?: RspackOptions,
 ) {
   const creator = getCreator(target);
-  creator.create(name, src, dist, temp);
+  creator.create(name, src, dist, temp, {
+    rspackOptions,
+  } satisfies THotCaseOptions);
+}
+
+function mergeRspackOptions(options: RspackOptions, override?: RspackOptions) {
+  if (!override) return;
+
+  const { experiments, ...rest } = override;
+  Object.assign(options, rest);
+  if (experiments) {
+    options.experiments = {
+      ...options.experiments,
+      ...experiments,
+    };
+  }
 }
 
 function defaultOptions(context: ITestContext, target: TTarget) {

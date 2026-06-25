@@ -9,7 +9,6 @@ const SEGMENTS_SPLIT_REGEXP = /([|!])/;
 const WINDOWS_PATH_SEPARATOR_REGEXP = /\\/g;
 
 interface ParsedResource {
-  resource: string;
   path: string;
   query: string;
   fragment: string;
@@ -86,7 +85,7 @@ const requestToAbsolute = (context: string, relativePath: string): string => {
   return relativePath;
 };
 
-const makeCacheable = <T extends ParsedResourceWithoutFragment>(
+const makeCacheable = <T extends Omit<ParsedResource, 'fragment'>>(
   realFn: (str: string) => T,
 ) => {
   const cache: WeakMap<object, Map<string, T>> = new WeakMap();
@@ -306,19 +305,22 @@ const PATH_QUERY_FRAGMENT_REGEXP =
   /^((?:\u200b.|[^?#\u200b])*)(\?(?:\u200b.|[^#\u200b])*)?(#.*)?$/;
 const PATH_QUERY_REGEXP = /^((?:\u200b.|[^?\u200b])*)(\?.*)?$/;
 
-/**
- * @param {string} str the path with query and fragment
- * @returns {ParsedResource} parsed parts
- */
-const _parseResource = (str: string): ParsedResource => {
+function _parseResource(str: string): ParsedResource {
+  // Most requests are plain paths, so avoid the regexp on the hot path.
+  if (!str.includes('?') && !str.includes('#') && !str.includes('\u200b')) {
+    return { path: str, query: '', fragment: '' };
+  }
+
   const match = PATH_QUERY_FRAGMENT_REGEXP.exec(str);
+  if (!match) return { path: '', query: '', fragment: '' };
+
   return {
-    resource: str,
-    path: match![1].replace(/\u200b(.)/g, '$1'),
-    query: match![2] ? match![2].replace(/\u200b(.)/g, '$1') : '',
-    fragment: match![3] || '',
+    path: match[1].replace(/\u200b(.)/g, '$1'),
+    query: match[2] ? match[2].replace(/\u200b(.)/g, '$1') : '',
+    fragment: match[3] || '',
   };
-};
+}
+
 export const parseResource = makeCacheable(_parseResource);
 
 /**
@@ -331,7 +333,6 @@ const _parseResourceWithoutFragment = (
 ): ParsedResourceWithoutFragment => {
   const match = PATH_QUERY_REGEXP.exec(str);
   return {
-    resource: str,
     path: match![1].replace(/\u200b(.)/g, '$1'),
     query: match![2] ? match![2].replace(/\u200b(.)/g, '$1') : '',
   };

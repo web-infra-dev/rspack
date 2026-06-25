@@ -1,0 +1,101 @@
+---
+description: 'Assign short numeric module ids that stay stable between compilations'
+---
+
+import WebpackLicense from '@components/WebpackLicense';
+
+<WebpackLicense from="https://webpack.js.org/configuration/optimization/#optimizationmoduleids" />
+
+# DeterministicModuleIdsPlugin
+
+`DeterministicModuleIdsPlugin` assigns short numeric ids to modules based on their module identifiers. The ids are stable between compilations, which makes the plugin useful for long-term caching.
+
+`optimization.moduleIds: 'deterministic'` uses this plugin internally. Use the plugin directly when you need to customize the deterministic id generation behavior.
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicModuleIdsPlugin({
+      maxLength: 4,
+    }),
+  ],
+};
+```
+
+## Options
+
+### context
+
+- **Type:** `string`
+- **Default:** `compiler.context`
+
+The context used to create relative module identifiers before ids are generated.
+
+### test
+
+- **Type:** `(module: Module) => boolean`
+- **Default:** `undefined`
+
+Selects which modules should receive deterministic ids from this plugin. When omitted, all modules that need ids are included.
+
+```js title="rspack.config.mjs"
+import rspack from '@rspack/core';
+
+export default {
+  optimization: {
+    moduleIds: false,
+  },
+  plugins: [
+    new rspack.ids.DeterministicModuleIdsPlugin({
+      test: (module) => module.type.startsWith('css'),
+    }),
+  ],
+};
+```
+
+### maxLength
+
+- **Type:** `number`
+- **Default:** `3`
+
+The maximum id length in digits used as the starting id space. The generated numeric id space starts at `10 ** maxLength`.
+
+### salt
+
+- **Type:** `number`
+- **Default:** `0`
+
+The hash salt used when generating ids. Change this value to try a different hash starting value in the same id space.
+
+### fixedLength
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, Rspack does not increase the id length to find a larger id space.
+
+### failOnConflict
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When enabled, Rspack reports an error if deterministic id assignment produces conflicts. By default, Rspack resolves conflicts by retrying with a larger id space.
+
+## Usage with optimization.moduleIds
+
+For the common long-term caching setup, prefer the built-in optimization option:
+
+```js title="rspack.config.mjs"
+export default {
+  optimization: {
+    moduleIds: 'deterministic',
+  },
+};
+```
+
+Use `DeterministicModuleIdsPlugin` directly only when you need the options above.

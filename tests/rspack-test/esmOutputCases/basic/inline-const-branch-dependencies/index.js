@@ -1,4 +1,5 @@
 import { IS_DEV, IS_DEV1, IS_DEV2 } from "./env";
+import * as envNs from "./env";
 import { alt } from "./alt";
 import { foo } from "./foo";
 import { bar } from "./bar";
@@ -109,6 +110,25 @@ if ((IS_DEV1 || IS_DEV2) && (IS_DEV && false || IS_DEV2)) {
   values.push(bar());
 }
 
+values.push((IS_DEV ? foo : bar)());
+values.push((IS_DEV1 ? bar : alt)());
+
+if (envNs.IS_DEV) {
+  console.log(foo);
+  values.push(foo());
+} else {
+  console.log(bar);
+  values.push(bar());
+}
+
+if (envNs.IS_DEV1) {
+  console.log(bar);
+  values.push(bar());
+} else {
+  console.log(alt);
+  values.push(alt());
+}
+
 if (IS_DEV) {
   if (IS_DEV1) {
     console.log(bar);
@@ -169,6 +189,10 @@ it("should drop inactive ESM branch dependencies guarded by inlined booleans", (
     "foo",
     "alt",
     "foo",
+    "foo",
+    "alt",
+    "foo",
+    "alt",
     "foo",
     "foo",
     "alt",

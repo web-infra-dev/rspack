@@ -202,11 +202,138 @@ img.src = './src/img.png'; // module ID of img.png
 `import.meta.resolve()` is currently experimental. To use it, you must enable [`module.parser.javascript.importMetaResolve`](/config/module-parser#javascriptimportmetaresolve). Rspack also plans to [align this API with the standard behavior](https://github.com/openjs-foundation/bundler-collab-space/issues/8) in the future, so its behavior may change. Use it with caution.
 :::
 
+### import.meta.glob
+
+<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
+
+`import.meta.glob` allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
+
+- **Type:**
+
+```ts
+interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
+  /**
+   * If `true`, modules are loaded synchronously.
+   *
+   * @default false
+   */
+  eager?: Eager;
+  /**
+   * Import only the specific named export. Set to `default` to import the default export.
+   */
+  import?: string;
+  /**
+   * Append a query to each matched module request.
+   */
+  query?: string | Record<string, string | number | boolean>;
+  /**
+   * Search files inside `node_modules` and hidden paths.
+   *
+   * @default false
+   */
+  exhaustive?: boolean;
+  /**
+   * Base path for resolving relative glob patterns and returned keys.
+   */
+  base?: string;
+}
+
+function glob(
+  /**
+   * A glob pattern, or an array of glob patterns, to match files.
+   */
+  pattern: string | readonly string[],
+  options?: ImportMetaGlobOptions<false>,
+): Record<string, () => Promise<any>>;
+
+function glob(
+  /**
+   * A glob pattern, or an array of glob patterns, to match files.
+   */
+  pattern: string | readonly string[],
+  options: ImportMetaGlobOptions<true>,
+): Record<string, any>;
+```
+
+- **Parameters:**
+  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
+  - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
+  - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
+  - `options.query`: Append a query to each matched module request. It can be a query string such as `'?raw'`, or an object that is serialized as a URL query string. The keys returned from `import.meta.glob()` do not include the query.
+  - `options.exhaustive`: Search files inside `node_modules` and hidden paths. This is disabled by default because it can increase build time.
+  - `options.base`: Base path for resolving relative glob patterns and returned keys. Absolute glob patterns are still resolved from the project root, while returned keys are made relative to `base`.
+
+- **Example:**
+
+```js
+// Lazy (default): each value is a function () => Promise<module>
+const modules = import.meta.glob('./dir/*.js');
+
+// All matched modules are available as async thunks
+const foo = await modules['./dir/foo.js']();
+console.log(foo.default);
+
+// Eager: each value is the module object directly
+const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
+console.log(eagerModules['./dir/foo.js'].default);
+
+// Import only the default export from each matched module
+const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
+const fooDefault = await defaultModules['./dir/foo.js']();
+console.log(fooDefault);
+
+// Combine eager loading with import selection
+const eagerDefaultModules = import.meta.glob('./dir/*.js', {
+  eager: true,
+  import: 'default',
+});
+console.log(eagerDefaultModules['./dir/foo.js']);
+
+// Append a query to each matched import
+const rawModules = import.meta.glob('./dir/*.js', {
+  query: '?raw',
+  import: 'default',
+});
+const rawFoo = await rawModules['./dir/foo.js']();
+
+// Query objects are serialized as URL query strings
+const dataModules = import.meta.glob('./dir/*.js', {
+  query: { type: 'data', inline: true },
+  eager: true,
+});
+
+// Resolve files from ./base and expose keys relative to ./base
+const modulesWithBase = import.meta.glob('./**/*.js', {
+  base: './base',
+});
+
+// Include matches inside node_modules and hidden paths
+const exhaustiveModules = import.meta.glob(
+  ['./node_modules/**/*.js', './.config/*.js'],
+  {
+    exhaustive: true,
+  },
+);
+
+// Recursive matching with **
+const allModules = import.meta.glob('./components/**/*.js', { eager: true });
+```
+
+:::tip
+Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal or an array of string literals, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
+:::
+
+:::warning
+`import.meta.glob()` matches files on the filesystem at build time and includes them in the bundle. Avoid using overly broad glob patterns, as they can significantly increase build time and output size.
+:::
+
 ### import.meta.webpackContext
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
 
-`import.meta.webpackContext` is the ESM equivalent of [`require.context()`](/api/runtime-api/module-methods#requirecontext). It allows you to dynamically import a set of modules.
+`import.meta.webpackContext` is the ESM equivalent of [`require.context()`](/api/runtime-api/module-methods#requirecontext). It allows you to dynamically import a set of modules and is provided for compatibility with webpack context modules.
+
+For new Rspack code, we recommend using [`import.meta.glob`](#importmetaglob) instead when webpack-compatible context behavior is not required.
 
 You can use `import.meta.webpackContext` in your code, and Rspack will parse and reference the matching modules during the build process.
 
@@ -318,88 +445,6 @@ componentsContext.keys().forEach((fileName) => {
 ```
 
 `import.meta.webpackContext()` streamlines the process of module importation especially when you have a lot of files to manage. When using it, please avoid matching unnecessary files, as this might lead to significantly increased build time and output size.
-
-### import.meta.glob
-
-<ApiMeta specific={['Rspack']} addedVersion="2.0.5" />
-
-`import.meta.glob` allows you to import multiple modules at once using glob patterns. Rspack will parse and reference the matching modules during the build process.
-
-- **Type:**
-
-```ts
-interface ImportMetaGlobOptions<Eager extends boolean = boolean> {
-  /**
-   * If `true`, modules are loaded synchronously.
-   *
-   * @default false
-   */
-  eager?: Eager;
-  /**
-   * Import only the specific named export. Set to `default` to import the default export.
-   */
-  import?: string;
-}
-
-function glob(
-  /**
-   * A glob pattern, or an array of glob patterns, to match files.
-   */
-  pattern: string | readonly string[],
-  options?: ImportMetaGlobOptions<false>,
-): Record<string, () => Promise<any>>;
-
-function glob(
-  /**
-   * A glob pattern, or an array of glob patterns, to match files.
-   */
-  pattern: string | readonly string[],
-  options: ImportMetaGlobOptions<true>,
-): Record<string, any>;
-```
-
-- **Parameters:**
-  - `pattern`: A glob pattern string, or an array of glob pattern strings, to match files (e.g., `'./dir/*.js'`). Supports `*`, `?`, `[abc]`, `{a,b}`, and `**` for recursive matching. Array patterns can also include negative patterns such as `'!**/bar.js'`.
-  - `options.eager`: When set to `true`, modules are included directly in the bundle and loaded synchronously. By default (`false`), modules are lazily loaded and each value is a thunk function that returns a `Promise` resolving to the module.
-  - `options.import`: Import only the specified export from each matched module. For example, use `'default'` to get default exports, or a named export such as `'setup'`.
-
-- **Example:**
-
-```js
-// Lazy (default): each value is a function () => Promise<module>
-const modules = import.meta.glob('./dir/*.js');
-
-// All matched modules are available as async thunks
-const foo = await modules['./dir/foo.js']();
-console.log(foo.default);
-
-// Eager: each value is the module object directly
-const eagerModules = import.meta.glob('./dir/*.js', { eager: true });
-console.log(eagerModules['./dir/foo.js'].default);
-
-// Import only the default export from each matched module
-const defaultModules = import.meta.glob('./dir/*.js', { import: 'default' });
-const fooDefault = await defaultModules['./dir/foo.js']();
-console.log(fooDefault);
-
-// Combine eager loading with import selection
-const eagerDefaultModules = import.meta.glob('./dir/*.js', {
-  eager: true,
-  import: 'default',
-});
-console.log(eagerDefaultModules['./dir/foo.js']);
-
-// Recursive matching with **
-const allModules = import.meta.glob('./components/**/*.js', { eager: true });
-```
-
-:::tip
-Rspack uses static analysis to parse the parameters of `import.meta.glob()` during compilation. Therefore, the `pattern` parameter must be a string literal or an array of string literals, and the `options` parameter must be an object literal. Variables or dynamically constructed values are not supported.
-:::
-
-:::warning
-`import.meta.glob()` matches files on the filesystem at build time and includes them in the bundle. Avoid using overly broad glob patterns, as they can significantly increase build time and output size.
-:::
 
 ### import.meta.webpackHot
 

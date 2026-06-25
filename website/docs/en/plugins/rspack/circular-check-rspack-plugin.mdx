@@ -1,0 +1,86 @@
+---
+description: 'Reports circular import dependencies collected from the Rspack module graph'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CircularCheckRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+Reports circular import dependencies as compilation warnings by default. This is the recommended replacement for the deprecated [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin).
+
+```js
+new rspack.CircularCheckRspackPlugin(options);
+```
+
+## Example
+
+Ignore specific warnings: when `CircularCheckRspackPlugin` reports warnings, you can use [`ignoreWarnings`](/config/other-options#ignorewarnings) to suppress specific circular dependency diagnostics.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+  ignoreWarnings: [
+    {
+      message: /Circular dependency detected:[\s\S]*src\/legacy\//,
+    },
+  ],
+};
+```
+
+`ignoreWarnings` only suppresses warnings. If `failOnError` is `true`, use `exclude` or `onDetected` to control reporting instead.
+
+## Options
+
+### exclude
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+If any path in a detected cycle matches `exclude`, that cycle will not be reported.
+
+### include
+
+- **Type:** `RegExp`
+- **Default:** `undefined`
+
+When `include` is provided, only cycles with at least one matching path will be reported.
+
+### failOnError
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+When `true`, detected cycles will generate Error level diagnostics rather than Warnings.
+
+We recommend using the default value with `ignoreWarnings` to ignore specific warnings.
+
+### onDetected
+
+- **Type:** `(args: { module: Module; paths: string[]; compilation: Compilation }) => void`
+- **Default:** `undefined`
+
+Called once for each detected circular dependency. Using this option disables the default behavior of adding diagnostics to the compilation.
+
+`paths` contains the readable unique module identifiers in the detected cycle path.
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularCheckRspackPlugin({
+      onDetected({ paths, compilation }) {
+        compilation.warnings.push(
+          new Error(`Circular dependency detected: ${paths.join(' -> ')}`),
+        );
+      },
+    }),
+  ],
+};
+```

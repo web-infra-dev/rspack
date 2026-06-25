@@ -24,10 +24,10 @@ console.log(getClass().name);
 
 },
 "./stuff.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "bar", () => (bar),
-  "baz", () => (Baz)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (bar),
+  baz: () => (Baz)
+});
 function foo() {
 	console.log("outer foo");
 }

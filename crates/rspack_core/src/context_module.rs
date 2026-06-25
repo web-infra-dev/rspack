@@ -189,6 +189,7 @@ pub struct ContextOptions {
   #[cacheable(with=AsOption<AsVec<AsCacheable>>)]
   pub referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   pub glob_import: Option<String>,
+  pub glob_exhaustive: bool,
   pub attributes: Option<ImportAttributes>,
   pub phase: Option<ImportPhase>,
 }
@@ -211,6 +212,7 @@ impl Default for ContextOptions {
       end: 0,
       referenced_specifiers: None,
       glob_import: None,
+      glob_exhaustive: false,
       attributes: None,
       phase: None,
     }
@@ -270,13 +272,26 @@ impl ContextModule {
     resolve_dependencies: ResolveContextModuleDependencies,
     options: ContextModuleOptions,
   ) -> Self {
+    Self::new_with_strict(resolve_dependencies, options, None)
+  }
+
+  pub(crate) fn new_with_strict(
+    resolve_dependencies: ResolveContextModuleDependencies,
+    options: ContextModuleOptions,
+    strict: Option<bool>,
+  ) -> Self {
+    let mut build_info = BuildInfo::default();
+    if let Some(strict) = strict {
+      build_info.strict = strict;
+    }
+
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
       identifier: create_identifier(&options, None),
       options,
       factory_meta: None,
-      build_info: Default::default(),
+      build_info,
       build_meta: BuildMeta {
         exports_type: BuildMetaExportsType::Default,
         default_object: BuildMetaDefaultObject::RedirectWarn,
@@ -562,8 +577,9 @@ impl ContextModule {
       .options
       .context_options
       .glob_import
-      .as_ref()
-      .map(|import| property_access([import.as_str()], 0))
+      .as_deref()
+      .filter(|import| *import != "*")
+      .map(|import| property_access([import], 0))
   }
 
   fn get_sorted_context_block_info(&self, compilation: &Compilation) -> Vec<ContextBlockInfo> {
@@ -837,20 +853,40 @@ impl ContextModule {
 
     let chunks_position = if has_fake_map { 2 } else { 1 };
     let async_deps_position = chunks_position + 1;
+    let fetch_priority = match &self.options.context_options.group_options {
+      Some(GroupOptions::ChunkGroup(group)) => group.fetch_priority,
+      _ => None,
+    };
+    let fetch_priority_arg = fetch_priority
+      .map(|x| format!(r#", "{x}""#))
+      .unwrap_or_default();
+    if fetch_priority.is_some() {
+      runtime_template
+        .runtime_requirements_mut()
+        .insert(RuntimeGlobals::HAS_FETCH_PRIORITY);
+    }
+
     let request_prefix = if has_no_chunk {
       "Promise.resolve()".to_string()
     } else if has_multiple_or_no_chunks {
-      format!(
-        "Promise.all(ids[{chunks_position}].map({}))",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK)
-      )
+      let ensure_chunk = runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK);
+      if fetch_priority.is_some() {
+        format!(
+          r#"Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId{fetch_priority_arg}); }}))"#
+        )
+      } else {
+        format!(
+          "Promise.all(ids[{chunks_position}].map(function(chunkId) {{ return {ensure_chunk}(chunkId); }}))"
+        )
+      }
     } else {
       let mut chunks_position_buffer = itoa::Buffer::new();
       let chunks_position_str = chunks_position_buffer.format(chunks_position);
       format!(
-        "{}(ids[{}][0])",
+        "{}(ids[{}][0]{})",
         runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-        chunks_position_str
+        chunks_position_str,
+        fetch_priority_arg
       )
     };
     let return_module_object = self.get_return_module_object_source(
@@ -1092,8 +1128,8 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         if(!{module_factories}[id]) {{
           var e = new Error("Module '" + req + "' ('" + id + "') is not available (weak dependency)");
           e.code = 'MODULE_NOT_FOUND';
@@ -1101,7 +1137,7 @@ impl ContextModule {
         }}
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -1109,10 +1145,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      __rspack_context.id = {id};
-      {module}.exports = __rspack_context;
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      __rspack_context_module.id = {id};
+      {module}.exports = __rspack_context_module;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -1204,11 +1240,11 @@ impl ContextModule {
       var map = {map};
       {fake_map_init_statement}
 
-      function __rspack_context(req) {{
-        var id = __rspack_context_resolve(req);
+      function __rspack_context_module(req) {{
+        var id = __rspack_context_module_resolve(req);
         return {return_module_object};
       }}
-      function __rspack_context_resolve(req) {{
+      function __rspack_context_module_resolve(req) {{
         if(!{has_own_property}(map, req)) {{
           var e = new Error("Cannot find module '" + req + "'");
           e.code = 'MODULE_NOT_FOUND';
@@ -1216,10 +1252,10 @@ impl ContextModule {
         }}
         return map[req];
       }}
-      __rspack_context.keys = {keys};
-      __rspack_context.resolve = __rspack_context_resolve;
-      {module}.exports = __rspack_context;
-      __rspack_context.id = {id};
+      __rspack_context_module.keys = {keys};
+      __rspack_context_module.resolve = __rspack_context_module_resolve;
+      {module}.exports = __rspack_context_module;
+      __rspack_context_module.id = {id};
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       map = json_stringify_pretty(&map),
@@ -1361,6 +1397,9 @@ impl Module for ContextModule {
     if let Some(import) = &self.options.context_options.glob_import {
       id += " globImport: ";
       id += import;
+    }
+    if self.options.context_options.glob_exhaustive {
+      id += " globExhaustive";
     }
     Some(Cow::Owned(id))
   }
@@ -1569,6 +1608,9 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|globImport: ";
     id += import;
   }
+  if options.context_options.glob_exhaustive {
+    id += "|globExhaustive";
+  }
 
   if let Some(GroupOptions::ChunkGroup(group)) = &options.context_options.group_options {
     if let Some(chunk_name) = &group.name {
@@ -1594,7 +1636,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
   };
   if let Some(attributes) = &options.context_options.attributes {
     id += "|importAttributes: ";
-    id += &serde_json::to_string(attributes).expect("json stringify failed");
+    id += &simd_json::to_string(attributes).expect("json stringify failed");
   }
   if let Some(phase) = &options.context_options.phase {
     id += "|importPhase: ";

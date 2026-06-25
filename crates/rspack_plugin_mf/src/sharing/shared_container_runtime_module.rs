@@ -1,7 +1,9 @@
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
+
+use crate::utils::{runtime_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -21,13 +23,15 @@ impl RuntimeModule for ShareContainerRuntimeModule {
   ) -> rspack_error::Result<String> {
     Ok(format!(
       "{}.federation = {{ instance: undefined,bundlerRuntime: undefined }};",
-      context
-        .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+      runtime_require_scope_name(context.runtime_template)
     ))
   }
 
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
+  }
+
+  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
+    runtime_require_scope_requirement(compilation)
   }
 }

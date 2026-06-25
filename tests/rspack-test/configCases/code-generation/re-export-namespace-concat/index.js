@@ -70,9 +70,15 @@ it("should use/preserve accessor form for import object and namespaces", functio
 
 	expectSourceToContain(source, 'const bb = module1.obj1.up.down?.left.right;');
 
-	expectSourceToMatch(source, `${regexEscape('const ww = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
-	expectSourceToMatch(source, `${regexEscape('const xx = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
-	expectSourceToMatch(source, `${regexEscape('const yy = (__webpack_require__(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		expectSourceToMatch(source, `${regexEscape('const ww = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
+		expectSourceToMatch(source, `${regexEscape('const xx = (__rspack_context.r(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const yy = (__rspack_context.r(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
+	} else {
+		expectSourceToMatch(source, `${regexEscape('const ww = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.bing.bang */.obj1.bing.bang);')}`);
+		expectSourceToMatch(source, `${regexEscape('const xx = (__webpack_require__(')}\\d+${regexEscape(')/* .obj1.pip.pop */.obj1.pip.pop)();')}`);
+		expectSourceToMatch(source, `${regexEscape('const yy = (__webpack_require__(')}\\d+${regexEscape(')/* .m_2.m_1.obj1.tip.top */.a.a.obj1.tip.top)();')}`);
+	}
 
 	expectSourceToContain(source, 'data_namespaceObject.a.a.unknownProperty.depth = "deep";');
 

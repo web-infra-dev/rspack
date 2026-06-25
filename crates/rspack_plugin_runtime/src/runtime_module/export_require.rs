@@ -20,13 +20,13 @@ impl RuntimeModule for ExportRequireRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let require_name = context
+    let export_name = context
       .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE);
-    let export_temp_name = format!("{require_name}temp");
+      .render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
+    let export_temp_name = format!("{export_name}temp");
     Ok(format!(
-      r#"var {export_temp_name} = {require_name};
-export {{ {export_temp_name} as {require_name} }};
+      r#"var {export_temp_name} = {export_name};
+export {{ {export_temp_name} as {export_name} }};
 "#,
     ))
   }

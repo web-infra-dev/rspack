@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -16,6 +17,10 @@ impl AmdOptionsRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdOptionsRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::AMD_OPTIONS
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

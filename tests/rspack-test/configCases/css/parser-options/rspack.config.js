@@ -1,5 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   target: 'web',
   mode: 'development',
   node: {
@@ -11,7 +15,7 @@ module.exports = {
   },
   module: {
     parser: {
-      css: {
+      'css/module': {
         animation: false,
       },
     },
@@ -29,8 +33,11 @@ module.exports = {
         test: /options\.module\.css$/,
         type: 'css/module',
         parser: {
+          container: false,
           customIdents: false,
           dashedIdents: false,
+          function: false,
+          grid: false,
           import: false,
           url: false,
         },

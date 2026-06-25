@@ -5,6 +5,8 @@ import {
   __from_binding_runtime_globals,
   __to_binding_runtime_globals,
   isReservedRuntimeGlobal,
+  renderRuntimeVariables,
+  RuntimeVariable,
 } from '../RuntimeGlobals';
 import { createRenderedRuntimeModule } from '../RuntimeModule';
 import { createHash } from '../util/createHash';
@@ -141,6 +143,11 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
           queried.call(runtimeModule, chunk);
           const newSource = module.source?.source;
           if (newSource && newSource !== originSource) {
+            if (getCompiler().options.experiments?.runtimeMode === 'rspack') {
+              throw new Error(
+                'Compilation.hooks.runtimeModule source modifications are not supported when experiments.runtimeMode is "rspack".',
+              );
+            }
             return module;
           }
           return;
@@ -203,6 +210,7 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
         }: binding.JsExecuteModuleArg) {
           try {
             const RuntimeGlobals = getCompiler().rspack.RuntimeGlobals;
+            const runtimeContext: any = {};
             const moduleRequireFn: any = (id: string) => {
               const cached = moduleCache[id];
               if (cached !== undefined) {
@@ -238,7 +246,17 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                       codeGenerationResult: new CodeGenerationResult(result),
                       moduleObject,
                     },
-                    { [RuntimeGlobals.require]: moduleRequireFn },
+                    {
+                      [RuntimeGlobals.require]: moduleRequireFn,
+                      [renderRuntimeVariables(
+                        RuntimeVariable.Require,
+                        getCompiler().options,
+                      )]: moduleRequireFn,
+                      [renderRuntimeVariables(
+                        RuntimeVariable.Context,
+                        getCompiler().options,
+                      )]: runtimeContext,
+                    },
                   ),
                 'Compilation.hooks.executeModule',
               );
@@ -259,9 +277,14 @@ export const createCompilationHooksRegisters: CreatePartialRegisters<
                   '',
                 )
               ] = []);
-
+            moduleRequireFn.r = moduleRequireFn;
+            runtimeContext.r = moduleRequireFn;
             for (const runtimeModule of runtimeModules) {
               moduleRequireFn(runtimeModule);
+            }
+            for (const key of Reflect.ownKeys(moduleRequireFn)) {
+              runtimeContext[key] =
+                moduleRequireFn[key as keyof typeof moduleRequireFn];
             }
 
             const executeResult = moduleRequireFn(entry);

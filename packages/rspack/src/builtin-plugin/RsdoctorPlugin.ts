@@ -68,6 +68,7 @@ export type RsdoctorPluginOptions = {
     module?: boolean;
     cheap?: boolean;
   };
+  exportUsageGraph?: boolean;
 };
 
 const RsdoctorPluginImpl = create(
@@ -83,6 +84,7 @@ const RsdoctorPluginImpl = create(
       moduleGraphFeatures: c.moduleGraphFeatures ?? true,
       chunkGraphFeatures: c.chunkGraphFeatures ?? true,
       sourceMapFeatures: c.sourceMapFeatures,
+      exportUsageGraph: c.exportUsageGraph,
     };
   },
 );

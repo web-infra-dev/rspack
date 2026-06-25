@@ -1,7 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
 use criterion::{Criterion, criterion_group, criterion_main};
-use rspack_core::configure_rayon_current_thread_for_codspeed;
 
 mod groups;
 // Keep these registered case entrypoints in a dedicated short source path:
@@ -13,14 +12,14 @@ mod cases;
 #[path = "../stages/mod.rs"]
 mod stages;
 
-fn configure_rayon_for_codspeed(_: &mut Criterion) {
-  configure_rayon_current_thread_for_codspeed();
+fn configure_rayon_for_benchmark(_: &mut Criterion) {
+  rspack_benchmark::configure_rayon_for_benchmark();
 }
 
-criterion_group!(codspeed_setup, configure_rayon_for_codspeed);
+criterion_group!(benchmark_setup, configure_rayon_for_benchmark);
 
 criterion_main!(
-  codspeed_setup,
+  benchmark_setup,
   cases::build_chunk_graph::case,
   cases::build_module_graph::case,
   cases::module_graph_api::case,

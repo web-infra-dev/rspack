@@ -8,11 +8,11 @@ use rspack_core::{
   ModuleGraph, ModuleGraphCacheArtifact, SideEffectsStateArtifact, TSEnumValue, TemplateContext,
   TemplateReplaceSource, UsedName,
 };
-use swc_core::ecma::atoms::Atom;
+use swc_atoms::Atom;
 
 use crate::{ConstValue, is_export_inlined};
 
-// Create _webpack_require__.d(__webpack_exports__, {}) for each export.
+// Create __rspack_context.d(__rspack_exports, {}) for each export.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct ESMExportSpecifierDependency {
@@ -214,8 +214,7 @@ impl DependencyTemplate for ESMExportSpecifierDependencyTemplate {
     };
     let is_circular_module = compilation
       .circular_modules
-      .as_ref()
-      .map(|circular_modules| circular_modules.contains(&module.identifier()));
+      .is_circular_module(&module.identifier());
     let binding = if matches!(is_circular_module, Some(false)) && dep.const_value.is_some() {
       ESMExportBinding::Value(dep.value.clone())
     } else {

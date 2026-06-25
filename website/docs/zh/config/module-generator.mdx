@@ -54,7 +54,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -70,7 +70,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -81,7 +81,7 @@ export default {
         exportsOnly: false,
         localIdentHashDigest: 'base64url',
         localIdentHashDigestLength: 6,
-        localIdentHashFunction: 'md4',
+        localIdentHashFunction: 'xxhash64',
         localIdentHashSalt: 'my-salt',
         localIdentName: '[uniqueName]-[id]-[local]',
         esModule: true,
@@ -155,16 +155,13 @@ export default {
 当被作为一个函数使用，它必须为每个模块执行且并须返回一个 data URI 字符串。
 
 ```js title="rspack.config.mjs"
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
+import svgToMiniDataURI from 'mini-svg-data-uri';
 
 export default {
   module: {
     generator: {
       asset: {
         dataUrl: ({ content }) => {
-          const svgToMiniDataURI = require('mini-svg-data-uri');
           return svgToMiniDataURI(content);
         },
       },
@@ -570,7 +567,7 @@ export default {
 ### ["css/auto"].exportsOnly
 
 - **类型：** `boolean`
-- **默认值：** `true` for node environments, `false` for web environments.
+- **默认值：** 当 target 不支持 document 时为 `true`，否则为 `false`。
 
 如果为 `true`，仅从 CSS 中导出标识符映射表到 JavaScript 文件中，而不在 template 中注入任何 stylesheets。适用于使用 CSS Modules 进行预渲染的场景（例如 SSR）。
 
@@ -591,9 +588,11 @@ export default {
 ### ["css/auto"].localIdentName
 
 - **类型：** `string`
-- **默认值：** `[uniqueName]-[id]-[local]`
+- **默认值：** development 模式下，如果 [`output.uniqueName`](/config/output#outputuniquename) 非空则为 `[uniqueName]-[id]-[local]`，否则为 `[id]-[local]`；production 模式下为 `[fullhash]`。
 
-自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/output#file-context)和[模块级别](/config/output#module-context)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
+自定义生成的 CSS Modules 的局部类名格式，除了在[文件级别](/config/filename-placeholders#file-占位符)和[模块级别](/config/filename-placeholders#module-占位符)的替换之外，还包括 `[uniqueName]` 和 `[local]`。
+
+从 Rspack `2.0.7` 开始，`localIdentName` 中的 `[hash]` 占位符会根据模板中是否包含 `[local]` 使用不同的哈希输入。当 `localIdentName` 不包含 `[local]` 时，局部类名会作为哈希输入的一部分，因此同一个 CSS Module 中不同的局部类名会生成不同的值。当 `localIdentName` 包含 `[local]` 时，局部类名不会再作为 `[hash]` 的输入，因为 `[local]` 已经能保证最终生成的类名唯一。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -648,7 +647,7 @@ export default {
 ### ["css/auto"].localIdentHashFunction
 
 - **类型：** `string`
-- **默认值：** `'md4'`
+- **默认值：** [`output.hashFunction`](/config/output#outputhashfunction)，其默认值为 `'xxhash64'`
 
 配置生成 CSS Modules 局部标识符时使用的哈希函数。支持的值与 [`output.hashFunction`](/config/output#outputhashfunction) 相同。
 
@@ -667,7 +666,7 @@ export default {
 ### ["css/auto"].localIdentHashSalt
 
 - **类型：** `string`
-- **默认值：** `undefined`
+- **默认值：** [`output.hashSalt`](/config/output#outputhashsalt)，其默认值为 `undefined`
 
 配置生成 CSS Modules 局部标识符时添加到哈希中的盐值。未设置时，Rspack 会使用 [`output.hashSalt`](/config/output#outputhashsalt)。
 

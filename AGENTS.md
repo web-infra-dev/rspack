@@ -92,7 +92,7 @@ Before running tests after code changes:
 
 ## Performance
 
-- **Benchmarks**: `tests/bench/`, run with `pnpm run bench:ci` (setup: `pnpm run bench:prepare`)
+- **Benchmarks**: Rust CodSpeed benchmarks in `xtask/benchmark/`, run with `pnpm run bench:ci` (setup: `pnpm run bench:prepare`)
 - **Profiling**: `pnpm run build:binding:profiling`
 - **Tracing**: See `crates/rspack_tracing/`
 

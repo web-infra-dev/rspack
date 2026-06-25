@@ -21,10 +21,11 @@ __webpack_require__.r(__webpack_exports__);
 const foo = 1
 
 
-__webpack_require__.d(__webpack_exports__, [
-  "bar", () => (/* reexport safe */ _bar__rspack_import_0.bar),
-  "foo", 0, foo
-]);
+__webpack_require__.d(__webpack_exports__, {
+  bar: () => (/* reexport safe */ _bar__rspack_import_0.bar)
+}, {
+  foo: foo
+});
 
 
 },
@@ -81,18 +82,17 @@ __webpack_require__.m = __webpack_modules__;
 
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
 		}
-	}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
-
 })();
 // webpack/runtime/esm_register_module
 (() => {

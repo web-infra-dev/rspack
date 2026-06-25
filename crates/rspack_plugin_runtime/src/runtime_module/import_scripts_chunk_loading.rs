@@ -10,7 +10,9 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
-  runtime_module::utils::{get_initial_chunk_ids, stringify_chunks},
+  runtime_module::utils::{
+    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+  },
 };
 
 static IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE: &str =
@@ -111,6 +113,7 @@ impl ImportScriptsChunkLoadingRuntimeModule {
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
     *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
       | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+      | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
 
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
@@ -128,6 +131,16 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::BASE_URI
+      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+      | RuntimeGlobals::HMR_MODULE_DATA
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![
       (
@@ -192,10 +205,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     // object to store loaded chunks
     // "1" means "already loaded"
     if with_hmr {
-      let state_expression = format!(
-        "{}_importScripts",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
-      );
+      let state_expression = render_hmr_runtime_state_expression(runtime_template, "importScripts");
       source.push_str(&format!(
         "var installedChunks = {} = {} || {};\n",
         state_expression,

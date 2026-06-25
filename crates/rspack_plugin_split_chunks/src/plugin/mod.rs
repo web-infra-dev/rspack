@@ -131,12 +131,20 @@ impl SplitChunksPlugin {
 
     let mut combinator = module_group::Combinator::default();
 
-    if self
+    let non_used_exports_min_chunks = self
       .cache_groups
       .iter()
-      .any(|cache_group| !cache_group.used_exports)
-    {
-      combinator.prepare_group_by_chunks(&all_modules, &module_chunks, &chunk_index_map);
+      .filter(|cache_group| !cache_group.used_exports)
+      .map(|cache_group| cache_group.min_chunks as usize)
+      .min();
+
+    if let Some(min_chunks) = non_used_exports_min_chunks {
+      combinator.prepare_group_by_chunks(
+        &all_modules,
+        &module_chunks,
+        &chunk_index_map,
+        min_chunks,
+      );
     }
 
     if self

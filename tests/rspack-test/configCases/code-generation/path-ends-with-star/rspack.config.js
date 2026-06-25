@@ -15,6 +15,8 @@ module.exports = {
       if (!isWindows) {
         const fs = require('fs');
         const path = require('path');
+        // `isolateSource` (test.config.js) makes __dirname a per-suite copy, so
+        // creating/removing `star*` here can't race the parallel RuntimeMode suite.
         const dir = path.resolve(__dirname, 'star*');
         if (!fs.existsSync(dir)) {
           fs.mkdirSync(dir);

@@ -50,7 +50,7 @@ export default {
 
 ### 使用多个 Loader
 
-你可以对特定的 [Rule](/config/module-rules#rules) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
+你可以对特定的 [Rule](/config/module-rules#rule) 匹配项使用多个 loader 进行链式处理，loader 的执行顺序为**从右往左**。
 
 例如，你可以使用 [less-loader](https://github.com/webpack/less-loader) 完成 Less 到 CSS 类型之间的转换，并对转换后的源码使用 [postcss-loader](https://github.com/webpack/postcss-loader) 进行二次转换，并最终交给 Rspack 的 CSS 后处理器，完成进一步处理：
 
@@ -147,7 +147,7 @@ export default {
 };
 ```
 
-更多关于 Loader API 的信息，请参考 [loader-api](/api/loader-api/index)
+更多关于 Loader API 的信息，请参考 [loader-api](/api/loader-api/)
 
 ### 使用内置 Loader
 

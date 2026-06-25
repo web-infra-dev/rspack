@@ -23,11 +23,21 @@ pub struct ExternalsPlugin {
   externals: Vec<ExternalItem>,
   r#type: ExternalType,
   place_in_initial: bool,
+  fallback_type: ExternalType,
 }
 
 impl ExternalsPlugin {
   pub fn new(r#type: ExternalType, externals: Vec<ExternalItem>, place_in_initial: bool) -> Self {
-    Self::new_inner(externals, r#type, place_in_initial)
+    Self::new_with_options(r#type, externals, place_in_initial, "commonjs".to_string())
+  }
+
+  pub fn new_with_options(
+    r#type: ExternalType,
+    externals: Vec<ExternalItem>,
+    place_in_initial: bool,
+    fallback_type: ExternalType,
+  ) -> Self {
+    Self::new_inner(externals, r#type, place_in_initial, fallback_type)
   }
 
   fn handle_external(
@@ -117,6 +127,7 @@ impl ExternalsPlugin {
 
     let mut dependency_meta: DependencyMeta = DependencyMeta {
       attributes: dependency.get_attributes().cloned(),
+      phase: dependency.get_phase(),
       external_type: {
         if is_import_dependency
           || matches!(
@@ -155,7 +166,7 @@ impl ExternalsPlugin {
           | DependencyType::RequireResolveContext
       )
     {
-      dependency_meta.external_type = Some(ExternalTypeEnum::CommonJs);
+      dependency_meta.external_type = Some(ExternalTypeEnum::CommonJs(self.fallback_type.clone()));
     }
 
     Some(ExternalModule::new(

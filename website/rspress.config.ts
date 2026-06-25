@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { pluginSass } from '@rsbuild/plugin-sass';
+import { pluginTailwindcss } from '@rsbuild/plugin-tailwindcss';
 import { defineConfig } from '@rspress/core';
 import { pluginAlgolia } from '@rspress/plugin-algolia';
 import { pluginClientRedirects } from '@rspress/plugin-client-redirects';
@@ -152,6 +153,7 @@ export default defineConfig({
   builderConfig: {
     plugins: [
       pluginSass(),
+      pluginTailwindcss(),
       pluginGoogleAnalytics({ id: 'G-XKKCNZZNJD' }),
       pluginOpenGraph({
         url: PUBLISH_URL,

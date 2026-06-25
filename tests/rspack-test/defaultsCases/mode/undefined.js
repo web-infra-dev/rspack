@@ -8,6 +8,9 @@ module.exports = {
 			+ Received
 
 			@@ ... @@
+			-     "pureFunctions": false,
+			+     "pureFunctions": true,
+			@@ ... @@
 			-   "mode": "none",
 			+   "mode": undefined,
 			@@ ... @@

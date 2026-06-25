@@ -45,8 +45,7 @@ pub fn cutout_star_re_export_externals(
       let Some(external_module) = module.as_external_module() else {
         continue;
       };
-      let external_type = external_module.get_external_type().as_str();
-      if !external_type.starts_with("module") {
+      if external_module.resolve_external_type() != "module" {
         continue;
       }
 
@@ -133,7 +132,11 @@ pub fn cutout_star_re_export_externals(
   }
 }
 
-pub fn cutout_dyn_import_externals(build_module_graph_artifact: &mut BuildModuleGraphArtifact) {
+pub fn cutout_dyn_import_externals(
+  cutout_all_externals: bool,
+  output_module: bool,
+  build_module_graph_artifact: &mut BuildModuleGraphArtifact,
+) {
   let mg = build_module_graph_artifact.get_module_graph();
   let mut connections_to_disable = Vec::new();
   for (_, module) in mg.modules() {
@@ -153,7 +156,24 @@ pub fn cutout_dyn_import_externals(build_module_graph_artifact: &mut BuildModule
               continue;
             };
 
-            if import_module.as_external_module().is_some() {
+            if import_module.as_external_module().is_some_and(|external| {
+              if cutout_all_externals {
+                return true;
+              }
+              if !output_module {
+                return true;
+              }
+              matches!(
+                external.resolve_external_type(),
+                "import"
+                  | "module"
+                  | "commonjs"
+                  | "commonjs2"
+                  | "commonjs-module"
+                  | "commonjs-static"
+                  | "node-commonjs"
+              )
+            }) {
               // remove connection of dyn-import external module
               connections_to_disable.push(*block_dep_id);
             }
@@ -181,7 +201,7 @@ pub fn render_dyn_import_external_module(
   let attributes_str = if let Some(attributes) = import_dep.get_attributes() {
     format!(
       ", {{ with: {} }}",
-      serde_json::to_string(attributes).expect("invalid json to_string")
+      simd_json::to_string(attributes).expect("invalid json to_string")
     )
   } else {
     String::new()
@@ -268,7 +288,8 @@ impl DependencyTemplate for ExportImportedDependencyTemplate {
       && let Some(module) = module
         .and_then(|mid| mg.module_by_identifier(mid))
         .and_then(|m| {
-          m.as_external_module().filter(|&m| m.get_external_type().starts_with("module"))
+          m.as_external_module()
+            .filter(|&m| m.resolve_external_type() == "module")
         })
       // TODO: should cache calculate results for this
       && code_generatable_context

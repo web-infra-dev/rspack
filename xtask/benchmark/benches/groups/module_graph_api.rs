@@ -79,7 +79,7 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
     let module_graph = compiler.compilation.get_module_graph();
     module_graph
       .dependencies()
-      .map(|(dependency_id, _)| *dependency_id)
+      .map(|(dependency_id, _)| dependency_id)
       .collect::<Vec<_>>()
   };
   let module_ids = {

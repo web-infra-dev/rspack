@@ -67,7 +67,6 @@ const answer = 42
 
 
 
-var util_answer = (/* inlined export .answer */42);
-export { util, util_answer as answer };
+export { answer, util };
 
 ```

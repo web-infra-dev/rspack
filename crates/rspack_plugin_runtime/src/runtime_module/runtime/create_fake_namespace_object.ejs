@@ -7,24 +7,20 @@ var leafPrototypes;
 // mode & 16: return value when it's Promise-like
 // mode & 8|1: behave like require
 <%- CREATE_FAKE_NAMESPACE_OBJECT %> = function(value, mode) {
-	if(mode & 1) value = this(value);
+	if(mode & 1) value = <%- __this %>(value);
 	if(mode & 8) return value;
 	if(typeof value === 'object' && value) {
 		if((mode & 4) && value.__esModule) return value;
 		if((mode & 16) && typeof value.then === 'function') return value;
 	}
 	var ns = Object.create(null);
-	<%- MAKE_NAMESPACE_OBJECT %>(ns);
-	var def = [], defLoc = -1;
+  <%- MAKE_NAMESPACE_OBJECT %>(ns);
+	var def = {};
 	leafPrototypes = leafPrototypes || [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
-		Object.getOwnPropertyNames(current).forEach(<%- basicFunction("key") %> {
-			def.push(key, <%- returningFunction("value[key]", "") %>);
-			if(defLoc === -1 && key === 'default') defLoc = def.length - 1;
-		});
+		Object.getOwnPropertyNames(current).forEach(<%- basicFunction("key") %> { def[key] = <%- returningFunction("value[key]", "") %> });
 	}
-	if(defLoc >= 0) def.splice(defLoc, 1, 0, value);
-	else def.push('default', 0, value);
+	def['default'] = <%- returningFunction("value", "") %>;
 	<%- DEFINE_PROPERTY_GETTERS %>(ns, def);
 	return ns;
 };

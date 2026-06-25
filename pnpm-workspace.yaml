@@ -11,7 +11,6 @@ packages:
   - 'tests/e2e-browser'
   - 'tests/rspack-test'
   - 'tests/type-tests'
-  - 'tests/bench'
   # this following is used to test resolve in monorepo
   - 'tests/rspack-test/normalCases/resolve/pnpm-workspace/packages/*'
 
@@ -43,9 +42,12 @@ minimumReleaseAgeExclude:
   - '@rsdoctor/*'
   - '@rslint/*'
   - '@rstack-dev/doc-ui'
+  - 'rsbuild-plugin-*'
+  - '@swc/*'
+  - 'heading-case'
 
 patchedDependencies:
-  webpack-sources@3.3.4: patches/webpack-sources@3.3.4.patch
+  webpack-sources@3.5.0: patches/webpack-sources@3.5.0.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true

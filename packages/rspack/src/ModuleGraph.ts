@@ -29,6 +29,10 @@ export default class ModuleGraph {
     return this.#inner.getUsedExports(module, runtime);
   }
 
+  getProvidedExports(module: Module): true | string[] | null {
+    return this.#inner.getProvidedExports(module);
+  }
+
   getParentModule(dependency: Dependency): Module | null {
     return this.#inner.getParentModule(dependency);
   }

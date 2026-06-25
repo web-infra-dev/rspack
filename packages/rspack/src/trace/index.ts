@@ -48,8 +48,11 @@ export class JavaScriptTracer {
   static uuid() {
     return this.counter++;
   }
+  static isEnabled() {
+    return this.state === 'on';
+  }
   static initCpuProfiler() {
-    if (this.layer) {
+    if (this.isEnabled()) {
       this.session.connect();
       this.session.post('Profiler.enable');
       this.session.post('Profiler.start');
@@ -66,7 +69,7 @@ export class JavaScriptTracer {
         'JavaScriptTracer is not initialized, please call initJavaScriptTrace first',
       );
     }
-    if (!this.layer || this.state === 'off') {
+    if (!this.isEnabled()) {
       return;
     }
     const profileHandler = (
@@ -158,7 +161,7 @@ export class JavaScriptTracer {
   }
   // start an chrome async event
   static startAsync(events: PartialChromeEvent) {
-    if (!this.layer) {
+    if (!this.isEnabled()) {
       return;
     }
     this.pushEvent({
@@ -169,7 +172,7 @@ export class JavaScriptTracer {
   }
   // end an chrome async event
   static endAsync(events: PartialChromeEvent) {
-    if (!this.layer) {
+    if (!this.isEnabled()) {
       return;
     }
     this.pushEvent({

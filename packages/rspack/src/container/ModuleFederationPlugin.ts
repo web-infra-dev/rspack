@@ -1,5 +1,7 @@
 import { createRequire } from 'node:module';
+import { resolve } from 'node:path';
 import type { Compiler } from '../Compiler';
+import { createCompilerRuntimeGlobals } from '../RuntimeGlobals';
 import type { ExternalsType } from '../config';
 import type { ShareFallback } from '../sharing/IndependentSharedPlugin';
 import type { SharedConfig, ShareScope } from '../sharing/SharePlugin';
@@ -17,6 +19,7 @@ import {
 import { parseOptions } from './options';
 
 const require = createRequire(import.meta.url);
+const MF_RUNTIME_LOADER = '@module-federation/runtime/rspack.js';
 
 declare const MF_RUNTIME_CODE: string;
 
@@ -54,10 +57,39 @@ export class ModuleFederationPlugin {
     const treeShakingEntries = sharedOptions.filter(
       ([, config]) => config.treeShaking,
     );
+    const runtimeVirtualPath =
+      treeShakingEntries.length > 0
+        ? getRuntimeVirtualPath(this._options, compiler)
+        : undefined;
+    const runtimeVirtualPlugin = runtimeVirtualPath
+      ? new rspack.experiments.VirtualModulesPlugin({
+          [runtimeVirtualPath]: getDefaultEntryRuntimeSource(
+            paths,
+            this._options,
+            compiler,
+          ),
+        })
+      : undefined;
+    runtimeVirtualPlugin?.apply(compiler);
+    const updateRuntimeShareFallbacks = (buildAssets: ShareFallback) => {
+      if (!runtimeVirtualPath || !runtimeVirtualPlugin) {
+        return;
+      }
+      runtimeVirtualPlugin.writeModule(
+        runtimeVirtualPath,
+        getDefaultEntryRuntimeSource(
+          paths,
+          this._options,
+          compiler,
+          buildAssets,
+        ),
+      );
+    };
     if (treeShakingEntries.length > 0) {
       this._treeShakingSharedPlugin = new TreeShakingSharedPlugin({
         mfConfig: this._options,
         secondary: false,
+        onBuildAssets: updateRuntimeShareFallbacks,
       });
       this._treeShakingSharedPlugin.apply(compiler);
     }
@@ -66,8 +98,6 @@ export class ModuleFederationPlugin {
     const runtimeExperiments: ModuleFederationRuntimeExperimentsOptions = {
       asyncStartup,
     };
-
-    // need to wait treeShakingSharedPlugin buildAssets
     let runtimePluginApplied = false;
     compiler.hooks.beforeRun.tap(
       {
@@ -77,12 +107,9 @@ export class ModuleFederationPlugin {
       () => {
         if (runtimePluginApplied) return;
         runtimePluginApplied = true;
-        const entryRuntime = getDefaultEntryRuntime(
-          paths,
-          this._options,
-          compiler,
-          this._treeShakingSharedPlugin?.buildAssets,
-        );
+        const entryRuntime = runtimeVirtualPath
+          ? getDefaultEntryRuntimeRequest(runtimeVirtualPath)
+          : getDefaultEntryRuntime(paths, this._options, compiler);
         new ModuleFederationRuntimePlugin({
           entryRuntime,
           experiments: runtimeExperiments,
@@ -97,12 +124,9 @@ export class ModuleFederationPlugin {
       () => {
         if (runtimePluginApplied) return;
         runtimePluginApplied = true;
-        const entryRuntime = getDefaultEntryRuntime(
-          paths,
-          this._options,
-          compiler,
-          this._treeShakingSharedPlugin?.buildAssets || {},
-        );
+        const entryRuntime = runtimeVirtualPath
+          ? getDefaultEntryRuntimeRequest(runtimeVirtualPath)
+          : getDefaultEntryRuntime(paths, this._options, compiler);
         // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
           entryRuntime,
@@ -294,7 +318,24 @@ function getPaths(
   };
 }
 
-function getDefaultEntryRuntime(
+function getRuntimeVirtualPath(
+  options: ModuleFederationPluginOptions,
+  compiler: Compiler,
+) {
+  const name = String(
+    options.name ?? compiler.options.output.uniqueName ?? 'default',
+  ).replace(/[^\w.-]/g, '_');
+  return resolve(
+    compiler.context,
+    `node_modules/.rspack-mf-runtime/${name}.js`,
+  );
+}
+
+function getDefaultEntryRuntimeRequest(resource: string) {
+  return `${MF_RUNTIME_LOADER}!=!${resource}`;
+}
+
+function getDefaultEntryRuntimeSource(
   paths: RuntimePaths,
   options: ModuleFederationPluginOptions,
   compiler: Compiler,
@@ -305,6 +346,9 @@ function getDefaultEntryRuntime(
   const runtimePluginImports = [];
   const runtimePluginVars = [];
   const libraryType = options.library?.type || 'var';
+  const shouldInitializePublicPath = getSharedOptions(options).some(
+    ([, config]) => config.treeShaking,
+  );
   for (let i = 0; i < runtimePlugins.length; i++) {
     const runtimePluginVar = `__module_federation_runtime_plugin_${i}__`;
     const pluginSpec = runtimePlugins[i];
@@ -321,11 +365,34 @@ function getDefaultEntryRuntime(
     );
   }
 
+  const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
+    require('./moduleFederationDefaultRuntime.js').default,
+  );
+  const compilerRuntimeGlobals = createCompilerRuntimeGlobals(compiler.options);
+  const runtimeSource = getDefaultRuntimeSource(
+    defaultRuntimeSource,
+    compiler.options.experiments.runtimeMode === 'rspack'
+      ? `new Proxy(function (moduleId) {
+  return ${compilerRuntimeGlobals.require}(moduleId);
+}, {
+  get(_target, key) {
+    return ${compilerRuntimeGlobals.requireScope}[key];
+  },
+  set(_target, key, value) {
+    ${compilerRuntimeGlobals.requireScope}[key] = value;
+    return true;
+  }
+})`
+      : compilerRuntimeGlobals.require,
+  );
   const content = [
     `import __module_federation_bundler_runtime__ from ${JSON.stringify(
       paths.bundlerRuntime,
     )}`,
     ...runtimePluginImports,
+    shouldInitializePublicPath
+      ? getPublicPathRuntimeSource(compiler)
+      : undefined,
     `const __module_federation_runtime_plugins__ = [${runtimePluginVars.join(
       ', ',
     )}].filter(({ plugin }) => plugin).map(({ plugin, params }) => plugin(params))`,
@@ -340,11 +407,41 @@ function getDefaultEntryRuntime(
       treeShakingShareFallbacks,
     )}`,
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
-    IS_BROWSER
-      ? MF_RUNTIME_CODE
-      : compiler.rspack.Template.getFunctionContent(
-          require('./moduleFederationDefaultRuntime.js').default,
-        ),
+    IS_BROWSER ? MF_RUNTIME_CODE : runtimeSource,
   ].join(';');
-  return `@module-federation/runtime/rspack.js!=!data:text/javascript,${encodeURIComponent(content)}`;
+  return content;
+}
+
+function getDefaultRuntimeSource(source: string, runtimeRequire: string) {
+  return source.replace(
+    '__module_federation_runtime_require__',
+    runtimeRequire,
+  );
+}
+
+function getPublicPathRuntimeSource(compiler: Compiler) {
+  const publicPath = compiler.options.output.publicPath;
+  if (typeof publicPath !== 'string' || publicPath === 'auto') {
+    return undefined;
+  }
+  const publicPathRuntimeGlobal = createCompilerRuntimeGlobals().publicPath;
+  return `if (typeof ${publicPathRuntimeGlobal} === "undefined") ${publicPathRuntimeGlobal} = ${JSON.stringify(
+    publicPath,
+  )}`;
+}
+
+function getDefaultEntryRuntime(
+  paths: RuntimePaths,
+  options: ModuleFederationPluginOptions,
+  compiler: Compiler,
+  treeShakingShareFallbacks?: ShareFallback,
+) {
+  return `${MF_RUNTIME_LOADER}!=!data:text/javascript,${encodeURIComponent(
+    getDefaultEntryRuntimeSource(
+      paths,
+      options,
+      compiler,
+      treeShakingShareFallbacks,
+    ),
+  )}`;
 }

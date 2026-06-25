@@ -77,25 +77,31 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   } finally {
     __webpack_require__.rstest_original_modules[id] = requiredModule;
   }
-  if (typeof modFactory === 'string' || typeof modFactory === 'number') {
+  if (modFactory && modFactory.mock === true) {
+    return;
+  } else if (typeof modFactory === 'string' || typeof modFactory === 'number') {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
-          const finalModFactory = function (
-        __unused_webpack_module,
-        __webpack_exports__,
-        __webpack_require__,
-      ) {
+    const finalModFactory = function (
+      __unused_webpack_module,
+      __webpack_exports__,
+      __webpack_require__,
+    ) {
+      if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+        __webpack_require__.N(__webpack_exports__);
+      } else {
         __webpack_require__.r(__webpack_exports__);
-        const res = modFactory();
-        for (const key in res) {
-          __webpack_require__.d(__webpack_exports__, [
-            key, () => res[key],
-          ]);
-        }
-      };
+      }
+      const res = modFactory();
+      for (const key in res) {
+        __webpack_require__.d(__webpack_exports__, {
+          [key]: () => res[key],
+        });
+      }
+    };
 
-      __webpack_modules__[id] = finalModFactory;
-      delete __webpack_module_cache__[id];
+    __webpack_modules__[id] = finalModFactory;
+    delete __webpack_module_cache__[id];
   }
 };
 
@@ -114,7 +120,11 @@ __webpack_require__.rstest_do_mock = (id, modFactory) => {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
     const exports = modFactory();
-    __webpack_require__.r(exports);
+    if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+      __rspack_context.N(exports);
+    } else {
+      __webpack_require__.r(exports);
+    }
     __webpack_module_cache__[id] = { exports, id, loaded: true };
   }
 };
@@ -189,6 +199,7 @@ module.exports = [
   rstestEntry('./doMock.js'),
   rstestEntry('./mockFactory.js'),
   rstestEntry('./manualMock.js'),
+  rstestEntry('./autoMockFallback.js'),
   rstestEntry('./builtinManualMock.js'),
   rstestEntry('./nodeModulesManualMock.js'),
   rstestEntry('./directoryManualMock.js'),

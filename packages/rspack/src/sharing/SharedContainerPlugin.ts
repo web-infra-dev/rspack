@@ -57,8 +57,8 @@ export class SharedContainerPlugin extends RspackBuiltinPlugin {
       fileName,
     };
   }
-  getData() {
-    return [this._options.fileName, this._globalName, this._options.version];
+  getData(): [string, string, string] {
+    return [this._options.fileName!, this._globalName, this._options.version];
   }
 
   raw(compiler: Compiler): BuiltinPlugin {

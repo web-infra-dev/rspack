@@ -1,14 +1,11 @@
-use std::borrow::Cow;
-
 use either::Either;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ConstDependency, DependencyRange,
   GroupOptions,
 };
 use rspack_util::SpanExt;
-use swc_core::{
-  common::Spanned,
-  ecma::ast::{ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, UnaryExpr},
+use swc_experimental_ecma_ast::{
+  ArrowExpr, BlockStmtOrExpr, CallExpr, Expr, FnExpr, GetSpan, UnaryExpr,
 };
 
 use super::JavascriptParserPlugin;
@@ -21,11 +18,11 @@ use crate::{
 pub struct RequireEnsureDependenciesBlockParserPlugin;
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
-  fn evaluate_typeof<'a>(
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for RequireEnsureDependenciesBlockParserPlugin {
+  fn evaluate_typeof(
     &self,
-    _parser: &mut JavascriptParser,
-    expr: &'a UnaryExpr,
+    _parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<BasicEvaluatedExpression<'a>> {
     (for_name == "require.ensure").then(|| {
@@ -39,20 +36,25 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     (for_name == "require.ensure").then(|| {
       parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        expr.span().into(),
+        expr.span.into(),
         "'function'".into(),
       )));
       true
     })
   }
 
-  fn call(&self, parser: &mut JavascriptParser, expr: &CallExpr, for_name: &str) -> Option<bool> {
+  fn call(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &CallExpr,
+    for_name: &str,
+  ) -> Option<bool> {
     if for_name != "require.ensure" {
       return None;
     }
@@ -60,9 +62,9 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     let dependencies_arg = &expr.args.first()?.expr;
     let dependencies_expr = parser.evaluate_expression(dependencies_arg);
     let dependencies_items = if dependencies_expr.is_array() {
-      Cow::Borrowed(dependencies_expr.items())
+      Either::Left(dependencies_expr.items().iter())
     } else {
-      Cow::Owned(vec![dependencies_expr])
+      Either::Right(std::iter::once(&dependencies_expr))
     };
 
     let success_arg = &expr.args.get(1)?.expr;
@@ -105,7 +107,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
     // TODO: Webpack sets `parser.state.current = depBlock`, but rspack doesn't support nested block yet.
     let mut failed = false;
     parser.in_function_scope(true, std::iter::empty(), |_| {
-      for item in dependencies_items.iter() {
+      for item in dependencies_items {
         if let Some(item) = item.as_string() {
           deps.push(Box::new(RequireEnsureItemDependency::new(
             item.as_str().into(),
@@ -128,7 +130,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
               parser.walk_statement(Statement::Block(body));
             }
           }
-          Either::Right(arrow) => match &*arrow.body {
+          Either::Right(arrow) => match &arrow.body {
             BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
             BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
           },
@@ -155,7 +157,7 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
             parser.walk_statement(Statement::Block(body));
           }
         }
-        Either::Right(arrow) => match &*arrow.body {
+        Either::Right(arrow) => match &arrow.body {
           BlockStmtOrExpr::BlockStmt(body) => parser.walk_statement(Statement::Block(body)),
           BlockStmtOrExpr::Expr(expr) => parser.walk_expression(expr),
         },
@@ -170,8 +172,8 @@ impl JavascriptParserPlugin for RequireEnsureDependenciesBlockParserPlugin {
 }
 
 pub(crate) struct FunctionExpression<'a> {
-  pub(crate) func: Either<&'a FnExpr, &'a ArrowExpr>,
-  pub(crate) expressions: Option<&'a Expr>,
+  pub(crate) func: Either<&'a FnExpr<'a>, &'a ArrowExpr<'a>>,
+  pub(crate) expressions: Option<&'a Expr<'a>>,
   // Used by AMD
   pub(crate) _need_this: Option<bool>,
 }
@@ -180,7 +182,7 @@ pub(crate) trait GetFunctionExpression {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>>;
 }
 
-impl GetFunctionExpression for Expr {
+impl GetFunctionExpression for Expr<'_> {
   fn get_function_expr(&self) -> Option<FunctionExpression<'_>> {
     match self {
       Expr::Fn(fn_expr) => Some(FunctionExpression {
@@ -198,7 +200,7 @@ impl GetFunctionExpression for Expr {
         let callee = &call_expr.callee;
 
         if let Some(callee_member_expr) = callee.as_expr().and_then(|expr| expr.as_member())
-          && let Some(fn_expr) = callee_member_expr.obj.as_fn_expr()
+          && let Some(fn_expr) = callee_member_expr.obj.as_fn()
           && let Some(ident) = &callee_member_expr.prop.as_ident()
           && ident.sym == "bind"
         {
@@ -209,12 +211,12 @@ impl GetFunctionExpression for Expr {
           });
         }
 
-        if let Some(callee_fn_expr) = callee.as_expr().and_then(|expr| expr.as_fn_expr())
+        if let Some(callee_fn_expr) = callee.as_expr().and_then(|expr| expr.as_fn())
           && let Some(body_block_stmt) = &callee_fn_expr.function.body
           && first_arg.is_this()
           && body_block_stmt.stmts.len() == 1
-          && let Some(return_stmt) = &body_block_stmt.stmts[0].as_return_stmt()
-          && let Some(fn_expr) = return_stmt.arg.as_ref().and_then(|expr| expr.as_fn_expr())
+          && let Some(return_stmt) = &body_block_stmt.stmts[0].as_return()
+          && let Some(fn_expr) = return_stmt.arg.as_ref().and_then(|expr| expr.as_fn())
         {
           return Some(FunctionExpression {
             func: Either::Left(fn_expr),

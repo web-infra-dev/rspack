@@ -1,0 +1,7 @@
+Object {
+  cycleOne: cycleOne cycle-x cycle-y,
+  cycleTwo: cycleTwo cycle-y cycle-x,
+  independent: independent cycle-z,
+  later: later cycle-p cycle-q,
+  seen: seen cycle-q,
+}

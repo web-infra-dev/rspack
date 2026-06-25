@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use napi::{JsString, bindgen_prelude::Either3};
-use rspack_napi::{string::JsStringExt, threadsafe_function::ThreadsafeFunction};
+use rspack_napi::string::JsStringExt;
 use rspack_plugin_split_chunks::{
   ChunkFilter, create_chunk_filter_from_str, create_regex_chunk_filter_from_str,
 };
 use rspack_regex::RspackRegex;
 
-use crate::chunk::ChunkWrapper;
+use crate::{
+  chunk::ChunkWrapper, compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction,
+};
 
 pub type Chunks<'a> = Either3<RspackRegex, JsString<'a>, ThreadsafeFunction<ChunkWrapper, bool>>;
 

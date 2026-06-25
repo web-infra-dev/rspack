@@ -67,7 +67,7 @@ When a developer accesses a particular page of the site, the build for that page
 
 ### How to use
 
-Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) configuration:
+Now, you can enable the lazy compilation feature in Rspack through the [experiments.lazyCompilation](/config/lazy-compilation) configuration:
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
@@ -85,7 +85,7 @@ We will continue to improve the usability of lazy compilation in different scena
 
 ## Faster CSS builds
 
-In v0.7, we have refactored the internal implementation of the [experiments.css](/config/experiments#experimentscss).
+In v0.7, we have refactored the internal implementation of the [experiments.css](/config/deprecated-options#experimentscss).
 
 For CSS dependency analysis, we have developed [css-module-lexer](https://github.com/ahabhgk/css-module-lexer) using Rust. This is a high performance lexer for CSS Modules that can parse CSS or CSS Modules and return their dependency metadata.
 
@@ -130,7 +130,7 @@ For details about the deprecated API, please refer to [rspack#6448](https://gith
 
 ### CSS @import rules must precede all other rules
 
-In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/experiments#experimentscss).
+In Rspack 0.7, we have partially refactored the internal implementation of [experiments.css](/config/deprecated-options#experimentscss).
 
 After refactoring, when `@import` is not at the top, you will get the following error. In this case, you need to manually adjust the `@import` rule to the top.
 
@@ -196,4 +196,4 @@ If you previously configured `module.generator.css.exportsConvention` or `genera
 
 ## Rsbuild v0.7
 
-Rsbuild v0.7 has been released with Rspack v0.7, please read [Announcing Rsbuild v0.7](https://rsbuild.rs/community/releases/v0-7) to learn more.
+Rsbuild v0.7 has been released with Rspack v0.7, please read [Announcing Rsbuild v0.7](https://v0.rsbuild.rs/community/releases/v0-7) to learn more.

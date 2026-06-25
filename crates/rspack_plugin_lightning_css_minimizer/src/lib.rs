@@ -16,7 +16,7 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap, SourceMapSource,
+    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
@@ -157,7 +157,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if let Some(original_source) = original.get_source() {
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+        let input_source_map =
+          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
 
         let mut parser_flags = ParserFlags::empty();
         parser_flags.set(
@@ -209,7 +210,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if self.options.remove_unused_local_idents
             && let Some(css_unused_idents) = original.info.css_unused_idents.take()
           {
-            unused_symbols.extend(css_unused_idents);
+            unused_symbols.extend(css_unused_idents.into_iter().map(String::from));
           }
           stylesheet
             .minify(MinifyOptions {
@@ -263,12 +264,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             value: result.code,
             name: filename,
             source_map: SourceMap::from_json(
-              &source_map
+              source_map
                 .to_json(None)
                 .to_rspack_result()?,
             )
             .expect("should be able to generate source-map"),
-            original_source: Some(Arc::from(input)),
+            original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
           })

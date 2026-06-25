@@ -10,7 +10,7 @@ use std::{cell::RefCell, fs::File, path::PathBuf, rc::Rc, sync::Arc};
 use anyhow::{Context, bail};
 use indoc::formatdoc;
 use rspack_error::Result;
-use rspack_util::{base64, source_map::SourceMapKind, swc::minify_file_comments};
+use rspack_util::{base64, source_map::SourceMapKind};
 use rustc_hash::FxHashSet as HashSet;
 use swc_config::{is_module::IsModule, merge::Merge};
 pub use swc_core::base::config::Options as SwcOptions;
@@ -53,6 +53,7 @@ use url::Url;
 
 use super::{
   IsolatedDtsTransformOutput, JavaScriptCompiler, TransformOutput,
+  minify::minify_file_comments,
   stringify::{PrintOptions, SourceMapConfig},
 };
 
@@ -319,9 +320,7 @@ impl<'a> JavaScriptTransformer<'a> {
     };
     let minify = built_input.minify;
     let source_map_config = SourceMapConfig {
-      enable: source_map_kind.source_map(),
-      inline_sources_content: source_map_kind.source_map(),
-      emit_columns: !source_map_kind.cheap(),
+      source_map_kind,
       names: Default::default(),
     };
 

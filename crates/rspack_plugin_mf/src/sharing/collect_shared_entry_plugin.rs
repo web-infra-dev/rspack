@@ -5,8 +5,7 @@ use std::{
 
 use regex::Regex;
 use rspack_core::{
-  Compilation, CompilationAsset, CompilationProcessAssets, Context, DependenciesBlock, Module,
-  Plugin,
+  Compilation, CompilationAsset, CompilerFinishMake, Context, DependenciesBlock, Module, Plugin,
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -97,8 +96,8 @@ impl CollectSharedEntryPlugin {
   }
 }
 
-#[plugin_hook(CompilationProcessAssets for CollectSharedEntryPlugin)]
-async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilerFinishMake for CollectSharedEntryPlugin, stage = 100)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   // Traverse ConsumeSharedModule in the graph and collect real resolved module paths from fallback
   let module_graph = compilation.get_module_graph();
   let mut ordered_requests: FxHashMap<String, Vec<[String; 2]>> = FxHashMap::default();
@@ -106,74 +105,110 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   for (_id, module) in module_graph.modules() {
     let module_type = module.module_type();
-    if !matches!(module_type, rspack_core::ModuleType::ConsumeShared) {
+    if !matches!(
+      module_type,
+      rspack_core::ModuleType::ConsumeShared | rspack_core::ModuleType::ProvideShared
+    ) {
       continue;
     }
 
-    if let Some(consume) = module
-      .as_any()
-      .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
-    {
-      // Parse share_key from readable_identifier
-      let ident = consume.readable_identifier(&Context::default()).to_string();
-      // Format: "consume shared module ({scope}) {share_key}@..."
-      let key = {
-        let mut key = String::new();
-        if let Some(pos) = ident.find(") ") {
-          let rest = &ident[pos + 2..];
-          // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
-          let suffix_start = rest.find(" (").unwrap_or(rest.len());
-          let head = &rest[..suffix_start];
-          // Use the LAST '@' within the head to split "{share_key}@{version}",
-          // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
-          let at = head.rfind('@').unwrap_or(head.len());
-          key = head[..at].to_string();
-        }
-        key
-      };
-      if key.is_empty() {
-        continue;
+    let share_info = match module_type {
+      rspack_core::ModuleType::ConsumeShared => {
+        let Some(consume) = module
+          .as_any()
+          .downcast_ref::<super::consume_shared_module::ConsumeSharedModule>()
+        else {
+          continue;
+        };
+        // Parse share_key from readable_identifier
+        let ident = consume.readable_identifier(&Context::default()).to_string();
+        // Format: "consume shared module ({scope}) {share_key}@..."
+        let key = {
+          let mut key = String::new();
+          if let Some(pos) = ident.find(") ") {
+            let rest = &ident[pos + 2..];
+            // Limit to the segment before any suffixes like " (strict)", " (fallback: ...)" or " (eager)"
+            let suffix_start = rest.find(" (").unwrap_or(rest.len());
+            let head = &rest[..suffix_start];
+            // Use the LAST '@' within the head to split "{share_key}@{version}",
+            // so scoped names like "@scope/pkg@1.0.0" are handled correctly.
+            let at = head.rfind('@').unwrap_or(head.len());
+            key = head[..at].to_string();
+          }
+          key
+        };
+        (
+          key,
+          consume.share_scope().clone(),
+          consume.get_dependencies(),
+          consume.get_blocks(),
+          None,
+        )
       }
-      let scope = consume.share_scope().clone();
-      // Collect target modules from dependencies and async blocks
-      let mut target_modules = Vec::new();
-      for dep_id in consume.get_dependencies() {
-        if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-          target_modules.push(*target_id);
-        }
+      rspack_core::ModuleType::ProvideShared => {
+        let Some(provide) = module
+          .as_any()
+          .downcast_ref::<super::provide_shared_module::ProvideSharedModule>()
+        else {
+          continue;
+        };
+        (
+          provide.share_key().to_string(),
+          provide.share_scope().clone(),
+          provide.get_dependencies(),
+          provide.get_blocks(),
+          provide.version().map(str::to_string),
+        )
       }
-      for block_id in consume.get_blocks() {
-        if let Some(block) = module_graph.block_by_id(block_id) {
-          for dep_id in block.get_dependencies() {
-            if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
-              target_modules.push(*target_id);
-            }
+      _ => continue,
+    };
+
+    let (key, scope, dependencies, blocks, provided_version) = share_info;
+    if key.is_empty() {
+      continue;
+    }
+
+    // Collect target modules from dependencies and async blocks
+    let mut target_modules = Vec::new();
+    for dep_id in dependencies {
+      if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+        target_modules.push(*target_id);
+      }
+    }
+    for block_id in blocks {
+      if let Some(block) = module_graph.block_by_id(block_id) {
+        for dep_id in block.get_dependencies() {
+          if let Some(target_id) = module_graph.module_identifier_by_dependency_id(dep_id) {
+            target_modules.push(*target_id);
           }
         }
       }
+    }
 
-      // Add real module resource paths to the map and infer version
-      let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
-      for target_id in target_modules {
-        if let Some(target) = module_graph.module_by_identifier(&target_id)
-          && let Some(name) = target.name_for_condition()
-        {
-          let resource: String = name.into();
-          let version = self
+    // Add real module resource paths to the map and infer version
+    let mut reqs = ordered_requests.remove(&key).unwrap_or_default();
+    for target_id in target_modules {
+      if let Some(target) = module_graph.module_by_identifier(&target_id)
+        && let Some(name) = target.name_for_condition()
+      {
+        let resource: String = name.into();
+        let version = match &provided_version {
+          Some(version) => version.clone(),
+          None => self
             .infer_version(&resource)
             .await
-            .unwrap_or_else(String::new);
-          let pair = [resource, version];
-          if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
-            reqs.push(pair);
-          }
+            .unwrap_or_else(String::new),
+        };
+        let pair = [resource, version];
+        if !reqs.iter().any(|p| p[0] == pair[0] && p[1] == pair[1]) {
+          reqs.push(pair);
         }
       }
-      reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
-      ordered_requests.insert(key.clone(), reqs);
-      if !scope.is_empty() {
-        share_scopes.insert(key.clone(), scope);
-      }
+    }
+    reqs.sort_by(|a, b| a[0].cmp(&b[0]).then(a[1].cmp(&b[1])));
+    ordered_requests.insert(key.clone(), reqs);
+    if !scope.is_empty() {
+      share_scopes.insert(key.clone(), scope);
     }
   }
 
@@ -217,10 +252,7 @@ impl Plugin for CollectSharedEntryPlugin {
   }
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
-    ctx
-      .compilation_hooks
-      .process_assets
-      .tap(process_assets::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
     Ok(())
   }
 }

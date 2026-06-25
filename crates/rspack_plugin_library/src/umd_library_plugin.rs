@@ -1,11 +1,11 @@
 use std::{borrow::Cow, hash::Hash};
 
 use rspack_core::{
-  Chunk, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
-  CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest, Filename,
-  LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
+  Chunk, ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  CompilationParams, CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest,
+  Filename, LibraryAuxiliaryComment, LibraryCustomUmdObject, LibraryName, LibraryNonUmdObject,
   LibraryOptions, LibraryType, ModuleGraph, ModuleGraphCacheArtifact, PathData, Plugin,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
+  RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact, SourceType,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
@@ -98,7 +98,7 @@ async fn render(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   render_source: &mut RenderSource,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey) else {
     return Ok(());

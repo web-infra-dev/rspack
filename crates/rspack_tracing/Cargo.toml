@@ -15,6 +15,7 @@ chrono                  = { workspace = true, features = ["alloc"] }
 rspack_tracing_perfetto = { workspace = true, optional = true }
 rustc-hash              = { workspace = true, features = ["std"] }
 serde_json              = { workspace = true }
+simd-json               = { workspace = true }
 tracing-subscriber      = { workspace = true, features = ["env-filter", "json"] }
 
 [lints]

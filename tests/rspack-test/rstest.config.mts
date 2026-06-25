@@ -58,6 +58,7 @@ if (process.env.GITHUB_ACTIONS || process.env.GITHUB_STEP_SUMMARY) {
 const sharedConfig = defineProject({
   setupFiles: setupFilesAfterEnv,
   testTimeout: process.env.CI ? 60000 : 30000,
+  hookTimeout: process.env.CI ? 60000 : 30000,
   include: [
     "*.test.js",
   ],
@@ -150,4 +151,3 @@ export default defineConfig({
     execArgv: ['--no-warnings', '--expose-gc', '--max-old-space-size=8192', '--experimental-vm-modules'],
   },
 });
-

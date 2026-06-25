@@ -22,6 +22,7 @@ rspack_hash              = { workspace = true }
 rspack_hook              = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
+simd-json                = { workspace = true }
 tokio                    = { workspace = true }
 
 rustc-hash = { workspace = true }

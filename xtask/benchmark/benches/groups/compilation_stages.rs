@@ -1318,7 +1318,7 @@ async fn run_optimize_dependencies_hook(compilation: &mut Compilation) -> Result
 
 async fn run_optimize_modules_hook(compilation: &mut Compilation) -> Result<()> {
   let mut diagnostics = vec![];
-  let mut circular_modules = None;
+  let mut circular_modules = Default::default();
   while matches!(
     compilation
       .plugin_driver

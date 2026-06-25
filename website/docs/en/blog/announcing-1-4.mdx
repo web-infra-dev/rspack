@@ -51,7 +51,7 @@ Notable changes:
 
 Starting with Rspack 1.4, we have added Wasm target support, which means Rspack can now run in browser environments, including online platforms like [StackBlitz](https://stackblitz.com/) ([WebContainers](https://blog.stackblitz.com/posts/introducing-webcontainers/)). This enables developers to quickly create prototypes and share code examples without having to configure local environments.
 
-You can try out our [online example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#preview-with-stackblitz).
+You can try out our [online example](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) directly, or learn about the StackBlitz usage guide in [this documentation](/guide/start/quick-start#online-examples).
 
 <video
   src="https://assets.rspack.rs/rspack/assets/rspack-v1-4-wasm-target.mp4"
@@ -118,7 +118,7 @@ Here is a performance comparison from one user after enabling incremental build:
   width="760"
 />
 
-If you need to revert to the previous behavior, you can set [experiments.incremental](/config/experiments#experimentsincremental) to `'safe'`. However, we recommend that most projects use the new default configuration to achieve optimal performance.
+If you need to revert to the previous behavior, you can set [experiments.incremental](/config/deprecated-options#experimentsincremental) to `'safe'`. However, we recommend that most projects use the new default configuration to achieve optimal performance.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -151,7 +151,7 @@ Once `CssChunkingPlugin` is enabled, CSS code splitting will be handled entirely
 
 ### Enhanced lazy compilation
 
-Rspack now supports enabling lazy compilation with `MultiCompiler`, which means that when you use multiple Rspack configurations in a single build, you can independently configure the [lazyCompilation options](/config/experiments#experimentslazycompilation) for each compiler instance.
+Rspack now supports enabling lazy compilation with `MultiCompiler`, which means that when you use multiple Rspack configurations in a single build, you can independently configure the [lazyCompilation options](/config/lazy-compilation) for each compiler instance.
 
 ```js title="rspack.config.mjs"
 export default [
@@ -333,7 +333,7 @@ Additionally, we are developing a brand new theme, with the preview shown below:
 
 ### Rsdoctor MCP
 
-Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/start/mcp), which combines LLMs to help you better analyze build data. It can access Rsdoctor's local build analysis data and provide intelligent analysis and optimization suggestions.
+Rsdoctor has introduced [@rsdoctor/mcp-server](https://rsdoctor.rs/guide/usage/mcp), which combines LLMs to help you better analyze build data. It can access Rsdoctor's local build analysis data and provide intelligent analysis and optimization suggestions.
 
 Rsdoctor MCP provides bundle analysis, dependency analysis, bundle optimization suggestions, and build optimization suggestions. It can analyze bundle size composition, dependency relationships, and duplicate dependencies, while providing targeted optimization suggestions for bundle size optimization, code splitting, and build performance.
 
@@ -395,7 +395,7 @@ If your project uses SWC Wasm plugins (such as `@swc/plugin-emotion`), you need 
 
 ### Lazy compilation middleware
 
-The lazy compilation middleware has changed its way of accessing the [lazyCompilation](/config/experiments#experimentslazycompilation) option. Now, the middleware can automatically read the `lazyCompilation` option from the compiler instance, so you no longer need to manually pass in the `lazyCompilation` option.
+The lazy compilation middleware has changed its way of accessing the [lazyCompilation](/config/lazy-compilation) option. Now, the middleware can automatically read the `lazyCompilation` option from the compiler instance, so you no longer need to manually pass in the `lazyCompilation` option.
 
 ```js
 import { experiments, rspack } from '@rspack/core';

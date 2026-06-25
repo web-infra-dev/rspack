@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use rspack_cacheable::{
   enable_cacheable as cacheable,
@@ -20,6 +20,8 @@ struct App {
   #[cacheable(with=AsVec<As<PortablePath>>)]
   paths: Vec<PathBuf>,
   sizes: Vec<u32>,
+  #[cacheable(with=AsVec)]
+  shared: Arc<[String]>,
 }
 
 #[test]
@@ -34,11 +36,13 @@ fn test_as_vec() {
   ]);
   let paths = vec![PathBuf::from("/a"), PathBuf::from("/b")];
   let sizes = vec![1, 2];
+  let shared: Arc<[String]> = Arc::from(vec![String::from("x"), String::from("y")]);
 
   let app = App {
     modules,
     paths,
     sizes,
+    shared,
   };
 
   let bytes = rspack_cacheable::to_bytes(&app, &()).unwrap();

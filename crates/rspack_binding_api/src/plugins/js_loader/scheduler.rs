@@ -1,4 +1,4 @@
-use napi::Either;
+use napi::{Either, bindgen_prelude::JsValuesTupleIntoVec};
 use rspack_core::{
   AdditionalData, BUILTIN_LOADER_PREFIX, LoaderContext, NormalModuleLoaderShouldYield,
   NormalModuleLoaderStartYielding, RunnerContext,
@@ -126,13 +126,7 @@ pub(crate) fn merge_loader_context(
   };
   let source_map = from
     .source_map
-    .as_ref()
-    .map(|s| {
-      rspack_core::rspack_sources::SourceMap::from_json(
-        // SAFETY: `sourceMap` is serialized by JavaScript from a JSON object. This is an invariant should be followed on the JavaScript side.
-        unsafe { str::from_utf8_unchecked(s) },
-      )
-    })
+    .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
     .transpose()
     .to_rspack_result()?;
   let additional_data = from.additional_data.take().map(|data| {

@@ -10,7 +10,7 @@ use async_trait::async_trait;
 use json::JsonValue;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{AsCacheable, AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
+  with::{AsInner, AsInnerConverter, AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
@@ -26,6 +26,7 @@ use rspack_util::{
 };
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use serde::Serialize;
+use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
@@ -33,12 +34,12 @@ use crate::{
   ChunkGraph, ChunkUkey, CodeGenerationResult, CollectedTypeScriptInfo, Compilation,
   CompilationAsset, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
   ConnectionState, Context, ContextModule, DependenciesBlock, DependencyId, ExportProvided,
-  ExportsInfoArtifact, ExternalModule, GetTargetResult, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SideEffectsStateArtifact, SourceType, concatenated_module::ConcatenatedModule,
-  dependencies_block::dependencies_block_update_hash, get_target,
-  value_cache_versions::ValueCacheVersions,
+  ExportsInfoArtifact, ExternalModule, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
+  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
+  SharedPluginDriver, SideEffectsStateArtifact, SourceType,
+  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
+  get_target, value_cache_versions::ValueCacheVersions,
 };
 
 pub struct BuildContext {
@@ -120,13 +121,121 @@ impl CanonicalizedDataUrlOption {
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct CssExport {
-  pub ident: String,
-  pub from: Option<String>,
+  #[cacheable(with=AsPreset)]
+  pub ident: SmolStr,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub from: Option<SmolStr>,
   pub id: Option<DependencyId>,
-  pub orig_name: String,
+  #[cacheable(with=AsPreset)]
+  pub orig_name: SmolStr,
 }
 
-pub type CssExports = FxIndexMap<String, FxIndexSet<CssExport>>;
+pub type CssExports = FxIndexMap<SmolStr, FxIndexSet<CssExport>>;
+pub type CssLocalNames = HashMap<SmolStr, SmolStr>;
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub enum CssLayer {
+  Anonymous,
+  Named(#[cacheable(with=AsPreset)] SmolStr),
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssModuleRenderCondition {
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub media: Option<SmolStr>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub supports: Option<SmolStr>,
+  pub layer: Option<CssLayer>,
+}
+
+impl CssModuleRenderCondition {
+  pub fn new(media: Option<SmolStr>, supports: Option<SmolStr>, layer: Option<CssLayer>) -> Self {
+    Self {
+      media,
+      supports,
+      layer,
+    }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.media.is_none() && self.supports.is_none() && self.layer.is_none()
+  }
+}
+
+pub fn iter_css_module_render_conditions<'a>(
+  inherited_render_conditions: &'a [CssModuleRenderCondition],
+  render_condition: &'a CssModuleRenderCondition,
+) -> impl Iterator<Item = &'a CssModuleRenderCondition> {
+  inherited_render_conditions
+    .iter()
+    .chain(std::iter::once(render_condition))
+    .filter(|condition| !condition.is_empty())
+}
+
+pub fn css_module_render_conditions_identifier<'a>(
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> Option<String> {
+  let mut key = String::new();
+  let mut count = 0;
+  for condition in conditions
+    .into_iter()
+    .filter(|condition| !condition.is_empty())
+  {
+    count += 1;
+    let layer = match &condition.layer {
+      Some(CssLayer::Anonymous) => "<anonymous>",
+      Some(CssLayer::Named(layer)) => layer.as_str(),
+      None => "",
+    };
+    push_css_module_identifier_part(&mut key, layer);
+    push_css_module_identifier_part(&mut key, condition.supports.as_deref().unwrap_or_default());
+    push_css_module_identifier_part(&mut key, condition.media.as_deref().unwrap_or_default());
+  }
+
+  if count == 0 {
+    None
+  } else {
+    Some(format!("conditions={count}{key}"))
+  }
+}
+
+pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
+  identifier.push('|');
+  identifier.push_str(&value.len().to_string());
+  identifier.push(':');
+  identifier.push_str(value);
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct CssBuildInfo {
+  #[cacheable(with=AsMap<AsPreset, AsVec>)]
+  pub exports: CssExports,
+  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
+  pub local_names: CssLocalNames,
+  /// Conditions inherited from parent CSS modules.
+  ///
+  /// Webpack stores the current module condition before inherited conditions.
+  /// Rspack stores inherited conditions from outermost to innermost
+  pub inherited_render_conditions: Vec<CssModuleRenderCondition>,
+  pub render_condition: CssModuleRenderCondition,
+}
+
+impl CssBuildInfo {
+  pub fn exports(&self) -> Option<&CssExports> {
+    (!self.exports.is_empty()).then_some(&self.exports)
+  }
+
+  pub fn local_names(&self) -> Option<&CssLocalNames> {
+    (!self.local_names.is_empty()).then_some(&self.local_names)
+  }
+
+  pub fn render_conditions(&self) -> impl Iterator<Item = &CssModuleRenderCondition> {
+    iter_css_module_render_conditions(&self.inherited_render_conditions, &self.render_condition)
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -134,6 +243,13 @@ pub struct IsolatedDts {
   pub resource_path: String,
   pub code: String,
   pub references: Vec<String>,
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct AssetBuildInfo {
+  pub data_url: CanonicalizedDataUrlOption,
+  pub filename: Option<Filename>,
 }
 
 #[cacheable]
@@ -156,10 +272,8 @@ pub struct BuildInfo {
   pub need_create_require: bool,
   #[cacheable(with=AsOption<AsPreset>)]
   pub json_data: Option<JsonValue>,
-  pub asset_data_url: Option<CanonicalizedDataUrlOption>,
-  #[cacheable(with=AsOption<AsMap<AsCacheable, AsVec>>)]
-  pub css_exports: Option<CssExports>,
-  pub css_local_names: Option<HashMap<String, String>>,
+  pub asset: Option<Box<AssetBuildInfo>>,
+  pub css: Option<Box<CssBuildInfo>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   pub side_effects_free: Option<HashSet<Atom>>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
@@ -170,6 +284,7 @@ pub struct BuildInfo {
   pub inline_exports: bool,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<RscMeta>,
+  pub import_phase: ImportPhase,
   pub isolated_dts: Option<Box<IsolatedDts>>,
   /// Stores external fields from the JS side (Record<string, any>),
   /// while other properties are stored in KnownBuildInfo.
@@ -196,9 +311,8 @@ impl Default for BuildInfo {
       all_star_exports: Vec::default(),
       need_create_require: false,
       json_data: None,
-      asset_data_url: None,
-      css_exports: None,
-      css_local_names: None,
+      asset: None,
+      css: None,
       side_effects_free: None,
       top_level_declarations: None,
       module_concatenation_bailout: None,
@@ -207,6 +321,7 @@ impl Default for BuildInfo {
       inline_exports: false,
       collected_typescript_info: None,
       rsc: None,
+      import_phase: ImportPhase::Evaluation,
       isolated_dts: None,
       extras: Default::default(),
       deferred_pure_checks: HashSet::default(),

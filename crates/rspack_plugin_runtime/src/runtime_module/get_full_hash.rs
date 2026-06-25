@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,6 +15,10 @@ impl GetFullHashRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetFullHashRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::GET_FULL_HASH
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

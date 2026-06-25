@@ -557,7 +557,7 @@ async fn render_manifest(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let runtime_template = compilation.runtime_template.create_runtime_code_template();
+  let runtime_template = compilation.runtime_template.create_chunk_code_template();
   let is_hot_update = matches!(chunk.kind(), ChunkKind::HotUpdate);
   let is_main_chunk = chunk.groups().iter().any(|group_ukey| {
     let group = compilation
@@ -671,17 +671,17 @@ impl Plugin for JsPlugin {
       .tap(render_manifest::new(self));
 
     ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });
     ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |_, _| {
+      Box::new(move |_| {
         Box::<JavaScriptParserAndGenerator>::default() as Box<dyn ParserAndGenerator>
       })
     });

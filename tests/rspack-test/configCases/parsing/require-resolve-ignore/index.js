@@ -6,4 +6,7 @@ it("should be able to ignore require.resolve()", () => {
 	expect(source).toMatch(`require.resolve(/* webpackIgnore: true */ "./non-exists")`);
 	expect(source).toMatch(`createRequire(import.meta.url).resolve(/* webpackIgnore: true */ "./non-exists")`);
 	expect(source).toMatch(`require.resolve(/* webpackIgnore: true */ "./non-exists")`);
+	expect(source).toMatch(`require.resolve(/* rspackIgnore: true */ "./non-exists")`);
+	expect(source).toMatch(`createRequire(import.meta.url).resolve(/* rspackIgnore: true */ "./non-exists")`);
+	expect(source).toMatch(`require.resolve(/* rspackIgnore: true */ "./non-exists")`);
 });

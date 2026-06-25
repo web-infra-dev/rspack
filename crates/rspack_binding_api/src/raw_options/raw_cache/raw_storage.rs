@@ -9,13 +9,15 @@ pub struct RawStorageOptions {
   pub directory: String,
 }
 
-impl From<RawStorageOptions> for StorageOptions {
-  fn from(value: RawStorageOptions) -> Self {
-    match value.r#type.as_str() {
-      "filesystem" => StorageOptions::FileSystem {
-        directory: value.directory.into(),
-      },
-      s => panic!("unsupported storage type {s}"),
+impl RawStorageOptions {
+  pub(super) fn normalize(self) -> rspack_error::Result<StorageOptions> {
+    match self.r#type.as_str() {
+      "filesystem" => Ok(StorageOptions::FileSystem {
+        directory: self.directory.into(),
+      }),
+      storage_type => Err(rspack_error::error!(
+        "unsupported storage type {storage_type}"
+      )),
     }
   }
 }

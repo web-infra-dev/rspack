@@ -175,6 +175,10 @@ export async function check(
         warnings.push(...statsJson.warnings);
       }
     }
+
+    if (typeof testConfig.validate === 'function') {
+      await testConfig.validate(stats, undefined, options);
+    }
   }
   await checkArrayExpectation(
     context.getSource(),
@@ -347,14 +351,14 @@ export function configMultiCompiler(
   const multiCompilerOptions: RspackOptions[] = [];
   const caseOptions: RspackOptions[] = Array.isArray(configFiles)
     ? readConfigFile(
-        configFiles!.map((i) => context.getSource(i)),
+        configFiles!.map((i) => context.getCompileSource(i)),
         context,
         {},
         (configs) => {
           return configs.flatMap((c) => {
             if (typeof c === 'function') {
               const options = {
-                testPath: context.getDist(),
+                testPath: context.getCompileDist(),
                 env: undefined,
               };
 

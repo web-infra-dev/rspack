@@ -60,7 +60,7 @@ __webpack_require__.d(x, y);
 return x;
 };
 var __rspack_wrap_module_external_namespace_node_events_0a6aefe7 = (x) => (() => (x));
-module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7(["a", () => (__rspack_external_node_events_0a6aefe7.EventEmitter), "b", () => (__rspack_external_node_events_0a6aefe7.once)]);
+module.exports = __rspack_create_module_external_namespace_node_events_0a6aefe7({["a"]: () => (__rspack_external_node_events_0a6aefe7.EventEmitter), ["b"]: () => (__rspack_external_node_events_0a6aefe7.once)});
 
 },
 });
@@ -98,18 +98,17 @@ __webpack_require__.m = __webpack_modules__;
 
 // webpack/runtime/define_property_getters
 (() => {
-__webpack_require__.d = (exports, definition) => {
-	var i = 0;
-	while(i < definition.length) {
-		var key = definition[i++];
-		var binding = definition[i++];
-		var descriptor = binding === 0 ? { enumerable: true, value: definition[i++] } : { enumerable: true, get: binding };
-		if(!__webpack_require__.o(exports, key)) {
-			Object.defineProperty(exports, key, descriptor);
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
 		}
-	}
+	};
+	define(getters, "get");
+	define(values, "value");
 };
-
 })();
 // webpack/runtime/esm_module_decorator
 (() => {
@@ -155,10 +154,10 @@ __webpack_require__.add({
 
 console.log.bind(module);
 
-__webpack_require__.d(__webpack_exports__, [
-  "a", () => (/* reexport safe */ node_events__rspack_import_0.a),
-  "b", () => (/* reexport safe */ node_events__rspack_import_0.b)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  a: () => (/* reexport safe */ node_events__rspack_import_0.a),
+  b: () => (/* reexport safe */ node_events__rspack_import_0.b)
+});
 
 
 },

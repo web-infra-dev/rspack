@@ -245,7 +245,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-beta.1" />
 
-- **Type:** `string`
+- **Type:** [`Condition`](#condition)
 - **Default:** `undefined`
 
 Matches all modules that match this resource, and will match against layer of the module that issued the current module.
@@ -321,6 +321,51 @@ export default {
       {
         test: /\.js$/,
         dependency: { not: 'url' },
+      },
+    ],
+  },
+};
+```
+
+## rules[].phase
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.0.8" />
+
+- **Type:** [`Condition`](#condition)
+- **Default:** `undefined`
+
+Matches modules by the import phase of the dependency that introduced the module.
+
+The value passed to the condition is one of:
+
+- `evaluation`: normal imports such as `import`, `import()`, `require()`, and other dependencies without a special import phase
+- `defer`: `import defer` and `import.defer()` dependencies when [`experiments.deferImport`](/config/experiments#experimentsdeferimport) is enabled
+- `source`: `import source` and `import.source()` dependencies when [`experiments.sourceImport`](/config/experiments#experimentssourceimport) is enabled
+
+This is useful when the same resource needs different loaders, parser options, or module types depending on how it is imported.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    deferImport: true,
+    sourceImport: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /module\.js$/,
+        phase: 'evaluation',
+        loader: './evaluation-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'defer',
+        loader: './defer-loader.js',
+      },
+      {
+        test: /module\.js$/,
+        phase: 'source',
+        loader: './source-loader.js',
       },
     ],
   },
@@ -452,7 +497,6 @@ export default {
             },
           },
         },
-        type: 'javascript/auto',
       },
     ],
   },
@@ -616,11 +660,17 @@ There are two phases that all loaders enter one after the other:
 
 ## rules[].type
 
-- **Type:**
+- **Type:** `string`
+
+Common built-in values:
 
 ```ts
-type RuleType =
+type BuiltinRuleType =
   | 'asset'
+  | 'asset/source'
+  | 'asset/resource'
+  | 'asset/inline'
+  | 'asset/bytes'
   | 'css'
   | 'css/auto'
   | 'css/global'
@@ -694,16 +744,18 @@ export default {
 
 ```ts
 type RuleSetUse =
-  | RuleSetUseItem[]
   | RuleSetUseItem
+  | RuleSetUseItem[]
   | ((ctx: RawFuncUseCtx) => RuleSetUseItem[]);
-type RuleSetUseItem = { loader: string; options: Record<string, any> } | string;
-interface RawFuncUseCtx {
-  resource?: string;
-  realResource?: string;
-  resourceQuery?: string;
-  issuer?: string;
-}
+
+type RuleSetUseItem = string | RuleSetLoaderWithOptions;
+
+type RuleSetLoaderWithOptions = {
+  ident?: string;
+  loader: string;
+  options?: string | Record<string, any>;
+  parallel?: boolean | { maxWorkers?: number };
+};
 ```
 
 An array to pass the Loader package name and its options. `string[]` e.g.: `use: ['svgr-loader']` is shorthand for `use: [ { loader: 'svgr-loader' } ]`.
@@ -760,7 +812,7 @@ export default {
 
 <ApiMeta addedVersion="1.3.1" />
 
-- **Type**: `boolean`
+- **Type**: `boolean | { maxWorkers?: number }`
 - **Default:** `false`
 
 Controls whether a given loader should run in worker threads for parallel execution. Loaders marked with `parallel` are scheduled across multiple threads, reducing pressure on the main thread and improving overall build performance.
@@ -822,7 +874,7 @@ export default {
 
 ## rules[].rules
 
-- **Type:** <code>[Rule](#rules)[]</code>
+- **Type:** <code>[Rule](#rule)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules that is also used when the parent Rule matches.
@@ -856,7 +908,7 @@ export default {
 
 ## rules[].oneOf
 
-- **Type:** <code>([Rule](#rules) | Falsy)[]</code>
+- **Type:** <code>([Rule](#rule) | Falsy)[]</code>
 - **Default:** `undefined`
 
 A kind of [Nested Rule](#nested-rule), an array of Rules from which only the first matching Rule is used when the parent Rule matches.

@@ -1,16 +1,17 @@
-use std::{collections::VecDeque, iter::once, sync::atomic::AtomicU32};
+use std::{collections::VecDeque, fmt::Write, iter::once, sync::atomic::AtomicU32};
 
 use itertools::Itertools;
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_error::Error;
 use rspack_paths::ArcPathSet;
+use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::oneshot::Sender;
 
 use super::context::{ExecutorTaskContext, ImportModuleMeta};
 use crate::{
-  Chunk, ChunkGraph, ChunkKind, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
-  CodeGenerationResult, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
+  Chunk, ChunkGraph, ChunkKind, ChunkUkey, CodeGenerationDataAssetInfo, CodeGenerationDataFilename,
+  CodeGenerationResult, Compilation, CompilationAsset, CompilationAssets, EntryOptions, Entrypoint,
   FactorizeInfo, ModuleCodeGenerationContext, ModuleType, PublicPath, RuntimeSpec, SourceType,
   compilation::{
     code_generation::code_generation_modules,
@@ -19,7 +20,13 @@ use crate::{
       process_chunks_runtime_requirements, process_modules_runtime_requirements,
     },
   },
-  utils::task_loop::{Task, TaskResult, TaskType},
+  render_runtime_module_source,
+  runtime_globals::{RuntimeVariable, runtime_variable_name},
+  runtime_mode::RuntimeMode,
+  utils::{
+    property_access,
+    task_loop::{Task, TaskResult, TaskType},
+  },
 };
 
 #[derive(Debug, Clone)]
@@ -34,6 +41,90 @@ pub struct ExecutedRuntimeModule {
 
 static EXECUTE_MODULE_ID: AtomicU32 = AtomicU32::new(0);
 pub type ExecuteModuleId = u32;
+
+fn create_execute_runtime_source(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  runtime_modules: &[Identifier],
+) -> Option<(Identifier, CodeGenerationResult)> {
+  if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
+    return None;
+  }
+
+  let metadata = compilation
+    .runtime_proxy_metadata_artifact
+    .get(chunk_ukey)?;
+  let lexical_fields = metadata.lexical_fields();
+  let context_fields = metadata.context_fields();
+  let execute_fields = lexical_fields | context_fields;
+  if execute_fields.is_empty() && runtime_modules.is_empty() {
+    return None;
+  }
+
+  let runtime_context = runtime_variable_name(&RuntimeVariable::Context);
+  let mut source = String::new();
+  let declarations = execute_fields
+    .iter_names()
+    .filter_map(|(_, runtime_global)| runtime_global.to_lexical_name().map(str::to_string))
+    .collect::<Vec<_>>();
+  if !declarations.is_empty() {
+    writeln!(source, "var {};", declarations.join(", ")).expect("write to string should succeed");
+  }
+  for (_, runtime_global) in execute_fields.iter_names() {
+    let (Some(property_name), Some(lexical_name)) = (
+      runtime_global.rspack_context_property_name(),
+      runtime_global.to_lexical_name(),
+    ) else {
+      continue;
+    };
+    writeln!(
+      source,
+      "{lexical_name}={runtime_context}{};",
+      property_access([property_name], 0)
+    )
+    .expect("write to string should succeed");
+    if runtime_global.should_initialize_as_object() {
+      writeln!(source, "{lexical_name}={lexical_name}||{{}};")
+        .expect("write to string should succeed");
+    } else if runtime_global.should_initialize_as_array() {
+      writeln!(source, "{lexical_name}={lexical_name}||[];")
+        .expect("write to string should succeed");
+    }
+  }
+  for runtime_id in runtime_modules {
+    let runtime_module = compilation
+      .runtime_modules
+      .get(runtime_id)
+      .expect("runtime module should exist");
+    let runtime_module_source = compilation
+      .code_generation_results
+      .get(runtime_id, None)
+      .get(&SourceType::JavaScript)
+      .expect("runtime module should have runtime source");
+    source.push_str(
+      &render_runtime_module_source(
+        runtime_module.identifier(),
+        runtime_module_source.clone(),
+        runtime_module.should_isolate(),
+        compilation
+          .options
+          .output
+          .environment
+          .supports_arrow_function(),
+      )
+      .source()
+      .into_string_lossy(),
+    );
+  }
+  source.push_str(&metadata.render_context_setter_assignments(runtime_context));
+
+  (!source.is_empty()).then(|| {
+    (
+      Identifier::from("rspack/runtime/execute_module_runtime"),
+      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+    )
+  })
+}
 
 #[derive(Debug, Default)]
 pub struct ExecuteModuleResult {
@@ -226,7 +317,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let mut compilation = origin_context.transform_to_temp_compilation();
     let main_compilation_plugin_driver = compilation.plugin_driver.clone();
     compilation.plugin_driver = compilation.buildtime_plugin_driver.clone();
-
     tracing::debug!("modules: {:?}", &modules);
 
     let mut chunk_graph = ChunkGraph::default();
@@ -310,9 +400,9 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
     let runtime_modules = compilation
       .build_chunk_graph_artifact
       .chunk_graph
-      .get_chunk_runtime_modules_iterable(&chunk_ukey)
-      .copied()
-      .collect::<IdentifierSet>();
+      .get_chunk_runtime_modules_in_order(&chunk_ukey, &compilation)
+      .map(|(identifier, _)| *identifier)
+      .collect_vec();
 
     tracing::debug!(
       "runtime modules: {:?}",
@@ -333,7 +423,6 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         concatenation_scope: None,
         runtime_template: &mut runtime_template,
       };
-
       let result = runtime_module
         .code_generation(&mut code_generation_context)
         .await?;
@@ -355,12 +444,28 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         .insert(runtime_module.identifier());
     }
 
+    let runtime_modules_to_execute = if let Some((runtime_identifier, runtime_result)) =
+      create_execute_runtime_source(&compilation, &chunk_ukey, &runtime_modules)
+    {
+      compilation.code_generation_results.insert(
+        runtime_identifier,
+        runtime_result,
+        std::iter::once(runtime.clone()),
+      );
+      compilation
+        .code_generated_modules
+        .insert(runtime_identifier);
+      vec![runtime_identifier]
+    } else {
+      runtime_modules.clone()
+    };
+
     let exports = main_compilation_plugin_driver
       .compilation_hooks
       .execute_module
       .call(
         &entry_module_identifier,
-        &runtime_modules,
+        &runtime_modules_to_execute,
         &compilation.code_generation_results,
         &id,
       )

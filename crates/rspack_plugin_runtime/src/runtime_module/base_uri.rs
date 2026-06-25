@@ -1,7 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -16,6 +17,10 @@ impl BaseUriRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::BASE_URI
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,

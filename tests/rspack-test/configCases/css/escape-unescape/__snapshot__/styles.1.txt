@@ -37,6 +37,8 @@ Object {
   foo\bar\baz: style_modules_css-foo\bar\baz,
   f~o~o: style_modules_css-f~o~o,
   m_x_@: style_modules_css-m_x_@,
+  main-bg-color: --style_modules_css-main-bg-color,
+  main-bg-color-@2: --style_modules_css-main-bg-color-@2,
   someId: style_modules_css-someId,
   subClass: style_modules_css-subClass,
   test: style_modules_css-test,

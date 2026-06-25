@@ -21,6 +21,12 @@ module.exports = {
     'rspack.mp3',
     'doc_build',
   ],
+  ignoreRegExpList: [
+    // Ignore markdown anchors such as [modifyRspackConfig](#modifyrspackconfig).
+    '#.*?\\)',
+    // Ignore custom anchor declarations such as ## createRspack \{#createrspack}.
+    '\\\\\\{#[^}]+\\}',
+  ],
   flagWords: banWords,
   caseSensitive: true,
   allowCompoundWords: true,

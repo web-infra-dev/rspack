@@ -4,6 +4,10 @@ const MiniCssExtractPlugin = require('@rspack/core').CssExtractRspackPlugin;
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   devtool: false,
   target: 'web',
   entry: './index.js',

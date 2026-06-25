@@ -9,8 +9,8 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierMap, IdentifierSet,
 };
 use rspack_core::{
-  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact, ChunkUkey,
-  Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact,
+  ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
   CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
   CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
@@ -19,8 +19,8 @@ use rspack_core::{
   ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, get_target, is_esm_dep_like,
+  RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
+  is_esm_dep_like,
   rspack_sources::{ReplaceSource, Source},
 };
 use rspack_error::{Diagnostic, Result};
@@ -29,6 +29,7 @@ use rspack_plugin_javascript::{
   JavascriptModulesRenderChunkContent, JsPlugin, RenderSource,
   dependency::ImportDependencyTemplate, parser_and_generator::JavaScriptParserAndGenerator,
 };
+use rspack_plugin_rslib::dyn_import_external::cutout_dyn_import_externals;
 use rspack_plugin_split_chunks::CacheGroup;
 use rspack_util::{
   atom::Atom,
@@ -46,7 +47,9 @@ use crate::{
     extract_tla_shared_modules, optimize_runtime_chunks,
   },
   preserve_modules::preserve_modules,
-  runtime::EsmRegisterModuleRuntimeModule,
+  runtime::{
+    EsmChunkLoadingRuntimeModule, EsmEnsureChunkRuntimeModule, EsmRegisterModuleRuntimeModule,
+  },
 };
 
 pub static RSPACK_ESM_RUNTIME_CHUNK: &str = "RSPACK_ESM_RUNTIME";
@@ -281,7 +284,7 @@ async fn render_chunk_content(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   asset_info: &mut AssetInfo,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &ChunkCodeTemplate,
 ) -> Result<Option<RenderSource>> {
   self
     .render_chunk(compilation, chunk_ukey, asset_info, runtime_template)
@@ -520,9 +523,9 @@ async fn additional_chunk_runtime_requirements(
   }
 
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
-  // that live on the __webpack_require__ object (same check the runtime plugin
+  // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
-  // `var __webpack_require__ = {};` for chunks whose only requirements are
+  // `var __rspack_require = {};` for chunks whose only requirements are
   // unrelated to the require scope (e.g. STARTUP_NO_DEFAULT added at tree level).
   if runtime_requirements
     .iter()
@@ -544,7 +547,9 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
-  if runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES) {
+  if runtime_requirements
+    .intersects(RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY)
+  {
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(EsmRegisterModuleRuntimeModule::new(
@@ -559,11 +564,21 @@ async fn runtime_requirements_in_tree(
 #[plugin_hook(CompilationAdditionalTreeRuntimeRequirements for EsmLibraryPlugin, stage = -100)]
 async fn additional_tree_runtime_requirements(
   &self,
-  _compilation: &Compilation,
+  compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
-  _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
+  runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK) {
+    runtime_requirements.remove(RuntimeGlobals::ENSURE_CHUNK);
+    runtime_modules.push(Box::new(EsmEnsureChunkRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+    runtime_modules.push(Box::new(EsmChunkLoadingRuntimeModule::new(
+      &compilation.runtime_template,
+    )));
+  }
+
   // avoid generate startup runtime, eg. entry dependent chunk loading runtime
   runtime_requirements.insert(RuntimeGlobals::STARTUP_NO_DEFAULT);
 
@@ -756,9 +771,9 @@ async fn after_factorize(
 ) -> Result<()> {
   // Check if this is an external module using the existing downcast helper
   if let Some(external_module) = module.as_external_module_mut()
-    && (external_module.get_external_type().starts_with("module")
-      || (external_module.get_external_type() == "modern-module"
-        && data.dependencies.first().is_some_and(is_esm_dep_like)))
+    && external_module.resolve_external_type() == "module"
+    && (external_module.get_external_type() != "modern-module"
+      || data.dependencies.first().is_some_and(is_esm_dep_like))
   {
     // If there's an issuer, append it to the module id
     if let Some(issuer_identifier) = &data.issuer_identifier {
@@ -874,6 +889,12 @@ async fn optimize_dependencies(
   exports_info_artifact: &mut ExportsInfoArtifact,
   _diagnostics: &mut Vec<Diagnostic>,
 ) -> Result<Option<bool>> {
+  cutout_dyn_import_externals(
+    false,
+    compilation.options.output.module,
+    build_module_graph_artifact,
+  );
+
   self
     .mark_modules(
       compilation,

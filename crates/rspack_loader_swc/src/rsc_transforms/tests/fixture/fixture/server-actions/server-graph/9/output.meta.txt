@@ -1,0 +1,6 @@
+module_type: Server
+server_refs: []
+client_refs: []
+import_meta_rsc: false
+is_cjs: false
+action_ids: [0060fbe7f56026259f29d3e16651fdc9021e1d9bc070b2e0df61cccc2bbb4fe5a7:foo,00d1504e6981c398d4b8059c5f13757c752c2119409a6bc7200b5624514a5ced93:baz,00629c080094d3e42e3f04da3fc764e18c5905c42019036be89980b7d901dc746d:default]

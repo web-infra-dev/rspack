@@ -4,63 +4,39 @@ use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
 
 use crate::{
-  DataRef, DependencyCategory, ImportAttributes, ModuleRule, ModuleRuleEffect,
+  DataRef, DependencyCategory, ImportAttributes, ImportPhase, ModuleRule, ModuleRuleEffect,
   RuleSetConditionWithEmpty,
 };
 
-pub async fn module_rules_matcher<'a>(
-  rules: &'a [ModuleRule],
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+pub struct MatchContext<'ctx> {
+  pub resource_data: &'ctx ResourceData,
+  pub issuer: Option<&'ctx str>,
+  pub issuer_layer: Option<&'ctx str>,
+  pub dependency: DependencyCategory,
+  pub phase: ImportPhase,
+  pub attributes: Option<&'ctx ImportAttributes>,
+}
+
+pub async fn module_rules_matcher<'rule, 'ctx>(
+  rules: &'rule [ModuleRule],
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rules_matcher_sync(
-    rules,
-    resource_data,
-    issuer,
-    issuer_layer,
-    dependency,
-    attributes,
-    matched_rules,
-  ) {
+  if let Some(result) = module_rules_matcher_sync(rules, ctx, matched_rules) {
     return result;
   }
   matched_rules.truncate(matched_rules_len);
-  module_rules_matcher_async(
-    rules,
-    resource_data,
-    issuer,
-    issuer_layer,
-    dependency,
-    attributes,
-    matched_rules,
-  )
-  .await
+  module_rules_matcher_async(rules, ctx, matched_rules).await
 }
 
-fn module_rules_matcher_sync<'a>(
-  rules: &'a [ModuleRule],
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+fn module_rules_matcher_sync<'rule, 'ctx>(
+  rules: &'rule [ModuleRule],
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Option<Result<()>> {
   for rule in rules {
-    match module_rule_matcher_sync(
-      rule,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    ) {
+    match module_rule_matcher_sync(rule, ctx, matched_rules) {
       Some(Ok(_)) => {}
       Some(Err(err)) => return Some(Err(err)),
       None => return None,
@@ -69,26 +45,13 @@ fn module_rules_matcher_sync<'a>(
   Some(Ok(()))
 }
 
-async fn module_rules_matcher_async<'a>(
-  rules: &'a [ModuleRule],
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+async fn module_rules_matcher_async<'rule, 'ctx>(
+  rules: &'rule [ModuleRule],
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<()> {
   for rule in rules {
-    module_rule_matcher_async(
-      rule,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
+    module_rule_matcher_async(rule, ctx, matched_rules).await?;
   }
   Ok(())
 }
@@ -136,49 +99,26 @@ async fn check_optional_async(
 }
 
 /// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-pub async fn module_rule_matcher<'a>(
-  module_rule: &'a ModuleRule,
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+pub async fn module_rule_matcher<'rule, 'ctx>(
+  module_rule: &'rule ModuleRule,
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
   let matched_rules_len = matched_rules.len();
-  if let Some(result) = module_rule_matcher_sync(
-    module_rule,
-    resource_data,
-    issuer,
-    issuer_layer,
-    dependency,
-    attributes,
-    matched_rules,
-  ) {
+  if let Some(result) = module_rule_matcher_sync(module_rule, ctx, matched_rules) {
     return result;
   }
   matched_rules.truncate(matched_rules_len);
-  module_rule_matcher_async(
-    module_rule,
-    resource_data,
-    issuer,
-    issuer_layer,
-    dependency,
-    attributes,
-    matched_rules,
-  )
-  .await
+  module_rule_matcher_async(module_rule, ctx, matched_rules).await
 }
 
-fn module_rule_matcher_sync<'a>(
-  module_rule: &'a ModuleRule,
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+fn module_rule_matcher_sync<'rule, 'ctx>(
+  module_rule: &'rule ModuleRule,
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Option<Result<bool>> {
+  let resource_data = ctx.resource_data;
+
   if let Some(test_rule) = &module_rule.rspack_resource {
     ensure_sync_matched!(test_rule.try_match_sync(resource_data.resource().into()));
   }
@@ -242,18 +182,22 @@ fn module_rule_matcher_sync<'a>(
   }
 
   if let Some(issuer_rule) = &module_rule.issuer {
-    ensure_sync_matched!(check_optional_sync(issuer_rule, issuer.map(Into::into)));
+    ensure_sync_matched!(check_optional_sync(issuer_rule, ctx.issuer.map(Into::into),));
   }
 
   if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
     ensure_sync_matched!(check_optional_sync(
       issuer_layer_rule,
-      issuer_layer.map(Into::into),
+      ctx.issuer_layer.map(Into::into),
     ));
   }
 
   if let Some(dependency_rule) = &module_rule.dependency {
-    ensure_sync_matched!(dependency_rule.try_match_sync(dependency.as_str().into()));
+    ensure_sync_matched!(dependency_rule.try_match_sync(ctx.dependency.as_str().into()));
+  }
+
+  if let Some(phase_rule) = &module_rule.phase {
+    ensure_sync_matched!(phase_rule.try_match_sync(ctx.phase.as_str().into()));
   }
 
   if let Some(description_data) = &module_rule.description_data {
@@ -274,7 +218,7 @@ fn module_rule_matcher_sync<'a>(
   }
 
   if let Some(with) = &module_rule.with {
-    if let Some(attributes) = attributes {
+    if let Some(attributes) = ctx.attributes {
       for (k, matcher) in with {
         ensure_sync_matched!(check_optional_sync(
           matcher,
@@ -291,15 +235,7 @@ fn module_rule_matcher_sync<'a>(
   matched_rules.push(&module_rule.effect);
 
   if let Some(rules) = &module_rule.rules {
-    match module_rules_matcher_sync(
-      rules,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    ) {
+    match module_rules_matcher_sync(rules, ctx, matched_rules) {
       Some(Ok(())) => {}
       Some(Err(err)) => return Some(Err(err)),
       None => return None,
@@ -309,15 +245,7 @@ fn module_rule_matcher_sync<'a>(
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      match module_rule_matcher_sync(
-        rule,
-        resource_data,
-        issuer,
-        issuer_layer,
-        dependency,
-        attributes,
-        matched_rules,
-      ) {
+      match module_rule_matcher_sync(rule, ctx, matched_rules) {
         Some(Ok(true)) => {
           matched_once = true;
           break;
@@ -336,15 +264,13 @@ fn module_rule_matcher_sync<'a>(
 }
 
 #[async_recursion]
-async fn module_rule_matcher_async<'a>(
-  module_rule: &'a ModuleRule,
-  resource_data: &ResourceData,
-  issuer: Option<&'a str>,
-  issuer_layer: Option<&'a str>,
-  dependency: &DependencyCategory,
-  attributes: Option<&ImportAttributes>,
-  matched_rules: &mut Vec<&'a ModuleRuleEffect>,
+async fn module_rule_matcher_async<'rule, 'ctx>(
+  module_rule: &'rule ModuleRule,
+  ctx: &MatchContext<'ctx>,
+  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
 ) -> Result<bool> {
+  let resource_data = ctx.resource_data;
+
   if let Some(test_rule) = &module_rule.rspack_resource
     && !test_rule.try_match(resource_data.resource().into()).await?
   {
@@ -413,21 +339,27 @@ async fn module_rule_matcher_async<'a>(
   }
 
   if let Some(issuer_rule) = &module_rule.issuer
-    && !check_optional_async(issuer_rule, issuer.map(Into::into)).await?
+    && !check_optional_async(issuer_rule, ctx.issuer.map(Into::into)).await?
   {
     return Ok(false);
   }
 
   if let Some(issuer_layer_rule) = &module_rule.issuer_layer
-    && !check_optional_async(issuer_layer_rule, issuer_layer.map(Into::into)).await?
+    && !check_optional_async(issuer_layer_rule, ctx.issuer_layer.map(Into::into)).await?
   {
     return Ok(false);
   }
 
   if let Some(dependency_rule) = &module_rule.dependency
     && !dependency_rule
-      .try_match(dependency.as_str().into())
+      .try_match(ctx.dependency.as_str().into())
       .await?
+  {
+    return Ok(false);
+  }
+
+  if let Some(phase_rule) = &module_rule.phase
+    && !phase_rule.try_match(ctx.phase.as_str().into()).await?
   {
     return Ok(false);
   }
@@ -456,7 +388,7 @@ async fn module_rule_matcher_async<'a>(
   }
 
   if let Some(with) = &module_rule.with {
-    if let Some(attributes) = attributes {
+    if let Some(attributes) = ctx.attributes {
       for (k, matcher) in with {
         if !check_optional_async(matcher, attributes.get(k).map(Into::into)).await? {
           return Ok(false);
@@ -474,32 +406,13 @@ async fn module_rule_matcher_async<'a>(
   matched_rules.push(&module_rule.effect);
 
   if let Some(rules) = &module_rule.rules {
-    module_rules_matcher(
-      rules,
-      resource_data,
-      issuer,
-      issuer_layer,
-      dependency,
-      attributes,
-      matched_rules,
-    )
-    .await?;
+    module_rules_matcher(rules, ctx, matched_rules).await?;
   }
 
   if let Some(one_of) = &module_rule.one_of {
     let mut matched_once = false;
     for rule in one_of {
-      if module_rule_matcher(
-        rule,
-        resource_data,
-        issuer,
-        issuer_layer,
-        dependency,
-        attributes,
-        matched_rules,
-      )
-      .await?
-      {
+      if module_rule_matcher(rule, ctx, matched_rules).await? {
         matched_once = true;
         break;
       }

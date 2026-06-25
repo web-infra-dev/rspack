@@ -3,6 +3,10 @@ var MCEP = require('@rspack/core').CssExtractRspackPlugin;
 
 /** @type {(number, any) => import("@rspack/core").Configuration} */
 const config = (i, options) => ({
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   entry: {
     a: './a',
     b: './b',
@@ -54,6 +58,7 @@ const config = (i, options) => ({
                 'c',
                 'chunk_js-_d5940',
                 'chunk_js-_d5941',
+                'chunk_js-_d5942',
                 'd_css',
                 'x',
               ]
@@ -63,6 +68,7 @@ const config = (i, options) => ({
                 'c',
                 'chunk_js-_aaff0',
                 'chunk_js-_aaff1',
+                'chunk_js-_aaff2',
                 'd_css',
                 'x',
               ],

@@ -34,5 +34,11 @@ pub trait LoaderRunnerPlugin: Send + Sync {
     &self,
     resource_data: &ResourceData,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>, HashSet<std::path::PathBuf>)>>;
+  ) -> Result<
+    Option<(
+      Content,
+      Option<SourceMap<'static>>,
+      HashSet<std::path::PathBuf>,
+    )>,
+  >;
 }

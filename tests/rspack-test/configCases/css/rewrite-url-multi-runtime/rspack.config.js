@@ -1,5 +1,9 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  externals: {
+    fs: 'node-commonjs fs',
+    path: 'node-commonjs path',
+  },
   entry: {
     a: './index.js',
     b: './index.js',

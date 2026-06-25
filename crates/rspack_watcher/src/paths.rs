@@ -1,10 +1,15 @@
-use std::{fmt::Debug, ops::Deref, path::PathBuf, time::SystemTime};
+use std::{
+  fmt::Debug,
+  ops::Deref,
+  path::{Path, PathBuf},
+  time::SystemTime,
+};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
 use rspack_paths::{ArcPath, ArcPathDashMap, ArcPathDashSet};
 
-use super::FsWatcherIgnored;
+use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -111,23 +116,25 @@ where
 
 impl PathUpdater {
   /// Update the paths in the given set.
-  fn update(self, watch_tracker: &PathTracker, ignored: &FsWatcherIgnored) -> Result<()> {
+  fn update(self, watch_tracker: &PathTracker, ignored: &IgnoredMatcher) -> Result<()> {
     let added_paths = self.added;
     let removed_paths = self.removed;
 
     for added in added_paths {
-      if ignored.should_be_ignored(added.to_str().expect("Path should be valid UTF-8")) {
-        continue; // Skip ignored paths
-      }
+      // Absolutize before the ignored check so registration filters on the
+      // same absolute path the watcher reports for events.
+      let added = if added.is_absolute() {
+        added
+      } else {
+        ArcPath::from(self.base_dir.join(added.as_ref()))
+      };
 
-      if added.is_absolute() {
-        watch_tracker.add(added);
+      // Skip ignored paths AND anything inside an ignored directory.
+      if ignored.is_ignored(added.to_str().expect("Path should be valid UTF-8")) {
         continue;
       }
 
-      let added_absolute_path = self.base_dir.join(added.as_ref());
-
-      watch_tracker.add(ArcPath::from(added_absolute_path));
+      watch_tracker.add(added);
     }
 
     for removed in removed_paths {
@@ -185,7 +192,7 @@ pub(crate) struct PathManager {
   files: PathTracker,
   directories: PathTracker,
   missing: PathTracker,
-  pub ignored: FsWatcherIgnored,
+  ignored: IgnoredMatcher,
   /// Baseline mtime for registered files, captured at scan time.
   /// Used to filter stale FSEvents that arrive for files not actually modified.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
@@ -199,21 +206,46 @@ impl PathManager {
       files: PathTracker::default(),
       directories: PathTracker::default(),
       missing: PathTracker::default(),
-      ignored,
+      ignored: IgnoredMatcher::new(ignored),
       file_mtimes: ArcPathDashMap::default(),
     }
   }
 
-  /// Reset the state of the `PathManager`, clearing all tracked paths.
+  /// Reset the per-`watch()`-call diff state (added / removed sets) without
+  /// touching the long-lived mtime baselines.
+  ///
+  /// `file_mtimes` is intentionally NOT cleared here: the mtime baselines
+  /// are tied to the lifetime of the registered files, not to the lifetime
+  /// of a single `FsWatcher::watch()` invocation. Each call to `watch()`
+  /// from rspack's rebuild cycle (aggregate → pause → rebuild → rewatch)
+  /// must NOT re-snapshot the baseline, otherwise the snapshot can capture
+  /// a post-user-write mtime and then `has_mtime_changed` silently
+  /// suppresses the very FSEvent that the user is waiting for. Stale
+  /// entries for files that have actually been unregistered are pruned by
+  /// `update()` via `remove_file_mtime`.
   pub fn reset(&self) {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
-    self.file_mtimes.clear();
   }
 
-  pub fn set_file_mtime(&self, path: ArcPath, mtime: SystemTime) {
-    self.file_mtimes.insert(path, mtime);
+  /// Record an initial baseline mtime for `path`, but only if no baseline
+  /// already exists. This is the "incremental" form used by
+  /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
+  /// mtimes for all newly-registered files; on subsequent `watch()` calls
+  /// we MUST skip files that already have a baseline, otherwise we risk
+  /// snapshotting a mtime that the user has just bumped via `writeFile`.
+  ///
+  /// Use `has_mtime_changed` (which atomically reads-and-updates the
+  /// baseline) to advance the recorded mtime in response to real events.
+  pub fn set_file_mtime_if_absent(&self, path: ArcPath, mtime: SystemTime) {
+    self.file_mtimes.entry(path).or_insert(mtime);
+  }
+
+  /// Drop the baseline for a path that is no longer being watched, so the
+  /// map does not grow unboundedly across watch cycles.
+  pub fn remove_file_mtime(&self, path: &ArcPath) {
+    self.file_mtimes.remove(path);
   }
 
   /// Check if a file's mtime has changed from the stored baseline.
@@ -260,12 +292,30 @@ impl PathManager {
     PathUpdater::from(directories).update(&self.directories, &self.ignored)?;
     PathUpdater::from(missing).update(&self.missing, &self.ignored)?;
 
+    // Prune mtime baselines for files no longer being watched so the map
+    // does not grow unboundedly across `watch()` cycles. `reset()` has
+    // already cleared `self.files.removed` at the start of this `watch()`
+    // call, so what we see here is only this cycle's removals.
+    let removed_files: Vec<ArcPath> = self.files.removed.iter().map(|p| p.clone()).collect();
+    for path in &removed_files {
+      self.remove_file_mtime(path);
+    }
+
     Ok(())
   }
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
   pub fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(self)
+  }
+
+  /// Whether `path` is excluded from watching by the configured ignored
+  /// patterns — directly, or by living inside an ignored directory.
+  pub fn is_ignored_path(&self, path: &Path) -> bool {
+    match path.to_str() {
+      Some(s) => self.ignored.is_ignored(s),
+      None => false,
+    }
   }
 }
 
@@ -293,7 +343,9 @@ mod tests {
 
     let path_tracker = PathTracker::default();
 
-    updater.update(&path_tracker, &ignored).unwrap();
+    updater
+      .update(&path_tracker, &IgnoredMatcher::new(ignored))
+      .unwrap();
 
     let all = path_tracker.all;
 
@@ -383,5 +435,91 @@ mod tests {
     for path in should_exist_paths {
       assert!(all_paths.iter().any(|p| p.ends_with(path)));
     }
+  }
+
+  /// Regression for the FSEvents stale-event race: simulate two consecutive
+  /// `FsWatcher::watch()` cycles with a real file write landing between
+  /// them (the slow-runner case where the FSEvent is in the kernel queue
+  /// but not yet delivered when the second cycle starts). The baseline
+  /// for the already-registered file must survive the second `reset()`,
+  /// so the delayed change event isn't suppressed as stale.
+  #[test]
+  fn test_baseline_persists_across_consecutive_watch_cycles() {
+    use std::{thread::sleep, time::Duration};
+
+    use tempfile::NamedTempFile;
+
+    let tempfile = NamedTempFile::new().expect("create temp file");
+    let path = ArcPath::from(tempfile.path());
+
+    let pm = PathManager::default();
+    pm.update(
+      (std::iter::once(path.clone()), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+    )
+    .expect("register file");
+
+    // T0 — first `watch()` cycle records the baseline.
+    let initial_mtime = tempfile
+      .path()
+      .metadata()
+      .and_then(|m| m.modified())
+      .expect("read initial mtime");
+    pm.set_file_mtime_if_absent(path.clone(), initial_mtime);
+
+    // T3 — rspack starts a rebuild; `reset()` runs ahead of the next `watch()`.
+    pm.reset();
+
+    // Invariant: `file_mtimes` must survive `reset()`. Without this the
+    // baseline gets wiped on every watch cycle and the next bullet point
+    // can no longer hold.
+    assert_eq!(
+      pm.file_mtimes.get(&path).map(|v| *v),
+      Some(initial_mtime),
+      "file_mtimes must persist across reset()",
+    );
+
+    // T4 — a real write lands while no watcher is attached. The sleep
+    // covers 1s-resolution filesystems (HFS+, FAT); modern APFS / ext4 /
+    // NTFS would not need it but this regression must hold everywhere.
+    sleep(Duration::from_millis(1100));
+    std::fs::write(tempfile.path(), b"v2").expect("rewrite tempfile");
+    let post_write_mtime = tempfile
+      .path()
+      .metadata()
+      .and_then(|m| m.modified())
+      .expect("read post-write mtime");
+    assert_ne!(
+      post_write_mtime, initial_mtime,
+      "test sanity: file mtime must advance after the write",
+    );
+
+    // T5 — second `watch()` cycle reaches `record_initial_file_mtimes`,
+    // which delegates here. For an already-baselined path it must be a
+    // no-op so the post-write mtime does NOT overwrite the original.
+    pm.set_file_mtime_if_absent(path.clone(), post_write_mtime);
+    assert_eq!(
+      pm.file_mtimes.get(&path).map(|v| *v),
+      Some(initial_mtime),
+      "set_file_mtime_if_absent must not overwrite an existing baseline",
+    );
+
+    // T6 — the delayed FSEvent finally reaches `Trigger::on_event`, which
+    // calls `has_mtime_changed`. Current disk mtime now differs from the
+    // preserved baseline, so the event must NOT be suppressed.
+    assert!(
+      pm.has_mtime_changed(&path),
+      "delayed change event must not be suppressed as stale",
+    );
+
+    // `has_mtime_changed` also atomically advances the baseline so a
+    // subsequent duplicate FSEvent (e.g. re-delivery during rewatch)
+    // can still be filtered correctly.
+    assert_eq!(
+      pm.file_mtimes.get(&path).map(|v| *v),
+      Some(post_write_mtime),
+      "has_mtime_changed should advance the baseline on a real change",
+    );
   }
 }

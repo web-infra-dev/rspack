@@ -11,28 +11,29 @@ use napi::{
   Either, Env, JsValue,
   bindgen_prelude::{Buffer, FromNapiValue, Function, JsValuesTupleIntoVec, Promise, ToNapiValue},
 };
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifier, IdentifierMap, IdentifierSet};
 use rspack_core::{
   AfterResolveResult, AssetEmittedInfo, AsyncModulesArtifact, BeforeResolveResult, BindingCell,
-  BoxModule, ChunkGraph, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirementsHook, CompilationAfterOptimizeModules,
-  CompilationAfterOptimizeModulesHook, CompilationAfterProcessAssets,
-  CompilationAfterProcessAssetsHook, CompilationAfterSeal, CompilationAfterSealHook,
-  CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook, CompilationBuildModule,
-  CompilationBuildModuleHook, CompilationChunkAsset, CompilationChunkAssetHook,
-  CompilationChunkHash, CompilationChunkHashHook, CompilationExecuteModule,
-  CompilationExecuteModuleHook, CompilationFinishModules, CompilationFinishModulesHook,
-  CompilationId, CompilationOptimizeChunkModules, CompilationOptimizeChunkModulesHook,
-  CompilationOptimizeModules, CompilationOptimizeModulesHook, CompilationOptimizeTree,
-  CompilationOptimizeTreeHook, CompilationParams, CompilationProcessAssets,
-  CompilationProcessAssetsHook, CompilationRuntimeModule, CompilationRuntimeModuleHook,
-  CompilationRuntimeRequirementInTree, CompilationRuntimeRequirementInTreeHook, CompilationSeal,
-  CompilationSealHook, CompilationStillValidModule, CompilationStillValidModuleHook,
-  CompilationSucceedModule, CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook,
-  CompilerAssetEmitted, CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook,
-  CompilerEmit, CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId,
-  CompilerMake, CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook,
-  CompilerThisCompilation, CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
+  BoxModule, ChunkGraph, ChunkUkey, CircularModulesInfo, Compilation,
+  CompilationAdditionalTreeRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirementsHook,
+  CompilationAfterOptimizeModules, CompilationAfterOptimizeModulesHook,
+  CompilationAfterProcessAssets, CompilationAfterProcessAssetsHook, CompilationAfterSeal,
+  CompilationAfterSealHook, CompilationBeforeModuleIds, CompilationBeforeModuleIdsHook,
+  CompilationBuildModule, CompilationBuildModuleHook, CompilationChunkAsset,
+  CompilationChunkAssetHook, CompilationChunkHash, CompilationChunkHashHook,
+  CompilationExecuteModule, CompilationExecuteModuleHook, CompilationFinishModules,
+  CompilationFinishModulesHook, CompilationId, CompilationOptimizeChunkModules,
+  CompilationOptimizeChunkModulesHook, CompilationOptimizeModules, CompilationOptimizeModulesHook,
+  CompilationOptimizeTree, CompilationOptimizeTreeHook, CompilationParams,
+  CompilationProcessAssets, CompilationProcessAssetsHook, CompilationRuntimeModule,
+  CompilationRuntimeModuleHook, CompilationRuntimeRequirementInTree,
+  CompilationRuntimeRequirementInTreeHook, CompilationSeal, CompilationSealHook,
+  CompilationStillValidModule, CompilationStillValidModuleHook, CompilationSucceedModule,
+  CompilationSucceedModuleHook, CompilerAfterEmit, CompilerAfterEmitHook, CompilerAssetEmitted,
+  CompilerAssetEmittedHook, CompilerCompilation, CompilerCompilationHook, CompilerEmit,
+  CompilerEmitHook, CompilerFinishMake, CompilerFinishMakeHook, CompilerId, CompilerMake,
+  CompilerMakeHook, CompilerShouldEmit, CompilerShouldEmitHook, CompilerThisCompilation,
+  CompilerThisCompilationHook, ContextModuleFactoryAfterResolve,
   ContextModuleFactoryAfterResolveHook, ContextModuleFactoryBeforeResolve,
   ContextModuleFactoryBeforeResolveHook, ExecuteModuleId, Module, ModuleFactoryCreateData,
   ModuleId, ModuleIdentifier, ModuleIdsArtifact, NormalModuleCreateData,
@@ -79,6 +80,7 @@ use crate::{
   asset::JsAssetEmittedArgs,
   chunk::{ChunkWrapper, JsChunkAssetArgs},
   compilation::JsCompilationWrapper,
+  compiler_scoped_tsfn::CompilerScopedTsFnHandle,
   context_module_factory::{
     JsContextModuleFactoryAfterResolveDataWrapper, JsContextModuleFactoryAfterResolveResult,
     JsContextModuleFactoryBeforeResolveDataWrapper, JsContextModuleFactoryBeforeResolveResult,
@@ -183,7 +185,11 @@ impl<T: 'static + ToNapiValue + JsValuesTupleIntoVec, R: 'static + FromNapiValue
 }
 
 type RegisterFunctionOutput<T, R> = Vec<ThreadsafeJsTap<T, R>>;
-type RegisterFunction<T, R> = ThreadsafeFunction<Vec<i32>, RegisterFunctionOutput<T, R>>;
+// The register callback itself is compiler-scoped because it can capture compiler or
+// compilation JS objects across builds. The taps returned by that callback stay as ordinary
+// TSFNs: uncached taps die with the returned vector, while cached taps are explicitly
+// released by `clear_cache()`.
+type RegisterFunction<T, R> = CompilerScopedTsFnHandle<Vec<i32>, RegisterFunctionOutput<T, R>>;
 
 struct RegisterJsTapsInner<T: 'static + JsValuesTupleIntoVec, R> {
   register: RegisterFunction<T, R>,
@@ -1237,7 +1243,7 @@ impl CompilationExecuteModule for CompilationExecuteModuleTap {
   async fn run(
     &self,
     entry: &ModuleIdentifier,
-    runtime_modules: &IdentifierSet,
+    runtime_modules: &[Identifier],
     code_generation_results: &BindingCell<rspack_core::CodeGenerationResults>,
     id: &ExecuteModuleId,
   ) -> rspack_error::Result<()> {
@@ -1296,7 +1302,7 @@ impl CompilationOptimizeModules for CompilationOptimizeModulesTap {
   async fn run(
     &self,
     _compilation: &Compilation,
-    _circular_modules: &mut Option<IdentifierSet>,
+    _circular_modules: &mut CircularModulesInfo,
     _diagnostics: &mut Vec<rspack_error::Diagnostic>,
   ) -> rspack_error::Result<Option<bool>> {
     self.function.call_with_sync(()).await

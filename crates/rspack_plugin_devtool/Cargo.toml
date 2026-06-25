@@ -24,7 +24,6 @@ rspack_paths             = { workspace = true }
 rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
-simd-json                = { workspace = true }
 sugar_path               = { workspace = true }
 thread_local             = { workspace = true }
 tracing                  = { workspace = true }

@@ -10,7 +10,7 @@ pub struct ConcatenatedModule {
 }
 
 impl ConcatenatedModule {
-  pub(crate) fn custom_into_instance(
+  pub(crate) fn into_module_instance(
     self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {

@@ -158,7 +158,7 @@ impl Tracer for StdoutTracer {
                 "span": span_obj,
               });
 
-              if let Ok(json_str) = serde_json::to_string(&json_value) {
+              if let Ok(json_str) = simd_json::to_string(&json_value) {
                 // Lock the mutex to access the writer
                 let _ = writeln!(writer.lock().expect("Failed to lock writer"), "{json_str}");
               }

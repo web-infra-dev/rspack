@@ -3,9 +3,9 @@
 "./child/child/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 const value = "dynamic";
 
 
@@ -13,9 +13,9 @@ const value = "dynamic";
 "./child/index.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "value", () => (value)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  value: () => (value)
+});
 const value = "dynamic";
 
 
@@ -27,11 +27,11 @@ var map = {
 };
 
 
-function __rspack_context(req) {
-  var id = __rspack_context_resolve(req);
+function __rspack_context_module(req) {
+  var id = __rspack_context_module_resolve(req);
   return __webpack_require__(id);
 }
-function __rspack_context_resolve(req) {
+function __rspack_context_module_resolve(req) {
   if(!__webpack_require__.o(map, req)) {
     var e = new Error("Cannot find module '" + req + "'");
     e.code = 'MODULE_NOT_FOUND';
@@ -39,10 +39,10 @@ function __rspack_context_resolve(req) {
   }
   return map[req];
 }
-__rspack_context.keys = () => (Object.keys(map));
-__rspack_context.resolve = __rspack_context_resolve;
-module.exports = __rspack_context;
-__rspack_context.id = "./child sync recursive ^\\.\\/.*\\.js$";
+__rspack_context_module.keys = () => (Object.keys(map));
+__rspack_context_module.resolve = __rspack_context_module_resolve;
+module.exports = __rspack_context_module;
+__rspack_context_module.id = "./child sync recursive ^\\.\\/.*\\.js$";
 
 
 },

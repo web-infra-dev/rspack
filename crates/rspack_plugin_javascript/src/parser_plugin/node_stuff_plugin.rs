@@ -1,11 +1,12 @@
 use rspack_core::{
-  CachedConstDependency, ConstDependency, ImportMeta, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, RuntimeGlobals, RuntimeRequirementsDependency, get_context, parse_resource,
+  CachedConstDependency, CachedConstDependencyPlace, ConstDependency, ImportMeta,
+  NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
+  RuntimeRequirementsDependency, get_context, parse_resource,
 };
 use rspack_error::{Diagnostic, cyan, yellow};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
-use swc_core::{common::Spanned, ecma::ast::Expr};
+use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, MemberExpr, Span, UnaryExpr};
 use url::Url;
 
 use crate::{
@@ -84,6 +85,13 @@ impl NodeMetaProperty {
     match self {
       NodeMetaProperty::Filename => "__rspack_fileURLToPath(import.meta.url)",
       NodeMetaProperty::Dirname => "__rspack_dirname(__rspack_fileURLToPath(import.meta.url))",
+    }
+  }
+
+  fn import_meta_cached_identifier(&self) -> &'static str {
+    match self {
+      NodeMetaProperty::Filename => "__rspack_import_meta_filename__",
+      NodeMetaProperty::Dirname => "__rspack_import_meta_dirname__",
     }
   }
 
@@ -237,17 +245,52 @@ impl NodeStuffPlugin {
 
   fn add_cjs_node_module_dependency(
     parser: &mut JavascriptParser,
-    ident_span: swc_core::common::Span,
+    ident_span: Span,
     name: &str,
     property: NodeMetaProperty,
   ) {
     Self::add_node_module_dependencies(parser, property);
-    let const_dep = CachedConstDependency::new(
+    let place = if parser.compiler_options.output.module {
+      CachedConstDependencyPlace::Chunk
+    } else {
+      CachedConstDependencyPlace::Module
+    };
+    let identifier = if matches!(place, CachedConstDependencyPlace::Chunk) {
+      property.import_meta_cached_identifier()
+    } else {
+      name
+    };
+    let const_dep = CachedConstDependency::new_with_place(
       ident_span.into(),
-      name.into(),
+      identifier.into(),
       property.node_module_runtime_expr().into(),
+      place,
     );
     parser.add_presentational_dependency(Box::new(const_dep));
+  }
+
+  fn add_import_meta_cached_dependency(
+    parser: &mut JavascriptParser,
+    range: Option<rspack_core::DependencyRange>,
+    property: NodeMetaProperty,
+    content: impl Into<Box<str>>,
+  ) -> String {
+    let identifier = property.import_meta_cached_identifier();
+    let const_dep = match range {
+      Some(range) => CachedConstDependency::new_with_place(
+        range,
+        identifier.into(),
+        content.into(),
+        CachedConstDependencyPlace::Chunk,
+      ),
+      None => CachedConstDependency::new_without_replacement(
+        identifier.into(),
+        content.into(),
+        CachedConstDependencyPlace::Chunk,
+      ),
+    };
+    parser.add_presentational_dependency(Box::new(const_dep));
+    identifier.to_string()
   }
 
   /// Get the evaluated value for import.meta.filename/dirname
@@ -313,7 +356,7 @@ impl NodeStuffPlugin {
 
     if property.is_eval_only(node_option) {
       return Some(if parser.compiler_options.output.module {
-        property.import_meta_name().to_string()
+        Self::add_import_meta_cached_dependency(parser, None, property, property.import_meta_name())
       } else {
         property.cjs_name().to_string()
       });
@@ -328,11 +371,20 @@ impl NodeStuffPlugin {
           .environment
           .supports_import_meta_dirname_and_filename()
       {
-        // Keep as import.meta.filename/dirname - runtime supports it
-        return Some(property.import_meta_name().to_string());
+        return Some(Self::add_import_meta_cached_dependency(
+          parser,
+          None,
+          property,
+          property.import_meta_name(),
+        ));
       }
       Self::add_node_module_dependencies(parser, property);
-      return Some(property.node_module_runtime_expr().to_string());
+      return Some(Self::add_import_meta_cached_dependency(
+        parser,
+        None,
+        property,
+        property.node_module_runtime_expr(),
+      ));
     }
 
     None
@@ -371,7 +423,7 @@ impl NodeStuffPlugin {
 
     if property.is_eval_only(node_option) {
       return Some(if parser.compiler_options.output.module {
-        property.import_meta_name().to_string()
+        Self::add_import_meta_cached_dependency(parser, None, property, property.import_meta_name())
       } else {
         property.cjs_name().to_string()
       });
@@ -386,10 +438,20 @@ impl NodeStuffPlugin {
           .environment
           .supports_import_meta_dirname_and_filename()
       {
-        return Some(property.import_meta_name().to_string());
+        return Some(Self::add_import_meta_cached_dependency(
+          parser,
+          None,
+          property,
+          property.import_meta_name(),
+        ));
       }
       Self::add_node_module_dependencies(parser, property);
-      return Some(property.node_module_runtime_expr().to_string());
+      return Some(Self::add_import_meta_cached_dependency(
+        parser,
+        None,
+        property,
+        property.node_module_runtime_expr(),
+      ));
     }
 
     None
@@ -397,11 +459,11 @@ impl NodeStuffPlugin {
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
-impl JavascriptParserPlugin for NodeStuffPlugin {
+impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
   fn identifier(
     &self,
-    parser: &mut JavascriptParser,
-    ident: &swc_core::ecma::ast::Ident,
+    parser: &mut JavascriptParser<'p>,
+    ident: &Ident,
     for_name: &str,
   ) -> Option<bool> {
     // Skip CJS handling if not enabled
@@ -533,7 +595,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     None
   }
 
-  fn rename(&self, parser: &mut JavascriptParser, expr: &Expr, for_name: &str) -> Option<bool> {
+  fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     // Skip CJS handling if not enabled
     if !self.handle_cjs {
       return None;
@@ -557,8 +619,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
   fn r#typeof(
     &self,
-    parser: &mut JavascriptParser,
-    unary_expr: &swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    unary_expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -652,10 +714,10 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
     Some(true)
   }
 
-  fn evaluate_typeof<'a>(
+  fn evaluate_typeof(
     &self,
-    parser: &mut JavascriptParser,
-    expr: &'a swc_core::ecma::ast::UnaryExpr,
+    parser: &mut JavascriptParser<'p>,
+    expr: &'a UnaryExpr<'a>,
     for_name: &str,
   ) -> Option<eval::BasicEvaluatedExpression<'a>> {
     use crate::visitors::expr_name;
@@ -715,11 +777,12 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
   fn evaluate_identifier(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     for_name: &str,
+    _member_expr_info: Option<&crate::visitors::ExpressionExpressionInfo>,
     start: u32,
     end: u32,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'static>> {
+  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
     use crate::visitors::expr_name;
 
     if for_name == DIRNAME {
@@ -791,8 +854,8 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
   fn member(
     &self,
-    parser: &mut JavascriptParser,
-    member_expr: &swc_core::ecma::ast::MemberExpr,
+    parser: &mut JavascriptParser<'p>,
+    member_expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
     use crate::visitors::expr_name;
@@ -826,7 +889,7 @@ impl JavascriptParserPlugin for NodeStuffPlugin {
 
   fn import_meta_property_in_destructuring(
     &self,
-    parser: &mut JavascriptParser,
+    parser: &mut JavascriptParser<'p>,
     property: &DestructuringAssignmentProperty,
   ) -> Option<String> {
     // Skip ESM handling if not enabled

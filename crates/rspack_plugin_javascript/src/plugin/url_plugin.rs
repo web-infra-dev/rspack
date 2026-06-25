@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use rspack_core::{
-  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
-  CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, RuntimeCodeTemplate,
-  URLStaticMode, rspack_sources::ReplaceSource,
+  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
+  CompilationParams, CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, URLStaticMode,
+  rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -63,7 +63,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  _runtime_template: &RuntimeCodeTemplate<'_>,
+  _runtime_template: &ChunkCodeTemplate,
 ) -> Result<()> {
   let runtime = compilation
     .build_chunk_graph_artifact

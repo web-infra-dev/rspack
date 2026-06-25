@@ -3,6 +3,7 @@
   "banner-plugin",
   "context-replacement-plugin",
   "define-plugin",
+  "deterministic-module-ids-plugin",
   "dll-plugin",
   "dll-reference-plugin",
   "electron-target-plugin",

@@ -14,6 +14,23 @@ import { Stats } from '.';
 import type { WatchOptions } from './config';
 import type { FileSystemInfoEntry, Watcher } from './util/fs';
 
+type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
+
+// Merge an incremental `(added, removed)` delta into an accumulator, cancelling
+// a path that is added then removed (or vice-versa) across calls.
+function foldWatchDelta(
+  pending: PendingWatchDelta,
+  added: Iterable<string>,
+  removed: Iterable<string>,
+): void {
+  for (const path of added) {
+    if (!pending.removed.delete(path)) pending.added.add(path);
+  }
+  for (const path of removed) {
+    if (!pending.added.delete(path)) pending.removed.add(path);
+  }
+}
+
 export class Watching {
   watcher?: Watcher;
   pausedWatcher?: Watcher;
@@ -36,6 +53,11 @@ export class Watching {
   #closed: boolean;
   #collectedChangedFiles?: Set<string>;
   #collectedRemovedFiles?: Set<string>;
+  #pendingWatchDeps?: {
+    file: PendingWatchDelta;
+    context: PendingWatchDelta;
+    missing: PendingWatchDelta;
+  };
   suspended: boolean;
 
   constructor(
@@ -326,6 +348,30 @@ export class Watching {
     });
   }
 
+  // Fold a finished compilation's file/context/missing deltas into the accumulator.
+  #accumulateWatchDeps(compilation: Compilation): void {
+    const pending = (this.#pendingWatchDeps ??= {
+      file: { added: new Set(), removed: new Set() },
+      context: { added: new Set(), removed: new Set() },
+      missing: { added: new Set(), removed: new Set() },
+    });
+    foldWatchDelta(
+      pending.file,
+      compilation.__internal__addedFileDependencies,
+      compilation.__internal__removedFileDependencies,
+    );
+    foldWatchDelta(
+      pending.context,
+      compilation.__internal__addedContextDependencies,
+      compilation.__internal__removedContextDependencies,
+    );
+    foldWatchDelta(
+      pending.missing,
+      compilation.__internal__addedMissingDependencies,
+      compilation.__internal__removedMissingDependencies,
+    );
+  }
+
   /**
    * The reason why this is _done instead of #done, is that in Webpack,
    * it will rewrite this function to another function
@@ -363,6 +409,9 @@ export class Watching {
       !this.blocked &&
       !(this.isBlocked() && (this.blocked = true))
     ) {
+      // Coalesced rebuild: the `watch()` delivery below is skipped, so carry
+      // this build's deltas forward to the next delivered `watch()`. See #12904.
+      if (compilation) this.#accumulateWatchDeps(compilation);
       this.#go();
       return;
     }
@@ -381,18 +430,20 @@ export class Watching {
 
       process.nextTick(() => {
         if (!this.#closed) {
+          // Deliver this build's deltas merged with any carried from skipped
+          // coalesced builds, then reset the accumulator.
+          this.#accumulateWatchDeps(compilation);
+          const pending = this.#pendingWatchDeps!;
+          this.#pendingWatchDeps = undefined;
+
           const fileDependencies = new Set([
             ...compilation.fileDependencies,
           ]) as unknown as Iterable<string> & {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          fileDependencies.added = new Set(
-            compilation.__internal__addedFileDependencies,
-          );
-          fileDependencies.removed = new Set(
-            compilation.__internal__removedFileDependencies,
-          );
+          fileDependencies.added = pending.file.added;
+          fileDependencies.removed = pending.file.removed;
 
           const contextDependencies = new Set([
             ...compilation.contextDependencies,
@@ -400,12 +451,8 @@ export class Watching {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          contextDependencies.added = new Set(
-            compilation.__internal__addedContextDependencies,
-          );
-          contextDependencies.removed = new Set(
-            compilation.__internal__removedContextDependencies,
-          );
+          contextDependencies.added = pending.context.added;
+          contextDependencies.removed = pending.context.removed;
 
           const missingDependencies = new Set([
             ...compilation.missingDependencies,
@@ -413,12 +460,8 @@ export class Watching {
             added?: Iterable<string>;
             removed?: Iterable<string>;
           };
-          missingDependencies.added = new Set(
-            compilation.__internal__addedMissingDependencies,
-          );
-          missingDependencies.removed = new Set(
-            compilation.__internal__removedMissingDependencies,
-          );
+          missingDependencies.added = pending.missing.added;
+          missingDependencies.removed = pending.missing.removed;
 
           this.watch(
             fileDependencies,

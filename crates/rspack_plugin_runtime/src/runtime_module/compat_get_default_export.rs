@@ -24,6 +24,10 @@ impl CompatGetDefaultExportRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

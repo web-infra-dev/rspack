@@ -53,12 +53,21 @@ module.exports = {
                 /import (.+) from "\.\/static-package\.json";/,
               );
               expect(esmImportSpecifier1[1]).not.toBe(esmImportSpecifier2[1]);
-              const importChunkId1 = content.match(
-                /const dynamicPkgPure = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
-              );
-              const importChunkId2 = content.match(
-                /const dynamicPkgStr = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/,
-              );
+              let dynamicPkgPurePattern;
+              let dynamicPkgStrPattern;
+              if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+                dynamicPkgPurePattern =
+                  /const dynamicPkgPure = await __rspack_context\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/;
+                dynamicPkgStrPattern =
+                  /const dynamicPkgStr = await __rspack_context\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/;
+              } else {
+                dynamicPkgPurePattern =
+                  /const dynamicPkgPure = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/;
+                dynamicPkgStrPattern =
+                  /const dynamicPkgStr = await __webpack_require__\.e\(\/\* import\(\) \*\/ (?:"([^"]+)"|([0-9]+))\)/;
+              }
+              const importChunkId1 = content.match(dynamicPkgPurePattern);
+              const importChunkId2 = content.match(dynamicPkgStrPattern);
               const dynamicPkgPureChunkId =
                 importChunkId1[1] ?? importChunkId1[2];
               const dynamicPkgStrChunkId =

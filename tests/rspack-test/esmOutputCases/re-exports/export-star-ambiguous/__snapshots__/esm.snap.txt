@@ -19,8 +19,7 @@ it('should handle ambiguous export star without crashing', async () => {
 });
 
 var index_onlyA = (/* inlined export .onlyA */"only-a");
-var index_onlyB = (/* inlined export .onlyB */"only-b");
 var index_shared = (/* inlined export .shared */"from-a");
-export { index_onlyA as onlyA, index_onlyB as onlyB, index_shared as shared };
+export { index_onlyA as onlyA, index_shared as shared, onlyB };
 
 ```

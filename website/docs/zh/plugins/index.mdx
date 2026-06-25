@@ -12,7 +12,7 @@ Rspack 内置了一些高性能的插件，它们可以用于替代 webpack 生�
 
 包括：
 
-- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)：检测循环依赖
+- [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin)：检测循环依赖
 - [CopyRspackPlugin](/plugins/rspack/copy-rspack-plugin)：将文件或目录复制到构建产物
 - [CssChunkingPlugin](/plugins/rspack/css-chunking-plugin)：按导入顺序切分 CSS，避免样式顺序问题
 - [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)：把样式抽取为独立 CSS 文件
@@ -21,12 +21,13 @@ Rspack 内置了一些高性能的插件，它们可以用于替代 webpack 生�
 - [SubresourceIntegrityPlugin](/plugins/rspack/subresource-integrity-plugin)：启用子资源完整性（SRI）
 - [SwcJsMinimizerRspackPlugin](/plugins/rspack/swc-js-minimizer-rspack-plugin)：基于 SWC 压缩 JavaScript
 - [VirtualModulesPlugin](/plugins/rspack/virtual-modules-plugin)：在内存中创建和修改虚拟模块
+- [CircularDependencyRspackPlugin](/plugins/rspack/circular-dependency-rspack-plugin)：已废弃，请使用 [CircularCheckRspackPlugin](/plugins/rspack/circular-check-rspack-plugin)
 
 ## 内置插件（对齐 webpack）
 
 为了对齐 webpack 的功能，Rspack 实现了大部分 webpack 内置插件，它们尽可能地保持了相同的命名和参数配置，并提供相同的功能。
 
-详见 [内置插件（对齐 webpack） - 总览](/plugins/webpack/index)。
+详见 [内置插件（对齐 webpack） - 总览](/plugins/webpack/)。
 
 ## 社区插件
 

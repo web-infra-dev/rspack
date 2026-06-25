@@ -94,7 +94,7 @@ export default {
 
 如果使用 HTML 插件时设置了 `inject: false`，你需要在模板中手动注入 `integrity` 和 `crossorigin` 属性。
 
-对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)，模板的语法与标准 `.ejs` 稍有不同（参考[文档](/plugins/rspack/html-rspack-plugin#supported-ejs-syntax)），可以这样注入属性：
+对于 [`HtmlRspackPlugin`](/plugins/rspack/html-rspack-plugin)，模板的语法与标准 `.ejs` 稍有不同（参考[文档](/plugins/rspack/html-rspack-plugin#支持的-ejs-语法)），可以这样注入属性：
 
 ```ejs title="index.ejs"
 <% for src in htmlRspackPlugin.files.js { %>

@@ -9,6 +9,8 @@ module.exports = {
 
 			@@ ... @@
 			-   "cache": false,
-			+   "cache": true,
+			+   "cache": Object {
+			+     "type": "memory",
+			+   },
 		`)
 };

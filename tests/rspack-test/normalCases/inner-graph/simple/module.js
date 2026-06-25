@@ -78,6 +78,7 @@ const pure8 = /*#__PURE__*/ f2(() => EXPORT);
 export const pureUsed = EXPORT3;
 
 function x1() {
+	console.log.bind(console);
 	return EXPORT2;
 }
 

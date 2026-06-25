@@ -2,17 +2,17 @@
 "use strict";
 (self["rspackChunk"] = self["rspackChunk"] || []).push([["main"], {
 "./bar.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (test)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (test)
+});
 function test() {}
 
 
 },
 "./foo.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
-__webpack_require__.d(__webpack_exports__, [
-  "Select", () => (/* reexport safe */ _bar__rspack_import_0["default"])
-]);
+__webpack_require__.d(__webpack_exports__, {
+  Select: () => (/* reexport safe */ _bar__rspack_import_0["default"])
+});
 /* import */ var _bar__rspack_import_0 = __webpack_require__("./bar.js");
 
 

@@ -190,7 +190,7 @@ And if you are still using `builtins.presetEnv`, `builtins.decorator`, `builtins
 
 ### Deprecating apply entry lazily
 
-Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.disableApplyEntryLazily](/config/experiments#experimentsrspackfuturedisableapplyentrylazily), which is introduced in v0.4.5, enabled by default in v0.5.0, and will be removed in v0.6.0.
+Apply entry lazily is deprecating by rspackFuture: [experiments.rspackFuture.disableApplyEntryLazily](https://v0.rspack.rs/config/experiments#experimentsrspackfuturedisableapplyentrylazily), which is introduced in v0.4.5, enabled by default in v0.5.0, and will be removed in v0.6.0.
 
 When `experiments.rspackFuture.disableApplyEntryLazily` is `false`, `options.entry` can still make valid changes after `rspack(options)` is called, but with `true` it can't, and it's behave the same as webpack5.
 
@@ -198,7 +198,7 @@ This configuration has no effect on users developing applications in Rspack most
 
 ## Migration guide
 
-v0.5.0 removed lots of deprecated features, except that, v0.5.0 introduced four breaking changes, and you only need to notice two of them if you are developing applications using Rspack. So v0.5.0 is easy to migrate if you already migrate to v0.4+ with no deprecate warnings, if you haven't, checkout the [v0.4.0 migration guide](https://rspack.rs/blog/announcing-0.4#migration-guide).
+v0.5.0 removed lots of deprecated features, except that, v0.5.0 introduced four breaking changes, and you only need to notice two of them if you are developing applications using Rspack. So v0.5.0 is easy to migrate if you already migrate to v0.4+ with no deprecate warnings, if you haven't, checkout the [v0.4.0 migration guide](/blog/announcing-0-4#migration-guide).
 
 ### Add resolve.extensions
 

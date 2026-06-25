@@ -676,7 +676,7 @@ impl RscServerPlugin {
 
     let mut serializer = form_urlencoded::Serializer::new(String::new());
     #[allow(clippy::unwrap_used)]
-    serializer.append_pair("actions", &serde_json::to_string(&actions).unwrap());
+    serializer.append_pair("actions", &simd_json::to_string(&actions).unwrap());
     serializer.append_pair("from-client", &from_client.to_string());
     let action_entry_loader = format!(
       "{}?{}!",

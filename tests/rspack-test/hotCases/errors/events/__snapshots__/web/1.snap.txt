@@ -46,45 +46,45 @@
 self["rspackHotUpdate"]("main", {
 "./a.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 
 
 },
 "./c.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 
 
 },
 "./e.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 
 
 },
 "./g.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 
 
 },
 "./i.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 throw new Error("Error while loading module i");
 
@@ -92,9 +92,9 @@ throw new Error("Error while loading module i");
 },
 "./j.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 throw new Error("Error while loading module j");
 
@@ -102,9 +102,9 @@ throw new Error("Error while loading module j");
 },
 "./l.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-__webpack_require__.d(__webpack_exports__, [
-  "default", () => (__rspack_default_export)
-]);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* export default */ const __rspack_default_export = (2);
 throw new Error("Error while loading module l");
 

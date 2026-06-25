@@ -8,6 +8,9 @@ import type { Compiler } from '../Compiler';
 import type { Module } from '../Module';
 import { createBuiltinPlugin, RspackBuiltinPlugin } from './base';
 
+/**
+ * @deprecated Use `CircularCheckRspackPluginOptions` instead.
+ */
 export type CircularDependencyRspackPluginOptions = {
   /**
    * When `true`, the plugin will emit `ERROR` diagnostics rather than the
@@ -60,6 +63,9 @@ export type CircularDependencyRspackPluginOptions = {
   onEnd?(compilation: Compilation): void;
 };
 
+/**
+ * @deprecated Use `CircularCheckRspackPlugin` instead.
+ */
 export class CircularDependencyRspackPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.CircularDependencyRspackPlugin;
   _options: CircularDependencyRspackPluginOptions;

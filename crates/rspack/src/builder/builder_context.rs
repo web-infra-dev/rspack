@@ -12,7 +12,7 @@ use rspack_core::{
 #[repr(u8)]
 pub(super) enum BuiltinPluginOptions {
   // External handling plugins
-  ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool)),
+  ExternalsPlugin((ExternalType, Vec<ExternalItem>, bool, ExternalType)),
   NodeTargetPlugin,
   CssHttpExternalsRspackPlugin,
   ElectronTargetPlugin(rspack_plugin_externals::ElectronTargetContext),
@@ -119,10 +119,20 @@ impl BuilderContext {
     let mut plugins = Vec::new();
     self.plugins.drain(..).for_each(|plugin| match plugin {
       // External handling plugins
-      BuiltinPluginOptions::ExternalsPlugin((external_type, externals, place_in_initial)) => {
+      BuiltinPluginOptions::ExternalsPlugin((
+        external_type,
+        externals,
+        place_in_initial,
+        fallback_type,
+      )) => {
         plugins.push(
-          rspack_plugin_externals::ExternalsPlugin::new(external_type, externals, place_in_initial)
-            .boxed(),
+          rspack_plugin_externals::ExternalsPlugin::new_with_options(
+            external_type,
+            externals,
+            place_in_initial,
+            fallback_type,
+          )
+          .boxed(),
         );
       }
       BuiltinPluginOptions::NodeTargetPlugin => {
@@ -175,8 +185,7 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              module: options.module,
-              cheap: !options.columns,
+              source_map_kind: options.module_source_map_kind(),
             },
           )
           .boxed(),
@@ -187,8 +196,7 @@ impl BuilderContext {
         plugins.push(
           rspack_plugin_devtool::SourceMapDevToolModuleOptionsPlugin::new(
             rspack_plugin_devtool::SourceMapDevToolModuleOptionsPluginOptions {
-              module: options.module,
-              cheap: !options.columns,
+              source_map_kind: options.module_source_map_kind(),
             },
           )
           .boxed(),

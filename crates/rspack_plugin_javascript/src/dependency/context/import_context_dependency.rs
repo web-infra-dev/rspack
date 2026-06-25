@@ -8,6 +8,7 @@ use rspack_core::{
   TemplateReplaceSource,
 };
 use rspack_error::Diagnostic;
+use rspack_util::json_stringify;
 
 use super::{
   context_dependency_template_as_require_call, create_resource_identifier_for_context_dependency,
@@ -17,8 +18,7 @@ fn create_resource_identifier(options: &ContextOptions) -> Identifier {
   let mut resource_identifier =
     create_resource_identifier_for_context_dependency(None, options).to_string();
   if let Some(attributes) = &options.attributes {
-    resource_identifier
-      .push_str(&serde_json::to_string(attributes).expect("json stringify failed"));
+    resource_identifier.push_str(&json_stringify(attributes));
   }
   resource_identifier.into()
 }
@@ -73,6 +73,10 @@ impl Dependency for ImportContextDependency {
 
   fn dependency_type(&self) -> &DependencyType {
     &DependencyType::ImportContext
+  }
+
+  fn get_phase(&self) -> rspack_core::ImportPhase {
+    self.options.phase.unwrap_or_default()
   }
 
   fn range(&self) -> Option<DependencyRange> {

@@ -61,7 +61,7 @@ export * from './hooks';
 
 While this pattern simplifies module imports, it can introduce performance overhead during the build process: when importing a single module from a barrel file, Rspack must resolve and build all modules referenced by the barrel file, even if only a small subset is actually used.
 
-To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/config/experiments#experimentslazybarrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
+To address this, Rspack 1.5 introduces the experimental [lazyBarrel](/guide/optimization/lazy-barrel) feature. This optimization automatically detects side-effect free barrel files and defers building their re-exports until actually needed. Modules are only resolved and built when actually needed, significantly reducing unnecessary module resolution and build costs.
 
 This is particularly effective for projects with many barrel files, significantly improving build performance.
 
@@ -93,7 +93,7 @@ Real-world benchmarks show that barrel file optimization delivers substantial pe
 
 Barrel file optimization is enabled by default in Rsbuild 1.5, and we plan to make it the default for all projects in Rspack 1.6.
 
-For more details, see the [experiments.lazyBarrel documentation](/config/experiments#experimentslazybarrel).
+For more details, see the [experiments.lazyBarrel documentation](/guide/optimization/lazy-barrel).
 
 ### Faster file system watcher
 
@@ -170,7 +170,7 @@ You can get started quickly with the [official template](https://github.com/rsta
 
 When organizing project code, it is common to centralize constants into files such as `constants.js` or, in TypeScript projects, into `types.ts` files containing enums.
 
-Rspack introduces two experimental features — [experiments.inlineConst](/config/experiments#experimentsinlineconst) and [experiments.inlineEnum](/config/experiments#experimentsinlineenum) — that perform **cross-module inlining optimizations for constants**. These optimizations help minifiers perform more accurate static analysis, eliminate unused code branches, and further reduce bundle size.
+Rspack introduces two experimental features — [experiments.inlineConst](/config/optimization#optimizationinlineexports) and [experiments.inlineEnum](/config/optimization#optimizationinlineexports) — that perform **cross-module inlining optimizations for constants**. These optimizations help minifiers perform more accurate static analysis, eliminate unused code branches, and further reduce bundle size.
 
 For example, `inlineConst` can inline constants defined in leaf modules of the module graph across modules, as shown below:
 
@@ -200,7 +200,7 @@ With `inlineConst` enabled, the `if` branches in the example can be clearly opti
 })();
 ```
 
-> For more details, see the [experiments.inlineConst documentation](/config/experiments#experimentsinlineconst). This feature is planned to be enabled by default in v1.6.
+> For more details, see the [experiments.inlineConst documentation](/config/optimization#optimizationinlineexports). This feature is planned to be enabled by default in v1.6.
 
 `inlineEnum` performs **cross-module inlining optimization for TypeScript enums**, working in a similar way to `inlineConst`.
 
@@ -226,7 +226,7 @@ With `inlineEnum` enabled:
 Note that when `inlineEnum` is enabled, Rspack will inline all enums by default.
 If you only want to inline `const enums`, please refer to this [example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/inline-const-enum).
 
-> For more details, see the [experiments.inlineEnum documentation](/config/experiments#experimentsinlineenum).
+> For more details, see the [experiments.inlineEnum documentation](/config/optimization#optimizationinlineexports).
 
 ### Type re-export analysis
 
@@ -246,9 +246,9 @@ In previous versions, if you re-exported a type without adding the `type` modifi
 
 This happened because Rspack processed each module in isolation. As a result, a type export (like `MyType` in the example) could be mistakenly treated as a value. Since no corresponding value export was found in `./types.ts`, the warning was triggered.
 
-Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/experiments#experimentstypereexportspresence) option, which improves the detection of TypeScript type exports. With this option enabled, Rspack can correctly recognize type re-exports across modules, preventing false warnings.
+Rspack 1.5 introduces the [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) option, which improves the detection of TypeScript type exports. With this option enabled, Rspack can correctly recognize type re-exports across modules, preventing false warnings.
 
-> For more details, see the [experiments.typeReexportsPresence documentation](/config/experiments#experimentstypereexportspresence).
+> For more details, see the [experiments.typeReexportsPresence documentation](/config/module-parser#javascripttypereexportspresence).
 
 ### Built-in virtual modules plugin
 
@@ -361,7 +361,7 @@ For usage details, please refer to the [Resolver API documentation](/api/javascr
 
 ### Stabilization of lazy compilation
 
-After extensive validation, the [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) option has been promoted from an experimental feature to a stable feature, and is now available at the top level of the Rspack configuration:
+After extensive validation, the [experiments.lazyCompilation](/config/lazy-compilation) option has been promoted from an experimental feature to a stable feature, and is now available at the top level of the Rspack configuration:
 
 ```diff title="rspack.config.mjs"
 export default {
@@ -376,7 +376,7 @@ The previous experiments.lazyCompilation option will continue to work, but will 
 
 ### Deprecated options
 
-The Rspack [experiments.topLevelAwait](/config/experiments#experimentstoplevelawait) option was used to control support for top-level await, and it has always been enabled by default.
+The Rspack [experiments.topLevelAwait](/guide/migration/rspack_1.x#other-experimental-configuration-changes) option was used to control support for top-level await, and it has always been enabled by default.
 After careful observation, we found no real-world scenarios where disabling top-level await was necessary.
 
 As a result, this option has been deprecated and is planned for removal in Rspack 2.0, at that point top-level await support can no longer be disabled.
@@ -412,9 +412,9 @@ We encourage you to try it out and provide feedback to help us improve Rslint to
 Providing an out-of-the-box experience has always been a core design principle of Rsbuild. In Rsbuild 1.5, we have enabled several of Rspack's latest features by default, delivering improved build performance, including:
 
 - Enabled [lazyCompilation](/config/lazy-compilation) to compile dynamically imported modules on demand, improving development server startup speed.
-- Enabled [lazyBarrel](/config/experiments#experimentslazybarrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
-- Enabled [inlineEnum](/config/experiments#experimentsinlineenum) to inline TypeScript enums, reducing the bundle size after compilation.
-- Enabled [typeReexportsPresence](/config/experiments#experimentsinlineenum) to correctly detect TypeScript type re-exports, improving type handling accuracy.
+- Enabled [lazyBarrel](/guide/optimization/lazy-barrel) to optimize the build performance of barrel files and reduce unnecessary module resolution.
+- Enabled [inlineEnum](/config/optimization#optimizationinlineexports) to inline TypeScript enums, reducing the bundle size after compilation.
+- Enabled [typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) to correctly detect TypeScript type re-exports, improving type handling accuracy.
 
 > Once you upgrade to the latest version of Rsbuild, these features are enabled by default with no additional configuration required.
 
@@ -459,7 +459,7 @@ Read more in the [Rsdoctor 1.2 release blog](https://rsdoctor.rs/blog/release/re
 
 After two months of continuous iteration and over 10 rounds of optimization, Rstest 0.2 delivers substantial improvements in both functionality and stability. This release introduces the following key enhancements:
 
-- **Mock API**: Rstest now includes a comprehensive [mock API](https://rstest.rs/api/rstest/mockModules), enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
+- **Mock API**: Rstest now includes a comprehensive [mock API](https://rstest.rs/api/runtime-api/rstest/mock-modules), enabling developers to replace actual module implementations in test environments, with full support for mocking ES modules.
 - **Enhanced Watch Mode**: Watch mode now supports incremental re-runs. When a test file or its dependencies change, Rstest intelligently re-executes only the affected tests, significantly improving testing efficiency.
 - **CLI Shortcuts**: Watch mode also introduces keyboard shortcuts, allowing developers to perform common actions more quickly and seamlessly.
 

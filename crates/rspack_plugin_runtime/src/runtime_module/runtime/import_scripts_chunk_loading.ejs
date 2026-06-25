@@ -6,7 +6,7 @@ var installChunk = <%- basicFunction("data") %> {
             <%- MODULE_FACTORIES %>[moduleId] = moreModules[moduleId];
         }
     }
-    if (runtime) runtime(<%- REQUIRE %>);
+    if (runtime) runtime(<%- REQUIRE_SCOPE %>);
     while (chunkIds.length) installedChunks[chunkIds.pop()] = 1;
     parentChunkLoadingFunction(data);
 };

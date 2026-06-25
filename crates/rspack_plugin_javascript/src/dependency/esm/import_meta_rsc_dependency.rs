@@ -7,7 +7,7 @@ use rspack_core::{
   TemplateReplaceSource, create_exports_object_referenced,
 };
 use rspack_util::{ext::DynHash, json_stringify_str};
-use swc_core::atoms::Atom;
+use swc_atoms::Atom;
 
 pub const IMPORT_META_RSC_BINDING: &str = "__rspack_import_meta_rsc__";
 
@@ -136,7 +136,7 @@ impl ImportMetaRscDependencyTemplate {
 //
 // var __rspack_import_meta_rsc__ = {
 //   loadCss: function() {
-//     return ((__webpack_require__.rscM.entryCssFiles["/path/to/component.js"] || []).map(...));
+//     return ((__rspack_require.rscM.entryCssFiles["/path/to/component.js"] || []).map(...));
 //   }
 // };
 //

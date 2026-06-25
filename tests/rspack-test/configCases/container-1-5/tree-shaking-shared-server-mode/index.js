@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__('fs');
-const path = __non_webpack_require__('path');
+const fs = require('fs');
+const path = require('path');
 
 __webpack_require__.p = 'PUBLIC_PATH';
 it('should not load tree shaking shared via set "server-calc" mode and no server data dispatch', async () => {

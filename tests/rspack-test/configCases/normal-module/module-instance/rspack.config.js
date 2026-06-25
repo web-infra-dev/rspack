@@ -46,8 +46,8 @@ class Plugin {
       expect(Object.hasOwn(module, 'rawRequest')).toBe(true);
       expect(Object.hasOwn(module, 'resourceResolveData')).toBe(true);
       expect(Object.hasOwn(module, 'loaders')).toBe(true);
-      expect(Object.hasOwn(module, 'useSourceMap')).toBe(true);
-      expect(Object.hasOwn(module, 'useSimpleSourceMap')).toBe(true);
+      expect(module.useSourceMap).toBe(true);
+      expect(module.useSimpleSourceMap).toBe(false);
       expect(Object.hasOwn(module, 'matchResource')).toBe(true);
       expect(Object.hasOwn(module, 'layer')).toBe(true);
       expect(Object.hasOwn(module, 'factoryMeta')).toBe(true);
@@ -59,6 +59,7 @@ class Plugin {
 
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
+  devtool: 'source-map',
   entry: './passthrough-loader.js!./index.js',
   plugins: [new Plugin()],
 };

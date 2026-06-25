@@ -4,7 +4,7 @@ if (<%- SCRIPT_NONCE %>) {
 }
 link.rel = "preload";
 link.as = "style";
-link.href = <%- PUBLIC_PATH %> + <%- REQUIRE %>.miniCssF(chunkId);
+link.href = <%- PUBLIC_PATH %> + <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 <% if (_cross_origin == "use-credentials") { %>
 link.crossOrigin = "use-credentials";
 <% } else if (_cross_origin != "") { %>

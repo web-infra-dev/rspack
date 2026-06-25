@@ -1,0 +1,353 @@
+```css title=a.css
+/*!***********************************************************************************************************************************************!*\
+  !*** css <PNPM_INNER>/css-loader/dist/cjs.js!./modules/a.css ***!
+  \***********************************************************************************************************************************************/
+.a {
+	color: red;
+}
+
+
+```
+
+```mjs title=a.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules/a.js"
+/*!**********************!*\
+  !*** ./modules/a.js ***!
+  \**********************/
+(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+
+
+/* export default */ const __rspack_default_export = ("a");
+
+__webpack_require__.d(__webpack_exports__, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+
+```
+
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+__webpack_require__.add({
+"./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default"
+/*!**********************************************************************************************************************************************!*\
+  !*** ./modules|lazy|/^\.\/.*\.js$/|referencedExports: default|groupOptions: {fetchPriority: high,}|namespace object|importPhase: evaluation ***!
+  \**********************************************************************************************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+var map = {
+  "./a.js": [
+    "./modules/a.js",
+    [
+      "a"
+    ]
+  ]
+};
+function __rspack_async_context(req) {
+  if(!__webpack_require__.o(map, req)) {
+    return Promise.resolve().then(() => {
+var e = new Error("Cannot find module '" + req + "'");
+e.code = 'MODULE_NOT_FOUND';
+throw e;
+});
+  }
+
+  var ids = map[req], id = ids[0];
+  return __webpack_require__.e(ids[1][0], "high").then(() => (__webpack_require__(id)));
+}
+
+__rspack_async_context.keys = () => (Object.keys(map));
+__rspack_async_context.id = "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default";
+module.exports = __rspack_async_context;
+
+
+},
+"./modules lazy ./modules/*.js"
+/*!*******************************************************************!*\
+  !*** ./modules|lazy|nonrecursive|./modules/*.js|namespace object ***!
+  \*******************************************************************/
+(module, __unused_rspack_exports, __webpack_require__) {
+
+module.exports = {
+
+  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); }
+};
+
+
+},
+});
+// ./index.js
+it("should support css loading in import.meta.glob target", async () => {
+	const modules = __webpack_require__(/*! ./modules/ */ "./modules lazy ./modules/*.js");
+	const value = await modules["./modules/a.js"]();
+
+	expect(value.default).toBe("a");
+});
+
+it("should preserve fetch priority for css loading", async () => {
+	const name = "a";
+	const value = await __webpack_require__(/*! ./modules */ "./modules lazy recursive ^\\.\\/.*\\.js$ referencedExports: default")(`./${name}.js`);
+
+	expect(value.default).toBe("a");
+});
+
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_ensure_chunk
+(() => {
+__webpack_require__.f = {};
+__webpack_require__.e = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(__webpack_require__.f).reduce(function(promises, key) {
+		__webpack_require__.f[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/get javascript chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.u = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+}
+})();
+// webpack/runtime/get mini-css chunk filename
+(() => {
+// This function allow to reference chunks
+__webpack_require__.miniCssF = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".css"
+}
+})();
+// webpack/runtime/global
+(() => {
+__webpack_require__.g = (() => {
+	if (typeof globalThis === 'object') return globalThis;
+	try {
+		return this || new Function('return this')();
+	} catch (e) {
+		if (typeof window === 'object') return window;
+	}
+})();
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+// webpack/runtime/make_namespace_object
+(() => {
+// define __esModule on exports
+__webpack_require__.r = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};
+})();
+// webpack/runtime/auto_public_path
+(() => {
+var scriptUrl;
+
+if (typeof import.meta.url === "string") scriptUrl = import.meta.url
+
+// When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
+// or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
+if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
+scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
+
+__webpack_require__.p = scriptUrl;
+
+})();
+// webpack/runtime/css loading
+(() => {
+if (typeof document === "undefined") return;
+var createStylesheet = function (
+	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
+) {
+	var linkTag = document.createElement("link");
+
+linkTag.rel = "stylesheet";
+
+linkTag.type = "text/css";
+
+if (__webpack_require__.nc) {
+  linkTag.nonce = __webpack_require__.nc;
+}
+linkTag.href = fullhref;
+
+if (fetchPriority) {
+  linkTag.setAttribute("fetchpriority", fetchPriority);
+}
+
+
+
+	var onLinkComplete = function (event) {
+		// avoid mem leaks.
+		linkTag.onerror = linkTag.onload = null;
+		if (event.type === 'load') {
+			resolve();
+		} else {
+			var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+			var realHref = event && event.target && event.target.href || fullhref;
+			var err = new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + realHref + ")");
+			err.code = "CSS_CHUNK_LOAD_FAILED";
+			err.type = errorType;
+			err.request = realHref;
+			if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)
+			reject(err);
+		}
+	}
+	linkTag.onerror = linkTag.onload = onLinkComplete;
+	if (oldTag) {
+            oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
+          } else {
+            document.head.appendChild(linkTag);
+          }
+	return linkTag;
+}
+var findStylesheet = function (href, fullhref) {
+	var existingLinkTags = document.getElementsByTagName("link");
+	for (var i = 0; i < existingLinkTags.length; i++) {
+		var tag = existingLinkTags[i];
+		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
+		if (dataHref) {
+			dataHref = dataHref.split('?')[0]
+		}
+		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+	}
+
+	var existingStyleTags = document.getElementsByTagName("style");
+	for (var i = 0; i < existingStyleTags.length; i++) {
+		var tag = existingStyleTags[i];
+		var dataHref = tag.getAttribute("data-href");
+		if (dataHref === href || dataHref === fullhref) return tag;
+	}
+}
+
+var loadStylesheet = function (chunkId, fetchPriority) {
+	return new Promise(function (resolve, reject) {
+		var href = __webpack_require__.miniCssF(chunkId);
+		var fullhref = __webpack_require__.p + href;
+		if (findStylesheet(href, fullhref)) return resolve();
+		createStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
+	})
+}
+
+// object to store loaded CSS chunks
+var installedCssChunks = {
+	"runtime": 0,
+
+};
+
+__webpack_require__.f.miniCss = function (chunkId, promises, fetchPriority) {
+	var cssChunks = {
+"a": 1,
+
+};
+	if (installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId])
+	else if (installedCssChunks[chunkId] !== 0 && cssChunks[chunkId])
+		promises.push(
+			installedCssChunks[chunkId] = loadStylesheet(chunkId, fetchPriority).then(
+				function () {
+					installedCssChunks[chunkId] = 0;
+				},
+				function (e) {
+					delete installedCssChunks[chunkId];
+					throw e;
+				}
+			)
+		)
+}
+
+// no hmr
+// no prefetch
+// no preload
+})();
+// webpack/runtime/esm_chunk_loading
+(() => {
+var installedChunks = {};
+var chunkMap = {
+"a": function() { return import("./a.mjs"); }
+};
+__webpack_require__.f.j = function(chunkId, promises) {
+	var installedChunkData = installedChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = chunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		installedChunks[chunkId] = 0;
+	}, function(error) {
+		delete installedChunks[chunkId];
+		throw error;
+	});
+	installedChunks[chunkId] = promise;
+	promises.push(promise);
+};
+
+})();
+
+export { __webpack_require__ };
+
+```

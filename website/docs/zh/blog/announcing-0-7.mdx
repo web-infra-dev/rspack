@@ -67,7 +67,7 @@ if (someCondition) {
 
 ### 如何使用
 
-现在，你可以通过 [experiments.lazyCompilation](/config/experiments#experimentslazycompilation) 配置项来开启懒编译功能：
+现在，你可以通过 [experiments.lazyCompilation](/config/lazy-compilation) 配置项来开启懒编译功能：
 
 ```js title="rspack.config.mjs"
 const isDev = process.env.NODE_ENV === 'development';
@@ -85,7 +85,7 @@ export default {
 
 ## 更快的 CSS 构建
 
-在 v0.7 版本中，我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了重构。
+在 v0.7 版本中，我们对 [experiments.css](/config/deprecated-options#experimentscss) 的内部实现进行了重构。
 
 针对 CSS 依赖分析，我们使用 Rust 开发了 [css-module-lexer](https://github.com/ahabhgk/css-module-lexer)，这是一个针对 CSS Modules 的高性能 lexer，能够解析 CSS 或 CSS Modules 并返回其依赖元信息。
 
@@ -130,7 +130,7 @@ Rspack 初期暴露了一些预期仅供内部使用且不稳定的 API，如 `c
 
 ### CSS @import 规则须先于其他规则
 
-0.7 版本我们对 [experiments.css](/config/experiments#experimentscss) 的内部实现进行了部分重构。
+0.7 版本我们对 [experiments.css](/config/deprecated-options#experimentscss) 的内部实现进行了部分重构。
 
 重构后，当 `@import` 不在最顶部时，会得到如下报错，此时需要你手动将 `@import` 规则调整到顶部。
 
@@ -196,4 +196,4 @@ v0.7 已移除 `builtins.treeShaking` (oldTreeShaking) 和 `experiments.rspackFu
 
 ## Rsbuild v0.7
 
-Rsbuild v0.7 已与 Rspack v0.7 同步发布，请阅读 [Rsbuild v0.7 发布](https://rsbuild.rs/zh/community/releases/v0-7) 了解更多。
+Rsbuild v0.7 已与 Rspack v0.7 同步发布，请阅读 [Rsbuild v0.7 发布](https://v0.rsbuild.rs/zh/community/releases/v0-7) 了解更多。

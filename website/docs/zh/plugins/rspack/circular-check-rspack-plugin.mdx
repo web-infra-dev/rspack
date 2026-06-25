@@ -1,0 +1,86 @@
+---
+description: '报告从 Rspack 模块图中收集到的循环导入依赖'
+---
+
+import { ApiMeta } from '@components/ApiMeta.tsx';
+
+# CircularCheckRspackPlugin
+
+<ApiMeta specific={['Rspack']} />
+
+默认将循环导入依赖报告为编译 warning。该插件是已废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin) 的推荐替代方案。
+
+```js
+new rspack.CircularCheckRspackPlugin(options);
+```
+
+## 示例
+
+忽略特定 warning：当 `CircularCheckRspackPlugin` 报告 warning 时，可以使用 [`ignoreWarnings`](/config/other-options#ignorewarnings) 忽略特定的循环依赖诊断。
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+  ignoreWarnings: [
+    {
+      message: /Circular dependency detected:[\s\S]*src\/legacy\//,
+    },
+  ],
+};
+```
+
+`ignoreWarnings` 只能忽略 warning。如果设置了 `failOnError: true`，请改用 `exclude` 或 `onDetected` 控制报告行为。
+
+## 选项
+
+### exclude
+
+- **类型:** `RegExp`
+- **默认值:** `undefined`
+
+如果检测到的循环依赖中有任意 path 匹配 `exclude`，该循环依赖将不会被报告。
+
+### include
+
+- **类型:** `RegExp`
+- **默认值:** `undefined`
+
+设置 `include` 后，只有至少一个 path 匹配 `include` 的循环依赖才会被报告。
+
+### failOnError
+
+- **类型:** `boolean`
+- **默认值:** `false`
+
+当设置为 `true` 时，检测到的循环依赖将生成 error 级别的诊断，而不是 warning。
+
+推荐使用默认值并配合 `ignoreWarnings` 来忽略特定 warning。
+
+### onDetected
+
+- **类型:** `(args: { module: Module; paths: string[]; compilation: Compilation }) => void`
+- **默认值:** `undefined`
+
+每检测到一个循环依赖会调用一次。使用该选项后，插件将不会再使用默认行为向 compilation 添加诊断。
+
+`paths` 包含检测到的循环依赖路径中的可读模块唯一标识。
+
+```ts title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  entry: './src/index.js',
+  plugins: [
+    new rspack.CircularCheckRspackPlugin({
+      onDetected({ paths, compilation }) {
+        compilation.warnings.push(
+          new Error(`Circular dependency detected: ${paths.join(' -> ')}`),
+        );
+      },
+    }),
+  ],
+};
+```

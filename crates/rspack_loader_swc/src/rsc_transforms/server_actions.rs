@@ -1452,11 +1452,24 @@ impl<'a, C: Comments> VisitMut for ServerActions<'a, C> {
         #[allow(clippy::collapsible_match)]
         match &mut stmt {
           ModuleItem::ModuleDecl(ModuleDecl::ExportDecl(ExportDecl { decl, span })) => match decl {
-            Decl::Var(_)
-            | Decl::Fn(_)
-            | Decl::TsInterface(_)
-            | Decl::TsTypeAlias(_)
-            | Decl::TsEnum(_) => {}
+            Decl::Var(var) => {
+              if var.decls.iter().any(|decl| {
+                matches!(decl.name, Pat::Ident(_))
+                  && decl
+                    .init
+                    .as_deref()
+                    .is_none_or(is_known_non_server_action_export)
+              }) {
+                // Disallow exporting literals. Admittedly, this is
+                // pretty arbitrary. We don't disallow exporting object
+                // and array literals, as that would be too restrictive,
+                // especially for page and layout files with
+                // 'use cache', that may want to export metadata or
+                // viewport objects.
+                disallowed_export_span = *span;
+              }
+            }
+            Decl::Fn(_) | Decl::TsInterface(_) | Decl::TsTypeAlias(_) | Decl::TsEnum(_) => {}
             _ => {
               disallowed_export_span = *span;
             }
@@ -2000,6 +2013,13 @@ fn may_need_cache_runtime_wrapper(expr: &Expr) -> bool {
     // Unknown/might be function - needs runtime check
     _ => true,
   }
+}
+
+fn is_known_non_server_action_export(expr: &Expr) -> bool {
+  matches!(
+    expr,
+    Expr::Object(_) | Expr::Array(_) | Expr::Lit(_) | Expr::Class(_)
+  )
 }
 
 fn assign_name_to_ident(ident: &Ident, name: &str) -> Stmt {

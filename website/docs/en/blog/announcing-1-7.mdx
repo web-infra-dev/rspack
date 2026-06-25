@@ -91,14 +91,14 @@ If you have special requirements, such as needing to debug the full build output
 In Rspack 1.7, we have stabilized several experimental features. The following capabilities have been verified in production and are now considered stable, and the corresponding experimental flags have been deprecated or enabled by default:
 
 - **Constant Inlining Optimization**: This optimization is now stable and enabled by default in production builds.
-  - The original [experiments.inlineConst](/config/deprecated-options#experimentsinlineconst) option is deprecated.
+  - The original [experiments.inlineConst](/config/optimization#optimizationinlineexports) option is deprecated.
   - If you need to disable this behavior, use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control it.
 - **TypeScript Enum Inlining Optimization**: This optimization is now stable.
-  - The original [experiments.inlineEnum](/config/deprecated-options#experimentsinlineenum) option is deprecated.
+  - The original [experiments.inlineEnum](/config/optimization#optimizationinlineexports) option is deprecated.
   - Use [collectTypeScriptInfo.exportedEnum](/guide/features/builtin-swc-loader#collecttypescriptinfoexportedenum) to control whether to collect exported `enum` information.
   - Use [optimization.inlineExports](/config/optimization#optimizationinlineexports) to control whether to inline `enum`.
 - **Type Re-export Check**: This optimization is now stable.
-  - The original [experiments.typeReexportsPresence](/config/deprecated-options#experimentstypereexportspresence) option is deprecated.
+  - The original [experiments.typeReexportsPresence](/config/module-parser#javascripttypereexportspresence) option is deprecated.
 
 > Refer to the [Upgrade Guide](#upgrade-guide) to learn how to adjust related configurations.
 

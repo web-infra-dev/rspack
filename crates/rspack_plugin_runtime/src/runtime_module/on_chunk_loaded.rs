@@ -1,5 +1,6 @@
 use rspack_core::{
-  RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
+  impl_runtime_module,
 };
 
 #[impl_runtime_module]
@@ -14,6 +15,10 @@ impl OnChunkLoadedRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
+  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::ON_CHUNKS_LOADED
+  }
+
   fn template(&self) -> Vec<(String, String)> {
     vec![(
       self.id.to_string(),

@@ -1,25 +1,23 @@
-use std::ops::Deref;
-
 use rspack_core::ImportAttributes;
-use swc_core::ecma::ast::{Bool, Expr, Lit, ObjectLit, Regex, Str};
+use swc_experimental_ecma_ast::{Bool, Expr, Lit, ObjectLit, Regex, Str};
 
-pub fn get_value_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Expr> {
-  obj
-    .props
-    .iter()
-    .find_map(|p| {
-      p.as_prop()
-        .and_then(|p| p.as_key_value())
-        .filter(|kv| {
-          kv.key.as_ident().filter(|key| key.sym == field).is_some()
-            || kv.key.as_str().filter(|key| key.value == field).is_some()
-        })
-        .map(|name| &name.value)
-    })
-    .map(|boxed| boxed.deref())
+pub fn get_value_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Expr<'a>> {
+  obj.props.iter().find_map(|p| {
+    let prop = p.as_prop()?;
+    let kv = prop.as_key_value()?;
+    let matched = kv.key.as_ident().is_some_and(|key| key.sym == field)
+      || kv
+        .key
+        .as_str()
+        .is_some_and(|key| key.value.as_str() == Some(field));
+    matched.then_some(&kv.value)
+  })
 }
 
-pub fn get_literal_str_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Str> {
+pub fn get_literal_str_by_obj_prop<'a>(
+  obj: &'a ObjectLit<'a>,
+  field: &'a str,
+) -> Option<&'a Str<'a>> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Str(str) => Some(str),
@@ -27,7 +25,7 @@ pub fn get_literal_str_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Op
   }
 }
 
-pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Bool> {
+pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Bool> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Bool(bool) => Some(bool),
@@ -35,7 +33,7 @@ pub fn get_bool_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'
   }
 }
 
-pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&'a Regex> {
+pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit<'a>, field: &'a str) -> Option<&'a Regex<'a>> {
   let lit = get_value_by_obj_prop(obj, field).and_then(|e| e.as_lit())?;
   match lit {
     Lit::Regex(regexp) => Some(regexp),
@@ -43,7 +41,7 @@ pub fn get_regex_by_obj_prop<'a>(obj: &'a ObjectLit, field: &'a str) -> Option<&
   }
 }
 
-pub fn get_attributes(obj: &ObjectLit) -> ImportAttributes {
+pub fn get_attributes(obj: &ObjectLit<'_>) -> ImportAttributes {
   obj
     .props
     .iter()

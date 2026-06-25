@@ -3,6 +3,6 @@
 	var getter = module && module.__esModule ?
 		<%- returningFunction("module['default']", "") %> :
 		<%- returningFunction("module", "") %>;
-	<%- DEFINE_PROPERTY_GETTERS %>(getter, ["a", getter]);
+	<%- DEFINE_PROPERTY_GETTERS %>(getter, { a: getter });
 	return getter;
 };

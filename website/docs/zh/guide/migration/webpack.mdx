@@ -53,7 +53,149 @@ Rspack 的配置是基于 webpack 的设计实现的，以此你能够非常轻�
 Rspack 命令与 webpack 命令相同，均可通过 `-c` 或 `--config` 指定配置文件。但与 webpack 不同的是，如果你未显式指定配置文件，Rspack 默认使用 `rspack.config.js`。
 :::
 
-Rspack 兼容 webpack 的绝大部分配置项，查阅 [配置 Rspack](/config/index) 来了解 Rspack 支持的所有配置。
+Rspack 兼容 webpack 的绝大部分配置项，查阅 [配置 Rspack](/config/) 来了解 Rspack 支持的所有配置。
+
+## 缓存配置 \{#cache-configuration}
+
+webpack 和 Rspack 的缓存配置结构并不完全相同。迁移时不建议直接复制 webpack 的 cache 配置，而应根据 Rspack 的 [cache 配置](/config/cache) 做对应调整。
+
+对于禁用缓存和内存缓存的场景，可以保留原有写法：`cache: false`、`cache: true` 和 `cache: { type: 'memory' }` 在 Rspack 中含义一致。
+
+如果 webpack 使用文件系统缓存，应迁移为 Rspack [持久化缓存](/config/cache#持久化缓存)，并按下面的字段映射进行调整。
+
+1. 将 webpack 的 `cache.type: 'filesystem'` 改为 Rspack 的 `cache.type: 'persistent'`。
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   type: 'filesystem',
+- },
++ cache: {
++   type: 'persistent',
++ },
+};
+```
+
+2. 将 webpack 的 `cache.buildDependencies` 展平为 Rspack [`cache.buildDependencies`](/config/cache#builddependencies) 所需的文件路径数组。
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   buildDependencies: {
+-     config: [__filename, path.join(__dirname, 'package.json')],
+-     ts: [path.join(__dirname, 'tsconfig.json')]
+-   }
+- },
++ cache: {
++   type: 'persistent',
++   buildDependencies: [
++     __filename,
++     path.join(__dirname, 'package.json'),
++     path.join(__dirname, 'tsconfig.json')
++   ]
++ },
+};
+```
+
+3. 将 webpack 的 `cache.name` 和 `cache.version` 合并到 Rspack [`cache.version`](/config/cache#version)。
+
+Rspack 没有单独的 `cache.name` 配置。缓存实例会通过 `cache.version` 和 [`cache.storage.directory`](/config/cache#storagedirectory) 隔离。
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   name: `${config.name}-${config.mode}-${otherFlags}`,
+-   version: appVersion
+- },
++ cache: {
++   type: 'persistent',
++   version: `${config.name}-${config.mode}-${otherFlags}-${appVersion}`
++ },
+};
+```
+
+4. 将 webpack 顶层的 `snapshot` 配置移动到 Rspack [`cache.snapshot`](/config/cache#snapshot)。
+
+```diff title="rspack.config.mjs"
+export default {
+- snapshot: {
+-   immutablePaths: [path.join(__dirname, 'constant')],
+-   managedPaths: [path.join(__dirname, 'node_modules')],
+-   unmanagedPaths: []
+- },
++ cache: {
++   type: 'persistent',
++   snapshot: {
++     immutablePaths: [path.join(__dirname, 'constant')],
++     managedPaths: [path.join(__dirname, 'node_modules')],
++     unmanagedPaths: []
++   }
++ },
+};
+```
+
+5. 将 webpack 的 `cache.cacheDirectory` 移动到 Rspack [`cache.storage.directory`](/config/cache#storagedirectory)。
+
+```diff title="rspack.config.mjs"
+export default {
+- cache: {
+-   cacheDirectory: path.join(__dirname, 'node_modules/.cache/test')
+- },
++ cache: {
++   type: 'persistent',
++   storage: {
++     type: 'filesystem',
++     directory: path.join(__dirname, 'node_modules/.cache/test')
++   }
++ },
+};
+```
+
+下面是自动转换配置时对应的完整映射示例：
+
+```js
+function transform(webpackConfig, rspackConfig) {
+  if (webpackConfig.cache === undefined) {
+    webpackConfig.cache = webpackConfig.mode === 'development';
+  }
+
+  if (!webpackConfig.cache) {
+    rspackConfig.cache = false;
+    return;
+  }
+
+  if (webpackConfig.cache === true || webpackConfig.cache.type === 'memory') {
+    rspackConfig.cache = true;
+    return;
+  }
+
+  rspackConfig.cache = { type: 'persistent' };
+
+  rspackConfig.cache.buildDependencies = Object.values(
+    webpackConfig.cache.buildDependencies || {},
+  ).flat();
+
+  const version = [webpackConfig.cache.name, webpackConfig.cache.version]
+    .filter(Boolean)
+    .join('-');
+  if (version) {
+    rspackConfig.cache.version = version;
+  }
+
+  rspackConfig.cache.snapshot = {
+    immutablePaths: webpackConfig.snapshot?.immutablePaths,
+    managedPaths: webpackConfig.snapshot?.managedPaths,
+    unmanagedPaths: webpackConfig.snapshot?.unmanagedPaths,
+  };
+
+  if (webpackConfig.cache.cacheDirectory) {
+    rspackConfig.cache.storage = {
+      type: 'filesystem',
+      directory: webpackConfig.cache.cacheDirectory,
+    };
+  }
+}
+```
 
 ## webpack 内置插件
 
@@ -76,7 +218,7 @@ module.exports = {
 }
 ```
 
-查看 [内置插件](/plugins/webpack/index) 以了解 Rspack 对 webpack 所有内置插件的支持情况。
+查看 [内置插件](/plugins/webpack/) 以了解 Rspack 对 webpack 所有内置插件的支持情况。
 
 ## 社区插件
 

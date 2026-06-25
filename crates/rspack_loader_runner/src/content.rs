@@ -31,10 +31,18 @@ impl Content {
     }
   }
 
+  #[allow(unsafe_code)]
   pub fn into_string_lossy(self) -> String {
     match self {
       Content::String(s) => s,
-      Content::Buffer(b) => String::from_utf8_lossy_owned(b),
+      Content::Buffer(b) => {
+        if simdutf8::basic::from_utf8(&b).is_ok() {
+          // SAFETY: simdutf8 validated the buffer as UTF-8 above.
+          unsafe { String::from_utf8_unchecked(b) }
+        } else {
+          String::from_utf8_lossy_owned(b)
+        }
+      }
     }
   }
 

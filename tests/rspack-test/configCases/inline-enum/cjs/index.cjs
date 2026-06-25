@@ -1,6 +1,6 @@
 const enums = require("../basic/enum");
 
-const generated = /** @type {string} */ (__non_webpack_require__("fs").readFileSync(__filename, "utf-8"));
+const generated = /** @type {string} */ (require("fs").readFileSync(__filename, "utf-8"));
 
 it("should not inline enums for cjs", () => {
   // START:A

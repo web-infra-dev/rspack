@@ -4,7 +4,8 @@ use std::{
 };
 
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
-use swc_core::{atoms::Atom, common::Span};
+use swc_atoms::Atom;
+use swc_experimental_ecma_ast::Span;
 
 static TOP_LEVEL_SYMBOL_ID: AtomicUsize = AtomicUsize::new(1);
 
@@ -55,17 +56,6 @@ pub(super) enum InnerGraphMapValue {
 pub(super) enum InnerGraphMapSetValue {
   TopLevel(TopLevelSymbol),
   Str(Atom),
-}
-
-impl InnerGraphMapSetValue {
-  pub(super) fn to_atom(&self, symbol_map: &HashMap<TopLevelSymbol, TopLevelSymbolData>) -> Atom {
-    match self {
-      InnerGraphMapSetValue::TopLevel(v) => {
-        symbol_map.get(v).expect("should have symbol").name.clone()
-      }
-      InnerGraphMapSetValue::Str(v) => v.clone(),
-    }
-  }
 }
 
 #[derive(PartialEq, Eq, Debug)]

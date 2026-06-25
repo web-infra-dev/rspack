@@ -1,0 +1,6 @@
+DEBUG LOG from rspack.persistentCache
+<t> write make to persistent cache: xx ms
+<t> write meta to persistent cache: xx ms
+<t> write snapshot to persistent cache: xx ms
+<t> write build dependencies to persistent cache: xx ms
+<t> stage persistent cache: xx ms

@@ -76,7 +76,7 @@ impl std::hash::Hash for MinimizerOptions {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self
       .__format_cache
-      .get_or_init(|| serde_json::to_string(&self.format).expect("Should be able to serialize"))
+      .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize"))
       .hash(state);
     self
       .__compress_cache
@@ -84,7 +84,7 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .compress
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
     self
@@ -93,7 +93,7 @@ impl std::hash::Hash for MinimizerOptions {
         self
           .mangle
           .as_ref()
-          .map(|v| serde_json::to_string(v).expect("Should be able to serialize"))
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
       })
       .hash(state);
   }
@@ -272,7 +272,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
         let input = original_source.source().into_string_lossy().into_owned();
         let object_pool = tls.get_or(ObjectPool::default);
-        let input_source_map = original_source.map(object_pool, &MapOptions::default());
+        let input_source_map =
+          Source::map_static(original_source.clone(), object_pool, &MapOptions::default());
 
         let js_minify_options = rspack_javascript_compiler::minify::JsMinifyOptions {
           minify: minimizer_options.minify.unwrap_or(true),

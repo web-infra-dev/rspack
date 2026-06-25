@@ -42,12 +42,12 @@ export function serializeObject(
 
   if (typeof map === 'string') {
     if (map) {
-      return toBuffer(map);
+      return Buffer.from(map);
     }
     return undefined;
   }
 
-  return toBuffer(JSON.stringify(map));
+  return Buffer.from(JSON.stringify(map));
 }
 
 export function indent(str: string, prefix: string) {

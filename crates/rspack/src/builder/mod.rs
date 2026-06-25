@@ -9,7 +9,7 @@ mod target;
 pub use builder_context::BuilderContext;
 pub use devtool::Devtool;
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
-use rspack_util::fx_hash::FxIndexMap;
+use rspack_util::{fx_hash::FxIndexMap, json_stringify_str};
 pub use target::Targets;
 
 macro_rules! d {
@@ -43,18 +43,18 @@ use regex::Regex;
 use rspack_core::{
   AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions, BoxPlugin, ByDependency,
   CacheOptions, ChunkLoading, ChunkLoadingType, CleanOptions, Compiler, CompilerOptions,
-  CompilerPlatform, Context, CrossOriginLoading, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserOptions, DynamicImportMode, EntryDescription,
-  EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem, ExternalType, Filename,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserOptions, JavascriptParserOrder,
-  JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName, LibraryNonUmdObject,
-  LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
+  CompilerPlatform, Context, CrossOriginLoading, CssAutoOrModuleParserOptions, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserOptions, DynamicImportMode,
+  EntryDescription, EntryOptions, EntryRuntime, Environment, Experiments, ExternalItem,
+  ExternalType, Filename, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions, JavascriptParserOptions,
+  JavascriptParserOrder, JavascriptParserUrl, JsonGeneratorOptions, JsonParserOptions, LibraryName,
+  LibraryNonUmdObject, LibraryOptions, LibraryType, MangleExportsOption, Mode, ModuleNoParseRules,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleType, NodeDirnameOption, NodeFilenameOption,
   NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
   ParserOptionsMap, PathInfo, PublicPath, Resolve, RuleSetCondition, RuleSetLogicalConditions,
   SideEffectOption, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType,
-  incremental::IncrementalOptions,
+  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1090,12 +1090,18 @@ impl CompilerOptionsBuilder {
     if let Some(externals) = &mut self.externals {
       let externals = std::mem::take(externals);
       let externals_type = expect!(self.externals_type.clone());
+      let fallback_type = if target_properties.node_builtins() {
+        "node-commonjs".to_string()
+      } else {
+        "commonjs".to_string()
+      };
       builder_context
         .plugins
         .push(BuiltinPluginOptions::ExternalsPlugin((
           externals_type,
           externals,
           false,
+          fallback_type,
         )));
     }
 
@@ -1151,6 +1157,7 @@ impl CompilerOptionsBuilder {
           "node-commonjs".to_string(),
           vec!["nw.gui".to_string().into()],
           false,
+          "commonjs".to_string(),
         )));
     }
 
@@ -1737,6 +1744,7 @@ impl ModuleOptionsBuilder {
           }),
           import_dynamic: Some(true),
           commonjs_magic_comments: Some(false),
+          create_require: None,
           jsx: Some(false),
           ..Default::default()
         }),
@@ -1768,48 +1776,18 @@ impl ModuleOptionsBuilder {
     }
 
     if css {
-      let css_parser_options = ParserOptions::Css(CssParserOptions {
-        named_exports: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        r#import: Some(true),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_parser_options = ParserOptions::Css(CssParserOptions::default());
       parser.insert("css".to_string(), css_parser_options);
 
-      let css_auto_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_auto_parser_options =
+        ParserOptions::CssAutoOrModule(CssAutoOrModuleParserOptions::default());
       parser.insert("css/auto".to_string(), css_auto_parser_options);
 
-      let css_module_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_module_parser_options =
+        ParserOptions::CssAutoOrModule(CssAutoOrModuleParserOptions::default());
       parser.insert("css/module".to_string(), css_module_parser_options);
 
-      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions {
-        named_exports: Some(true),
-        r#import: Some(true),
-        resolve_import: Some(CssParserImport::Bool(true)),
-        url: Some(true),
-        animation: Some(true),
-        custom_idents: Some(false),
-        dashed_idents: Some(false),
-      });
+      let css_global_parser_options = ParserOptions::CssModule(CssModuleParserOptions::default());
       parser.insert("css/global".to_string(), css_global_parser_options);
 
       // CSS generator options
@@ -1850,7 +1828,7 @@ impl ModuleOptionsBuilder {
 
     let default_rules = default_rules(async_web_assembly, css);
 
-    Ok(ModuleOptions {
+    let mut module_options = ModuleOptions {
       rules: vec![
         ModuleRule {
           rules: Some(default_rules),
@@ -1864,7 +1842,9 @@ impl ModuleOptionsBuilder {
       parser: self.parser.take(),
       generator: self.generator.take(),
       no_parse: self.no_parse.take(),
-    })
+    };
+    module_options.assign_rule_ids()?;
+    Ok(module_options)
   }
 }
 
@@ -3108,6 +3088,9 @@ impl OutputOptionsBuilder {
       .map(|t| optimistic!(t.big_int_literal))
       .unwrap_or_default();
     environment.r#const = tp.map(|t| optimistic!(t.r#const)).unwrap_or_default();
+    environment.computed_property = tp
+      .map(|t| optimistic!(t.computed_property))
+      .unwrap_or_default();
     environment.method_shorthand = tp
       .map(|t| optimistic!(t.method_shorthand))
       .unwrap_or_default();
@@ -3405,7 +3388,7 @@ impl OptimizationOptionsBuilder {
   where
     V: Into<String>,
   {
-    self.node_env = Some(serde_json::json!(value.into()).to_string());
+    self.node_env = Some(json_stringify_str(&value.into()));
     self
   }
 
@@ -3565,7 +3548,7 @@ impl OptimizationOptionsBuilder {
       builder_context
         .plugins
         .push(BuiltinPluginOptions::SideEffectsFlagPlugin(
-          experiments.pure_functions,
+          experiments.pure_functions && side_effects.is_true(),
         ));
     }
 
@@ -3691,8 +3674,13 @@ pub struct ExperimentsBuilder {
   css: Option<bool>,
   /// Whether to enable async web assembly.
   async_web_assembly: Option<bool>,
+  /// Whether to enable defer import.
+  defer_import: Option<bool>,
+  /// Whether to enable source import.
+  source_import: Option<bool>,
   // TODO: lazy compilation
   pure_functions: Option<bool>,
+  runtime_mode: Option<RuntimeMode>,
 }
 
 impl From<Experiments> for ExperimentsBuilder {
@@ -3701,7 +3689,10 @@ impl From<Experiments> for ExperimentsBuilder {
       future_defaults: None,
       css: Some(value.css),
       async_web_assembly: None,
+      defer_import: Some(value.defer_import),
+      source_import: Some(value.source_import),
       pure_functions: Some(value.pure_functions),
+      runtime_mode: Some(value.runtime_mode),
     }
   }
 }
@@ -3712,7 +3703,10 @@ impl From<&mut ExperimentsBuilder> for ExperimentsBuilder {
       future_defaults: value.future_defaults.take(),
       css: value.css.take(),
       async_web_assembly: value.async_web_assembly.take(),
+      defer_import: value.defer_import.take(),
+      source_import: value.source_import.take(),
       pure_functions: value.pure_functions.take(),
+      runtime_mode: value.runtime_mode.take(),
     }
   }
 }
@@ -3736,6 +3730,18 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable defer import.
+  pub fn defer_import(&mut self, defer_import: bool) -> &mut Self {
+    self.defer_import = Some(defer_import);
+    self
+  }
+
+  /// Set whether to enable source import.
+  pub fn source_import(&mut self, source_import: bool) -> &mut Self {
+    self.source_import = Some(source_import);
+    self
+  }
+
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
@@ -3752,8 +3758,10 @@ impl ExperimentsBuilder {
 
     Ok(Experiments {
       css: d!(self.css, false),
-      defer_import: false,
-      pure_functions: d!(self.pure_functions, false),
+      defer_import: d!(self.defer_import, false),
+      source_import: d!(self.source_import, false),
+      pure_functions: d!(self.pure_functions, _production),
+      runtime_mode: d!(self.runtime_mode, RuntimeMode::Webpack),
     })
   }
 }
@@ -3827,6 +3835,25 @@ mod test {
           .plugins
           .iter()
           .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(true)))
+      );
+
+      let mut context: BuilderContext = Default::default();
+      let compiler_options = CompilerOptions::builder()
+        .mode(Mode::Development)
+        .target(vec!["web".to_string()])
+        .experiments(ExperimentsBuilder {
+          pure_functions: Some(true),
+          ..Default::default()
+        })
+        .build(&mut context)
+        .unwrap();
+
+      assert!(compiler_options.experiments.pure_functions);
+      assert!(
+        context
+          .plugins
+          .iter()
+          .any(|plugin| matches!(plugin, BuiltinPluginOptions::SideEffectsFlagPlugin(false)))
       );
     })
   }

@@ -22,7 +22,7 @@ rspack_plugin_javascript               = { workspace = true }
 rspack_plugin_remove_duplicate_modules = { workspace = true }
 rspack_plugin_split_chunks             = { workspace = true }
 rspack_util                            = { workspace = true }
-serde_json                             = { workspace = true }
+simd-json                              = { workspace = true }
 tracing                                = { workspace = true }
 
 swc_core = { workspace = true, features = ["__parser", "__utils", "common_sourcemap", "ecma_preset_env", "ecma_transforms_optimization", "ecma_transforms_module", "ecma_transforms_compat", "ecma_transforms_typescript", "base", "ecma_quote"] }
