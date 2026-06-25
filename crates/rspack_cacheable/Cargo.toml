@@ -18,11 +18,11 @@ hashlink                = { workspace = true }
 indexmap                = { workspace = true }
 inventory               = { workspace = true }
 json                    = { workspace = true }
-lightningcss            = { workspace = true }
 once_cell               = { workspace = true }
 regex                   = { workspace = true }
 rkyv                    = { workspace = true, features = ["triomphe-0_1"] }
 rspack-allocative       = { workspace = true, optional = true }
+rspack-lightningcss     = { workspace = true }
 rspack_cacheable_macros = { workspace = true }
 rspack_intern           = { workspace = true, features = ["atom"] }
 rspack_sources          = { workspace = true }

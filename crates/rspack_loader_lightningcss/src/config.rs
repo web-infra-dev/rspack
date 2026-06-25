@@ -1,10 +1,10 @@
-use lightningcss::targets::Browsers;
 use rspack_browserslist::browserslist_to_lightningcss_targets;
 use rspack_cacheable::{
   cacheable,
   with::{AsOption, AsPreset},
 };
 use rspack_error::ToStringResultToRspackResultExt;
+use rspack_lightningcss::targets::Browsers;
 use serde::Deserialize;
 
 #[cacheable]

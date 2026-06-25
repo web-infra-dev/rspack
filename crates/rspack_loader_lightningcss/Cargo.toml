@@ -9,10 +9,10 @@ version.workspace = true
 
 [dependencies]
 async-trait          = { workspace = true }
+bytes-str            = { workspace = true }
 cow-utils            = { workspace = true }
 derive_more          = { workspace = true, features = ["debug"] }
-lightningcss         = { workspace = true, features = ["sourcemap", "into_owned"] }
-parcel_sourcemap     = { workspace = true }
+rspack-lightningcss  = { workspace = true, features = ["into_owned"] }
 rspack_browserslist  = { workspace = true }
 rspack_cacheable     = { workspace = true }
 rspack_core          = { workspace = true }
