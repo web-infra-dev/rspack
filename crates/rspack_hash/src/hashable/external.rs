@@ -1,4 +1,4 @@
-use lightningcss::targets::Browsers;
+use rspack_lightningcss::targets::Browsers;
 use swc_config::types::{BoolOr, BoolOrDataConfig};
 
 use crate::{RspackHash, RspackHasher, hash_by_json};

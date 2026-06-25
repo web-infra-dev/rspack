@@ -11,9 +11,9 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-browserslist-rs = { workspace = true }
-lightningcss    = { workspace = true }
-regex           = { workspace = true }
+browserslist-rs     = { workspace = true }
+regex               = { workspace = true }
+rspack-lightningcss = { workspace = true }
 
 [lints]
 workspace = true

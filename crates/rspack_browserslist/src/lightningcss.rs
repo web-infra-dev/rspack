@@ -1,4 +1,4 @@
-use lightningcss::targets::Browsers;
+use rspack_lightningcss::targets::Browsers;
 
 // code from https://github.com/parcel-bundler/lightningcss/blob/241df3a82b9779cb0df3bf01cd99871a2498405a/src/targets.rs#L48
 pub fn browserslist_to_lightningcss_targets<S: AsRef<str>, I: IntoIterator<Item = S>>(
