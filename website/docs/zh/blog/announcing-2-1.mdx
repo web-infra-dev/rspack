@@ -499,6 +499,41 @@ npx rstest list --related src/button.ts --filesOnly
 
 更多信息请参考 [Rstest 0.10 博客](https://rstest.rs/blog/announcing-0-10)。
 
+### Rslint 0.6 \{#rslint-0-6}
+
+**内置大量规则**：Rslint 已移植 ESLint core 以及 `@typescript-eslint`、`react`、`jsx-a11y`、`jest`、`promise` 等社区插件的规则，目前[内置规则](https://rslint.rs/rules/)超过 400 条，常用规则开箱即用。
+
+**兼容 ESLint 插件**：在内置规则之外，Rslint 现在还可以直接运行社区 ESLint 插件的规则，与内置原生规则一同工作。只需在配置中以自定义前缀挂载插件，插件产生的诊断会合并进同一份报告，autofix 也能通过 `--fix` 和编辑器的 `source.fixAll` 一并应用，并且在 CLI 与 VS Code 扩展中表现一致。
+
+```js title="rslint.config.mjs"
+import examplePlugin from 'eslint-plugin-example';
+
+export default [
+  {
+    files: ['**/*.ts'],
+    plugins: { example: examplePlugin },
+    rules: {
+      'example/some-rule': 'error',
+    },
+  },
+];
+```
+
+更多用法和当前限制参考 [ESLint 插件兼容指南](https://rslint.rs/guide/eslint-plugins)。
+
+### Rspress 2.0.15 \{#rspress-2-0-15}
+
+Rspress 现在提供了更多可安装的 AI skill，例如：
+
+- `rspress-docs-generator`：为当前项目生成一个 Rspress 文档站
+- `rspress-custom-theme`：生成一个自定义的 Rspress 主题
+
+下面是一个使用 `rspress-custom-theme` 生成的主题：
+
+![Rspress 自定义主题 skill](https://assets.rspack.rs/rspress/assets/rspress-custom-theme-skill.png)
+
+这些 skill 既可以直接安装到现有项目中，也可以在项目初始化时直接选择。更多信息参考 [Rspress - AI 指南](https://rspress.rs/guide/start/ai)。
+
 ### rspack-merge \{#rspack-merge}
 
 我们发布了 [rspack-merge](https://github.com/rstackjs/rspack-merge)，这是一个用于 Rspack 配置合并的 npm 包，可以覆盖从基础配置拼接到 loader、plugin 规则级合并的需求。
@@ -523,39 +558,3 @@ export default [serverConfig, clientConfig];
 ```
 
 `rspack-merge` 使用 TypeScript 编写，发布现代 ESM 构建产物，并保持运行时零依赖，让配置合并保持简单、可靠且足够轻量。
-
-### Rslint 0.6 \{#rslint-0-6}
-
-**内置大量规则**：Rslint 已移植 ESLint core 以及 `@typescript-eslint`、`react`、`jsx-a11y`、`jest`、`promise` 等社区插件的规则，目前[内置规则](https://rslint.rs/rules/)超过 400 条，常用规则开箱即用。
-
-**兼容 ESLint 插件**：在内置规则之外，Rslint 现在还可以直接运行社区 ESLint 插件的规则，与内置原生规则一同工作。只需在配置中以自定义前缀挂载插件，插件产生的诊断会合并进同一份报告，autofix 也能通过 `--fix` 和编辑器的 `source.fixAll` 一并应用，并且在 CLI 与 VS Code 扩展中表现一致。
-
-```js title="rslint.config.mjs"
-import examplePlugin from 'eslint-plugin-example';
-
-export default [
-  {
-    files: ['**/*.ts'],
-    plugins: { example: examplePlugin },
-    rules: {
-      'example/some-rule': 'error',
-    },
-  },
-];
-```
-
-更多用法和当前限制参考 [ESLint 插件兼容指南](https://rslint.rs/guide/eslint-plugins)。
-
-
-### Rspress 2.0.15 \{#rspress-2-0-15}
-
-Rspress 现在提供了更多可安装的 AI skill，例如：
-
-- `rspress-docs-generator`：为当前项目生成一个 Rspress 文档站
-- `rspress-custom-theme`：生成一个自定义的 Rspress 主题
-
-下面是一个使用 `rspress-custom-theme` 生成的主题：
-
-![Rspress 自定义主题 skill](https://assets.rspack.rs/rspress/assets/rspress-custom-theme-skill.png)
-
-这些 skill 既可以直接安装到现有项目中，也可以在项目初始化时直接选择。更多信息参考 [Rspress - AI 指南](https://rspress.rs/guide/start/ai)。
