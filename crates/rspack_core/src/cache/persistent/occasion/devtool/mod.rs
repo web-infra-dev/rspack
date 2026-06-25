@@ -33,10 +33,17 @@ struct SourceMapAssetEntry {
 
 /// Per-asset cache key for `SourceMapDevToolPlugin`.
 ///
-/// The plugin options are intentionally not part of this key. Option changes
-/// are expected to invalidate the whole persistent cache via
-/// `cache.buildDependencies` or `cache.version`, while this key only
-/// distinguishes assets within a valid cache generation.
+/// This key is only used to distinguish assets inside a valid persistent cache
+/// generation. It intentionally does not include `SourceMapDevToolPlugin` or
+/// `output` options, even though source map output is option-dependent.
+///
+/// Config or option changes should invalidate the whole persistent cache
+/// generation via `cache.buildDependencies` or `cache.version`. For
+/// CLI-loaded configs, rspack-cli injects the resolved config file paths into
+/// `cache.buildDependencies`, including files referenced by `extends`. For
+/// programmatic API usage, callers that want config-only changes to invalidate
+/// persistent cache are expected to provide equivalent build dependencies or
+/// a cache version.
 #[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct CacheKey {

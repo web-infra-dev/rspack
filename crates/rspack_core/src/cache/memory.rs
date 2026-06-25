@@ -219,12 +219,19 @@ impl Cache for MemoryCache {
   }
 
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {
-    if let Some(old_compilation) = self.old_compilation.as_mut()
-      && compilation.use_source_map_dev_tool_plugin_cache
-    {
-      compilation.source_map_dev_tool_plugin_cache_artifact = old_compilation
-        .source_map_dev_tool_plugin_cache_artifact
-        .take();
+    if compilation.use_source_map_dev_tool_plugin_cache {
+      // Keep this aligned with persistent cache: enabled cache modes always
+      // provide an artifact, while disabled cache leaves it as `None`.
+      let artifact = self
+        .old_compilation
+        .as_mut()
+        .and_then(|old_compilation| {
+          old_compilation
+            .source_map_dev_tool_plugin_cache_artifact
+            .take()
+        })
+        .unwrap_or_default();
+      compilation.source_map_dev_tool_plugin_cache_artifact = Some(artifact);
     }
   }
 
