@@ -186,7 +186,7 @@ for (const path in pages) {
 
 Rspack 2.1 进一步完善了 [Built-in CSS support](/guide/tech/css#内置-css-支持) 能力。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
 
-CSS Modules 相关能力也继续补齐：类名生成现在更易于按开发、生产和迁移场景定制；解析阶段则支持更细粒度地处理 `@import`、动画名、自定义标识符、CSS 自定义属性、container、CSS function、grid 名称以及 pure 模式等行为。同时，跨文件 `composes`、`:import` / `:export`、`@value` 和 re-export 等组合语义也更加接近 webpack/css-loader，降低复杂样式模块迁移时的差异。
+CSS Modules 相关能力也继续补齐，覆盖更多 CSS Modules 功能。
 
 详细配置可参考 [Built-in CSS support 文档](/guide/tech/css#内置-css-支持)、[`module.generator` 的 CSS 选项](/config/module-generator#cssauto) 和 [`module.parser` 的 CSS 选项](/config/module-parser#cssauto)。
 
@@ -456,7 +456,7 @@ export default defineConfig({
 
 ### rspack-merge \{#rspack-merge}
 
-我们发布了 [rspack-merge](https://github.com/rstackjs/rspack-merge)，这是一个面向 Rspack 配置合并场景打造的轻量级工具，可以覆盖从基础配置拼接到 loader、plugin 规则级合并的需求。
+我们发布了 [rspack-merge](https://github.com/rstackjs/rspack-merge)，这是一个用于 Rspack 配置合并的 npm 包，可以覆盖从基础配置拼接到 loader、plugin 规则级合并的需求。
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
