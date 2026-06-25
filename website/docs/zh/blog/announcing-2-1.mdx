@@ -168,7 +168,7 @@ export default {
 
 ### 支持 `import.meta.glob` \{#import-meta-glob}
 
-Rspack 新增了对 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 的支持，让批量导入模块拥有更统一的跨生态写法。对于熟悉 Vite 或正在关注 Turbopack 的开发者，Rspack 现在也支持使用同一套 `import.meta.glob` 语法按 glob 模式收集模块，减少迁移时对 `require.context`、自定义插件或框架专属 API 的依赖。
+Rspack 新增了对 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 的支持，让批量导入模块拥有更统一的跨生态写法。你可以按 glob 模式收集模块，并在需要时再加载它们：
 
 ```js
 const pages = import.meta.glob('./pages/**/*.js');
@@ -178,16 +178,7 @@ for (const path in pages) {
 }
 ```
 
-默认情况下，匹配到的模块会以懒加载函数的形式返回；也可以通过 `{ eager: true }` 直接同步引入，或使用 `import: 'default'` 只提取默认导出：
-
-```js
-const icons = import.meta.glob('./icons/*.svg', {
-  eager: true,
-  import: 'default',
-});
-```
-
-这意味着在 Vite、Turbopack 和 Rspack 之间，常见的文件路由、组件自动注册、文档/内容集合等场景可以共享更接近的源码结构。Rspack 会在编译期静态分析 glob 表达式，并把匹配模块纳入依赖图，在保持高性能构建的同时，进一步补齐现代前端工具链的统一开发体验。
+这意味着在 Vite、Turbopack 和 Rspack 之间，常见的文件路由、组件自动注册、文档/内容集合等场景可以共享更接近的源码结构，进一步保持跨生态接口的一致性。查看 [`import.meta.glob` 文档](/api/runtime-api/module-variables#importmetaglob) 了解完整用法。
 
 ### 完善 Built-in CSS 支持 \{#builtin-css-features}
 
