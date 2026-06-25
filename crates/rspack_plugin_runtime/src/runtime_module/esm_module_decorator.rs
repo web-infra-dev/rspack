@@ -15,8 +15,14 @@ impl ESMModuleDecoratorRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::ESM_MODULE_DECORATOR
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::ESM_MODULE_DECORATOR },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

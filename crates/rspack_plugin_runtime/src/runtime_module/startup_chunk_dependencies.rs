@@ -20,8 +20,21 @@ impl StartupChunkDependenciesRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::STARTUP
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = RuntimeGlobals::STARTUP
+      | RuntimeGlobals::ENSURE_CHUNK
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES;
+    if self.async_chunk_loading {
+      dependencies.insert(RuntimeGlobals::REQUIRE);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      write: { RuntimeGlobals::STARTUP },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -106,11 +119,5 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     } else {
       unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
     }
-  }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::STARTUP
-      | RuntimeGlobals::ENSURE_CHUNK
-      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
   }
 }

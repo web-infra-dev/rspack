@@ -2,8 +2,8 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
-  RuntimeTemplate, impl_runtime_module,
+  Compilation, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
+  impl_runtime_module,
 };
 use rspack_error::{Result, error};
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -35,9 +35,14 @@ impl RuntimeModule for SharedUsedExportsOptimizerRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    runtime_require_scope_requirement(compilation)
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { runtime_require_scope_requirement(compilation) },
+      ..Default::default()
+    }
   }
 
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {

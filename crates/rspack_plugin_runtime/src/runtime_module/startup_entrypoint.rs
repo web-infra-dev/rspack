@@ -34,14 +34,16 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
   ) -> rspack_error::Result<String> {
     context.runtime_template.render(&self.id, None)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::REQUIRE
-      | RuntimeGlobals::ENSURE_CHUNK
-      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::STARTUP_ENTRYPOINT
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::REQUIRE
+        | RuntimeGlobals::ENSURE_CHUNK
+        | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES,
+      write: { RuntimeGlobals::STARTUP_ENTRYPOINT },
+      ..Default::default()
+    }
   }
 }

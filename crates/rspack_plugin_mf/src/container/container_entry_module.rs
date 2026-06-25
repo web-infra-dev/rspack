@@ -342,6 +342,8 @@ impl Module for ContainerEntryModule {
       .insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
 
     let module_map = ExposeModuleMap::new(compilation, self, runtime_template);
+    let mut module_map_runtime_requirements = *runtime_template.runtime_requirements();
+    module_map_runtime_requirements.remove(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
     let module_map_str = module_map.render(runtime_template);
     let source = if self.enhanced {
       let define_property_getters =
@@ -425,6 +427,7 @@ var init = function(shareScope, initScope) {{
         .data
         .insert(CodeGenerationDataExpose {
           module_map,
+          module_map_runtime_requirements,
           share_scope: self.share_scope.clone(),
         });
     }
@@ -521,5 +524,6 @@ impl ExposeModuleMap {
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
+  pub module_map_runtime_requirements: RuntimeGlobals,
   pub share_scope: ShareScope,
 }

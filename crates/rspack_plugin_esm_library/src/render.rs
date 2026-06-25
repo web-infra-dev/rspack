@@ -896,7 +896,8 @@ var {} = {{}};
       && (module_factories
         || runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE)
         || intercept_module_execution
-        || use_require)
+        || use_require
+        || require_scope_used)
     {
       let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
       source.add(RawStringSource::from(format!(

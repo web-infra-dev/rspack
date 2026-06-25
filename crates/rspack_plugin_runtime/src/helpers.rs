@@ -415,9 +415,20 @@ pub fn extract_runtime_globals_from_ejs(ejs_content: &str) -> RuntimeGlobals {
   RuntimeGlobals::from_names(&names)
 }
 
+pub fn extract_runtime_globals_dependencies_from_ejs(
+  ejs_content: &str,
+  non_dependencies: RuntimeGlobals,
+) -> RuntimeGlobals {
+  let mut dependencies = extract_runtime_globals_from_ejs(ejs_content);
+  dependencies.remove(non_dependencies);
+  dependencies
+}
+
 #[cfg(test)]
 mod tests {
-  use super::{RuntimeGlobals, extract_runtime_globals_from_ejs};
+  use super::{
+    RuntimeGlobals, extract_runtime_globals_dependencies_from_ejs, extract_runtime_globals_from_ejs,
+  };
 
   fn expected_globals(names: &[&str]) -> RuntimeGlobals {
     let names: Vec<String> = names.iter().map(|s| (*s).to_string()).collect();
@@ -512,6 +523,18 @@ mod tests {
     assert_eq!(
       extract_runtime_globals_from_ejs(ejs),
       expected_globals(&["HAS_OWN_PROPERTY", "MODULE_FACTORIES", "REQUIRE"])
+    );
+  }
+
+  #[test]
+  fn test_extract_runtime_globals_dependencies_excludes_non_dependencies() {
+    let ejs = "<%- PUBLIC_PATH %>; <%- ENSURE_CHUNK_HANDLERS %>; <%- SCRIPT_NONCE %>;";
+    assert_eq!(
+      extract_runtime_globals_dependencies_from_ejs(
+        ejs,
+        RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::SCRIPT_NONCE
+      ),
+      expected_globals(&["PUBLIC_PATH"])
     );
   }
 }

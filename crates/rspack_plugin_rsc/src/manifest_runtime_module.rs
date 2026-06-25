@@ -23,8 +23,14 @@ impl RscManifestRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RscManifestRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RSC_MANIFEST
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::RSC_MANIFEST },
+      ..Default::default()
+    }
   }
 
   fn stage(&self) -> RuntimeModuleStage {

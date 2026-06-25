@@ -17,8 +17,15 @@ impl PublicPathRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for PublicPathRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::PUBLIC_PATH
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::PUBLIC_PATH },
+      force_context: RuntimeGlobals::PUBLIC_PATH,
+      ..Default::default()
+    }
   }
 
   async fn generate(

@@ -15,8 +15,14 @@ impl SystemContextRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for SystemContextRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::SYSTEM_CONTEXT
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::SYSTEM_CONTEXT },
+      ..Default::default()
+    }
   }
 
   async fn generate(

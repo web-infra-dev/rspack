@@ -51,8 +51,19 @@ impl EmbedFederationRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EmbedFederationRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::STARTUP
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut write = RuntimeGlobals::STARTUP;
+    if self.options.experiments.async_startup {
+      write.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write,
+      force_context: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::HAS_OWN_PROPERTY,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

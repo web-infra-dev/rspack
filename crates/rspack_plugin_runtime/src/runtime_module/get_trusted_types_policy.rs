@@ -17,8 +17,14 @@ impl GetTrustedTypesPolicyRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::GET_TRUSTED_TYPES_POLICY },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

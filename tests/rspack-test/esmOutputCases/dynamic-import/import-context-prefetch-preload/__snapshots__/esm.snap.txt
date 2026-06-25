@@ -264,17 +264,6 @@ __webpack_require__.u = (chunkId) => {
   return "" + chunkId + ".mjs"
 }
 })();
-// webpack/runtime/global
-(() => {
-__webpack_require__.g = (() => {
-	if (typeof globalThis === 'object') return globalThis;
-	try {
-		return this || new Function('return this')();
-	} catch (e) {
-		if (typeof window === 'object') return window;
-	}
-})();
-})();
 // webpack/runtime/has_own_property
 (() => {
 __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))

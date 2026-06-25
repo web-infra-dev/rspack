@@ -73,16 +73,28 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
 
     Ok(source)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    let mut requirements = RuntimeGlobals::ENSURE_CHUNK;
-    if self.has_async_chunks {
-      requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = RuntimeGlobals::default();
+    let mut write = RuntimeGlobals::ENSURE_CHUNK;
+    if let Some(chunk_ukey) = self.chunk {
+      if self.has_async_chunks
+        || get_chunk_runtime_requirements(compilation, &chunk_ukey)
+          .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+      {
+        dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+        write.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      }
+    } else if self.has_async_chunks {
+      dependencies.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      write.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
-    requirements
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      write,
+      ..Default::default()
+    }
   }
 }

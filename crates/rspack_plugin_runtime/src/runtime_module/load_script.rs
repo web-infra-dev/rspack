@@ -40,8 +40,22 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for LoadScriptRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::LOAD_SCRIPT
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        let mut requirements = RuntimeGlobals::default();
+        if self.with_create_script_url {
+          requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+        }
+        requirements
+      },
+      weak: RuntimeGlobals::SCRIPT_NONCE,
+      write: { RuntimeGlobals::LOAD_SCRIPT },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -113,14 +127,6 @@ impl RuntimeModule for LoadScriptRuntimeModule {
     )?;
 
     Ok(render_source)
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    let mut requirements = RuntimeGlobals::default();
-    if compilation.options.output.trusted_types.is_some() {
-      requirements.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
-    }
-    requirements
   }
 }
 

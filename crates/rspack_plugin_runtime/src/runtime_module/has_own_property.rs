@@ -15,8 +15,14 @@ impl HasOwnPropertyRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for HasOwnPropertyRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::HAS_OWN_PROPERTY
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::HAS_OWN_PROPERTY },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

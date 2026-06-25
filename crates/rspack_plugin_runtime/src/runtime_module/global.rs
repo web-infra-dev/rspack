@@ -15,8 +15,14 @@ impl GlobalRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GlobalRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::GLOBAL
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::GLOBAL },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

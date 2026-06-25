@@ -73,11 +73,30 @@ impl GetChunkFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    match self.source_type {
-      SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
-      SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
-      _ => RuntimeGlobals::default(),
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        if (self.source_type == SourceType::JavaScript
+          && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
+          || (self.source_type == SourceType::Css
+            && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
+        {
+          RuntimeGlobals::GET_FULL_HASH
+        } else {
+          RuntimeGlobals::default()
+        }
+      },
+      write: {
+        match self.source_type {
+          SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
+          SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
+          _ => RuntimeGlobals::default(),
+        }
+      },
+      ..Default::default()
     }
   }
 
@@ -403,17 +422,5 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     })))?;
 
     Ok(source)
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    if (self.source_type == SourceType::JavaScript
-      && has_hash_placeholder(compilation.options.output.chunk_filename.as_str()))
-      || (self.source_type == SourceType::Css
-        && has_hash_placeholder(compilation.options.output.css_chunk_filename.as_str()))
-    {
-      RuntimeGlobals::GET_FULL_HASH
-    } else {
-      RuntimeGlobals::default()
-    }
   }
 }

@@ -15,8 +15,14 @@ impl ToBinaryRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ToBinaryRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::TO_BINARY
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::TO_BINARY },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

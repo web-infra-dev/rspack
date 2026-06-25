@@ -15,8 +15,14 @@ impl OnChunkLoadedRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for OnChunkLoadedRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::ON_CHUNKS_LOADED
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::ON_CHUNKS_LOADED },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

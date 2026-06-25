@@ -11,6 +11,20 @@ pub struct RuntimeModuleGenerateContext<'a> {
   pub runtime_template: &'a RuntimeCodeTemplate<'a>,
 }
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct RuntimeModuleRuntimeRequirements {
+  pub dependencies: RuntimeGlobals,
+  pub weak: RuntimeGlobals,
+  pub write: RuntimeGlobals,
+  pub force_context: RuntimeGlobals,
+}
+
+impl RuntimeModuleRuntimeRequirements {
+  pub fn lexical_requirements(&self) -> RuntimeGlobals {
+    self.dependencies | self.weak | self.write | self.force_context
+  }
+}
+
 #[async_trait]
 pub trait RuntimeModule:
   Module + CustomSourceRuntimeModule + AttachableRuntimeModule + NamedRuntimeModule
@@ -45,11 +59,8 @@ pub trait RuntimeModule:
       self.generate(context).await
     }
   }
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::default()
-  }
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::default()
+  fn runtime_requirements(&self, _compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
+    Default::default()
   }
 }
 

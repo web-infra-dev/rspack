@@ -11,13 +11,13 @@ use rspack_collections::{
 use rspack_core::{
   ApplyContext, AssetInfo, AsyncModulesArtifact, BoxModule, BuildModuleGraphArtifact,
   ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationAfterCodeGeneration,
-  CompilationConcatenationScope, CompilationFinishModules, CompilationOptimizeChunkModules,
-  CompilationOptimizeChunks, CompilationOptimizeDependencies, CompilationParams,
-  CompilationProcessAssets, CompilationRuntimeRequirementInTree, CompilerCompilation,
-  ConcatenatedModuleInfo, ConcatenationScope, DependencyType, ExportsInfoArtifact,
-  ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
+  CompilationAdditionalModuleRuntimeRequirements, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationAfterCodeGeneration, CompilationConcatenationScope, CompilationFinishModules,
+  CompilationOptimizeChunkModules, CompilationOptimizeChunks, CompilationOptimizeDependencies,
+  CompilationParams, CompilationProcessAssets, CompilationRuntimeRequirementInTree,
+  CompilerCompilation, ConcatenatedModuleInfo, ConcatenationScope, DependencyType,
+  ExportsInfoArtifact, ExternalModuleInfo, GetTargetResult, Logger, ModuleFactoryCreateData,
+  ModuleGraph, ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
   RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
   is_esm_dep_like,
@@ -494,34 +494,39 @@ async fn after_code_generation(
   Ok(())
 }
 
+#[plugin_hook(CompilationAdditionalModuleRuntimeRequirements for EsmLibraryPlugin)]
+async fn additional_module_runtime_requirements(
+  &self,
+  _compilation: &Compilation,
+  module_identifier: &ModuleIdentifier,
+  runtime_requirements: &mut RuntimeGlobals,
+) -> Result<()> {
+  let info_map = self.concatenated_modules_map.read().await;
+  let Some(info) = info_map.get(module_identifier) else {
+    return Ok(());
+  };
+
+  runtime_requirements.extend(*info.get_runtime_requirements());
+
+  if info.get_interop_default_access_used() {
+    runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
+  }
+
+  if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
+    runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
+  }
+
+  Ok(())
+}
+
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EsmLibraryPlugin)]
 async fn additional_chunk_runtime_requirements(
   &self,
-  compilation: &Compilation,
-  chunk_ukey: &ChunkUkey,
+  _compilation: &Compilation,
+  _chunk_ukey: &ChunkUkey,
   runtime_requirements: &mut RuntimeGlobals,
   _runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
-  let info_map = self.concatenated_modules_map.read().await;
-
-  for m in compilation
-    .build_chunk_graph_artifact
-    .chunk_graph
-    .get_chunk_modules_identifier(chunk_ukey)
-  {
-    let info = info_map.get(m).expect("should have this info map");
-
-    runtime_requirements.extend(*info.get_runtime_requirements());
-
-    if info.get_interop_default_access_used() {
-      runtime_requirements.insert(RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT);
-    }
-
-    if info.get_interop_namespace_object2_used() || info.get_interop_namespace_object_used() {
-      runtime_requirements.insert(RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT);
-    }
-  }
-
   // Add REQUIRE_SCOPE only when runtime_requirements actually contain globals
   // that live on the __rspack_require object (same check the runtime plugin
   // uses in handle_scope_globals). This avoids pulling in an empty
@@ -934,6 +939,11 @@ impl Plugin for EsmLibraryPlugin {
       .compilation_hooks
       .process_assets
       .tap(process_assets::new(self));
+
+    ctx
+      .compilation_hooks
+      .additional_module_runtime_requirements
+      .tap(additional_module_runtime_requirements::new(self));
 
     ctx
       .compilation_hooks

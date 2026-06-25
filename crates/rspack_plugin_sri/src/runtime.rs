@@ -159,9 +159,14 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
 
     Ok(code.join("\n"))
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::REQUIRE_SCOPE
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { RuntimeGlobals::REQUIRE_SCOPE },
+      ..Default::default()
+    }
   }
 }
 
