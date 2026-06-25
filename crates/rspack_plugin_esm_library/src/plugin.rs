@@ -20,8 +20,7 @@ use rspack_core::{
   ModuleIdentifier, ModuleInfo, ModuleType, NormalModuleFactoryAfterFactorize,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, REQUIRE_SCOPE_GLOBALS,
   RuntimeGlobals, RuntimeModule, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, get_target,
-  is_esm_dep_like,
-  rspack_sources::{ReplaceSource, Source},
+  is_esm_dep_like, rspack_sources::ReplaceSource,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};

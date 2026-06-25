@@ -7,7 +7,7 @@ use rspack_core::{
   GenerateContext, ImportPhase, Module, ModuleArgument, ModuleDependency, ModuleGraph,
   ModuleInitFragments, ParseContext, ParseResult, ParserAndGenerator, RuntimeGlobals, SourceType,
   StaticExportsDependency, StaticExportsSpec,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray};
 use rspack_util::{itoa, json_stringify_str};

@@ -11,7 +11,7 @@ use rspack_core::{
   CompilerAssetEmitted, CompilerCompilation, DependencyType, ExportsInfoArtifact, ModuleType,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin,
   SideEffectsOptimizeArtifact, get_module_directives, get_module_hashbang,
-  rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, error};
 use rspack_hook::{plugin, plugin_hook};

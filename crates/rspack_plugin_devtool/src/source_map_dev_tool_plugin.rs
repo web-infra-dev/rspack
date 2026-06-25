@@ -14,7 +14,7 @@ use rspack_core::{
   AssetInfo, Chunk, ChunkUkey, Compilation, CompilationAsset, CompilationProcessAssets, Filename,
   Logger, ModuleIdentifier, PathData, Plugin, has_content_hash_placeholder,
   rspack_sources::{
-    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, SourceExt, SourceMap,
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};

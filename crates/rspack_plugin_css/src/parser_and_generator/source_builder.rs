@@ -1,6 +1,6 @@
 use rspack_core::{
   CssLayer as CssModuleRenderLayer, CssModuleRenderCondition,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, SourceExt},
 };
 
 const CSS_UTF8_CHARSET: &str = r#"@charset "UTF-8";"#;
@@ -92,7 +92,7 @@ impl CssSourceBuilder {
     }
   }
 
-  fn add<S: Source + 'static>(&mut self, source: S) {
+  fn add<S: SourceExt>(&mut self, source: S) {
     self.source.add(source);
   }
 

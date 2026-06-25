@@ -17,7 +17,7 @@ use rspack_core::{
   ParseOption, ParserAndGenerator, ParserOptions, Plugin, RuntimeSpec, SourceType, UsageState,
   UsedNameItem,
   diagnostics::ModuleParseError,
-  rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Error, IntoTWithDiagnosticArray, Result, TWithDiagnosticArray, error};
 use rspack_util::{itoa, location::byte_line_column_to_offset};

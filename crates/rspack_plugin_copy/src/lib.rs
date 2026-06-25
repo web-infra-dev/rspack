@@ -16,7 +16,7 @@ use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
   escape_glob_pattern, find_files_by_glob,
-  rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
@@ -661,7 +661,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       if !result.force {
         return;
       }
-      exist_asset.set_source(Some(Arc::new(result.source)));
+      exist_asset.set_source(Some(result.source));
       if let Some(info) = result.info {
         set_info(&mut exist_asset.info, info);
       }
@@ -680,7 +680,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       compilation.emit_asset(
         result.filename,
-        CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
+        CompilationAsset::new(Some(result.source), asset_info),
       );
     }
 

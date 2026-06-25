@@ -6,7 +6,7 @@ use rspack_core::{
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
-    BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt,
+    BoxSource, ConcatSource, OriginalSource, RawStringSource, ReplaceSource, SourceExt,
   },
   runtime_mode::RuntimeMode,
 };

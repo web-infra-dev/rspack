@@ -6,7 +6,7 @@ use rspack_core::{
   ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation,
   CompilationAdditionalModuleRuntimeRequirements, CompilationParams, CompilerCompilation, Filename,
   Module, ModuleIdentifier, PathData, Plugin, RuntimeGlobals,
-  rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hash::RspackHash;

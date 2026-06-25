@@ -135,7 +135,7 @@ impl ConcatSource {
   /// Create a [ConcatSource] with [Source]s.
   pub fn new<S, T>(sources: S) -> Self
   where
-    T: Source + 'static,
+    T: SourceExt,
     S: IntoIterator<Item = T>,
   {
     let mut concat_source = ConcatSource::default();
@@ -158,7 +158,7 @@ impl ConcatSource {
   }
 
   /// Add a [Source] to concat.
-  pub fn add<S: Source + 'static>(&mut self, source: S) {
+  pub fn add<S: SourceExt>(&mut self, source: S) {
     // `&mut self` guarantees exclusive access, so the Mutex doesn't need to be
     // locked here — `get_mut` skips the atomic acquire/release. This matters
     // because `add` is called many hundreds of times per chunk in rspack's
@@ -172,22 +172,8 @@ impl ConcatSource {
       *children = optimized_children;
     }
 
-    // First check if it's already a BoxSource containing a ConcatSource
-    if let Some(box_source) = source.as_any().downcast_ref::<BoxSource>() {
-      if let Some(concat_source) = box_source.as_ref().as_any().downcast_ref::<ConcatSource>() {
-        // Extend with existing children (cheap clone due to Arc)
-        let original_children = concat_source.children.lock().unwrap();
-        let other_children = match concat_source.is_optimized.get() {
-          Some(optimized_children) => optimized_children,
-          None => original_children.as_ref(),
-        };
-        children.extend(other_children.iter().cloned());
-        return;
-      }
-    }
-
-    // Check if the source itself is a ConcatSource
-    if let Some(concat_source) = source.as_any().downcast_ref::<ConcatSource>() {
+    let box_source = source.boxed();
+    if let Some(concat_source) = box_source.as_ref().as_any().downcast_ref::<ConcatSource>() {
       // Extend with existing children (cheap clone due to Arc)
       let original_children = concat_source.children.lock().unwrap();
       let other_children = match concat_source.is_optimized.get() {
@@ -196,8 +182,7 @@ impl ConcatSource {
       };
       children.extend(other_children.iter().cloned());
     } else {
-      // Regular source - box it and add to children
-      children.push(source.boxed());
+      children.push(box_source);
     }
   }
 }

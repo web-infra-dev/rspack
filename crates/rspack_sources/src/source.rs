@@ -140,51 +140,6 @@ pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + S
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()>;
 }
 
-impl Source for BoxSource {
-  fn __dyn_id(&self) -> u64 {
-    self.as_ref().__dyn_id()
-  }
-
-  #[inline]
-  fn source(&self) -> SourceValue<'_> {
-    self.as_ref().source()
-  }
-
-  #[inline]
-  fn rope<'a>(&'a self, on_chunk: &mut dyn FnMut(&'a str)) {
-    self.as_ref().rope(on_chunk)
-  }
-
-  #[inline]
-  fn buffer(&self) -> Cow<'_, [u8]> {
-    self.as_ref().buffer()
-  }
-
-  #[inline]
-  fn size(&self) -> usize {
-    self.as_ref().size()
-  }
-
-  #[inline]
-  fn map<'a>(&'a self, object_pool: &ObjectPool, options: &MapOptions) -> Option<SourceMap<'a>> {
-    self.as_ref().map(object_pool, options)
-  }
-
-  #[inline]
-  fn map_static(
-    self: Arc<Self>,
-    object_pool: &ObjectPool,
-    options: &MapOptions,
-  ) -> Option<SourceMap<'static>> {
-    self.as_ref().clone().map_static(object_pool, options)
-  }
-
-  #[inline]
-  fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-    self.as_ref().to_writer(writer)
-  }
-}
-
 impl StreamChunks for BoxSource {
   fn stream_chunks<'a>(&'a self) -> Box<dyn Chunks<'a> + 'a> {
     self.as_ref().stream_chunks()
@@ -256,10 +211,13 @@ pub trait SourceExt {
 
 impl<T: Source + 'static> SourceExt for T {
   fn boxed(self) -> BoxSource {
-    if let Some(source) = self.as_any().downcast_ref::<BoxSource>() {
-      return source.clone();
-    }
     Arc::from(self)
+  }
+}
+
+impl SourceExt for BoxSource {
+  fn boxed(self) -> BoxSource {
+    self
   }
 }
 
@@ -869,7 +827,7 @@ macro_rules! mappings {
 
 #[cfg(test)]
 mod tests {
-  use std::collections::HashMap;
+  use std::{collections::HashMap, sync::Arc};
 
   use super::*;
   use crate::{

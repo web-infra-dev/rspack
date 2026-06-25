@@ -12,7 +12,7 @@ use rspack_core::{
   ExportsInfoArtifact, GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier,
   ModuleInitFragments, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
   RuntimeGlobals, RuntimeSpec, SourceType, TemplateContext, UsageState,
-  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 pub use rspack_core::{CssExport, CssExports};
 use rspack_error::{Result, TWithDiagnosticArray};
