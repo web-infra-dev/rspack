@@ -6,7 +6,7 @@ use std::sync::LazyLock;
 use criterion::Bencher;
 use rspack_sources::{
   BoxSource, ConcatSource, MapOptions, ObjectPool, OriginalSource, RawStringSource, ReplaceSource,
-  ReplacementEnforce, Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+  ReplacementEnforce, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
 };
 
 static REPETITIVE_1K_REACT_COMPONENTS_SOURCE: LazyLock<BoxSource> = LazyLock::new(|| {
