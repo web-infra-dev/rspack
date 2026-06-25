@@ -42,7 +42,6 @@ static MODULE_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRu
       MODULE_CHUNK_LOADING_TEMPLATE,
       RuntimeGlobals::ON_CHUNKS_LOADED,
     ),
-    write: RuntimeGlobals::ON_CHUNKS_LOADED,
     ..Default::default()
   });
 static MODULE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
@@ -59,13 +58,12 @@ static MODULE_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     MODULE_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE,
-    RuntimeGlobals::PREFETCH_CHUNK_HANDLERS,
+    RuntimeGlobals::default(),
   ) | extract_runtime_globals_dependencies_from_ejs(
     MODULE_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
     RuntimeGlobals::SCRIPT_NONCE,
   ),
   weak: RuntimeGlobals::SCRIPT_NONCE,
-  write: RuntimeGlobals::PREFETCH_CHUNK_HANDLERS,
   ..Default::default()
 });
 static MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<
@@ -73,13 +71,12 @@ static MODULE_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     MODULE_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE,
-    RuntimeGlobals::PRELOAD_CHUNK_HANDLERS,
+    RuntimeGlobals::default(),
   ) | extract_runtime_globals_dependencies_from_ejs(
     MODULE_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
     RuntimeGlobals::SCRIPT_NONCE,
   ),
   weak: RuntimeGlobals::SCRIPT_NONCE,
-  write: RuntimeGlobals::PRELOAD_CHUNK_HANDLERS,
   ..Default::default()
 });
 static MODULE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<
@@ -106,14 +103,9 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-      | RuntimeGlobals::HMR_MODULE_DATA,
+    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
   ),
-  write: RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-    | RuntimeGlobals::HMR_MODULE_DATA,
+  weak: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
   ..Default::default()
 });
 
@@ -217,28 +209,20 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let mut dependencies = Self::get_runtime_requirements_basic();
-    let weak = RuntimeGlobals::SCRIPT_NONCE;
-    let mut write = RuntimeGlobals::MODULE_FACTORIES;
+    let mut weak = RuntimeGlobals::SCRIPT_NONCE;
+    let mut write = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
       write.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_loading());
-      write.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK) {
       write.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
-    if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
-      write.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
-    }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr() | RuntimeGlobals::MODULE_CACHE);
-      write.insert(
-        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-          | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-          | RuntimeGlobals::HMR_MODULE_DATA,
-      );
+      weak.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());
@@ -246,11 +230,9 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_prefetch());
-      write.insert(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_preload());
-      write.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
     }
     RuntimeModuleRuntimeRequirements {
       dependencies,

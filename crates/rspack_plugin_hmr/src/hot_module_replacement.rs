@@ -13,9 +13,7 @@ static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       HOT_MODULE_REPLACEMENT_TEMPLATE,
-      RuntimeGlobals::HMR_MODULE_DATA
-        | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-        | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS,
+      RuntimeGlobals::default(),
     ),
     write: RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
       | RuntimeGlobals::HMR_MODULE_DATA

@@ -44,9 +44,8 @@ static REQUIRE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+    RuntimeGlobals::default(),
   ),
-  write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
   ..Default::default()
 });
 static REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_RUNTIME_REQUIREMENTS: LazyLock<
@@ -63,9 +62,8 @@ static REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
-    RuntimeGlobals::ON_CHUNKS_LOADED,
+    RuntimeGlobals::default(),
   ),
-  write: RuntimeGlobals::ON_CHUNKS_LOADED,
   ..Default::default()
 });
 static REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS: LazyLock<
@@ -102,14 +100,9 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
 > = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
   dependencies: extract_runtime_globals_dependencies_from_ejs(
     JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-      | RuntimeGlobals::HMR_MODULE_DATA,
+    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
   ),
-  write: RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-    | RuntimeGlobals::HMR_MODULE_DATA,
+  weak: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
   ..Default::default()
 });
 
@@ -217,14 +210,13 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let mut dependencies = Self::get_runtime_requirements_basic() | RuntimeGlobals::MODULE_CACHE;
-    let weak = RuntimeGlobals::default();
-    let mut write = RuntimeGlobals::MODULE_FACTORIES;
+    let mut weak = RuntimeGlobals::default();
+    let mut write = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
       write.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_loading());
-      write.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK) {
       dependencies.insert(Self::get_runtime_requirements_with_external_install_chunk());
@@ -232,15 +224,10 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     }
     if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
-      write.insert(RuntimeGlobals::ON_CHUNKS_LOADED);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr());
-      write.insert(
-        RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-          | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-          | RuntimeGlobals::HMR_MODULE_DATA,
-      );
+      weak.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());

@@ -42,44 +42,40 @@ static CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRunt
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_LOADING_TEMPLATE,
-      RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      RuntimeGlobals::default(),
     ),
-    write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
     ..Default::default()
   });
 static CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_HMR_TEMPLATE,
-      RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS,
+      RuntimeGlobals::default(),
     ),
-    write: RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS,
     ..Default::default()
   });
 static CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_PREFETCH_TEMPLATE,
-      RuntimeGlobals::PREFETCH_CHUNK_HANDLERS,
+      RuntimeGlobals::default(),
     ) | extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
       RuntimeGlobals::SCRIPT_NONCE,
     ),
     weak: RuntimeGlobals::SCRIPT_NONCE,
-    write: RuntimeGlobals::PREFETCH_CHUNK_HANDLERS,
     ..Default::default()
   });
 static CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_PRELOAD_TEMPLATE,
-      RuntimeGlobals::PRELOAD_CHUNK_HANDLERS,
+      RuntimeGlobals::default(),
     ) | extract_runtime_globals_dependencies_from_ejs(
       CSS_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
       RuntimeGlobals::SCRIPT_NONCE,
     ),
     weak: RuntimeGlobals::SCRIPT_NONCE,
-    write: RuntimeGlobals::PRELOAD_CHUNK_HANDLERS,
     ..Default::default()
   });
 
@@ -186,33 +182,27 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let mut dependencies = RuntimeGlobals::default();
     let weak = RuntimeGlobals::SCRIPT_NONCE;
-    let mut write = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies,
       );
-      write.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(
         CSS_LOADING_BASIC_RUNTIME_REQUIREMENTS.dependencies
           | CSS_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies,
       );
-      write.insert(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
       dependencies.insert(CSS_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS.dependencies);
-      write.insert(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS);
     }
     if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
       dependencies.insert(CSS_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS.dependencies);
-      write.insert(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS);
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
       weak,
-      write,
       ..Default::default()
     }
   }

@@ -29,18 +29,16 @@ static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequi
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CONSUMES_INITIAL_TEMPLATE,
-      RuntimeGlobals::MODULE_FACTORIES,
+      RuntimeGlobals::default(),
     ),
-    write: RuntimeGlobals::MODULE_FACTORIES,
     ..Default::default()
   });
 static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CONSUMES_LOADING_TEMPLATE,
-      RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::MODULE_FACTORIES,
+      RuntimeGlobals::default(),
     ),
-    write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::MODULE_FACTORIES,
     ..Default::default()
   });
 
@@ -82,7 +80,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       | runtime_require_scope_requirement(compilation);
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::MODULE_FACTORIES,
       ..Default::default()
     }
   }

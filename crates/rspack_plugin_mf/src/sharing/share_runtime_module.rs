@@ -23,9 +23,9 @@ static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeReq
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       INITIALIZE_SHARING_TEMPLATE,
-      RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
+      RuntimeGlobals::INITIALIZE_SHARING,
     ),
-    write: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
+    write: RuntimeGlobals::INITIALIZE_SHARING,
     force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
     ..Default::default()
   });
@@ -53,7 +53,7 @@ impl RuntimeModule for ShareRuntimeModule {
         INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.dependencies
           | runtime_require_scope_requirement(compilation)
       },
-      write: { RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP },
+      write: RuntimeGlobals::INITIALIZE_SHARING,
       force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
       ..Default::default()
     }

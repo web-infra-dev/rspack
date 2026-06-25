@@ -14,9 +14,8 @@ static CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntim
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       CHUNK_PREFETCH_TRIGGER_TEMPLATE,
-      RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      RuntimeGlobals::default(),
     ),
-    write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
     ..Default::default()
   });
 
@@ -64,7 +63,6 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS.dependencies,
-      write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       ..Default::default()
     }
   }

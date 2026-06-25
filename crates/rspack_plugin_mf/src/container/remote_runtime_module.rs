@@ -4,7 +4,7 @@ use rspack_collections::Identifiable;
 use rspack_core::{
   ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, impl_runtime_module, runtime_mode::RuntimeMode,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
 use rustc_hash::FxHashMap;
@@ -21,12 +21,9 @@ static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequir
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
     dependencies: extract_runtime_globals_dependencies_from_ejs(
       REMOTES_LOADING_TEMPLATE,
-      RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
-        | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-        | RuntimeGlobals::MODULE_FACTORIES,
+      RuntimeGlobals::default(),
     ),
-    weak: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-    write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::MODULE_FACTORIES,
+    force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
     ..Default::default()
   });
 
@@ -50,17 +47,9 @@ impl RuntimeModule for RemoteRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
       | runtime_require_scope_requirement(compilation);
-    let mut write = RuntimeGlobals::ENSURE_CHUNK_HANDLERS | RuntimeGlobals::MODULE_FACTORIES;
-    if matches!(
-      compilation.options.experiments.runtime_mode,
-      RuntimeMode::Rspack
-    ) {
-      write.insert(RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE);
-    }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      weak: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-      write,
+      force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
       ..Default::default()
     }
   }

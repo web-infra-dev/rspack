@@ -133,7 +133,7 @@ pub async fn render_runtime_chunk_runtime_modules(
     sources.add(runtime_module_source);
     let mut context_fields = metadata.context_fields().intersection(context_requirements);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements);
+      context_fields.insert(generated_requirements.renderable_require_scope());
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
     let setters = metadata.context_setter_fields();
@@ -220,7 +220,7 @@ pub async fn render_chunk_runtime_modules(
     sources.add(runtime_module_source);
     let mut context_fields = metadata.context_fields().intersection(context_requirements);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements);
+      context_fields.insert(generated_requirements.renderable_require_scope());
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
 
@@ -333,7 +333,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
     let mut context_fields = metadata
       .context_fields()
       .intersection(generated_requirements);
-    context_fields.insert(generated_requirements);
+    context_fields.insert(generated_requirements.renderable_require_scope());
     context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     if context_fields.is_empty() {
       continue;
