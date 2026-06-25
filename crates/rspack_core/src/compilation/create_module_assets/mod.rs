@@ -23,11 +23,9 @@ pub async fn create_module_assets(
   compilation: &mut Compilation,
   _plugin_driver: SharedPluginDriver,
 ) {
+  let mut chunk_asset_map = vec![];
   let mut module_assets = vec![];
-  let mg = compilation.build_module_graph_artifact.get_module_graph();
-  let chunk_graph_artifact = &mut compilation.build_chunk_graph_artifact;
-  let chunk_graph = &chunk_graph_artifact.chunk_graph;
-  let chunk_by_ukey = &mut chunk_graph_artifact.chunk_by_ukey;
+  let mg = compilation.get_module_graph();
   for (identifier, module) in mg.modules() {
     let assets = &module.build_info().assets;
     if assets.is_empty() {
@@ -38,11 +36,20 @@ pub async fn create_module_assets(
       module_assets.push((name.clone(), asset.clone()));
     }
     // assets of executed modules are not in this compilation
-    if let Some(chunks) = chunk_graph.try_get_module_chunks(identifier) {
-      for chunk in chunks {
-        let chunk = chunk_by_ukey.expect_get_mut(chunk);
+    if compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .chunk_graph_module_by_module_identifier
+      .contains_key(identifier)
+    {
+      for chunk in compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .get_module_chunks(*identifier)
+        .iter()
+      {
         for name in assets.keys() {
-          chunk.add_auxiliary_file(name.clone());
+          chunk_asset_map.push((*chunk, name.clone()))
         }
       }
     }
@@ -50,5 +57,13 @@ pub async fn create_module_assets(
 
   for (name, asset) in module_assets {
     compilation.emit_asset(name, asset);
+  }
+
+  for (chunk, asset_name) in chunk_asset_map {
+    let chunk = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get_mut(&chunk);
+    chunk.add_auxiliary_file(asset_name);
   }
 }

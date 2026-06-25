@@ -65,11 +65,10 @@ Run these steps in order for every round.
    - If a local correctness command fails, fix it locally and repeat local verification before pushing.
    - Do not substitute CodSpeed performance data for correctness evidence.
 
-3. Run a correctness-focused independent review.
-   - Before every commit/push, dispatch an independent subagent over the current diff when subagents are available and allowed by the current environment and delegation rules.
-   - If subagents are unavailable or not allowed, perform a local diff review with the same correctness focus and record that fallback.
-   - Ask the review to focus on correctness, behavior preservation, ordering, deduplication, hashing/equality, diagnostics, concurrency, cancellation, and cache lifetime where relevant.
-   - If the review reports a real concern, fix it and repeat local verification plus review.
+3. Run a correctness-focused subagent code review.
+   - Before every commit/push, dispatch an independent subagent over the current diff.
+   - Ask it to focus on correctness, behavior preservation, ordering, deduplication, hashing/equality, diagnostics, concurrency, cancellation, and cache lifetime where relevant.
+   - If the subagent reports a real concern, fix it and repeat local verification plus subagent review.
    - If the concern is not valid, record the technical reason in a review reply or final report.
 
 4. Commit and push.
@@ -103,7 +102,7 @@ Run these steps in order for every round.
 7. Handle code review comments before performance evaluation completes.
    - Inspect unresolved code review comments and review threads for the latest PR head SHA before declaring the performance evaluation complete.
    - Include Copilot and human reviewer comments.
-   - For outdated threads, inspect the comment and current code before resolving; resolve only after confirming the concern was addressed or no longer applies.
+   - Resolve outdated threads directly.
    - If a live comment is reasonable, implement the fix, reply with what changed, resolve the thread, and start a new round with local verification and subagent review.
    - If a live comment is not reasonable, reply with the technical reason and supporting evidence, resolve the thread, and continue the same evaluation if no code changed.
    - Do not declare success while any non-outdated review comment or requested-change thread remains unresolved.
