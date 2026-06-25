@@ -400,8 +400,9 @@ module.exports = {
                 });
 
                 // Each edge appends [dependencyId, loc] (Part A). dependencyId is always a
-                // non-empty string; loc is the consuming reference site (`line:col`), populated
-                // for real specifier references such as the named imports used inside lib.js#foo().
+                // non-empty string; loc is the consuming reference site as rspack's location
+                // string (`line:col` / `line:col-endLine:endCol`), populated for real specifier
+                // references such as the named imports used inside lib.js#foo().
                 const rawEdges = moduleGraph.exportUsageEdges;
                 expect(
                   rawEdges.every(

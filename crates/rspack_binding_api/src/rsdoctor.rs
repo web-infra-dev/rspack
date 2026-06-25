@@ -89,7 +89,9 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
 
 // Edge: [originModule, originExport, targetModule, targetExport, dependencyId, loc]
 // (origin=consumer, target=provider). The trailing dependencyId/loc are appended so existing
-// positional `[a, b, c, d]` consumers keep working; loc is the consuming reference site.
+// positional `[a, b, c, d]` consumers keep working. `loc` is the consuming reference site as
+// rspack's standard location string (`line:col`, `line:col-endCol`, or `line:col-endLine:endCol`),
+// or null when unavailable.
 pub type JsRsdoctorExportUsageEdge = (
   i32,
   Option<Vec<String>>,
