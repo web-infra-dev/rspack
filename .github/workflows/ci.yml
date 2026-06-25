@@ -10,11 +10,6 @@ on:
         description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'
         required: false
         default: false
-      cargo_fresh_debug:
-        type: boolean
-        description: 'Log cargo fingerprint dirty reasons to debug Rust cache misses'
-        required: false
-        default: false
   pull_request:
     types: [opened, synchronize]
   push:
@@ -67,8 +62,6 @@ jobs:
       target: x86_64-unknown-linux-gnu
       profile: 'ci'
       runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-      cargo_fresh_debug: true # [cache-debug] forced on for this investigation branch (PR events carry no inputs)
-
 
 #   test-linux:
 #     name: Test Linux

@@ -19,7 +19,12 @@ const CARGO_SAFELY_EXIT_CODE = 0;
 const watch = process.argv.includes("--watch");
 
 const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
-const debugFresh = measureFresh && process.env.MEASURE_CARGO_FRESH_DEBUG === "1";
+// Surface cargo fingerprint dirty reasons when GitHub Actions debug logging is on:
+// re-run a workflow with "Enable debug logging", or set the ACTIONS_RUNNER_DEBUG repo
+// variable. The runner exposes this to steps as RUNNER_DEBUG=1.
+const debugFresh =
+	measureFresh &&
+	(process.env.RUNNER_DEBUG === "1" || process.env.ACTIONS_RUNNER_DEBUG === "true");
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -217,7 +222,7 @@ function collectFreshStats(stdout) {
 
 function collectDirtyReasons(stderr) {
 	// Parse `CARGO_LOG=cargo::core::compiler::fingerprint=info` output, pairing each
-	// "fingerprint error for <crate> ..." with its following "err: <reason>" line.
+	// "fingerprint dirty for <crate> ..." with its following "dirty: <reason>" line.
 	const reasons = new Map();
 	const ansi = /\x1b\[[0-9;]*m/g;
 	stderr.setEncoding("utf8");
@@ -230,20 +235,39 @@ function collectDirtyReasons(stderr) {
 		while ((nl = buffer.indexOf("\n")) !== -1) {
 			const line = buffer.slice(0, nl).replace(/\r$/, "").replace(ansi, "");
 			buffer = buffer.slice(nl + 1);
-			const head = line.match(/fingerprint error for (\S+)/);
+			const head = line.match(/fingerprint (?:dirty|error) for (\S+)/);
 			if (head) {
 				current = head[1];
 				continue;
 			}
-			const err = line.match(/\berr:\s*(.+)$/);
-			if (err && current) {
+			const reason = line.match(/(?:^|\s)(?:dirty|err):\s+(.+)$/);
+			if (reason && current) {
 				if (!reasons.has(current)) reasons.set(current, new Set());
-				reasons.get(current).add(err[1].trim());
+				reasons.get(current).add(normalizeReason(reason[1].trim()));
 				current = null;
 			}
 		}
 	});
 	return reasons;
+}
+
+function normalizeReason(raw) {
+	let m;
+	if ((m = raw.match(/FileSizeChanged \{ path: "([^"]+)"[^}]*old_size: (\d+), new_size: (\d+)/))) {
+		return `source changed: ${shortPath(m[1])} (${m[2]}→${m[3]}B)`;
+	}
+	if ((m = raw.match(/StaleItem\(.*?path: "([^"]+)"/))) {
+		return `source changed: ${shortPath(m[1])}`;
+	}
+	if (raw.includes("StaleDepFingerprint")) return "dependency rebuilt (cascade)";
+	if (raw.includes("UnitDependencyInfoChanged")) return "dependency graph changed";
+	if ((m = raw.match(/EnvVarChanged \{ name: "([^"]+)"/))) return `env changed: ${m[1]}`;
+	return raw.length > 140 ? raw.slice(0, 137) + "..." : raw;
+}
+
+function shortPath(p) {
+	const i = p.lastIndexOf("/crates/");
+	return i >= 0 ? p.slice(i + 1) : p;
 }
 
 function reportDirtyReasons(reasons) {
