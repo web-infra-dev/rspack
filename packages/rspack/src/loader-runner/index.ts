@@ -194,7 +194,7 @@ class JsSourceMap {
     return isNil(map) ? undefined : toObject(map);
   }
 
-  static __to_binding(map?: object) {
+  static __to_binding(map?: string | object | null) {
     return serializeObject(map);
   }
 }
@@ -1029,7 +1029,9 @@ export async function runLoaders(
       }
       case JsLoaderState.Normal: {
         let content = context.content;
-        let sourceMap = JsSourceMap.__from_binding(context.sourceMap);
+        const rawSourceMap = context.sourceMap;
+        let sourceMap: string | object | undefined;
+        let sourceMapParsed = false;
         let additionalData = context.additionalData;
 
         while (loaderContext.loaderIndex >= 0) {
@@ -1051,6 +1053,13 @@ export async function runLoaders(
             currentLoaderObject.normalExecuted = true;
           }
           if (!fn) continue;
+
+          // Parse source map lazily only when a JavaScript loader consumes it.
+          if (!sourceMapParsed) {
+            sourceMap = JsSourceMap.__from_binding(rawSourceMap);
+            sourceMapParsed = true;
+          }
+
           [content, sourceMap, additionalData] = await isomorphoicRun(fn, [
             content,
             sourceMap,
@@ -1059,7 +1068,9 @@ export async function runLoaders(
         }
 
         context.content = isNil(content) ? null : toBuffer(content);
-        context.sourceMap = JsSourceMap.__to_binding(sourceMap);
+        context.sourceMap = sourceMapParsed
+          ? JsSourceMap.__to_binding(sourceMap)
+          : rawSourceMap;
         context.additionalData = additionalData || undefined;
         context.__internal__utf8Hint = typeof content === 'string';
 

@@ -1,5 +1,5 @@
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 const value = require("./trigger");
 
 it("a change inside an ignored subtree must not pre-empt the real rebuild", () => {

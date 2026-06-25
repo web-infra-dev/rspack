@@ -36,6 +36,9 @@ const cssRule = {
 
 module.exports = [
   {
+    externals: {
+      'node:fs': 'node-commonjs node:fs',
+    },
     mode: 'production',
     target: 'node',
     entry: {
@@ -84,6 +87,9 @@ module.exports = [
     },
   },
   {
+    externals: {
+      'node:fs': 'node-commonjs node:fs',
+    },
     mode: 'production',
     target: 'web',
     entry: {

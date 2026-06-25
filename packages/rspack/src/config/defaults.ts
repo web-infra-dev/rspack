@@ -59,6 +59,7 @@ import type {
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
+const DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 export const applyRspackOptionsDefaults = (
   options: RspackOptionsNormalized,
@@ -229,6 +230,8 @@ const applyCacheDefaults = (
       break;
     case 'persistent':
       D(cache, 'version', '');
+      D(cache, 'maxAge', DEFAULT_FILESYSTEM_CACHE_MAX_AGE_SECONDS);
+      D(cache, 'maxVersions', 3);
       F(cache, 'buildDependencies', () => []);
       F(cache.snapshot, 'immutablePaths', () => []);
       F(cache.snapshot, 'unmanagedPaths', () => []);

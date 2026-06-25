@@ -5,7 +5,7 @@ it("should load script without nonce", function () {
 	);
 
 	var script = document.head._children.pop();
-	__non_webpack_require__("./chunk-without-nonce.web.js");
+	require("./chunk-without-nonce.web.js");
 	expect(script.getAttribute("nonce")).toBeFalsy();
 
 	return promise;

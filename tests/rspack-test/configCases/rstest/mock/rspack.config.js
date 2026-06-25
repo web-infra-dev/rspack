@@ -77,7 +77,9 @@ __webpack_require__.rstest_mock = (id, modFactory) => {
   } finally {
     __webpack_require__.rstest_original_modules[id] = requiredModule;
   }
-  if (typeof modFactory === 'string' || typeof modFactory === 'number') {
+  if (modFactory && modFactory.mock === true) {
+    return;
+  } else if (typeof modFactory === 'string' || typeof modFactory === 'number') {
     __webpack_module_cache__[id] = { exports: __webpack_require__(modFactory) };
   } else if (typeof modFactory === 'function') {
     const finalModFactory = function (
@@ -197,6 +199,7 @@ module.exports = [
   rstestEntry('./doMock.js'),
   rstestEntry('./mockFactory.js'),
   rstestEntry('./manualMock.js'),
+  rstestEntry('./autoMockFallback.js'),
   rstestEntry('./builtinManualMock.js'),
   rstestEntry('./nodeModulesManualMock.js'),
   rstestEntry('./directoryManualMock.js'),

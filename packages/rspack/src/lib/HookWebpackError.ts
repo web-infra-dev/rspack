@@ -33,8 +33,6 @@ export class HookWebpackError extends WebpackError {
   }
 }
 
-export default HookWebpackError;
-
 /**
  * @param error an error
  * @param hook name of the hook

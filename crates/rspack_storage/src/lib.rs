@@ -10,7 +10,7 @@ mod memory;
 
 pub use self::{
   error::{Error, Result},
-  filesystem::{FileSystemOptions, FileSystemStorage},
+  filesystem::{FileSystemOptions, FileSystemStorage, Version},
   memory::MemoryStorage,
 };
 
@@ -39,6 +39,11 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
   ///
   /// Must be called before process exit to ensure no background I/O is lost.
   async fn flush(&self);
+
+  /// Starts best-effort cleanup for stale storage internals.
+  ///
+  /// This cleanup is intentionally detached from [`Storage::flush`].
+  fn cleanup_stale(&self) {}
 
   /// Resets the specified scope, clearing all its data.
   ///

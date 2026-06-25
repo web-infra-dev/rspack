@@ -238,8 +238,11 @@ impl From<anyhow::Error> for Error {
 
 #[cfg(test)]
 mod test {
+  use owo_colors::with_override;
+
   use super::{Error, ErrorData, Label};
   use crate::{Renderer, Severity};
+
   #[test]
   fn should_error_display() {
     let renderer = Renderer::new(false);
@@ -315,9 +318,12 @@ mod test {
          ╰────
         help: Maybe you should remove it.
 "#;
-    assert_eq!(
-      renderer.render(&root_err).unwrap().trim(),
-      expect_display.trim()
-    );
+    // Force color support to prove the renderer respects its own theme
+    with_override(true, || {
+      assert_eq!(
+        renderer.render(&root_err).unwrap().trim(),
+        expect_display.trim()
+      );
+    });
   }
 }

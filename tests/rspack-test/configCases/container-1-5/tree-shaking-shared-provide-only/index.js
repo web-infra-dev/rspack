@@ -6,7 +6,7 @@ it("should generate tree shaking shared fallback for provide-only shared modules
 	expect(fallbacks.map(([, version]) => version)).toEqual(["1.0.0"]);
 
 	const [entry, , globalName] = fallbacks[0];
-	const container = __non_webpack_require__(`./${entry}`)[globalName];
+	const container = eval("require")(`./${entry}`)[globalName];
 	expect(container.get()().value).toBe("provided-only");
 });
 
@@ -18,6 +18,6 @@ it("should use configured version for local provide-only shared fallbacks", () =
 	expect(fallbacks.map(([, version]) => version)).toEqual(["2.3.4"]);
 
 	const [entry, , globalName] = fallbacks[0];
-	const container = __non_webpack_require__(`./${entry}`)[globalName];
+	const container = eval("require")(`./${entry}`)[globalName];
 	expect(container.get()().value).toBe("local-provided");
 });

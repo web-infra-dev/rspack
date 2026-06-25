@@ -11,6 +11,7 @@ const CpuToNodeArch = {
   aarch64: 'arm64',
   i686: 'ia32',
   armv7: 'arm',
+  riscv64gc: 'riscv64',
 };
 
 const SysToNodePlatform = {

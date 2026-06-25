@@ -4,8 +4,6 @@ import * as styles2 from "./style.module.css?camel-case#2";
 const prod = process.env.NODE_ENV === "production";
 const target = process.env.TARGET;
 
-const path = __non_webpack_require__("path");
-
 it("concatenation and mangling should work", () => {
 	expect(styles1.class).toBe(prod ? "lOQLn3" : "style_module_css_camel-case_1-class");
 	expect(styles1["default"]).toBe(prod ? "Nbrg_B" : "style_module_css_camel-case_1-default");
@@ -41,11 +39,11 @@ it("should have correct convention for css exports name", async () => {
 		import("./style.module.css?dashes-only"),
 		// import("./style.module.css?upper"),
 	]).then(([asIs, camelCase, camelCaseOnly, dashes, dashesOnly, upper]) => {
-		expect(asIs).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `as-is.${__STATS_I__}.txt`));
-		expect(camelCase).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `camel-case.${__STATS_I__}.txt`));
-		expect(camelCaseOnly).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `camel-case-only.${__STATS_I__}.txt`));
-		expect(dashes).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `dashes.${__STATS_I__}.txt`));
-		expect(dashesOnly).toMatchFileSnapshotSync(path.join(__SNAPSHOT__, `dashes-only.${__STATS_I__}.txt`));
+		expect(asIs).toMatchFileSnapshotSync(`${__SNAPSHOT__}/as-is.${__STATS_I__}.txt`);
+		expect(camelCase).toMatchFileSnapshotSync(`${__SNAPSHOT__}/camel-case.${__STATS_I__}.txt`);
+		expect(camelCaseOnly).toMatchFileSnapshotSync(`${__SNAPSHOT__}/camel-case-only.${__STATS_I__}.txt`);
+		expect(dashes).toMatchFileSnapshotSync(`${__SNAPSHOT__}/dashes.${__STATS_I__}.txt`);
+		expect(dashesOnly).toMatchFileSnapshotSync(`${__SNAPSHOT__}/dashes-only.${__STATS_I__}.txt`);
 		// expect(upper).toMatchSnapshot('upper');
 	})
 });

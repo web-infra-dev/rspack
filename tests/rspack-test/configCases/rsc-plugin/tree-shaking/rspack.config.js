@@ -36,6 +36,9 @@ const cssRule = {
 
 module.exports = [
   {
+    externals: {
+      './static/main.js': 'commonjs ./static/main.js',
+    },
     name: 'server',
     mode: 'production',
     target: 'node',
@@ -81,6 +84,9 @@ module.exports = [
     },
   },
   {
+    externals: {
+      './static/main.js': 'commonjs ./static/main.js',
+    },
     name: 'client',
     mode: 'production',
     target: 'node',

@@ -5,9 +5,9 @@ const req = createRequire(import.meta.url);
 export const value = req("./libCssExtractLoader.js");
 export const loader = req.resolve("./libCssExtractLoader.js");
 
-it("should consume createRequire(import.meta.url) like webpack", () => {
-	const fs = __non_webpack_require__("fs");
-	const path = __non_webpack_require__("path");
+it("should consume createRequire(import.meta.url) like webpack", async () => {
+	const fs = await import(/* webpackIgnore: true */ "node:fs");
+	const path = await import(/* webpackIgnore: true */ "node:path");
 	const source = fs.readFileSync(path.join(__dirname, "main.mjs"), "utf-8");
 	const fileUrlScheme = "file:" + "//";
 	const normalizedRoot = "<" + "ROOT>";

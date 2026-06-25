@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding",
-  "version": "2.1.0-beta.0",
+  "version": "2.1.0-rc.0",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "binding.js",
@@ -35,7 +35,7 @@
   "devDependencies": {
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
-    "@napi-rs/cli": "3.7.1",
+    "@napi-rs/cli": "3.7.2",
     "@napi-rs/wasm-runtime": "1.1.5",
     "@types/node": "^20.19.43",
     "emnapi": "1.11.1",
@@ -55,7 +55,9 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-apple-darwin",
       "aarch64-unknown-linux-musl",
-      "aarch64-pc-windows-msvc"
+      "aarch64-pc-windows-msvc",
+      "riscv64gc-unknown-linux-gnu",
+      "riscv64gc-unknown-linux-musl"
     ],
     "wasm": {
       "initialMemory": 16384,
@@ -72,6 +74,8 @@
     "@rspack/binding-darwin-x64": "workspace:*",
     "@rspack/binding-linux-arm64-gnu": "workspace:*",
     "@rspack/binding-linux-arm64-musl": "workspace:*",
+    "@rspack/binding-linux-riscv64-gnu": "workspace:*",
+    "@rspack/binding-linux-riscv64-musl": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-linux-x64-musl": "workspace:*",
     "@rspack/binding-wasm32-wasi": "workspace:*",

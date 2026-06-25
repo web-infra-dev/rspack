@@ -1,12 +1,12 @@
 const fs = require('node:fs');
 const path = require('node:path');
 
-const cacheDir = path.join(__dirname, 'node_modules/.cache/max-generations');
+const cacheDir = path.join(__dirname, 'node_modules/.cache/max-versions');
 // Change cache.version between restarts to create multiple persistent cache
-// generations under the same storage directory.
+// versions under the same storage directory.
 const cacheVersions = ['v1', 'v2', 'v3', 'v4'];
 let buildIndex = 0;
-let firstGeneration;
+let firstVersion;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -20,13 +20,13 @@ const getCacheEntries = (directory) => {
     .sort();
 };
 
-const getCacheGenerations = () => getCacheEntries(cacheDir);
+const getCacheVersions = () => getCacheEntries(cacheDir);
 
-const waitForCacheGenerations = async (predicate, errorMessage) => {
+const waitForCacheVersions = async (predicate, errorMessage) => {
   for (let index = 0; index < 80; index++) {
-    const generations = getCacheGenerations();
-    if (fs.existsSync(path.join(cacheDir, '_meta')) && predicate(generations)) {
-      return generations;
+    const versions = getCacheVersions();
+    if (fs.existsSync(path.join(cacheDir, '_meta')) && predicate(versions)) {
+      return versions;
     }
     await wait(50);
   }
@@ -39,10 +39,10 @@ module.exports = {
   context: __dirname,
   cache: {
     type: 'persistent',
+    maxVersions: 2,
     storage: {
       type: 'filesystem',
       directory: cacheDir,
-      maxGenerations: 2,
     },
   },
   plugins: [
@@ -53,29 +53,28 @@ module.exports = {
         });
         compiler.hooks.done.tapPromise('Test Plugin', async () => {
           if (buildIndex === 0) {
-            [firstGeneration] = await waitForCacheGenerations(
-              (generations) => generations.length === 1,
-              'Timed out waiting for the first persistent cache generation',
+            [firstVersion] = await waitForCacheVersions(
+              (versions) => versions.length === 1,
+              'Timed out waiting for the first persistent cache version',
             );
-            // maxGenerations uses second-level access timestamps for LRU order.
+            // maxVersions uses second-level access timestamps for LRU order.
             await wait(1200);
           }
           if (buildIndex === 1) {
-            await waitForCacheGenerations(
-              (generations) => generations.length === 2,
-              'Timed out waiting for the second persistent cache generation',
+            await waitForCacheVersions(
+              (versions) => versions.length === 2,
+              'Timed out waiting for the second persistent cache version',
             );
             await wait(1200);
           }
           if (buildIndex === 2) {
-            const currentGenerations = await waitForCacheGenerations(
-              (generations) =>
-                generations.length === 2 &&
-                !generations.includes(firstGeneration),
-              'Timed out waiting for old persistent cache generation cleanup',
+            const currentVersions = await waitForCacheVersions(
+              (versions) =>
+                versions.length === 2 && !versions.includes(firstVersion),
+              'Timed out waiting for old persistent cache version cleanup',
             );
-            expect(currentGenerations).toHaveLength(2);
-            expect(currentGenerations).not.toContain(firstGeneration);
+            expect(currentVersions).toHaveLength(2);
+            expect(currentVersions).not.toContain(firstVersion);
           }
           buildIndex++;
         });

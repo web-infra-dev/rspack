@@ -1,7 +1,7 @@
 import "./style.css";
 
-const fs = __non_webpack_require__("fs");
-const path = __non_webpack_require__("path");
+const fs = require("fs");
+const path = require("path");
 
 it("keeps the extracted css source name and falls back for the loader-chain module", () => {
 	const cssMap = JSON.parse(

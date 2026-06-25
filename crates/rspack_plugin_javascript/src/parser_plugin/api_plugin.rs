@@ -10,7 +10,9 @@ use swc_experimental_ecma_ast::{
 };
 
 use crate::{
-  dependency::{ModuleArgumentDependency, RequireMainDependency},
+  dependency::{
+    ExportInfoDependency, IsIncludeDependency, ModuleArgumentDependency, RequireMainDependency,
+  },
   parser_plugin::JavascriptParserPlugin,
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::{JavascriptParser, Statement, VariableDeclaration, create_traceable_error},
@@ -39,6 +41,8 @@ fn expression_not_supported(
   )
 }
 
+const API_EXPORTS_INFO: &str = "__webpack_exports_info__";
+const API_IS_INCLUDED: &str = "__webpack_is_included__";
 const API_LAYER: &str = "__webpack_layer__";
 const API_MODULE: &str = "__webpack_module__";
 const API_NON_REQUIRE: &str = "__non_webpack_require__";
@@ -246,6 +250,21 @@ fn static_require_member_chain(
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
+  fn r#typeof(
+    &self,
+    parser: &mut JavascriptParser<'p>,
+    expr: &UnaryExpr,
+    for_name: &str,
+  ) -> Option<bool> {
+    (for_name == API_IS_INCLUDED).then(|| {
+      parser.add_presentational_dependency(Box::new(ConstDependency::new(
+        (expr.span.real_lo(), expr.span.real_hi()).into(),
+        "'function'".into(),
+      )));
+      true
+    })
+  }
+
   fn evaluate_typeof(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -303,6 +322,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
       };
       parser
         .add_presentational_dependency(Box::new(ConstDependency::new(ident.span.into(), content)));
+      return Some(true);
+    }
+
+    if for_name == API_EXPORTS_INFO {
+      let dep = Box::new(ConstDependency::new(ident.span.into(), "true".into()));
+      parser.add_presentational_dependency(dep);
       return Some(true);
     }
 
@@ -432,6 +457,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     _members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
+    let len = members.len();
+    if len >= 1 && for_name == API_EXPORTS_INFO {
+      let prop = members[len - 1].clone();
+      let dep = Box::new(ExportInfoDependency::new(
+        member_expr.span.real_lo(),
+        member_expr.span.real_hi(),
+        members.iter().take(len - 1).cloned().collect::<Vec<_>>(),
+        prop,
+      ));
+      parser.add_presentational_dependency(dep);
+      return Some(true);
+    }
+
     if parser.compiler_options.experiments.runtime_mode != ExperimentRuntimeMode::Rspack {
       return None;
     }
@@ -561,6 +599,20 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for APIPlugin {
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == API_IS_INCLUDED
+      && call_expr.args.len() == 1
+      && call_expr.args[0].spread.is_none()
+    {
+      let request = parser.evaluate_expression(&call_expr.args[0].expr);
+      if request.is_string() {
+        parser.add_dependency(Box::new(IsIncludeDependency::new(
+          (call_expr.span.real_lo(), call_expr.span.real_hi()).into(),
+          request.string().clone(),
+        )));
+        return Some(true);
+      }
+    }
+
     if for_name == API_REQUIRE
       && parser.compiler_options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack
     {
