@@ -75,6 +75,7 @@ impl SourceMapDevToolPluginCacheArtifact {
     CacheKey::new(filename, &asset.info.version)
   }
 
+  #[allow(clippy::type_complexity)]
   pub fn take(
     &mut self,
     filename: &str,
@@ -84,9 +85,7 @@ impl SourceMapDevToolPluginCacheArtifact {
     Option<(String, CompilationAsset)>,
     Vec<BoxSource>,
   )> {
-    let Some(cache_key) = Self::cache_key(filename, asset) else {
-      return None;
-    };
+    let cache_key = Self::cache_key(filename, asset)?;
 
     let CacheEntry {
       asset_append,
