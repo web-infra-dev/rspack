@@ -1,3 +1,5 @@
+use std::collections::hash_map::Entry;
+
 use async_trait::async_trait;
 
 use super::*;
@@ -69,41 +71,59 @@ fn emit_module_asset(
   filename: String,
   asset: CompilationAsset,
 ) {
-  if let Some(mut original) = compilation_assets.remove(&filename)
-    && let Some(original_source) = &original.source
-    && let Some(asset_source) = asset.get_source()
-  {
-    let is_source_equal = is_source_equal(original_source, asset_source);
-    if !is_source_equal {
-      tracing::error!(
-        "Emit Duplicate Filename({}), is_source_equal: {:?}",
-        filename,
-        is_source_equal
-      );
-      diagnostics.push(
-        rspack_error::error!(
-          "Conflict: Multiple assets emit different content to the same filename {}{}",
-          filename,
-          // TODO: source file name
-          ""
-        )
-        .into(),
-      );
-      set_module_asset_info(assets_related_in, &filename, Some(asset.get_info()), None);
-      compilation_assets.insert(filename, asset);
-      return;
+  match compilation_assets.entry(filename) {
+    Entry::Occupied(mut entry) => {
+      let filename = entry.key().clone();
+      let original = entry.get_mut();
+      if let Some(original_source) = &original.source
+        && let Some(asset_source) = asset.get_source()
+      {
+        let is_source_equal = is_source_equal(original_source, asset_source);
+        if !is_source_equal {
+          tracing::error!(
+            "Emit Duplicate Filename({}), is_source_equal: {:?}",
+            filename,
+            is_source_equal
+          );
+          diagnostics.push(
+            rspack_error::error!(
+              "Conflict: Multiple assets emit different content to the same filename {}{}",
+              filename,
+              // TODO: source file name
+              ""
+            )
+            .into(),
+          );
+          if asset.get_info().related.source_map.is_some() {
+            set_module_asset_info(assets_related_in, &filename, Some(asset.get_info()), None);
+          }
+          entry.insert(asset);
+          return;
+        }
+        if asset.get_info().related.source_map.is_some()
+          || original.get_info().related.source_map.is_some()
+        {
+          set_module_asset_info(
+            assets_related_in,
+            &filename,
+            Some(asset.get_info()),
+            Some(original.get_info()),
+          );
+        }
+        original.info = asset.info;
+        return;
+      }
+      if asset.get_info().related.source_map.is_some() {
+        set_module_asset_info(assets_related_in, &filename, Some(asset.get_info()), None);
+      }
+      entry.insert(asset);
     }
-    set_module_asset_info(
-      assets_related_in,
-      &filename,
-      Some(asset.get_info()),
-      Some(original.get_info()),
-    );
-    original.info = asset.info;
-    compilation_assets.insert(filename, original);
-  } else {
-    set_module_asset_info(assets_related_in, &filename, Some(asset.get_info()), None);
-    compilation_assets.insert(filename, asset);
+    Entry::Vacant(entry) => {
+      if asset.get_info().related.source_map.is_some() {
+        set_module_asset_info(assets_related_in, entry.key(), Some(asset.get_info()), None);
+      }
+      entry.insert(asset);
+    }
   }
 }
 
