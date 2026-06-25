@@ -68,6 +68,7 @@ Notable changes include:
   - [TanStack RSC support](#tanstack-rsc-support)
   - [Rsbuild 2.1](#rsbuild-2-1)
   - [Rslib 0.23](#rslib-0-23)
+  - [Rstest 0.10](#rstest-0-10)
   - [rspack-merge](#rspack-merge)
   - [Rslint 0.6](#rslint-0-6)
   - [Rspress 2.0.15](#rspress-2-0-15)
@@ -455,6 +456,48 @@ Taking the Rsbuild repository as an example, the time required to generate decla
 | Isolated Declarations | **2.3s** |
 
 > For more details, see [dts.isolated](https://rslib.rs/config/lib/dts#dtsisolated).
+
+### Rstest 0.10 \{#rstest-0-10}
+
+Rstest 0.10 focuses on test efficiency and stability. The biggest update is the new `--changed` / `--related` test filtering capability, which can run only the tests affected by source changes and significantly shorten feedback loops in local development and CI for large projects.
+
+`--changed` automatically detects changed source files from the Git working tree, including unstaged, staged, and untracked files, then runs only the related tests:
+
+```bash
+npx rstest run --changed
+```
+
+You can also compare against a specific commit or branch:
+
+```bash
+npx rstest run --changed=HEAD~1
+npx rstest run --changed=origin/main
+```
+
+`--related` lets you explicitly pass source files and run only tests that depend on them. It also provides the Jest-compatible `--findRelatedTests` alias:
+
+```bash
+npx rstest run --related src/button.ts
+npx rstest run --findRelatedTests src/button.ts
+```
+
+If you only want to preview the affected test files, combine these flags with `rstest list`:
+
+```bash
+npx rstest list --changed --filesOnly
+npx rstest list --related src/button.ts --filesOnly
+```
+
+Rstest 0.10 also includes several other improvements:
+
+- A new `threads` pool based on `worker_threads`, reducing startup overhead for suites with many small test files.
+- Persistent build cache support, improving warm-run build performance.
+- Memory-aware worker scheduling, reducing OOM risk under high parallelism.
+- Silent console output for passed tests, keeping failure logs useful while reducing noise.
+- `--trace` profiling support, making performance investigation easier.
+- Clearer worker output attribution for logs and crashes.
+
+See the [Rstest 0.10 blog](https://rstest.rs/blog/announcing-0-10) for details.
 
 ### rspack-merge \{#rspack-merge}
 

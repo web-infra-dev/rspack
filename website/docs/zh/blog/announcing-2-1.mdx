@@ -68,6 +68,7 @@ import { PackageManagerTabs } from '@theme';
   - [TanStack RSC 支持](#tanstack-rsc-support)
   - [Rsbuild 2.1](#rsbuild-2-1)
   - [Rslib 0.23](#rslib-0-23)
+  - [Rstest 0.10](#rstest-0-10)
   - [rspack-merge](#rspack-merge)
   - [Rslint 0.6](#rslint-0-6)
   - [Rspress 2.0.15](#rspress)
@@ -455,6 +456,48 @@ export default defineConfig({
 | Isolated Declarations | **2.3s** |
 
 > 更多详情参考 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated)。
+
+### Rstest 0.10 \{#rstest-0-10}
+
+Rstest 0.10 聚焦测试效率与稳定性，新增 `--changed` / `--related` 测试过滤能力，可只运行受源码改动影响的测试，显著缩短大型项目在本地开发和 CI 中的反馈时间。
+
+`--changed` 会自动从 Git 工作区中检测发生变化的源文件，包括 unstaged、staged 和 untracked 文件，并只运行相关测试：
+
+```bash
+npx rstest run --changed
+```
+
+你也可以指定某个 commit 或分支作为对比范围：
+
+```bash
+npx rstest run --changed=HEAD~1
+npx rstest run --changed=origin/main
+```
+
+`--related` 则可以显式传入源文件，只运行依赖这些文件的测试。它也提供了与 Jest 兼容的 `--findRelatedTests` 别名：
+
+```bash
+npx rstest run --related src/button.ts
+npx rstest run --findRelatedTests src/button.ts
+```
+
+如果只想预览受影响的测试文件，可以搭配 `rstest list` 使用：
+
+```bash
+npx rstest list --changed --filesOnly
+npx rstest list --related src/button.ts --filesOnly
+```
+
+同时，Rstest 0.10 还包含以下改进：
+
+- 新增基于 `worker_threads` 的 `threads` pool，降低大量小测试文件场景下的启动开销。
+- 支持持久化构建缓存，提升 warm run 的构建性能。
+- 引入内存感知的 worker 调度，降低高并发测试下的 OOM 风险。
+- 支持静默通过测试的 console 输出，在减少噪音的同时保留失败日志。
+- 新增 `--trace` 性能分析能力，方便定位测试运行中的性能瓶颈。
+- 优化 worker 输出归因，让日志和崩溃信息更容易定位。
+
+更多信息请参考 [Rstest 0.10 博客](https://rstest.rs/blog/announcing-0-10)。
 
 ### rspack-merge \{#rspack-merge}
 
