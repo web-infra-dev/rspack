@@ -35,23 +35,9 @@ pub async fn create_module_assets(
       continue;
     }
 
-    if assets.len() == 1 {
-      let (name, asset) = assets
-        .iter()
-        .next()
-        .expect("assets should contain exactly one item");
-      module_assets.push((name.clone(), asset.clone()));
-      // assets of executed modules are not in this compilation
-      if let Some(chunks) = chunk_graph.try_get_module_chunks(identifier) {
-        for chunk in chunks {
-          let chunk = chunk_by_ukey.expect_get_mut(chunk);
-          chunk.add_auxiliary_file(name.clone());
-        }
-      }
-      continue;
+    if assets.len() > 1 {
+      module_assets.reserve(assets.len());
     }
-
-    module_assets.reserve(assets.len());
     for (name, asset) in assets {
       module_assets.push((name.clone(), asset.clone()));
     }
