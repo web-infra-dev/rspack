@@ -23,18 +23,20 @@ pub async fn create_module_assets(
   compilation: &mut Compilation,
   _plugin_driver: SharedPluginDriver,
 ) {
-  let mut module_assets = vec![];
   let mg = compilation.build_module_graph_artifact.get_module_graph();
+  let mut module_assets = vec![];
   let chunk_graph_artifact = &mut compilation.build_chunk_graph_artifact;
   let chunk_graph = &chunk_graph_artifact.chunk_graph;
   let chunk_by_ukey = &mut chunk_graph_artifact.chunk_by_ukey;
   for (identifier, module) in mg.modules() {
-    let assets = &module.build_info().assets;
+    let build_info = module.build_info();
+    let assets = build_info.assets.as_ref();
     if assets.is_empty() {
       continue;
     }
 
-    for (name, asset) in assets.as_ref() {
+    module_assets.reserve(assets.len());
+    for (name, asset) in assets {
       module_assets.push((name.clone(), asset.clone()));
     }
     // assets of executed modules are not in this compilation
