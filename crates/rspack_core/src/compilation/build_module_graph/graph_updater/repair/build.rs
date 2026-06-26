@@ -141,8 +141,7 @@ impl Task<TaskContext> for BuildResultTask {
     let module_graph = &mut context.artifact.module_graph;
     let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
-    let mut all_dependencies = Vec::with_capacity(build_result.dependencies.len());
-    let module_identifier = module.identifier();
+    let mut all_dependencies = vec![];
     let mut handle_block = |dependencies: Vec<BoxDependency>,
                             blocks: Vec<Box<AsyncDependenciesBlock>>,
                             current_block: Option<Box<AsyncDependenciesBlock>>|
@@ -160,7 +159,7 @@ impl Task<TaskContext> for BuildResultTask {
           dependency_id,
           DependencyParents {
             block: current_block.as_ref().map(|block| block.identifier()),
-            module: module_identifier,
+            module: module.identifier(),
             index_in_block,
           },
         );
@@ -182,9 +181,11 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     {
-      let mgm = module_graph.module_graph_module_by_identifier_mut(&module_identifier);
+      let mgm = module_graph.module_graph_module_by_identifier_mut(&module.identifier());
       mgm.all_dependencies_mut().clone_from(&all_dependencies);
     }
+
+    let module_identifier = module.identifier();
 
     module_graph.add_module(module);
 
