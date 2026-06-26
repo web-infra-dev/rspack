@@ -2433,7 +2433,6 @@ dependencies = [
 [[package]]
 name = "lightningcss"
 version = "1.0.0-alpha.71"
-source = "git+https://github.com/intellild/lightningcss.git?rev=ae071b316c5d3527bce9f9e6dd67082650812f64#ae071b316c5d3527bce9f9e6dd67082650812f64"
 dependencies = [
  "ahash",
  "bitflags 2.11.1",
@@ -2458,7 +2457,6 @@ dependencies = [
 [[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "git+https://github.com/intellild/lightningcss.git?rev=ae071b316c5d3527bce9f9e6dd67082650812f64#ae071b316c5d3527bce9f9e6dd67082650812f64"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -2985,7 +2983,6 @@ dependencies = [
 [[package]]
 name = "parcel_selectors"
 version = "0.28.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=ae071b316c5d3527bce9f9e6dd67082650812f64#ae071b316c5d3527bce9f9e6dd67082650812f64"
 dependencies = [
  "bitflags 2.11.1",
  "cssparser",
@@ -5769,7 +5766,6 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=ae071b316c5d3527bce9f9e6dd67082650812f64#ae071b316c5d3527bce9f9e6dd67082650812f64"
 dependencies = [
  "indexmap",
  "smallvec",
@@ -5779,7 +5775,6 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "git+https://github.com/intellild/lightningcss.git?rev=ae071b316c5d3527bce9f9e6dd67082650812f64#ae071b316c5d3527bce9f9e6dd67082650812f64"
 dependencies = [
  "proc-macro2",
  "quote",
