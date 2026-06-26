@@ -9,6 +9,7 @@ const __filename = path.resolve(fileURLToPath(import.meta.url));
 const __dirname = path.dirname(__filename);
 
 export async function publish_handler(mode, options) {
+  $.verbose = true; // zx is silent by default; stream per-package publish output
   console.log('options:', options);
   const root = process.cwd();
   const version = await getLastVersion(root);
