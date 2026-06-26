@@ -39,6 +39,54 @@ impl Task<TaskContext> for ProcessDependenciesTask {
 
     let module_graph = &mut context.artifact.module_graph;
 
+    if dependencies.len() == 1 {
+      let dependency = module_graph.dependency_by_id(&dependencies[0]);
+      let should_factorize =
+        dependency.as_module_dependency().is_some() || dependency.as_context_dependency().is_some();
+      let module = module_graph
+        .module_by_identifier(&original_module_identifier)
+        .expect("Module expected");
+      if !should_factorize {
+        return Ok(vec![]);
+      }
+
+      let dependency = dependency.clone();
+      let dependency_type = dependency.dependency_type();
+      // TODO move module_factory calculate to dependency factories
+      let module_factory = context
+        .dependency_factories
+        .get(dependency_type)
+        .unwrap_or_else(|| {
+          panic!(
+            "No module factory available for dependency type: {}, resourceIdentifier: {:?}",
+            dependency_type,
+            dependency.resource_identifier()
+          )
+        })
+        .clone();
+      let original_module_source = module
+        .as_normal_module()
+        .and_then(|module| module.source().cloned());
+      let task: Box<dyn Task<TaskContext>> = Box::new(FactorizeTask {
+        compiler_id: context.compiler_id,
+        compilation_id: context.compilation_id,
+        module_factory,
+        original_module_identifier: Some(module.identifier()),
+        original_module_context: module.get_context(),
+        original_module_source,
+        issuer: module
+          .as_normal_module()
+          .and_then(|module| module.name_for_condition()),
+        issuer_layer: module.get_layer().cloned(),
+        dependencies: vec![dependency],
+        resolve_options: module.get_resolve_options(),
+        options: context.compiler_options.clone(),
+        resolver_factory: context.resolver_factory.clone(),
+        from_unlazy,
+      });
+      return Ok(vec![task]);
+    }
+
     for dependency_id in dependencies {
       let dependency = module_graph.dependency_by_id(&dependency_id);
       // FIXME: now only module/context dependency can put into resolve queue.
