@@ -61,7 +61,7 @@ pub async fn render_runtime_chunk_runtime_modules(
     .get_chunk_modules_identifier_by_source_type(chunk_ukey, SourceType::JavaScript, module_graph)
     .is_empty();
   let is_hmr_runtime = metadata
-    .runtime_module_requirements
+    .tree_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
   let mut hmr_state_keys = Vec::new();
   for runtime_module_id in compilation
@@ -191,7 +191,7 @@ pub async fn render_chunk_runtime_modules(
     .expect("should generate runtime metadata");
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   let is_hmr_runtime = metadata
-    .runtime_module_requirements
+    .tree_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
 
   sources.add(RawStringSource::from("(function() {\n".to_string()));
