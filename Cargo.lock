@@ -2357,9 +2357,8 @@ dependencies = [
 
 [[package]]
 name = "lightningcss"
-version = "1.0.0-alpha.72"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d31b760f96e8fdfe1d0c295e4bf76c503d6f15d2d470d53bd8cd1f7aa8c7d934"
+version = "1.0.0-alpha.71"
+source = "git+https://github.com/intellild/lightningcss.git?rev=ac21884329bd182b37b03713ab0d5f0597d430f1#ac21884329bd182b37b03713ab0d5f0597d430f1"
 dependencies = [
  "ahash 0.8.12",
  "bitflags 2.13.2",
@@ -2384,7 +2383,7 @@ dependencies = [
 [[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "git+https://github.com/intellild/lightningcss.git?rev=61aee3776df2563e7c0d2982fcf1e7d3ec51571b#61aee3776df2563e7c0d2982fcf1e7d3ec51571b"
+source = "git+https://github.com/intellild/lightningcss.git?rev=ac21884329bd182b37b03713ab0d5f0597d430f1#ac21884329bd182b37b03713ab0d5f0597d430f1"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -2969,9 +2968,8 @@ dependencies = [
 
 [[package]]
 name = "parcel_selectors"
-version = "0.28.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d05f71e01edca03d245ab0a9f7ce13a974ceb79baaae8faf2ba0b11de6b90913"
+version = "0.28.2"
+source = "git+https://github.com/intellild/lightningcss.git?rev=ac21884329bd182b37b03713ab0d5f0597d430f1#ac21884329bd182b37b03713ab0d5f0597d430f1"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -6187,7 +6185,7 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=61aee3776df2563e7c0d2982fcf1e7d3ec51571b#61aee3776df2563e7c0d2982fcf1e7d3ec51571b"
+source = "git+https://github.com/intellild/lightningcss.git?rev=ac21884329bd182b37b03713ab0d5f0597d430f1#ac21884329bd182b37b03713ab0d5f0597d430f1"
 dependencies = [
  "indexmap",
  "smallvec",
@@ -6197,7 +6195,7 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "git+https://github.com/intellild/lightningcss.git?rev=61aee3776df2563e7c0d2982fcf1e7d3ec51571b#61aee3776df2563e7c0d2982fcf1e7d3ec51571b"
+source = "git+https://github.com/intellild/lightningcss.git?rev=ac21884329bd182b37b03713ab0d5f0597d430f1#ac21884329bd182b37b03713ab0d5f0597d430f1"
 dependencies = [
  "proc-macro2",
  "quote",
