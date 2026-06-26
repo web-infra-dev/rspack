@@ -316,7 +316,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           stylesheet
             .to_css(PrinterOptions {
               minify: true,
-              source_map: source_map.as_mut(),
+              source_map: source_map
+                .as_mut()
+                .map(|source_map| source_map as &mut dyn SourceMapWriter),
               project_root: None,
               targets,
               analyze_dependencies: None,
