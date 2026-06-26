@@ -6,17 +6,18 @@ use rspack_core::{
 };
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
+use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, Span, UnaryExpr,
+  AssignExpr, CallExpr, Expr, GetSpan, MemberExpr, MemberProp, MetaPropKind, Span, UnaryExpr,
 };
 use url::Url;
 
 use super::{
   JavascriptParserPlugin,
   api_plugin::{
-    import_meta_runtime_api_call, import_meta_runtime_api_from_name,
-    import_meta_runtime_api_from_property, import_meta_runtime_api_member,
-    render_import_meta_runtime_api_destructuring,
+    import_meta_runtime_api_assign, import_meta_runtime_api_call,
+    import_meta_runtime_api_from_name, import_meta_runtime_api_from_property,
+    import_meta_runtime_api_member, render_import_meta_runtime_api_destructuring,
   },
 };
 use crate::{
@@ -529,6 +530,26 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
       return import_meta_runtime_api_call(parser, call_expr, api);
     }
     None
+  }
+
+  fn assign_member_chain(
+    &self,
+    parser: &mut JavascriptParser,
+    expr: &AssignExpr,
+    members: &[Atom],
+    _member_ranges: &[Span],
+    for_name: &str,
+  ) -> Option<bool> {
+    if for_name != expr_name::IMPORT_META {
+      return None;
+    }
+    let property = members.first()?;
+    let api = import_meta_runtime_api_from_property(property.as_ref())?;
+    let handled = import_meta_runtime_api_assign(parser, expr.left.span(), api);
+    if handled.is_some() {
+      parser.walk_expression(&expr.right);
+    }
+    handled
   }
 
   fn unhandled_expression_member_chain(

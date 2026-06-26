@@ -341,6 +341,18 @@ pub(crate) fn import_meta_runtime_api_call(
   Some(true)
 }
 
+pub(crate) fn import_meta_runtime_api_assign(
+  parser: &mut JavascriptParser,
+  span: Span,
+  api: &ImportMetaRuntimeApi,
+) -> Option<bool> {
+  parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write(
+    span.into(),
+    api.runtime_global,
+  )));
+  Some(true)
+}
+
 fn static_require_member_chain(
   parser: &mut JavascriptParser,
   for_name: &str,
