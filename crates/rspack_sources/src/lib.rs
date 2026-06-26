@@ -50,7 +50,7 @@ pub use source_map_source::{SourceMapSource, SourceMapSourceOptions, WithoutOrig
 /// Reexport `StreamChunks` related types.
 pub mod stream_chunks {
   pub use super::helpers::{
-    Chunks, GeneratedInfo, OnChunk, OnName, OnSource, StreamChunks, TextSpan, stream_chunks_default,
+    Chunks, GeneratedInfo, StreamBuilder, StreamChunks, StreamSink, TextSpan, stream_chunks_default,
   };
 }
 

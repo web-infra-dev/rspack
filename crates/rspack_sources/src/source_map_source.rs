@@ -7,7 +7,7 @@ use std::{
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, StreamChunks, TextSpan, get_map, stream_chunks_of_combined_source_map,
+    Chunks, StreamChunks, StreamSink, TextSpan, get_map, stream_chunks_of_combined_source_map,
     stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
@@ -226,13 +226,11 @@ impl std::fmt::Debug for SourceMapSource {
 struct SourceMapSourceChunks<'source>(&'source SourceMapSource);
 
 impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> crate::helpers::GeneratedInfo {
     if let Some(inner_source_map) = &self.0.inner_source_map {
       stream_chunks_of_combined_source_map(
@@ -244,9 +242,7 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
         self.0.original_source.as_deref(),
         inner_source_map.fields(),
         self.0.remove_original_source,
-        on_chunk,
-        on_source,
-        on_name,
+        sink,
       )
     } else {
       stream_chunks_of_source_map(
@@ -254,9 +250,7 @@ impl<'source> Chunks<'source> for SourceMapSourceChunks<'source> {
         object_pool,
         TextSpan::new(self.0.value.as_ref()),
         self.0.source_map.fields(),
-        on_chunk,
-        on_source,
-        on_name,
+        sink,
       )
     }
   }

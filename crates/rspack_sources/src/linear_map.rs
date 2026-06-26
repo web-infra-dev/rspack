@@ -27,11 +27,6 @@ impl<V: Default> LinearMap<V> {
     }
     self.inner[key] = value;
   }
-
-  #[inline]
-  pub fn clear(&mut self) {
-    self.inner.clear()
-  }
 }
 
 impl<V: Default> Default for LinearMap<V> {

@@ -7,7 +7,7 @@ use std::{
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info, get_map,
+    Chunks, GeneratedInfo, StreamChunks, StreamSink, TextSpan, get_generated_source_info, get_map,
     split_into_lines, split_into_potential_tokens,
   },
   object_pool::ObjectPool,
@@ -135,15 +135,13 @@ impl<'source> OriginalSourceChunks<'source> {
 }
 
 impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    _on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> GeneratedInfo {
-    on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
+    sink.on_source(0, Cow::Borrowed(&self.0.name), Some(self.0.value.as_ref()));
     let source = TextSpan::new(self.0.value.as_ref());
     if options.columns {
       // With column info we need to read all lines and split them
@@ -153,7 +151,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
         let is_end_of_line = token.ends_with("\n");
         if is_end_of_line && token.len() == 1 {
           if !options.final_source {
-            on_chunk(
+            sink.on_chunk(
               Some(source.subspan(token)),
               Mapping {
                 generated_line: line,
@@ -163,7 +161,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
             );
           }
         } else {
-          on_chunk(
+          sink.on_chunk(
             (!options.final_source).then_some(source.subspan(token)),
             Mapping {
               generated_line: line,
@@ -194,7 +192,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
       let result = get_generated_source_info(source);
       if result.generated_column == 0 {
         for line in 1..result.generated_line {
-          on_chunk(
+          sink.on_chunk(
             None,
             Mapping {
               generated_line: line,
@@ -210,7 +208,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
         }
       } else {
         for line in 1..=result.generated_line {
-          on_chunk(
+          sink.on_chunk(
             None,
             Mapping {
               generated_line: line,
@@ -232,7 +230,7 @@ impl<'source> Chunks<'source> for OriginalSourceChunks<'source> {
       let mut line = 1;
       let mut last_line = None;
       for l in split_into_lines(self.0.value.as_ref()) {
-        on_chunk(
+        sink.on_chunk(
           (!options.final_source).then_some(source.subspan(l)),
           Mapping {
             generated_line: line,
@@ -378,15 +376,13 @@ mod tests {
     let mut chunks = vec![];
     let object_pool = ObjectPool::default();
     let handle = source.stream_chunks();
-    let generated_info = handle.stream(
-      &object_pool,
-      &MapOptions::default(),
-      &mut |chunk, mapping| {
+    let generated_info = handle
+      .stream(&object_pool, &MapOptions::default())
+      .on_source(|_source_index, _source, _source_content| {})
+      .on_name(|_name_index, _name| {})
+      .on_chunk(|chunk, mapping| {
         chunks.push((chunk.unwrap().as_str(), mapping));
-      },
-      &mut |_source_index, _source, _source_content| {},
-      &mut |_name_index, _name| {},
-    );
+      });
 
     assert_eq!(
       generated_info,

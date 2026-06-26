@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  cell::RefCell,
   hash::{Hash, Hasher},
   sync::{Arc, Mutex, OnceLock},
 };
@@ -9,7 +8,7 @@ use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   BoxSource, MapOptions, RawStringSource, Source, SourceExt, SourceMap, SourceValue,
-  helpers::{Chunks, GeneratedInfo, StreamChunks, get_map},
+  helpers::{Chunks, GeneratedInfo, StreamChunks, StreamSink, get_map},
   linear_map::LinearMap,
   object_pool::ObjectPool,
   source::{Mapping, OriginalLocation},
@@ -274,144 +273,46 @@ impl<'source> ConcatSourceChunks<'source> {
 }
 
 impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> GeneratedInfo {
     if self.children_chunks.len() == 1 {
-      return self.children_chunks[0].stream(object_pool, options, on_chunk, on_source, on_name);
+      return self.children_chunks[0].stream_with(object_pool, options, sink);
     }
     let mut current_line_offset = 0;
     let mut current_column_offset = 0;
-    let mut source_mapping: HashMap<Cow<str>, u32> = HashMap::default();
-    let mut name_mapping: HashMap<Cow<str>, u32> = HashMap::default();
+    let mut source_mapping: HashMap<Cow<'source, str>, u32> = HashMap::default();
+    let mut name_mapping: HashMap<Cow<'source, str>, u32> = HashMap::default();
     let mut need_to_close_mapping = false;
 
-    let source_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
-    let name_index_mapping: RefCell<LinearMap<u32>> = RefCell::new(LinearMap::default());
-
     for child_handle in &self.children_chunks {
-      source_index_mapping.borrow_mut().clear();
-      name_index_mapping.borrow_mut().clear();
-      let mut last_mapping_line = 0;
-      let GeneratedInfo {
-        generated_line,
-        generated_column,
-      } = child_handle.stream(
-        object_pool,
-        options,
-        &mut |chunk, mapping| {
-          let line = mapping.generated_line + current_line_offset;
-          let column = if mapping.generated_line == 1 {
-            mapping.generated_column + current_column_offset
-          } else {
-            mapping.generated_column
-          };
-          if need_to_close_mapping {
-            if mapping.generated_line != 1 || mapping.generated_column != 0 {
-              on_chunk(
-                None,
-                Mapping {
-                  generated_line: current_line_offset + 1,
-                  generated_column: current_column_offset,
-                  original: None,
-                },
-              );
-            }
-            need_to_close_mapping = false;
-          }
-          let result_source_index = mapping.original.as_ref().and_then(|original| {
-            source_index_mapping
-              .borrow()
-              .get(&original.source_index)
-              .copied()
-          });
-          let result_name_index = mapping
-            .original
-            .as_ref()
-            .and_then(|original| original.name_index)
-            .and_then(|name_index| name_index_mapping.borrow().get(&name_index).copied());
-          last_mapping_line = if result_source_index.is_none() {
-            0
-          } else {
-            mapping.generated_line
-          };
-          if options.final_source {
-            if let (Some(result_source_index), Some(original)) =
-              (result_source_index, &mapping.original)
-            {
-              on_chunk(
-                None,
-                Mapping {
-                  generated_line: line,
-                  generated_column: column,
-                  original: Some(OriginalLocation {
-                    source_index: result_source_index,
-                    original_line: original.original_line,
-                    original_column: original.original_column,
-                    name_index: result_name_index,
-                  }),
-                },
-              );
-            }
-          } else if let (Some(result_source_index), Some(original)) =
-            (result_source_index, &mapping.original)
-          {
-            on_chunk(
-              chunk,
-              Mapping {
-                generated_line: line,
-                generated_column: column,
-                original: Some(OriginalLocation {
-                  source_index: result_source_index,
-                  original_line: original.original_line,
-                  original_column: original.original_column,
-                  name_index: result_name_index,
-                }),
-              },
-            );
-          } else {
-            on_chunk(
-              chunk,
-              Mapping {
-                generated_line: line,
-                generated_column: column,
-                original: None,
-              },
-            );
-          }
+      let (
+        GeneratedInfo {
+          generated_line,
+          generated_column,
         },
-        &mut |i, source, source_content| {
-          let mut global_index = source_mapping.get(&source).copied();
-          if global_index.is_none() {
-            let len = source_mapping.len() as u32;
-            source_mapping.insert(source.clone(), len);
-            on_source(len, source, source_content);
-            global_index = Some(len);
-          }
-          source_index_mapping
-            .borrow_mut()
-            .insert(i, global_index.unwrap());
-        },
-        &mut |i, name| {
-          let mut global_index = name_mapping.get(&name).copied();
-          if global_index.is_none() {
-            let len = name_mapping.len() as u32;
-            name_mapping.insert(name.clone(), len);
-            on_name(len, name);
-            global_index = Some(len);
-          }
-          name_index_mapping
-            .borrow_mut()
-            .insert(i, global_index.unwrap());
-        },
-      );
+        last_mapping_line,
+      ) = {
+        let mut child_sink = ConcatChildSink {
+          options,
+          sink,
+          source_mapping: &mut source_mapping,
+          name_mapping: &mut name_mapping,
+          source_index_mapping: LinearMap::default(),
+          name_index_mapping: LinearMap::default(),
+          current_line_offset,
+          current_column_offset,
+          need_to_close_mapping: &mut need_to_close_mapping,
+          last_mapping_line: 0,
+        };
+        let generated_info = child_handle.stream_with(object_pool, options, &mut child_sink);
+        (generated_info, child_sink.last_mapping_line)
+      };
       if need_to_close_mapping && (generated_line != 1 || generated_column != 0) {
-        on_chunk(
+        sink.on_chunk(
           None,
           Mapping {
             generated_line: current_line_offset + 1,
@@ -434,6 +335,131 @@ impl<'source> Chunks<'source> for ConcatSourceChunks<'source> {
       generated_line: current_line_offset + 1,
       generated_column: current_column_offset,
     }
+  }
+}
+
+struct ConcatChildSink<'sink, 'chunk, 'source> {
+  options: &'sink MapOptions,
+  sink: &'sink mut dyn StreamSink<'chunk, 'source>,
+  source_mapping: &'sink mut HashMap<Cow<'source, str>, u32>,
+  name_mapping: &'sink mut HashMap<Cow<'source, str>, u32>,
+  source_index_mapping: LinearMap<u32>,
+  name_index_mapping: LinearMap<u32>,
+  current_line_offset: u32,
+  current_column_offset: u32,
+  need_to_close_mapping: &'sink mut bool,
+  last_mapping_line: u32,
+}
+
+impl<'chunk, 'source> StreamSink<'chunk, 'source> for ConcatChildSink<'_, 'chunk, 'source> {
+  fn on_chunk(&mut self, chunk: Option<crate::helpers::TextSpan<'chunk>>, mapping: Mapping) {
+    let line = mapping.generated_line + self.current_line_offset;
+    let column = if mapping.generated_line == 1 {
+      mapping.generated_column + self.current_column_offset
+    } else {
+      mapping.generated_column
+    };
+    if *self.need_to_close_mapping {
+      if mapping.generated_line != 1 || mapping.generated_column != 0 {
+        self.sink.on_chunk(
+          None,
+          Mapping {
+            generated_line: self.current_line_offset + 1,
+            generated_column: self.current_column_offset,
+            original: None,
+          },
+        );
+      }
+      *self.need_to_close_mapping = false;
+    }
+    let result_source_index = mapping.original.as_ref().and_then(|original| {
+      self
+        .source_index_mapping
+        .get(&original.source_index)
+        .copied()
+    });
+    let result_name_index = mapping
+      .original
+      .as_ref()
+      .and_then(|original| original.name_index)
+      .and_then(|name_index| self.name_index_mapping.get(&name_index).copied());
+    self.last_mapping_line = if result_source_index.is_none() {
+      0
+    } else {
+      mapping.generated_line
+    };
+    if self.options.final_source {
+      if let (Some(result_source_index), Some(original)) = (result_source_index, &mapping.original)
+      {
+        self.sink.on_chunk(
+          None,
+          Mapping {
+            generated_line: line,
+            generated_column: column,
+            original: Some(OriginalLocation {
+              source_index: result_source_index,
+              original_line: original.original_line,
+              original_column: original.original_column,
+              name_index: result_name_index,
+            }),
+          },
+        );
+      }
+    } else if let (Some(result_source_index), Some(original)) =
+      (result_source_index, &mapping.original)
+    {
+      self.sink.on_chunk(
+        chunk,
+        Mapping {
+          generated_line: line,
+          generated_column: column,
+          original: Some(OriginalLocation {
+            source_index: result_source_index,
+            original_line: original.original_line,
+            original_column: original.original_column,
+            name_index: result_name_index,
+          }),
+        },
+      );
+    } else {
+      self.sink.on_chunk(
+        chunk,
+        Mapping {
+          generated_line: line,
+          generated_column: column,
+          original: None,
+        },
+      );
+    }
+  }
+
+  fn on_source(
+    &mut self,
+    index: u32,
+    source: Cow<'source, str>,
+    source_content: Option<&'source str>,
+  ) {
+    let global_index = if let Some(global_index) = self.source_mapping.get(&source).copied() {
+      global_index
+    } else {
+      let len = self.source_mapping.len() as u32;
+      self.source_mapping.insert(source.clone(), len);
+      self.sink.on_source(len, source, source_content);
+      len
+    };
+    self.source_index_mapping.insert(index, global_index);
+  }
+
+  fn on_name(&mut self, index: u32, name: Cow<'source, str>) {
+    let global_index = if let Some(global_index) = self.name_mapping.get(&name).copied() {
+      global_index
+    } else {
+      let len = self.name_mapping.len() as u32;
+      self.name_mapping.insert(name.clone(), len);
+      self.sink.on_name(len, name);
+      len
+    };
+    self.name_index_mapping.insert(index, global_index);
   }
 }
 

@@ -7,7 +7,7 @@ use std::{
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, get_generated_source_info,
+    Chunks, GeneratedInfo, StreamChunks, StreamSink, TextSpan, get_generated_source_info,
     stream_chunks_of_raw_source,
   },
   object_pool::ObjectPool,
@@ -117,19 +117,17 @@ impl<'source> RawStringChunks<'source> {
 }
 
 impl<'source> Chunks<'source> for RawStringChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> crate::helpers::GeneratedInfo {
     let source = TextSpan::new(self.0);
     if options.final_source {
       get_generated_source_info(source)
     } else {
-      stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
+      stream_chunks_of_raw_source(source, options, sink)
     }
   }
 }
@@ -259,20 +257,18 @@ impl Hash for RawBufferSource {
 struct RawBufferSourceChunks<'a>(&'a RawBufferSource);
 
 impl<'source> Chunks<'source> for RawBufferSourceChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     _object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> GeneratedInfo {
     let code = self.0.get_or_init_value_as_string();
     let source = TextSpan::new(code);
     if options.final_source {
       get_generated_source_info(source)
     } else {
-      stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
+      stream_chunks_of_raw_source(source, options, sink)
     }
   }
 }

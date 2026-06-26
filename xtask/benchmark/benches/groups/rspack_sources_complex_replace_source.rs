@@ -36731,13 +36731,14 @@ pub fn benchmark_complex_replace_source_map_cached_source_stream_chunks(b: &mut 
   cached_source.map(&ObjectPool::default(), &MapOptions::default());
 
   b.iter(|| {
-    std::hint::black_box(cached_source.stream_chunks().stream(
-      &ObjectPool::default(),
-      &MapOptions::default(),
-      &mut |_chunk, _mapping| {},
-      &mut |_source_index, _source, _source_content| {},
-      &mut |_name_index, _name| {},
-    ));
+    std::hint::black_box(
+      cached_source
+        .stream_chunks()
+        .stream(&ObjectPool::default(), &MapOptions::default())
+        .on_source(|_source_index, _source, _source_content| {})
+        .on_name(|_name_index, _name| {})
+        .on_chunk(|_chunk, _mapping| {}),
+    );
   });
 }
 

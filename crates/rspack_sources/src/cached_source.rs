@@ -10,7 +10,7 @@ use rustc_hash::FxHasher;
 use crate::{
   BoxSource, MapOptions, RawBufferSource, Source, SourceExt, SourceMap,
   helpers::{
-    Chunks, GeneratedInfo, StreamChunks, TextSpan, stream_and_get_source_and_map,
+    Chunks, GeneratedInfo, StreamChunks, StreamSink, TextSpan, stream_and_get_source_and_map,
     stream_chunks_of_raw_source, stream_chunks_of_source_map,
   },
   object_pool::ObjectPool,
@@ -233,13 +233,11 @@ impl<'source> CachedSourceChunks<'source> {
 }
 
 impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
-  fn stream<'chunk>(
+  fn stream_with<'chunk>(
     &'chunk self,
     object_pool: &ObjectPool,
     options: &MapOptions,
-    on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    sink: &mut dyn StreamSink<'chunk, 'source>,
   ) -> GeneratedInfo {
     let cell = if options.columns {
       &self.cache_source.cache.columns_map
@@ -250,28 +248,14 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
       Some(map) => {
         let source = self.get_or_init_source();
         if let Some(map) = map {
-          stream_chunks_of_source_map(
-            options,
-            object_pool,
-            source,
-            map.fields(),
-            on_chunk,
-            on_source,
-            on_name,
-          )
+          stream_chunks_of_source_map(options, object_pool, source, map.fields(), sink)
         } else {
-          stream_chunks_of_raw_source(source, options, on_chunk, on_source, on_name)
+          stream_chunks_of_raw_source(source, options, sink)
         }
       }
       None => {
-        let (generated_info, map) = stream_and_get_source_and_map(
-          options,
-          object_pool,
-          self.get_or_init_chunks(),
-          on_chunk,
-          on_source,
-          on_name,
-        );
+        let (generated_info, map) =
+          stream_and_get_source_and_map(options, object_pool, self.get_or_init_chunks(), sink);
         cell.get_or_init(|| {
           map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
         });
@@ -433,46 +417,42 @@ mod tests {
     let generated_info = {
       let object_pool = ObjectPool::default();
       let chunks = source.stream_chunks();
-      chunks.stream(
-        &object_pool,
-        &map_options,
-        &mut |_chunk, _mapping| {
-          on_chunk_count += 1;
-        },
-        &mut |_source_index, _source, _source_content| {
+      chunks
+        .stream(&object_pool, &map_options)
+        .on_source(|_source_index, _source, _source_content| {
           on_source_count += 1;
-        },
-        &mut |_name_index, _name| {
+        })
+        .on_name(|_name_index, _name| {
           on_name_count += 1;
-        },
-      )
+        })
+        .on_chunk(|_chunk, _mapping| {
+          on_chunk_count += 1;
+        })
     };
 
     let cached_source = CachedSource::new(source);
-    cached_source.stream_chunks().stream(
-      &ObjectPool::default(),
-      &map_options,
-      &mut |_chunk, _mapping| {},
-      &mut |_source_index, _source, _source_content| {},
-      &mut |_name_index, _name| {},
-    );
+    cached_source
+      .stream_chunks()
+      .stream(&ObjectPool::default(), &map_options)
+      .on_source(|_source_index, _source, _source_content| {})
+      .on_name(|_name_index, _name| {})
+      .on_chunk(|_chunk, _mapping| {});
 
     let mut cached_on_chunk_count = 0;
     let mut cached_on_source_count = 0;
     let mut cached_on_name_count = 0;
-    let cached_generated_info = cached_source.stream_chunks().stream(
-      &ObjectPool::default(),
-      &map_options,
-      &mut |_chunk, _mapping| {
-        cached_on_chunk_count += 1;
-      },
-      &mut |_source_index, _source, _source_content| {
+    let cached_generated_info = cached_source
+      .stream_chunks()
+      .stream(&ObjectPool::default(), &map_options)
+      .on_source(|_source_index, _source, _source_content| {
         cached_on_source_count += 1;
-      },
-      &mut |_name_index, _name| {
+      })
+      .on_name(|_name_index, _name| {
         cached_on_name_count += 1;
-      },
-    );
+      })
+      .on_chunk(|_chunk, _mapping| {
+        cached_on_chunk_count += 1;
+      });
 
     assert_eq!(on_chunk_count, cached_on_chunk_count);
     assert_eq!(on_source_count, cached_on_source_count);
