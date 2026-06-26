@@ -1404,17 +1404,16 @@ fn get_resolve_defaults(mode: Mode, target_properties: &TargetProperties, css: b
     }];
     style_conditions.push("style".to_string());
 
-    by_dependency.push((
-      "css-import".into(),
-      Resolve {
-        main_files: Some(vec![]),
-        main_fields: Some(vec!["style".to_string(), "...".to_string()]),
-        condition_names: Some(style_conditions),
-        extensions: Some(vec![".css".to_string()]),
-        prefer_relative: Some(true),
-        ..Default::default()
-      },
-    ));
+    let css_resolve = Resolve {
+      main_files: Some(vec![]),
+      main_fields: Some(vec!["style".to_string(), "...".to_string()]),
+      condition_names: Some(style_conditions),
+      extensions: Some(vec![".css".to_string()]),
+      prefer_relative: Some(true),
+      ..Default::default()
+    };
+    by_dependency.push(("css-import".into(), css_resolve.clone()));
+    by_dependency.push(("css-compose".into(), css_resolve));
   }
 
   Resolve {

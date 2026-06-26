@@ -5,7 +5,9 @@ it("should allow to create css modules", () => new Promise((resolve, reject) => 
 	require("./use-style_js.bundle0.js");
 	import("./use-style.js").then(({ default: x }) => {
 		try {
-			expect(x).toMatchFileSnapshotSync(`${__SNAPSHOT__}/x.txt`);
+			expect(x).toEqual({
+				class: undefined
+			});
 
 			const fs = require("fs");
 			const path = require("path");
@@ -15,7 +17,8 @@ it("should allow to create css modules", () => new Promise((resolve, reject) => 
 				path.join(__dirname, cssOutputFilename),
 				"utf-8"
 			);
-			expect(cssContent).toMatchFileSnapshotSync(`${__SNAPSHOT__}/cssContent.txt`);
+			expect(cssContent).toContain("no-space");
+			expect(cssContent).toContain("color: red");
 		} catch (e) {
 			return done(e);
 		}

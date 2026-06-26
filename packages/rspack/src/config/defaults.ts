@@ -1342,6 +1342,7 @@ const getResolveDefaults = ({
   resolveOptions.byDependency!['css-import'] = cssResolveOptions;
   resolveOptions.byDependency!['css-import-local-module'] = cssResolveOptions;
   resolveOptions.byDependency!['css-import-global-module'] = cssResolveOptions;
+  resolveOptions.byDependency!['css-compose'] = cssResolveOptions;
 
   return resolveOptions;
 };

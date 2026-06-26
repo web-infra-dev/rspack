@@ -45,6 +45,7 @@ pub(super) struct CssModuleParser<'context> {
   css_exports: CssExports,
   css_local_names: CssLocalNames,
   icss_definitions: FxHashMap<String, IcssDefinition>,
+  all_icss_value_definitions: FxHashMap<String, IcssDefinition>,
   current_icss_import_from: Option<String>,
   composes_order: ComposesOrderState,
   local_ident_options: OnceCell<LocalIdentOptions<'context>>,
@@ -57,6 +58,12 @@ enum IcssDefinition {
     import_name: String,
     request: String,
   },
+}
+
+#[derive(Debug, Clone, Copy)]
+enum IcssUrlValueUsage {
+  Import,
+  Url,
 }
 
 #[derive(Default)]
@@ -249,6 +256,7 @@ impl<'context> CssModuleParser<'context> {
       css_exports: Default::default(),
       css_local_names: Default::default(),
       icss_definitions: Default::default(),
+      all_icss_value_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
       local_ident_options: OnceCell::new(),
@@ -261,6 +269,7 @@ impl<'context> CssModuleParser<'context> {
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
     let local_css_ident_declarations = self.collect_local_css_ident_declarations(&deps);
     let module_hash_options = self.create_module_hash_options(&deps, &local_css_ident_declarations);
+    self.collect_icss_value_definitions(&deps);
 
     for dependency in deps {
       self
@@ -627,6 +636,27 @@ impl<'context> CssModuleParser<'context> {
     declarations
   }
 
+  fn collect_icss_value_definitions<'source>(
+    &mut self,
+    deps: &[css_module_lexer::Dependency<'source>],
+  ) {
+    for dependency in deps {
+      let css_module_lexer::Dependency::ICSSExportValue { prop, value } = dependency else {
+        continue;
+      };
+      let value = REGEX_IS_COMMENTS.replace_all(value, "").into_owned();
+      let definition = IcssDefinition::Value(value);
+      self
+        .all_icss_value_definitions
+        .insert((*prop).to_string(), definition.clone());
+      if let Some(custom_property_name) = prop.strip_prefix("--") {
+        self
+          .all_icss_value_definitions
+          .insert(custom_property_name.to_string(), definition);
+      }
+    }
+  }
+
   fn should_handle_local_var_usage(
     &self,
     name: &str,
@@ -697,6 +727,11 @@ impl<'context> CssModuleParser<'context> {
           .handle_import(request, range, media, supports, layer)
           .await
       }
+      css_module_lexer::Dependency::ICSSImportUrl {
+        name,
+        range,
+        name_range,
+      } => self.handle_icss_import_url(name, range, name_range).await,
       css_module_lexer::Dependency::Replace { content, range } => {
         let range = self.presentational_replace_range(content, range);
         self
@@ -892,6 +927,13 @@ impl<'context> CssModuleParser<'context> {
       range.end,
     );
     let request = normalize_url(request);
+    let Some(request) = self.resolve_icss_url_value(&request, &range, IcssUrlValueUsage::Url)
+    else {
+      return Ok(());
+    };
+    if request.trim().is_empty() {
+      return Ok(());
+    }
     let dep = Box::new(CssUrlDependency::new(
       request,
       DependencyRange::new(range.start, range.end),
@@ -911,6 +953,16 @@ impl<'context> CssModuleParser<'context> {
     layer: Option<&str>,
   ) -> Result<()> {
     let request = normalize_url(request);
+    let Some(request) = self.resolve_icss_url_value(&request, &range, IcssUrlValueUsage::Import)
+    else {
+      self
+        .presentational_dependencies
+        .push(Box::new(ConstDependency::new(
+          (range.start, range.end).into(),
+          "".into(),
+        )));
+      return Ok(());
+    };
     if request.trim().is_empty() {
       self
         .presentational_dependencies
@@ -955,6 +1007,35 @@ impl<'context> CssModuleParser<'context> {
     ));
     self.dependencies.push(dep.clone());
     self.code_generation_dependencies.push(dep);
+    Ok(())
+  }
+
+  async fn handle_icss_import_url(
+    &mut self,
+    name: &str,
+    range: css_module_lexer::Range,
+    name_range: css_module_lexer::Range,
+  ) -> Result<()> {
+    let Some(definition) = self.get_icss_definition(name) else {
+      self.add_expected_url_warning(&range);
+      return Ok(());
+    };
+
+    match definition {
+      IcssDefinition::Value(_) => {
+        self.handle_import(name, range, None, None, None).await?;
+      }
+      IcssDefinition::Import { .. } => {
+        self.add_icss_imported_value_url_warning(name, &name_range, IcssUrlValueUsage::Import);
+        self
+          .presentational_dependencies
+          .push(Box::new(ConstDependency::new(
+            (range.start, range.end).into(),
+            "".into(),
+          )));
+      }
+    }
+
     Ok(())
   }
 
@@ -1564,7 +1645,7 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
-    let Some(definition) = self.icss_definitions.get(name).cloned() else {
+    let Some(definition) = self.get_icss_definition(name).cloned() else {
       return;
     };
     self
@@ -1577,15 +1658,14 @@ impl<'context> CssModuleParser<'context> {
 
   fn resolve_icss_definition(&self, value: &str) -> IcssDefinition {
     self
-      .icss_definitions
-      .get(value)
+      .get_icss_definition(value)
       .cloned()
       .unwrap_or_else(|| IcssDefinition::Value(value.to_string()))
   }
 
   fn resolve_icss_import_request(&self, path: &str) -> String {
     let path = path.trim_matches(|c| c == '\'' || c == '"');
-    if let Some(IcssDefinition::Value(value)) = self.icss_definitions.get(path) {
+    if let Some(IcssDefinition::Value(value)) = self.get_icss_definition(path) {
       value.trim_matches(|c| c == '\'' || c == '"').to_string()
     } else if !path.starts_with('.')
       && !path.starts_with('/')
@@ -1597,6 +1677,61 @@ impl<'context> CssModuleParser<'context> {
     } else {
       path.to_string()
     }
+  }
+
+  fn resolve_icss_url_value(
+    &mut self,
+    request: &str,
+    range: &css_module_lexer::Range,
+    usage: IcssUrlValueUsage,
+  ) -> Option<String> {
+    let name = request.trim_matches(|c| c == '\'' || c == '"');
+    match self.get_icss_definition(name).cloned() {
+      Some(IcssDefinition::Value(value)) => {
+        Some(value.trim_matches(|c| c == '\'' || c == '"').to_string())
+      }
+      Some(IcssDefinition::Import { .. }) => {
+        self.add_icss_imported_value_url_warning(name, range, usage);
+        None
+      }
+      None => Some(request.to_string()),
+    }
+  }
+
+  fn add_icss_imported_value_url_warning(
+    &mut self,
+    name: &str,
+    range: &css_module_lexer::Range,
+    usage: IcssUrlValueUsage,
+  ) {
+    let message = match usage {
+      IcssUrlValueUsage::Import => format!(
+        "\"@value\" identifier \"{name}\" was imported from another module and cannot be used as the URL of \"@import\" - only locally defined values are supported here"
+      ),
+      IcssUrlValueUsage::Url => format!(
+        "\"@value\" identifier \"{name}\" was imported from another module and cannot be used inside \"url()\" - only locally defined values are supported here"
+      ),
+    };
+    let error = css_parsing_traceable_error(
+      &self.source_code,
+      range.start,
+      range.end,
+      message,
+      Severity::Warning,
+    );
+    self.diagnostics.push(error.into());
+  }
+
+  fn add_expected_url_warning(&mut self, range: &css_module_lexer::Range) {
+    let when = &self.source_code[range.start as usize..range.end as usize];
+    let error = css_parsing_traceable_error(
+      &self.source_code,
+      range.start,
+      range.end,
+      format!("Expected URL in '{when}'"),
+      Severity::Warning,
+    );
+    self.diagnostics.push(error.into());
   }
 
   fn update_css_exports_from_icss_definition(
@@ -1672,7 +1807,7 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn get_icss_composes_exports(&self, name: &str) -> Option<Vec<CssExport>> {
-    let definition = self.icss_definitions.get(name)?;
+    let definition = self.get_icss_definition(name)?;
     match definition {
       IcssDefinition::Value(value) => self
         .css_exports
@@ -1696,6 +1831,13 @@ impl<'context> CssModuleParser<'context> {
         id: None,
       }]),
     }
+  }
+
+  fn get_icss_definition(&self, name: &str) -> Option<&IcssDefinition> {
+    self
+      .icss_definitions
+      .get(name)
+      .or_else(|| self.all_icss_value_definitions.get(name))
   }
 
   fn add_warnings(&mut self, warnings: Vec<css_module_lexer::Warning>) {

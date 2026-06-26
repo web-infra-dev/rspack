@@ -822,7 +822,9 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
         }
         None
       })
-      .expect("should have css from module");
+      .unwrap_or_else(|| {
+        panic!("should have css from module: ident={ident}, from={from_name}")
+      });
 
     let from_used_name = self.stringified_used_export_name(from.module_identifier, ident, true);
     self.render_require_property_access(from.module_identifier, &from_used_name)

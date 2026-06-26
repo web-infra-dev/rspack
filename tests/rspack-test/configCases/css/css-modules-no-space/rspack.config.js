@@ -10,6 +10,11 @@ module.exports = () => ({
   target: 'web',
   mode: 'development',
   module: {
+    parser: {
+      javascript: {
+        importExportsPresence: 'warn',
+      },
+    },
     rules: [
       {
         test: /\.my-css$/i,

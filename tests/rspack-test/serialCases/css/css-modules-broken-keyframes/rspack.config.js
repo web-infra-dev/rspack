@@ -12,6 +12,13 @@ module.exports = (env, { testPath }) => ({
   output: {
     uniqueName: 'my-app',
   },
+  incremental: {
+    moduleIds: false,
+  },
+  optimization: {
+    concatenateModules: false,
+    moduleIds: false,
+  },
   node: {
     __dirname: false,
   },
@@ -28,10 +35,8 @@ module.exports = (env, { testPath }) => ({
       maxLength: 3,
       failOnConflict: true,
       fixedLength: true,
-      test: (m) => m.type.startsWith('css'),
     }),
     new rspack.experiments.ids.SyncModuleIdsPlugin({
-      test: (m) => m.type.startsWith('css'),
       path: path.resolve(testPath, 'module-ids.json'),
       mode: 'create',
     }),

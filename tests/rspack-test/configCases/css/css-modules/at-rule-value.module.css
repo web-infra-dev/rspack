@@ -222,9 +222,46 @@ colorValue-v3 {
 
 .foo { color: test-v2; }
 
-@value/* test */(/* test */blue/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
+@value/* test */(/* test */blue-v1/* test */as/* test */my-name-q/* test */)/* test */from/* test */"./colors.module.css"/* test */;
 
 .foo { color: my-name-q; }
+
+@value/*
+	multiline
+	comment
+*/multiline-v1/*
+	multiline
+	comment
+*/:/*
+	multiline
+	comment
+*/red/*
+	multiline
+	comment
+*/;
+
+.color {
+	color: multiline-v1;
+}
+
+@value /*
+	multiline comment
+*/ red-v3 /*
+	multiline comment
+*/ from /*
+	multiline comment
+*/ "./colors.module.css" /*
+	multiline comment
+*/;
+
+.foo { color: red-v3; }
+
+@value multiline-empty: /*
+	multiline
+	comment
+*/;
+
+:root { --color:multiline-empty; }
 
 @value;
 @value test;

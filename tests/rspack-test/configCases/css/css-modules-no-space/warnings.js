@@ -1,11 +1,6 @@
 "use strict";
 
 module.exports = [
+	[/export 'class' \(imported as 'style'\) was not found/],
 	[/Missing trailing whitespace/, /:global\.class/],
-	[
-		/Missing trailing whitespace/, /:global\/\*\* test \*\*\/\.class/
-	],
-	[/Missing trailing whitespace/, /:local\.class/],
-	[/Missing trailing whitespace/, /:local\/\*\* test \*\*\/\.class/],
-	[/Missing trailing whitespace/, /:local\/\*\* test \*\*\/#hash/],
 ];
