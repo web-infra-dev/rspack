@@ -545,15 +545,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     }
     let property = members.first()?;
     let api = import_meta_runtime_api_from_property(property.as_ref())?;
-    let span = if members.len() > 1 {
+    let full_assignment = members.len() == 1;
+    let span = if full_assignment {
+      expr.left.span()
+    } else {
       member_ranges
         .get(1)
         .copied()
         .unwrap_or_else(|| expr.left.span())
-    } else {
-      expr.left.span()
     };
-    let handled = import_meta_runtime_api_assign(parser, span, api);
+    let handled = import_meta_runtime_api_assign(parser, span, api, full_assignment);
     if handled.is_some() {
       parser.walk_expression(&expr.right);
     }

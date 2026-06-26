@@ -345,7 +345,18 @@ pub(crate) fn import_meta_runtime_api_assign(
   parser: &mut JavascriptParser,
   span: Span,
   api: &ImportMetaRuntimeApi,
+  full_assignment: bool,
 ) -> Option<bool> {
+  if api.runtime_call {
+    let content = if full_assignment {
+      format!("({{}}).{}", api.property)
+    } else {
+      "({})".to_string()
+    };
+    parser
+      .add_presentational_dependency(Box::new(ConstDependency::new(span.into(), content.into())));
+    return Some(true);
+  }
   parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::write(
     span.into(),
     api.runtime_global,
