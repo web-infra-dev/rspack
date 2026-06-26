@@ -60,36 +60,11 @@ struct CachedData {
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// ```
-#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableCachedSource>)]
+#[rspack_cacheable::cacheable]
 pub struct CachedSource {
   inner: BoxSource,
+  #[cacheable(with = rspack_cacheable::with::Skip)]
   cache: Arc<CachedData>,
-}
-
-#[rspack_cacheable::cacheable]
-#[doc(hidden)]
-pub struct CacheableCachedSource {
-  inner: BoxSource,
-}
-
-type ArchivedCachedSource = <CachedSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
-
-impl rspack_cacheable::with::AsConverter<CachedSource> for CacheableCachedSource {
-  fn serialize(
-    data: &CachedSource,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self {
-      inner: data.inner.clone(),
-    })
-  }
-
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<CachedSource> {
-    Ok(CachedSource::new(self.inner))
-  }
 }
 
 impl CachedSource {

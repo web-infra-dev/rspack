@@ -631,6 +631,20 @@ impl<'a> SourceMap<'a> {
   }
 }
 
+impl rspack_cacheable::with::AsStringConverter for SourceMap<'static> {
+  fn to_string(&self) -> rspack_cacheable::Result<String> {
+    Ok(self.to_json())
+  }
+
+  fn from_str(s: &str) -> rspack_cacheable::Result<Self>
+  where
+    Self: Sized,
+  {
+    SourceMap::from_json(s.to_string())
+      .map_err(|_| rspack_cacheable::Error::MessageError("invalid cached source map JSON"))
+  }
+}
+
 impl Serialize for SourceMap<'_> {
   fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
   where
@@ -827,7 +841,7 @@ macro_rules! mappings {
 
 #[cfg(test)]
 mod tests {
-  use std::{collections::HashMap, sync::Arc};
+  use std::collections::HashMap;
 
   use super::*;
   use crate::{

@@ -5,6 +5,12 @@ use std::{
   sync::{Arc, Mutex, OnceLock},
 };
 
+use rspack_cacheable::__private::rkyv::{
+  Archive, Deserialize, Place, Serialize,
+  rancor::Fallible,
+  ser::{Allocator, Writer},
+  vec::{ArchivedVec, VecResolver},
+};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -60,37 +66,44 @@ use crate::{
 ///   .unwrap()
 /// );
 /// ```
-#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableConcatSource>)]
 #[derive(Default)]
 pub struct ConcatSource {
   children: Mutex<Vec<BoxSource>>,
   is_optimized: OnceLock<Vec<BoxSource>>,
 }
 
-#[rspack_cacheable::cacheable]
-#[doc(hidden)]
-pub struct CacheableConcatSource {
-  children: Vec<BoxSource>,
+type ArchivedConcatSource = ArchivedVec<<BoxSource as Archive>::Archived>;
+
+impl Archive for ConcatSource {
+  type Archived = ArchivedConcatSource;
+  type Resolver = VecResolver;
+
+  fn resolve(&self, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedVec::resolve_from_len(self.optimized_children().len(), resolver, out);
+  }
 }
 
-type ArchivedConcatSource = <ConcatSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
-
-impl rspack_cacheable::with::AsConverter<ConcatSource> for CacheableConcatSource {
-  fn serialize(
-    data: &ConcatSource,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self {
-      children: data.optimized_children().to_vec(),
-    })
+impl<S> Serialize<S> for ConcatSource
+where
+  S: Fallible + Allocator + Writer + ?Sized,
+  BoxSource: Serialize<S>,
+{
+  fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    ArchivedVec::serialize_from_slice(self.optimized_children(), serializer)
   }
+}
 
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<ConcatSource> {
+impl<D> Deserialize<ConcatSource, D> for ArchivedConcatSource
+where
+  ArchivedConcatSource: Deserialize<Vec<BoxSource>, D>,
+  D: Fallible + ?Sized,
+{
+  fn deserialize(&self, deserializer: &mut D) -> Result<ConcatSource, D::Error> {
     Ok(ConcatSource {
-      children: Mutex::new(self.children),
+      children: Mutex::new(<Self as Deserialize<Vec<BoxSource>, D>>::deserialize(
+        self,
+        deserializer,
+      )?),
       is_optimized: OnceLock::new(),
     })
   }

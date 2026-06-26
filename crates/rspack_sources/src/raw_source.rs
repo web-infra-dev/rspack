@@ -26,35 +26,12 @@ use crate::{
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
-#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableRawStringSource>)]
+#[rspack_cacheable::cacheable]
 #[derive(Clone, PartialEq, Eq)]
-pub struct RawStringSource(Cow<'static, str>);
+pub struct RawStringSource(#[cacheable(with = rspack_cacheable::with::AsRefStr)] Cow<'static, str>);
 
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 static_assertions::assert_eq_size!(RawStringSource, [u8; 24]);
-
-#[rspack_cacheable::cacheable]
-#[doc(hidden)]
-pub struct CacheableRawStringSource(String);
-
-type ArchivedRawStringSource =
-  <RawStringSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
-
-impl rspack_cacheable::with::AsConverter<RawStringSource> for CacheableRawStringSource {
-  fn serialize(
-    data: &RawStringSource,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self(data.0.to_string()))
-  }
-
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<RawStringSource> {
-    Ok(RawStringSource(Cow::Owned(self.0)))
-  }
-}
 
 impl RawStringSource {
   /// Create a new [RawStringSource] from a static &str.
@@ -178,37 +155,11 @@ impl StreamChunks for RawStringSource {
 /// assert_eq!(s.map(&ObjectPool::default(), &MapOptions::default()), None);
 /// assert_eq!(s.size(), 16);
 /// ```
-#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableRawBufferSource>)]
+#[rspack_cacheable::cacheable]
 pub struct RawBufferSource {
   value: Vec<u8>,
+  #[cacheable(with = rspack_cacheable::with::Skip)]
   value_as_string: OnceLock<Option<String>>,
-}
-
-#[rspack_cacheable::cacheable]
-#[doc(hidden)]
-pub struct CacheableRawBufferSource {
-  value: Vec<u8>,
-}
-
-type ArchivedRawBufferSource =
-  <RawBufferSource as rspack_cacheable::__private::rkyv::Archive>::Archived;
-
-impl rspack_cacheable::with::AsConverter<RawBufferSource> for CacheableRawBufferSource {
-  fn serialize(
-    data: &RawBufferSource,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<Self> {
-    Ok(Self {
-      value: data.value.clone(),
-    })
-  }
-
-  fn deserialize(
-    self,
-    _guard: &rspack_cacheable::ContextGuard,
-  ) -> rspack_cacheable::Result<RawBufferSource> {
-    Ok(RawBufferSource::from(self.value))
-  }
 }
 
 impl RawBufferSource {
