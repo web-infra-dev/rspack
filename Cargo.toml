@@ -66,7 +66,7 @@ itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.2", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
-lightningcss        = { version = "1.0.0-alpha.71", git = "https://github.com/intellild/lightningcss.git", rev = "61aee3776df2563e7c0d2982fcf1e7d3ec51571b", default-features = false, features = ["serde"] }
+lightningcss        = { version = "1.0.0-alpha.71", git = "https://github.com/intellild/lightningcss.git", rev = "ac21884329bd182b37b03713ab0d5f0597d430f1", default-features = false, features = ["serde"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.3", default-features = false }
