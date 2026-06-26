@@ -2369,7 +2369,7 @@ name = "lightningcss"
 version = "1.0.0-alpha.71"
 source = "git+https://github.com/intellild/lightningcss.git?rev=0bac61168acfba545e0378731ebce05809c57c64#0bac61168acfba545e0378731ebce05809c57c64"
 dependencies = [
- "ahash 0.8.12",
+ "ahash",
  "bitflags 2.13.2",
  "const-str",
  "cssparser",
@@ -3377,7 +3377,7 @@ version = "0.6.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b9c6658afe513a3b484e3abfdaa0d03ef3c0bbf017542c178dd55f94eb3051f9"
 dependencies = [
- "ahash 0.8.12",
+ "ahash",
  "equivalent",
  "hashbrown 0.16.1",
  "parking_lot",
@@ -3759,23 +3759,12 @@ dependencies = [
  "munge",
  "ptr_meta",
  "rancor",
- "rend 0.5.2",
- "rkyv_derive 0.8.18",
+ "rend",
+ "rkyv_derive",
  "smallvec",
  "tinyvec",
  "triomphe",
  "uuid",
-]
-
-[[package]]
-name = "rkyv_derive"
-version = "0.7.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "503d1d27590a2b0a3a4ca4c94755aa2875657196ecbf401a42eff41d7de532c0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 1.0.109",
 ]
 
 [[package]]
@@ -4146,7 +4135,7 @@ dependencies = [
  "lightningcss",
  "once_cell",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack_allocative",
  "rspack_cacheable_macros",
  "rspack_intern",
@@ -4238,7 +4227,7 @@ dependencies = [
  "pretty_assertions",
  "rayon",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack-turbo-persistence",
  "rspack_allocative",
  "rspack_cacheable",
@@ -4335,7 +4324,7 @@ dependencies = [
 name = "rspack_hash"
 version = "0.103.0-beta.0"
 dependencies = [
- "base64-simd 0.8.0",
+ "base64-simd",
  "itoa",
  "lightningcss",
  "md4",
@@ -5084,13 +5073,13 @@ dependencies = [
 name = "rspack_plugin_lightning_css_minimizer"
 version = "0.103.0-beta.0"
 dependencies = [
- "lightningcss",
  "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_loader_lightningcss",
  "rspack_util",
  "tracing",
 ]
@@ -5582,7 +5571,7 @@ version = "0.103.0-beta.0"
 dependencies = [
  "memchr",
  "regex",
- "rkyv 0.8.18",
+ "rkyv",
  "rspack_allocative",
  "rustc-hash",
  "serde",
@@ -5685,7 +5674,7 @@ version = "0.103.0-beta.0"
 dependencies = [
  "aho-corasick",
  "anyhow",
- "base64-simd 0.8.0",
+ "base64-simd",
  "bitflags 2.13.2",
  "concat-string",
  "cow-utils",
@@ -8111,12 +8100,6 @@ checksum = "69d33cbe2ac48f2a446f04c33aef4906078ffd224888df5ae60b7ed401ded771"
 dependencies = [
  "filetime",
 ]
-
-[[package]]
-name = "vlq"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65dd7eed29412da847b0f78bcec0ac98588165988a8cfe41d4ea1d429f8ccfff"
 
 [[package]]
 name = "vsimd"
