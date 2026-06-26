@@ -88,6 +88,8 @@ async fn additional_chunk_runtime_requirements_tree(
     // Add STARTUP (sync) so the runtime wrapper can always hook __rspack_require.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_CACHE);
+    runtime_requirements.insert(RuntimeGlobals::MODULE_FACTORIES);
     if self.experiments.async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);

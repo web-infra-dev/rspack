@@ -11,7 +11,8 @@ use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
   extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
-    get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
+    generate_chunk_cache_controls, get_initial_chunk_ids, render_hmr_runtime_state_expression,
+    stringify_chunks,
   },
 };
 
@@ -154,6 +155,10 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
+  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
+    RuntimeGlobals::REQUIRE_SCOPE
+  }
+
   fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
     RuntimeGlobals::BASE_URI
       | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
@@ -250,6 +255,11 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
         &stringify_chunks(&initial_chunks, 0)
       ));
     }
+    source.push_str(&generate_chunk_cache_controls(
+      runtime_template,
+      "readFileVm",
+      0,
+    ));
 
     if with_on_chunk_load {
       let source_with_on_chunk_load =
