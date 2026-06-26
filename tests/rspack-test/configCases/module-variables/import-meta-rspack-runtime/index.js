@@ -7,6 +7,10 @@ it("should expose rspack runtime module variables on import.meta", function () {
 
 	expect(typeof import.meta.rspackBaseUri).toBe("string");
 	expect(typeof import.meta.rspackShareScopes).toBe("object");
+	const shareScope = { fromImportMeta: true };
+	import.meta.rspackShareScopes = {};
+	import.meta.rspackShareScopes.__importMetaRuntimeAliasTest = shareScope;
+	expect(__webpack_require__.S.__importMetaRuntimeAliasTest).toBe(shareScope);
 	expect(typeof import.meta.rspackInitSharing).toBe("function");
 	expect(typeof import.meta.rspackNonce).toBe("string");
 

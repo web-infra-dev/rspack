@@ -537,7 +537,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     parser: &mut JavascriptParser,
     expr: &AssignExpr,
     members: &[Atom],
-    _member_ranges: &[Span],
+    member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
     if for_name != expr_name::IMPORT_META {
@@ -545,7 +545,15 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     }
     let property = members.first()?;
     let api = import_meta_runtime_api_from_property(property.as_ref())?;
-    let handled = import_meta_runtime_api_assign(parser, expr.left.span(), api);
+    let span = if members.len() > 1 {
+      member_ranges
+        .get(1)
+        .copied()
+        .unwrap_or_else(|| expr.left.span())
+    } else {
+      expr.left.span()
+    };
+    let handled = import_meta_runtime_api_assign(parser, span, api);
     if handled.is_some() {
       parser.walk_expression(&expr.right);
     }
