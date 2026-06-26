@@ -320,7 +320,7 @@ opt-level = "s"
 opt-level = "s"
 
 [patch.crates-io]
-lightningcss = { path = "../lightningcss" }
+lightningcss = { git = "https://github.com/intellild/lightningcss.git", rev = "0bac61168acfba545e0378731ebce05809c57c64" }
 
 [profile.release.package.swc_ecma_loader]
 opt-level = "s"
