@@ -1,146 +1,36 @@
 use std::{
-  borrow::Cow,
   collections::HashSet,
   hash::Hash,
   sync::{Arc, LazyLock, RwLock},
 };
 
-pub use lightningcss::targets::Browsers;
-use lightningcss::{
-  printer::{
-    OriginalLocation as LightningOriginalLocation, PrinterOptions, SourceMap as LightningSourceMap,
-  },
-  stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
-  targets::{Features, Targets},
-};
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, Mapping, ObjectPool, OriginalLocation as RspackOriginalLocation, RawStringSource,
-    Source, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions, encode_mappings,
+    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
+    SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+pub use rspack_loader_lightningcss::lightningcss::targets::Browsers;
+use rspack_loader_lightningcss::{
+  RspackSourceMap,
+  lightningcss::{
+    printer::{PrinterOptions, SourceMap as LightningSourceMap},
+    stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
+    targets::{Features, Targets},
+  },
+};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
-
-#[derive(Default)]
-struct RspackSourceMap {
-  sources: Vec<Cow<'static, str>>,
-  sources_content: Vec<Cow<'static, str>>,
-  names: Vec<Cow<'static, str>>,
-  mappings: Vec<Mapping>,
-  source_root: Option<Cow<'static, str>>,
-}
-
-impl RspackSourceMap {
-  fn with_source_root(source_root: Option<&str>) -> Self {
-    Self {
-      source_root: source_root.map(|source_root| Cow::Owned(source_root.to_string())),
-      ..Default::default()
-    }
-  }
-
-  fn finish(self) -> SourceMap<'static> {
-    let mut source_map = SourceMap::new(
-      encode_mappings(self.mappings.into_iter()),
-      self.sources,
-      self.sources_content,
-      self.names,
-    );
-    source_map.set_source_root(self.source_root);
-    source_map
-  }
-}
-
-impl LightningSourceMap for RspackSourceMap {
-  fn add_source(&mut self, source: &str) -> u32 {
-    if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
-      index as u32
-    } else {
-      self.sources.push(Cow::Owned(source.to_string()));
-      (self.sources.len() - 1) as u32
-    }
-  }
-
-  fn add_name(&mut self, name: &str) -> u32 {
-    if let Some(index) = self.names.iter().position(|n| n.as_ref() == name) {
-      index as u32
-    } else {
-      self.names.push(Cow::Owned(name.to_string()));
-      (self.names.len() - 1) as u32
-    }
-  }
-
-  fn set_source_content(&mut self, source_index: u32, source_content: &str) {
-    let source_index = source_index as usize;
-    if self.sources_content.len() <= source_index {
-      self
-        .sources_content
-        .resize_with(source_index + 1, || Cow::Borrowed(""));
-    }
-    self.sources_content[source_index] = Cow::Owned(source_content.to_string());
-  }
-
-  fn add_mapping(
-    &mut self,
-    generated_line: u32,
-    generated_column: u32,
-    original: Option<LightningOriginalLocation>,
-  ) {
-    self.mappings.push(Mapping {
-      generated_line: generated_line + 1,
-      generated_column,
-      original: original.map(|original| RspackOriginalLocation {
-        source_index: original.source,
-        original_line: original.original_line + 1,
-        original_column: original.original_column,
-        name_index: original.name,
-      }),
-    });
-  }
-
-  fn from_data_url(_source_root: &str, _data_url: &str) -> Option<Self> {
-    None
-  }
-
-  fn find_closest_mapping(
-    &mut self,
-    _line: u32,
-    _column: u32,
-  ) -> Option<LightningOriginalLocation> {
-    None
-  }
-
-  fn get_source(&self, source_index: u32) -> Option<&str> {
-    self
-      .sources
-      .get(source_index as usize)
-      .map(|source| source.as_ref())
-  }
-
-  fn get_name(&self, name_index: u32) -> Option<&str> {
-    self
-      .names
-      .get(name_index as usize)
-      .map(|name| name.as_ref())
-  }
-
-  fn get_source_content(&self, source_index: u32) -> Option<&str> {
-    self
-      .sources_content
-      .get(source_index as usize)
-      .map(|source_content| source_content.as_ref())
-  }
-}
 
 #[derive(Debug, Hash)]
 pub struct PluginOptions {
@@ -356,7 +246,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               analyze_dependencies: None,
               pseudo_classes: minimizer_options.pseudo_classes
               .as_ref()
-              .map(|pseudo_classes| lightningcss::stylesheet::PseudoClasses {
+              .map(|pseudo_classes| rspack_loader_lightningcss::lightningcss::stylesheet::PseudoClasses {
                 hover: pseudo_classes.hover.as_deref(),
                 active: pseudo_classes.active.as_deref(),
                 focus: pseudo_classes.focus.as_deref(),

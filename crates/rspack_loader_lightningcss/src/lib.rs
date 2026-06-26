@@ -8,10 +8,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
-  printer::{
-    OriginalLocation as LightningOriginalLocation, PrinterOptions, PseudoClasses,
-    SourceMap as LightningSourceMap,
-  },
+  printer::{PrinterOptions, PseudoClasses, SourceMap as LightningSourceMap},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
   traits::IntoOwned,
@@ -19,10 +16,7 @@ use lightningcss::{
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
-  rspack_sources::{
-    MapOptions, Mapping, ObjectPool, OriginalLocation as RspackOriginalLocation, SourceExt,
-    SourceMap, SourceMapSource, SourceMapSourceOptions, encode_mappings,
-  },
+  rspack_sources::{MapOptions, ObjectPool, SourceExt, SourceMapSource, SourceMapSourceOptions},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::Identifier;
@@ -30,112 +24,14 @@ use tokio::sync::Mutex;
 
 pub mod config;
 mod plugin;
+pub mod source_map;
 
 pub use plugin::LightningcssLoaderPlugin;
+pub use source_map::RspackSourceMap;
 
 pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 
 pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static>)>;
-
-#[derive(Default)]
-struct RspackSourceMap {
-  sources: Vec<Cow<'static, str>>,
-  sources_content: Vec<Cow<'static, str>>,
-  names: Vec<Cow<'static, str>>,
-  mappings: Vec<Mapping>,
-}
-
-impl RspackSourceMap {
-  fn finish(self) -> SourceMap<'static> {
-    SourceMap::new(
-      encode_mappings(self.mappings.into_iter()),
-      self.sources,
-      self.sources_content,
-      self.names,
-    )
-  }
-}
-
-impl LightningSourceMap for RspackSourceMap {
-  fn add_source(&mut self, source: &str) -> u32 {
-    if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
-      index as u32
-    } else {
-      self.sources.push(Cow::Owned(source.to_string()));
-      (self.sources.len() - 1) as u32
-    }
-  }
-
-  fn add_name(&mut self, name: &str) -> u32 {
-    if let Some(index) = self.names.iter().position(|n| n.as_ref() == name) {
-      index as u32
-    } else {
-      self.names.push(Cow::Owned(name.to_string()));
-      (self.names.len() - 1) as u32
-    }
-  }
-
-  fn set_source_content(&mut self, source_index: u32, source_content: &str) {
-    let source_index = source_index as usize;
-    if self.sources_content.len() <= source_index {
-      self
-        .sources_content
-        .resize_with(source_index + 1, || Cow::Borrowed(""));
-    }
-    self.sources_content[source_index] = Cow::Owned(source_content.to_string());
-  }
-
-  fn add_mapping(
-    &mut self,
-    generated_line: u32,
-    generated_column: u32,
-    original: Option<LightningOriginalLocation>,
-  ) {
-    self.mappings.push(Mapping {
-      generated_line: generated_line + 1,
-      generated_column,
-      original: original.map(|original| RspackOriginalLocation {
-        source_index: original.source,
-        original_line: original.original_line + 1,
-        original_column: original.original_column,
-        name_index: original.name,
-      }),
-    });
-  }
-
-  fn from_data_url(_source_root: &str, _data_url: &str) -> Option<Self> {
-    None
-  }
-
-  fn find_closest_mapping(
-    &mut self,
-    _line: u32,
-    _column: u32,
-  ) -> Option<LightningOriginalLocation> {
-    None
-  }
-
-  fn get_source(&self, source_index: u32) -> Option<&str> {
-    self
-      .sources
-      .get(source_index as usize)
-      .map(|source| source.as_ref())
-  }
-
-  fn get_name(&self, name_index: u32) -> Option<&str> {
-    self
-      .names
-      .get(name_index as usize)
-      .map(|name| name.as_ref())
-  }
-
-  fn get_source_content(&self, source_index: u32) -> Option<&str> {
-    self
-      .sources_content
-      .get(source_index as usize)
-      .map(|source_content| source_content.as_ref())
-  }
-}
 
 #[cacheable]
 #[derive(Debug)]

@@ -4754,13 +4754,13 @@ dependencies = [
 name = "rspack_plugin_lightning_css_minimizer"
 version = "0.101.0-rc.0"
 dependencies = [
- "lightningcss",
  "rayon",
  "regex",
  "rspack_core",
  "rspack_error",
  "rspack_hash",
  "rspack_hook",
+ "rspack_loader_lightningcss",
  "rspack_util",
  "thread_local",
  "tracing",

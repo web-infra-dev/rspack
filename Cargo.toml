@@ -58,7 +58,7 @@ itertools           = { version = "0.14.0", default-features = false, features =
 itoa                = { version = "1.0.18", default-features = false }
 json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.0.2", default-features = false }
-lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde", "custom_sourcemap"] }
+lightningcss        = { git = "https://github.com/intellild/lightningcss.git", rev = "0bac61168acfba545e0378731ebce05809c57c64", default-features = false, features = ["serde", "custom_sourcemap"] }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.2", default-features = false }
 micromegas-perfetto = { version = "0.9.0", default-features = false }
@@ -318,9 +318,6 @@ opt-level = "s"
 
 [profile.release.package.fancy-regex]
 opt-level = "s"
-
-[patch.crates-io]
-lightningcss = { git = "https://github.com/intellild/lightningcss.git", rev = "0bac61168acfba545e0378731ebce05809c57c64" }
 
 [profile.release.package.swc_ecma_loader]
 opt-level = "s"
