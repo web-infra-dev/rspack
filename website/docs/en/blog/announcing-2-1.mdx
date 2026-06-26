@@ -1,5 +1,5 @@
 ---
-description: 'Rspack 2.1 is now available, featuring React Compiler Rust support, import.meta.glob, Source Phase Imports, persistent cache cleanup, and multiple performance and output optimizations.'
+description: 'Rspack 2.1 is now available, featuring support for the Rust version of React Compiler, import.meta.glob, Source Phase Imports, persistent cache cleanup, and multiple performance and output optimizations.'
 date: 2026-06-22 16:00:00
 sidebar: false
 authors:
@@ -48,7 +48,7 @@ We are excited to announce the official release of Rspack 2.1!
 Notable changes include:
 
 - Performance improvements
-  - [React Compiler Rust version](#react-compiler)
+  - [Rust version of React Compiler](#react-compiler)
   - [Build performance improvements](#build-performance)
   - [TypeScript 7 support](#tsgo-support)
   - [Faster circular dependency checks](#circular-check)
@@ -57,7 +57,7 @@ Notable changes include:
   - [Improved built-in CSS support](#builtin-css-features)
   - [Support for parsing `createRequire`](#create-require)
   - [Rspack magic comments](#magic-comments)
-  - [Support for Source phase imports](#source-phase-imports)
+  - [Support for source phase imports](#source-phase-imports)
   - [Automatic persistent cache cleanup](#cache-cleanup)
 - Output optimization
   - [`pureFunctions` stabilized](#pure-functions)
@@ -75,11 +75,11 @@ Notable changes include:
 
 ## Performance improvements
 
-### React Compiler Rust version \{#react-compiler}
+### Rust version of React Compiler \{#react-compiler}
 
 [React Compiler](https://react.dev/learn/react-compiler/introduction) is an official build-time optimization tool for React. It automatically adds appropriate memoization logic for components and Hooks during compilation, reducing the need to manually use `useMemo`, `useCallback`, and `React.memo`.
 
-In the past, React Compiler was mainly integrated through `babel-loader`, which introduced additional Babel transform overhead and increased project build time. With [React Compiler being ported to Rust](https://github.com/facebook/react/pull/36173), SWC has also completed the integration. Rspack 2.1 can now enable React Compiler directly through the built-in SWC loader.
+In the past, React Compiler was mainly integrated through `babel-loader`, which introduced additional Babel transform overhead and increased project build time. Now that [React Compiler has been ported to Rust](https://github.com/facebook/react/pull/36173), SWC has also completed its integration. In Rspack 2.1, you can now enable React Compiler directly through the built-in SWC loader.
 
 In our benchmark, the Rust version of React Compiler is around **7-13x faster** than the Babel version:
 
@@ -181,15 +181,15 @@ for (const path in pages) {
 }
 ```
 
-This feature is already available in Vite and Turbopack. With Rspack support, developers can use a more consistent and familiar syntax across different ecosystem tools, reducing the cognitive cost of switching between them. It also lets framework and library authors who support multiple build tools reuse more similar implementations.
+This feature is already available in Vite and Turbopack. With support in Rspack, developers can use a more consistent and familiar syntax across different ecosystem tools, reducing the cognitive cost of switching between them. It also lets framework and library authors who support multiple build tools reuse more similar implementation patterns.
 
-> See the [`import.meta.glob` documentation](/api/runtime-api/module-variables#importmetaglob) for the complete usage.
+> See the [`import.meta.glob` documentation](/api/runtime-api/module-variables#importmetaglob) for complete usage details.
 
 ### Improved built-in CSS support \{#builtin-css-features}
 
 Rspack 2.1 further improves [built-in CSS support](/guide/tech/css#built-in-css-support). The new `css/global` module type allows CSS Modules to work in a "global by default, opt into `:local` when needed" mode. Together with `css/module` and `css/auto`, it covers more scope organization patterns.
 
-CSS Modules capabilities also continue to improve, supporting more CSS Modules syntax and behavior.
+CSS Modules support also continues to improve, with more CSS Modules syntax and behavior now supported.
 
 For related configuration, see the CSS options in [`module.generator`](/config/module-generator#cssauto) and [`module.parser`](/config/module-parser#cssauto).
 
@@ -221,7 +221,7 @@ const value = require('./value.cjs');
 This option also supports:
 
 - **Multiple import forms**: named imports, default imports, and namespace imports are supported, and imports from both `module` and `node:module` are recognized.
-- **Custom sources**: besides `true`, you can customize the specifier and module source using a string in the `"<specifier> from <module>"` form, such as `"createRequire from module"`.
+- **Custom sources**: in addition to `true`, you can customize the specifier and module source using a string in the `"<specifier> from <module>"` form, such as `"createRequire from module"`.
 - **Statically analyzable arguments**: the argument of `createRequire()` must be statically analyzable as a file URL or an absolute path, such as `import.meta.url`, `new URL('./dir/file.js', import.meta.url)`, or an absolute `file:` URL.
 
 This option is disabled by default. See [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) for details.
@@ -242,7 +242,7 @@ The existing `webpack` prefix remains compatible, so existing projects do not ne
 
 Rspack 2.1 supports the WebAssembly use case in the TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) proposal. After enabling [`experiments.sourceImport`](/config/experiments#experimentssourceimport), you can import `.wasm` modules through static `import source` or dynamic `import.source()`.
 
-Unlike normal WebAssembly imports, source phase import does not instantiate the Wasm module during import. Instead, it returns a compiled [`WebAssembly.Module`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module). This lets you control instantiation yourself, such as instantiating the same Wasm module multiple times with different imports, or reusing the same compiled result across multiple Web Workers to avoid repeated compilation cost.
+Unlike normal WebAssembly imports, a source phase import does not instantiate the Wasm module during import. Instead, it returns a compiled [`WebAssembly.Module`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module). This lets you control instantiation yourself, such as instantiating the same Wasm module multiple times with different imports, or reusing the same compiled result across multiple Web Workers to avoid the cost of repeated compilation.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -271,7 +271,7 @@ Rspack also adds [`module.rules[].phase`](/config/module-rules#rulesphase), whic
 
 ### Automatic persistent cache cleanup \{#cache-cleanup}
 
-Rspack's persistent cache is isolated by version. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack creates a new cache version to avoid reusing incompatible cache. During long-term development, frequent branch switching, or CI workflows that reuse the working directory, old cache versions may continue to accumulate and take up disk space.
+Rspack's persistent cache is isolated by version. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack creates a new cache version to avoid reusing an incompatible cache. During long-term development, frequent branch switching, or CI workflows that reuse the working directory, old cache versions may continue to accumulate and take up disk space.
 
 Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. It uses `cache.maxAge` and `cache.maxVersions` to control old versions retained in the cache directory:
 
@@ -288,7 +288,7 @@ export default {
 };
 ```
 
-When the number of cache versions exceeds the retention limit, or when versions have not been accessed for a long time, Rspack prioritizes cleaning up older and less recently accessed cache versions. This keeps recent reusable caches while preventing the persistent cache directory from growing without bound. For scenarios where you need to manage caches entirely by yourself, set `maxAge` or `maxVersions` to `Infinity` to disable age-based or version-count-based cleanup respectively.
+When the number of cache versions exceeds the retention limit, or when versions have not been accessed for a long time, Rspack prioritizes cleaning up older and less recently accessed cache versions. This keeps recent reusable caches while preventing the persistent cache directory from growing without bound. For scenarios where you need to manage caches manually, set `maxAge` or `maxVersions` to `Infinity` to disable age-based or version-count-based cleanup respectively.
 
 ## Output optimization
 
@@ -376,7 +376,7 @@ __webpack_require__.d(__webpack_exports__, {
 });
 ```
 
-For `export const` in non-cyclic modules, however, the exported value will not change after module initialization, so it does not need to be read through a getter every time. In production builds, Rspack 2.1 combines this with circular module information: when Rspack confirms that the current module is not part of a circular dependency, `export const` is defined on the namespace object as a readonly value, reducing generated code and runtime getter call overhead.
+For `export const` in non-cyclic modules, however, the exported value will not change after module initialization, so it does not need to be read through a getter every time. In production builds, Rspack 2.1 uses circular module information: when Rspack confirms that the current module is not part of a circular dependency, `export const` is defined on the namespace object as a read-only value, reducing generated code and runtime getter call overhead.
 
 ```js title="Output sketch"
 // Before: accessing namespace.value executes a getter function.
@@ -384,7 +384,7 @@ __webpack_require__.d(__webpack_exports__, {
   value: () => value,
 });
 
-// Rspack 2.1: const exports in non-cyclic modules are defined as readonly values.
+// Rspack 2.1: const exports in non-cyclic modules are defined as read-only values.
 // Accessing namespace.value no longer needs to execute a getter function.
 __webpack_require__.d(
   __webpack_exports__,
@@ -410,9 +410,9 @@ The named `const` exports above, as well as constant values in default exports, 
 
 ### TanStack RSC support \{#tanstack-rsc-support}
 
-We are working with the TanStack team to improve Rsbuild support in TanStack Start, and we have already made incremental progress: [TanStack Start now officially supports Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support). Developers can now use Rsbuild to build TanStack Start applications and get framework capabilities including RSC.
+We are working with the TanStack team to improve Rsbuild support in TanStack Start, and we have already made concrete progress: [TanStack Start now officially supports Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support). Developers can now use Rsbuild to build TanStack Start applications and access framework capabilities including RSC.
 
-Our core goal for RSC is to provide general-purpose RSC build capabilities, allowing upper-level frameworks to integrate RSC based on their own routing, rendering, and server runtime solutions while reusing unified build infrastructure.
+Our core goal for RSC is to provide general-purpose RSC build capabilities, allowing higher-level frameworks to integrate RSC based on their own routing, rendering, and server runtime solutions while reusing unified build infrastructure.
 
 If you want to try RSC in the Rspack stack, see:
 
@@ -535,7 +535,7 @@ These skills can be installed directly into existing projects or selected during
 
 ### rspack-merge \{#rspack-merge}
 
-We released [rspack-merge](https://github.com/rstackjs/rspack-merge), an npm package for merging Rspack configurations. It covers needs from composing base configurations to merging loader and plugin rules.
+We released [rspack-merge](https://github.com/rstackjs/rspack-merge), an npm package for merging Rspack configurations. It covers use cases ranging from composing base configurations to merging loader and plugin rules.
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
@@ -556,4 +556,4 @@ const clientConfig = merge(sharedConfig, {
 export default [serverConfig, clientConfig];
 ```
 
-`rspack-merge` is written in TypeScript, ships modern ESM output, and keeps zero runtime dependencies, making configuration merging simple, reliable, and lightweight enough.
+`rspack-merge` is written in TypeScript, ships modern ESM output, and keeps zero runtime dependencies, making configuration merging simple, reliable, and lightweight.
