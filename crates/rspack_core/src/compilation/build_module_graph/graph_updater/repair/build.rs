@@ -222,11 +222,13 @@ impl Task<TaskContext> for BuildResultTask {
       all_dependencies
     };
 
-    tasks.push(Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process,
-      original_module_identifier: module_identifier,
-      from_unlazy: false,
-    }));
+    if !dependencies_to_process.is_empty() || context.has_module_executor {
+      tasks.push(Box::new(ProcessDependenciesTask {
+        dependencies: dependencies_to_process,
+        original_module_identifier: module_identifier,
+        from_unlazy: false,
+      }));
+    }
 
     Ok(tasks)
   }
