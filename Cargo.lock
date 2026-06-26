@@ -2433,7 +2433,7 @@ dependencies = [
 [[package]]
 name = "lightningcss"
 version = "1.0.0-alpha.71"
-source = "git+https://github.com/intellild/lightningcss.git?rev=7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3#7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3"
+source = "git+https://github.com/intellild/lightningcss.git?rev=8e0cd43eb7c8aff6ff88a4e376161221ba037337#8e0cd43eb7c8aff6ff88a4e376161221ba037337"
 dependencies = [
  "ahash",
  "bitflags 2.11.1",
@@ -2458,7 +2458,7 @@ dependencies = [
 [[package]]
 name = "lightningcss-derive"
 version = "1.0.0-alpha.43"
-source = "git+https://github.com/intellild/lightningcss.git?rev=7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3#7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3"
+source = "git+https://github.com/intellild/lightningcss.git?rev=8e0cd43eb7c8aff6ff88a4e376161221ba037337#8e0cd43eb7c8aff6ff88a4e376161221ba037337"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -2985,7 +2985,7 @@ dependencies = [
 [[package]]
 name = "parcel_selectors"
 version = "0.28.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3#7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3"
+source = "git+https://github.com/intellild/lightningcss.git?rev=8e0cd43eb7c8aff6ff88a4e376161221ba037337#8e0cd43eb7c8aff6ff88a4e376161221ba037337"
 dependencies = [
  "bitflags 2.11.1",
  "cssparser",
@@ -5769,7 +5769,7 @@ dependencies = [
 [[package]]
 name = "static-self"
 version = "0.1.2"
-source = "git+https://github.com/intellild/lightningcss.git?rev=7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3#7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3"
+source = "git+https://github.com/intellild/lightningcss.git?rev=8e0cd43eb7c8aff6ff88a4e376161221ba037337#8e0cd43eb7c8aff6ff88a4e376161221ba037337"
 dependencies = [
  "indexmap",
  "smallvec",
@@ -5779,7 +5779,7 @@ dependencies = [
 [[package]]
 name = "static-self-derive"
 version = "0.1.1"
-source = "git+https://github.com/intellild/lightningcss.git?rev=7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3#7bb4e0364b0c28b056a6841ec16ca1dfa9bad9d3"
+source = "git+https://github.com/intellild/lightningcss.git?rev=8e0cd43eb7c8aff6ff88a4e376161221ba037337#8e0cd43eb7c8aff6ff88a4e376161221ba037337"
 dependencies = [
  "proc-macro2",
  "quote",
