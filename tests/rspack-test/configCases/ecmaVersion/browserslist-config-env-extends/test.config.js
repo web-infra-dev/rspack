@@ -31,6 +31,7 @@ try {
 fs.writeFileSync(browserslistFile, content);
 
 module.exports = {
+	isolateSource: true,
 	afterExecute() {
 		fs.unlinkSync(browserslistFile);
 		fs.rmdirSync(browserslistPackage);
