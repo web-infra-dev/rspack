@@ -5,6 +5,7 @@ use std::{
   sync::{Arc, Mutex, OnceLock},
 };
 
+#[cfg(feature = "rspack_cacheable")]
 use rspack_cacheable::__private::rkyv::{
   Archive, Deserialize, Place, Serialize,
   rancor::Fallible,
@@ -72,8 +73,10 @@ pub struct ConcatSource {
   is_optimized: OnceLock<Vec<BoxSource>>,
 }
 
+#[cfg(feature = "rspack_cacheable")]
 type ArchivedConcatSource = ArchivedVec<<BoxSource as Archive>::Archived>;
 
+#[cfg(feature = "rspack_cacheable")]
 impl Archive for ConcatSource {
   type Archived = ArchivedConcatSource;
   type Resolver = VecResolver;
@@ -83,6 +86,7 @@ impl Archive for ConcatSource {
   }
 }
 
+#[cfg(feature = "rspack_cacheable")]
 impl<S> Serialize<S> for ConcatSource
 where
   S: Fallible + Allocator + Writer + ?Sized,
@@ -93,6 +97,7 @@ where
   }
 }
 
+#[cfg(feature = "rspack_cacheable")]
 impl<D> Deserialize<ConcatSource, D> for ArchivedConcatSource
 where
   ArchivedConcatSource: Deserialize<Vec<BoxSource>, D>,
@@ -200,7 +205,10 @@ impl ConcatSource {
   }
 }
 
-#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)
+)]
 impl Source for ConcatSource {
   fn source(&self) -> SourceValue<'_> {
     let children = self.optimized_children();

@@ -18,7 +18,7 @@ lightningcss     = { workspace = true }
 once_cell        = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_resolver  = { workspace = true }
-rspack_sources   = { workspace = true }
+rspack_sources   = { workspace = true, features = ["rspack_cacheable"] }
 rustc-hash       = { workspace = true }
 serde_json       = { workspace = true }
 swc_core         = { workspace = true, features = ["ecma_ast"] }

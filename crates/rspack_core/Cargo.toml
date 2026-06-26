@@ -50,7 +50,7 @@ rspack_parallel            = { workspace = true }
 rspack_paths               = { workspace = true }
 rspack_regex               = { workspace = true }
 rspack_resolver            = { workspace = true }
-rspack_sources             = { workspace = true }
+rspack_sources             = { workspace = true, features = ["rspack_cacheable"] }
 rspack_storage             = { workspace = true }
 rspack_tasks               = { workspace = true }
 rspack_util                = { workspace = true }

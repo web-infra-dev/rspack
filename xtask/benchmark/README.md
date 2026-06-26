@@ -47,10 +47,12 @@ pnpm run build:bench
 The script expands to:
 
 ```bash
-cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources
+cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features rspack-benchmarks --bench benches
+cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --no-default-features --bench rspack_sources
 ```
 
-This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. Both benchmark targets are selected in a single `cargo codspeed build` invocation so the later `cargo codspeed run` step can collect both benchmark suites.
+This only builds the benchmark binaries for CodSpeed simulation mode. It does not execute measurements. The targets are built in separate `cargo codspeed build` invocations so the later `cargo codspeed run` step can collect both benchmark suites without unifying their Cargo features.
+The `rspack_sources` target uses default features disabled so it does not inherit the full rspack dependency graph.
 
 To build only the isolated `rspack_sources` target:
 
@@ -81,7 +83,9 @@ pnpm run bench:rust:local -- --bench rspack_sources
 The script expands to:
 
 ```bash
-mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation
+mkdir -p /tmp/rspack-codspeed-valgrind-tmp
+TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation --bench benches
+TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation --bench rspack_sources
 ```
 
 This command:

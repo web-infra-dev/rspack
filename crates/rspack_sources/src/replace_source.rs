@@ -38,14 +38,14 @@ use crate::{
 ///   "start1\nstart2\nreplaced!\nend1\nend2"
 /// );
 /// ```
-#[rspack_cacheable::cacheable]
+#[cfg_attr(feature = "rspack_cacheable", rspack_cacheable::cacheable)]
 pub struct ReplaceSource {
   inner: BoxSource,
   replacements: Vec<Replacement>,
 }
 
 /// Enforce replacement order when two replacement start and end are both equal
-#[rspack_cacheable::cacheable]
+#[cfg_attr(feature = "rspack_cacheable", rspack_cacheable::cacheable)]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum ReplacementEnforce {
   /// pre
@@ -58,7 +58,10 @@ pub enum ReplacementEnforce {
 }
 
 /// A single text replacement in a [ReplaceSource].
-#[rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableReplacement>)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable(with = rspack_cacheable::with::As::<CacheableReplacement>)
+)]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Replacement {
   start: u32,
@@ -69,6 +72,7 @@ pub struct Replacement {
   insertion_order: u32,
 }
 
+#[cfg(feature = "rspack_cacheable")]
 #[rspack_cacheable::cacheable]
 #[doc(hidden)]
 pub struct CacheableReplacement {
@@ -80,6 +84,7 @@ pub struct CacheableReplacement {
   insertion_order: u32,
 }
 
+#[cfg(feature = "rspack_cacheable")]
 impl rspack_cacheable::with::AsConverter<Replacement> for CacheableReplacement {
   fn serialize(
     data: &Replacement,
@@ -356,7 +361,10 @@ impl ReplaceSource {
   }
 }
 
-#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)
+)]
 impl Source for ReplaceSource {
   fn source(&self) -> SourceValue<'_> {
     if self.replacements.is_empty() {

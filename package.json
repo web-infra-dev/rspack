@@ -38,9 +38,9 @@
     "build:binding:ci": "pnpm --filter @rspack/binding run build:ci",
     "build:binding:release": "pnpm --filter @rspack/binding run build:release",
     "build:binding:profiling": "pnpm --filter @rspack/binding run build:profiling",
-    "build:bench": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources",
-    "build:bench:main": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches",
-    "build:bench:rspack-sources": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench rspack_sources",
+    "build:bench": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features rspack-benchmarks --bench benches && cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --no-default-features --bench rspack_sources",
+    "build:bench:main": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --features rspack-benchmarks --bench benches",
+    "build:bench:rspack-sources": "cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --no-default-features --bench rspack_sources",
     "prepare": "is-ci || husky",
     "test:hot": "pnpm --filter \"@rspack/*\" test:hot",
     "test:unit": "pnpm --parallel --filter \"@rspack/*\" test",
@@ -50,8 +50,8 @@
     "test:ci": "cross-env NODE_OPTIONS=\"--max_old_space_size=8192 --stack-trace-limit=100\" pnpm run build:js && pnpm run test:type && pnpm run test:unit",
     "test:rs": "cargo test --workspace --exclude rspack_binding_api --exclude rspack_node --exclude rspack_binding_builder --exclude rspack_binding_builder_macros --exclude rspack_binding_builder_testing --exclude rspack_binding_build --exclude rspack_napi --exclude rspack_watcher -- --nocapture",
     "bench:ci": "pnpm run bench:prepare && pnpm run bench:rust",
-    "bench:rust": "RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run",
-    "bench:rust:local": "mkdir -p /tmp/rspack-codspeed-valgrind-tmp && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation",
+    "bench:rust": "sh -c 'if [ \"$#\" -gt 0 ]; then RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run \"$@\"; else RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run --bench benches && RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run --bench rspack_sources; fi' --",
+    "bench:rust:local": "sh -c 'mkdir -p /tmp/rspack-codspeed-valgrind-tmp; if [ \"$#\" -gt 0 ]; then TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation \"$@\"; else TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation --bench benches && TMPDIR=/tmp/rspack-codspeed-valgrind-tmp MIMALLOC_PURGE_DELAY=-1 BENCH_MODE=simulation RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases codspeed run -m simulation -- cargo codspeed run -m simulation --bench rspack_sources; fi' --",
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "engines": {

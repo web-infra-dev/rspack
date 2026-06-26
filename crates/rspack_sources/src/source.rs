@@ -107,7 +107,10 @@ impl<'a> SourceValue<'a> {
 }
 
 /// [Source] abstraction, [webpack-sources docs](https://github.com/webpack/webpack-sources/#source).
-#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)
+)]
 pub trait Source: StreamChunks + DynHash + AsAny + DynEq + fmt::Debug + Sync + Send {
   /// Get the source code.
   fn source(&self) -> SourceValue<'_>;
@@ -631,6 +634,7 @@ impl<'a> SourceMap<'a> {
   }
 }
 
+#[cfg(feature = "rspack_cacheable")]
 impl rspack_cacheable::with::AsStringConverter for SourceMap<'static> {
   fn to_string(&self) -> rspack_cacheable::Result<String> {
     Ok(self.to_json())

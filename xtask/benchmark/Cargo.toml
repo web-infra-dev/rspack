@@ -7,10 +7,33 @@ publish           = false
 repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
+[features]
+default           = ["rspack-benchmarks"]
+rspack-benchmarks = ["dep:async-trait", "dep:rspack", "dep:rspack_collections", "dep:rspack_core", "dep:rspack_error", "dep:rspack_fs", "dep:rspack_hash", "dep:rspack_plugin_javascript", "dep:rspack_plugin_split_chunks", "dep:rspack_regex", "dep:rspack_tasks", "dep:rustc-hash", "dep:serde_json", "dep:swc_experimental_allocator", "dep:swc_experimental_ecma_ast", "dep:swc_experimental_ecma_parser", "dep:swc_experimental_ecma_semantic", "dep:swc_experimental_ecma_transforms_base"]
+
 [dependencies]
-criterion = { workspace = true }
-rayon     = { workspace = true }
-tokio     = { workspace = true }
+async-trait                           = { workspace = true, optional = true }
+criterion                             = { workspace = true }
+rayon                                 = { workspace = true }
+rspack                                = { workspace = true, features = ["codspeed", "full"], optional = true }
+rspack_collections                    = { workspace = true, optional = true }
+rspack_core                           = { workspace = true, features = ["codspeed"], optional = true }
+rspack_error                          = { workspace = true, optional = true }
+rspack_fs                             = { workspace = true, optional = true }
+rspack_hash                           = { workspace = true, optional = true }
+rspack_plugin_javascript              = { workspace = true, optional = true }
+rspack_plugin_split_chunks            = { workspace = true, optional = true }
+rspack_regex                          = { workspace = true, optional = true }
+rspack_sources                        = { workspace = true }
+rspack_tasks                          = { workspace = true, optional = true }
+rustc-hash                            = { workspace = true, optional = true }
+serde_json                            = { workspace = true, optional = true }
+swc_experimental_allocator            = { workspace = true, optional = true }
+swc_experimental_ecma_ast             = { workspace = true, optional = true }
+swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"], optional = true }
+swc_experimental_ecma_semantic        = { workspace = true, optional = true }
+swc_experimental_ecma_transforms_base = { workspace = true, optional = true }
+tokio                                 = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Keep benchmark allocator features aligned with rspack_allocator.
@@ -22,43 +45,19 @@ mimalloc = { workspace = true, features = ["v3"] }
 [target.'cfg(all(not(target_os = "linux"), not(target_os = "macos"), not(target_family = "wasm")))'.dependencies]
 mimalloc = { workspace = true, features = ["v3"] }
 
-[dev-dependencies]
-# Make rust analyzer happy
-async-trait                           = { workspace = true }
-rspack                                = { workspace = true, features = ["codspeed", "full"] }
-rspack_cacheable                      = { workspace = true }
-rspack_collections                    = { workspace = true }
-rspack_core                           = { workspace = true, features = ["codspeed"] }
-rspack_error                          = { workspace = true }
-rspack_fs                             = { workspace = true }
-rspack_hash                           = { workspace = true }
-rspack_plugin_javascript              = { workspace = true }
-rspack_plugin_split_chunks            = { workspace = true }
-rspack_regex                          = { workspace = true }
-rspack_sources                        = { workspace = true }
-rspack_tasks                          = { workspace = true }
-rustc-hash                            = { workspace = true }
-serde_json                            = { workspace = true }
-swc_experimental_allocator            = { workspace = true }
-swc_experimental_ecma_ast             = { workspace = true }
-swc_experimental_ecma_parser          = { workspace = true, features = ["unstable"] }
-swc_experimental_ecma_semantic        = { workspace = true }
-swc_experimental_ecma_transforms_base = { workspace = true }
-
 [[bench]]
-harness = false
-name    = "benches"
+harness           = false
+name              = "benches"
+required-features = ["rspack-benchmarks"]
 
 [[bench]]
 harness = false
 name    = "rspack_sources"
 
 [[bench]]
-harness = false
-name    = "walltime"
-
-[package.metadata.cargo-shear]
-ignored = ["rspack_cacheable"]
+harness           = false
+name              = "walltime"
+required-features = ["rspack-benchmarks"]
 
 [lints]
 workspace = true

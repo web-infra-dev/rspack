@@ -60,10 +60,17 @@ struct CachedData {
 ///   "Hello World\nconsole.log('test');\nconsole.log('test2');\nHello2\n"
 /// );
 /// ```
+#[cfg(feature = "rspack_cacheable")]
 #[rspack_cacheable::cacheable]
 pub struct CachedSource {
   inner: BoxSource,
   #[cacheable(with = rspack_cacheable::with::Skip)]
+  cache: Arc<CachedData>,
+}
+
+#[cfg(not(feature = "rspack_cacheable"))]
+pub struct CachedSource {
+  inner: BoxSource,
   cache: Arc<CachedData>,
 }
 
@@ -131,7 +138,10 @@ impl CachedSource {
   }
 }
 
-#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)
+)]
 impl Source for CachedSource {
   fn source(&self) -> SourceValue<'_> {
     // Check if it's a RawBufferSource containing a CachedSource

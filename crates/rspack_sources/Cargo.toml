@@ -13,11 +13,12 @@ repository.workspace    = true
 version.workspace       = true
 
 [features]
-codspeed = []
+codspeed         = []
+rspack_cacheable = ["dep:rspack_cacheable"]
 
 [dependencies]
 memchr            = { workspace = true, features = ["std"] }
-rspack_cacheable  = { workspace = true }
+rspack_cacheable  = { workspace = true, optional = true }
 rustc-hash        = { workspace = true, features = ["std"] }
 serde             = { workspace = true, features = ["rc", "std"] }
 simd-json         = { workspace = true, features = ["runtime-detection", "serde_impl", "swar-number-parsing"] }

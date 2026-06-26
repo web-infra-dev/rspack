@@ -59,6 +59,7 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 /// source map for the original source.
 ///
 /// - [webpack-sources docs](https://github.com/webpack/webpack-sources/#sourcemapsource).
+#[cfg(feature = "rspack_cacheable")]
 #[rspack_cacheable::cacheable]
 #[derive(Eq)]
 pub struct SourceMapSource {
@@ -68,6 +69,17 @@ pub struct SourceMapSource {
   source_map: SourceMap<'static>,
   original_source: Option<Box<str>>,
   #[cacheable(with = rspack_cacheable::with::AsOption<rspack_cacheable::with::AsString>)]
+  inner_source_map: Option<SourceMap<'static>>,
+  remove_original_source: bool,
+}
+
+#[cfg(not(feature = "rspack_cacheable"))]
+#[derive(Eq)]
+pub struct SourceMapSource {
+  value: Box<str>,
+  name: Box<str>,
+  source_map: SourceMap<'static>,
+  original_source: Option<Box<str>>,
   inner_source_map: Option<SourceMap<'static>>,
   remove_original_source: bool,
 }
@@ -122,7 +134,10 @@ impl SourceMapSource {
   }
 }
 
-#[rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)]
+#[cfg_attr(
+  feature = "rspack_cacheable",
+  rspack_cacheable::cacheable_dyn(crate = rspack_cacheable)
+)]
 impl Source for SourceMapSource {
   fn source(&self) -> SourceValue<'_> {
     SourceValue::String(Cow::Borrowed(&self.value))
