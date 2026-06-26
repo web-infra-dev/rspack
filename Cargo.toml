@@ -67,7 +67,7 @@ json                = { version = "0.12.4", default-features = false }
 json-escape-simd    = { version = "3.1.3", default-features = false }
 json-strip-comments = { version = "3.1.2", default-features = false }
 libc                = { version = "0.2.183", default-features = false }
-lightningcss        = { version = "1.0.0-alpha.71", default-features = false, features = ["serde", "custom_sourcemap"] }
+lightningcss        = { git = "https://github.com/intellild/lightningcss.git", rev = "0bac61168acfba545e0378731ebce05809c57c64", default-features = false, features = ["serde", "custom_sourcemap"] }
 linked-hash-map     = { version = "0.5.6", default-features = false }
 md4                 = { version = "0.10.2", default-features = false }
 memchr              = { version = "2.8.3", default-features = false }
