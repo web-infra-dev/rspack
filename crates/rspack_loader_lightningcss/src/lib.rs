@@ -9,7 +9,8 @@ use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
   printer::{
-    OriginalLocation as LightningOriginalLocation, PrinterOptions, PseudoClasses, SourceMapWriter,
+    OriginalLocation as LightningOriginalLocation, PrinterOptions, PseudoClasses,
+    SourceMap as LightningSourceMap,
   },
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
@@ -37,14 +38,14 @@ pub const LIGHTNINGCSS_LOADER_IDENTIFIER: &str = "builtin:lightningcss-loader";
 pub type LightningcssLoaderVisitor = Box<dyn Send + Fn(&mut StyleSheet<'static>)>;
 
 #[derive(Default)]
-struct RspackSourceMapWriter {
+struct RspackSourceMap {
   sources: Vec<Cow<'static, str>>,
   sources_content: Vec<Cow<'static, str>>,
   names: Vec<Cow<'static, str>>,
   mappings: Vec<Mapping>,
 }
 
-impl RspackSourceMapWriter {
+impl RspackSourceMap {
   fn finish(self) -> SourceMap<'static> {
     SourceMap::new(
       encode_mappings(self.mappings.into_iter()),
@@ -55,7 +56,7 @@ impl RspackSourceMapWriter {
   }
 }
 
-impl SourceMapWriter for RspackSourceMapWriter {
+impl LightningSourceMap for RspackSourceMap {
   fn add_source(&mut self, source: &str) -> u32 {
     if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
       index as u32
@@ -100,6 +101,39 @@ impl SourceMapWriter for RspackSourceMapWriter {
         name_index: original.name,
       }),
     });
+  }
+
+  fn from_data_url(_source_root: &str, _data_url: &str) -> Option<Self> {
+    None
+  }
+
+  fn find_closest_mapping(
+    &mut self,
+    _line: u32,
+    _column: u32,
+  ) -> Option<LightningOriginalLocation> {
+    None
+  }
+
+  fn get_source(&self, source_index: u32) -> Option<&str> {
+    self
+      .sources
+      .get(source_index as usize)
+      .map(|source| source.as_ref())
+  }
+
+  fn get_name(&self, name_index: u32) -> Option<&str> {
+    self
+      .names
+      .get(name_index as usize)
+      .map(|name| name.as_ref())
+  }
+
+  fn get_source_content(&self, source_index: u32) -> Option<&str> {
+    self
+      .sources_content
+      .get(source_index as usize)
+      .map(|source_content| source_content.as_ref())
   }
 }
 
@@ -246,7 +280,7 @@ impl LightningCssLoader {
       .to_rspack_result()?;
 
     let mut source_map = if loader_context.context.source_map_kind.enabled() {
-      let mut sm = RspackSourceMapWriter::default();
+      let mut sm = RspackSourceMap::default();
       let source_index = sm.add_source(&filename);
       sm.set_source_content(source_index, &content_str);
       Some(sm)
@@ -254,28 +288,27 @@ impl LightningCssLoader {
       None
     };
 
-    let content = stylesheet
-      .to_css(PrinterOptions {
-        minify: self.config.minify.unwrap_or(false),
-        source_map: source_map
-          .as_mut()
-          .map(|source_map| source_map as &mut dyn SourceMapWriter),
-        project_root: None,
-        targets,
-        analyze_dependencies: None,
-        pseudo_classes: self
-          .config
-          .pseudo_classes
-          .as_ref()
-          .map(|pseudo_classes| PseudoClasses {
-            hover: pseudo_classes.hover.as_deref(),
-            active: pseudo_classes.active.as_deref(),
-            focus: pseudo_classes.focus.as_deref(),
-            focus_visible: pseudo_classes.focus_visible.as_deref(),
-            focus_within: pseudo_classes.focus_within.as_deref(),
-          }),
-      })
-      .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
+    let content =
+      stylesheet
+        .to_css(
+          PrinterOptions {
+            minify: self.config.minify.unwrap_or(false),
+            project_root: None,
+            targets,
+            analyze_dependencies: None,
+            pseudo_classes: self.config.pseudo_classes.as_ref().map(|pseudo_classes| {
+              PseudoClasses {
+                hover: pseudo_classes.hover.as_deref(),
+                active: pseudo_classes.active.as_deref(),
+                focus: pseudo_classes.focus.as_deref(),
+                focus_visible: pseudo_classes.focus_visible.as_deref(),
+                focus_within: pseudo_classes.focus_within.as_deref(),
+              }
+            }),
+          },
+          source_map.as_mut(),
+        )
+        .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
 
     if let Some(source_map) = source_map {
       let rspack_source_map = source_map.finish();

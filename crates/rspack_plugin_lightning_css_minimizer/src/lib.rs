@@ -7,7 +7,9 @@ use std::{
 
 pub use lightningcss::targets::Browsers;
 use lightningcss::{
-  printer::{OriginalLocation as LightningOriginalLocation, PrinterOptions, SourceMapWriter},
+  printer::{
+    OriginalLocation as LightningOriginalLocation, PrinterOptions, SourceMap as LightningSourceMap,
+  },
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
 };
@@ -31,7 +33,7 @@ static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
 #[derive(Default)]
-struct RspackSourceMapWriter {
+struct RspackSourceMap {
   sources: Vec<Cow<'static, str>>,
   sources_content: Vec<Cow<'static, str>>,
   names: Vec<Cow<'static, str>>,
@@ -39,7 +41,7 @@ struct RspackSourceMapWriter {
   source_root: Option<Cow<'static, str>>,
 }
 
-impl RspackSourceMapWriter {
+impl RspackSourceMap {
   fn with_source_root(source_root: Option<&str>) -> Self {
     Self {
       source_root: source_root.map(|source_root| Cow::Owned(source_root.to_string())),
@@ -59,7 +61,7 @@ impl RspackSourceMapWriter {
   }
 }
 
-impl SourceMapWriter for RspackSourceMapWriter {
+impl LightningSourceMap for RspackSourceMap {
   fn add_source(&mut self, source: &str) -> u32 {
     if let Some(index) = self.sources.iter().position(|s| s.as_ref() == source) {
       index as u32
@@ -104,6 +106,39 @@ impl SourceMapWriter for RspackSourceMapWriter {
         name_index: original.name,
       }),
     });
+  }
+
+  fn from_data_url(_source_root: &str, _data_url: &str) -> Option<Self> {
+    None
+  }
+
+  fn find_closest_mapping(
+    &mut self,
+    _line: u32,
+    _column: u32,
+  ) -> Option<LightningOriginalLocation> {
+    None
+  }
+
+  fn get_source(&self, source_index: u32) -> Option<&str> {
+    self
+      .sources
+      .get(source_index as usize)
+      .map(|source| source.as_ref())
+  }
+
+  fn get_name(&self, name_index: u32) -> Option<&str> {
+    self
+      .names
+      .get(name_index as usize)
+      .map(|name| name.as_ref())
+  }
+
+  fn get_source_content(&self, source_index: u32) -> Option<&str> {
+    self
+      .sources_content
+      .get(source_index as usize)
+      .map(|source_content| source_content.as_ref())
   }
 }
 
@@ -249,7 +284,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         );
 
         let mut source_map = input_source_map.as_ref().map(|input_source_map| {
-          let mut sm = RspackSourceMapWriter::with_source_root(input_source_map.source_root());
+          let mut sm = RspackSourceMap::with_source_root(input_source_map.source_root());
           let source_index = sm.add_source(filename);
           sm.set_source_content(source_index, &input);
           sm
@@ -316,9 +351,6 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           stylesheet
             .to_css(PrinterOptions {
               minify: true,
-              source_map: source_map
-                .as_mut()
-                .map(|source_map| source_map as &mut dyn SourceMapWriter),
               project_root: None,
               targets,
               analyze_dependencies: None,
@@ -331,7 +363,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 focus_visible: pseudo_classes.focus_visible.as_deref(),
                 focus_within: pseudo_classes.focus_within.as_deref(),
               }),
-            })
+            }, source_map.as_mut())
             .to_rspack_result()?
         };
 
