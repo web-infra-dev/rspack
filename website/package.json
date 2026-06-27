@@ -18,16 +18,16 @@
     "mermaid": "^11.15.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "semver": "^7.8.4"
+    "semver": "^7.8.5"
   },
   "devDependencies": {
     "@rsbuild/plugin-sass": "^1.5.3",
     "@rsbuild/plugin-tailwindcss": "^2.0.3",
-    "@rspress/core": "^2.0.14",
-    "@rspress/plugin-algolia": "^2.0.14",
-    "@rspress/plugin-client-redirects": "^2.0.14",
-    "@rspress/plugin-rss": "^2.0.14",
-    "@rspress/plugin-sitemap": "^2.0.14",
+    "@rspress/core": "^2.0.15",
+    "@rspress/plugin-algolia": "^2.0.15",
+    "@rspress/plugin-client-redirects": "^2.0.15",
+    "@rspress/plugin-rss": "^2.0.15",
+    "@rspress/plugin-sitemap": "^2.0.15",
     "@shikijs/transformers": "^4.2.0",
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.17",

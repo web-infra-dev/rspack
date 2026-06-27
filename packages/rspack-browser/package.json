@@ -34,10 +34,10 @@
   "dependencies": {
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
-    "@napi-rs/wasm-runtime": "1.1.5",
+    "@napi-rs/wasm-runtime": "1.1.6",
     "@rspack/lite-tapable": "1.1.2",
     "@swc/types": "0.1.27",
-    "memfs": "4.57.7",
+    "memfs": "4.57.8",
     "webpack-sources": "3.5.0"
   },
   "peerDependencies": {
