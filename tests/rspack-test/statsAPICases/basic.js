@@ -102,6 +102,7 @@ module.exports = {
 			          name: ./fixtures/a.js,
 			          nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			          optimizationBailout: Array [
+			            Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
 			            ModuleConcatenation bailout: Module is not an ECMAScript module,
 			          ],
 			          optional: false,
@@ -228,6 +229,7 @@ module.exports = {
 			      name: ./fixtures/a.js,
 			      nameForCondition: <TEST_ROOT>/fixtures/a.js,
 			      optimizationBailout: Array [
+			        Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>,
 			        ModuleConcatenation bailout: Module is not an ECMAScript module,
 			      ],
 			      optional: false,
@@ -306,11 +308,13 @@ module.exports = {
 			  > ./fixtures/a main
 			  ./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
 			    [used exports unknown]
+			    Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 			    ModuleConcatenation bailout: Module is not an ECMAScript module
 			    entry ./fixtures/a
 			    cjs self exports reference self [195] ./fixtures/a.js
 			./fixtures/a.js [195] 55 bytes {889} [depth 0] [built] [code generated]
 			  [used exports unknown]
+			  Statement with side_effects in source code at ./fixtures/a.js<LINE_COL_RANGE>
 			  ModuleConcatenation bailout: Module is not an ECMAScript module
 			  entry ./fixtures/a
 			  cjs self exports reference self [195] ./fixtures/a.js

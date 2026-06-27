@@ -2,14 +2,13 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
-use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, ConnectionState, Dependency, DependencyCategory,
+  AsContextDependency, AsModuleDependency, Dependency, DependencyCategory,
   DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, SideEffectsStateArtifact,
-  TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  ModuleGraph, ModuleGraphCacheArtifact, NormalInitFragment, TemplateContext,
+  TemplateReplaceSource, UsedName, property_access,
 };
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
@@ -124,17 +123,6 @@ impl Dependency for CommonJsExportsDependency {
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::False
-  }
-
-  fn get_module_evaluation_side_effects_state(
-    &self,
-    _module_graph: &ModuleGraph,
-    _module_graph_cache: &ModuleGraphCacheArtifact,
-    _side_effects_state_artifact: &SideEffectsStateArtifact,
-    _module_chain: &mut IdentifierSet,
-    _connection_state_cache: &mut IdentifierMap<ConnectionState>,
-  ) -> ConnectionState {
-    ConnectionState::Active(false)
   }
 }
 

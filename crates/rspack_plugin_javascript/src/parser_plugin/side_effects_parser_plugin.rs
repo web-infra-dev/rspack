@@ -6,13 +6,12 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
+use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
-  ClassMember, CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread,
-  Function, GetSpan, ImportSpecifier, Lit, MemberProp, ModuleDecl, ModuleExportName, ModuleItem,
-  ObjectPatProp, Pat, Program, PropName, SimpleAssignTarget, Span, Span as AstSpan, Stmt, VarDecl,
-  VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
+  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
+  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
+  Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -1282,7 +1281,7 @@ impl SideEffectsParserPlugin {
           range,
           loc,
           String::from("Statement"),
-        ));
+        ))
       }
     };
 
@@ -1499,66 +1498,6 @@ pub fn is_pure_function<'a>(
   true
 }
 
-fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignExpr) -> bool {
-  if parser.is_esm || !parser.is_top_level_scope() {
-    return false;
-  }
-
-  if !matches!(expr.op, AssignOp::Assign) {
-    return false;
-  }
-
-  let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() else {
-    return false;
-  };
-
-  match &member.obj {
-    Expr::Ident(ident) => {
-      if ident.sym == "exports" {
-        let property_is_side_effect_free = match &member.prop {
-          MemberProp::Ident(ident) => ident.sym != "__proto__",
-          MemberProp::Computed(computed) => match &computed.expr {
-            Expr::Lit(lit) => match &**lit {
-              Lit::Str(str) => str.value.as_wtf8() != Wtf8::from_str("__proto__"),
-              _ => false,
-            },
-            _ => false,
-          },
-          MemberProp::PrivateName(_) => false,
-        };
-        if !property_is_side_effect_free {
-          return false;
-        }
-        return parser
-          .get_variable_info(&Atom::from("exports"))
-          .is_none_or(|info| info.is_free());
-      }
-      if ident.sym != "module" {
-        return false;
-      }
-      let property_is_exports = match &member.prop {
-        MemberProp::Ident(ident) => ident.sym == "exports",
-        MemberProp::Computed(computed) => match &computed.expr {
-          Expr::Lit(lit) => match &**lit {
-            Lit::Str(str) => str.value.as_wtf8() == Wtf8::from_str("exports"),
-            _ => false,
-          },
-          _ => false,
-        },
-        MemberProp::PrivateName(_) => false,
-      };
-      property_is_exports
-        && parser
-          .get_variable_info(&Atom::from("module"))
-          .is_none_or(|info| info.is_free())
-    }
-    // `module.exports.foo = ...` reads the current `module.exports` object. It
-    // may have been replaced with an accessor-bearing object, so only direct
-    // `module.exports = ...` is treated as a side-effect-free export assignment.
-    _ => false,
-  }
-}
-
 #[inline(never)]
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
@@ -1579,17 +1518,6 @@ pub fn is_pure_expression<'a>(
     }
 
     match expr {
-      Expr::Assign(assign_expr)
-        if callees.is_some() && is_common_js_export_assignment(parser, assign_expr) =>
-      {
-        is_pure_expression(
-          parser,
-          analyze_side_effects_free,
-          &assign_expr.right,
-          comments,
-          callees,
-        )
-      }
       Expr::Array(array_lit) => is_pure_array_lit(
         parser,
         analyze_side_effects_free,
