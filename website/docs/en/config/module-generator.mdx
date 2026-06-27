@@ -45,6 +45,7 @@ export default {
       },
       // Generator options for asset/resource modules
       'asset/resource': {
+        emit: true,
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
       },
@@ -524,6 +525,22 @@ export default {
     generator: {
       'asset/resource': {
         publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].emit
+
+Same as [`module.generator["asset"].emit`](#assetemit).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        emit: false,
       },
     },
   },
