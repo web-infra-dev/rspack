@@ -857,6 +857,10 @@ export type RuleSetLoader = string;
 export type RuleSetLoaderOptions = string | Record<string, any>;
 
 export type RuleSetLoaderWithOptions = {
+  /**
+   * Stable identifier used to reference object-form loader options.
+   * When provided, Rspack passes object options to the loader request as `??${ident}`.
+   */
   ident?: string;
 
   loader: RuleSetLoader;
@@ -1311,7 +1315,8 @@ export type JsonParserOptions = {
    */
   exportsDepth?: number;
   /**
-   * If Rule.type is set to 'json' then Rules.parser.parse option may be a function that implements custom logic to parse module's source and convert it to a json-compatible data.
+   * Custom synchronous parser for json modules. It receives the module source and should return JSON-serializable data.
+   * Can be configured through module.parser.json or through Rule.parser when Rule.type is 'json'.
    */
   parse?: (source: string) => any;
 };

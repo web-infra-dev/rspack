@@ -806,6 +806,36 @@ export default {
 };
 ```
 
+## rules[].use.ident
+
+- **类型：** `string`
+- **默认值：** `undefined`
+
+为对象形式的 loader options 提供一个稳定名称。Rspack 构造 loader request 时会使用它，因此在生成规则或复用同一组选项时，可以保持稳定的 `??<ident>` 引用。
+
+大多数配置不需要手动设置它。如果省略，Rspack 会优先使用 `options.ident`，否则生成内部标识符。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svgo-loader',
+            ident: 'svgo-inline',
+            options: {
+              multipass: true,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].use.parallel
 
 <ApiMeta addedVersion="1.3.1" />
@@ -850,6 +880,36 @@ export default {
 - 目前 loader 在 worker 中不支持 `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` 上的大多数方法。
 
 :::
+
+## rules[].use.parallel.maxWorkers
+
+- **类型：** `number`
+- **默认值：** `undefined`
+
+当 `parallel` 配置为对象时，限制共享 loader worker pool 使用的最大 worker 线程数。请使用正整数。
+
+如果省略 `maxWorkers`，Rspack 会自动选择 worker 数量。loader worker pool 在当前进程内共享；如果多个 loader 都配置 `parallel`，建议使用一致的 `maxWorkers` 值。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: {
+              maxWorkers: 4,
+            },
+            options: {},
+          },
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].resolve
 
