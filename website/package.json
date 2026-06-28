@@ -15,7 +15,7 @@
   "dependencies": {
     "@rstack-dev/doc-ui": "1.14.5",
     "markdown-to-jsx": "^9.8.2",
-    "mermaid": "^11.15.0",
+    "mermaid": "^11.16.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "semver": "^7.8.5"
