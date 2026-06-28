@@ -149,8 +149,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.3
-        version: 2.0.3(@rspack/core@packages+rspack)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@packages+rspack)
 
   examples/react:
     dependencies:
@@ -168,8 +168,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.3
-        version: 2.0.3(@rspack/core@packages+rspack)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -195,8 +195,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.3
-        version: 2.0.3(@rspack/core@packages+rspack)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@packages+rspack)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -351,8 +351,8 @@ importers:
         specifier: workspace:*
         version: link:../rspack
       '@rspack/dev-server':
-        specifier: ^2.0.3
-        version: 2.0.3(@rspack/core@packages+rspack)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@packages+rspack)
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
@@ -520,8 +520,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/rspack
       '@rspack/dev-server':
-        specifier: ^2.0.3
-        version: 2.0.3(@rspack/core@packages+rspack)
+        specifier: ^2.1.0
+        version: 2.1.0(@rspack/core@packages+rspack)
       '@rspack/plugin-react-refresh':
         specifier: ^2.0.2
         version: 2.0.2(@rspack/core@packages+rspack)(react-refresh@0.18.0)
@@ -2822,20 +2822,20 @@ packages:
       '@swc/helpers':
         optional: true
 
-  '@rspack/dev-middleware@2.0.1':
-    resolution: {integrity: sha512-cXSubf5/C+dvkWV2/+rGTtiZ93wSLd3OlTQhwMvsmsmGDdPlkYqIvQ+BTkOk9UCXxKIaF0DDYYmCpBeRRYJfJw==}
+  '@rspack/dev-middleware@2.0.3':
+    resolution: {integrity: sha512-GxnGj9jy76G3eCPyZei81fwKLAMLZaPEEqFz1/QDYquhwi/qYZX5fekFJ1XVpuwxGEK9KSX3hxZylfwrs4cmLA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@rspack/core': ^2.0.0-0
+      '@rspack/core': ^2.0.0
     peerDependenciesMeta:
       '@rspack/core':
         optional: true
 
-  '@rspack/dev-server@2.0.3':
-    resolution: {integrity: sha512-S29nOxXQS9o+0uGNe7SgND2dAKnte5ZTD5tiT3/B4lKbviqpXD4tbH7NZWA3hGwlSkmOIbFlysYPL1bVHuBcSg==}
+  '@rspack/dev-server@2.1.0':
+    resolution: {integrity: sha512-WkCi6bWThVX5Ziv04srPaRoCoUY5FJolO4gqzE7xPO0XbXShsGnwn0vGD0DFfnYFcw9VSsxlmeCDV799lNYclA==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      '@rspack/core': ^2.0.0-0
+      '@rspack/core': ^2.0.0
       selfsigned: ^5.0.0
     peerDependenciesMeta:
       selfsigned:
@@ -8993,14 +8993,14 @@ snapshots:
       '@swc/helpers': 0.5.23
     optional: true
 
-  '@rspack/dev-middleware@2.0.1(@rspack/core@packages+rspack)':
+  '@rspack/dev-middleware@2.0.3(@rspack/core@packages+rspack)':
     optionalDependencies:
       '@rspack/core': link:packages/rspack
 
-  '@rspack/dev-server@2.0.3(@rspack/core@packages+rspack)':
+  '@rspack/dev-server@2.1.0(@rspack/core@packages+rspack)':
     dependencies:
       '@rspack/core': link:packages/rspack
-      '@rspack/dev-middleware': 2.0.1(@rspack/core@packages+rspack)
+      '@rspack/dev-middleware': 2.0.3(@rspack/core@packages+rspack)
 
   '@rspack/lite-tapable@1.1.1': {}
 
