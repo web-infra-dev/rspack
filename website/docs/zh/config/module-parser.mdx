@@ -1017,6 +1017,49 @@ export default {
 };
 ```
 
+### json.parse
+
+- **类型：** `(source: string) => any`
+- **默认值：** `undefined`
+
+自定义 Rspack 如何解析 `json` 模块的源码。该函数会收到模块源码字符串，函数必须返回可 JSON 序列化的数据。
+
+Rspack 会先通过 `JSON.stringify` 序列化该函数的返回值，再将序列化后的 JSON 作为模块数据继续解析。普通 JSON 文件通常不需要配置这个选项；它主要用于将某些模块按 `type: 'json'` 处理，但又需要自定义源码到数据的转换逻辑。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        parse: (source) => {
+          return JSON.parse(source);
+        },
+      },
+    },
+  },
+};
+```
+
+当命中的规则设置了 `type: 'json'` 时，也可以通过 `module.rules[].parser` 使用这个选项。例如，将 `.json5` 文件作为 JSON 模块解析：
+
+```js title="rspack.config.mjs"
+import JSON5 from 'json5';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.json5$/,
+        type: 'json',
+        parser: {
+          parse: JSON5.parse,
+        },
+      },
+    ],
+  },
+};
+```
+
 ### ["css/auto"]
 
 `css/auto` 模块的解析器选项。
