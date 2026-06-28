@@ -781,8 +781,8 @@ importers:
         specifier: ^4.1.1
         version: 4.1.1
       ts-checker-rspack-plugin:
-        specifier: ^1.4.0
-        version: 1.4.0(@rspack/core@packages+rspack)(@typescript/native-preview@7.0.0-dev.20260624.1)(typescript@6.0.3)
+        specifier: ^1.5.1
+        version: 1.5.1(@rspack/core@packages+rspack)(@typescript/native-preview@7.0.0-dev.20260624.1)(typescript@6.0.3)
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -6885,8 +6885,8 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  ts-checker-rspack-plugin@1.4.0:
-    resolution: {integrity: sha512-xPBPe6n9XZW9vMw4PFJLZFY372rejKK8UFC12i33J+yJK+fmsQQ4k9eoOlbLE0zC6vftyKDhvfMF3RyMFFTOZw==}
+  ts-checker-rspack-plugin@1.5.1:
+    resolution: {integrity: sha512-h0jF3PAIrG+UA2nZ2OPUEt0NywkpiJkydkoVg/Kd1OFPFlrayNBJoSP0zeNPUpdsFEt7ICX1BjENCfOH9nmMyA==}
     peerDependencies:
       '@rspack/core': ^1.0.0 || ^2.0.0
       '@typescript/native-preview': ^7.0.0-0
@@ -13533,7 +13533,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  ts-checker-rspack-plugin@1.4.0(@rspack/core@packages+rspack)(@typescript/native-preview@7.0.0-dev.20260624.1)(typescript@6.0.3):
+  ts-checker-rspack-plugin@1.5.1(@rspack/core@packages+rspack)(@typescript/native-preview@7.0.0-dev.20260624.1)(typescript@6.0.3):
     dependencies:
       '@rspack/lite-tapable': 1.1.2
       chokidar: 3.6.0

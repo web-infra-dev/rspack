@@ -76,7 +76,7 @@
     "terser": "5.48.0",
     "terser-webpack-plugin": "^5.6.1",
     "toml": "^4.1.1",
-    "ts-checker-rspack-plugin": "^1.4.0",
+    "ts-checker-rspack-plugin": "^1.5.1",
     "typescript": "^6.0.3",
     "url-loader": "^4.1.1",
     "wast-loader": "^1.14.1",
