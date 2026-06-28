@@ -28,7 +28,7 @@
     "@rspress/plugin-client-redirects": "^2.0.15",
     "@rspress/plugin-rss": "^2.0.15",
     "@rspress/plugin-sitemap": "^2.0.15",
-    "@shikijs/transformers": "^4.2.0",
+    "@shikijs/transformers": "^4.3.0",
     "@types/node": "^20.19.43",
     "@types/react": "^19.2.17",
     "@types/semver": "^7.7.1",
