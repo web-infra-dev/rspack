@@ -848,8 +848,8 @@ importers:
         version: 7.8.5
     devDependencies:
       '@rsbuild/plugin-sass':
-        specifier: ^1.5.3
-        version: 1.5.3(@rsbuild/core@2.1.1)
+        specifier: ^2.0.0
+        version: 2.0.0(@rsbuild/core@2.1.1)
       '@rsbuild/plugin-tailwindcss':
         specifier: ^2.0.3
         version: 2.0.3(@rsbuild/core@2.1.1)(@rspack/core@2.1.1)
@@ -2602,10 +2602,10 @@ packages:
       '@rsbuild/core':
         optional: true
 
-  '@rsbuild/plugin-sass@1.5.3':
-    resolution: {integrity: sha512-NViSITZF3J3i96GfemWfTZBZ43CNZUgTaaKgfti0I7odwy36Qlo8MIAbGjOy8pBSygIYn7Xl4+Jw8qAbTysCBw==}
+  '@rsbuild/plugin-sass@2.0.0':
+    resolution: {integrity: sha512-MS50LoIbQKjYAGvfjs/owsXPvw93LoPZuZ6EWZ4g/HhgLk/uHugHAGY0Q47d0zHk3f2JYDOHWLrWPm4j2wA8Lw==}
     peerDependencies:
-      '@rsbuild/core': ^1.3.0 || ^2.0.0-0
+      '@rsbuild/core': ^2.0.0
     peerDependenciesMeta:
       '@rsbuild/core':
         optional: true
@@ -6153,8 +6153,8 @@ packages:
   recma-stringify@1.0.0:
     resolution: {integrity: sha512-cjwII1MdIIVloKvC9ErQ+OgAtwHBmcZ0Bg4ciz78FtbT8In39aAYbaA7zvxQ61xVMSPE8WxhLwLbhif4Js2C+g==}
 
-  reduce-configs@1.1.2:
-    resolution: {integrity: sha512-AgBP55V8FC7NaqoOP2RCbTpu6LE+YuX3LUZkNAoitcfyS3/PIC8Obg/TJrBzTkJ+lDvZv0TTAeDpLkzjTtYlbw==}
+  reduce-configs@2.0.1:
+    resolution: {integrity: sha512-H9KTCWTEb1YM1OoOz0f6TeGZYlW82sIT1viNg3W8CjjY0pD3WI4MHs8GifKt5FKTVIfHh/DenfJqqY+FP9jF2A==}
 
   regex-recursion@6.0.2:
     resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
@@ -8813,12 +8813,12 @@ snapshots:
     transitivePeerDependencies:
       - '@rspack/core'
 
-  '@rsbuild/plugin-sass@1.5.3(@rsbuild/core@2.1.1)':
+  '@rsbuild/plugin-sass@2.0.0(@rsbuild/core@2.1.1)':
     dependencies:
       deepmerge: 4.3.1
       loader-utils: 2.0.4
       postcss: 8.5.15
-      reduce-configs: 1.1.2
+      reduce-configs: 2.0.1
       sass-embedded: 1.100.0
     optionalDependencies:
       '@rsbuild/core': 2.1.1(@module-federation/runtime-tools@2.6.0)(core-js@3.49.0)
@@ -12794,7 +12794,7 @@ snapshots:
       unified: 11.0.5
       vfile: 6.0.3
 
-  reduce-configs@1.1.2: {}
+  reduce-configs@2.0.1: {}
 
   regex-recursion@6.0.2:
     dependencies:
