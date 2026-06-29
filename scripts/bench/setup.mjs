@@ -213,7 +213,9 @@ async function romeTsBenchcase() {
 }
 
 async function romeProblematicLibrariesBenchcase() {
-  console.log(`preparing ${ROME_PROJECT} problematic libraries benchmark input`);
+  console.log(
+    `preparing ${ROME_PROJECT} problematic libraries benchmark input`,
+  );
 
   const targetProject = path.join(RSPACK_BENCH_CASES, ROME_PROJECT);
   const sourceMarker = path.join(targetProject, ROME_SOURCE_MARKER);
@@ -241,10 +243,7 @@ async function romeProblematicLibrariesBenchcase() {
     ...(packageJson.dependencies ?? {}),
     ...ROME_PROBLEMATIC_LIBRARIES,
   };
-  await writeFile(
-    packageJsonPath,
-    `${JSON.stringify(packageJson, null, 2)}\n`,
-  );
+  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
 
   const workspacePath = path.join(RSPACK_BENCH_CASES, 'pnpm-workspace.yaml');
   const workspace = await readFile(workspacePath, 'utf-8');
