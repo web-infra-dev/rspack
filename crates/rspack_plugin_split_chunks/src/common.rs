@@ -120,6 +120,10 @@ impl SplitChunkSizes {
     )
   }
 
+  pub fn is_empty_or_zero(&self) -> bool {
+    self.values().all(|size| *size == 0.0)
+  }
+
   /// Port https://github.com/webpack/webpack/blob/c1a5e4fdeef6c64b4f5624830de7abdecba6301a/lib/optimize/SplitChunksPlugin.js#L283-L290
   pub fn merge(mut self, other: &Self) -> Self {
     other.iter().for_each(|(ty, size)| {
@@ -219,6 +223,26 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
       (module.identifier(), sizes)
     })
     .collect::<IdentifierMap<_>>()
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::SourceType;
+
+  use super::SplitChunkSizes;
+
+  #[test]
+  fn split_chunk_sizes_treats_empty_or_all_zero_as_no_threshold() {
+    assert!(SplitChunkSizes::default().is_empty_or_zero());
+    assert!(SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0).is_empty_or_zero());
+  }
+
+  #[test]
+  fn split_chunk_sizes_reports_non_zero_thresholds() {
+    assert!(
+      !SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 1.0).is_empty_or_zero()
+    );
+  }
 }
 
 #[derive(Debug)]

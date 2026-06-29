@@ -664,19 +664,7 @@ impl SplitChunksPlugin {
           .intersection(used_chunks)
           .next()?;
 
-        let module_count = other_module_group.modules.len();
-
-        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
-          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
-        } else {
-          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
-        };
-
-        for module in duplicated_modules {
-          other_module_group.remove_module(module);
-        }
-
-        if module_count == other_module_group.modules.len() {
+        if !other_module_group.remove_matching_modules(&current_module_group.modules) {
           // nothing is removed
           return None;
         }
@@ -710,6 +698,13 @@ impl SplitChunksPlugin {
             cache_group.min_chunks
           );
           return Some(key.clone());
+        }
+
+        if cache_group.min_size.is_empty_or_zero()
+          && cache_group.min_size_reduction.is_empty_or_zero()
+        {
+          let _ = other_module_group.get_sizes(module_sizes);
+          return None;
         }
 
         // Validate `min_size` again

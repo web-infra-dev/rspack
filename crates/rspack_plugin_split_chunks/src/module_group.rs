@@ -184,6 +184,26 @@ impl ModuleGroup {
     }
   }
 
+  pub fn remove_matching_modules(&mut self, modules: &IdentifierSet) -> bool {
+    let old_len = self.modules.len();
+    if self.modules.len() > modules.len() {
+      for module in modules {
+        self.remove_module(*module);
+      }
+    } else {
+      let removed = &mut self.removed;
+      self.modules.retain(|module| {
+        if modules.contains(module) {
+          removed.push(*module);
+          false
+        } else {
+          true
+        }
+      });
+    }
+    old_len != self.modules.len()
+  }
+
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {
     let modules = self.modules.iter().copied().collect::<Vec<_>>();
     self.added = modules.clone();
@@ -306,5 +326,78 @@ pub(crate) fn compare_entries(
     Ordering::Less => -1.0,
     Ordering::Equal => 0.0,
     Ordering::Greater => 1.0,
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_core::ModuleIdentifier;
+
+  use super::{CacheGroup, ModuleGroup};
+  use crate::{
+    ChunkNameGetter, SplitChunkSizes, common::ChunkFilter, create_default_module_layer_filter,
+    create_default_module_type_filter, options::cache_group_test::CacheGroupTest,
+  };
+
+  fn module(identifier: &str) -> ModuleIdentifier {
+    ModuleIdentifier::from(identifier)
+  }
+
+  fn module_group(modules: &[&str]) -> ModuleGroup {
+    let cache_group = CacheGroup {
+      key: "test".to_string(),
+      chunk_filter: ChunkFilter::All,
+      test: CacheGroupTest::Enabled,
+      r#type: create_default_module_type_filter(),
+      layer: create_default_module_layer_filter(),
+      name: ChunkNameGetter::Disabled,
+      priority: 0.0,
+      min_size: SplitChunkSizes::default(),
+      min_size_reduction: SplitChunkSizes::default(),
+      enforce_size_threshold: SplitChunkSizes::default(),
+      reuse_existing_chunk: false,
+      min_chunks: 1,
+      id_hint: "test".to_string(),
+      max_initial_requests: f64::INFINITY,
+      max_async_requests: f64::INFINITY,
+      max_async_size: SplitChunkSizes::default(),
+      max_initial_size: SplitChunkSizes::default(),
+      filename: None,
+      automatic_name_delimiter: "-".to_string(),
+      used_exports: false,
+    };
+    let mut module_group = ModuleGroup::new(None, 0, &cache_group);
+    for module in modules {
+      module_group.add_module(self::module(module));
+    }
+    module_group.prepare_modules_for_sizes_and_compare();
+    module_group
+  }
+
+  #[test]
+  fn remove_matching_modules_records_removed_modules_without_touching_unmatched_modules() {
+    let mut other_group = module_group(&["a", "b", "c"]);
+    let current_group = self::module_group(&["b", "d"]);
+
+    assert!(other_group.remove_matching_modules(&current_group.modules));
+
+    assert_eq!(other_group.modules.len(), 2);
+    assert!(other_group.modules.contains(&module("a")));
+    assert!(other_group.modules.contains(&module("c")));
+    assert!(!other_group.modules.contains(&module("b")));
+    assert_eq!(other_group.removed, vec![module("b")]);
+  }
+
+  #[test]
+  fn remove_matching_modules_reports_no_change_when_nothing_matches() {
+    let mut other_group = module_group(&["a", "b"]);
+    let current_group = self::module_group(&["c"]);
+
+    assert!(!other_group.remove_matching_modules(&current_group.modules));
+
+    assert_eq!(other_group.modules.len(), 2);
+    assert!(other_group.modules.contains(&module("a")));
+    assert!(other_group.modules.contains(&module("b")));
+    assert!(other_group.removed.is_empty());
   }
 }
