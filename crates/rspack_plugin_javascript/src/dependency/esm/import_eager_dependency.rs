@@ -278,7 +278,7 @@ impl DependencyTemplate for ImportEagerDependencyTemplate {
       source.replace(
         dep.range.start,
         dep.range.end,
-        "Promise.resolve(/* unused import() */)".to_string(),
+        "Promise.resolve(/* unused import() */ {})".to_string(),
         None,
       );
       return;

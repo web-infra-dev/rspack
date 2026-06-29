@@ -326,7 +326,7 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
           )
         )
       } else {
-        "(/* unused require call */ null)".to_string()
+        "(/* unused require call */ {})".to_string()
       };
       source.replace(range_expr.start, range_expr.end, content, None);
     } else {

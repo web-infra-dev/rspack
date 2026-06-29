@@ -14,10 +14,11 @@ function marker(...args) {
 }
 
 function unusedImportReplacement() {
-	return ["Promise", "resolve(/* unused import() */)"].join(".");
+	return ["Promise", "resolve(/* unused import() */ {})"].join(".");
 }
 
 it("should remove unused side-effects-free dynamic import calls", async () => {
+	const {} = await import(/* webpackChunkName: "unused-empty" */ "lib/unused-empty");
 	// the unusedAwait variable must keep
 	const unusedAwait = await import(/* webpackChunkName: "unused-await" */ "lib/unused-await");
 	// the unusedAwaitEager variable must keep
@@ -50,9 +51,10 @@ it("should remove unused side-effects-free dynamic import calls", async () => {
 	expect(thenEagerValue).toBe(marker("used", "then", "eager"));
 
 	const content = readOutput();
-	expect(content.split(unusedImportReplacement()).length - 1).toBe(4);
+	expect(content.split(unusedImportReplacement()).length - 1).toBe(5);
 	expect(content).not.toContain(marker("unused", "await"));
 	expect(content).not.toContain(marker("unused", "await", "eager"));
+	expect(content).not.toContain(marker("unused", "empty"));
 	expect(content).not.toContain(marker("unused", "then"));
 	expect(content).not.toContain(marker("unused", "then", "eager"));
 	expect(content).toContain(marker("used", "await"));

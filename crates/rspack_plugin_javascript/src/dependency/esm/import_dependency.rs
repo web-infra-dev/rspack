@@ -288,7 +288,7 @@ impl DependencyTemplate for ImportDependencyTemplate {
       source.replace(
         range.start,
         range.end,
-        "Promise.resolve(/* unused import() */)".to_string(),
+        "Promise.resolve(/* unused import() */ {})".to_string(),
         None,
       );
       return;
