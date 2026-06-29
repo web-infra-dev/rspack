@@ -17,7 +17,7 @@ pnpm run bench:prepare
 
 The prepare step also creates a local `rome-ts` fixture from the TypeScript
 sources in `rome/tools` commit `d95a3a7aab90773c9b36d9c82a08c8c4c6b68aa5`,
-adds a `rome-ts-problematic-libs-production-sourcemap` entry that imports
+adds a `misc-production-sourcemap` entry that imports
 libraries known to stress module concatenation bailouts, and creates a local
 `threejs-10x` fixture by copying the upstream `threejs/src` input ten times.
 The larger `threejs-10x` input is registered only by the isolated `walltime`
