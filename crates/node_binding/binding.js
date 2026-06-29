@@ -361,35 +361,6 @@ function requireNative() {
 
 nativeBinding = requireNative()
 
-if (!nativeBinding || process.env.NAPI_RS_FORCE_WASI) {
-  try {
-    nativeBinding = require('./rspack.wasi.cjs')
-  } catch (err) {
-    if (process.env.NAPI_RS_FORCE_WASI) {
-      loadErrors.push(err)
-    }
-  }
-  if (!nativeBinding) {
-    try {
-      nativeBinding = require('@rspack/binding-wasm32-wasi')
-    } catch (err) {
-      if (process.env.NAPI_RS_FORCE_WASI) {
-        loadErrors.push(err)
-      }
-    }
-  }
-}
-
-if (!nativeBinding && globalThis.process?.versions?.["webcontainer"]) {
-  try {
-    nativeBinding = require("./webcontainer-fallback.cjs")
-  } catch (err) {
-    if (process.env.NAPI_RS_FORCE_WASI) {
-      loadErrors.push(err)
-    }
-  }
-}
-
 if (!nativeBinding) {
   if (loadErrors.length > 0) {
     throw new Error(

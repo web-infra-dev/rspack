@@ -1,14 +1,15 @@
 packages:
   - 'packages/*'
+  - '!packages/rspack-browser'
   - 'examples/*'
   - 'scripts'
   - 'website'
   - 'tests/e2e/fixtures/**'
   - 'npm/*'
+  - '!npm/wasm32-wasi'
   - 'crates/node_binding'
   - 'crates/rspack_binding_builder_testing'
   - 'tests/e2e'
-  - 'tests/e2e-browser'
   - 'tests/rspack-test'
   - 'tests/type-tests'
   # this following is used to test resolve in monorepo

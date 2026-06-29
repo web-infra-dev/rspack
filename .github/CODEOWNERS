@@ -75,7 +75,6 @@ Cargo.toml
 /crates/rspack_plugin_runtime
 /crates/rspack_plugin_schemes
 /crates/rspack_plugin_split_chunks @JSerFeng
-/crates/rspack_plugin_wasm
 /crates/rspack_tracing @hardfist
 /crates/rspack_tracing_perfetto @hardfist
 /crates/rspack_util

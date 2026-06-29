@@ -21,13 +21,8 @@
     "build:ci": "node scripts/build.js --profile ci",
     "build:profiling": "node scripts/build.js --profile profiling",
     "build:release": "node scripts/build.js --profile release",
-    "build:dev:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js",
-    "build:release:wasm": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads node scripts/build.js --profile release-wasi",
-    "build:dev:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js",
-    "build:release:browser": "DISABLE_PLUGIN=1 RUST_TARGET=wasm32-wasip1-threads RSPACK_TARGET_BROWSER=1 node scripts/build.js --profile release-wasi",
     "move-binding": "node scripts/move-binding",
-    "test": "tsc -p tsconfig.type-test.json",
-    "wasm-add-external-debug": "node scripts/add-external-debug-info.js rspack.wasm32-wasi.wasm rspack.wasm32-wasi.debug.wasm"
+    "test": "tsc -p tsconfig.type-test.json"
   },
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -36,7 +31,6 @@
     "@emnapi/core": "1.11.1",
     "@emnapi/runtime": "1.11.1",
     "@napi-rs/cli": "3.7.2",
-    "@napi-rs/wasm-runtime": "1.1.6",
     "@types/node": "^20.19.43",
     "emnapi": "1.11.1",
     "typescript": "^6.0.3"
@@ -58,16 +52,7 @@
       "aarch64-pc-windows-msvc",
       "riscv64gc-unknown-linux-gnu",
       "riscv64gc-unknown-linux-musl"
-    ],
-    "wasm": {
-      "initialMemory": 16384,
-      "browser": {
-        "fs": true,
-        "asyncInit": true,
-        "buffer": true,
-        "errorEvent": true
-      }
-    }
+    ]
   },
   "optionalDependencies": {
     "@rspack/binding-darwin-arm64": "workspace:*",
@@ -78,7 +63,6 @@
     "@rspack/binding-linux-riscv64-musl": "workspace:*",
     "@rspack/binding-linux-x64-gnu": "workspace:*",
     "@rspack/binding-linux-x64-musl": "workspace:*",
-    "@rspack/binding-wasm32-wasi": "workspace:*",
     "@rspack/binding-win32-arm64-msvc": "workspace:*",
     "@rspack/binding-win32-ia32-msvc": "workspace:*",
     "@rspack/binding-win32-x64-msvc": "workspace:*"

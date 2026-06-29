@@ -3732,7 +3732,6 @@ dependencies = [
  "rspack_plugin_runtime_chunk",
  "rspack_plugin_schemes",
  "rspack_plugin_swc_js_minimizer",
- "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_tasks",
@@ -3893,7 +3892,6 @@ dependencies = [
  "rspack_plugin_split_chunks",
  "rspack_plugin_sri",
  "rspack_plugin_swc_js_minimizer",
- "rspack_plugin_wasm",
  "rspack_plugin_worker",
  "rspack_regex",
  "rspack_resolver",
@@ -5290,25 +5288,6 @@ dependencies = [
  "swc_ecma_minifier",
  "thread_local",
  "tracing",
-]
-
-[[package]]
-name = "rspack_plugin_wasm"
-version = "0.101.1"
-dependencies = [
- "async-trait",
- "cow-utils",
- "rspack_cacheable",
- "rspack_collections",
- "rspack_core",
- "rspack_error",
- "rspack_hash",
- "rspack_hook",
- "rspack_util",
- "swc_core",
- "tokio",
- "tracing",
- "wasmparser",
 ]
 
 [[package]]

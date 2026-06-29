@@ -73,15 +73,6 @@ jobs:
           - target: aarch64-apple-darwin
             runner: ${{ vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"' }}
             test-runner: '"macos-latest"'
-          # The wasm release build is the release wall-clock long pole. Build the
-          # wasi and browser variants as two parallel jobs (one variant per
-          # runner). Only the wasi (node) variant runs the wasm tests; the
-          # browser variant is build-only (see reusable-build / build-test).
-          - target: wasm32-wasip1-threads
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-          - target: wasm32-wasip1-threads
-            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
-            binding_postfix: '-browser'
     uses: ./.github/workflows/reusable-build.yml
     with:
       target: ${{ matrix.array.target }}

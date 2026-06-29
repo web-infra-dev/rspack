@@ -954,12 +954,7 @@ impl CompilerOptionsBuilder {
     // apply incremental defaults
     let incremental = f!(self.incremental.take(), IncrementalOptions::advanced_silent);
 
-    let async_web_assembly = expect!(experiments_builder.async_web_assembly);
-    if async_web_assembly {
-      builder_context
-        .plugins
-        .push(BuiltinPluginOptions::AsyncWebAssemblyModulesPlugin);
-    }
+    let async_web_assembly = false;
     let css = expect!(experiments_builder.css);
     if css {
       builder_context
@@ -2941,17 +2936,8 @@ impl OutputOptionsBuilder {
     });
 
     let wasm_loading = f!(self.wasm_loading.take(), || {
-      if let Some(tp) = tp {
-        if tp.fetch_wasm() {
-          WasmLoading::Enable(WasmLoadingType::Fetch)
-        } else if tp.node_builtins() {
-          WasmLoading::Enable(WasmLoadingType::AsyncNode)
-        } else {
-          WasmLoading::Disable
-        }
-      } else {
-        WasmLoading::Disable
-      }
+      let _ = tp;
+      WasmLoading::Disable
     });
 
     let webassembly_module_filename = f!(self.webassembly_module_filename.take(), || {
@@ -3019,49 +3005,7 @@ impl OutputOptionsBuilder {
         .push(BuiltinPluginOptions::EnableChunkLoadingPlugin(ty));
     }
 
-    let enabled_wasm_loading_types = f!(
-      self
-        .enabled_wasm_loading_types
-        .take()
-        .map(|types| { types.into_iter().collect::<HashSet<_>>() }),
-      || {
-        let mut enabled_wasm_loading_types = HashSet::default();
-        if let WasmLoading::Enable(ty) = &wasm_loading {
-          enabled_wasm_loading_types.insert(ty.clone());
-        }
-        if let WasmLoading::Enable(ty) = &worker_wasm_loading {
-          enabled_wasm_loading_types.insert(ty.clone());
-        }
-        // Check if chunkLoading is universal, then enable universal wasm loading
-        if matches!(&chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
-        {
-          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
-        }
-        if matches!(&worker_chunk_loading, ChunkLoading::Enable(ChunkLoadingType::Custom(s)) if s == "universal")
-        {
-          enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
-        }
-        for (_, desc) in entry.iter() {
-          if let Some(ChunkLoading::Enable(ChunkLoadingType::Custom(s))) = &desc.chunk_loading
-            && s == "universal"
-          {
-            enabled_wasm_loading_types.insert(WasmLoadingType::Universal);
-          }
-        }
-        // for (_, desc) in entry.iter() {
-        //   if let Some(wasm_loading) = &desc.wasm_loading {
-        //     enabled_wasm_loading_types.push(wasm_loading.clone());
-        //   }
-        // }
-        enabled_wasm_loading_types
-      }
-    );
-
-    for ty in enabled_wasm_loading_types {
-      builder_context
-        .plugins
-        .push(BuiltinPluginOptions::EnableWasmLoadingPlugin(ty));
-    }
+    self.enabled_wasm_loading_types.take();
 
     let script_type = f!(self.script_type.take(), || {
       if output_module {
@@ -3754,7 +3698,7 @@ impl ExperimentsBuilder {
     // Builder specific
     let future_defaults = w!(self.future_defaults, false);
     w!(self.css, *future_defaults);
-    w!(self.async_web_assembly, true);
+    w!(self.async_web_assembly, false);
 
     Ok(Experiments {
       css: d!(self.css, false),

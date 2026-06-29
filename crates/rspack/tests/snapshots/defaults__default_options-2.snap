@@ -4,16 +4,12 @@ expression: builder_context
 ---
 BuilderContext {
     plugins: [
-        AsyncWebAssemblyModulesPlugin,
         ArrayPushCallbackChunkFormatPlugin,
         EnableChunkLoadingPlugin(
             Jsonp,
         ),
         EnableChunkLoadingPlugin(
             ImportScripts,
-        ),
-        EnableWasmLoadingPlugin(
-            Fetch,
         ),
         RemoveEmptyChunksPlugin,
         MergeDuplicateChunksPlugin,

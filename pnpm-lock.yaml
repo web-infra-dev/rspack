@@ -69,9 +69,6 @@ importers:
       '@napi-rs/cli':
         specifier: 3.7.2
         version: 3.7.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)(@types/node@20.19.43)(node-addon-api@7.1.1)
-      '@napi-rs/wasm-runtime':
-        specifier: 1.1.6
-        version: 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
       '@types/node':
         specifier: ^20.19.43
         version: 20.19.43
@@ -106,9 +103,6 @@ importers:
       '@rspack/binding-linux-x64-musl':
         specifier: workspace:*
         version: link:../../npm/linux-x64-musl
-      '@rspack/binding-wasm32-wasi':
-        specifier: workspace:*
-        version: link:../../npm/wasm32-wasi
       '@rspack/binding-win32-arm64-msvc':
         specifier: workspace:*
         version: link:../../npm/win32-arm64-msvc
@@ -217,18 +211,6 @@ importers:
 
   npm/linux-x64-musl: {}
 
-  npm/wasm32-wasi:
-    dependencies:
-      '@emnapi/core':
-        specifier: 1.11.1
-        version: 1.11.1
-      '@emnapi/runtime':
-        specifier: 1.11.1
-        version: 1.11.1
-      '@napi-rs/wasm-runtime':
-        specifier: 1.1.6
-        version: 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
-
   npm/win32-arm64-msvc: {}
 
   npm/win32-ia32-msvc: {}
@@ -257,9 +239,6 @@ importers:
       '@ast-grep/napi':
         specifier: ^0.44.0
         version: 0.44.0
-      '@napi-rs/wasm-runtime':
-        specifier: 1.1.6
-        version: 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
       '@rsbuild/plugin-node-polyfill':
         specifier: ^1.4.6
         version: 1.4.6(@rsbuild/core@2.1.1)
@@ -308,30 +287,6 @@ importers:
       watchpack:
         specifier: 2.5.2
         version: 2.5.2
-      webpack-sources:
-        specifier: 3.5.0
-        version: 3.5.0(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
-
-  packages/rspack-browser:
-    dependencies:
-      '@emnapi/core':
-        specifier: 1.11.1
-        version: 1.11.1
-      '@emnapi/runtime':
-        specifier: 1.11.1
-        version: 1.11.1
-      '@napi-rs/wasm-runtime':
-        specifier: 1.1.6
-        version: 1.1.6(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
-      '@rspack/lite-tapable':
-        specifier: 1.1.2
-        version: 1.1.2
-      '@swc/types':
-        specifier: 0.1.27
-        version: 0.1.27
-      memfs:
-        specifier: 4.57.8
-        version: 4.57.8
       webpack-sources:
         specifier: 3.5.0
         version: 3.5.0(patch_hash=edd7c720efbda4112ce993316326133bd6b80ff93727e6604cf45bcfb355f561)
@@ -573,21 +528,6 @@ importers:
       ws:
         specifier: ^8.21.0
         version: 8.21.0
-
-  tests/e2e-browser:
-    devDependencies:
-      '@playwright/test':
-        specifier: 1.60.0
-        version: 1.60.0
-      '@rsbuild/core':
-        specifier: 2.1.1
-        version: 2.1.1(@module-federation/runtime-tools@2.6.0)(core-js@3.49.0)
-      '@rspack/browser':
-        specifier: workspace:*
-        version: link:../../packages/rspack-browser
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
 
   tests/rspack-test:
     devDependencies:

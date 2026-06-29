@@ -2,7 +2,7 @@
 use enum_tag::EnumTag;
 use rspack_core::{
   BoxPlugin, ChunkLoadingType, CompilerOptions, CompilerPlatform, EntryOptions, ExternalItem,
-  ExternalType, LibraryType, PluginExt as _, WasmLoadingType,
+  ExternalType, LibraryType, PluginExt as _,
 };
 
 /// Options of builtin plugins
@@ -24,7 +24,6 @@ pub(super) enum BuiltinPluginOptions {
   ArrayPushCallbackChunkFormatPlugin,
   ModuleChunkFormatPlugin,
   EnableChunkLoadingPlugin(ChunkLoadingType),
-  EnableWasmLoadingPlugin(WasmLoadingType),
 
   // Runtime and error handling
   RuntimeChunkPlugin(rspack_plugin_runtime_chunk::RuntimeChunkOptions),
@@ -39,7 +38,6 @@ pub(super) enum BuiltinPluginOptions {
   JavascriptModulesPlugin,
   JsonModulesPlugin,
   AssetModulesPlugin,
-  AsyncWebAssemblyModulesPlugin,
   CssModulesPlugin,
 
   // Entry and runtime plugins
@@ -166,11 +164,6 @@ impl BuilderContext {
       BuiltinPluginOptions::EnableChunkLoadingPlugin(chunk_loading_type) => {
         rspack_plugin_runtime::enable_chunk_loading_plugin(chunk_loading_type, &mut plugins);
       }
-      BuiltinPluginOptions::EnableWasmLoadingPlugin(wasm_loading_type) => {
-        plugins.push(rspack_plugin_wasm::enable_wasm_loading_plugin(
-          wasm_loading_type,
-        ));
-      }
 
       // Runtime and error handling plugins
       BuiltinPluginOptions::RuntimeChunkPlugin(options) => {
@@ -216,9 +209,6 @@ impl BuilderContext {
       }
       BuiltinPluginOptions::AssetModulesPlugin => {
         plugins.push(rspack_plugin_asset::AssetPlugin::default().boxed());
-      }
-      BuiltinPluginOptions::AsyncWebAssemblyModulesPlugin => {
-        plugins.push(rspack_plugin_wasm::AsyncWasmPlugin::default().boxed());
       }
       BuiltinPluginOptions::CssModulesPlugin => {
         plugins.push(rspack_plugin_css::CssPlugin::default().boxed());

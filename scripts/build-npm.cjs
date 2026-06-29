@@ -110,48 +110,7 @@ const bindings = fs
 const optionalDependencies = {};
 
 for (const binding of bindings) {
-  // The pkg of wasm binding is more complex, so we create it manually.
   if (binding.includes('wasm')) {
-    // The browser variant ships in its own artifact (bindings-*-browser) that
-    // only carries rspack.browser.wasm; it is bundled into @rspack/browser by
-    // build:js, not packaged here. Skip it so we don't look for the missing
-    // node wasm.
-    if (!fs.existsSync(path.join(binding, 'rspack.wasm32-wasi.wasm'))) {
-      continue;
-    }
-
-    const output = path.join(NPM, 'wasm32-wasi');
-    const pkgJson = require(path.join(output, 'package.json'));
-
-    optionalDependencies[pkgJson.name] = 'workspace:*';
-
-    // Copy wasm artifact
-    fs.copyFileSync(
-      path.join(binding, 'rspack.wasm32-wasi.wasm'),
-      path.join(output, 'rspack.wasm32-wasi.wasm'),
-    );
-
-    // Copy wasm js runtimes from the node_binding crate
-    const NODE_BINDING_CRATE = path.resolve(
-      __dirname,
-      '../crates/node_binding/',
-    );
-    for (const file of [
-      'rspack.wasi.cjs',
-      'rspack.wasi-browser.js',
-      'wasi-worker.mjs',
-      'wasi-worker-browser.mjs',
-    ]) {
-      fs.copyFileSync(
-        path.join(NODE_BINDING_CRATE, file),
-        path.join(output, file),
-      );
-    }
-
-    const README = generateReadme(pkgJson.name);
-    fs.writeFileSync(path.join(output, 'README.md'), README);
-
-    releasingPackages.push(pkgJson.name);
     continue;
   }
 

@@ -16,7 +16,7 @@ on:
 jobs:
   e2e:
     name: E2E Testing
-    if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
+    if: inputs.target == 'x86_64-unknown-linux-gnu'
     runs-on: ${{ fromJSON(inputs.runner) }}
     defaults:
       run:
@@ -33,15 +33,6 @@ jobs:
         with:
           name: bindings-${{ inputs.target }}
           path: crates/node_binding/
-
-      # The @rspack/browser e2e needs rspack.browser.wasm. The wasi (node)
-      # artifact only ships rspack.wasm32-wasi.wasm, so reuse it under the
-      # browser name — the e2e runs against the wasi build, same as CI. The real
-      # browser variant is built and published by the separate -browser build
-      # job; it is intentionally not e2e-tested here.
-      - name: Provide browser wasm for e2e
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        run: cp -f crates/node_binding/rspack.wasm32-wasi.wasm crates/node_binding/rspack.browser.wasm
 
       - name: Setup Pnpm
         timeout-minutes: 5
@@ -73,21 +64,6 @@ jobs:
             pnpm run build:js
             pnpm run test:e2e
 
-      - name: Run e2e for @rspack/browser
-        uses: ./.github/actions/docker/run
-        if: inputs.target == 'wasm32-wasip1-threads'
-        with:
-          # Jammy uses ubuntu 22.04
-          # If this is to change, make sure to upgrade the ubuntu version in GitHub Actions
-          image: mcr.microsoft.com/playwright:v1.60.0-jammy
-          # .cache is required by download artifact, and mount in ./.github/actions/docker/run
-          # .tool_cache is required by pnpm
-          options: -v ${{ runner.tool_cache }}:${{runner.tool_cache}}
-          script: |
-            export PATH=${{ steps.calculate-node-bin-path.outputs.path }}:$PATH
-            export WASM=1
-            pnpm run build:js
-            pnpm run test:e2e-browser
   test:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 60
@@ -95,8 +71,7 @@ jobs:
       fail-fast: false # wait for all test to finish for determining if it's node version based problem or general problem
       matrix:
         node: ${{ fromJSON(
-          inputs.target == 'wasm32-wasip1-threads'&& '[24]'
-          || inputs.target == 'riscv64gc-unknown-linux-gnu' && '[20]'
+          inputs.target == 'riscv64gc-unknown-linux-gnu' && '[20]'
           || contains(inputs.target, 'linux') && '[20, 24]'
           || '[22]') }}
     name: Test Node ${{ matrix.node }}
@@ -186,16 +161,6 @@ jobs:
           name: testCase-persistentCache-windows
           path: tests/rspack-test/js/temp/**/.cache
           include-hidden-files: true
-
-      ### WASM
-      - name: Test WASM
-        timeout-minutes: 15 # Tests should finish within 15 mins, please fix your tests instead of changing this to a higher timeout.
-        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
-        env:
-          NODE_NO_WARNINGS: 1
-          WASM: 1
-          RSPACK_LOADER_WORKER_THREADS: 1
-        run: pnpm run test:ci
 
       - name: Upload Test Reporter
         if: always()

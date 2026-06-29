@@ -108,9 +108,6 @@ use rspack_plugin_schemes::{DataUriPlugin, FileUriPlugin};
 use rspack_plugin_size_limits::SizeLimitsPlugin;
 use rspack_plugin_sri::{SubresourceIntegrityPlugin, SubresourceIntegrityPluginOptions};
 use rspack_plugin_swc_js_minimizer::SwcJsMinimizerRspackPlugin;
-use rspack_plugin_wasm::{
-  AsyncWasmPlugin, FetchCompileAsyncWasmPlugin, enable_wasm_loading_plugin,
-};
 use rspack_plugin_worker::WorkerPlugin;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -439,14 +436,14 @@ impl<'a> BuiltinPlugin<'a> {
         );
       }
       BuiltinPluginName::EnableWasmLoadingPlugin => {
-        let wasm_loading_type = downcast_into::<String>(self.options)
-          .map_err(|report| napi::Error::from_reason(report.to_string()))?;
-        plugins.push(enable_wasm_loading_plugin(
-          wasm_loading_type.as_str().into(),
+        return Err(napi::Error::from_reason(
+          "WebAssembly loading support is disabled in this build",
         ));
       }
       BuiltinPluginName::FetchCompileAsyncWasmPlugin => {
-        plugins.push(FetchCompileAsyncWasmPlugin::default().boxed());
+        return Err(napi::Error::from_reason(
+          "WebAssembly loading support is disabled in this build",
+        ));
       }
       BuiltinPluginName::ChunkPrefetchPreloadPlugin => {
         plugins.push(ChunkPrefetchPreloadPlugin::default().boxed());
@@ -645,7 +642,9 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::JavascriptModulesPlugin => plugins.push(JsPlugin::default().boxed()),
       BuiltinPluginName::AsyncWebAssemblyModulesPlugin => {
-        plugins.push(AsyncWasmPlugin::default().boxed())
+        return Err(napi::Error::from_reason(
+          "WebAssembly module support is disabled in this build",
+        ));
       }
       BuiltinPluginName::AssetModulesPlugin => plugins.push(AssetPlugin::default().boxed()),
       BuiltinPluginName::SourceMapDevToolPlugin => {

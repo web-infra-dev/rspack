@@ -1,5 +1,6 @@
 [workspace]
 members  = ["crates/*", "xtask/benchmark", "xtask"]
+exclude  = ["crates/rspack_plugin_wasm"]
 resolver = "2"                                      # See https://doc.rust-lang.org/cargo/reference/resolver.html#feature-resolver-version-2
 
 [workspace.package]
@@ -230,7 +231,6 @@ rspack_plugin_size_limits              = { version = "=0.101.1", path = "crates/
 rspack_plugin_split_chunks             = { version = "=0.101.1", path = "crates/rspack_plugin_split_chunks", default-features = false }
 rspack_plugin_sri                      = { version = "=0.101.1", path = "crates/rspack_plugin_sri", default-features = false }
 rspack_plugin_swc_js_minimizer         = { version = "=0.101.1", path = "crates/rspack_plugin_swc_js_minimizer", default-features = false }
-rspack_plugin_wasm                     = { version = "=0.101.1", path = "crates/rspack_plugin_wasm", default-features = false }
 rspack_plugin_worker                   = { version = "=0.101.1", path = "crates/rspack_plugin_worker", default-features = false }
 rspack_regex                           = { version = "=0.101.1", path = "crates/rspack_regex", default-features = false }
 rspack_sources                         = { version = "=0.101.1", path = "crates/rspack_sources", default-features = false, features = ["rspack_cacheable"] }

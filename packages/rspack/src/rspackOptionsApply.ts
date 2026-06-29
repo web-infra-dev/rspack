@@ -19,7 +19,6 @@ import {
   APIPlugin,
   ArrayPushCallbackChunkFormatPlugin,
   AssetModulesPlugin,
-  AsyncWebAssemblyModulesPlugin,
   BundlerInfoRspackPlugin,
   ChunkPrefetchPreloadPlugin,
   CircularModulesInfoPlugin,
@@ -33,7 +32,6 @@ import {
   ElectronTargetPlugin,
   EnableChunkLoadingPlugin,
   EnableLibraryPlugin,
-  EnableWasmLoadingPlugin,
   EnsureChunkConditionsPlugin,
   EvalDevToolModulePlugin,
   EvalSourceMapDevToolPlugin,
@@ -179,15 +177,6 @@ export class RspackOptionsApply {
       }
     }
 
-    if (
-      options.output.enabledWasmLoadingTypes &&
-      options.output.enabledWasmLoadingTypes.length > 0
-    ) {
-      for (const type of options.output.enabledWasmLoadingTypes) {
-        new EnableWasmLoadingPlugin(type).apply(compiler);
-      }
-    }
-
     const runtimeChunk = options.optimization
       .runtimeChunk as OptimizationRuntimeChunkNormalized;
     if (runtimeChunk) {
@@ -234,9 +223,6 @@ export class RspackOptionsApply {
     new URLPlugin().apply(compiler);
     new JsonModulesPlugin().apply(compiler);
     new AssetModulesPlugin().apply(compiler);
-    if (options.experiments.asyncWebAssembly) {
-      new AsyncWebAssemblyModulesPlugin().apply(compiler);
-    }
     new CssModulesPlugin().apply(compiler);
     new EntryOptionPlugin().apply(compiler);
     assertNotNill(options.context);
@@ -419,7 +405,7 @@ export class RspackOptionsApply {
 
     new WorkerPlugin(
       options.output.workerChunkLoading!,
-      options.output.workerWasmLoading!,
+      false,
       options.output.module!,
       options.output.workerPublicPath!,
     ).apply(compiler);

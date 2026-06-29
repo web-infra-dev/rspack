@@ -55,7 +55,6 @@ import type {
   Performance,
   ResolveOptions,
   RuleSetRules,
-  WasmLoadingType,
 } from './types';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
@@ -275,7 +274,7 @@ const applyExperimentsDefaults = (
   { production }: { production: boolean },
 ) => {
   D(experiments, 'futureDefaults', false);
-  D(experiments, 'asyncWebAssembly', true);
+  D(experiments, 'asyncWebAssembly', false);
   D(experiments, 'deferImport', false);
   D(experiments, 'sourceImport', false);
 
@@ -950,21 +949,8 @@ const applyOutputDefaults = (
     }
     return false;
   });
-  F(output, 'wasmLoading', () => {
-    if (tp) {
-      if (tp.fetchWasm) return 'fetch';
-      if (tp.nodeBuiltins) return 'async-node';
-      if (
-        (tp.nodeBuiltins === null || tp.fetchWasm === null) &&
-        output.module &&
-        environment.dynamicImport
-      ) {
-        return 'universal';
-      }
-    }
-    return false;
-  });
-  F(output, 'workerWasmLoading', () => output.wasmLoading);
+  F(output, 'wasmLoading', () => false as const);
+  F(output, 'workerWasmLoading', () => false as const);
   F(output, 'globalObject', () => {
     if (tp) {
       if (tp.global) return 'global';
@@ -1007,21 +993,7 @@ const applyOutputDefaults = (
     });
     return Array.from(enabledChunkLoadingTypes);
   });
-  A(output, 'enabledWasmLoadingTypes', () => {
-    const enabledWasmLoadingTypes = new Set<WasmLoadingType>();
-    if (output.wasmLoading) {
-      enabledWasmLoadingTypes.add(output.wasmLoading);
-    }
-    if (output.workerWasmLoading) {
-      enabledWasmLoadingTypes.add(output.workerWasmLoading);
-    }
-    forEachEntry((desc) => {
-      if (desc.wasmLoading) {
-        enabledWasmLoadingTypes.add(desc.wasmLoading);
-      }
-    });
-    return Array.from(enabledWasmLoadingTypes);
-  });
+  A(output, 'enabledWasmLoadingTypes', () => []);
 
   D(output, 'bundlerInfo', {});
   if (typeof output.bundlerInfo === 'object') {
