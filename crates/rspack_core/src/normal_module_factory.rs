@@ -978,100 +978,116 @@ module.exports = "data:,";
         )
         .await?
     };
-    let mut resolved_inline_loaders = vec![];
+    let mut resolved_inline_loaders = Vec::with_capacity(inline_loaders.len());
     for l in inline_loaders {
       resolved_inline_loaders
         .push(resolve_each(plugin_driver, &data.context, &loader_resolver, &l).await?)
     }
 
-    let user_request = {
-      let suffix =
-        stringify_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
-      if let Some(match_resource_data) = &match_resource_data {
-        let mut resource = match_resource_data.resource().to_owned();
-        resource += "!=!";
-        resource += &*suffix;
-        resource
+    let has_inline_loaders = !resolved_inline_loaders.is_empty();
+    let has_rule_loaders = matched_module_rules
+      .iter()
+      .any(|rule| !matches!(&rule.r#use, ModuleRuleUse::Array(loaders) if loaders.is_empty()));
+
+    let (user_request, loaders): (String, Vec<BoxLoader>) =
+      if !has_inline_loaders && !has_rule_loaders {
+        let user_request = if let Some(match_resource_data) = &match_resource_data {
+          let mut resource = match_resource_data.resource().to_owned();
+          resource += "!=!";
+          resource += resource_data.resource();
+          resource
+        } else {
+          resource_data.resource().to_owned()
+        };
+        (user_request, Vec::new())
       } else {
-        suffix.into_owned()
-      }
-    };
-
-    let loaders: Vec<BoxLoader> = {
-      let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
-      let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
-      let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
-
-      for rule in &matched_module_rules {
-        let rule_use = match &rule.r#use {
-          ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
-          ModuleRuleUse::Func(func_use) => {
-            let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
-            let context = FuncUseCtx {
-              // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
-              resource: resource_data_for_rules.path().map(|x| x.to_string()),
-              resource_query: resource_data_for_rules.query().map(|q| q.to_owned()),
-              resource_fragment: resource_data_for_rules.fragment().map(|f| f.to_owned()),
-              real_resource: resource_data.path().map(|p| p.to_string()),
-              issuer: data.issuer.clone(),
-              issuer_layer: data.issuer_layer.clone(),
-            };
-            Cow::Owned(func_use(context).await?)
+        let user_request = {
+          let suffix =
+            stringify_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
+          if let Some(match_resource_data) = &match_resource_data {
+            let mut resource = match_resource_data.resource().to_owned();
+            resource += "!=!";
+            resource += &*suffix;
+            resource
+          } else {
+            suffix.into_owned()
           }
         };
 
-        match rule.enforce {
-          ModuleRuleEnforce::Pre => {
-            if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-              pre_loaders.extend_from_slice(&rule_use);
+        let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
+        let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
+        let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
+
+        for rule in &matched_module_rules {
+          let rule_use = match &rule.r#use {
+            ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
+            ModuleRuleUse::Func(func_use) => {
+              let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
+              let context = FuncUseCtx {
+                // align with webpack https://github.com/webpack/webpack/blob/899f06934391baede59da3dcd35b5ef51c675dbe/lib/NormalModuleFactory.js#L576
+                resource: resource_data_for_rules.path().map(|x| x.to_string()),
+                resource_query: resource_data_for_rules.query().map(|q| q.to_owned()),
+                resource_fragment: resource_data_for_rules.fragment().map(|f| f.to_owned()),
+                real_resource: resource_data.path().map(|p| p.to_string()),
+                issuer: data.issuer.clone(),
+                issuer_layer: data.issuer_layer.clone(),
+              };
+              Cow::Owned(func_use(context).await?)
             }
-          }
-          ModuleRuleEnforce::Normal => {
-            if !no_auto_loaders && !no_pre_auto_loaders {
-              normal_loaders.extend_from_slice(&rule_use);
+          };
+
+          match rule.enforce {
+            ModuleRuleEnforce::Pre => {
+              if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
+                pre_loaders.extend_from_slice(&rule_use);
+              }
             }
-          }
-          ModuleRuleEnforce::Post => {
-            if !no_pre_post_auto_loaders {
-              post_loaders.extend_from_slice(&rule_use);
+            ModuleRuleEnforce::Normal => {
+              if !no_auto_loaders && !no_pre_auto_loaders {
+                normal_loaders.extend_from_slice(&rule_use);
+              }
+            }
+            ModuleRuleEnforce::Post => {
+              if !no_pre_post_auto_loaders {
+                post_loaders.extend_from_slice(&rule_use);
+              }
             }
           }
         }
-      }
 
-      let mut all_loaders = Vec::with_capacity(
-        pre_loaders.len()
-          + post_loaders.len()
-          + normal_loaders.len()
-          + resolved_inline_loaders.len(),
-      );
+        let mut all_loaders = Vec::with_capacity(
+          pre_loaders.len()
+            + post_loaders.len()
+            + normal_loaders.len()
+            + resolved_inline_loaders.len(),
+        );
 
-      for l in post_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
-      }
+        for l in post_loaders {
+          all_loaders
+            .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        }
 
-      let mut resolved_normal_loaders = vec![];
-      for l in normal_loaders {
-        resolved_normal_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
-      }
+        let mut resolved_normal_loaders = vec![];
+        for l in normal_loaders {
+          resolved_normal_loaders
+            .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        }
 
-      if match_resource_data.is_some() {
-        all_loaders.extend(resolved_normal_loaders);
-        all_loaders.extend(resolved_inline_loaders);
-      } else {
-        all_loaders.extend(resolved_inline_loaders);
-        all_loaders.extend(resolved_normal_loaders);
-      }
+        if match_resource_data.is_some() {
+          all_loaders.extend(resolved_normal_loaders);
+          all_loaders.extend(resolved_inline_loaders);
+        } else {
+          all_loaders.extend(resolved_inline_loaders);
+          all_loaders.extend(resolved_normal_loaders);
+        }
 
-      for l in pre_loaders {
-        all_loaders
-          .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
-      }
+        for l in pre_loaders {
+          all_loaders
+            .push(resolve_each(plugin_driver, &self.options.context, &loader_resolver, &l).await?)
+        }
 
-      all_loaders
-    };
+        (user_request, all_loaders)
+      };
 
     let request = if !loaders.is_empty() {
       let s = loaders
@@ -1191,6 +1207,10 @@ module.exports = "data:,";
     issuer: Option<&'a str>,
     issuer_layer: Option<&'a str>,
   ) -> Result<Vec<&'a ModuleRuleEffect>> {
+    if self.options.module.rules.is_empty() {
+      return Ok(vec![]);
+    }
+
     let mut rules = Vec::new();
     let match_ctx = MatchContext {
       resource_data,
