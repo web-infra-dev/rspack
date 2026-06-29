@@ -8,5 +8,9 @@ pub fn compiler() -> CompilerBuilder {
     entry: "./src/Three.js",
     swc_loader: false,
     native_output_filesystem: false,
+    target: None,
+    resolve_alias: None,
+    resolve_extensions: None,
+    ignore_missing_reexports: false,
   })
 }

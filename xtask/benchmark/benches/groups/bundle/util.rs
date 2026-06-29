@@ -2,8 +2,9 @@ use std::{path::PathBuf, sync::Arc};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
-  Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
-  ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
+  Alias, AliasMap, Compiler, Experiments, ExportPresenceMode, JavascriptParserOptions, Mode,
+  ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, Optimization,
+  OutputOptions, ParserOptions, Resolve, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
@@ -17,6 +18,10 @@ pub struct BuilderOptions {
   pub entry: &'static str,
   pub swc_loader: bool,
   pub native_output_filesystem: bool,
+  pub target: Option<&'static str>,
+  pub resolve_alias: Option<Vec<(&'static str, &'static str)>>,
+  pub resolve_extensions: Option<Vec<&'static str>>,
+  pub ignore_missing_reexports: bool,
 }
 
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
@@ -34,6 +39,25 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   } else {
     Arc::new(MemoryFileSystem::default())
   };
+  let resolve_alias = options.resolve_alias.map(|aliases| {
+    Alias::MergeAlias(
+      aliases
+        .into_iter()
+        .map(|(request, target)| {
+          (
+            request.to_string(),
+            vec![AliasMap::Path(
+              dir.join(target).to_string_lossy().to_string(),
+            )],
+          )
+        })
+        .collect(),
+    )
+  });
+  let resolve_extensions = options
+    .resolve_extensions
+    .map(|extensions| extensions.into_iter().map(String::from).collect())
+    .unwrap_or_else(|| vec!["...".to_string(), ".jsx".to_string()]);
 
   builder
     .context(dir.to_string_lossy().to_string())
@@ -41,12 +65,17 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     .cache(rspack_core::CacheOptions::Disabled)
     .optimization(Optimization::builder().minimize(false))
     .resolve(Resolve {
-      extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
+      extensions: Some(resolve_extensions),
+      alias: resolve_alias,
       ..Default::default()
     })
     .experiments(Experiments::builder().css(true))
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(output_filesystem);
+
+  if let Some(target) = options.target {
+    builder.target(vec![target.to_string()]);
+  }
 
   if options.native_output_filesystem {
     builder.output(OutputOptions::builder().compare_before_emit(false));
@@ -54,34 +83,42 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
 
   if options.swc_loader {
     builder
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
-        )),
-        effect: ModuleRuleEffect {
-          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-            loader: "builtin:swc-loader".to_string(),
-            options: Some(
-              json!({
-                  "jsc": {
-                      "parser": {
-                          "syntax": "typescript",
-                          "tsx": true,
-                      },
-                      "transform": {
-                          "react": {
-                              "runtime": "automatic",
-                          },
-                      }
-                  },
-              })
-              .to_string(),
-            ),
-          }]),
+      .module(
+        ModuleOptions::builder().rule(ModuleRule {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
+          )),
+          effect: ModuleRuleEffect {
+            r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+              loader: "builtin:swc-loader".to_string(),
+              options: Some(
+                json!({
+                    "jsc": {
+                        "parser": {
+                            "syntax": "typescript",
+                            "tsx": true,
+                        },
+                        "transform": {
+                            "react": {
+                                "runtime": "automatic",
+                            },
+                        }
+                    },
+                })
+                .to_string(),
+              ),
+            }]),
+            parser: options
+              .ignore_missing_reexports
+              .then_some(ParserOptions::JavascriptAuto(JavascriptParserOptions {
+                reexport_exports_presence: Some(ExportPresenceMode::None),
+                ..Default::default()
+              })),
+            ..Default::default()
+          },
           ..Default::default()
-        },
-        ..Default::default()
-      }))
+        }),
+      )
       .enable_loader_swc();
   }
 

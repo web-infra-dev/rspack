@@ -8,5 +8,9 @@ pub fn compiler() -> CompilerBuilder {
     entry: "./src/index.js",
     swc_loader: false,
     native_output_filesystem: true,
+    target: None,
+    resolve_alias: None,
+    resolve_extensions: None,
+    ignore_missing_reexports: false,
   })
 }
