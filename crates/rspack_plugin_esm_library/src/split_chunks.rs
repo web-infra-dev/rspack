@@ -174,23 +174,16 @@ async fn matches_module_to_cache_group(
   }
 
   // match r#type
-  if !cache_group.r#type.test(module) {
+  if !(cache_group.r#type)(module) {
     return Ok(false);
   }
 
   // match layer
-  let layer = module.get_layer();
-  let layer_matched = if cache_group.layer.is_func() {
-    cache_group
-      .layer
-      .test_func(layer.cloned())
-      .await
-      .to_rspack_result()
-      .unwrap_or(false)
-  } else {
-    cache_group.layer.test_internal(layer.map(String::as_str))
-  };
-  if !layer_matched {
+  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+    .await
+    .to_rspack_result()
+    .unwrap_or(false)
+  {
     return Ok(false);
   }
 

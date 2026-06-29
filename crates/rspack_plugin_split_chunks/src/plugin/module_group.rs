@@ -460,51 +460,26 @@ impl SplitChunksPlugin {
             return Ok(());
           }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
-          let module_type = module.module_type();
-          let module_type = module_type.as_str();
-          let layer = module.get_layer();
-          let mut name_for_condition: Option<Option<Box<str>>> = None;
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
 
           for cache_group in cache_groups.iter() {
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
-            let is_match = if cache_group.cache_group.r#type.is_func() {
-              cache_group.cache_group.r#type.test(module)
-            } else {
-              cache_group.cache_group.r#type.test_internal(module_type)
-            };
-            if !is_match {
+            if !(cache_group.cache_group.r#type)(module) {
               continue;
             }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            let is_match = if cache_group.cache_group.layer.is_func() {
-              cache_group
-                .cache_group
-                .layer
-                .test_func(layer.cloned())
-                .await?
-            } else {
-              cache_group
-                .cache_group
-                .layer
-                .test_internal(layer.map(String::as_str))
-            };
-            if !is_match {
+            if !(cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await? {
               continue;
             }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
             let is_match = match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => name_for_condition
-                .get_or_insert_with(|| module.name_for_condition())
-                .as_deref()
-                .is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => name_for_condition
-                .get_or_insert_with(|| module.name_for_condition())
-                .as_deref()
-                .is_some_and(|name| regexp.test(name)),
+              CacheGroupTest::String(str) => module
+                .name_for_condition().is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => module
+                .name_for_condition().is_some_and(|name| regexp.test(&name)),
               CacheGroupTest::Fn(f) => {
                 let ctx = CacheGroupTestFnCtx { compilation, module };
                 f(ctx).await?.unwrap_or_default()
