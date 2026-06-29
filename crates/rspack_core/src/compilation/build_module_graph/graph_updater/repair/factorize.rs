@@ -173,11 +173,11 @@ impl Task<TaskContext> for FactorizeResultTask {
       .missing_dependencies
       .add_files(&resource_id, factorize_info.missing_dependencies());
 
-    if dependencies.len() == 1 {
-      let dep = &mut dependencies[0];
+    for dep in &mut dependencies {
       // Some dependencies do not come from the process_dependencies task,
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
+
       let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
         d.factorize_info_mut()
       } else if let Some(d) = dep.as_module_dependency_mut() {
@@ -185,23 +185,8 @@ impl Task<TaskContext> for FactorizeResultTask {
       } else {
         unreachable!("only module dependency and context dependency can factorize")
       };
-      *dep_factorize_info = factorize_info;
-    } else {
-      for dep in &mut dependencies {
-        // Some dependencies do not come from the process_dependencies task,
-        // so add all dependencies here.
-        artifact.affected_dependencies.mark_as_add(dep.id());
-
-        let dep_factorize_info = if let Some(d) = dep.as_context_dependency_mut() {
-          d.factorize_info_mut()
-        } else if let Some(d) = dep.as_module_dependency_mut() {
-          d.factorize_info_mut()
-        } else {
-          unreachable!("only module dependency and context dependency can factorize")
-        };
-        // write factorize_info to dependencies[0] and set success factorize_info to others
-        *dep_factorize_info = std::mem::take(&mut factorize_info);
-      }
+      // write factorize_info to dependencies[0] and set success factorize_info to others
+      *dep_factorize_info = std::mem::take(&mut factorize_info);
     }
 
     let module_graph = artifact.get_module_graph_mut();
