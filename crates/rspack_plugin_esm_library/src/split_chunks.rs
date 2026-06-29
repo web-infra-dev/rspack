@@ -174,12 +174,14 @@ async fn matches_module_to_cache_group(
   }
 
   // match r#type
-  if !(cache_group.r#type)(module) {
+  if !cache_group.r#type.test(module) {
     return Ok(false);
   }
 
   // match layer
-  if !(cache_group.layer)(module.get_layer().map(ToString::to_string))
+  if !cache_group
+    .layer
+    .test(module.get_layer().map(|layer| layer.as_str()))
     .await
     .to_rspack_result()
     .unwrap_or(false)
