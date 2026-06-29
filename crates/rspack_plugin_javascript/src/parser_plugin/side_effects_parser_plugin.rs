@@ -6,12 +6,14 @@ use rspack_core::{
 use rspack_util::SpanExt;
 use rustc_hash::FxHashSet;
 use swc_atoms::Atom;
-use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom};
+use swc_experimental_allocator::{CloneIn, atom::Atom as AstAtom, wtf8::Wtf8};
 use swc_experimental_ecma_ast::{
-  ArrayLit, ArrowExpr, BlockStmt, BlockStmtOrExpr, CallExpr, Class, ClassMember, CommentKind,
-  Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread, Function, GetSpan,
-  ImportSpecifier, ModuleDecl, ModuleExportName, ModuleItem, ObjectPatProp, Pat, Program, PropName,
-  Span, Span as AstSpan, Stmt, VarDecl, VarDeclKind, VarDeclOrExpr, Visit, VisitWith,
+  ArrayLit, ArrowExpr, AssignExpr, AssignOp, BlockStmt, BlockStmtOrExpr, CallExpr, Class,
+  ClassMember, CommentKind, Comments, Decl, DefaultDecl, ExportSpecifier, Expr, ExprOrSpread,
+  Function, GetSpan, Ident, ImportSpecifier, Lit, MemberProp, ModuleDecl, ModuleExportName,
+  ModuleItem, ObjectPatProp, OptChainBase, Pat, Program, Prop, PropName, PropOrSpread,
+  SimpleAssignTarget, Span, Span as AstSpan, Stmt, SuperProp, VarDecl, VarDeclKind, VarDeclOrExpr,
+  Visit, VisitWith,
 };
 use swc_experimental_ecma_utils::{ExprCtx, ExprExt};
 
@@ -1192,7 +1194,7 @@ impl SideEffectsParserPlugin {
         }
       }
       Statement::Expr(expr_stmt) => {
-        if !is_pure_expression(
+        if !is_module_eval_pure_expression(
           parser,
           self.analyze_side_effects_free,
           &expr_stmt.expr,
@@ -1498,6 +1500,247 @@ pub fn is_pure_function<'a>(
   true
 }
 
+/// Recognize a static CommonJS export assignment whose *target* carries no
+/// observable side effect — `exports.foo = ...`, `exports["foo"] = ...`, or
+/// `module.exports = ...`. Only the assignment target is judged here; whether
+/// the whole statement is side-effect-free still depends on the RHS initializer.
+///
+/// This is deliberately NOT wired into `is_pure_expression` (the innerGraph
+/// purity path). innerGraph attributes a "pure" declarator init to the local
+/// symbol it initializes and drops the init when that local is unused; treating
+/// a CJS export write as pure there would let `var _default = (exports.default =
+/// value)` be folded into the unused `_default` and erase the export (#14589).
+/// The relaxation belongs only to module-evaluation side-effect determination,
+/// so it lives in `is_module_eval_pure_expression`, used solely by the
+/// SideEffectsParserPlugin module-level walk.
+fn is_common_js_export_assignment(parser: &mut JavascriptParser, expr: &AssignExpr) -> bool {
+  if parser.is_esm || !parser.is_top_level_scope() {
+    return false;
+  }
+
+  if !matches!(expr.op, AssignOp::Assign) {
+    return false;
+  }
+
+  let Some(SimpleAssignTarget::Member(member)) = expr.left.as_simple() else {
+    return false;
+  };
+
+  match &member.obj {
+    Expr::Ident(ident) => {
+      if ident.sym == "exports" {
+        let property_is_side_effect_free = match &member.prop {
+          MemberProp::Ident(ident) => ident.sym != "__proto__",
+          MemberProp::Computed(computed) => match &computed.expr {
+            Expr::Lit(lit) => match &**lit {
+              Lit::Str(str) => str.value.as_wtf8() != Wtf8::from_str("__proto__"),
+              _ => false,
+            },
+            _ => false,
+          },
+          MemberProp::PrivateName(_) => false,
+        };
+        if !property_is_side_effect_free {
+          return false;
+        }
+        return parser
+          .get_variable_info(&Atom::from("exports"))
+          .is_none_or(|info| info.is_free());
+      }
+      if ident.sym != "module" {
+        return false;
+      }
+      let property_is_exports = match &member.prop {
+        MemberProp::Ident(ident) => ident.sym == "exports",
+        MemberProp::Computed(computed) => match &computed.expr {
+          Expr::Lit(lit) => match &**lit {
+            Lit::Str(str) => str.value.as_wtf8() == Wtf8::from_str("exports"),
+            _ => false,
+          },
+          _ => false,
+        },
+        MemberProp::PrivateName(_) => false,
+      };
+      property_is_exports
+        && parser
+          .get_variable_info(&Atom::from("module"))
+          .is_none_or(|info| info.is_free())
+    }
+    // `module.exports.foo = ...` reads the current `module.exports` object. It
+    // may have been replaced with an accessor-bearing object, so only direct
+    // `module.exports = ...` is treated as a side-effect-free export assignment.
+    _ => false,
+  }
+}
+
+struct IdentifierReadCollector {
+  reads: Vec<Atom>,
+}
+
+impl IdentifierReadCollector {
+  fn new() -> Self {
+    Self { reads: Vec::new() }
+  }
+
+  fn collect_identifier_read(&mut self, ident: &Ident<'_>) {
+    self.reads.push(compat_atom(&ident.sym));
+  }
+
+  fn visit_prop_name<'a>(&mut self, prop_name: &PropName<'a>) {
+    if let PropName::Computed(computed) = prop_name {
+      computed.expr.visit_with(self);
+    }
+  }
+
+  fn visit_object_prop<'a>(&mut self, prop: &Prop<'a>) {
+    match prop {
+      Prop::Shorthand(ident) => {
+        self.collect_identifier_read(ident);
+      }
+      Prop::KeyValue(prop) => {
+        self.visit_prop_name(&prop.key);
+        prop.value.visit_with(self);
+      }
+      Prop::Assign(prop) => {
+        prop.value.visit_with(self);
+      }
+      Prop::Getter(prop) => {
+        self.visit_prop_name(&prop.key);
+      }
+      Prop::Setter(prop) => {
+        self.visit_prop_name(&prop.key);
+      }
+      Prop::Method(prop) => {
+        self.visit_prop_name(&prop.key);
+      }
+    }
+  }
+}
+
+impl<'a> Visit<'a> for IdentifierReadCollector {
+  fn visit_expr(&mut self, expr: &Expr<'a>) {
+    match expr {
+      Expr::Ident(ident) => {
+        self.collect_identifier_read(ident);
+      }
+      Expr::Fn(_) | Expr::Arrow(_) => {
+        // Creating a function does not evaluate its body or parameter defaults.
+      }
+      Expr::Member(member) => {
+        member.obj.visit_with(self);
+        if let MemberProp::Computed(computed) = &member.prop {
+          computed.expr.visit_with(self);
+        }
+      }
+      Expr::SuperProp(super_prop) => {
+        if let SuperProp::Computed(computed) = &super_prop.prop {
+          computed.expr.visit_with(self);
+        }
+      }
+      Expr::OptChain(opt_chain) => match &opt_chain.base {
+        OptChainBase::Member(member) => {
+          member.obj.visit_with(self);
+          if let MemberProp::Computed(computed) = &member.prop {
+            computed.expr.visit_with(self);
+          }
+        }
+        OptChainBase::Call(call) => {
+          call.callee.visit_with(self);
+          for arg in &call.args {
+            arg.expr.visit_with(self);
+          }
+        }
+      },
+      Expr::Object(object) => {
+        for prop in &object.props {
+          match prop {
+            PropOrSpread::Spread(spread) => spread.expr.visit_with(self),
+            PropOrSpread::Prop(prop) => self.visit_object_prop(prop),
+          }
+        }
+      }
+      Expr::Class(class) => {
+        if let Some(super_class) = &class.class.super_class {
+          super_class.visit_with(self);
+        }
+        for member in &class.class.body {
+          match member {
+            ClassMember::Method(method) => {
+              self.visit_prop_name(&method.key);
+            }
+            ClassMember::PrivateMethod(_) => {}
+            ClassMember::ClassProp(prop) => {
+              self.visit_prop_name(&prop.key);
+              if prop.is_static
+                && let Some(value) = &prop.value
+              {
+                value.visit_with(self);
+              }
+            }
+            ClassMember::PrivateProp(prop) => {
+              if prop.is_static
+                && let Some(value) = &prop.value
+              {
+                value.visit_with(self);
+              }
+            }
+            ClassMember::StaticBlock(block) => {
+              block.body.visit_with(self);
+            }
+            ClassMember::Constructor(_) | ClassMember::Empty(_) | ClassMember::AutoAccessor(_) => {}
+          }
+        }
+      }
+      _ => expr.visit_children_with(self),
+    }
+  }
+}
+
+fn contains_free_identifier_read(parser: &mut JavascriptParser, expr: &Expr) -> bool {
+  let mut collector = IdentifierReadCollector::new();
+  expr.visit_with(&mut collector);
+  collector.reads.into_iter().any(|ident| {
+    parser
+      .get_variable_info(&ident)
+      .is_none_or(|info| info.is_free())
+  })
+}
+
+/// Module-evaluation purity check. Identical to `is_pure_expression` except it
+/// sees through a CommonJS export-assignment shell (`exports.x = rhs`) to its
+/// RHS, so a module whose body is only export assignments can be considered
+/// side-effect-free and tree-shaken when its exports are unused. Reading a
+/// free/unresolved global on the RHS is kept (observable), matching webpack.
+///
+/// innerGraph never calls this, so it cannot fold a CJS export write into an
+/// unused local — the relaxation is structurally confined to this path.
+fn is_module_eval_pure_expression<'a>(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  expr: &'a Expr,
+  comments: &'a Comments<'a>,
+  callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  if let Expr::Assign(assign) = expr
+    && is_common_js_export_assignment(parser, assign)
+  {
+    if contains_free_identifier_read(parser, &assign.right) {
+      // Reading a free/unresolved global anywhere in the RHS is observable
+      // (ReferenceError, or a getter on the global object), so the export
+      // assignment is not pure.
+      return false;
+    }
+    return is_module_eval_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      &assign.right,
+      comments,
+      callees,
+    );
+  }
+  is_pure_expression(parser, analyze_side_effects_free, expr, comments, callees)
+}
+
 #[inline(never)]
 pub fn is_pure_expression<'a>(
   parser: &mut JavascriptParser,
@@ -1741,7 +1984,7 @@ fn is_pure_var_decl<'a>(
 ) -> bool {
   for decl in &var.decls {
     if let Some(ref init) = decl.init
-      && !is_pure_expression(
+      && !is_module_eval_pure_expression(
         parser,
         analyze_side_effects_free,
         init,
