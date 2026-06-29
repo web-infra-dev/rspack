@@ -142,19 +142,22 @@ impl DefineHookInput {
       }
 
       pub struct #hook_name {
-        taps: Vec<Box<dyn #trait_name + Send + Sync>>,
-        interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
+        taps: ::rspack_hook::__macro_helper::HookTaps<Self>,
       }
 
       impl ::rspack_hook::Hook for #hook_name {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 
+        fn tap_stage(tap: &Self::Tap) -> i32 {
+          tap.stage()
+        }
+
         fn used_stages(&self) -> ::rspack_hook::__macro_helper::FxHashSet<i32> {
-          ::rspack_hook::__macro_helper::FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+          self.taps.used_stages()
         }
 
         fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
-          self.interceptors.push(Box::new(interceptor));
+          self.taps.intercept(interceptor);
         }
       }
 
@@ -168,7 +171,6 @@ impl DefineHookInput {
         fn default() -> Self {
           Self {
             taps: Default::default(),
-            interceptors: Default::default(),
           }
         }
       }
@@ -177,11 +179,11 @@ impl DefineHookInput {
         pub #call_fn
 
         pub fn tap(&mut self, tap: impl #trait_name + Send + Sync + 'static) {
-          self.taps.push(Box::new(tap));
+          self.taps.tap(Box::new(tap));
         }
 
         pub fn is_empty(&self) -> bool {
-          self.taps.is_empty() && self.interceptors.is_empty()
+          self.taps.is_empty()
         }
       }
     })
@@ -229,19 +231,13 @@ impl ExecKind {
 
   fn additional_taps(&self) -> TokenStream {
     let call = if self.is_async() {
-      quote! { additional_taps.extend(interceptor.call(self).await?); }
+      quote! { self.taps.call_interceptors(self).await? }
     } else {
-      quote! { additional_taps.extend(interceptor.call_blocking(self)?); }
+      quote! { self.taps.call_interceptors_blocking(self)? }
     };
     quote! {
-      let mut additional_taps = std::vec::Vec::new();
-      for interceptor in self.interceptors.iter() {
-        #call
-      }
-      let mut all_taps = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
-      all_taps.extend(&self.taps);
-      all_taps.extend(&additional_taps);
-      all_taps.sort_by_key(|hook| hook.stage());
+      let additional_taps = #call;
+      let all_taps = self.taps.sorted_taps(&additional_taps);
     }
   }
 
