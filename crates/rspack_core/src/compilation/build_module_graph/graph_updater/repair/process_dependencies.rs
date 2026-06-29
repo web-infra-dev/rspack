@@ -29,6 +29,14 @@ impl Task<TaskContext> for ProcessDependenciesTask {
     } = *self;
     let mut sorted_dependencies = HashMap::default();
 
+    // First mark all dependencies as added
+    for dependency_id in &dependencies {
+      context
+        .artifact
+        .affected_dependencies
+        .mark_as_add(dependency_id);
+    }
+
     let module_graph = &mut context.artifact.module_graph;
 
     for dependency_id in dependencies {
@@ -59,11 +67,6 @@ impl Task<TaskContext> for ProcessDependenciesTask {
           .entry(resource_identifier)
           .or_insert(vec![])
           .push(dependency.clone());
-      } else {
-        context
-          .artifact
-          .affected_dependencies
-          .mark_as_add(&dependency_id);
       }
     }
 
