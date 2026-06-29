@@ -30,7 +30,7 @@ impl ChunkPrefetchPreloadFunctionRuntimeModule {
 impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/chunk_prefetch_preload_function.ejs").to_string(),
     )]
   }
@@ -41,7 +41,7 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
     let source = runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
         "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),

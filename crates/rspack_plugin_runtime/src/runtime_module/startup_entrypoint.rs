@@ -19,7 +19,7 @@ impl StartupEntrypointRuntimeModule {
 impl RuntimeModule for StartupEntrypointRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       if self.async_chunk_loading {
         include_str!("runtime/startup_entrypoint_with_async.ejs").to_string()
       } else {
@@ -32,7 +32,7 @@ impl RuntimeModule for StartupEntrypointRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    context.runtime_template.render(&self.id, None)
+    context.runtime_template.render(self.id(), None)
   }
   fn runtime_requirements(
     &self,

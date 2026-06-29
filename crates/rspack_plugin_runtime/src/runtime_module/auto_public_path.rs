@@ -23,7 +23,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -32,7 +32,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let chunk = self.chunk.expect("The chunk should be attached");
+    let chunk = self.chunk().expect("The chunk should be attached");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -61,7 +61,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .await?;
     auto_public_path_template(
       runtime_template,
-      &self.id,
+      self.id(),
       &filename,
       &compilation.options.output,
     )

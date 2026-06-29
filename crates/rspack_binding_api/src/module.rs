@@ -6,15 +6,14 @@ use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
-  internal,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
+  RuntimeModuleStage, SourceType, internal,
 };
 use rspack_napi::{
   OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
   threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -790,8 +789,10 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
-      chunk: None,
-      id: Identifier::from(value.name),
+      common: RuntimeModuleCommon {
+        id: Identifier::from(value.name),
+        ..Default::default()
+      },
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,
@@ -800,9 +801,6 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
         let generator = value.generator.clone();
         Box::pin(async move { generator.call_with_sync(()).await })
       }),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-      cached_generated_code: Default::default(),
     }
   }
 }

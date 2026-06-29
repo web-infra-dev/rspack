@@ -43,8 +43,8 @@ enum TemplateId {
 impl EmbedFederationRuntimeModule {
   fn template_id(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Async => format!("{}_async", self.id),
-      TemplateId::Sync => format!("{}_sync", self.id),
+      TemplateId::Async => format!("{}_async", self.id()),
+      TemplateId::Sync => format!("{}_sync", self.id()),
     }
   }
 }
@@ -82,7 +82,7 @@ impl RuntimeModule for EmbedFederationRuntimeModule {
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("Chunk should be attached to RuntimeModule");
 
     let collected_deps = &self.options.collected_dependency_ids;

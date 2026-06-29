@@ -100,7 +100,7 @@ impl CssLoadingRuntimeModule {
   }
 
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.to_string();
+    let base_id = self.id().to_string();
 
     match id {
       TemplateId::Raw => base_id,
@@ -132,7 +132,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let Some(chunk_ukey) = self.chunk else {
+    let Some(chunk_ukey) = self.chunk() else {
       return rspack_core::RuntimeModuleRuntimeRequirements::default();
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -203,7 +203,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
       let chunk = compilation
         .build_chunk_graph_artifact

@@ -106,11 +106,8 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let path = render_wasm_module_path(
-      compilation,
-      self.chunk.as_ref().expect("should attached chunk"),
-    )
-    .await?;
+    let path =
+      render_wasm_module_path(compilation, &self.chunk().expect("should attached chunk")).await?;
 
     Ok(get_async_wasm_compile(
       &self
@@ -153,11 +150,8 @@ impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let path = render_wasm_module_path(
-      compilation,
-      self.chunk.as_ref().expect("should attached chunk"),
-    )
-    .await?;
+    let path =
+      render_wasm_module_path(compilation, &self.chunk().expect("should attached chunk")).await?;
 
     Ok(get_async_wasm_loading(
       &self

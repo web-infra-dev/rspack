@@ -27,7 +27,7 @@ impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/esm_module_decorator.ejs").to_string(),
     )]
   }
@@ -36,7 +36,7 @@ impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

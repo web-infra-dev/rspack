@@ -25,8 +25,8 @@ enum TemplateId {
 impl EnsureChunkRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
     match id {
-      TemplateId::Raw => self.id.to_string(),
-      TemplateId::WithInline => format!("{}_inline", &self.id),
+      TemplateId::Raw => self.id().to_string(),
+      TemplateId::WithInline => format!("{}_inline", self.id()),
     }
   }
 }
@@ -52,7 +52,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let chunk_ukey = self.chunk.expect("should have chunk");
+    let chunk_ukey = self.chunk().expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
@@ -79,7 +79,7 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = RuntimeGlobals::default();
     let mut write = RuntimeGlobals::ENSURE_CHUNK;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       if self.has_async_chunks
         || get_chunk_runtime_requirements(compilation, &chunk_ukey)
           .contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS)

@@ -36,7 +36,7 @@ impl HotModuleReplacementRuntimeModule {
 impl RuntimeModule for HotModuleReplacementRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       HOT_MODULE_REPLACEMENT_TEMPLATE.to_string(),
     )]
   }
@@ -46,7 +46,7 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let content = context.runtime_template.render(
-      self.id.as_str(),
+      self.id().as_str(),
       Some(serde_json::json!({
         "_is_hot_test": is_hot_test(),
         "_is_rspack_runtime_mode": context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack,

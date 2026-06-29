@@ -132,7 +132,7 @@ impl RuntimeModule for LoadScriptRuntimeModule {
 
 impl LoadScriptRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.to_string();
+    let base_id = self.id().to_string();
 
     match id {
       TemplateId::Raw => base_id,

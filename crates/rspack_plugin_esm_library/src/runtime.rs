@@ -120,7 +120,7 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    let chunk_ukey = self.chunk.expect("should have chunk");
+    let chunk_ukey = self.chunk().expect("should have chunk");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey

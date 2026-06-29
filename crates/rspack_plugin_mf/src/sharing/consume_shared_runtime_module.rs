@@ -55,9 +55,9 @@ impl ConsumeSharedRuntimeModule {
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Common => format!("{}_consumesCommon", self.id),
-      TemplateId::Initial => format!("{}_consumesInitial", self.id),
-      TemplateId::Loading => format!("{}_consumesLoading", self.id),
+      TemplateId::Common => format!("{}_consumesCommon", self.id()),
+      TemplateId::Initial => format!("{}_consumesInitial", self.id()),
+      TemplateId::Loading => format!("{}_consumesLoading", self.id()),
     }
   }
 }
@@ -112,7 +112,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact

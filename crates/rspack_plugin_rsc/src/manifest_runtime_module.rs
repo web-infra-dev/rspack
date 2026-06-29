@@ -46,7 +46,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let server_compiler_id = compilation.compiler_id();
 
     let Some(entry_name) = self
-      .chunk
+      .chunk()
       .as_ref()
       .and_then(|chunk_ukey| {
         compilation

@@ -23,7 +23,7 @@ impl RuntimeModule for AsyncRuntimeModule {
   ) -> rspack_error::Result<String> {
     let runtime_template = context.runtime_template;
     runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
       })),
@@ -31,7 +31,7 @@ impl RuntimeModule for AsyncRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), ASYNC_MODULE_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), ASYNC_MODULE_TEMPLATE.to_string())]
   }
   fn runtime_requirements(
     &self,

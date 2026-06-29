@@ -59,7 +59,7 @@ impl RuntimeModule for RemoteRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -69,7 +69,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -140,7 +140,7 @@ impl RuntimeModule for RemoteRuntimeModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
       )
     } else {
-      runtime_template.render(self.id.as_str(), None)?
+      runtime_template.render(self.id().as_str(), None)?
     };
     Ok(format!(
       r#"

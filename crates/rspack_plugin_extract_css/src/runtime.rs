@@ -137,7 +137,7 @@ impl CssLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(self.chunk.as_ref().expect("should attached chunk"));
+      .expect_get(&self.chunk().expect("should attached chunk"));
 
     for chunk in
       chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -176,7 +176,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     &self,
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let Some(chunk_ukey) = self.chunk else {
+    let Some(chunk_ukey) = self.chunk() else {
       return rspack_core::RuntimeModuleRuntimeRequirements::default();
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -248,16 +248,14 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
-    let runtime_requirements = get_chunk_runtime_requirements(
-      compilation,
-      self.chunk.as_ref().expect("should attached chunk"),
-    );
+    let runtime_requirements =
+      get_chunk_runtime_requirements(compilation, &self.chunk().expect("should attached chunk"));
 
     let with_loading = runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) && {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
-        .expect_get(self.chunk.as_ref().expect("should attached chunk"));
+        .expect_get(&self.chunk().expect("should attached chunk"));
 
       chunk
         .get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
@@ -281,7 +279,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       .build_chunk_graph_artifact
       .chunk_graph
       .get_chunk_condition_map(
-        self.chunk.as_ref().expect("should attached chunk"),
+        &self.chunk().expect("should attached chunk"),
         compilation,
         chunk_has_css,
       );
@@ -315,7 +313,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
       .call(CreateLinkData {
         code: create_link_raw,
         chunk: RuntimeModuleChunkWrapper {
-          chunk_ukey: self.chunk.expect("should attached chunk"),
+          chunk_ukey: self.chunk().expect("should attached chunk"),
           compilation_id: compilation.id(),
           compilation: NonNull::from(compilation),
         },
@@ -348,7 +346,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let chunk = compilation
           .build_chunk_graph_artifact
           .chunk_by_ukey
-          .expect_get(self.chunk.as_ref().expect("should attached chunk"));
+          .expect_get(&self.chunk().expect("should attached chunk"));
         let loading = runtime_template.render(
           &self.template_id(TemplateId::WithLoading),
           Some(serde_json::json!({
@@ -403,7 +401,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .call(LinkPrefetchData {
           code: link_prefetch_raw,
           chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk.expect("should attached chunk"),
+            chunk_ukey: self.chunk().expect("should attached chunk"),
             compilation_id: compilation.id(),
             compilation: NonNull::from(compilation),
           },
@@ -437,7 +435,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         .call(LinkPreloadData {
           code: link_preload_raw,
           chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey: self.chunk.expect("should attached chunk"),
+            chunk_ukey: self.chunk().expect("should attached chunk"),
             compilation_id: compilation.id(),
             compilation: NonNull::from(compilation),
           },
@@ -462,7 +460,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
 
 impl CssLoadingRuntimeModule {
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.to_string();
+    let base_id = self.id().to_string();
 
     match id {
       TemplateId::Raw => base_id,

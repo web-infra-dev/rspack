@@ -41,7 +41,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_chunk_update_filename.ejs").to_string(),
     )]
   }
@@ -52,7 +52,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
@@ -84,7 +84,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
         .await?;
 
       let source = runtime_template.render(
-        &self.id,
+        self.id(),
         Some(serde_json::json!({
           "_filename": format!("'{}'", filename),
         })),
