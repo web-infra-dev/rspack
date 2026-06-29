@@ -17,6 +17,7 @@ pub struct BuilderOptions {
   pub project: &'static str,
   pub entry: &'static str,
   pub swc_loader: bool,
+  pub swc_react_runtime: Option<&'static str>,
   pub native_output_filesystem: bool,
   pub target: Option<&'static str>,
   pub resolve_alias: Option<Vec<(&'static str, &'static str)>>,
@@ -82,6 +83,8 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
   }
 
   if options.swc_loader {
+    let swc_react_runtime = options.swc_react_runtime.unwrap_or("automatic");
+
     builder
       .module(
         ModuleOptions::builder().rule(ModuleRule {
@@ -100,7 +103,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
                         },
                         "transform": {
                             "react": {
-                                "runtime": "automatic",
+                                "runtime": swc_react_runtime,
                             },
                         }
                     },

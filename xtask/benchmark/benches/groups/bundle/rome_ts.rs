@@ -7,6 +7,7 @@ pub fn compiler() -> CompilerBuilder {
     project: "rome-ts",
     entry: "./packages/@romejs/cli/cli.ts",
     swc_loader: true,
+    swc_react_runtime: None,
     native_output_filesystem: false,
     target: Some("node"),
     resolve_alias: Some(vec![
@@ -24,6 +25,7 @@ pub fn compiler_with_problematic_libraries() -> CompilerBuilder {
     project: "rome-ts",
     entry: "./benchmark/problematic-libs-entry.ts",
     swc_loader: true,
+    swc_react_runtime: Some("classic"),
     native_output_filesystem: false,
     target: Some("node"),
     resolve_alias: Some(vec![

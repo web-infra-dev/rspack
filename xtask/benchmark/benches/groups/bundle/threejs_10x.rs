@@ -7,6 +7,7 @@ pub fn compiler() -> CompilerBuilder {
     project: "threejs-10x",
     entry: "./src/index.js",
     swc_loader: false,
+    swc_react_runtime: None,
     native_output_filesystem: true,
     target: None,
     resolve_alias: None,
