@@ -20,8 +20,7 @@ static HTTP_PROTOCOL_REGEX: Lazy<Regex> =
 
 use crate::{
   SRICompilationContext, SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
-  SubresourceIntegrityPluginInner, config::ArcFs, integrity::compute_integrity,
-  util::normalize_path,
+  config::ArcFs, integrity::compute_integrity, util::normalize_path,
 };
 
 async fn handle_html_plugin_assets(

@@ -16,7 +16,7 @@ use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
 use crate::{
-  JsPlugin, JsPluginInner,
+  JsPlugin,
   dependency::{
     AMDRequireContextDependencyTemplate, CommonJsExportRequireDependencyTemplate,
     CommonJsExportsDependencyTemplate, CommonJsFullRequireDependencyTemplate,

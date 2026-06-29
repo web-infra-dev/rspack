@@ -1,7 +1,9 @@
 use quote::quote;
 use syn::{
-  Pat, PatIdent, Result, Token,
+  Expr, Pat, PatIdent, Result, Token,
   parse::{Parse, ParseStream, Parser},
+  parse_quote,
+  visit_mut::{self, VisitMut},
 };
 
 pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
@@ -83,6 +85,13 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
       }
     }
 
+    impl #impl_generics ::rspack_hook::__macro_helper::PluginHookTapPlugin for #ident #ty_generics #where_clause {
+      #[inline(never)]
+      fn clone_for_plugin_hook_tap(&self) -> Self {
+        Self::from_inner(self.inner())
+      }
+    }
+
     #[doc(hidden)]
     #(#attrs)*
     #inner_struct
@@ -93,6 +102,21 @@ pub fn expand_struct(mut input: syn::ItemStruct) -> proc_macro::TokenStream {
 fn plugin_inner_ident(ident: &syn::Ident) -> syn::Ident {
   let inner_name = format!("{ident}Inner");
   syn::Ident::new(&inner_name, ident.span())
+}
+
+struct StageExprSelfRewriter;
+
+impl VisitMut for StageExprSelfRewriter {
+  fn visit_expr_mut(&mut self, expr: &mut Expr) {
+    if let Expr::Path(path) = expr
+      && path.path.is_ident("self")
+    {
+      *expr = parse_quote!(plugin);
+      return;
+    }
+
+    visit_mut::visit_expr_mut(self, expr);
+  }
 }
 
 pub struct HookArgs {
@@ -179,8 +203,6 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   let fn_ident = sig.ident.clone();
   sig.ident = syn::Ident::new("run", fn_ident.span());
 
-  let inner_ident = plugin_inner_ident(&name);
-
   let tracing_name = syn::LitStr::new(&format!("{}:{}", &name, &fn_ident), name.span());
   let plugin_name = syn::LitStr::new(&format!("{}", &name), name.span());
   let tracing_annotation = tracing.is_none_or(|bool_lit| bool_lit.value).then(|| {
@@ -192,9 +214,11 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     }
   });
 
-  let stage_fn = stage.map(|stage| {
+  let stage_fn = stage.map(|mut stage| {
+    StageExprSelfRewriter.visit_expr_mut(&mut stage);
     quote! {
       fn stage(&self) -> i32 {
+        let plugin = &self.tap.plugin;
         #stage
       }
     }
@@ -207,21 +231,24 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
   };
 
   let call_real_fn = if is_async {
-    quote! { #name::#fn_ident(&#name::from_inner(&self.inner), #(#rest_args,)*).await }
+    quote! { #name::#fn_ident(&self.tap.plugin, #(#rest_args,)*).await }
   } else {
-    quote! { #name::#fn_ident(&#name::from_inner(&self.inner), #(#rest_args,)*) }
+    quote! { #name::#fn_ident(&self.tap.plugin, #(#rest_args,)*) }
   };
 
   let expanded = quote! {
     #[allow(non_camel_case_types)]
     #vis struct #fn_ident #impl_generics #where_clause {
-      #vis inner: ::std::sync::Arc<#inner_ident #ty_generics>,
+      tap: ::rspack_hook::__macro_helper::PluginHookTap<
+        #fn_ident #ty_generics,
+        #name #ty_generics,
+      >,
     }
 
     impl #impl_generics #fn_ident #ty_generics #where_clause {
       #vis fn new(plugin: &#name #ty_generics) -> Self {
-        #fn_ident {
-          inner: ::std::sync::Arc::clone(plugin.inner()),
+        Self {
+          tap: ::rspack_hook::__macro_helper::PluginHookTap::new(plugin),
         }
       }
     }
@@ -229,13 +256,6 @@ pub fn expand_fn(args: HookArgs, input: syn::ItemFn) -> proc_macro::TokenStream 
     impl #impl_generics #name #ty_generics #where_clause {
       #[allow(clippy::ptr_arg)]
       #real_sig #block
-    }
-
-    impl #impl_generics ::std::ops::Deref for #fn_ident #ty_generics #where_clause {
-      type Target = #inner_ident #ty_generics;
-      fn deref(&self) -> &Self::Target {
-        &self.inner
-      }
     }
 
     #attr

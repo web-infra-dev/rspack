@@ -14,7 +14,7 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
 use crate::{
-  IntegrityCallbackData, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  IntegrityCallbackData, SubresourceIntegrityPlugin,
   config::IntegrityHtmlPlugin,
   integrity::{SubresourceIntegrityHashFunction, compute_integrity},
   util::{PLACEHOLDER_PREFIX, PLACEHOLDER_REGEX, make_placeholder, use_any_hash},

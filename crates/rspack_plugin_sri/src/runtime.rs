@@ -12,7 +12,7 @@ use rspack_plugin_runtime::{
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
-  SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
+  SubresourceIntegrityHashFunction, SubresourceIntegrityPlugin,
   util::{find_chunks, get_hash_variable, make_placeholder},
 };
 
