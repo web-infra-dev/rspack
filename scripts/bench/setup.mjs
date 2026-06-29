@@ -10,14 +10,10 @@ const RSPACK_BENCH_CASES = path.join(BENCH_DIR, 'rspack-benchcases');
 const THREEJS_SCALE = 10;
 const THREEJS_PROJECT = 'threejs';
 const THREEJS_SCALED_PROJECT = `${THREEJS_PROJECT}-${THREEJS_SCALE}x`;
-const ROME_PROJECT = 'rome-ts';
-const ROME_REPOSITORY = 'https://github.com/rome/tools.git';
-const ROME_COMMIT = 'd95a3a7aab90773c9b36d9c82a08c8c4c6b68aa5';
-const ROME_SOURCE_MARKER = '.rspack-benchmark-source.json';
-const ROME_PROBLEMATIC_LIBS_MARKER =
-  '.rspack-problematic-libraries-source.json';
-const ROME_PROBLEMATIC_LIBS_ENTRY = 'benchmark/problematic-libs-entry.ts';
-const ROME_PROBLEMATIC_LIBRARIES = {
+const MISC_PROJECT = 'misc';
+const MISC_SOURCE_MARKER = '.rspack-benchmark-source.json';
+const MISC_ENTRY = 'src/index.ts';
+const MISC_PROBLEMATIC_LIBRARIES = {
   '@atlaskit/editor-core': '120.1.0',
   '@atlaskit/media-core': '31.1.0',
   '@atlaskit/smart-card': '13.0.0',
@@ -137,130 +133,47 @@ async function scaledThreejsBenchcase() {
   );
 }
 
-function isRomeBenchSource(source) {
-  const normalized = source.split(path.sep).join('/');
-  return (
-    !normalized.includes('/test-fixtures/') &&
-    !normalized.includes('/__snapshots__/') &&
-    !normalized.endsWith('.test.ts') &&
-    !normalized.endsWith('.test.tsx')
-  );
-}
+async function miscBenchcase() {
+  console.log(`preparing ${MISC_PROJECT} benchmark case`);
 
-async function romeTsBenchcase() {
-  console.log(`preparing ${ROME_PROJECT} benchmark case`);
-
-  const targetProject = path.join(RSPACK_BENCH_CASES, ROME_PROJECT);
-  const sourceMarker = path.join(targetProject, ROME_SOURCE_MARKER);
+  const targetProject = path.join(RSPACK_BENCH_CASES, MISC_PROJECT);
+  const sourceMarker = path.join(targetProject, MISC_SOURCE_MARKER);
 
   if (await pathExists(sourceMarker)) {
-    console.log(`${ROME_PROJECT} benchmark case already exists, skipping`);
+    console.log(`${MISC_PROJECT} benchmark case already exists, skipping`);
     return;
   }
 
-  const checkoutDir = path.join(BENCH_DIR, '.rome-tools-checkout');
-  await rm(checkoutDir, { force: true, recursive: true });
   await rm(targetProject, { force: true, recursive: true });
+  await mkdir(path.join(targetProject, 'src'), { recursive: true });
 
-  await run('git', ['init', checkoutDir]);
-  await run('git', ['fetch', '--depth=1', ROME_REPOSITORY, ROME_COMMIT], {
-    cwd: checkoutDir,
-  });
-  await run('git', ['checkout', '--force', 'FETCH_HEAD'], {
-    cwd: checkoutDir,
-  });
-
-  await mkdir(path.join(targetProject, 'packages'), { recursive: true });
-  await Promise.all([
-    cp(
-      path.join(checkoutDir, 'packages', '@romejs'),
-      path.join(targetProject, 'packages', '@romejs'),
-      { filter: isRomeBenchSource, recursive: true },
-    ),
-    cp(
-      path.join(checkoutDir, 'packages', '@romejs-runtime'),
-      path.join(targetProject, 'packages', '@romejs-runtime'),
-      { filter: isRomeBenchSource, recursive: true },
-    ),
-    cp(
-      path.join(checkoutDir, 'packages', 'rome'),
-      path.join(targetProject, 'packages', 'rome'),
-      { filter: isRomeBenchSource, recursive: true },
-    ),
-    cp(
-      path.join(checkoutDir, 'tsconfig.json'),
-      path.join(targetProject, 'tsconfig.json'),
-    ),
-    cp(
-      path.join(checkoutDir, 'package.json'),
-      path.join(targetProject, 'package.json'),
-    ),
-  ]);
-
+  const packageJsonPath = path.join(targetProject, 'package.json');
   await writeFile(
-    sourceMarker,
+    packageJsonPath,
     `${JSON.stringify(
       {
-        repository: ROME_REPOSITORY,
-        commit: ROME_COMMIT,
+        name: MISC_PROJECT,
+        private: true,
+        dependencies: MISC_PROBLEMATIC_LIBRARIES,
       },
       null,
       2,
     )}\n`,
   );
 
-  await rm(checkoutDir, { force: true, recursive: true });
-}
-
-async function romeProblematicLibrariesBenchcase() {
-  console.log(
-    `preparing ${ROME_PROJECT} problematic libraries benchmark input`,
-  );
-
-  const targetProject = path.join(RSPACK_BENCH_CASES, ROME_PROJECT);
-  const sourceMarker = path.join(targetProject, ROME_SOURCE_MARKER);
-  const problematicLibrariesMarker = path.join(
-    targetProject,
-    ROME_PROBLEMATIC_LIBS_MARKER,
-  );
-
-  if (!(await pathExists(sourceMarker))) {
-    throw new Error(
-      `${ROME_PROJECT} benchmark source marker not found: ${sourceMarker}`,
-    );
-  }
-
-  if (await pathExists(problematicLibrariesMarker)) {
-    console.log(
-      `${ROME_PROJECT} problematic libraries input already exists, skipping`,
-    );
-    return;
-  }
-
-  const packageJsonPath = path.join(targetProject, 'package.json');
-  const packageJson = JSON.parse(await readFile(packageJsonPath, 'utf-8'));
-  packageJson.dependencies = {
-    ...(packageJson.dependencies ?? {}),
-    ...ROME_PROBLEMATIC_LIBRARIES,
-  };
-  await writeFile(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
-
   const workspacePath = path.join(RSPACK_BENCH_CASES, 'pnpm-workspace.yaml');
   const workspace = await readFile(workspacePath, 'utf-8');
-  if (!workspace.includes(`- "${ROME_PROJECT}"`)) {
+  if (!workspace.includes(`- "${MISC_PROJECT}"`)) {
     await writeFile(
       workspacePath,
-      `${workspace.trimEnd()}\n  - "${ROME_PROJECT}"\n`,
+      `${workspace.trimEnd()}\n  - "${MISC_PROJECT}"\n`,
     );
   }
 
-  const entryPath = path.join(targetProject, ROME_PROBLEMATIC_LIBS_ENTRY);
-  await mkdir(path.dirname(entryPath), { recursive: true });
+  const entryPath = path.join(targetProject, MISC_ENTRY);
   await writeFile(
     entryPath,
-    `import '../packages/@romejs/cli/cli';
-
-import * as atlaskitEditorCore from '@atlaskit/editor-core';
+    `import * as atlaskitEditorCore from '@atlaskit/editor-core';
 import * as atlaskitMediaCore from '@atlaskit/media-core';
 import * as atlaskitSmartCard from '@atlaskit/smart-card';
 import * as materialCore from '@material-ui/core';
@@ -328,11 +241,11 @@ Promise.all([
   );
 
   await writeFile(
-    problematicLibrariesMarker,
+    sourceMarker,
     `${JSON.stringify(
       {
-        entry: ROME_PROBLEMATIC_LIBS_ENTRY,
-        dependencies: ROME_PROBLEMATIC_LIBRARIES,
+        entry: MISC_ENTRY,
+        dependencies: MISC_PROBLEMATIC_LIBRARIES,
         reason:
           'Covers module-concatenation root attempts that fail on shared ESM/CJS dependencies.',
       },
@@ -344,5 +257,4 @@ Promise.all([
 
 await rspackBenchcases();
 await scaledThreejsBenchcase();
-await romeTsBenchcase();
-await romeProblematicLibrariesBenchcase();
+await miscBenchcase();
