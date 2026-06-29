@@ -226,7 +226,11 @@ impl ModuleGroup {
     self.total_size
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
+  fn update_sizes(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    update_source_type_index: bool,
+  ) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -235,11 +239,13 @@ impl ModuleGroup {
           let size = self.sizes.entry(*ty).or_default();
           *size += s;
           self.total_size += s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .insert(module);
+          if update_source_type_index {
+            self
+              .source_types_modules
+              .entry(*ty)
+              .or_default()
+              .insert(module);
+          }
         }
       }
     }
@@ -252,16 +258,30 @@ impl ModuleGroup {
           *size -= s;
           *size = size.max(0.0);
           self.total_size -= s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .remove(&module);
+          if update_source_type_index {
+            self
+              .source_types_modules
+              .entry(*ty)
+              .or_default()
+              .remove(&module);
+          }
         }
       }
     }
 
     &self.sizes
+  }
+
+  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
+    self.update_sizes(module_sizes, true)
+  }
+
+  /// Only use when later logic will not read `source_types_modules` from this group.
+  pub fn get_sizes_without_source_type_index(
+    &mut self,
+    module_sizes: &ModuleSizes,
+  ) -> &SplitChunkSizes {
+    self.update_sizes(module_sizes, false)
   }
 }
 
@@ -331,12 +351,15 @@ pub(crate) fn compare_entries(
 
 #[cfg(test)]
 mod tests {
-  use rspack_core::ModuleIdentifier;
+  use rspack_core::{ModuleIdentifier, SourceType};
+  use rustc_hash::FxHashMap;
 
   use super::{CacheGroup, ModuleGroup};
   use crate::{
-    ChunkNameGetter, SplitChunkSizes, common::ChunkFilter, create_default_module_layer_filter,
-    create_default_module_type_filter, options::cache_group_test::CacheGroupTest,
+    ChunkNameGetter, SplitChunkSizes,
+    common::{ChunkFilter, ModuleSizes},
+    create_default_module_layer_filter, create_default_module_type_filter,
+    options::cache_group_test::CacheGroupTest,
   };
 
   fn module(identifier: &str) -> ModuleIdentifier {
@@ -374,6 +397,17 @@ mod tests {
     module_group
   }
 
+  fn module_sizes(modules: &[&str], size: f64) -> ModuleSizes {
+    modules
+      .iter()
+      .map(|identifier| {
+        let mut sizes = FxHashMap::default();
+        sizes.insert(SourceType::JavaScript, size);
+        (module(identifier), sizes)
+      })
+      .collect()
+  }
+
   #[test]
   fn remove_matching_modules_records_removed_modules_without_touching_unmatched_modules() {
     let mut other_group = module_group(&["a", "b", "c"]);
@@ -399,5 +433,24 @@ mod tests {
     assert!(other_group.modules.contains(&module("a")));
     assert!(other_group.modules.contains(&module("b")));
     assert!(other_group.removed.is_empty());
+  }
+
+  #[test]
+  fn get_sizes_without_source_type_index_updates_sizes_without_tracking_modules() {
+    let module_sizes = module_sizes(&["a", "b"], 10.0);
+    let mut group = module_group(&["a", "b"]);
+
+    let sizes = group.get_sizes_without_source_type_index(&module_sizes);
+
+    assert_eq!(sizes.get(&SourceType::JavaScript), Some(&20.0));
+    assert_eq!(group.get_total_size(), 20.0);
+    assert!(group.source_types_modules.is_empty());
+
+    group.remove_module(module("a"));
+    let sizes = group.get_sizes_without_source_type_index(&module_sizes);
+
+    assert_eq!(sizes.get(&SourceType::JavaScript), Some(&10.0));
+    assert_eq!(group.get_total_size(), 10.0);
+    assert!(group.source_types_modules.is_empty());
   }
 }

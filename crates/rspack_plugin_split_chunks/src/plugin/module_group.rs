@@ -703,7 +703,7 @@ impl SplitChunksPlugin {
         if cache_group.min_size.is_empty_or_zero()
           && cache_group.min_size_reduction.is_empty_or_zero()
         {
-          let _ = other_module_group.get_sizes(module_sizes);
+          let _ = other_module_group.get_sizes_without_source_type_index(module_sizes);
           return None;
         }
 

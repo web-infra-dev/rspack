@@ -131,7 +131,7 @@ impl SplitChunksPlugin {
         if cache_group.min_size.is_empty_or_zero()
           && cache_group.min_size_reduction.is_empty_or_zero()
         {
-          let _ = module_group.get_sizes(module_sizes);
+          let _ = module_group.get_sizes_without_source_type_index(module_sizes);
           tracing::debug!(
             "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",
             module_group_key,
