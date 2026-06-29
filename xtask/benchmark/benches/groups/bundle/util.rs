@@ -54,10 +54,10 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
         .collect(),
     )
   });
-  let resolve_extensions = options
-    .resolve_extensions
-    .map(|extensions| extensions.into_iter().map(String::from).collect())
-    .unwrap_or_else(|| vec!["...".to_string(), ".jsx".to_string()]);
+  let resolve_extensions = options.resolve_extensions.map_or_else(
+    || vec!["...".to_string(), ".jsx".to_string()],
+    |extensions| extensions.into_iter().map(String::from).collect(),
+  );
 
   builder
     .context(dir.to_string_lossy().to_string())
