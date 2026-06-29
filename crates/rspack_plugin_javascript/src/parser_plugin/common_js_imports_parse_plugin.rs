@@ -1080,14 +1080,14 @@ fn tag_commonjs_require_referenced(
 fn create_commonjs_require_context_dependency(
   parser: &mut JavascriptParser,
   param: &BasicEvaluatedExpression,
-  call_expr: &CallExpr,
+  expr: &CallOrNewExpr,
   arg_expr: &Expr,
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   request_context: Option<rspack_core::Context>,
 ) -> CommonJsRequireContextDependency {
   let result = create_context_dependency(param, parser);
 
-  let span = call_expr.span;
+  let span = expr.span();
   let options = ContextOptions {
     mode: ContextMode::Sync,
     recursive: true,
@@ -1101,7 +1101,7 @@ fn create_commonjs_require_context_dependency(
     referenced_specifiers,
     ..Default::default()
   };
-  let range = call_expr.span.into();
+  let range = span.into();
   let loc = parser
     .to_dependency_location(range)
     .expect("Should get correct loc");
@@ -1410,6 +1410,7 @@ impl CommonJsImportsParserPlugin {
     span: Span,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
+    replace_call: bool,
   ) -> Option<bool> {
     param.is_string().then(|| {
       let (start, end) = param.range();
@@ -1428,7 +1429,7 @@ impl CommonJsImportsParserPlugin {
             refs
           });
       let dep: Box<dyn rspack_core::Dependency> = if let Some(context) = request_context {
-        Box::new(CommonJsRequireDependency::new_contextual(
+        let mut dep = CommonJsRequireDependency::new_contextual(
           param.string().clone(),
           range_expr,
           Some(span.into()),
@@ -1436,16 +1437,24 @@ impl CommonJsImportsParserPlugin {
           context,
           loc,
           referenced_specifiers,
-        ))
+        );
+        if replace_call {
+          dep.set_replace_call();
+        }
+        Box::new(dep)
       } else {
-        Box::new(CommonJsRequireDependency::new(
+        let mut dep = CommonJsRequireDependency::new(
           param.string().clone(),
           range_expr,
           Some(span.into()),
           parser.in_try,
           loc,
           referenced_specifiers,
-        ))
+        );
+        if replace_call {
+          dep.set_replace_call();
+        }
+        Box::new(dep)
       };
       let dep_idx = parser.next_dependency_idx();
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
@@ -1463,16 +1472,16 @@ impl CommonJsImportsParserPlugin {
   fn process_require_context(
     &self,
     parser: &mut JavascriptParser,
-    call_expr: &CallExpr,
+    expr: &CallOrNewExpr,
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
   ) -> Option<bool> {
-    let Some(argument_expr) = call_expr.args.first().map(|expr| &expr.expr) else {
+    let Some(argument_expr) = expr.args()?.first().map(|expr| &expr.expr) else {
       unreachable!("ensure require includes arguments")
     };
     let referenced_specifiers = parser
       .destructuring_assignment_properties
-      .get(&call_expr.span)
+      .get(&expr.span())
       .map(|keys| {
         let mut refs = Vec::new();
         keys.traverse_on_leaf(&mut |stack| {
@@ -1484,7 +1493,7 @@ impl CommonJsImportsParserPlugin {
     let dep = create_commonjs_require_context_dependency(
       parser,
       param,
-      call_expr,
+      expr,
       argument_expr,
       referenced_specifiers,
       request_context,
@@ -1492,7 +1501,7 @@ impl CommonJsImportsParserPlugin {
     let dep_idx = parser.next_dependency_idx();
     if let Some(require_references) = parser
       .common_js_require_references
-      .get_require_mut(&call_expr.span)
+      .get_require_mut(&expr.span())
     {
       require_references.dep_locator = Some(RequireDependencyLocator {
         dep_idx,
@@ -1542,7 +1551,7 @@ impl CommonJsImportsParserPlugin {
       let mut is_expression = false;
       for p in param.options() {
         if self
-          .process_require_item(parser, expr.span(), p, request_context.clone())
+          .process_require_item(parser, expr.span(), p, request_context.clone(), false)
           .is_none()
         {
           is_expression = true;
@@ -1574,15 +1583,10 @@ impl CommonJsImportsParserPlugin {
     }
 
     if self
-      .process_require_item(parser, expr.span(), &param, request_context.clone())
+      .process_require_item(parser, expr.span(), &param, request_context.clone(), true)
       .is_none()
-      && let CallOrNewExpr::Call(call_expr) = expr
     {
-      self.process_require_context(parser, call_expr, &param, request_context);
-    } else {
-      let range: DependencyRange = callee.span().into();
-      let loc = parser.to_dependency_location(range);
-      parser.add_presentational_dependency(Box::new(RequireHeaderDependency::new(range, loc)));
+      self.process_require_context(parser, &expr, &param, request_context);
     }
     Some(true)
   }

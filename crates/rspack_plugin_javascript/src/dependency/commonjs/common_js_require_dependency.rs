@@ -2,12 +2,14 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, Context, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier,
-  ResourceIdentifier, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
+  ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ReferencedSpecifier, ResourceIdentifier, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -30,6 +32,7 @@ pub struct CommonJsRequireDependency {
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
+  replace_call: bool,
 }
 
 impl CommonJsRequireDependency {
@@ -53,6 +56,7 @@ impl CommonJsRequireDependency {
       context: None,
       resource_identifier: Default::default(),
       factorize_info: Default::default(),
+      replace_call: false,
     }
   }
 
@@ -89,11 +93,23 @@ impl CommonJsRequireDependency {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
+  pub fn set_replace_call(&mut self) {
+    self.replace_call = true;
+  }
+
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
     self.branch_guard = Some(match self.branch_guard.take() {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  fn unused_require_can_be_removed(&self) -> bool {
+    self.replace_call
+      && self
+        .referenced_specifiers
+        .as_ref()
+        .is_some_and(Vec::is_empty)
   }
 }
 
@@ -160,6 +176,30 @@ impl Dependency for CommonJsRequireDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    module_chain: &mut IdentifierSet,
+    connection_state_cache: &mut IdentifierMap<rspack_core::ConnectionState>,
+  ) -> rspack_core::ConnectionState {
+    if let Some(module) = module_graph
+      .module_identifier_by_dependency_id(&self.id)
+      .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
+    {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        module_chain,
+        connection_state_cache,
+      )
+    } else {
+      rspack_core::ConnectionState::Active(true)
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -177,7 +217,10 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    let base = self
+      .unused_require_can_be_removed()
+      .then(|| DependencyCondition::new(CommonJsRequireDependencyCondition));
+    compose_dependency_condition(base, self.branch_guard.as_ref())
   }
 
   fn factorize_info(&self) -> &FactorizeInfo {
@@ -197,6 +240,36 @@ impl DependencyCodeGeneration for CommonJsRequireDependency {
 }
 
 impl AsContextDependency for CommonJsRequireDependency {}
+
+struct CommonJsRequireDependencyCondition;
+
+impl DependencyConditionFn for CommonJsRequireDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+  ) -> rspack_core::ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(state) = side_effects_state_artifact.module_evaluation_side_effects_state(&id) {
+      return state;
+    }
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      rspack_core::ConnectionState::Active(true)
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Clone, Default)]
@@ -222,16 +295,52 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
         "CommonJsRequireDependencyTemplate should only be used for CommonJsRequireDependency",
       );
 
-    source.replace(
-      dep.range.start,
-      dep.range.end,
-      code_generatable_context.runtime_template.module_id(
-        code_generatable_context.compilation,
-        &dep.id,
-        &dep.request,
-        false,
-      ),
-      None,
+    let compilation = code_generatable_context.compilation;
+    let module_graph = compilation.get_module_graph();
+    let Some(connection) = module_graph.connection_by_dependency_id(&dep.id) else {
+      return;
+    };
+    let is_target_active = connection.is_target_active(
+      module_graph,
+      code_generatable_context.runtime,
+      &compilation.module_graph_cache_artifact,
+      &compilation
+        .build_module_graph_artifact
+        .side_effects_state_artifact,
+      &compilation.exports_info_artifact,
     );
+    if dep.replace_call
+      && let Some(range_expr) = dep.range_expr
+    {
+      let content = if is_target_active {
+        format!(
+          "{}({})",
+          code_generatable_context
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REQUIRE),
+          code_generatable_context.runtime_template.module_id(
+            code_generatable_context.compilation,
+            &dep.id,
+            &dep.request,
+            false,
+          )
+        )
+      } else {
+        "(/* unused require call */ null)".to_string()
+      };
+      source.replace(range_expr.start, range_expr.end, content, None);
+    } else {
+      source.replace(
+        dep.range.start,
+        dep.range.end,
+        code_generatable_context.runtime_template.module_id(
+          code_generatable_context.compilation,
+          &dep.id,
+          &dep.request,
+          false,
+        ),
+        None,
+      );
+    }
   }
 }
