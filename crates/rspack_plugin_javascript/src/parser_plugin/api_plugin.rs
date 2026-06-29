@@ -220,6 +220,13 @@ static IMPORT_META_RUNTIME_APIS: &[ImportMetaRuntimeApi] = &[
     runtime_call: false,
   },
   ImportMetaRuntimeApi {
+    name: "import.meta.rspackUniqueId",
+    property: "rspackUniqueId",
+    type_of: "string",
+    runtime_global: RuntimeGlobals::RSPACK_UNIQUE_ID,
+    runtime_call: false,
+  },
+  ImportMetaRuntimeApi {
     name: "import.meta.rspackVersion",
     property: "rspackVersion",
     type_of: "string",

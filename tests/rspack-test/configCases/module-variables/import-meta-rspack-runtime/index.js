@@ -13,6 +13,8 @@ it("should expose rspack runtime module variables on import.meta", function () {
 	expect(__webpack_require__.S.__importMetaRuntimeAliasTest).toBe(shareScope);
 	expect(typeof import.meta.rspackInitSharing).toBe("function");
 	expect(typeof import.meta.rspackNonce).toBe("string");
+	expect(typeof import.meta.rspackUniqueId).toBe("string");
+	expect(import.meta.rspackUniqueId).toBe(__rspack_unique_id__);
 
 	expect(typeof import.meta.rspackVersion).toBe("string");
 	const rspackVersionBeforeAssign = import.meta.rspackVersion;
@@ -46,11 +48,13 @@ it("should expose rspack runtime module variables on import.meta", function () {
 	const {
 		rspackPublicPath,
 		rspackInitSharing,
+		rspackUniqueId,
 		rspackVersion,
 		rspackHash
 	} = import.meta;
 	expect(rspackPublicPath).toBe("/a");
 	expect(rspackInitSharing).toBe(__webpack_require__.I);
+	expect(rspackUniqueId).toBe(__rspack_unique_id__);
 	expect(typeof rspackVersion).toBe("string");
 	expect(rspackVersion.length > 0).toBe(true);
 	expect(typeof rspackHash).toBe("string");
