@@ -47,10 +47,18 @@ jobs:
             runner: ${{ '"macos-latest"' }}
           - target: aarch64-apple-darwin
             runner: ${{ '"macos-latest"' }}
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            profile: release
+          - target: wasm32-wasip1-threads
+            runner: ${{ vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"' }}
+            binding_postfix: '-browser'
+            profile: release
     uses: ./.github/workflows/reusable-build.yml
     with:
       ref: ${{ inputs.ref }}
       target: ${{ matrix.array.target }}
       runner: ${{ matrix.array.runner }}
-      profile: ${{ inputs.profile }}
+      binding_postfix: ${{ matrix.array.binding_postfix }}
+      profile: ${{ matrix.array.profile || inputs.profile }}
       test: ${{ inputs.test }}
