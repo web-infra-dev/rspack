@@ -135,32 +135,18 @@ impl LazyDependencies {
   ) -> FxHashSet<DependencyId> {
     match forwarded_ids {
       ForwardedIdSet::All => self.all_lazy_dependencies().collect(),
-      ForwardedIdSet::IdSet(set) => {
-        let mut dependencies = FxHashSet::default();
-        let mut include_fallback_dependencies = false;
-
-        for forward_id in set {
-          if self.terminal_forward_ids.contains(forward_id) {
-            continue;
-          }
-
-          if let Some(deps) = self
+      ForwardedIdSet::IdSet(set) => set
+        .iter()
+        .filter(|forward_id| !self.terminal_forward_ids.contains(*forward_id))
+        .flat_map(|forward_id| {
+          self
             .forward_id_to_request
             .get(forward_id)
             .and_then(|request| self.request_to_dependencies.get(request))
-          {
-            dependencies.extend(deps.iter().copied());
-          } else {
-            include_fallback_dependencies = true;
-          }
-        }
-
-        if include_fallback_dependencies {
-          dependencies.extend(self.fallback_dependencies.iter().copied());
-        }
-
-        dependencies
-      }
+            .unwrap_or(&self.fallback_dependencies)
+        })
+        .copied()
+        .collect(),
     }
   }
 }
