@@ -16,13 +16,15 @@ pnpm run bench:prepare
 ```
 
 The prepare step also creates a local `rome-ts` fixture from the TypeScript
-sources in `rome/tools` commit `d95a3a7aab90773c9b36d9c82a08c8c4c6b68aa5`, and
-a local `threejs-10x` fixture by copying the upstream `threejs/src` input ten
-times. The larger `threejs-10x` input is registered only by the isolated
-`walltime` benchmark target, so regular simulation runs keep using the smaller
-default benchmark set. The `threejs-10x` walltime benchmark writes outputs
-through the native filesystem instead of the in-memory filesystem used by the
-regular bundle benchmarks. Rust benchmark concurrency is selected with
+sources in `rome/tools` commit `d95a3a7aab90773c9b36d9c82a08c8c4c6b68aa5`,
+adds a `rome-ts-problematic-libs-production-sourcemap` entry that imports
+libraries known to stress module concatenation bailouts, and creates a local
+`threejs-10x` fixture by copying the upstream `threejs/src` input ten times.
+The larger `threejs-10x` input is registered only by the isolated `walltime`
+benchmark target, so regular simulation runs keep using the smaller default
+benchmark set. The `threejs-10x` walltime benchmark writes outputs through the
+native filesystem instead of the in-memory filesystem used by the regular
+bundle benchmarks. Rust benchmark concurrency is selected with
 `BENCH_MODE=simulation|walltime` (default: `simulation`). Walltime bundle
 benchmarks use `BENCH_MODE=walltime`, which caps machine-size-dependent
 parallelism at up to 16 threads for each of Tokio workers, Tokio blocking tasks,

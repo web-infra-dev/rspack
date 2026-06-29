@@ -16,6 +16,7 @@ pub mod build_module_graph;
 pub mod bundle_basic_react_development;
 pub mod bundle_basic_react_production_sourcemap;
 pub mod bundle_rome_ts_development;
+pub mod bundle_rome_ts_problematic_libs_production_sourcemap;
 pub mod bundle_rome_ts_production_sourcemap;
 pub mod bundle_threejs_development;
 pub mod bundle_threejs_production_sourcemap;

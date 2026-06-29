@@ -18,3 +18,20 @@ pub fn compiler() -> CompilerBuilder {
     ignore_missing_reexports: true,
   })
 }
+
+pub fn compiler_with_problematic_libraries() -> CompilerBuilder {
+  basic_compiler_builder(BuilderOptions {
+    project: "rome-ts",
+    entry: "./benchmark/problematic-libs-entry.ts",
+    swc_loader: true,
+    native_output_filesystem: false,
+    target: Some("node"),
+    resolve_alias: Some(vec![
+      ("@romejs", "packages/@romejs"),
+      ("@romejs-runtime", "packages/@romejs-runtime"),
+      ("rome", "packages/rome"),
+    ]),
+    resolve_extensions: Some(vec![".ts", ".tsx", "...", ".jsx"]),
+    ignore_missing_reexports: true,
+  })
+}

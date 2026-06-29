@@ -17,6 +17,10 @@ pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("rome-ts", Arc::new(rome_ts::compiler)),
+    (
+      "rome-ts-problematic-libs",
+      Arc::new(rome_ts::compiler_with_problematic_libraries),
+    ),
     ("threejs", Arc::new(threejs::compiler)),
   ];
   let (id, get_compiler) = derive_projects(projects)

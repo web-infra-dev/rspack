@@ -27,6 +27,7 @@ criterion_main!(
   cases::bundle_basic_react_development::case,
   cases::bundle_basic_react_production_sourcemap::case,
   cases::bundle_rome_ts_development::case,
+  cases::bundle_rome_ts_problematic_libs_production_sourcemap::case,
   cases::bundle_rome_ts_production_sourcemap::case,
   cases::bundle_threejs_development::case,
   cases::bundle_threejs_production_sourcemap::case,
