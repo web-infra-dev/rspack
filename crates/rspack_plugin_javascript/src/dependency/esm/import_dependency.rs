@@ -2,12 +2,14 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
-  DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes, ImportPhase,
-  ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyConditionFn, DependencyId, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, FactorizeInfo, ImportAttributes,
+  ImportPhase, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
+  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  TemplateReplaceSource, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 use swc_atoms::Atom;
@@ -70,6 +72,14 @@ impl ImportDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  fn unused_import_can_be_removed(&self) -> bool {
+    self.phase == ImportPhase::Evaluation
+      && self
+        .referenced_specifiers
+        .as_ref()
+        .is_some_and(Vec::is_empty)
   }
 }
 
@@ -140,6 +150,30 @@ impl Dependency for ImportDependency {
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {
     rspack_core::AffectType::True
   }
+
+  fn get_module_evaluation_side_effects_state(
+    &self,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    module_chain: &mut IdentifierSet,
+    connection_state_cache: &mut IdentifierMap<ConnectionState>,
+  ) -> ConnectionState {
+    if let Some(module) = module_graph
+      .module_identifier_by_dependency_id(&self.id)
+      .and_then(|module_identifier| module_graph.module_by_identifier(module_identifier))
+    {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        module_chain,
+        connection_state_cache,
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -165,7 +199,10 @@ impl ModuleDependency for ImportDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    let base = self
+      .unused_import_can_be_removed()
+      .then(|| DependencyCondition::new(ImportDependencyCondition));
+    compose_dependency_condition(base, self.branch_guard.as_ref())
   }
 }
 
@@ -177,6 +214,36 @@ impl DependencyCodeGeneration for ImportDependency {
 }
 
 impl AsContextDependency for ImportDependency {}
+
+struct ImportDependencyCondition;
+
+impl DependencyConditionFn for ImportDependencyCondition {
+  fn get_connection_state(
+    &self,
+    conn: &ModuleGraphConnection,
+    _runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    side_effects_state_artifact: &SideEffectsStateArtifact,
+    _exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    let id = *conn.module_identifier();
+    if let Some(state) = side_effects_state_artifact.module_evaluation_side_effects_state(&id) {
+      return state;
+    }
+    if let Some(module) = module_graph.module_by_identifier(&id) {
+      module.get_side_effects_connection_state(
+        module_graph,
+        module_graph_cache,
+        side_effects_state_artifact,
+        &mut IdentifierSet::default(),
+        &mut IdentifierMap::default(),
+      )
+    } else {
+      ConnectionState::Active(true)
+    }
+  }
+}
 
 #[cacheable]
 #[derive(Debug, Default)]
@@ -201,6 +268,31 @@ impl DependencyTemplate for ImportDependencyTemplate {
       .expect("ImportDependencyTemplate can only be applied to ImportDependency");
     let range = dep.range().expect("ImportDependency should have range");
     let module_graph = code_generatable_context.compilation.get_module_graph();
+    let compilation = code_generatable_context.compilation;
+    let is_connection_inactive = module_graph
+      .connection_by_dependency_id(&dep.id)
+      .is_some_and(|connection| {
+        connection
+          .active_state(
+            module_graph,
+            code_generatable_context.runtime,
+            &compilation.module_graph_cache_artifact,
+            &compilation
+              .build_module_graph_artifact
+              .side_effects_state_artifact,
+            &compilation.exports_info_artifact,
+          )
+          .is_false()
+      });
+    if is_connection_inactive && dep.get_phase() == ImportPhase::Evaluation {
+      source.replace(
+        range.start,
+        range.end,
+        "Promise.resolve(/* unused import() */)".to_string(),
+        None,
+      );
+      return;
+    }
     let block = module_graph.get_parent_block(dep.id());
     let mut content = code_generatable_context
       .runtime_template
