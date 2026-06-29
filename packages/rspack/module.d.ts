@@ -251,6 +251,14 @@ interface ImportMeta {
   rspackRsc?: {
     loadCss(): any;
   };
+  rspackPublicPath: string;
+  rspackBaseUri: string;
+  rspackShareScopes: typeof __webpack_share_scopes__;
+  rspackInitSharing: typeof __webpack_init_sharing__;
+  rspackNonce: string;
+  rspackUniqueId: string;
+  rspackVersion: string;
+  rspackHash: string;
   glob: {
     <T = unknown>(
       pattern: Rspack.ImportMetaGlobPattern,
