@@ -45,6 +45,7 @@ export default {
       },
       // asset/resource 模块的生成器选项
       'asset/resource': {
+        emit: true,
         filename: '[name]-[contenthash][ext]',
         publicPath: 'https://cdn.example.com/',
       },
@@ -523,6 +524,22 @@ export default {
     generator: {
       'asset/resource': {
         publicPath: 'https://cdn.example.com/',
+      },
+    },
+  },
+};
+```
+
+### ["asset/resource"].emit
+
+和 [`module.generator["asset"].emit`](#assetemit) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    generator: {
+      'asset/resource': {
+        emit: false,
       },
     },
   },

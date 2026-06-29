@@ -87,7 +87,19 @@ impl From<RsdoctorDependency> for JsRsdoctorDependency {
   }
 }
 
-pub type JsRsdoctorExportUsageEdge = (i32, Option<Vec<String>>, i32, Option<Vec<String>>);
+// Edge: [originModule, originExport, targetModule, targetExport, dependencyId, loc]
+// (origin=consumer, target=provider). The trailing dependencyId/loc are appended so existing
+// positional `[a, b, c, d]` consumers keep working. `loc` is the consuming reference site as
+// rspack's standard location string (`line:col`, `line:col-endCol`, or `line:col-endLine:endCol`),
+// or null when unavailable.
+pub type JsRsdoctorExportUsageEdge = (
+  i32,
+  Option<Vec<String>>,
+  i32,
+  Option<Vec<String>>,
+  String,
+  Option<String>,
+);
 
 #[napi(object)]
 pub struct JsRsdoctorConnection {
@@ -396,7 +408,9 @@ pub struct JsRsdoctorModuleGraph {
   pub dependencies: Vec<JsRsdoctorDependency>,
   pub chunk_modules: Vec<JsRsdoctorChunkModules>,
   pub connections_only_imports: Vec<JsRsdoctorConnectionsOnlyImport>,
-  #[napi(ts_type = "Array<[number, Array<string> | null, number, Array<string> | null]>")]
+  #[napi(
+    ts_type = "Array<[number, Array<string> | null, number, Array<string> | null, string, string | null]>"
+  )]
   pub export_usage_edges: Vec<JsRsdoctorExportUsageEdge>,
 }
 
@@ -420,6 +434,8 @@ impl From<RsdoctorModuleGraph> for JsRsdoctorModuleGraph {
             edge.origin_export,
             edge.target_module,
             edge.target_export,
+            edge.dependency_id,
+            edge.loc,
           )
         })
         .collect(),

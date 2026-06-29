@@ -15,8 +15,21 @@ impl CreateScriptRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for CreateScriptRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::CREATE_SCRIPT
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        if compilation.options.output.trusted_types.is_some() {
+          RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
+        } else {
+          RuntimeGlobals::default()
+        }
+      },
+      write: { RuntimeGlobals::CREATE_SCRIPT },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -39,13 +52,5 @@ impl RuntimeModule for CreateScriptRuntimeModule {
     )?;
 
     Ok(source)
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    if compilation.options.output.trusted_types.is_some() {
-      RuntimeGlobals::GET_TRUSTED_TYPES_POLICY
-    } else {
-      RuntimeGlobals::default()
-    }
   }
 }

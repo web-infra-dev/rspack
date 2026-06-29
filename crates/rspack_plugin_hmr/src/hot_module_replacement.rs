@@ -1,15 +1,26 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  impl_runtime_module, runtime_mode::RuntimeMode,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleRuntimeRequirements, RuntimeTemplate, impl_runtime_module,
+  runtime_mode::RuntimeMode,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
 use rspack_util::test::is_hot_test;
 
 static HOT_MODULE_REPLACEMENT_TEMPLATE: &str = include_str!("runtime/hot_module_replacement.ejs");
-static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(HOT_MODULE_REPLACEMENT_TEMPLATE));
+static HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      HOT_MODULE_REPLACEMENT_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    write: RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+      | RuntimeGlobals::HMR_MODULE_DATA
+      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS,
+    ..Default::default()
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -44,12 +55,19 @@ impl RuntimeModule for HotModuleReplacementRuntimeModule {
 
     Ok(content)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.dependencies,
+      write: {
+        RuntimeGlobals::INTERCEPT_MODULE_EXECUTION
+          | RuntimeGlobals::HMR_MODULE_DATA
+          | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
+          | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
+      },
+      ..Default::default()
+    }
   }
 }

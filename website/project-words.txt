@@ -27,6 +27,7 @@ bvanjoi
 chakra
 chapple
 chenjiahan
+Chenwei
 codeva
 Colum
 commmonjs
@@ -55,10 +56,12 @@ faga295
 fansenze
 fargs
 feishu
+feng
 fetchcompileasyncwasmplugin
 fi3ework
 fnames
 funs
+gengkun
 Hana
 HerringtonDarkholme
 htmlrspackplugin
@@ -86,6 +89,7 @@ kaffi
 kuaishou
 Kyrylo
 lightningcss
+Lingyu
 lingyucoder
 linux
 lippzhang
@@ -207,6 +211,7 @@ tuchg
 typeofs
 TypeScript
 ulivz
+unaccessed
 Undelayed
 unplugin
 valorkin
@@ -230,3 +235,5 @@ yifancong
 Zack
 Zack Jackson
 zackarychapple
+Zhixin
+zhiyong

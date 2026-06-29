@@ -4,7 +4,7 @@ use rspack_core::{
 };
 
 use super::container_entry_module::CodeGenerationDataExpose;
-use crate::utils::{json_stringify, module_require_scope_name};
+use crate::utils::{json_stringify, module_require_scope_name, runtime_require_scope_requirement};
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -54,6 +54,22 @@ impl ExposeRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ExposeRuntimeModule {
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let mut dependencies = runtime_require_scope_requirement(compilation);
+    if let Some(chunk_ukey) = self.chunk
+      && let Some(data) = self.find_expose_data(&chunk_ukey, compilation)
+    {
+      dependencies.insert(data.module_map_runtime_requirements);
+    }
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      ..Default::default()
+    }
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }

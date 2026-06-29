@@ -16,6 +16,7 @@ pub struct RuntimeProxyMetadata {
   pub bootstrap_proxy_requirements: RuntimeGlobals,
   pub runtime_module_requirements: RuntimeGlobals,
   pub context_setter_fields: RuntimeGlobals,
+  pub force_context_fields: RuntimeGlobals,
   pub hook_exposed_requirements: RuntimeGlobals,
 }
 
@@ -33,7 +34,7 @@ impl RuntimeProxyMetadata {
   pub fn context_fields(&self) -> RuntimeGlobals {
     let mut fields = self.module_proxy_requirements;
     fields.insert(self.bootstrap_proxy_requirements);
-    fields.insert(self.context_setter_fields);
+    fields.insert(self.force_context_fields);
     fields.insert(self.hook_exposed_requirements);
     Self::renderable_fields(fields)
   }

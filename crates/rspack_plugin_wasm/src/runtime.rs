@@ -90,8 +90,14 @@ impl AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmCompileRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::COMPILE_WASM
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::COMPILE_WASM },
+      ..Default::default()
+    }
   }
 
   async fn generate(
@@ -130,8 +136,15 @@ impl RuntimeModule for AsyncWasmCompileRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AsyncWasmLoadingRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::INSTANTIATE_WASM
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: RuntimeGlobals::INSTANTIATE_WASM,
+      force_context: RuntimeGlobals::INSTANTIATE_WASM,
+      ..Default::default()
+    }
   }
 
   async fn generate(

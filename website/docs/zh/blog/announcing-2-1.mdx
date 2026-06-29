@@ -1,0 +1,572 @@
+---
+description: 'Rspack 2.1 正式发布，重点带来 React Compiler Rust 支持、import.meta.glob、Source Phase Imports、持久化缓存清理，以及多项性能和产物优化。'
+date: 2026-06-26 16:00:00
+sidebar: false
+authors:
+  - name: Gengkun He
+    avatar: 'https://github.com/ahabhgk.png'
+    github: 'ahabhgk'
+  - name: Yu Feng
+    avatar: 'https://github.com/JSerFeng.png'
+    github: 'JSerFeng'
+  - name: Congcong Pan
+    avatar: 'https://github.com/SyMind.png'
+    github: 'SyMind'
+  - name: Jiahan Chen
+    avatar: 'https://github.com/chenjiahan.png'
+    github: 'chenjiahan'
+  - name: Zhiyong Chen
+    avatar: 'https://github.com/CPunisher.png'
+    github: 'CPunisher'
+  - name: Zhixin Jin
+    avatar: 'https://github.com/intellild.png'
+    github: 'intellild'
+  - name: Chenwei Dai
+    avatar: 'https://github.com/Timeless0911.png'
+    github: 'Timeless0911'
+  - name: Lingyu Wang
+    avatar: 'https://github.com/LingyuCoder.png'
+    github: 'LingyuCoder'
+---
+
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+
+import { PackageManagerTabs } from '@theme';
+
+# Rspack 2.1 发布公告
+
+_2026 年 6 月 26 日_
+
+<BlogAuthors />
+
+![Rspack 2.1 Banner](https://assets.rspack.rs/rspack/rspack-banner-v2.1.png)
+
+我们很高兴地宣布 Rspack 2.1 已正式发布！
+
+---
+
+值得关注的变更如下：
+
+- 性能提升
+  - [React Compiler Rust 版本](#react-compiler)
+  - [构建性能优化](#build-performance)
+  - [TypeScript 7 支持](#tsgo-support)
+  - [更快的循环依赖检查](#circular-check)
+- 新特性
+  - [支持 `import.meta.glob`](#import-meta-glob)
+  - [改进内置 CSS 支持](#builtin-css-features)
+  - [支持解析 `createRequire`](#create-require)
+  - [Rspack 魔法注释](#magic-comments)
+  - [支持 Source phase imports](#source-phase-imports)
+  - [自动清理持久化缓存](#cache-cleanup)
+- 产物优化
+  - [`pureFunctions` 稳定化](#pure-functions)
+  - [分支感知的依赖裁剪](#branch-aware-dependency-pruning)
+  - [分支感知的 ESM 导出存在检测](#branch-aware-export-presence)
+  - [`export const` 值绑定优化](#export-const-getter)
+- 生态
+  - [TanStack RSC 支持](#tanstack-rsc-support)
+  - [Rsbuild](#rsbuild)
+  - [Rslib](#rslib)
+  - [Rstest](#rstest)
+  - [Rslint](#rslint)
+  - [Rspress](#rspress)
+  - [Rsdoctor](#rsdoctor)
+  - [rspack-merge](#rspack-merge)
+
+## 性能提升
+
+### React Compiler Rust 版本 \{#react-compiler}
+
+[React Compiler](https://react.dev/learn/react-compiler/introduction) 是 React 官方推出的构建时优化工具，它能在编译阶段自动为组件和 Hook 添加合适的记忆化逻辑，减少手动使用 `useMemo`、`useCallback` 和 `React.memo` 的需要。
+
+过去，React Compiler 主要通过 `babel-loader` 接入，这会引入额外的 Babel 转换开销，并增加项目构建时间。随着 [React Compiler 被移植到 Rust](https://github.com/facebook/react/pull/36173)，SWC 也已经完成接入。Rspack 2.1 现在可以通过内置 SWC loader 直接启用 React Compiler。
+
+在我们的基准测试中，React Compiler Rust 版本相比 Babel 版本性能提升约 **7-13 倍**：
+
+| 命令           | React Compiler (Rust) | React Compiler (Babel) | 提升      |
+| -------------- | --------------------- | ---------------------- | --------- |
+| `rspack dev`   | **0.7 s**             | **10.6 s**             | **13.5x** |
+| `rspack build` | **1.2 s**             | **9.3 s**              | **7.4x**  |
+
+通过 `builtin:swc-loader` 的 `jsc.transform.reactCompiler` 开启 React Compiler：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: true, // [!code highlight]
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+更多配置方式参考 [Rspack React Compiler 指南](/guide/tech/react#react-compiler)。
+
+### 构建性能优化 \{#build-performance}
+
+构建性能始终是 Rspack 的核心关注点之一。在基准测试中，Rspack 2.1 相比 Rspack 2.0 的 **生产构建性能提升约 16%，HMR 性能提升约 5%**。
+
+| 版本          | 生产构建（无缓存） | 生产构建（有缓存） | 热更新     |
+| ------------- | ------------------ | ------------------ | ---------- |
+| Rspack 1.7.11 | **3.12 s**         | **2.09 s**         | **129 ms** |
+| Rspack 2.0.0  | **2.66 s**         | **1.36 s**         | **113 ms** |
+| Rspack 2.1.0  | **2.22 s**         | **1.20 s**         | **107 ms** |
+
+> 数据来源：[rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/28093280576)
+
+这些提升主要来自三个方向：对构建主流程的大量微优化，优化模块图和依赖关系等底层数据结构，以及改进 SWC 解析与转换流程。
+
+### TypeScript 7 支持 \{#tsgo-support}
+
+TypeScript 类型检查常常是构建链路中最耗时的环节之一。[`ts-checker-rspack-plugin`](https://github.com/rstackjs/ts-checker-rspack-plugin) 现在支持使用 TypeScript 7（TypeScript Go）进行类型检查。在启用类型检查的构建中，整体耗时可减少约 **60%**。
+
+在项目中安装 TypeScript 7 RC 版本后即可使用：
+
+<PackageManagerTabs command="add typescript@rc -D" />
+
+```js title="rspack.config.mjs"
+import { TsCheckerRspackPlugin } from 'ts-checker-rspack-plugin';
+
+export default {
+  plugins: [new TsCheckerRspackPlugin()],
+};
+```
+
+### 更快的循环依赖检查 \{#circular-check}
+
+Rspack 2.1 新增了 [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin)，用于替代废弃的 [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin)。
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+};
+```
+
+相比旧插件，新的 CircularCheckRspackPlugin 主要有两方面改进：
+
+- **性能更好**：旧插件的检测方式更接近从入口展开循环路径，在大型模块图中容易产生重复遍历。新的插件使用更适合循环检测的图算法，一次分析即可找出循环组件，并为每个循环组件生成可读的循环路径，因此在大型项目中检测开销更低。
+- **API 设计更合理**：旧插件的 API 设计不够直观，也和 webpack 生态中常用的 `circular-dependency-plugin` API 不一致。新的插件回到更直接的“检测并报告循环依赖”模型，提供与 webpack 生态更一致的选项设计，整体更容易理解和迁移。
+
+如果你正在使用 `CircularDependencyRspackPlugin`，建议迁移到 `CircularCheckRspackPlugin`。对于只需要忽略部分 warning 的场景，可以配合 [`ignoreWarnings`](/config/other-options#ignorewarnings) 使用。
+
+## 新特性
+
+### 支持 `import.meta.glob` \{#import-meta-glob}
+
+Rspack 新增了对 [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob) 的支持。你可以按 glob 模式收集模块，并在需要时再加载它们：
+
+```js
+const pages = import.meta.glob('./pages/**/*.js');
+
+for (const path in pages) {
+  const mod = await pages[path]();
+}
+```
+
+这项功能已经在 Vite 和 Turbopack 中实现。Rspack 新增支持后，开发者可以在不同生态工具之间使用更一致、更熟悉的写法，减少切换工具时的认知成本。这也让同时支持多种构建工具的框架和库作者，可以复用更接近的实现。
+
+> 查看 [`import.meta.glob` 文档](/api/runtime-api/module-variables#importmetaglob) 了解完整用法。
+
+### 改进内置 CSS 支持 \{#builtin-css-features}
+
+Rspack 2.1 进一步改进了 [内置 CSS 支持](/guide/tech/css#内置-css-支持)。新增的 `css/global` 模块类型让 CSS Modules 可以以“默认全局、按需 `:local`”的方式工作，和 `css/module`、`css/auto` 一起覆盖更多作用域组织方式。
+
+CSS Modules 相关能力也继续补齐，支持更多 CSS Modules 语法与行为。
+
+相关配置可参考 [`module.generator`](/config/module-generator#cssauto) 和 [`module.parser`](/config/module-parser#cssauto) 的 CSS 选项。
+
+### 支持解析 `createRequire` \{#create-require}
+
+ESM 模块中没有内置的 `require`，因此 Node.js 提供了 [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename)，允许你在 ESM 中创建一个 `require` 函数，用于加载 CommonJS 模块。在以往版本中，Rspack 无法静态分析通过这种方式创建出的 `require`，因此由它加载的模块也无法被正常打包。
+
+Rspack 2.1 新增了 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 选项。开启后，Rspack 会识别从 Node.js `module` 引入的 `createRequire`，并将创建出的 `require` 转换为可静态分析的依赖上下文。这样一来，由它加载的模块会像普通的 `require` 或 `import` 一样被打包进产物。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const value = require('./value.cjs');
+```
+
+这一选项还支持：
+
+- **多种导入形式**：支持具名导入、默认导入和命名空间导入，并同时识别来自 `module` 和 `node:module` 的导入。
+- **自定义来源**：除 `true` 外，还可以通过 `"<specifier> from <module>"` 形式的字符串自定义 specifier 和模块来源，例如 `"createRequire from module"`。
+- **静态可分析的参数**：`createRequire()` 的参数需要能被静态分析为 file URL 或绝对路径，例如 `import.meta.url`、`new URL('./dir/file.js', import.meta.url)` 或绝对 `file:` URL。
+
+该选项默认关闭，查看 [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) 了解更多。
+
+### Rspack 魔法注释 \{#magic-comments}
+
+Rspack 2.1 为 [magic comments](/api/runtime-api/module-methods#magic-comments) 增加了 `rspack` 前缀支持。现在你可以使用 `rspack` 前缀声明编译提示：
+
+```js
+import(/* rspackChunkName: "dashboard" */ './dashboard');
+```
+
+原有的 `webpack` 前缀仍然兼容，因此现有项目无需迁移。
+
+> 查看 [magic comments 文档](/api/runtime-api/module-methods#magic-comments) 了解更多。
+
+### 支持 Source phase imports \{#source-phase-imports}
+
+Rspack 2.1 支持 TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) 提案中面向 WebAssembly 的用法。开启 [`experiments.sourceImport`](/config/experiments#experimentssourceimport) 后，你可以通过静态的 `import source` 或动态的 `import.source()` 导入 `.wasm` 模块。
+
+与普通 WebAssembly 导入不同，source phase import 不会在导入时直接实例化 Wasm 模块，而是返回编译后的 [`WebAssembly.Module`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module)。这使你可以自行控制实例化过程，例如使用不同的 imports 多次实例化同一个 Wasm 模块，或在多个 Web Worker 中复用同一个编译结果，避免重复编译成本。
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+```js title="index.js"
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+也可以使用动态导入：
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+此外，Rspack 新增了 [`module.rules[].phase`](/config/module-rules#rulesphase)，用于按模块的导入阶段匹配规则。你可以区分普通导入的 `evaluation`、`import defer` 的 `defer`，以及 Source Phase Imports 的 `source`，从而为同一个资源在不同导入方式下配置不同的 loader、parser 选项或模块类型。
+
+### 自动清理持久化缓存 \{#cache-cleanup}
+
+Rspack 的持久化缓存按版本隔离。当 `cache.version`、缓存相关配置或 Rspack 版本变化时，Rspack 会创建新的缓存版本，避免复用不兼容的缓存。但在长期开发、频繁切换分支或 CI 复用工作目录时，旧缓存版本可能持续累积并占用磁盘空间。
+
+Rspack 2.1 为持久化缓存新增了自动清理机制，通过 `cache.maxAge` 和 `cache.maxVersions` 控制缓存目录中保留的旧版本：
+
+- [`cache.maxAge`](/config/cache#maxage)：缓存版本允许处于未访问状态的最长时间，默认值为 `7 * 24 * 60 * 60`（7 天）；
+- [`cache.maxVersions`](/config/cache#maxversions)：当前缓存目录最多保留的缓存版本数量，默认值为 `3`。
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxAge: 7 * 24 * 60 * 60,
+    maxVersions: 3,
+  },
+};
+```
+
+当缓存版本超过保留数量，或长时间没有被访问时，Rspack 会优先清理较旧、较少访问的缓存版本。这样可以在保留近期可复用缓存的同时，避免持久化缓存目录无限增长。对于需要完全手动管理缓存的场景，也可以将 `maxAge` 或 `maxVersions` 设置为 `Infinity`，分别关闭基于时间或版本数量的清理。
+
+## 产物优化
+
+### `pureFunctions` 稳定化 \{#pure-functions}
+
+Rspack 2.0 引入了实验性的 [`pureFunctions`](/config/experiments#experimentspurefunctions)，用于在跨模块场景下对无副作用函数调用进行更细粒度的 tree shaking。经过一段时间的迭代和验证，Rspack 2.1 将这项能力在生产模式下默认开启，无需再手动设置 `experiments.pureFunctions: true`。
+
+这项能力主要覆盖两类场景：可以在函数定义处添加 [`/*#__NO_SIDE_EFFECTS__*/`](/guide/optimization/tree-shaking#no_side_effects-注解) 注解，也可以通过 [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions) 配置标记无副作用函数。当被标记函数的调用结果未被使用时，Rspack 会在 tree shaking 时安全移除这类调用。
+
+例如，下面的 `join` 函数已声明为无副作用函数。如果调用返回值没有被使用，该调用会被自动移除：
+
+```js title="utils.js"
+/*#__NO_SIDE_EFFECTS__*/
+export function join(a, b) {
+  return `${a}-${b}`;
+}
+```
+
+```js title="index.js"
+import { join } from './utils';
+
+// 返回值未被使用，该调用会被自动移除
+join('btn', 'primary');
+```
+
+如果你希望关闭这项分析，可以禁用 `experiments.pureFunctions`：
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: false,
+  },
+};
+```
+
+查看 [tree shaking 指南](/guide/optimization/tree-shaking#purefunctions) 了解更多。
+
+### 分支感知的依赖裁剪 \{#branch-aware-dependency-pruning}
+
+Rspack 2.1 改进了内联常量场景下的依赖分析。当 `if` 语句或三元表达式的条件依赖于已内联的布尔导出时，Rspack 现在会把分支条件关联到分支内部的依赖；如果后续能够判断某个分支不会被执行，该分支中的依赖就会被标记为非活跃，从而参与 tree shaking 和 chunk 裁剪。
+
+```js title="env.js"
+export const IS_DEV = false;
+```
+
+```js title="index.js"
+import { IS_DEV } from './env';
+
+if (IS_DEV) {
+  import('./debug-tools');
+} else {
+  import('./app');
+}
+```
+
+在上面的例子中，`IS_DEV` 可以被内联为 `false`，因此 `if` 分支中的 `./debug-tools` 依赖不会再被视为活跃依赖。相比之前同时保留两个分支依赖的行为，这可以减少无效模块进入产物，也能避免为不可达分支生成不必要的动态导入 chunk。
+
+这项优化也支持由 `!`、`&&`、`||` 等组合而成的简单布尔表达式，以及三元表达式中的分支依赖。对于条件无法静态判断的代码，Rspack 仍会保留原有行为，确保运行时语义不受影响。
+
+### 分支感知的 ESM 导出存在检测 \{#branch-aware-export-presence}
+
+Rspack 会在编译阶段检测 ESM 导入是否访问了不存在的导出，并给出 `export ... was not found` 这类告警。过去这类检测无法理解 `if ("name" in ns)` 这样的运行时存在性判断，因此即使代码已经先检查某个导出是否存在，分支内部的访问仍可能产生误报。
+
+Rspack 2.1 增强了对 ESM namespace 上 `in` 表达式的分析能力。当导出访问被同一个 `in` 检查保护时，Rspack 会识别这个分支条件，不再为该访问报告缺失导出告警。
+
+```js title="index.js"
+import * as feature from './feature';
+
+if ('debug' in feature) {
+  feature.debug();
+}
+```
+
+在上面的例子中，如果 `./feature` 没有导出 `debug`，`'debug' in feature` 会在运行时返回 `false`，分支内部的 `feature.debug()` 不会执行。Rspack 现在能够理解这一点，因此不会再对这段被保护的访问发出缺失导出告警。
+
+这项检测同样适用于由 `!`、`&&`、`||` 和三元表达式组合而成的分支条件，也支持 namespace import、命名导出的 namespace 对象以及嵌套成员访问。对于没有被相同 `in` 检查保护的访问，Rspack 仍会继续报告告警，确保真实的缺失导出问题不会被隐藏。
+
+### `export const` 值绑定优化 \{#export-const-getter}
+
+Rspack 2.1 精简了 ESM `export const` 的导出代码。在此前的版本中，Rspack 会为 ESM 导出统一生成 getter 函数，用于保持 ESM live binding 语义：
+
+```js
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+```
+
+但对于非循环模块中的 `export const`，导出的值在模块初始化后不会再变化，不需要每次都通过 getter 读取。Rspack 2.1 会在生产构建中结合循环模块信息进行判断：当确认当前模块不在循环依赖中时，`export const` 会以只读值的形式定义到 namespace 对象上，从而减少生成代码和运行时 getter 调用开销。
+
+```js title="产物示意"
+// 优化前：访问 namespace.value 时会执行 getter 函数
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+
+// Rspack 2.1：非循环模块中的 const 导出会直接定义为只读值
+// 这样访问 namespace.value 时不再需要执行 getter 函数
+__webpack_require__.d(
+  __webpack_exports__,
+  {},
+  {
+    value: value,
+  },
+);
+```
+
+```js title="constants.js"
+export const answer = 42;
+
+const message = 'hello';
+export { message };
+
+export default 'default value';
+```
+
+上面的具名 `const` 导出，以及默认导出中的常量值都可以受益于这项优化。对于 `let`、函数导出以及循环模块中的 `const` 导出，Rspack 仍会保留 getter 形式，以确保可变导出和循环依赖场景下的语义保持正确。后续我们也会继续尝试基于重新赋值分析识别更多稳定导出，让更多场景可以使用更轻量的值绑定形式。
+
+## 生态
+
+### TanStack RSC 支持 \{#tanstack-rsc-support}
+
+我们正与 TanStack 团队合作完善 TanStack Start 的 Rsbuild 支持，并已取得阶段性成果：[TanStack Start 已正式支持 Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support)。开发者现在可以使用 Rsbuild 构建 TanStack Start 应用，获得包括 RSC 在内的框架能力。
+
+我们在 RSC 方向上的核心目标，是提供通用的 RSC 构建能力，让上层框架能够基于自己的路由、渲染和服务端运行时方案接入 RSC，复用统一的构建基础设施。
+
+如果你想在 Rspack 技术栈中尝试 RSC，可以参考：
+
+- [TanStack Start 指南](https://rsbuild.rs/zh/guide/framework/react#tanstack-start)：介绍如何在 TanStack Start 中使用 Rsbuild
+- [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc)：提供了基于 Rsbuild 的 RSC 插件
+
+### Rsbuild \{#rsbuild}
+
+Rsbuild 2.1 已经与 Rspack 2.1 同步发布，查看 [Rsbuild 2.1 博客](https://rsbuild.rs/zh/blog/v2-1) 了解更多。
+
+### Rslib \{#rslib}
+
+Rslib 新增了基于 `isolatedDeclarations` 的快速类型生成方式。开启 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated) 后，Rslib 会在 Rspack 构建过程中使用 SWC 的类型生成能力，直接为依赖图中的 TypeScript 模块输出类型声明文件。
+
+```ts title="rslib.config.ts"
+import { defineConfig } from '@rslib/core';
+
+export default defineConfig({
+  lib: [
+    {
+      dts: {
+        isolated: true,
+      },
+    },
+  ],
+});
+```
+
+这项能力适合 Monorepo 或多包库的日常构建场景。你可以将类型声明文件生成和类型检查拆分为两步：
+
+- 日常构建：Rslib 快速产出类型声明文件
+- 全局检查：CI 或 pre-commit hook 中通过 [rslint --type-check](https://rslint.rs/guide/type-checking) 进行统一的类型检查
+
+以 Rsbuild 仓库为例，不同方案生成类型声明文件的耗时如下：
+
+| 方案                  | 耗时     |
+| --------------------- | -------- |
+| TypeScript 6          | **9.7s** |
+| TypeScript 7          | **4.1s** |
+| Isolated Declarations | **2.3s** |
+
+> 更多详情参考 [dts.isolated](https://rslib.rs/zh/config/lib/dts#dtsisolated)。
+
+### Rstest \{#rstest}
+
+Rstest 0.10 聚焦测试效率与稳定性，新增 `--changed` / `--related` 测试过滤能力，可只运行受源码改动影响的测试，显著缩短大型项目在本地开发和 CI 中的反馈时间。
+
+`--changed` 会自动从 Git 工作区中检测发生变化的源文件，包括 unstaged、staged 和 untracked 文件，并只运行相关测试：
+
+```bash
+rstest run --changed
+```
+
+你也可以指定某个 commit 或分支作为对比范围：
+
+```bash
+rstest run --changed=HEAD~1
+rstest run --changed=origin/main
+```
+
+`--related` 则可以显式传入源文件，只运行依赖这些文件的测试。它也提供了与 Jest 兼容的 `--findRelatedTests` 别名：
+
+```bash
+rstest run --related src/button.ts
+rstest run --findRelatedTests src/button.ts
+```
+
+如果只想预览受影响的测试文件，可以搭配 `rstest list` 使用：
+
+```bash
+rstest list --changed --filesOnly
+rstest list --related src/button.ts --filesOnly
+```
+
+同时，Rstest 0.10 还包含以下改进：
+
+- 新增基于 `worker_threads` 的 `threads` pool，降低大量小测试文件场景下的启动开销。
+- 支持持久化构建缓存，提升 warm run 的构建性能。
+- 引入内存感知的 worker 调度，降低高并发测试下的 OOM 风险。
+- 支持静默通过测试的 console 输出，在减少噪音的同时保留失败日志。
+- 新增 `--trace` 性能分析能力，方便定位测试运行中的性能瓶颈。
+- 优化 worker 输出归因，让日志和崩溃信息更容易定位。
+
+> 更多信息请参考 [Rstest 0.10 博客](https://rstest.rs/zh/blog/announcing-0-10)。
+
+### Rslint \{#rslint}
+
+**内置大量规则**：Rslint 已移植 ESLint core 以及 `@typescript-eslint`、`react`、`jsx-a11y`、`jest`、`promise` 等社区插件的规则，目前[内置规则](https://rslint.rs/rules/)超过 400 条，常用规则开箱即用。
+
+**兼容 ESLint 插件**：在内置规则之外，Rslint 现在还可以直接运行社区 ESLint 插件的规则，与内置原生规则一同工作。只需在配置中以自定义前缀挂载插件，插件产生的诊断会合并进同一份报告，autofix 也能通过 `--fix` 和编辑器的 `source.fixAll` 一并应用，并且在 CLI 与 VS Code 扩展中表现一致。
+
+```js title="rslint.config.mjs"
+import examplePlugin from 'eslint-plugin-example';
+
+export default [
+  {
+    files: ['**/*.ts'],
+    plugins: { example: examplePlugin },
+    rules: {
+      'example/some-rule': 'error',
+    },
+  },
+];
+```
+
+更多用法和当前限制参考 [ESLint 插件兼容指南](https://rslint.rs/guide/eslint-plugins)。
+
+### Rspress \{#rspress}
+
+Rspress 现在提供了更多 Agent Skills，例如：
+
+- `rspress-docs-generator`：为当前项目生成一个 Rspress 文档站
+- `rspress-custom-theme`：生成一个自定义的 Rspress 主题
+
+下面是一个使用 `rspress-custom-theme` 生成的主题：
+
+![Rspress 自定义主题 skill](https://assets.rspack.rs/rspress/assets/rspress-custom-theme-skill.png)
+
+这些 skill 既可以直接安装到现有项目中，也可以在项目初始化时直接选择。更多信息参考 [Rspress - AI 指南](https://rspress.rs/zh/guide/start/ai)。
+
+### Rsdoctor \{#rsdoctor}
+
+Rsdoctor 在 Github Action 中新增了 [AI 分析能力](https://rsdoctor.rs/zh/guide/start/action#ai-%E8%BE%85%E5%8A%A9%E5%88%86%E6%9E%90)，可以在构建分析报告存在体积变化时，结合当前项目的构建数据分析劣化问题，辅助定位性能瓶颈、产物体积增长和优化方向。
+
+<div align="center">
+  <img
+    src="https://assets.rspack.rs/others/assets/rsdoctor/actions-ai-detail.png"
+    alt="Rsdoctor AI Action 分析详情"
+    width="80%"
+  />
+</div>
+
+### rspack-merge \{#rspack-merge}
+
+我们发布了 [rspack-merge](https://github.com/rstackjs/rspack-merge)，这是一个用于 Rspack 配置合并的 npm 包，可以覆盖从基础配置拼接到 loader、plugin 规则级合并的需求。
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+import { merge } from 'rspack-merge';
+
+const sharedConfig = defineConfig({
+  // ...
+});
+
+const serverConfig = merge(sharedConfig, {
+  // ...
+});
+
+const clientConfig = merge(sharedConfig, {
+  // ...
+});
+
+export default [serverConfig, clientConfig];
+```
+
+`rspack-merge` 使用 TypeScript 编写，发布现代 ESM 构建产物，并保持运行时零依赖，让配置合并保持简单、可靠且足够轻量。

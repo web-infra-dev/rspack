@@ -50,12 +50,15 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
 
     Ok(source)
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    self.runtime_handlers
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    self.runtime_function | self.runtime_handlers
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { self.runtime_handlers },
+      write: { self.runtime_function | self.runtime_handlers },
+      force_context: self.runtime_function,
+      ..Default::default()
+    }
   }
 }

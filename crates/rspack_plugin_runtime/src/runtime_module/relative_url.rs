@@ -15,8 +15,14 @@ impl RelativeUrlRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RelativeUrlRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RELATIVE_URL
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::RELATIVE_URL },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

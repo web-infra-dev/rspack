@@ -1017,6 +1017,49 @@ export default {
 };
 ```
 
+### json.parse
+
+- **Type:** `(source: string) => any`
+- **Default:** `undefined`
+
+Customize how Rspack parses the source of `json` modules. The function receives the module source as a string. It is called synchronously and must return JSON-serializable data, such as an object, array, string, number, boolean, or `null`.
+
+Rspack serializes the returned value with `JSON.stringify` and then parses that serialized JSON as the module data, so values that cannot be represented as valid JSON should not be returned. For normal JSON files you do not need to configure this option; it is mainly useful when modules are treated as `type: 'json'` but need custom source-to-data conversion.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      json: {
+        parse: (source) => {
+          return JSON.parse(source);
+        },
+      },
+    },
+  },
+};
+```
+
+You can also use this option through `module.rules[].parser` when the matched rule sets `type: 'json'`. For example, parse `.json5` files as JSON modules:
+
+```js title="rspack.config.mjs"
+import JSON5 from 'json5';
+
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.json5$/,
+        type: 'json',
+        parser: {
+          parse: JSON5.parse,
+        },
+      },
+    ],
+  },
+};
+```
+
 ### ["css/auto"]
 
 Parser options for `css/auto` modules.

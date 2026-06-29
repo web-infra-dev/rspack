@@ -5,7 +5,13 @@
       "source": "rstackjs/agent-skills",
       "sourceType": "github",
       "skillPath": "skills/create-draft-release-notes/SKILL.md",
-      "computedHash": "72a427134af52e91cbba9bc55f9926cadd8f5bedf48d654952697f08d540e7bb"
+      "computedHash": "cb32485c5a35e45acba920a690a14d10f878c92fbbd2312ec3d0ce4bf2012abc"
+    },
+    "release-blog-writer": {
+      "source": "rstackjs/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/release-blog-writer/SKILL.md",
+      "computedHash": "24bdde0407813d43e4f42336fa0d433f53e5c5c8a516f46acbc3505c557f68ea"
     }
   }
 }

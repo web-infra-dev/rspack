@@ -22,7 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion},
+  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{StorageOptions, Version, create_storage},
 };
@@ -62,6 +62,7 @@ pub struct PersistentCache {
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
   minimize_occasion: MinimizeOccasion,
+  source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion,
 }
 
 impl PersistentCache {
@@ -121,7 +122,8 @@ impl PersistentCache {
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
       meta_occasion: MetaOccasion::new(codec.clone()),
-      minimize_occasion: MinimizeOccasion::new(codec),
+      minimize_occasion: MinimizeOccasion::new(codec.clone()),
+      source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
   }
 
@@ -238,11 +240,27 @@ impl Cache for PersistentCache {
       .await
       .unwrap_or_default();
     compilation.minimize_persistent_cache_artifact = Some(artifact);
+
+    if compilation.use_source_map_dev_tool_plugin_cache {
+      let artifact = self
+        .ctx
+        .load_occasion(&self.source_map_dev_tool_plugin_occasion)
+        .await
+        .unwrap_or_default();
+      compilation.source_map_dev_tool_plugin_cache_artifact = Some(artifact);
+    }
   }
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {
     if let Some(artifact) = &compilation.minimize_persistent_cache_artifact {
       self.ctx.save_occasion(&self.minimize_occasion, artifact);
+    }
+    if compilation.use_source_map_dev_tool_plugin_cache
+      && let Some(artifact) = &compilation.source_map_dev_tool_plugin_cache_artifact
+    {
+      self
+        .ctx
+        .save_occasion(&self.source_map_dev_tool_plugin_occasion, artifact);
     }
   }
 

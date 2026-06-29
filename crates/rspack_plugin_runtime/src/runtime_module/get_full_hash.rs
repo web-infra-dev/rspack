@@ -15,8 +15,14 @@ impl GetFullHashRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetFullHashRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::GET_FULL_HASH
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::GET_FULL_HASH },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {
@@ -38,7 +44,7 @@ impl RuntimeModule for GetFullHashRuntimeModule {
       })),
     )?;
 
-    Ok(source)
+    Ok(source.trim_end().to_string())
   }
 
   fn full_hash(&self) -> bool {

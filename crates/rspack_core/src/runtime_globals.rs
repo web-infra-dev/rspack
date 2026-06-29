@@ -346,13 +346,6 @@ pub static BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLoc
     | RuntimeGlobals::STARTUP
 });
 
-pub static HOT_RUNTIME_WRITE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-    | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-    | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-    | RuntimeGlobals::HMR_MODULE_DATA
-});
-
 pub static INITIALIZE_OBJECT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
   RuntimeGlobals::ENSURE_CHUNK_HANDLERS
     | RuntimeGlobals::PREFETCH_CHUNK_HANDLERS

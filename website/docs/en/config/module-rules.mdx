@@ -808,6 +808,36 @@ export default {
 };
 ```
 
+## rules[].use.ident
+
+- **Type:** `string`
+- **Default:** `undefined`
+
+Provides a stable name for object-form loader options. Rspack uses it when building the loader request, so generated rules or reused options can keep the same `??<ident>` reference.
+
+Most configurations do not need to set it manually. If omitted, Rspack uses `options.ident` when present, otherwise it generates an internal identifier.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.svg$/,
+        use: [
+          {
+            loader: 'svgo-loader',
+            ident: 'svgo-inline',
+            options: {
+              multipass: true,
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 ## rules[].use.parallel
 
 <ApiMeta addedVersion="1.3.1" />
@@ -852,6 +882,36 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 - In worker mode, most methods on `LoaderContext._compilation`, `LoaderContext._compiler`, `LoaderContext._module` are not supported.
 
 :::
+
+## rules[].use.parallel.maxWorkers
+
+- **Type:** `number`
+- **Default:** `undefined`
+
+Limits the maximum number of worker threads used by the shared loader worker pool when `parallel` is configured as an object. Use a positive integer.
+
+When `maxWorkers` is omitted, Rspack automatically chooses the worker count. The loader worker pool is shared within the current process, so use a consistent `maxWorkers` value if multiple loaders configure `parallel`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          {
+            loader: 'less-loader',
+            parallel: {
+              maxWorkers: 4,
+            },
+            options: {},
+          },
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].resolve
 

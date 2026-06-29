@@ -2,14 +2,14 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
+  RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_dependencies_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -26,28 +26,55 @@ static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE: &str =
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
-static IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE));
-static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE)
-  });
-static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE)
-  });
-static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
-  RuntimeGlobals,
-> = LazyLock::new(|| {
-  extract_runtime_globals_from_ejs(IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
+static IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+  dependencies: extract_runtime_globals_dependencies_from_ejs(
+    IMPORT_SCRIPTS_CHUNK_LOADING_TEMPLATE,
+    RuntimeGlobals::default(),
+  ),
+  ..Default::default()
 });
-static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| {
-    let mut res = extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE);
-    // ensure chunk handlers is optional
-    res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-    res
-  });
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+  dependencies: extract_runtime_globals_dependencies_from_ejs(
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
+    RuntimeGlobals::CREATE_SCRIPT_URL,
+  ),
+  weak: RuntimeGlobals::CREATE_SCRIPT_URL,
+  ..Default::default()
+});
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+  dependencies: extract_runtime_globals_dependencies_from_ejs(
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_TEMPLATE,
+    RuntimeGlobals::CREATE_SCRIPT_URL,
+  ),
+  weak: RuntimeGlobals::CREATE_SCRIPT_URL,
+  ..Default::default()
+});
+static IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+  dependencies: extract_runtime_globals_dependencies_from_ejs(
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
+    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
+  ),
+  write: RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
+  ..Default::default()
+});
+static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
+  RuntimeModuleRuntimeRequirements,
+> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+  dependencies: extract_runtime_globals_dependencies_from_ejs(
+    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
+    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+  ),
+  weak: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+  ..Default::default()
+});
 
 #[impl_runtime_module]
 #[derive(Debug, Default)]
@@ -103,21 +130,21 @@ impl ImportScriptsChunkLoadingRuntimeModule {
   }
 
   pub fn get_runtime_requirements_basic() -> RuntimeGlobals {
-    *IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS
+    IMPORT_SCRIPTS_CHUNK_LOADING_RUNTIME_REQUIREMENTS.dependencies
   }
 
   pub fn get_runtime_requirements_with_loading() -> RuntimeGlobals {
-    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS.dependencies
   }
 
   pub fn get_runtime_requirements_with_hmr() -> RuntimeGlobals {
-    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS
-      | *JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS.dependencies
+      | JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.dependencies
       | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
   }
 
   pub fn get_runtime_requirements_with_hmr_manifest() -> RuntimeGlobals {
-    *IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS
+    IMPORT_SCRIPTS_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS.dependencies
   }
 }
 
@@ -131,14 +158,33 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::BASE_URI
-      | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-      | RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
-      | RuntimeGlobals::HMR_DOWNLOAD_MANIFEST
-      | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS
-      | RuntimeGlobals::HMR_INVALIDATE_MODULE_HANDLERS
-      | RuntimeGlobals::HMR_MODULE_DATA
+  fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
+    let Some(chunk_ukey) = self.chunk else {
+      return RuntimeModuleRuntimeRequirements::default();
+    };
+    let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
+    let mut dependencies = Self::get_runtime_requirements_basic()
+      | Self::get_runtime_requirements_with_loading()
+      | RuntimeGlobals::MODULE_CACHE;
+    let mut weak = RuntimeGlobals::default();
+    let mut write = RuntimeGlobals::BASE_URI;
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
+      dependencies.insert(Self::get_runtime_requirements_with_hmr());
+      weak.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+    }
+    if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
+      dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());
+      write.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+    }
+    if self.with_create_script_url {
+      weak.insert(RuntimeGlobals::CREATE_SCRIPT_URL);
+    }
+    RuntimeModuleRuntimeRequirements {
+      dependencies,
+      weak,
+      write,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

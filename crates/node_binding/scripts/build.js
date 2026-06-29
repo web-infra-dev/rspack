@@ -1,5 +1,5 @@
 const path = require("node:path");
-const { readFileSync, writeFileSync, renameSync } = require("node:fs");
+const { readFileSync, writeFileSync, renameSync, appendFileSync } = require("node:fs");
 const { values, positionals } = require("node:util").parseArgs({
 	args: process.argv.slice(2),
 	options: {
@@ -17,6 +17,8 @@ const NAPI_BINDING_DTS = "napi-binding.d.ts"
 const CARGO_SAFELY_EXIT_CODE = 0;
 
 const watch = process.argv.includes("--watch");
+
+const measureFresh = process.env.MEASURE_CARGO_FRESH === "1" && !watch;
 
 build().then((value) => {
 	// Regarding cargo's non-zero exit code as an error.
@@ -103,7 +105,7 @@ async function build() {
 			args.push(`--features ${features.join(",")}`);
 		}
 
-		if (positionals.length > 0 || rustflags.length > 0 || use_build_std) {
+		if (positionals.length > 0 || rustflags.length > 0 || use_build_std || measureFresh) {
 			// napi need `--` to separate options and positional arguments.
 			args.push("--");
 
@@ -119,6 +121,10 @@ async function build() {
 				args.push("-Zbuild-std=panic_abort,std");
 			}
 
+			if (measureFresh) {
+				args.push("--message-format=json-render-diagnostics");
+			}
+
 			if (positionals.length > 0) {
 				args.push(...positionals);
 			}
@@ -127,13 +133,15 @@ async function build() {
 		console.log(`Run command: napi ${args.join(" ")}`);
 
 		const cp = spawn("napi", args, {
-			stdio: "inherit",
+			stdio: measureFresh ? ["inherit", "pipe", "inherit"] : "inherit",
 			shell: true,
 			env: envs,
 		});
 
+		const freshStats = measureFresh ? collectFreshStats(cp.stdout) : null;
+
 		cp.on("error", reject);
-		cp.on("exit", (code) => {
+		cp.on("close", (code) => {
 			if (code === CARGO_SAFELY_EXIT_CODE) {
 				// Fix an issue where napi cli does not generate `string_enum` with `enum`s.
 				const dts = path.resolve(__dirname, "..", NAPI_BINDING_DTS);
@@ -161,8 +169,59 @@ async function build() {
 						shell: true,
 					})
 				}
+
+				if (freshStats) {
+					reportFreshStats(freshStats);
+				}
 			}
 			resolve(code);
 		});
 	});
+}
+
+function collectFreshStats(stdout) {
+	const stats = { fresh: 0, total: 0, notFresh: [] };
+	stdout.setEncoding("utf8");
+	let buffer = "";
+	stdout.on("data", chunk => {
+		buffer += chunk;
+		let nl;
+		while ((nl = buffer.indexOf("\n")) !== -1) {
+			const line = buffer.slice(0, nl).replace(/\r$/, "");
+			buffer = buffer.slice(nl + 1);
+			let msg;
+			try {
+				msg = JSON.parse(line);
+			} catch {
+				process.stdout.write(line + "\n");
+				continue;
+			}
+			if (msg.reason === "compiler-artifact" && typeof msg.fresh === "boolean") {
+				stats.total += 1;
+				if (msg.fresh) stats.fresh += 1;
+				else if (msg.target && msg.target.name) stats.notFresh.push(msg.target.name);
+			}
+		}
+	});
+	return stats;
+}
+
+function reportFreshStats({ fresh, total, notFresh = [] }) {
+	const target = process.env.RUST_TARGET || "host";
+	const pct = total ? ((fresh / total) * 100).toFixed(1) : "0.0";
+	const summary = `${target}: ${fresh}/${total} units fresh = ${pct}% rust cache utilization`;
+	const escapedSummary = summary.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+	console.log(`\n::notice title=Rust Cache Utilization::${escapedSummary}`);
+	const recompiled = [...new Set(notFresh)].sort();
+	console.log(`::notice title=Recompiled Units::${target}: ${recompiled.join(", ")}`);
+	if (process.env.GITHUB_STEP_SUMMARY) {
+		appendFileSync(
+			process.env.GITHUB_STEP_SUMMARY,
+			`### Rust cache utilization — \`${target}\`\n\n` +
+				`| fresh | recompiled | total | utilization |\n` +
+				`| ----: | ---------: | ----: | ----------: |\n` +
+				`| ${fresh} | ${total - fresh} | ${total} | **${pct}%** |\n\n` +
+				`<details><summary>${recompiled.length} recompiled units</summary>\n\n${recompiled.join(", ")}\n\n</details>\n\n`
+		);
+	}
 }

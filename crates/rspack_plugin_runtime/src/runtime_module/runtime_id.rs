@@ -16,8 +16,14 @@ impl RuntimeIdRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RuntimeIdRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RUNTIME_ID
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::RUNTIME_ID },
+      ..Default::default()
+    }
   }
 
   async fn generate(

@@ -648,6 +648,7 @@ pub fn collect_export_usage_dependencies(
           }
 
           let dependency_id = conn.dependency_id;
+          let loc = dependency.loc().map(|l| l.to_string());
           let origin_module_identifier = conn.original_module_identifier.unwrap_or(*module_id);
           let target_module_identifier = *conn.module_identifier();
 
@@ -660,6 +661,7 @@ pub fn collect_export_usage_dependencies(
                 target_module_identifier,
                 origin_export,
                 target_export,
+                loc: loc.clone(),
               },
             )
             .collect::<Vec<_>>()
@@ -754,6 +756,8 @@ pub fn collect_export_usage_edges(
         origin_export: dependency.origin_export,
         target_module,
         target_export: dependency.target_export,
+        dependency_id: dependency.dependency_id.as_u32().to_string(),
+        loc: dependency.loc,
       })
     })
     .collect::<Vec<_>>()

@@ -2,10 +2,10 @@ use std::{collections::BTreeMap, sync::LazyLock};
 
 use rspack_core::{
   Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -17,16 +17,30 @@ use crate::{
 static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
 static CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
-static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
-static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
-static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
-  let mut res = extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE);
-  // ensure chunk handlers is optional
-  res.remove(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
-  res
-});
+static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      CONSUMES_COMMON_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    ..Default::default()
+  });
+static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      CONSUMES_INITIAL_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    ..Default::default()
+  });
+static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      CONSUMES_LOADING_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    ..Default::default()
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -56,6 +70,20 @@ enum TemplateId {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ConsumeSharedRuntimeModule {
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let dependencies = CONSUMES_RUNTIME_REQUIREMENTS.dependencies
+      | CONSUMES_INITIAL_RUNTIME_REQUIREMENTS.dependencies
+      | CONSUMES_LOADING_RUNTIME_REQUIREMENTS.dependencies
+      | runtime_require_scope_requirement(compilation);
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      ..Default::default()
+    }
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Attach
   }
@@ -231,13 +259,6 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
       source += &runtime_template.render(&self.get_template_id(TemplateId::Loading), None)?;
     }
     Ok(source)
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    *CONSUMES_RUNTIME_REQUIREMENTS
-      | *CONSUMES_INITIAL_RUNTIME_REQUIREMENTS
-      | *CONSUMES_LOADING_RUNTIME_REQUIREMENTS
-      | runtime_require_scope_requirement(compilation)
   }
 }
 

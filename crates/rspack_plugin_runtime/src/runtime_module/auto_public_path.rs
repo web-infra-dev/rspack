@@ -1,16 +1,10 @@
-use std::sync::LazyLock;
-
 use rspack_core::{
   Compilation, OutputOptions, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
-
 static AUTO_PUBLIC_PATH_TEMPLATE: &str = include_str!("runtime/auto_public_path.ejs");
-static AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(AUTO_PUBLIC_PATH_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -72,13 +66,20 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       &compilation.options.output,
     )
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *AUTO_PUBLIC_PATH_RUNTIME_REQUIREMENTS
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::PUBLIC_PATH
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: if compilation.options.output.script_type == "module" {
+        RuntimeGlobals::default()
+      } else {
+        RuntimeGlobals::GLOBAL
+      },
+      write: { RuntimeGlobals::PUBLIC_PATH },
+      force_context: RuntimeGlobals::PUBLIC_PATH,
+      ..Default::default()
+    }
   }
 }
 

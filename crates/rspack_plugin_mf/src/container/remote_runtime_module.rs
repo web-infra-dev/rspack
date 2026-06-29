@@ -3,10 +3,10 @@ use std::sync::LazyLock;
 use rspack_collections::Identifiable;
 use rspack_core::{
   ChunkGraph, Compilation, DependenciesBlock, ModuleId, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
-  impl_runtime_module,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
+  RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -17,8 +17,15 @@ use crate::{
 };
 
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
-static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE));
+static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      REMOTES_LOADING_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+    ..Default::default()
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -34,8 +41,17 @@ impl RemoteRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RemoteRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    let dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
+      | runtime_require_scope_requirement(compilation);
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies,
+      force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
+      ..Default::default()
+    }
   }
 
   fn stage(&self) -> RuntimeModuleStage {
@@ -136,10 +152,6 @@ impl RuntimeModule for RemoteRuntimeModule {
       id_to_remote_data_mapping = json_stringify(&id_to_remote_data_mapping),
       remotes_loading_impl = remotes_loading_impl,
     ))
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    *REMOTES_LOADING_RUNTIME_REQUIREMENTS | runtime_require_scope_requirement(compilation)
   }
 }
 

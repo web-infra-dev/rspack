@@ -398,6 +398,29 @@ module.exports = {
                   ),
                   targetExport: null,
                 });
+
+                // Each edge appends [dependencyId, loc] (Part A). dependencyId is always a
+                // non-empty string; loc is the consuming reference site as rspack's location
+                // string (`line:col` / `line:col-endLine:endCol`), populated for real specifier
+                // references such as the named imports used inside lib.js#foo().
+                const rawEdges = moduleGraph.exportUsageEdges;
+                expect(
+                  rawEdges.every(
+                    (e) => typeof e[4] === 'string' && e[4].length > 0,
+                  ),
+                ).toBe(true);
+                const libPath = normalizeRequest(
+                  path.join(__dirname, 'lib.js'),
+                );
+                const libFooEdgesWithLoc = rawEdges.filter(
+                  (e) =>
+                    modulePathByUkey.get(e[0]) === libPath &&
+                    Array.isArray(e[1]) &&
+                    e[1].indexOf('foo') !== -1 &&
+                    typeof e[5] === 'string' &&
+                    e[5].length > 0,
+                );
+                expect(libFooEdgesWithLoc.length).toBeGreaterThan(0);
               },
             );
           },

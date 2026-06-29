@@ -16,7 +16,7 @@ import { NavIcon } from '@rstack-dev/doc-ui/nav-icon';
 import { HomeLayout } from './pages';
 
 // Enable this when we need a new announcement
-const ANNOUNCEMENT_URL = '/blog/announcing-2-0';
+const ANNOUNCEMENT_URL = '';
 
 const DocLayout = (props: DocLayoutProps) => {
   const { page } = usePage();

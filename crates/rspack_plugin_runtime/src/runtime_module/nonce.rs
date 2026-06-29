@@ -15,8 +15,15 @@ impl NonceRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for NonceRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::SCRIPT_NONCE
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::SCRIPT_NONCE },
+      force_context: RuntimeGlobals::SCRIPT_NONCE,
+      ..Default::default()
+    }
   }
 
   async fn generate(

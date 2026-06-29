@@ -15,8 +15,14 @@ impl ChunkNameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for ChunkNameRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::CHUNK_NAME
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::CHUNK_NAME },
+      ..Default::default()
+    }
   }
 
   async fn generate(

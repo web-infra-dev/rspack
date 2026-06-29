@@ -365,9 +365,11 @@ function getDefaultEntryRuntimeSource(
     );
   }
 
-  const defaultRuntimeSource = compiler.rspack.Template.getFunctionContent(
-    require('./moduleFederationDefaultRuntime.js').default,
-  );
+  const defaultRuntimeSource = IS_BROWSER
+    ? MF_RUNTIME_CODE
+    : compiler.rspack.Template.getFunctionContent(
+        require('./moduleFederationDefaultRuntime.js').default,
+      );
   const compilerRuntimeGlobals = createCompilerRuntimeGlobals(compiler.options);
   const runtimeSource = getDefaultRuntimeSource(
     defaultRuntimeSource,
@@ -407,7 +409,7 @@ function getDefaultEntryRuntimeSource(
       treeShakingShareFallbacks,
     )}`,
     `const __module_federation_library_type__ = ${JSON.stringify(libraryType)}`,
-    IS_BROWSER ? MF_RUNTIME_CODE : runtimeSource,
+    runtimeSource,
   ].join(';');
   return content;
 }

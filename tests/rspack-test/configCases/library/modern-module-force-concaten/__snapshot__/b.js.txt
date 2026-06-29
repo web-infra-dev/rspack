@@ -2,9 +2,7 @@ import { __webpack_require__ } from "./runtime~0.js";
 
 __webpack_require__.add({
 917(module) {
-globalThis.__rspack_test_side_effect__ = true;
 module.exports = 'b'
-
 
 },
 });

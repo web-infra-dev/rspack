@@ -3,14 +3,21 @@ use std::sync::LazyLock;
 use rspack_cacheable::with::AsMap;
 use rspack_core::{
   Compilation, IndexChunkIdMap, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, chunk_graph_chunk::ChunkId, impl_runtime_module,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
+  chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_from_ejs;
+use crate::extract_runtime_globals_dependencies_from_ejs;
 
 static CHUNK_PREFETCH_TRIGGER_TEMPLATE: &str = include_str!("runtime/chunk_prefetch_trigger.ejs");
-static CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeGlobals> =
-  LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PREFETCH_TRIGGER_TEMPLATE));
+static CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
+  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
+    dependencies: extract_runtime_globals_dependencies_from_ejs(
+      CHUNK_PREFETCH_TRIGGER_TEMPLATE,
+      RuntimeGlobals::default(),
+    ),
+    ..Default::default()
+  });
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -50,8 +57,13 @@ impl RuntimeModule for ChunkPrefetchTriggerRuntimeModule {
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Trigger
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    *CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: CHUNK_PREFETCH_TRIGGER_RUNTIME_REQUIREMENTS.dependencies,
+      ..Default::default()
+    }
   }
 }

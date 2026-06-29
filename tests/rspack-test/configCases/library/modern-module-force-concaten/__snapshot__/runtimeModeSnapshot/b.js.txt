@@ -2,9 +2,7 @@ import { __rspack_context } from "./runtime~0.js";
 
 __rspack_context.m.add({
 917(module) {
-globalThis.__rspack_test_side_effect__ = true;
 module.exports = 'b'
-
 
 },
 });

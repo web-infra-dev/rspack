@@ -17,8 +17,15 @@ impl RspackVersionRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RspackVersionRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RSPACK_VERSION
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::RSPACK_VERSION },
+      force_context: RuntimeGlobals::RSPACK_VERSION,
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

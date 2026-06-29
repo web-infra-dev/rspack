@@ -17,8 +17,14 @@ impl BaseUriRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for BaseUriRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::BASE_URI
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::BASE_URI },
+      ..Default::default()
+    }
   }
 
   async fn generate(

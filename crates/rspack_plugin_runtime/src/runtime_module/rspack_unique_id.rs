@@ -22,8 +22,15 @@ impl RspackUniqueIdRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for RspackUniqueIdRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::RSPACK_UNIQUE_ID
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::RSPACK_UNIQUE_ID },
+      force_context: RuntimeGlobals::RSPACK_UNIQUE_ID,
+      ..Default::default()
+    }
   }
 
   fn stage(&self) -> RuntimeModuleStage {

@@ -1189,7 +1189,7 @@ export interface JsRsdoctorModuleGraph {
   dependencies: Array<JsRsdoctorDependency>
   chunkModules: Array<JsRsdoctorChunkModules>
   connectionsOnlyImports: Array<JsRsdoctorConnectionsOnlyImport>
-  exportUsageEdges: Array<[number, Array<string> | null, number, Array<string> | null]>
+  exportUsageEdges: Array<[number, Array<string> | null, number, Array<string> | null, string, string | null]>
 }
 
 export interface JsRsdoctorModuleGraphModule {

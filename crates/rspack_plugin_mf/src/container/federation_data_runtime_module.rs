@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
@@ -39,9 +39,14 @@ impl RuntimeModule for FederationDataRuntimeModule {
       .expect_get(&self.chunk.expect("The chunk should be attached."));
     Ok(federation_runtime_template(chunk, runtime_template, compilation).await)
   }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    runtime_require_scope_requirement(compilation)
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: { runtime_require_scope_requirement(compilation) },
+      ..Default::default()
+    }
   }
 }
 

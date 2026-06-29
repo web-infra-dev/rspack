@@ -15,8 +15,14 @@ impl AmdDefineRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for AmdDefineRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::AMD_DEFINE
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::AMD_DEFINE },
+      ..Default::default()
+    }
   }
 
   async fn generate(

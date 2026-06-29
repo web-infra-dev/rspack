@@ -15,8 +15,14 @@ impl NodeModuleDecoratorRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::NODE_MODULE_DECORATOR
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::NODE_MODULE_DECORATOR },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

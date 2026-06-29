@@ -28,8 +28,21 @@ impl GetMainFilenameRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for GetMainFilenameRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    self.global
+  fn runtime_requirements(
+    &self,
+    compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: {
+        if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
+          RuntimeGlobals::GET_FULL_HASH
+        } else {
+          RuntimeGlobals::default()
+        }
+      },
+      write: { self.global },
+      ..Default::default()
+    }
   }
 
   async fn generate(
@@ -79,14 +92,6 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
       ))
     } else {
       unreachable!("should attach chunk for get_main_filename")
-    }
-  }
-
-  fn additional_runtime_requirements(&self, compilation: &Compilation) -> RuntimeGlobals {
-    if has_hash_placeholder(compilation.options.output.hot_update_main_filename.as_str()) {
-      RuntimeGlobals::GET_FULL_HASH
-    } else {
-      RuntimeGlobals::default()
     }
   }
 }

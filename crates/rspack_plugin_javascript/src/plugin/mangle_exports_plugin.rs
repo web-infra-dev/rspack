@@ -318,7 +318,7 @@ fn mangle_exports_info(
     let mut export_info_used_name = FxHashMap::default();
     assign_deterministic_ids(
       mangleable_exports,
-      |e| Cow::Borrowed(e.name.as_str()),
+      |e| e.name.as_str(),
       |a, b| compare_strings_numeric(a.name, b.name),
       |e, id| {
         let name = number_to_identifier(id as u32);

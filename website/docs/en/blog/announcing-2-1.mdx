@@ -1,0 +1,572 @@
+---
+description: 'Rspack 2.1 is now available, featuring support for the Rust version of React Compiler, import.meta.glob, Source Phase Imports, persistent cache cleanup, and multiple performance and output optimizations.'
+date: 2026-06-26 16:00:00
+sidebar: false
+authors:
+  - name: Gengkun He
+    avatar: 'https://github.com/ahabhgk.png'
+    github: 'ahabhgk'
+  - name: Yu Feng
+    avatar: 'https://github.com/JSerFeng.png'
+    github: 'JSerFeng'
+  - name: Congcong Pan
+    avatar: 'https://github.com/SyMind.png'
+    github: 'SyMind'
+  - name: Jiahan Chen
+    avatar: 'https://github.com/chenjiahan.png'
+    github: 'chenjiahan'
+  - name: Zhiyong Chen
+    avatar: 'https://github.com/CPunisher.png'
+    github: 'CPunisher'
+  - name: Zhixin Jin
+    avatar: 'https://github.com/intellild.png'
+    github: 'intellild'
+  - name: Chenwei Dai
+    avatar: 'https://github.com/Timeless0911.png'
+    github: 'Timeless0911'
+  - name: Lingyu Wang
+    avatar: 'https://github.com/LingyuCoder.png'
+    github: 'LingyuCoder'
+---
+
+import { BlogAuthors } from '@rstack-dev/doc-ui/blog-authors';
+
+import { PackageManagerTabs } from '@theme';
+
+# Announcing Rspack 2.1
+
+_June 26, 2026_
+
+<BlogAuthors />
+
+![Rspack 2.1 banner](https://assets.rspack.rs/rspack/rspack-banner-v2.1.png)
+
+We are excited to announce the official release of Rspack 2.1!
+
+---
+
+Notable changes include:
+
+- Performance improvements
+  - [Rust version of React Compiler](#react-compiler)
+  - [Build performance improvements](#build-performance)
+  - [TypeScript 7 support](#tsgo-support)
+  - [Faster circular dependency checks](#circular-check)
+- New features
+  - [Support for `import.meta.glob`](#import-meta-glob)
+  - [Improved built-in CSS support](#builtin-css-features)
+  - [Support for parsing `createRequire`](#create-require)
+  - [Rspack magic comments](#magic-comments)
+  - [Support for source phase imports](#source-phase-imports)
+  - [Automatic persistent cache cleanup](#cache-cleanup)
+- Output optimization
+  - [`pureFunctions` stabilized](#pure-functions)
+  - [Branch-aware dependency pruning](#branch-aware-dependency-pruning)
+  - [Branch-aware ESM export presence checks](#branch-aware-export-presence)
+  - [`export const` value binding optimization](#export-const-getter)
+- Ecosystem
+  - [TanStack RSC support](#tanstack-rsc-support)
+  - [Rsbuild](#rsbuild)
+  - [Rslib](#rslib)
+  - [Rstest](#rstest)
+  - [Rslint](#rslint)
+  - [Rspress](#rspress)
+  - [Rsdoctor](#rsdoctor)
+  - [rspack-merge](#rspack-merge)
+
+## Performance improvements
+
+### Rust version of React Compiler \{#react-compiler}
+
+[React Compiler](https://react.dev/learn/react-compiler/introduction) is an official build-time optimization tool for React. It automatically adds appropriate memoization logic for components and Hooks during compilation, reducing the need to manually use `useMemo`, `useCallback`, and `React.memo`.
+
+In the past, React Compiler was mainly integrated through `babel-loader`, which introduced additional Babel transform overhead and increased project build time. Now that [React Compiler has been ported to Rust](https://github.com/facebook/react/pull/36173), SWC has also completed its integration. In Rspack 2.1, you can now enable React Compiler directly through the built-in SWC loader.
+
+In our benchmark, the Rust version of React Compiler is around **7-13x faster** than the Babel version:
+
+| Command        | React Compiler (Rust) | React Compiler (Babel) | Improvement |
+| -------------- | --------------------- | ---------------------- | ----------- |
+| `rspack dev`   | **0.7 s**             | **10.6 s**             | **13.5x**   |
+| `rspack build` | **1.2 s**             | **9.3 s**              | **7.4x**    |
+
+Enable React Compiler through `jsc.transform.reactCompiler` in `builtin:swc-loader`:
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.(?:js|jsx|ts|tsx)$/,
+        use: {
+          loader: 'builtin:swc-loader',
+          options: {
+            detectSyntax: 'auto',
+            jsc: {
+              transform: {
+                react: {
+                  runtime: 'automatic',
+                },
+                reactCompiler: true, // [!code highlight]
+              },
+            },
+          },
+        },
+      },
+    ],
+  },
+};
+```
+
+For more configuration options, see the [Rspack React Compiler guide](/guide/tech/react#react-compiler).
+
+### Build performance improvements \{#build-performance}
+
+Build performance has always been one of Rspack's core priorities. In our benchmark, **Rspack 2.1 improves production build performance by around 16% and HMR performance by around 5%** compared with Rspack 2.0.
+
+| Version       | Production build (no cache) | Production build (with cache) | HMR        |
+| ------------- | --------------------------- | ----------------------------- | ---------- |
+| Rspack 1.7.11 | **3.12 s**                  | **2.09 s**                    | **129 ms** |
+| Rspack 2.0.0  | **2.66 s**                  | **1.36 s**                    | **113 ms** |
+| Rspack 2.1.0  | **2.22 s**                  | **1.20 s**                    | **107 ms** |
+
+> Data source: [rspack-react-10k-benchmark](https://github.com/LingyuCoder/rspack-react-10k-benchmark/actions/runs/28093280576)
+
+These improvements mainly come from three areas: a large number of micro-optimizations in the main build pipeline, optimized low-level data structures for the module graph and dependency relationships, and improvements to SWC parsing and transformation.
+
+### TypeScript 7 support \{#tsgo-support}
+
+TypeScript type checking is often one of the most time-consuming parts of the build pipeline. [`ts-checker-rspack-plugin`](https://github.com/rstackjs/ts-checker-rspack-plugin) now supports type checking with TypeScript 7 (TypeScript Go). In builds with type checking enabled, the overall time can be reduced by around **60%**.
+
+Install the TypeScript 7 RC version in your project to use it:
+
+<PackageManagerTabs command="add typescript@rc -D" />
+
+```js title="rspack.config.mjs"
+import { TsCheckerRspackPlugin } from 'ts-checker-rspack-plugin';
+
+export default {
+  plugins: [new TsCheckerRspackPlugin()],
+};
+```
+
+### Faster circular dependency checks \{#circular-check}
+
+Rspack 2.1 adds [`CircularCheckRspackPlugin`](/plugins/rspack/circular-check-rspack-plugin), which replaces the deprecated [`CircularDependencyRspackPlugin`](/plugins/rspack/circular-dependency-rspack-plugin).
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  plugins: [new rspack.CircularCheckRspackPlugin()],
+};
+```
+
+Compared with the old plugin, the new CircularCheckRspackPlugin brings two main improvements:
+
+- **Better performance**: the old plugin's detection approach was closer to expanding circular paths from entries, which could cause repeated traversal in large module graphs. The new plugin uses a graph algorithm that is better suited for cycle detection. It can find circular components in a single analysis pass and generate readable circular paths for each component, reducing detection overhead in large projects.
+- **More reasonable API design**: the old plugin's API design was less intuitive and inconsistent with the commonly used `circular-dependency-plugin` API in the webpack ecosystem. The new plugin returns to a more direct "detect and report circular dependencies" model, provides options that are more consistent with the webpack ecosystem, and is easier to understand and migrate to.
+
+If you are using `CircularDependencyRspackPlugin`, we recommend migrating to `CircularCheckRspackPlugin`. If you only need to ignore certain warnings, you can use [`ignoreWarnings`](/config/other-options#ignorewarnings).
+
+## New features
+
+### Support for `import.meta.glob` \{#import-meta-glob}
+
+Rspack now supports [`import.meta.glob`](/api/runtime-api/module-variables#importmetaglob). You can collect modules by glob pattern and load them only when needed:
+
+```js
+const pages = import.meta.glob('./pages/**/*.js');
+
+for (const path in pages) {
+  const mod = await pages[path]();
+}
+```
+
+This feature is already available in Vite and Turbopack. With support in Rspack, developers can use a more consistent and familiar syntax across different ecosystem tools, reducing the cognitive cost of switching between them. It also lets framework and library authors who support multiple build tools reuse more similar implementation patterns.
+
+> See the [`import.meta.glob` documentation](/api/runtime-api/module-variables#importmetaglob) for complete usage details.
+
+### Improved built-in CSS support \{#builtin-css-features}
+
+Rspack 2.1 further improves [built-in CSS support](/guide/tech/css#built-in-css-support). The new `css/global` module type allows CSS Modules to work in a "global by default, opt into `:local` when needed" mode. Together with `css/module` and `css/auto`, it covers more scope organization patterns.
+
+CSS Modules support also continues to improve, with more CSS Modules syntax and behavior now supported.
+
+For related configuration, see the CSS options in [`module.generator`](/config/module-generator#cssauto) and [`module.parser`](/config/module-parser#cssauto).
+
+### Support for parsing `createRequire` \{#create-require}
+
+ESM modules do not have a built-in `require`, so Node.js provides [`module.createRequire()`](https://nodejs.org/api/module.html#modulecreaterequirefilename), which lets you create a `require` function inside ESM to load CommonJS modules. In previous versions, Rspack could not statically analyze the `require` created this way, so modules loaded by it could not be bundled correctly.
+
+Rspack 2.1 adds the [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) option. When enabled, Rspack recognizes `createRequire` imported from Node.js `module` and converts the created `require` into a statically analyzable dependency context. Modules loaded through it can then be bundled just like modules loaded by ordinary `require` or `import`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        createRequire: true,
+      },
+    },
+  },
+};
+```
+
+```js title="index.js"
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+const value = require('./value.cjs');
+```
+
+This option also supports:
+
+- **Multiple import forms**: named imports, default imports, and namespace imports are supported, and imports from both `module` and `node:module` are recognized.
+- **Custom sources**: in addition to `true`, you can customize the specifier and module source using a string in the `"<specifier> from <module>"` form, such as `"createRequire from module"`.
+- **Statically analyzable arguments**: the argument of `createRequire()` must be statically analyzable as a file URL or an absolute path, such as `import.meta.url`, `new URL('./dir/file.js', import.meta.url)`, or an absolute `file:` URL.
+
+This option is disabled by default. See [`module.parser.javascript.createRequire`](/config/module-parser#javascriptcreaterequire) for details.
+
+### Rspack magic comments \{#magic-comments}
+
+Rspack 2.1 adds support for the `rspack` prefix in [magic comments](/api/runtime-api/module-methods#magic-comments). You can now use the `rspack` prefix to declare compilation hints:
+
+```js
+import(/* rspackChunkName: "dashboard" */ './dashboard');
+```
+
+The existing `webpack` prefix remains compatible, so existing projects do not need to migrate.
+
+> See the [magic comments documentation](/api/runtime-api/module-methods#magic-comments) for details.
+
+### Support for source phase imports \{#source-phase-imports}
+
+Rspack 2.1 supports the WebAssembly use case in the TC39 [Source Phase Imports](https://github.com/tc39/proposal-source-phase-imports) proposal. After enabling [`experiments.sourceImport`](/config/experiments#experimentssourceimport), you can import `.wasm` modules through static `import source` or dynamic `import.source()`.
+
+Unlike normal WebAssembly imports, a source phase import does not instantiate the Wasm module during import. Instead, it returns a compiled [`WebAssembly.Module`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WebAssembly/Module). This lets you control instantiation yourself, such as instantiating the same Wasm module multiple times with different imports, or reusing the same compiled result across multiple Web Workers to avoid the cost of repeated compilation.
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    sourceImport: true,
+  },
+};
+```
+
+```js title="index.js"
+import source wasmModule from './module.wasm';
+
+const instance = await WebAssembly.instantiate(wasmModule, {
+  // imports...
+});
+```
+
+You can also use dynamic import:
+
+```js
+const wasmModule = await import.source('./module.wasm');
+const instance = await WebAssembly.instantiate(wasmModule);
+```
+
+Rspack also adds [`module.rules[].phase`](/config/module-rules#rulesphase), which lets rules match modules by import phase. You can distinguish normal `evaluation` imports, `import defer` with the `defer` phase, and Source Phase Imports with the `source` phase, so the same resource can use different loaders, parser options, or module types depending on how it is imported.
+
+### Automatic persistent cache cleanup \{#cache-cleanup}
+
+Rspack's persistent cache is isolated by version. When `cache.version`, cache-related configuration, or the Rspack version changes, Rspack creates a new cache version to avoid reusing an incompatible cache. During long-term development, frequent branch switching, or CI workflows that reuse the working directory, old cache versions may continue to accumulate and take up disk space.
+
+Rspack 2.1 adds an automatic cleanup mechanism for persistent cache. It uses `cache.maxAge` and `cache.maxVersions` to control old versions retained in the cache directory:
+
+- [`cache.maxAge`](/config/cache#maxage): the maximum time a cache version can remain unaccessed. The default value is `7 * 24 * 60 * 60` (7 days).
+- [`cache.maxVersions`](/config/cache#maxversions): the maximum number of cache versions retained in the current cache directory. The default value is `3`.
+
+```js title="rspack.config.mjs"
+export default {
+  cache: {
+    type: 'persistent',
+    maxAge: 7 * 24 * 60 * 60,
+    maxVersions: 3,
+  },
+};
+```
+
+When the number of cache versions exceeds the retention limit, or when versions have not been accessed for a long time, Rspack prioritizes cleaning up older and less recently accessed cache versions. This keeps recent reusable caches while preventing the persistent cache directory from growing without bound. For scenarios where you need to manage caches manually, set `maxAge` or `maxVersions` to `Infinity` to disable age-based or version-count-based cleanup respectively.
+
+## Output optimization
+
+### `pureFunctions` stabilized \{#pure-functions}
+
+Rspack 2.0 introduced the experimental [`pureFunctions`](/config/experiments#experimentspurefunctions) capability for finer-grained tree shaking of side-effect-free function calls across modules. After a period of iteration and validation, Rspack 2.1 enables this capability by default in production mode, so you no longer need to manually set `experiments.pureFunctions: true`.
+
+This capability mainly covers two scenarios: adding the [`/*#__NO_SIDE_EFFECTS__*/`](/guide/optimization/tree-shaking#no_side_effects-annotation) annotation at function definitions, and marking side-effect-free functions through [`module.parser.javascript.pureFunctions`](/config/module-parser#javascriptpurefunctions). When the result of a marked function call is unused, Rspack can safely remove the call during tree shaking.
+
+For example, the following `join` function is declared as side-effect-free. If the return value of the call is not used, the call is removed automatically:
+
+```js title="utils.js"
+/*#__NO_SIDE_EFFECTS__*/
+export function join(a, b) {
+  return `${a}-${b}`;
+}
+```
+
+```js title="index.js"
+import { join } from './utils';
+
+// The return value is unused, so this call is removed automatically.
+join('btn', 'primary');
+```
+
+If you want to disable this analysis, you can disable `experiments.pureFunctions`:
+
+```js title="rspack.config.mjs"
+export default {
+  experiments: {
+    pureFunctions: false,
+  },
+};
+```
+
+See the [tree shaking guide](/guide/optimization/tree-shaking#purefunctions) for details.
+
+### Branch-aware dependency pruning \{#branch-aware-dependency-pruning}
+
+Rspack 2.1 improves dependency analysis for inline constant scenarios. When the condition of an `if` statement or ternary expression depends on an inlined boolean export, Rspack now associates the branch condition with dependencies inside that branch. If Rspack later determines that a branch will not be executed, dependencies in that branch are marked as inactive, allowing them to participate in tree shaking and chunk pruning.
+
+```js title="env.js"
+export const IS_DEV = false;
+```
+
+```js title="index.js"
+import { IS_DEV } from './env';
+
+if (IS_DEV) {
+  import('./debug-tools');
+} else {
+  import('./app');
+}
+```
+
+In the example above, `IS_DEV` can be inlined as `false`, so the `./debug-tools` dependency in the `if` branch is no longer treated as an active dependency. Compared with the previous behavior where dependencies from both branches were retained, this can reduce invalid modules in the output and avoid generating unnecessary dynamic import chunks for unreachable branches.
+
+This optimization also supports simple boolean expressions composed with `!`, `&&`, and `||`, as well as dependencies inside ternary expression branches. For conditions that cannot be statically determined, Rspack keeps the original behavior to ensure runtime semantics remain unchanged.
+
+### Branch-aware ESM export presence checks \{#branch-aware-export-presence}
+
+Rspack checks during compilation whether ESM imports access exports that do not exist and emits warnings such as `export ... was not found`. Previously, this check could not understand runtime existence checks such as `if ("name" in ns)`, so even when code checked whether an export existed first, accesses inside the branch could still produce false positives.
+
+Rspack 2.1 improves analysis for `in` expressions on ESM namespaces. When an export access is guarded by the same `in` check, Rspack recognizes the branch condition and no longer reports a missing export warning for that access.
+
+```js title="index.js"
+import * as feature from './feature';
+
+if ('debug' in feature) {
+  feature.debug();
+}
+```
+
+In the example above, if `./feature` does not export `debug`, `'debug' in feature` returns `false` at runtime and `feature.debug()` inside the branch will not be executed. Rspack can now understand this and no longer emits a missing export warning for the guarded access.
+
+This check also applies to branch conditions composed with `!`, `&&`, `||`, and ternary expressions. It supports namespace imports, namespace objects from named exports, and nested member access. For accesses that are not guarded by the same `in` check, Rspack continues to report warnings so real missing export issues are not hidden.
+
+### `export const` value binding optimization \{#export-const-getter}
+
+Rspack 2.1 simplifies the generated code for ESM `export const`. In previous versions, Rspack generated getter functions for ESM exports uniformly to preserve ESM live binding semantics:
+
+```js
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+```
+
+For `export const` in non-cyclic modules, however, the exported value will not change after module initialization, so it does not need to be read through a getter every time. In production builds, Rspack 2.1 uses circular module information: when Rspack confirms that the current module is not part of a circular dependency, `export const` is defined on the namespace object as a read-only value, reducing generated code and runtime getter call overhead.
+
+```js title="Output sketch"
+// Before: accessing namespace.value executes a getter function.
+__webpack_require__.d(__webpack_exports__, {
+  value: () => value,
+});
+
+// Rspack 2.1: const exports in non-cyclic modules are defined as read-only values.
+// Accessing namespace.value no longer needs to execute a getter function.
+__webpack_require__.d(
+  __webpack_exports__,
+  {},
+  {
+    value: value,
+  },
+);
+```
+
+```js title="constants.js"
+export const answer = 42;
+
+const message = 'hello';
+export { message };
+
+export default 'default value';
+```
+
+The named `const` exports above, as well as constant values in default exports, can benefit from this optimization. For `let`, function exports, and `const` exports in cyclic modules, Rspack still keeps the getter form to ensure mutable exports and circular dependency scenarios preserve correct semantics. In the future, we will continue exploring reassignment analysis to identify more stable exports, so more scenarios can use the lighter value-binding form.
+
+## Ecosystem
+
+### TanStack RSC support \{#tanstack-rsc-support}
+
+We are working with the TanStack team to improve Rsbuild support in TanStack Start, and we have already made concrete progress: [TanStack Start now officially supports Rsbuild](https://tanstack.com/blog/start-adds-rsbuild-support). Developers can now use Rsbuild to build TanStack Start applications and access framework capabilities including RSC.
+
+Our core goal for RSC is to provide general-purpose RSC build capabilities, allowing higher-level frameworks to integrate RSC based on their own routing, rendering, and server runtime solutions while reusing unified build infrastructure.
+
+If you want to try RSC in the Rspack stack, see:
+
+- [TanStack Start guide](https://rsbuild.rs/guide/framework/react#tanstack-start): learn how to use Rsbuild in TanStack Start.
+- [rsbuild-plugin-rsc](https://github.com/rstackjs/rsbuild-plugin-rsc): an RSC plugin based on Rsbuild.
+
+### Rsbuild \{#rsbuild}
+
+Rsbuild 2.1 has been released alongside Rspack 2.1. See the [Rsbuild 2.1 blog](https://rsbuild.rs/blog/v2-1) for details.
+
+### Rslib \{#rslib}
+
+Rslib adds a fast type generation mode based on `isolatedDeclarations`. After enabling [dts.isolated](https://rslib.rs/config/lib/dts#dtsisolated), Rslib uses SWC's type generation capability during the Rspack build to directly emit declaration files for TypeScript modules in the dependency graph.
+
+```ts title="rslib.config.ts"
+import { defineConfig } from '@rslib/core';
+
+export default defineConfig({
+  lib: [
+    {
+      dts: {
+        isolated: true,
+      },
+    },
+  ],
+});
+```
+
+This capability is suitable for daily builds in monorepos or multi-package libraries. You can split declaration generation and type checking into two steps:
+
+- Daily builds: Rslib quickly emits declaration files.
+- Global checks: run unified type checking in CI or a pre-commit hook through [rslint --type-check](https://rslint.rs/guide/type-checking).
+
+Taking the Rsbuild repository as an example, the time required to generate declaration files with different approaches is as follows:
+
+| Approach              | Time     |
+| --------------------- | -------- |
+| TypeScript 6          | **9.7s** |
+| TypeScript 7          | **4.1s** |
+| Isolated Declarations | **2.3s** |
+
+> For more details, see [dts.isolated](https://rslib.rs/config/lib/dts#dtsisolated).
+
+### Rstest \{#rstest}
+
+Rstest 0.10 focuses on test efficiency and stability. The biggest update is the new `--changed` / `--related` test filtering capability, which can run only the tests affected by source changes and significantly shorten feedback loops in local development and CI for large projects.
+
+`--changed` automatically detects changed source files from the Git working tree, including unstaged, staged, and untracked files, then runs only the related tests:
+
+```bash
+rstest run --changed
+```
+
+You can also compare against a specific commit or branch:
+
+```bash
+rstest run --changed=HEAD~1
+rstest run --changed=origin/main
+```
+
+`--related` lets you explicitly pass source files and run only tests that depend on them. It also provides the Jest-compatible `--findRelatedTests` alias:
+
+```bash
+rstest run --related src/button.ts
+rstest run --findRelatedTests src/button.ts
+```
+
+If you only want to preview the affected test files, combine these flags with `rstest list`:
+
+```bash
+rstest list --changed --filesOnly
+rstest list --related src/button.ts --filesOnly
+```
+
+Rstest 0.10 also includes several other improvements:
+
+- A new `threads` pool based on `worker_threads`, reducing startup overhead for suites with many small test files.
+- Persistent build cache support, improving warm-run build performance.
+- Memory-aware worker scheduling, reducing OOM risk under high parallelism.
+- Silent console output for passed tests, keeping failure logs useful while reducing noise.
+- `--trace` profiling support, making performance investigation easier.
+- Clearer worker output attribution for logs and crashes.
+
+> See the [Rstest 0.10 blog](https://rstest.rs/blog/announcing-0-10) for details.
+
+### Rslint \{#rslint}
+
+**Many built-in rules**: Rslint has ported rules from ESLint core and community plugins such as `@typescript-eslint`, `react`, `jsx-a11y`, `jest`, and `promise`. It now has more than 400 [built-in rules](https://rslint.rs/rules/), covering common rules out of the box.
+
+**ESLint plugin compatibility**: beyond built-in rules, Rslint can now directly run rules from community ESLint plugins and use them together with built-in native rules. You only need to mount the plugin under a custom prefix in the configuration. Diagnostics from the plugin are merged into the same report, autofixes can be applied together through `--fix` and the editor's `source.fixAll`, and the behavior is consistent between the CLI and the VS Code extension.
+
+```js title="rslint.config.mjs"
+import examplePlugin from 'eslint-plugin-example';
+
+export default [
+  {
+    files: ['**/*.ts'],
+    plugins: { example: examplePlugin },
+    rules: {
+      'example/some-rule': 'error',
+    },
+  },
+];
+```
+
+For more usage and current limitations, see the [ESLint plugin compatibility guide](https://rslint.rs/guide/eslint-plugins).
+
+### Rspress \{#rspress}
+
+Rspress now provides more Agent Skills, including:
+
+- `rspress-docs-generator`: generate an Rspress documentation site for the current project.
+- `rspress-custom-theme`: generate a custom Rspress theme.
+
+Here is a theme generated by `rspress-custom-theme`:
+
+![Rspress custom theme skill](https://assets.rspack.rs/rspress/assets/rspress-custom-theme-skill.png)
+
+These skills can be installed directly into existing projects or selected during project initialization. For more details, see the [Rspress - AI Guide](https://rspress.rs/guide/start/ai).
+
+### Rsdoctor \{#rsdoctor}
+
+Rsdoctor added [AI analysis](https://rsdoctor.rs/guide/start/action#ai-assisted-analysis) in GitHub Actions. When a build analysis report contains size changes, Rsdoctor can combine them with the current project's build data to analyze regressions and help locate performance bottlenecks, bundle size increases, and optimization opportunities.
+
+<div align="center">
+  <img
+    src="https://assets.rspack.rs/others/assets/rsdoctor/actions-ai-detail.png"
+    alt="Rsdoctor AI Action analysis detail"
+    width="80%"
+  />
+</div>
+
+### rspack-merge \{#rspack-merge}
+
+We released [rspack-merge](https://github.com/rstackjs/rspack-merge), an npm package for merging Rspack configurations. It covers use cases ranging from composing base configurations to merging loader and plugin rules.
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+import { merge } from 'rspack-merge';
+
+const sharedConfig = defineConfig({
+  // ...
+});
+
+const serverConfig = merge(sharedConfig, {
+  // ...
+});
+
+const clientConfig = merge(sharedConfig, {
+  // ...
+});
+
+export default [serverConfig, clientConfig];
+```
+
+`rspack-merge` is written in TypeScript, ships modern ESM output, and keeps zero runtime dependencies, making configuration merging simple, reliable, and lightweight.

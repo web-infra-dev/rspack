@@ -34,6 +34,16 @@ impl EsmRegisterModuleRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for EsmRegisterModuleRuntimeModule {
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::REQUIRE,
+      ..Default::default()
+    }
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
@@ -81,13 +91,15 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
         .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     ))
   }
-
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      write: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
+      ..Default::default()
+    }
   }
 }
 
@@ -176,11 +188,14 @@ var chunkMap = {{
     RuntimeModuleStage::Attach
   }
 
-  fn additional_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::REQUIRE_SCOPE
-  }
-
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      ..Default::default()
+    }
   }
 }

@@ -770,7 +770,13 @@ fn alternative_requests(
   }
 
   for item in std::mem::take(&mut items) {
-    items.push(item.clone());
+    // webpack's `hideOriginal`: when the request points into a relative
+    // resolve.modules directory (e.g. `./node_modules/`), hide the original
+    // `./<dir>/...` request and emit only the bare specifier. The bare
+    // specifier can still be added under its own key if the context regExp
+    // matches it (same as webpack); but for the common `import('./dir/' + x)`
+    // the default `^\./` matcher rejects it, so the file drops out of the map.
+    let mut hide_original = false;
     for module in resolve_options.modules() {
       let dir = module.cow_replace('\\', "/");
       if item.request.starts_with(&format!("./{dir}/")) {
@@ -778,7 +784,11 @@ fn alternative_requests(
           item.context.clone(),
           item.request[dir.len() + 3..].to_string(),
         ));
+        hide_original = true;
       }
+    }
+    if !hide_original {
+      items.push(item);
     }
   }
 

@@ -20,8 +20,7 @@ module.exports = {
           {
             name: 'PLUGIN',
             stage:
-              compiler.rspack.Compilation
-                .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+              compiler.rspack.Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE_SIZE,
             additionalAssets: true,
           },
           (assets) => {

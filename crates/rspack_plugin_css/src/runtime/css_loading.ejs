@@ -42,7 +42,7 @@ var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority")
 		link.onerror = link.onload = null;
 		link.removeAttribute(loadingAttribute);
 		clearTimeout(timeout);
-		if (event && event.type != "load") link.parentNode.removeChild(link);
+		if (event && event.type != "load" && link.parentNode) link.parentNode.removeChild(link);
 		done(event);
 		if (prev) return prev(event);
 	};

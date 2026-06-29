@@ -15,8 +15,14 @@ impl MakeNamespaceObjectRuntimeModule {
 
 #[async_trait::async_trait]
 impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
-  fn additional_write_runtime_requirements(&self, _compilation: &Compilation) -> RuntimeGlobals {
-    RuntimeGlobals::MAKE_NAMESPACE_OBJECT
+  fn runtime_requirements(
+    &self,
+    _compilation: &Compilation,
+  ) -> rspack_core::RuntimeModuleRuntimeRequirements {
+    rspack_core::RuntimeModuleRuntimeRequirements {
+      write: { RuntimeGlobals::MAKE_NAMESPACE_OBJECT },
+      ..Default::default()
+    }
   }
 
   fn template(&self) -> Vec<(String, String)> {

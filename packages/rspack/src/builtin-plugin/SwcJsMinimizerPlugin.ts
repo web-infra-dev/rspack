@@ -198,7 +198,7 @@ export interface TerserCompressOptions {
   unsafe_passes?: boolean;
   unsafe_arrows?: boolean;
   unsafe_comps?: boolean;
-  unsafe_function?: boolean;
+  unsafe_Function?: boolean;
   unsafe_math?: boolean;
   unsafe_symbols?: boolean;
   unsafe_methods?: boolean;
