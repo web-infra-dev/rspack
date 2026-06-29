@@ -11,17 +11,27 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BoxDependency, BuildDependency, Compilation, ExportsInfoArtifact,
+  BoxDependency, BuildDependency, Compilation, ContextDependency, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
 
 fn cacheable_resolved_module_key(dependency: &BoxDependency) -> Option<&str> {
-  let module_dependency = dependency.as_module_dependency()?;
-  module_dependency
-    .request()
-    .starts_with('/')
-    .then(|| module_dependency.resource_identifier())
-    .flatten()
+  if let Some(module_dependency) = dependency.as_module_dependency() {
+    return module_dependency
+      .request()
+      .starts_with('/')
+      .then(|| module_dependency.resource_identifier())
+      .flatten();
+  }
+
+  dependency
+    .as_context_dependency()
+    .and_then(|context_dependency| {
+      context_dependency
+        .request()
+        .starts_with('/')
+        .then(|| ContextDependency::resource_identifier(context_dependency))
+    })
 }
 
 pub async fn repair(
@@ -32,7 +42,18 @@ pub async fn repair(
 ) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
   let module_graph = artifact.get_module_graph_mut();
   let mut grouped_deps = HashMap::default();
+  let mut resolved_absolute_request_modules = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
+    let dependency = module_graph.dependency_by_id(&dep_id);
+    if let Some(key) = cacheable_resolved_module_key(dependency)
+      && let Some(module_identifier) = module_graph.get_resolved_module(&dep_id).copied()
+      && module_graph
+        .module_by_identifier(&module_identifier)
+        .is_some()
+    {
+      resolved_absolute_request_modules.insert(key.into(), module_identifier);
+    }
+
     grouped_deps
       .entry(parent_module_identifier)
       .or_insert(vec![])
@@ -74,6 +95,7 @@ pub async fn repair(
     .collect::<Vec<_>>();
 
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  ctx.resolved_absolute_request_modules = resolved_absolute_request_modules;
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }
