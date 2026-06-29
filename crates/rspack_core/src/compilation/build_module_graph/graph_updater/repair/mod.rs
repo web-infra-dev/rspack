@@ -11,9 +11,18 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use self::context::TaskContext;
 use super::BuildModuleGraphArtifact;
 use crate::{
-  BuildDependency, Compilation, ExportsInfoArtifact,
+  BoxDependency, BuildDependency, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
 };
+
+fn cacheable_resolved_module_key(dependency: &BoxDependency) -> Option<&str> {
+  let module_dependency = dependency.as_module_dependency()?;
+  module_dependency
+    .request()
+    .starts_with('/')
+    .then(|| module_dependency.resource_identifier())
+    .flatten()
+}
 
 pub async fn repair(
   compilation: &Compilation,

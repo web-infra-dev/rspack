@@ -239,7 +239,7 @@ impl Task<TaskContext> for FactorizeResultTask {
   }
 }
 
-fn skip_side_effect_free_esm_import_side_effect_dependencies(
+pub(super) fn skip_side_effect_free_esm_import_side_effect_dependencies(
   module: &crate::BoxModule,
   dependencies: &[BoxDependency],
 ) -> bool {

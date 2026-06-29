@@ -1,8 +1,11 @@
-use std::borrow::Cow;
-
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{TaskContext, factorize::FactorizeTask};
+use super::{
+  TaskContext,
+  add::set_resolved_module,
+  cacheable_resolved_module_key,
+  factorize::{FactorizeTask, skip_side_effect_free_esm_import_side_effect_dependencies},
+};
 use crate::{
   ContextDependency, DependencyId, Module, ModuleIdentifier,
   utils::task_loop::{Task, TaskResult, TaskType},
@@ -47,19 +50,20 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         // TODO need implement more dependency `resource_identifier()`
         // https://github.com/webpack/webpack/blob/main/lib/Compilation.js#L1621
         let id = if let Some(resource_identifier) = module_dependency.resource_identifier() {
-          Cow::Borrowed(resource_identifier)
+          resource_identifier.into()
         } else {
-          Cow::Owned(format!(
+          format!(
             "{}|{}",
             module_dependency.dependency_type(),
             module_dependency.request()
-          ))
+          )
+          .into_boxed_str()
         };
         Some(id)
       } else {
         dependency
           .as_context_dependency()
-          .map(|d| Cow::Borrowed(ContextDependency::resource_identifier(d)))
+          .map(|d| Box::<str>::from(ContextDependency::resource_identifier(d)))
       };
 
       if let Some(resource_identifier) = resource_identifier {
@@ -73,14 +77,37 @@ impl Task<TaskContext> for ProcessDependenciesTask {
     let module = module_graph
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
+    let original_module_source = module.as_normal_module().and_then(|m| m.source().cloned());
+    let original_module_context = module.get_context();
+    let issuer = module
+      .as_normal_module()
+      .and_then(|module| module.name_for_condition());
+    let issuer_layer = module.get_layer().cloned();
+    let resolve_options = module.get_resolve_options();
 
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
-      let original_module_source = module_graph
-        .module_by_identifier(&original_module_identifier)
-        .and_then(|m| m.as_normal_module())
-        .and_then(|m| m.source().cloned());
       let dependency = &dependencies[0];
+      if let Some(module_identifier) = cacheable_resolved_module_key(dependency)
+        .and_then(|key| context.resolved_absolute_request_modules.get(key))
+        .copied()
+      {
+        let should_factorize = module_graph
+          .module_by_identifier(&module_identifier)
+          .is_some_and(|module| {
+            skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
+          });
+        if !should_factorize {
+          set_resolved_module(
+            module_graph,
+            Some(original_module_identifier),
+            dependencies,
+            module_identifier,
+          )?;
+          continue;
+        }
+      }
+
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
       let module_factory = context
@@ -98,15 +125,13 @@ impl Task<TaskContext> for ProcessDependenciesTask {
         compiler_id: context.compiler_id,
         compilation_id: context.compilation_id,
         module_factory,
-        original_module_identifier: Some(module.identifier()),
-        original_module_context: module.get_context(),
-        original_module_source,
-        issuer: module
-          .as_normal_module()
-          .and_then(|module| module.name_for_condition()),
-        issuer_layer: module.get_layer().cloned(),
+        original_module_identifier: Some(original_module_identifier),
+        original_module_context: original_module_context.clone(),
+        original_module_source: original_module_source.clone(),
+        issuer: issuer.clone(),
+        issuer_layer: issuer_layer.clone(),
         dependencies,
-        resolve_options: module.get_resolve_options(),
+        resolve_options: resolve_options.clone(),
         options: context.compiler_options.clone(),
         resolver_factory: context.resolver_factory.clone(),
         from_unlazy,

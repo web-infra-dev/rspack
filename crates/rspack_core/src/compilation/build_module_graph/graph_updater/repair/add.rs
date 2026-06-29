@@ -1,6 +1,8 @@
 use rspack_error::Result;
 
-use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
+use super::{
+  TaskContext, build::BuildTask, cacheable_resolved_module_key, lazy::process_unlazy_dependencies,
+};
 use crate::{
   BoxDependency, BoxModule, ModuleIdentifier,
   compilation::build_module_graph::ForwardedIdSet,
@@ -24,6 +26,13 @@ impl Task<TaskContext> for AddTask {
   }
   async fn main_run(self: Box<Self>, context: &mut TaskContext) -> TaskResult<TaskContext> {
     let module_identifier = self.module.identifier();
+    for dependency in &self.dependencies {
+      if let Some(key) = cacheable_resolved_module_key(dependency) {
+        context
+          .resolved_absolute_request_modules
+          .insert(key.into(), module_identifier);
+      }
+    }
     let module_graph = &mut context.artifact.module_graph;
 
     // reuse module for self referenced module
@@ -128,7 +137,7 @@ impl Task<TaskContext> for AddTask {
   }
 }
 
-fn set_resolved_module(
+pub(super) fn set_resolved_module(
   module_graph: &mut ModuleGraph,
   original_module_identifier: Option<ModuleIdentifier>,
   dependencies: Vec<BoxDependency>,
