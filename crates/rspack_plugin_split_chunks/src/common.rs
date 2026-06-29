@@ -66,16 +66,86 @@ impl ChunkFilter {
   }
 }
 
-pub type ModuleTypeFilter = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
-pub type ModuleLayerFilter =
+pub type ModuleTypeFilterFunc = Arc<dyn Fn(&dyn Module) -> bool + Send + Sync>;
+
+#[derive(Clone)]
+pub enum ModuleTypeFilter {
+  Func(ModuleTypeFilterFunc),
+  All,
+  Regex(RspackRegex),
+  String(String),
+}
+
+impl ModuleTypeFilter {
+  pub fn test(&self, module: &dyn Module) -> bool {
+    match self {
+      Self::Func(func) => func(module),
+      Self::All => true,
+      Self::Regex(re) => re.test(module.module_type().as_str()),
+      Self::String(expected) => module.module_type().as_str() == expected,
+    }
+  }
+
+  pub fn test_internal(&self, module_type: &str) -> bool {
+    match self {
+      Self::Func(_) => panic!("ModuleTypeFilter is a function"),
+      Self::All => true,
+      Self::Regex(re) => re.test(module_type),
+      Self::String(expected) => expected == module_type,
+    }
+  }
+
+  pub fn is_func(&self) -> bool {
+    matches!(self, Self::Func(_))
+  }
+}
+
+pub type ModuleLayerFilterFunc =
   Arc<dyn Fn(Option<String>) -> BoxFuture<'static, Result<bool>> + Send + Sync>;
 
+#[derive(Clone)]
+pub enum ModuleLayerFilter {
+  Func(ModuleLayerFilterFunc),
+  All,
+  Regex(RspackRegex),
+  String(String),
+}
+
+impl ModuleLayerFilter {
+  pub fn is_func(&self) -> bool {
+    matches!(self, Self::Func(_))
+  }
+
+  pub async fn test_func(&self, layer: Option<String>) -> Result<bool> {
+    if let Self::Func(func) = self {
+      func(layer).await
+    } else {
+      panic!("ModuleLayerFilter is not a function");
+    }
+  }
+
+  pub fn test_internal(&self, layer: Option<&str>) -> bool {
+    match self {
+      Self::Func(_) => panic!("ModuleLayerFilter is a function"),
+      Self::All => true,
+      Self::Regex(re) => layer.is_some_and(|layer| re.test(layer)),
+      Self::String(test) => {
+        if let Some(layer) = layer {
+          layer.starts_with(test)
+        } else {
+          test.is_empty()
+        }
+      }
+    }
+  }
+}
+
 pub fn create_default_module_type_filter() -> ModuleTypeFilter {
-  Arc::new(|_| true)
+  ModuleTypeFilter::All
 }
 
 pub fn create_default_module_layer_filter() -> ModuleLayerFilter {
-  Arc::new(|_| Box::pin(async move { Ok(true) }))
+  ModuleLayerFilter::All
 }
 
 pub fn create_async_chunk_filter() -> ChunkFilter {
@@ -101,6 +171,27 @@ pub fn create_chunk_filter_from_str(chunks: &str) -> ChunkFilter {
 
 pub fn create_regex_chunk_filter_from_str(re: RspackRegex) -> ChunkFilter {
   ChunkFilter::Regex(re)
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_regex::RspackRegex;
+
+  use super::{ModuleLayerFilter, ModuleTypeFilter};
+
+  #[test]
+  fn static_module_filters_can_match_without_closure_dispatch() {
+    assert!(ModuleTypeFilter::All.test_internal("javascript/auto"));
+    assert!(ModuleTypeFilter::String("css".to_string()).test_internal("css"));
+    assert!(!ModuleTypeFilter::String("css".to_string()).test_internal("javascript/auto"));
+
+    let regex = RspackRegex::with_flags("javascript", "").expect("regex should compile");
+    assert!(ModuleTypeFilter::Regex(regex).test_internal("javascript/auto"));
+
+    assert!(ModuleLayerFilter::All.test_internal(None));
+    assert!(ModuleLayerFilter::String(String::new()).test_internal(None));
+    assert!(ModuleLayerFilter::String("client".to_string()).test_internal(Some("client:web")));
+  }
 }
 
 #[derive(Debug, Default, Clone)]
