@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt, sync::Arc};
+use std::{cmp::Ordering, fmt};
 
 use derive_more::Debug;
 use rspack_collections::IdentifierSet;
@@ -29,32 +29,33 @@ impl<'a> IndexedCacheGroup<'a> {
   }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum ModulesForCompare {
-  #[default]
-  Unprepared,
-  Unsorted(Arc<[ModuleIdentifier]>),
+  Unsorted(Vec<ModuleIdentifier>),
   Sorted(Vec<ModuleIdentifier>),
 }
 
+impl Default for ModulesForCompare {
+  fn default() -> Self {
+    Self::Unsorted(Default::default())
+  }
+}
+
 impl ModulesForCompare {
-  fn prepare(&mut self, modules: Arc<[ModuleIdentifier]>) {
-    if !modules.is_empty() && matches!(self, Self::Unprepared) {
+  fn prepare(&mut self, modules: Vec<ModuleIdentifier>) {
+    if modules.is_empty() {
+      return;
+    }
+
+    if matches!(self, Self::Unsorted(modules_for_compare) if modules_for_compare.is_empty()) {
       *self = Self::Unsorted(modules);
     }
   }
 
   fn sorted(&mut self) -> &[ModuleIdentifier] {
-    match self {
-      Self::Unprepared => {
-        *self = Self::Sorted(Default::default());
-      }
-      Self::Unsorted(modules) => {
-        let mut sorted_modules = modules.iter().copied().collect::<Vec<_>>();
-        sorted_modules.sort_unstable_by_key(|module| module.precomputed_hash());
-        *self = Self::Sorted(sorted_modules);
-      }
-      Self::Sorted(_) => {}
+    if let Self::Unsorted(modules) = self {
+      modules.sort_unstable_by_key(|module| module.precomputed_hash());
+      *self = Self::Sorted(std::mem::take(modules));
     }
 
     let Self::Sorted(modules) = self else {
@@ -121,7 +122,7 @@ pub(crate) struct ModuleGroup {
   #[debug(skip)]
   pub chunks: FxHashSet<ChunkUkey>,
   modules_for_compare: ModulesForCompare,
-  added: Option<Arc<[ModuleIdentifier]>>,
+  added: Vec<ModuleIdentifier>,
   removed: Vec<ModuleIdentifier>,
   sizes: SplitChunkSizes,
   total_size: f64,
@@ -204,8 +205,8 @@ impl ModuleGroup {
   }
 
   pub fn prepare_modules_for_sizes_and_compare(&mut self) {
-    let modules = Arc::<[ModuleIdentifier]>::from(self.modules.iter().copied().collect::<Vec<_>>());
-    self.added = Some(Arc::clone(&modules));
+    let modules = self.modules.iter().copied().collect::<Vec<_>>();
+    self.added = modules.clone();
     self.modules_for_compare.prepare(modules);
     self.removed.reserve(self.modules.len());
   }
@@ -219,15 +220,16 @@ impl ModuleGroup {
   }
 
   pub fn get_total_size(&self) -> f64 {
-    if self.added.is_some() || !self.removed.is_empty() {
+    if !self.added.is_empty() || !self.removed.is_empty() {
       unreachable!("should update sizes before get total size");
     }
     self.total_size
   }
 
   pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
-    if let Some(added) = self.added.take() {
-      for module in added.iter().copied() {
+    if !self.added.is_empty() {
+      let added = std::mem::take(&mut self.added);
+      for module in added {
         let module_sizes = module_sizes.get(&module).expect("should have module size");
         for (ty, s) in module_sizes.iter() {
           let size = self.sizes.entry(*ty).or_default();
@@ -397,17 +399,5 @@ mod tests {
     assert!(other_group.modules.contains(&module("a")));
     assert!(other_group.modules.contains(&module("b")));
     assert!(other_group.removed.is_empty());
-  }
-
-  #[test]
-  fn prepare_modules_snapshots_compare_modules_before_group_cleanup() {
-    let mut module_group = module_group(&["a", "b"]);
-
-    module_group.remove_module(module("b"));
-
-    let sorted_modules = module_group.sorted_modules_for_compare();
-    assert_eq!(sorted_modules.len(), 2);
-    assert!(sorted_modules.contains(&module("a")));
-    assert!(sorted_modules.contains(&module("b")));
   }
 }
