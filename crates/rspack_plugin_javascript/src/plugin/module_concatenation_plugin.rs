@@ -1227,13 +1227,11 @@ impl ModuleConcatenationPlugin {
       let mut candidates_visited = IdentifierSet::default();
       let mut candidates = VecDeque::new();
       let imports = {
-        let side_effects_state_artifact = compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact
-          .clone();
         let module_graph_artifacts = ModuleGraphArtifacts {
           mg_cache: module_graph_cache,
-          side_effects_state_artifact: &side_effects_state_artifact,
+          side_effects_state_artifact: &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           exports_info_artifact: &compilation.exports_info_artifact,
         };
 
