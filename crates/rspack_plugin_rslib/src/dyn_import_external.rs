@@ -3,8 +3,8 @@ use std::sync::Arc;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildModuleGraphArtifact, Compilation, DependenciesBlock, Dependency, DependencyId,
-  DependencyTemplate, ExportsInfoArtifact, ExternalModule, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, NormalInitFragment,
+  DependencyTemplate, ExportsInfoArtifact, ExternalModule, ImportPhase, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, NormalInitFragment,
 };
 use rspack_plugin_javascript::dependency::{
   ESMExportImportedSpecifierDependency, ESMImportSideEffectDependency, ImportDependency,
@@ -220,11 +220,17 @@ pub fn render_dyn_import_external_module(
     comments_string
   };
 
+  let callee = match import_dep.get_phase() {
+    ImportPhase::Evaluation => "import",
+    ImportPhase::Source => "import.source",
+    ImportPhase::Defer => "import.defer",
+  };
+
   source.replace(
     import_dep.range.start,
     import_dep.range.end,
     format!(
-      "import({}{}{})",
+      "{callee}({}{}{})",
       comments_str,
       rspack_util::json_stringify_str(&request.primary),
       attributes_str
