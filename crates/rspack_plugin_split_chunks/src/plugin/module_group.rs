@@ -19,7 +19,7 @@ use tracing::instrument;
 use super::ModuleGroupMap;
 use crate::{
   SplitChunksPlugin,
-  common::{ChunkFilter, ModuleChunks, ModuleSizes, ModuleTypeFilter},
+  common::{ChunkFilter, ModuleChunks, ModuleSizes},
   min_size::remove_min_size_violating_modules,
   module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries},
   options::{
@@ -30,76 +30,6 @@ use crate::{
 };
 
 type ChunksKey = u64;
-
-struct TypeFilteredCacheGroups<'a> {
-  all: Vec<IndexedCacheGroup<'a>>,
-  regex: Vec<IndexedCacheGroup<'a>>,
-  exact: FxHashMap<String, Vec<IndexedCacheGroup<'a>>>,
-  func: Vec<IndexedCacheGroup<'a>>,
-}
-
-impl<'a> TypeFilteredCacheGroups<'a> {
-  fn new(cache_groups: &[IndexedCacheGroup<'a>]) -> Self {
-    let mut all = Vec::new();
-    let mut regex = Vec::new();
-    let mut exact = FxHashMap::default();
-    let mut func = Vec::new();
-
-    for cache_group in cache_groups.iter().copied() {
-      match &cache_group.cache_group.r#type {
-        ModuleTypeFilter::All => all.push(cache_group),
-        ModuleTypeFilter::Regex(_) => regex.push(cache_group),
-        ModuleTypeFilter::String(module_type) => exact
-          .entry(module_type.clone())
-          .or_insert_with(Vec::new)
-          .push(cache_group),
-        ModuleTypeFilter::Func(_) => func.push(cache_group),
-      }
-    }
-
-    Self {
-      all,
-      regex,
-      exact,
-      func,
-    }
-  }
-
-  fn candidates(&self, module: &dyn Module) -> Vec<IndexedCacheGroup<'a>> {
-    let module_type = module.module_type().as_str();
-    let mut candidates = Vec::with_capacity(
-      self.all.len()
-        + self.regex.len()
-        + self.exact.get(module_type).map_or(0, Vec::len)
-        + self.func.len(),
-    );
-
-    candidates.extend(self.all.iter().copied());
-
-    if let Some(exact) = self.exact.get(module_type) {
-      candidates.extend(exact.iter().copied());
-    }
-
-    candidates.extend(
-      self
-        .regex
-        .iter()
-        .copied()
-        .filter(|cache_group| cache_group.cache_group.r#type.test_internal(module_type)),
-    );
-
-    candidates.extend(
-      self
-        .func
-        .iter()
-        .copied()
-        .filter(|cache_group| cache_group.cache_group.r#type.test(module)),
-    );
-
-    candidates.sort_unstable_by(|a, b| a.compare_by_index(b));
-    candidates
-  }
-}
 
 #[derive(Clone)]
 struct ChunkCombination {
@@ -512,11 +442,10 @@ impl SplitChunksPlugin {
   ) -> Result<ModuleGroupMap> {
     let module_graph = compilation.get_module_graph();
     let module_group_map: FxDashMap<ModuleGroupKey, ModuleGroup> = FxDashMap::default();
-    let type_filtered_cache_groups = TypeFilteredCacheGroups::new(&cache_groups);
     let module_group_results = rspack_parallel::scope::<_, Result<_>>(|token| {
       all_modules.iter().enumerate().for_each(|(module_index, mid)| {
-        let s = unsafe { token.used((&type_filtered_cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
-        s.spawn(|(type_filtered_cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
+        let s = unsafe { token.used((&cache_groups, module_index, mid, &module_graph, compilation, &module_group_map, &combinator, module_chunks, removed_module_chunks, chunk_index_map)) };
+        s.spawn(|(cache_groups, module_index, mid, module_graph, compilation, module_group_map, combinator, module_chunks, removed_module_chunks, chunk_index_map)| async move {
           let belong_to_chunks = module_chunks
             .get(module_index)
             .expect("should have module chunks");
@@ -531,36 +460,26 @@ impl SplitChunksPlugin {
             return Ok(());
           }
           let module = module_graph.module_by_identifier(mid).expect("should have module").as_ref();
-          let layer = module.get_layer().map(|layer| layer.as_str());
-          let mut name_for_condition: Option<Option<Box<str>>> = None;
           let mut used_exports_combs = None;
           let mut non_used_exports_combs = None;
 
-          for cache_group in type_filtered_cache_groups.candidates(module) {
+          for cache_group in cache_groups.iter() {
+            // Filter by `splitChunks.cacheGroups.{cacheGroup}.type`
+            if !(cache_group.cache_group.r#type)(module) {
+              continue;
+            }
+
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.layer`
-            let is_match = if cache_group.cache_group.layer.is_func() {
-              cache_group
-                .cache_group
-                .layer
-                .test_func(layer.map(str::to_owned))
-                .await?
-            } else {
-              cache_group.cache_group.layer.test_internal(layer)
-            };
-            if !is_match {
+            if !(cache_group.cache_group.layer)(module.get_layer().map(ToString::to_string)).await? {
               continue;
             }
 
             // Filter by `splitChunks.cacheGroups.{cacheGroup}.test`
             let is_match = match &cache_group.cache_group.test {
-              CacheGroupTest::String(str) => name_for_condition
-                .get_or_insert_with(|| module.name_for_condition())
-                .as_deref()
-                .is_some_and(|name| name.starts_with(str)),
-              CacheGroupTest::RegExp(regexp) => name_for_condition
-                .get_or_insert_with(|| module.name_for_condition())
-                .as_deref()
-                .is_some_and(|name| regexp.test(name)),
+              CacheGroupTest::String(str) => module
+                .name_for_condition().is_some_and(|name| name.starts_with(str)),
+              CacheGroupTest::RegExp(regexp) => module
+                .name_for_condition().is_some_and(|name| regexp.test(&name)),
               CacheGroupTest::Fn(f) => {
                 let ctx = CacheGroupTestFnCtx { compilation, module };
                 f(ctx).await?.unwrap_or_default()
@@ -575,7 +494,7 @@ impl SplitChunksPlugin {
             let IndexedCacheGroup {
               cache_group_index,
               cache_group,
-            } = &cache_group;
+            } = cache_group;
             if belong_to_chunks.len() < cache_group.min_chunks as usize {
               continue;
             }
