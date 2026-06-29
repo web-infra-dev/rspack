@@ -17,7 +17,8 @@ use super::{
   api_plugin::{
     import_meta_runtime_api_assign, import_meta_runtime_api_call,
     import_meta_runtime_api_from_name, import_meta_runtime_api_from_property,
-    import_meta_runtime_api_member, render_import_meta_runtime_api_destructuring,
+    import_meta_runtime_api_member, is_simple_assign_op,
+    render_import_meta_runtime_api_destructuring,
   },
 };
 use crate::{
@@ -554,7 +555,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         .copied()
         .unwrap_or_else(|| expr.left.span())
     };
-    let handled = import_meta_runtime_api_assign(parser, span, api, full_assignment);
+    let handled = import_meta_runtime_api_assign(
+      parser,
+      span,
+      api,
+      full_assignment,
+      is_simple_assign_op(expr.op),
+    );
     if handled.is_some() {
       parser.walk_expression(&expr.right);
     }

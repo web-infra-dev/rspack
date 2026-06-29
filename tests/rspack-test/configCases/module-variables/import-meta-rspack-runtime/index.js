@@ -19,11 +19,23 @@ it("should expose rspack runtime module variables on import.meta", function () {
 	expect(rspackVersionBeforeAssign.length > 0).toBe(true);
 	import.meta.rspackVersion = "overwritten";
 	expect(import.meta.rspackVersion).toBe(rspackVersionBeforeAssign);
+	const rspackVersionCompoundAssign =
+		(import.meta.rspackVersion += "-suffix");
+	expect(rspackVersionCompoundAssign).toBe(
+		`${rspackVersionBeforeAssign}-suffix`
+	);
+	expect(import.meta.rspackVersion).toBe(rspackVersionBeforeAssign);
 
 	expect(typeof import.meta.rspackHash).toBe("string");
 	const rspackHashBeforeAssign = import.meta.rspackHash;
 	expect(rspackHashBeforeAssign.length > 0).toBe(true);
 	import.meta.rspackHash = "overwritten";
+	expect(import.meta.rspackHash).toBe(rspackHashBeforeAssign);
+	let rspackHashLogicalAssignRhsEvaluated = false;
+	const rspackHashLogicalAssign =
+		(import.meta.rspackHash ||= (rspackHashLogicalAssignRhsEvaluated = true));
+	expect(rspackHashLogicalAssignRhsEvaluated).toBe(false);
+	expect(rspackHashLogicalAssign).toBe(rspackHashBeforeAssign);
 	expect(import.meta.rspackHash).toBe(rspackHashBeforeAssign);
 
 	function callRspackInitSharing() {

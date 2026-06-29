@@ -6,7 +6,7 @@ use rspack_error::{Error, Severity};
 use rspack_util::{SpanExt, json_stringify_str};
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{
-  AssignExpr, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
+  AssignExpr, AssignOp, CallExpr, GetSpan, Ident, MemberExpr, Pat, Span, UnaryExpr, VarDeclarator,
 };
 
 use crate::{
@@ -346,10 +346,23 @@ pub(crate) fn import_meta_runtime_api_assign(
   span: Span,
   api: &ImportMetaRuntimeApi,
   full_assignment: bool,
+  simple_assignment: bool,
 ) -> Option<bool> {
   if api.runtime_call {
     let content = if full_assignment {
-      format!("({{}}).{}", api.property)
+      if simple_assignment {
+        format!("({{}}).{}", api.property)
+      } else {
+        parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
+          api.runtime_global,
+        )));
+        format!(
+          "({{ {}: {} }}).{}",
+          api.property,
+          render_import_meta_runtime_api(parser, api)?,
+          api.property
+        )
+      }
     } else {
       "({})".to_string()
     };
@@ -362,6 +375,10 @@ pub(crate) fn import_meta_runtime_api_assign(
     api.runtime_global,
   )));
   Some(true)
+}
+
+pub(crate) fn is_simple_assign_op(op: AssignOp) -> bool {
+  matches!(op, AssignOp::Assign)
 }
 
 fn static_require_member_chain(
