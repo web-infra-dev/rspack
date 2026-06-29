@@ -5,7 +5,9 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec, SideEffectsStateArtifact, UsedName,
 };
 
-use super::{CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency};
+use super::{
+  CommonJsRequireDependency, ESMImportSpecifierDependency, ImportDependency, ImportEagerDependency,
+};
 use crate::utils::eval::DependencyData;
 
 #[cacheable]
@@ -25,6 +27,8 @@ impl DependencyBranchGuard {
     if let Some(dep) = dep.downcast_mut::<ESMImportSpecifierDependency>() {
       dep.set_branch_guard(self.clone());
     } else if let Some(dep) = dep.downcast_mut::<ImportDependency>() {
+      dep.set_branch_guard(self.clone());
+    } else if let Some(dep) = dep.downcast_mut::<ImportEagerDependency>() {
       dep.set_branch_guard(self.clone());
     } else if let Some(dep) = dep.downcast_mut::<CommonJsRequireDependency>() {
       dep.set_branch_guard(self.clone());
