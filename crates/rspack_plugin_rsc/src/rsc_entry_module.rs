@@ -261,13 +261,15 @@ impl Module for RscEntryModule {
       let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(all_client_modules.len());
       for client_module in all_client_modules {
         let referenced_specifiers = create_referenced_specifiers(&client_module.ids);
-        let dep = ImportEagerDependency::new(
+        let mut dep = ImportEagerDependency::new(
           Atom::from(client_module.request.as_str()),
           DependencyRange { start: 0, end: 0 },
-          referenced_specifiers,
           None,
           ImportPhase::Evaluation,
         );
+        if let Some(referenced_specifiers) = referenced_specifiers {
+          dep.set_referenced_specifiers(referenced_specifiers, true);
+        }
         dependencies.push(Box::new(dep));
       }
       Ok(BuildResult {

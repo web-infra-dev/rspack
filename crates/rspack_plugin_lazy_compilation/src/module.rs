@@ -197,7 +197,6 @@ impl Module for LazyCompilationProxyModule {
       None,
       false,
       None,
-      None,
     );
     let mut dependencies = vec![];
     let mut blocks = vec![];
@@ -225,7 +224,6 @@ impl Module for LazyCompilationProxyModule {
           DependencyRange::new(0, 0),
           None,
           false,
-          None,
           None,
         )) as BoxDependency);
       }
