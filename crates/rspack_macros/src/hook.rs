@@ -142,6 +142,7 @@ impl DefineHookInput {
       }
 
       pub struct #hook_name {
+        common: ::rspack_hook::HookCommon,
         taps: Vec<Box<dyn #trait_name + Send + Sync>>,
         interceptors: Vec<Box<dyn ::rspack_hook::Interceptor<Self> + Send + Sync>>,
       }
@@ -150,23 +151,25 @@ impl DefineHookInput {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 
         fn used_stages(&self) -> ::rspack_hook::__macro_helper::FxHashSet<i32> {
-          ::rspack_hook::__macro_helper::FxHashSet::from_iter(self.taps.iter().map(|h| h.stage()))
+          self.common.used_stages()
         }
 
         fn intercept(&mut self, interceptor: impl ::rspack_hook::Interceptor<Self> + Send + Sync + 'static) {
+          self.common.increment_interceptor_count();
           self.interceptors.push(Box::new(interceptor));
         }
       }
 
       impl std::fmt::Debug for #hook_name {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-          write!(f, #hook_name_lit_str)
+          f.write_str(self.common.name())
         }
       }
 
       impl Default for #hook_name {
         fn default() -> Self {
           Self {
+            common: ::rspack_hook::HookCommon::new(#hook_name_lit_str),
             taps: Default::default(),
             interceptors: Default::default(),
           }
@@ -177,11 +180,14 @@ impl DefineHookInput {
         pub #call_fn
 
         pub fn tap(&mut self, tap: impl #trait_name + Send + Sync + 'static) {
-          self.taps.push(Box::new(tap));
+          let stage = tap.stage();
+          let index = self.common.tap_insert_position(stage);
+          self.common.insert_tap_stage(index, stage);
+          self.taps.insert(index, Box::new(tap));
         }
 
         pub fn is_empty(&self) -> bool {
-          self.taps.is_empty() && self.interceptors.is_empty()
+          self.common.is_empty()
         }
       }
     })
@@ -238,10 +244,8 @@ impl ExecKind {
       for interceptor in self.interceptors.iter() {
         #call
       }
-      let mut all_taps = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
-      all_taps.extend(&self.taps);
-      all_taps.extend(&additional_taps);
-      all_taps.sort_by_key(|hook| hook.stage());
+      let mut all_stages = self.common.tap_stages().to_vec();
+      all_stages.extend(additional_taps.iter().map(|tap| tap.stage()));
     }
   }
 
@@ -250,27 +254,62 @@ impl ExecKind {
     match self {
       Self::Series => {
         quote! {
+          if self.common.interceptor_count() == 0 {
+            for tap in &self.taps {
+              tap.run(#args).await?;
+            }
+            return Ok(());
+          }
+
           #additional_taps
-          for tap in all_taps {
-            tap.run(#args).await?;
+          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
+            if index < self.taps.len() {
+              self.taps[index].run(#args).await?;
+            } else {
+              additional_taps[index - self.taps.len()].run(#args).await?;
+            }
           }
           Ok(())
         }
       }
       Self::Sync => {
         quote! {
+          if self.common.interceptor_count() == 0 {
+            for tap in &self.taps {
+              tap.run(#args)?;
+            }
+            return Ok(());
+          }
+
           #additional_taps
-          for tap in all_taps {
-            tap.run(#args)?;
+          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
+            if index < self.taps.len() {
+              self.taps[index].run(#args)?;
+            } else {
+              additional_taps[index - self.taps.len()].run(#args)?;
+            }
           }
           Ok(())
         }
       }
       Self::SeriesBail { .. } => {
         quote! {
+          if self.common.interceptor_count() == 0 {
+            for tap in &self.taps {
+              if let Some(res) = tap.run(#args).await? {
+                return Ok(Some(res));
+              }
+            }
+            return Ok(None);
+          }
+
           #additional_taps
-          for tap in all_taps {
-            if let Some(res) = tap.run(#args).await? {
+          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
+            if index < self.taps.len() {
+              if let Some(res) = self.taps[index].run(#args).await? {
+                return Ok(Some(res));
+              }
+            } else if let Some(res) = additional_taps[index - self.taps.len()].run(#args).await? {
               return Ok(Some(res));
             }
           }
@@ -279,18 +318,42 @@ impl ExecKind {
       }
       Self::SeriesWaterfall { .. } => {
         quote! {
-          #additional_taps
           let mut data = #args;
-          for tap in all_taps {
-            data = tap.run(data).await?
+          if self.common.interceptor_count() == 0 {
+            for tap in &self.taps {
+              data = tap.run(data).await?
+            }
+            return Ok(data);
+          }
+
+          #additional_taps
+          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
+            if index < self.taps.len() {
+              data = self.taps[index].run(data).await?
+            } else {
+              data = additional_taps[index - self.taps.len()].run(data).await?
+            }
           }
           Ok(data)
         }
       }
       Self::Parallel => {
         quote! {
+          if self.common.interceptor_count() == 0 {
+            let futs: std::vec::Vec<_> = self.taps.iter().map(|t| t.run(#args)).collect();
+            futures_concurrency::vec::TryJoin(futs).await?;
+            return Ok(());
+          }
+
           #additional_taps
-          let futs: std::vec::Vec<_> = all_taps.iter().map(|t| t.run(#args)).collect();
+          let mut futs = std::vec::Vec::with_capacity(all_stages.len());
+          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
+            if index < self.taps.len() {
+              futs.push(self.taps[index].run(#args));
+            } else {
+              futs.push(additional_taps[index - self.taps.len()].run(#args));
+            }
+          }
           futures_concurrency::vec::TryJoin(futs).await?;
           Ok(())
         }
