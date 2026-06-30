@@ -1181,6 +1181,105 @@ export type JavascriptParserWorkerOptions =
       url?: 'new-url-relative';
     };
 
+export type ImportMetaParserOptions = {
+  [property: string]: boolean | undefined;
+
+  /**
+   * Enable/disable evaluating import.meta.dirname.
+   */
+  dirname?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.env.
+   */
+  env?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.filename.
+   */
+  filename?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.glob.
+   */
+  glob?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.main.
+   */
+  main?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.resolve.
+   */
+  resolve?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackBaseUri.
+   */
+  rspackBaseUri?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackHash.
+   */
+  rspackHash?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackInitSharing.
+   */
+  rspackInitSharing?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackNonce.
+   */
+  rspackNonce?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackPublicPath.
+   */
+  rspackPublicPath?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackRsc.
+   */
+  rspackRsc?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackShareScopes.
+   */
+  rspackShareScopes?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackUniqueId.
+   */
+  rspackUniqueId?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.rspackVersion.
+   */
+  rspackVersion?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.url.
+   */
+  url?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpack.
+   */
+  webpack?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackContext.
+   */
+  webpackContext?: boolean;
+
+  /**
+   * Enable/disable evaluating import.meta.webpackHot.
+   */
+  webpackHot?: boolean;
+};
+
 export type JavascriptParserOptions = {
   /**
    * Specifies global mode for dynamic import.
@@ -1207,9 +1306,9 @@ export type JavascriptParserOptions = {
   dynamicImportFetchPriority?: 'low' | 'high' | 'auto';
 
   /**
-   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' to preserve unknown properties for runtime evaluation.
+   * Enable or disable evaluating import.meta. Set to 'preserve-unknown' or use an object to preserve unknown properties for runtime evaluation.
    */
-  importMeta?: boolean | 'preserve-unknown';
+  importMeta?: boolean | 'preserve-unknown' | ImportMetaParserOptions;
 
   /**
    * Enable parsing of new URL() syntax.

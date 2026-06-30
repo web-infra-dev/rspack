@@ -14,7 +14,7 @@ use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap, FxHashMap as HashMap};
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
@@ -298,11 +298,12 @@ impl From<&str> for OverrideStrict {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Copy, MergeFrom)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum ImportMeta {
   PreserveUnknown,
   Enabled,
   Disabled,
+  Granular(ImportMetaOptions),
 }
 
 impl From<&str> for ImportMeta {
@@ -340,6 +341,83 @@ impl RspackHash for JavascriptParserWorkerUrl {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, Default, Eq, PartialEq, Hash)]
+pub struct ImportMetaKnownProperties(u32);
+
+macro_rules! define_import_meta_known_properties {
+  (@step ($val:expr) ({$($flags:tt)*}) ({$($properties:tt)*}) ($(#[$($attr:tt)+])* const $name:ident = $property:literal; $($rest:tt)*)) => {
+    define_import_meta_known_properties! {
+      @step ($val << 1) ({
+        $($flags)*
+        $(#[$($attr)+])*
+        const $name = $val;
+      }) ({
+        $($properties)*
+        ($name, $property);
+      }) ($($rest)*)
+    }
+  };
+  (@step ($val:expr) ({$($flags:tt)*}) ({$($properties:tt)*}) ()) => {
+    bitflags! {
+      impl ImportMetaKnownProperties: u32 {
+        $($flags)*
+      }
+    }
+
+    impl ImportMetaKnownProperties {
+      pub fn enabled_from_properties(properties: &FxHashMap<String, bool>) -> Self {
+        let mut enabled_properties = Self::all();
+        define_import_meta_known_properties! {
+          @disable (enabled_properties) (properties) $($properties)*
+        }
+        enabled_properties
+      }
+    }
+  };
+  (@disable ($enabled_properties:ident) ($properties:ident) ($name:ident, $property:literal); $($rest:tt)*) => {
+    if matches!($properties.get($property), Some(false)) {
+      $enabled_properties.remove(Self::$name);
+    }
+    define_import_meta_known_properties! {
+      @disable ($enabled_properties) ($properties) $($rest)*
+    }
+  };
+  (@disable ($enabled_properties:ident) ($properties:ident)) => {};
+  ($($rest:tt)*) => {
+    define_import_meta_known_properties! {
+      @step (1u32) ({}) ({}) ($($rest)*)
+    }
+  };
+}
+
+define_import_meta_known_properties! {
+  const DIRNAME = "dirname";
+  const FILENAME = "filename";
+  const GLOB = "glob";
+  const MAIN = "main";
+  const RESOLVE = "resolve";
+  const RSPACK_BASE_URI = "rspackBaseUri";
+  const RSPACK_HASH = "rspackHash";
+  const RSPACK_INIT_SHARING = "rspackInitSharing";
+  const RSPACK_NONCE = "rspackNonce";
+  const RSPACK_PUBLIC_PATH = "rspackPublicPath";
+  const RSPACK_RSC = "rspackRsc";
+  const RSPACK_SHARE_SCOPES = "rspackShareScopes";
+  const RSPACK_UNIQUE_ID = "rspackUniqueId";
+  const RSPACK_VERSION = "rspackVersion";
+  const URL = "url";
+  const WEBPACK = "webpack";
+  const WEBPACK_CONTEXT = "webpackContext";
+  const WEBPACK_HOT = "webpackHot";
+}
+
+impl MergeFrom for ImportMetaKnownProperties {
+  fn merge_from(self, other: &Self) -> Self {
+    *other
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserWorkerOptions {
   pub alias: Option<Vec<String>>,
@@ -352,6 +430,77 @@ impl JavascriptParserWorkerOptions {
       alias: Some(alias),
       url,
     }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ImportMetaOptions {
+  enabled_known_properties: ImportMetaKnownProperties,
+  properties: FxHashMap<String, bool>,
+}
+
+impl ImportMetaOptions {
+  pub fn new(properties: FxHashMap<String, bool>) -> Self {
+    Self {
+      enabled_known_properties: Self::enabled_known_properties(&properties),
+      properties,
+    }
+  }
+
+  fn enabled_known_properties(properties: &FxHashMap<String, bool>) -> ImportMetaKnownProperties {
+    ImportMetaKnownProperties::enabled_from_properties(properties)
+  }
+
+  pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
+    self.enabled_known_properties.contains(property)
+  }
+}
+
+impl MergeFrom for ImportMetaOptions {
+  fn merge_from(mut self, other: &Self) -> Self {
+    self.properties.extend(other.properties.clone());
+    self.enabled_known_properties = Self::enabled_known_properties(&self.properties);
+    self
+  }
+}
+
+impl Default for ImportMetaOptions {
+  fn default() -> Self {
+    Self {
+      enabled_known_properties: ImportMetaKnownProperties::all(),
+      properties: Default::default(),
+    }
+  }
+}
+
+impl ImportMeta {
+  pub fn is_enabled(&self) -> bool {
+    !matches!(self, Self::Disabled)
+  }
+
+  pub fn preserve_unknown(&self) -> bool {
+    matches!(self, Self::PreserveUnknown | Self::Granular(_))
+  }
+
+  pub fn is_known_property_enabled(&self, property: ImportMetaKnownProperties) -> bool {
+    match self {
+      Self::Disabled => false,
+      Self::Enabled | Self::PreserveUnknown => true,
+      Self::Granular(options) => options.is_known_property_enabled(property),
+    }
+  }
+
+  pub fn is_webpack_context_enabled(&self) -> bool {
+    self.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_CONTEXT)
+  }
+
+  pub fn is_glob_enabled(&self) -> bool {
+    self.is_known_property_enabled(ImportMetaKnownProperties::GLOB)
+  }
+
+  pub fn is_webpack_hot_enabled(&self) -> bool {
+    self.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
   }
 }
 

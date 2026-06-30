@@ -192,7 +192,7 @@ async fn nmf_parser(
       // force_node_shims means we want to handle CJS shims (__dirname/__filename) in ESM modules
       // So we use handle_cjs=true to enable __dirname/__filename handling
       parser.add_parser_plugin(Box::new(
-        rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin::new(true, false),
+        rspack_plugin_javascript::node_stuff_plugin::NodeStuffPlugin::new(true),
       ) as BoxJavascriptParserPlugin);
     }
   } else if parser.is::<AssetParserAndGenerator>() {

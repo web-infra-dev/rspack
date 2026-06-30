@@ -603,10 +603,7 @@ function getRawJavascriptParserOptions(
     dynamicImportPreload: parser.dynamicImportPreload?.toString(),
     dynamicImportPrefetch: parser.dynamicImportPrefetch?.toString(),
     dynamicImportFetchPriority: parser.dynamicImportFetchPriority,
-    importMeta:
-      typeof parser.importMeta === 'boolean'
-        ? String(parser.importMeta)
-        : parser.importMeta,
+    importMeta: getRawImportMeta(parser.importMeta),
     url: parser.url?.toString(),
     exprContextCritical: parser.exprContextCritical,
     unknownContextCritical: parser.unknownContextCritical,
@@ -652,6 +649,24 @@ function getRawJavascriptParserWorkerOptions(
     return { alias: worker };
   }
   return worker;
+}
+
+function getRawImportMeta(
+  importMeta: JavascriptParserOptions['importMeta'],
+): RawJavascriptParserOptions['importMeta'] {
+  if (typeof importMeta === 'boolean') {
+    return String(importMeta);
+  }
+  if (typeof importMeta === 'object' && importMeta !== null) {
+    const rawImportMeta: Record<string, boolean> = {};
+    for (const [property, value] of Object.entries(importMeta)) {
+      if (typeof value === 'boolean') {
+        rawImportMeta[property] = value;
+      }
+    }
+    return rawImportMeta;
+  }
+  return importMeta;
 }
 
 function getRawAssetParserOptions(

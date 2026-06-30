@@ -11,6 +11,7 @@ mod esm_export_dependency_parser_plugin;
 mod esm_import_dependency_parser_plugin;
 mod esm_top_level_this_plugin;
 mod import_meta_context_dependency_parser_plugin;
+mod import_meta_path;
 mod import_meta_plugin;
 mod import_parser_plugin;
 mod import_phase;

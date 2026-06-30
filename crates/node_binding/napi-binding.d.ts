@@ -2494,7 +2494,7 @@ export interface RawJavascriptParserOptions {
   reexportExportsPresence?: string
   worker?: boolean | Array<string> | RawJavascriptParserWorkerOptions
   overrideStrict?: string
-  importMeta?: string
+  importMeta?: string | Record<string, boolean>
   commonjsMagicComments?: boolean
   createRequire?: boolean | string
 commonjs?: boolean | { exports?: boolean | 'skipInEsm' }

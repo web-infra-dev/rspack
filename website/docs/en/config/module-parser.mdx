@@ -375,7 +375,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.6" />
 
-- **Type:** `boolean | 'preserve-unknown'`
+- **Type:** `boolean | 'preserve-unknown' | ImportMetaParserOptions`
 - **Default:** When using [ESM output](/guide/features/esm), the default value is `'preserve-unknown'`; otherwise, it is `true`
 
 Control whether Rspack parses and replaces `import.meta` in source code. Available values:
@@ -383,6 +383,7 @@ Control whether Rspack parses and replaces `import.meta` in source code. Availab
 - `"preserve-unknown"`: [Known `import.meta` properties](/api/runtime-api/module-variables#import-meta) are statically analyzed at compile-time, other properties are preserved and evaluated at runtime.
 - `true`: All `import.meta` properties are statically analyzed at compile-time.
 - `false`: All `import.meta` properties are evaluated at runtime.
+- `ImportMetaParserOptions`: Configure each known `import.meta` property independently. Properties set to `false` are preserved for runtime evaluation, while omitted properties keep the default enabled behavior. Unknown `import.meta` properties are preserved.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -395,6 +396,30 @@ export default {
   },
 };
 ```
+
+The object form supports the following keys:
+
+- Webpack-compatible keys: `dirname`, `env`, `filename`, `main`, `url`, `webpack`, and `webpackContext`.
+- Rspack-specific keys: `glob`, `resolve`, `rspackBaseUri`, `rspackHash`, `rspackInitSharing`, `rspackNonce`, `rspackPublicPath`, `rspackRsc`, `rspackShareScopes`, `rspackUniqueId`, and `rspackVersion`.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      javascript: {
+        importMeta: {
+          url: false,
+          webpack: true,
+          webpackContext: true,
+          rspackHash: false,
+        },
+      },
+    },
+  },
+};
+```
+
+`resolve` only controls whether an already enabled [`import.meta.resolve()`](#javascriptimportmetaresolve) expression is handled at compile time. To use `import.meta.resolve()`, you still need to enable `javascript.importMetaResolve`.
 
 ### javascript.exportsPresence
 

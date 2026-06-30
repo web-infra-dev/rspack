@@ -19,17 +19,18 @@ use rspack_core::{
   CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
   DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, JavascriptParserCommonjsExportsOption,
-  JavascriptParserCommonjsOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
-  JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions,
-  JavascriptParserWorkerUrl, JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
+  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
+  JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
+  JsonGeneratorOptions, JsonParserOptions, ModuleNoParseRule, ModuleNoParseRules,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
+  TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap, FxHashMap as HashMap};
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
@@ -299,7 +300,8 @@ pub struct RawJavascriptParserOptions {
   #[napi(ts_type = "boolean | Array<string> | RawJavascriptParserWorkerOptions")]
   pub worker: Option<Either3<bool, Vec<String>, RawJavascriptParserWorkerOptions>>,
   pub override_strict: Option<String>,
-  pub import_meta: Option<String>,
+  #[napi(ts_type = "string | Record<string, boolean>")]
+  pub import_meta: Option<Either<String, RawImportMetaOptions>>,
   pub commonjs_magic_comments: Option<bool>,
   #[napi(ts_type = "boolean | string")]
   pub create_require: Option<Either<bool, String>>,
@@ -338,6 +340,8 @@ pub struct RawJavascriptParserOptions {
   #[napi(js_name = "pureFunctions")]
   pub pure_functions: Option<Vec<String>>,
 }
+
+pub type RawImportMetaOptions = FxHashMap<String, bool>;
 
 #[napi(object)]
 #[derive(Debug)]
@@ -413,7 +417,10 @@ impl From<RawJavascriptParserOptions> for JavascriptParserOptions {
       override_strict: value
         .override_strict
         .map(|e| OverrideStrict::from(e.as_str())),
-      import_meta: value.import_meta.map(|e| ImportMeta::from(e.as_str())),
+      import_meta: value.import_meta.map(|e| match e {
+        Either::A(value) => ImportMeta::from(value.as_str()),
+        Either::B(value) => ImportMeta::Granular(ImportMetaOptions::new(value)),
+      }),
       require_alias: value.require_alias,
       require_as_expression: value.require_as_expression,
       require_dynamic: value.require_dynamic,

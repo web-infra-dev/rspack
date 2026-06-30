@@ -476,16 +476,18 @@ impl<'parser> JavascriptParser<'parser> {
     if module_type.is_js_auto() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
       plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
+      let import_meta = javascript_options
+        .import_meta
+        .clone()
+        .unwrap_or(ImportMeta::Enabled);
       plugins.push(Box::new(
-        parser_plugin::ImportMetaContextDependencyParserPlugin,
+        parser_plugin::ImportMetaContextDependencyParserPlugin {
+          webpack_context: import_meta.is_webpack_context_enabled(),
+          glob: import_meta.is_glob_enabled(),
+        },
       ));
-      if matches!(
-        javascript_options.import_meta,
-        Some(ImportMeta::Enabled | ImportMeta::PreserveUnknown)
-      ) {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
-          javascript_options.import_meta.expect("should have value"),
-        )));
+      if import_meta.is_enabled() {
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }
@@ -521,15 +523,11 @@ impl<'parser> JavascriptParser<'parser> {
       }
     }
 
-    // NodeStuffPlugin: handle __dirname/__filename/global (CJS) and import.meta.dirname/filename (ESM)
-    // CJS features require node options; ESM features are always available for ESM-capable modules
+    // NodeStuffPlugin handles __dirname/__filename/global (CJS).
     let handle_cjs =
       (module_type.is_js_auto() || module_type.is_js_dynamic()) && compiler_options.node.is_some();
-    let handle_esm = module_type.is_js_auto() || module_type.is_js_esm();
-    if handle_cjs || handle_esm {
-      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(
-        handle_cjs, handle_esm,
-      )));
+    if handle_cjs {
+      plugins.push(Box::new(parser_plugin::NodeStuffPlugin::new(handle_cjs)));
     }
 
     if module_type.is_js_auto() || module_type.is_js_dynamic() || module_type.is_js_esm() {
