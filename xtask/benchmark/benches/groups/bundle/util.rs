@@ -2,9 +2,8 @@ use std::{path::PathBuf, sync::Arc};
 
 use rspack::builder::{Builder, CompilerBuilder};
 use rspack_core::{
-  Compiler, Experiments, ExportPresenceMode, JavascriptParserOptions, Mode, ModuleOptions,
-  ModuleRule, ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, Optimization, OutputOptions,
-  ParserOptions, Resolve, RuleSetCondition,
+  Compiler, Experiments, Mode, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
+  ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
@@ -20,21 +19,7 @@ pub struct BuilderOptions {
   pub native_output_filesystem: bool,
 }
 
-#[derive(Default)]
-pub struct BuilderExtraOptions {
-  pub swc_react_runtime: Option<&'static str>,
-  pub resolve_extensions: Option<Vec<&'static str>>,
-  pub ignore_missing_reexports: bool,
-}
-
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
-  basic_compiler_builder_with_extra_options(options, BuilderExtraOptions::default())
-}
-
-pub fn basic_compiler_builder_with_extra_options(
-  options: BuilderOptions,
-  extra_options: BuilderExtraOptions,
-) -> CompilerBuilder {
   let mut builder = Compiler::builder();
 
   let benchcases_dir = std::env::var("RSPACK_BENCHCASES_DIR")
@@ -49,10 +34,6 @@ pub fn basic_compiler_builder_with_extra_options(
   } else {
     Arc::new(MemoryFileSystem::default())
   };
-  let resolve_extensions = extra_options.resolve_extensions.map_or_else(
-    || vec!["...".to_string(), ".jsx".to_string()],
-    |extensions| extensions.into_iter().map(String::from).collect(),
-  );
 
   builder
     .context(dir.to_string_lossy().to_string())
@@ -60,7 +41,7 @@ pub fn basic_compiler_builder_with_extra_options(
     .cache(rspack_core::CacheOptions::Disabled)
     .optimization(Optimization::builder().minimize(false))
     .resolve(Resolve {
-      extensions: Some(resolve_extensions),
+      extensions: Some(vec!["...".to_string(), ".jsx".to_string()]),
       ..Default::default()
     })
     .experiments(Experiments::builder().css(true))
@@ -72,42 +53,33 @@ pub fn basic_compiler_builder_with_extra_options(
   }
 
   if options.swc_loader {
-    let swc_react_runtime = extra_options.swc_react_runtime.unwrap_or("automatic");
-
     builder
       .module(ModuleOptions::builder().rule(ModuleRule {
         test: Some(RuleSetCondition::Regexp(
           RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
         )),
-        effect:
-          ModuleRuleEffect {
-            r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-              loader: "builtin:swc-loader".to_string(),
-              options: Some(
-                json!({
-                    "jsc": {
-                        "parser": {
-                            "syntax": "typescript",
-                            "tsx": true,
-                        },
-                        "transform": {
-                            "react": {
-                                "runtime": swc_react_runtime,
-                            },
-                        }
-                    },
-                })
-                .to_string(),
-              ),
-            }]),
-            parser: extra_options.ignore_missing_reexports.then_some(
-              ParserOptions::JavascriptAuto(JavascriptParserOptions {
-                reexport_exports_presence: Some(ExportPresenceMode::None),
-                ..Default::default()
-              }),
+        effect: ModuleRuleEffect {
+          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+            loader: "builtin:swc-loader".to_string(),
+            options: Some(
+              json!({
+                  "jsc": {
+                      "parser": {
+                          "syntax": "typescript",
+                          "tsx": true,
+                      },
+                      "transform": {
+                          "react": {
+                              "runtime": "automatic",
+                          },
+                      }
+                  },
+              })
+              .to_string(),
             ),
-            ..Default::default()
-          },
+          }]),
+          ..Default::default()
+        },
         ..Default::default()
       }))
       .enable_loader_swc();
