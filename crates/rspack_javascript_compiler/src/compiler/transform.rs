@@ -535,7 +535,7 @@ impl<'a> JavaScriptTransformer<'a> {
             let res = base64::decode_to_vec(content.as_bytes())
               .context("failed to decode base64-encoded source map")?;
 
-            Ok(Some(RspackSourceMap::from_bytes(res).context(
+            Ok(Some(read_rspack_source_map(res).context(
               "failed to read input source map from inlined base64 encoded \
                                 string",
             )?))
@@ -600,7 +600,7 @@ impl<'a> JavaScriptTransformer<'a> {
                 // Old behavior.
                 let content = content?;
 
-                Ok(Some(RspackSourceMap::from_bytes(content).with_context(
+                Ok(Some(read_rspack_source_map(content).with_context(
                   || {
                     format!(
                       "failed to read input source map
@@ -647,13 +647,32 @@ impl<'a> JavaScriptTransformer<'a> {
           Ok(read_sourcemap())
         } else {
           // Load source map passed by user
-          Ok(Some(RspackSourceMap::from_json(s.clone()).context(
-            "failed to read input source map from user-provided sourcemap",
-          )?))
+          Ok(Some(
+            read_rspack_source_map(s.clone().into_bytes())
+              .context("failed to read input source map from user-provided sourcemap")?,
+          ))
         }
       }
     }
   }
+}
+
+fn read_rspack_source_map(
+  mut bytes: Vec<u8>,
+) -> std::result::Result<RspackSourceMap<'static>, anyhow::Error> {
+  const SOURCE_MAP_GARBAGE_HEADER: &[u8] = b")]}'";
+
+  if bytes.starts_with(SOURCE_MAP_GARBAGE_HEADER) {
+    bytes.drain(..SOURCE_MAP_GARBAGE_HEADER.len());
+
+    if bytes.starts_with(b"\r\n") {
+      bytes.drain(..2);
+    } else if bytes.starts_with(b"\n") {
+      bytes.drain(..1);
+    }
+  }
+
+  Ok(RspackSourceMap::from_bytes(bytes)?)
 }
 
 fn get_swc_config_from_file(filename: &FileName) -> Config {
