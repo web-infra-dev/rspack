@@ -257,7 +257,6 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     if let Some(chunk_ukey) = self.chunk() {
-      let runtime_hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
       let chunk = compilation
         .build_chunk_graph_artifact
         .chunk_by_ukey
