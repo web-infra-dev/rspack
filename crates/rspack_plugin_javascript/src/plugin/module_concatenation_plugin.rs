@@ -1059,6 +1059,32 @@ impl ModuleConcatenationPlugin {
     let mut concat_configurations: Vec<ConcatConfiguration> = Vec::new();
     let mut used_as_inner: IdentifierSet = IdentifierSet::default();
     let mut imports_cache = RuntimeIdentifierCache::<Arc<[ModuleIdentifier]>>::default();
+    let side_effects_state_artifact = &compilation
+      .build_module_graph_artifact
+      .side_effects_state_artifact;
+    let side_effects_artifact_entries = side_effects_state_artifact.len();
+    let mut side_effects_artifact_add_bailouts = 0usize;
+    let mut side_effects_artifact_remove_bailouts = 0usize;
+    let mut side_effects_artifact_bailout_string_bytes = 0usize;
+    for state in side_effects_state_artifact.values() {
+      side_effects_artifact_add_bailouts += state.optimization_bailouts_to_add.len();
+      side_effects_artifact_remove_bailouts += state.optimization_bailouts_to_remove.len();
+      for item in state
+        .optimization_bailouts_to_add
+        .iter()
+        .chain(state.optimization_bailouts_to_remove.iter())
+      {
+        side_effects_artifact_bailout_string_bytes += match item {
+          OptimizationBailoutItem::Message(message) => message.len(),
+          OptimizationBailoutItem::SideEffects {
+            node_type,
+            loc,
+            short_id,
+          } => node_type.len() + loc.len() + short_id.len(),
+        };
+      }
+    }
+    let mut root_attempt_count = 0usize;
 
     let module_graph = compilation.get_module_graph();
     let module_graph_cache = &compilation.module_graph_cache_artifact;
@@ -1198,6 +1224,7 @@ impl ModuleConcatenationPlugin {
       if used_as_inner.contains(current_root) {
         continue;
       }
+      root_attempt_count += 1;
 
       let NoRuntimeModuleCache {
         runtime,
@@ -1301,6 +1328,18 @@ impl ModuleConcatenationPlugin {
     }
 
     logger.time_end(start);
+    eprintln!(
+      "RSPACK_PURE_STATS context={} pure_functions={} potential_roots={} potential_inners={} root_attempt_count={} side_effects_entries={} side_effects_add_bailouts={} side_effects_remove_bailouts={} side_effects_bailout_string_bytes={}",
+      compilation.options.context,
+      compilation.options.experiments.pure_functions,
+      relevant_modules.len(),
+      possible_inners.len(),
+      root_attempt_count,
+      side_effects_artifact_entries,
+      side_effects_artifact_add_bailouts,
+      side_effects_artifact_remove_bailouts,
+      side_effects_artifact_bailout_string_bytes,
+    );
 
     rayon::spawn(move || drop(modules_without_runtime_cache));
 

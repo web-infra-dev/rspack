@@ -23,6 +23,7 @@ pub struct BuilderOptions {
   pub resolve_alias: Option<Vec<(&'static str, &'static str)>>,
   pub resolve_extensions: Option<Vec<&'static str>>,
   pub ignore_missing_reexports: bool,
+  pub pure_functions: Option<bool>,
 }
 
 pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
@@ -60,6 +61,12 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
     |extensions| extensions.into_iter().map(String::from).collect(),
   );
 
+  let mut experiments = Experiments::builder();
+  experiments.css(true);
+  if let Some(pure_functions) = options.pure_functions {
+    experiments.pure_functions(pure_functions);
+  }
+
   builder
     .context(dir.to_string_lossy().to_string())
     .entry("main", options.entry)
@@ -70,7 +77,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
       alias: resolve_alias,
       ..Default::default()
     })
-    .experiments(Experiments::builder().css(true))
+    .experiments(experiments)
     .input_filesystem(Arc::new(NativeFileSystem::new(false)))
     .output_filesystem(output_filesystem);
 

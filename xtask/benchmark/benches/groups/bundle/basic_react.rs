@@ -13,5 +13,6 @@ pub fn compiler() -> CompilerBuilder {
     resolve_alias: None,
     resolve_extensions: None,
     ignore_missing_reexports: false,
+    pure_functions: None,
   })
 }

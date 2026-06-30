@@ -16,6 +16,8 @@ pub mod build_module_graph;
 pub mod bundle_basic_react_development;
 pub mod bundle_basic_react_production_sourcemap;
 pub mod bundle_misc_production_sourcemap;
+pub mod bundle_misc_pure_functions_off_production_sourcemap;
+pub mod bundle_misc_pure_functions_on_production_sourcemap;
 pub mod bundle_threejs_development;
 pub mod bundle_threejs_production_sourcemap;
 pub mod module_graph_api;

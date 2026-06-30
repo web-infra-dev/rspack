@@ -3742,6 +3742,12 @@ impl ExperimentsBuilder {
     self
   }
 
+  /// Set whether to enable pure functions.
+  pub fn pure_functions(&mut self, pure_functions: bool) -> &mut Self {
+    self.pure_functions = Some(pure_functions);
+    self
+  }
+
   /// Build [`Experiments`] from options.
   ///
   /// [`Experiments`]: rspack_core::options::Experiments
