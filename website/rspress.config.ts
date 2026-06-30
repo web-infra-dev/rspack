@@ -30,6 +30,9 @@ export default defineConfig({
   lang: 'en',
   globalStyles: path.join(__dirname, 'theme', 'index.css'),
   markdown: {
+    link: {
+      checkAnchors: true,
+    },
     shiki: {
       transformers: [transformerNotationHighlight(), transformerNotationDiff()],
       langAlias: {
