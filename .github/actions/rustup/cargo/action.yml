@@ -23,13 +23,29 @@ runs:
         cache-workspace-crates: 'true'
         cache-all-crates: 'true'
 
-    - name: Cache to local
-      uses: rstackjs/rust-cache@294670d9b2e7123011ba691897c24a5ee48cb816 # v0.0.3
+    - name: Setup sccache env
       if: ${{ runner.environment == 'self-hosted' }}
-      with:
-        prefix-key: 'RCache-L-9'
-        shared-key: ${{ inputs.key }}
-        save-if: ${{ inputs.save-if }}
-        fullmatch-only: 'true'
-        cache-workspace-crates: 'true'
-        cache-all-crates: 'true'
+      shell: bash
+      run: |
+        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+        echo "SCCACHE_S3_KEY_PREFIX=caches/${{ github.repository }}-sccache-V-1/${{ runner.os }}" >> "$GITHUB_ENV"
+
+        # Force vergen's output to be idempotent to improve cache hit rate
+        echo "VERGEN_IDEMPOTENT=1" >> "$GITHUB_ENV"
+
+        # Windows: keep proc-macro DLLs and rmeta (single-thread frontend)
+        # reproducible cross-pod
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          echo "LINK=-Brepro" >> "$GITHUB_ENV"
+          sed -i 's/-Zthreads=8/-Zthreads=1/' .cargo/config.toml
+        fi
+
+    - name: Setup sccache
+      if: ${{ runner.environment == 'self-hosted' }}
+      uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+
+    - name: Reset sccache server
+      if: ${{ runner.environment == 'self-hosted' }}
+      shell: bash
+      run: |
+        "${SCCACHE_PATH:-sccache}" --stop-server || true
