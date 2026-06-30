@@ -316,7 +316,7 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       if let Either::Right(index) = &index_or_name {
         let min_size = &groups[*index].min_size;
         if match_group
-          .get_sizes(&module_sizes, !min_size.is_empty_or_zero())
+          .get_sizes(&module_sizes, !min_size.is_empty())
           .smaller_than(min_size)
         {
           return None;

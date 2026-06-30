@@ -120,10 +120,6 @@ impl SplitChunkSizes {
     )
   }
 
-  pub fn is_empty_or_zero(&self) -> bool {
-    self.values().all(|size| *size == 0.0)
-  }
-
   /// Port https://github.com/webpack/webpack/blob/c1a5e4fdeef6c64b4f5624830de7abdecba6301a/lib/optimize/SplitChunksPlugin.js#L283-L290
   pub fn merge(mut self, other: &Self) -> Self {
     other.iter().for_each(|(ty, size)| {

@@ -135,18 +135,14 @@ impl SplitChunksPlugin {
       .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
-        if cache_group.min_size.is_empty_or_zero() {
-          let chunks_len = module_group.chunks.len();
-          let sizes = module_group.get_sizes(module_sizes, false);
+        if cache_group.min_size.is_empty() {
+          let _ = module_group.get_sizes(module_sizes, false);
           tracing::debug!(
             "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",
             module_group_key,
             cache_group.key,
           );
-          if Self::check_min_size_reduction(sizes, &cache_group.min_size_reduction, chunks_len) {
-            return None;
-          }
-          return Some(module_group_key.clone());
+          return None;
         }
 
         if remove_min_size_violating_modules(

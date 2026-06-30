@@ -664,18 +664,21 @@ impl SplitChunksPlugin {
           .intersection(used_chunks)
           .next()?;
 
-        let need_remove = other_module_group
-          .modules
-          .intersection(&current_module_group.modules)
-          .copied()
-          .collect::<Vec<_>>();
+        let module_count = other_module_group.modules.len();
 
-        if need_remove.is_empty() {
+        let duplicated_modules = if other_module_group.modules.len() > current_module_group.modules.len() {
+          current_module_group.modules.intersection(&other_module_group.modules).copied().collect::<Vec<_>>()
+        } else {
+          other_module_group.modules.intersection(&current_module_group.modules).copied().collect::<Vec<_>>()
+        };
+
+        for module in duplicated_modules {
+          other_module_group.remove_module(module);
+        }
+
+        if module_count == other_module_group.modules.len() {
           // nothing is removed
           return None;
-        }
-        for module in need_remove {
-          other_module_group.remove_module(module);
         }
 
         if other_module_group.modules.is_empty() {
@@ -705,19 +708,6 @@ impl SplitChunksPlugin {
             "{key} is deleted for each_module_group.chunks.len()({:?}) < cache_group.min_chunks({:?})",
             other_module_group.chunks.len(),
             cache_group.min_chunks
-          );
-          return Some(key.clone());
-        }
-
-        if cache_group.min_size.is_empty_or_zero() {
-          let chunks_len = other_module_group.chunks.len();
-          let sizes = other_module_group.get_sizes(module_sizes, false);
-          if Self::check_min_size_reduction(sizes, &cache_group.min_size_reduction, chunks_len) {
-            return None;
-          }
-          tracing::trace!(
-            "{key} is deleted for violating min_size {:#?}",
-            cache_group.min_size,
           );
           return Some(key.clone());
         }
