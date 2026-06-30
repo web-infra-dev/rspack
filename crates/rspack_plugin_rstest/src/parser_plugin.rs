@@ -172,7 +172,6 @@ impl RstestParserPlugin {
             Some(call_expr.span.into()),
             parser.in_try,
             loc,
-            None,
           );
           parser.add_dependency(Box::new(dep));
 
@@ -227,7 +226,6 @@ impl RstestParserPlugin {
           let dep = Box::new(ImportDependency::new(
             Atom::from(lit.value.to_string_lossy().as_ref()),
             range,
-            None,
             Some(attrs),
             ImportPhase::Evaluation,
             parser.in_try,
@@ -562,7 +560,6 @@ impl RstestParserPlugin {
                 let dep = Box::new(ImportDependency::new(
                   Atom::from(mocked_target),
                   range,
-                  None,
                   Some(attrs),
                   ImportPhase::Evaluation,
                   parser.in_try,
@@ -594,7 +591,6 @@ impl RstestParserPlugin {
                   Some(call_expr.span.into()),
                   parser.in_try,
                   loc,
-                  None,
                 );
 
                 let callee_range = call_expr.callee.span().into();
