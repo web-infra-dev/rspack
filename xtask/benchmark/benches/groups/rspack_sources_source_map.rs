@@ -1,4 +1,5 @@
 #![allow(missing_docs)]
+#![allow(clippy::large_include_file)]
 #![allow(clippy::unwrap_used)]
 
 use criterion::Bencher;

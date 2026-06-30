@@ -246,7 +246,7 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
 
   pub async fn call_register(
     &self,
-    hook: &impl Hook,
+    hook: &(impl Hook + Sync),
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     if let RegisterJsTapsCache::Cache(rw) = &self.cache {
       let cache = {
@@ -273,7 +273,7 @@ impl<T: 'static + ToNapiValue, R: 'static + FromNapiValue> RegisterJsTapsInner<T
 
   async fn call_register_impl(
     &self,
-    hook: &impl Hook,
+    hook: &(impl Hook + Sync),
   ) -> rspack_error::Result<RegisterFunctionOutput<T, R>> {
     let mut used_stages = Vec::from_iter(hook.used_stages());
     used_stages.sort_unstable();

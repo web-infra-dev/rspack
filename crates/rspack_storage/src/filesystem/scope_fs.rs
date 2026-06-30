@@ -144,9 +144,14 @@ impl ScopeFileSystem {
   ///
   /// If the file already exists, it will be deleted first
   pub async fn stream_write(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Writer> {
-    let _ = self.remove_file(&relative_path).await;
-
     let path = self.workspace.join(relative_path);
+    if let Err(e) = self.fs.remove_file(&path).await {
+      let e: Error = e.into();
+      if !e.is_not_found() {
+        return Err(e);
+      }
+    }
+
     self
       .fs
       .create_dir_all(path.parent().expect("should have parent"))
