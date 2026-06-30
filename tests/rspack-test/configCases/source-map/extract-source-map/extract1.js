@@ -8,7 +8,11 @@ require("./no-source-map");
 it("should extract source map - 1", () => {
 	const fileData = fs.readFileSync(__filename + ".map").toString("utf-8");
 	const { sources } = JSON.parse(fileData);
-	expect(sources).toContain("webpack:///./extract1.js");
-	expect(sources).toContain("webpack:///./charset-inline-source-map.txt");
-	expect(sources).toContain("webpack:///./no-source-map.js");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	expect(sources).toContain(sourceUrl("./extract1.js"));
+	expect(sources).toContain(sourceUrl("./charset-inline-source-map.txt"));
+	expect(sources).toContain(sourceUrl("./no-source-map.js"));
 });

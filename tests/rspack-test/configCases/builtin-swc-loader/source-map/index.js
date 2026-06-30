@@ -9,7 +9,11 @@ it("should generate correct sourceMap", async () => {
 		__dirname + "/" + require("!!./a.ts?resource"),
 		"utf-8"
 	);
-	const aSourceIndex = map.sources.indexOf("webpack:///./a.ts");
+	let aSource = "webpack:///./a.ts";
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		aSource = "rspack:///./a.ts";
+	}
+	const aSourceIndex = map.sources.indexOf(aSource);
 	expect(aSourceIndex).toBeGreaterThanOrEqual(0);
 	expect(map.sourcesContent[aSourceIndex]).toEqual(sourceContent);
 

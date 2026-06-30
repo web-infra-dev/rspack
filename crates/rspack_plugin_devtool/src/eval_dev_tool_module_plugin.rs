@@ -18,7 +18,8 @@ use rspack_plugin_javascript::{
 use rspack_util::{fx_hash::FxDashMap, json_stringify_str};
 
 use crate::{
-  ModuleFilenameTemplate, SourceReference, module_filename_helpers::ModuleFilenameHelpers,
+  ModuleFilenameTemplate, SourceReference, default_eval_module_filename_template,
+  module_filename_helpers::ModuleFilenameHelpers,
 };
 
 #[derive(Clone, Debug)]
@@ -37,7 +38,7 @@ pub struct EvalDevToolModulePlugin {
   namespace: String,
   source_url_comment: String,
   #[debug(skip)]
-  module_filename_template: ModuleFilenameTemplate,
+  module_filename_template: Option<ModuleFilenameTemplate>,
   cache: FxDashMap<BoxSource, BoxSource>,
 }
 
@@ -49,17 +50,10 @@ impl EvalDevToolModulePlugin {
       .source_url_comment
       .unwrap_or("\n//# sourceURL=[url]".to_string());
 
-    let module_filename_template =
-      options
-        .module_filename_template
-        .unwrap_or(ModuleFilenameTemplate::String(
-          "webpack://[namespace]/[resource-path]?[hash]".to_string(),
-        ));
-
     Self::new_inner(
       namespace,
       source_url_comment,
-      module_filename_template,
+      options.module_filename_template,
       Default::default(),
     )
   }
@@ -121,7 +115,13 @@ async fn render_module_content(
   let namespace = compilation.get_path(&filename, path_data).await?;
 
   let output_options = &compilation.options.output;
-  let str = match &self.module_filename_template {
+  let default_module_filename_template =
+    default_eval_module_filename_template(compilation.options.experiments.runtime_mode);
+  let module_filename_template = self
+    .module_filename_template
+    .as_ref()
+    .unwrap_or(default_module_filename_template);
+  let str = match module_filename_template {
     ModuleFilenameTemplate::String(s) => ModuleFilenameHelpers::create_filename_of_string_template(
       &SourceReference::Module(module.identifier()),
       compilation,

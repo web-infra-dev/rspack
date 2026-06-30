@@ -55,7 +55,10 @@ module.exports = {
             const assetPath = path.join(outputPath, assetFilename);
             const sourceMap = readInlineSourceMap(assetPath);
             const realSources = sourceMap.sources
-              .filter((s) => !s.startsWith('webpack://'))
+              .filter(
+                (s) =>
+                  !s.startsWith('webpack://') && !s.startsWith('rspack://'),
+              )
               .sort();
 
             realSources.forEach((s) => {

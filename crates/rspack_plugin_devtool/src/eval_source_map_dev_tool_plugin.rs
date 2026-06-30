@@ -25,7 +25,8 @@ use rspack_util::{
 
 use crate::{
   ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
-  generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
+  default_eval_module_filename_template, generate_debug_id::generate_debug_id,
+  module_filename_helpers::ModuleFilenameHelpers,
 };
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -36,7 +37,7 @@ pub struct EvalSourceMapDevToolPlugin {
   columns: bool,
   no_sources: bool,
   #[debug(skip)]
-  module_filename_template: ModuleFilenameTemplate,
+  module_filename_template: Option<ModuleFilenameTemplate>,
   namespace: String,
   source_root: Option<String>,
   debug_ids: bool,
@@ -51,19 +52,12 @@ pub struct EvalSourceMapDevToolPlugin {
 
 impl EvalSourceMapDevToolPlugin {
   pub fn new(options: SourceMapDevToolPluginOptions) -> Self {
-    let module_filename_template =
-      options
-        .module_filename_template
-        .unwrap_or(ModuleFilenameTemplate::String(
-          "webpack://[namespace]/[resource-path]?[hash]".to_string(),
-        ));
-
     let namespace = options.namespace.unwrap_or_default();
 
     Self::new_inner(
       options.columns,
       options.no_sources,
-      module_filename_template,
+      options.module_filename_template,
       namespace,
       options.source_root,
       options.debug_ids,
@@ -149,7 +143,10 @@ async fn render_module_content(
 
       {
         let modules = map.sources().iter().map(|source| {
-          if let Some(stripped) = source.strip_prefix("webpack://") {
+          if let Some(stripped) = source
+            .strip_prefix("webpack://")
+            .or_else(|| source.strip_prefix("rspack://"))
+          {
             let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
             let identifier = ModuleIdentifier::from(source.as_str());
             match compilation
@@ -174,7 +171,13 @@ async fn render_module_content(
         let filename = Filename::from(self.namespace.as_str());
         let namespace = compilation.get_path(&filename, path_data).await?;
 
-        let module_filenames = match &self.module_filename_template {
+        let default_module_filename_template =
+          default_eval_module_filename_template(compilation.options.experiments.runtime_mode);
+        let module_filename_template = self
+          .module_filename_template
+          .as_ref()
+          .unwrap_or(default_module_filename_template);
+        let module_filenames = match module_filename_template {
           ModuleFilenameTemplate::String(s) => modules
             .map(|source_reference| {
               ModuleFilenameHelpers::create_filename_of_string_template(

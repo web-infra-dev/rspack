@@ -38,7 +38,8 @@ use thread_local::ThreadLocal;
 use url::Url;
 
 use crate::{
-  ModuleFilenameTemplateFn, SourceReference, generate_debug_id::generate_debug_id,
+  ModuleFilenameTemplateFn, SourceReference, default_source_map_fallback_module_filename_template,
+  default_source_map_module_filename_template, generate_debug_id::generate_debug_id,
   module_filename_helpers::ModuleFilenameHelpers,
 };
 
@@ -123,7 +124,10 @@ fn compute_source_references(
     .sources()
     .iter()
     .map(|source_name| {
-      if let Some(stripped) = source_name.strip_prefix("webpack://") {
+      if let Some(stripped) = source_name
+        .strip_prefix("webpack://")
+        .or_else(|| source_name.strip_prefix("rspack://"))
+      {
         let source_name = make_paths_absolute(compilation.options.context.as_str(), stripped);
         let identifier = ModuleIdentifier::from(source_name.as_str());
         match compilation
@@ -297,9 +301,9 @@ pub struct SourceMapDevToolPlugin {
   source_mapping_url_comment: Option<SourceMappingUrlComment>,
   file_context: Option<String>,
   #[debug(skip)]
-  module_filename_template: ModuleFilenameTemplate,
+  module_filename_template: Option<ModuleFilenameTemplate>,
   #[debug(skip)]
-  fallback_module_filename_template: ModuleFilenameTemplate,
+  fallback_module_filename_template: Option<ModuleFilenameTemplate>,
   namespace: String,
   columns: bool,
   no_sources: bool,
@@ -344,14 +348,6 @@ impl SourceMapDevToolPlugin {
         "\n//# sourceMappingURL=[url]".to_string(),
       )),
     };
-
-    let fallback_module_filename_template = fallback_module_filename_template.unwrap_or(
-      ModuleFilenameTemplate::String("webpack://[namespace]/[resourcePath]?[hash]".to_string()),
-    );
-
-    let module_filename_template = module_filename_template.unwrap_or(
-      ModuleFilenameTemplate::String("webpack://[namespace]/[resourcePath]".to_string()),
-    );
 
     let source_map_filename = filename.map(Filename::from);
     let namespace = namespace.unwrap_or_default();
@@ -521,8 +517,14 @@ impl SourceMapDevToolPlugin {
       exclude: self.exclude.as_ref(),
     };
     let tls = ThreadLocal::new();
+    let default_module_filename_template =
+      default_source_map_module_filename_template(compilation.options.experiments.runtime_mode);
+    let module_filename_template = self
+      .module_filename_template
+      .as_ref()
+      .unwrap_or(default_module_filename_template);
 
-    let results: Vec<Result<Option<TaskAndSourceNames>>> = match &self.module_filename_template {
+    let results: Vec<Result<Option<TaskAndSourceNames>>> = match module_filename_template {
       ModuleFilenameTemplate::String(template) => rspack_parallel::scope::<
         _,
         Result<Option<TaskAndSourceNames>>,
@@ -753,6 +755,14 @@ impl SourceMapDevToolPlugin {
       reference_to_source_name_mapping.len(),
       Default::default(),
     );
+    let default_fallback_module_filename_template =
+      default_source_map_fallback_module_filename_template(
+        compilation.options.experiments.runtime_mode,
+      );
+    let fallback_module_filename_template = self
+      .fallback_module_filename_template
+      .as_ref()
+      .unwrap_or(default_fallback_module_filename_template);
 
     // Sort source references by identifier length so the shorter canonical resource wins first.
     // A CSS file can appear twice in the same source map: once as the extracted CSS module and
@@ -781,7 +791,7 @@ impl SourceMapDevToolPlugin {
       }
 
       let unresolved_source_map_path = &source_name_entry.unresolved_source_map_path;
-      let new_source_name = match &self.fallback_module_filename_template {
+      let new_source_name = match fallback_module_filename_template {
         ModuleFilenameTemplate::String(s) => {
           ModuleFilenameHelpers::create_filename_of_string_template(
             source_reference,
