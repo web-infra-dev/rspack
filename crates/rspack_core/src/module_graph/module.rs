@@ -1,6 +1,9 @@
-use std::fmt;
+use std::{fmt, sync::Arc};
 
-use rspack_cacheable::{cacheable, with::Skip};
+use rspack_cacheable::{
+  cacheable,
+  with::{AsInner, Skip},
+};
 use rustc_hash::FxHashSet;
 
 use crate::{DependencyId, ModuleIdentifier, ModuleIssuer};
@@ -38,10 +41,11 @@ impl fmt::Display for OptimizationBailoutItem {
 #[derive(Debug, Clone)]
 pub struct ModuleGraphModule {
   // edges from module to module
-  outgoing_connections: FxHashSet<DependencyId>,
+  #[cacheable(with=AsInner)]
+  outgoing_connections: Arc<FxHashSet<DependencyId>>,
   // incoming connections will regenerate by persistent cache recovery.
   #[cacheable(with=Skip)]
-  incoming_connections: FxHashSet<DependencyId>,
+  incoming_connections: Arc<FxHashSet<DependencyId>>,
 
   issuer: ModuleIssuer,
 
@@ -49,7 +53,8 @@ pub struct ModuleGraphModule {
   pub module_identifier: ModuleIdentifier,
   // an quick way to get a module's all dependencies (including its blocks' dependencies)
   // and it is ordered by dependency creation order
-  all_dependencies: Vec<DependencyId>,
+  #[cacheable(with=AsInner)]
+  all_dependencies: Arc<Vec<DependencyId>>,
   pub(crate) pre_order_index: Option<u32>,
   pub post_order_index: Option<u32>,
   pub depth: Option<usize>,
@@ -73,19 +78,19 @@ impl ModuleGraphModule {
   }
 
   pub fn add_incoming_connection(&mut self, dependency_id: DependencyId) {
-    self.incoming_connections.insert(dependency_id);
+    Arc::make_mut(&mut self.incoming_connections).insert(dependency_id);
   }
 
   pub fn remove_incoming_connection(&mut self, dependency_id: &DependencyId) {
-    self.incoming_connections.remove(dependency_id);
+    Arc::make_mut(&mut self.incoming_connections).remove(dependency_id);
   }
 
   pub fn add_outgoing_connection(&mut self, dependency_id: DependencyId) {
-    self.outgoing_connections.insert(dependency_id);
+    Arc::make_mut(&mut self.outgoing_connections).insert(dependency_id);
   }
 
   pub fn remove_outgoing_connection(&mut self, dependency_id: &DependencyId) {
-    self.outgoing_connections.remove(dependency_id);
+    Arc::make_mut(&mut self.outgoing_connections).remove(dependency_id);
   }
 
   pub fn incoming_connections(&self) -> &FxHashSet<DependencyId> {
@@ -97,11 +102,11 @@ impl ModuleGraphModule {
   }
 
   pub fn all_dependencies(&self) -> &[DependencyId] {
-    &self.all_dependencies
+    self.all_dependencies.as_slice()
   }
 
   pub(crate) fn all_dependencies_mut(&mut self) -> &mut Vec<DependencyId> {
-    &mut self.all_dependencies
+    Arc::make_mut(&mut self.all_dependencies)
   }
 
   pub fn set_issuer_if_unset(&mut self, issuer: Option<ModuleIdentifier>) {
@@ -120,5 +125,36 @@ impl ModuleGraphModule {
 
   pub(crate) fn optimization_bailout_mut(&mut self) -> &mut Vec<OptimizationBailoutItem> {
     &mut self.optimization_bailout
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn cloned_module_graph_module_mutations_do_not_affect_original() {
+    let first = DependencyId::from(1);
+    let second = DependencyId::from(2);
+
+    let mut original = ModuleGraphModule::new(ModuleIdentifier::from("original"));
+    original.add_outgoing_connection(first);
+    original.add_incoming_connection(first);
+    original.all_dependencies_mut().push(first);
+
+    let mut cloned = original.clone();
+    cloned.add_outgoing_connection(second);
+    cloned.remove_incoming_connection(&first);
+    cloned.all_dependencies_mut().push(second);
+
+    assert!(original.outgoing_connections().contains(&first));
+    assert!(!original.outgoing_connections().contains(&second));
+    assert!(original.incoming_connections().contains(&first));
+    assert_eq!(original.all_dependencies(), &[first]);
+
+    assert!(cloned.outgoing_connections().contains(&first));
+    assert!(cloned.outgoing_connections().contains(&second));
+    assert!(!cloned.incoming_connections().contains(&first));
+    assert_eq!(cloned.all_dependencies(), &[first, second]);
   }
 }
