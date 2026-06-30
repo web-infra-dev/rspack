@@ -1,9 +1,8 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  BoxDependencyTemplate, BuildMetaDefaultObject, BuildMetaExportsType, ContextDependency,
-  ContextMode, ContextOptions, Dependency, DependencyCategory, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  BoxDependencyTemplate, BuildMetaDefaultObject, ContextDependency, ContextMode, ContextOptions,
+  Dependency, DependencyCategory, RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_util::{SpanExt, atom::Atom};
 use rustc_hash::FxHashMap;
@@ -377,8 +376,10 @@ impl AMDDefineDependencyParserPlugin {
       // DynamicExports.bailout(parser.state);
       //  TODO: consider how to share this code
       if parser.parser_exports_state.is_some_and(|x| x) {
-        parser.build_meta.exports_type = BuildMetaExportsType::Unset;
-        parser.build_meta.default_object = BuildMetaDefaultObject::False;
+        parser.build_meta.clear_exports_type();
+        parser
+          .build_meta
+          .set_default_object(BuildMetaDefaultObject::False);
       }
       parser.parser_exports_state = Some(false);
     }

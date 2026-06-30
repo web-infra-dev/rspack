@@ -1,5 +1,3 @@
-use std::hash::Hash;
-
 use rspack_core::{
   ChunkCodeTemplate, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
   ExportProvided, ExportsType, LibraryOptions, ModuleGraph, ModuleIdentifier, Plugin,
@@ -8,7 +6,7 @@ use rspack_core::{
   to_identifier, to_module_export_name,
 };
 use rspack_error::{Result, error_bail};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderStartup, JsPlugin, RenderSource,

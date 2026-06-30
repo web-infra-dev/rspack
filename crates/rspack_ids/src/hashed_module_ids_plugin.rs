@@ -1,5 +1,3 @@
-use std::hash::Hasher;
-
 use rspack_core::{
   ChunkGraph, Compilation, CompilationModuleIds, ModuleIdsArtifact, Plugin,
   incremental::IncrementalPasses,

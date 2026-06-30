@@ -5,7 +5,8 @@ use rspack_core::{
   DependencyId, ExportNameOrSpec, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec,
   ExportsSpec, ModuleGraph, ModuleGraphCacheArtifact, RuntimeSpec,
 };
-use rspack_util::{ext::DynHash, itoa};
+use rspack_hash::{RspackHash, RspackHashable};
+use rspack_util::itoa;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -57,11 +58,11 @@ impl AsContextDependency for JsonExportsDependency {}
 impl DependencyCodeGeneration for JsonExportsDependency {
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.data.to_string().dyn_hash(hasher);
+    self.data.to_string().hash(hasher);
   }
 }
 

@@ -1,7 +1,7 @@
 use std::{
   collections::{BTreeMap, BTreeSet},
-  fmt::Debug,
-  hash::{BuildHasherDefault, Hash},
+  fmt::{Debug, Display, Formatter},
+  hash::BuildHasherDefault,
   sync::atomic::AtomicU32,
 };
 
@@ -9,8 +9,9 @@ use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
 use rspack_error::Result;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
-use rspack_util::ext::{DynHash, IntoAny};
+use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
 
@@ -48,6 +49,56 @@ impl InitFragmentKey {
     Self::Unique(
       NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
     )
+  }
+}
+
+impl RspackHashable for InitFragmentKey {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      InitFragmentKey::Unique(id) => {
+        "unique".hash(state);
+        id.hash(state);
+      }
+      InitFragmentKey::ESMImport(value) => {
+        "esm-import".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ESMExportStar(value) => {
+        "esm-export-star".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ESMExports => "esm-exports".hash(state),
+      InitFragmentKey::CommonJsExports(value) => {
+        "commonjs-exports".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ModuleExternal(value) => {
+        "module-external".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ExternalModule(value) => {
+        "external-module".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::AwaitDependencies => "await-dependencies".hash(state),
+      InitFragmentKey::ESMCompatibility => "esm-compatibility".hash(state),
+      InitFragmentKey::ModuleDecorator(value) => {
+        "module-decorator".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ESMFakeNamespaceObjectFragment(value) => {
+        "esm-fake-namespace-object".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::ESMDeferImportNamespaceObjectFragment(value) => {
+        "esm-defer-import-namespace-object".hash(state);
+        value.hash(state);
+      }
+      InitFragmentKey::Const(value) => {
+        "const".hash(state);
+        value.hash(state);
+      }
+    }
   }
 }
 
@@ -164,7 +215,7 @@ pub trait InitFragmentRenderContext {
   fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
 }
 
-pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
+pub trait InitFragment<C>: IntoAny + RspackHashable + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
   fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents>;
 
@@ -181,12 +232,6 @@ pub trait InitFragment<C>: IntoAny + DynHash + DynClone + Debug + Sync + Send {
 
 clone_trait_object!(InitFragment<GenerateContext<'_>>);
 clone_trait_object!(InitFragment<ChunkRenderContext>);
-
-impl<C> Hash for dyn InitFragment<C> + '_ {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-    self.dyn_hash(state)
-  }
-}
 
 pub trait InitFragmentExt<C> {
   fn boxed(self) -> Box<dyn InitFragment<C>>;
@@ -207,6 +252,32 @@ pub enum InitFragmentStage {
   StageProvides,
   StageAsyncDependencies,
   StageAsyncESMImports,
+}
+
+impl RspackHashable for InitFragmentStage {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
+impl InitFragmentStage {
+  fn as_str(self) -> &'static str {
+    match self {
+      InitFragmentStage::StageConstants => "constants",
+      InitFragmentStage::StageAsyncBoundary => "async-boundary",
+      InitFragmentStage::StageESMExports => "esm-exports",
+      InitFragmentStage::StageESMImports => "esm-imports",
+      InitFragmentStage::StageProvides => "provides",
+      InitFragmentStage::StageAsyncDependencies => "async-dependencies",
+      InitFragmentStage::StageAsyncESMImports => "async-esm-imports",
+    }
+  }
+}
+
+impl Display for InitFragmentStage {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
 }
 
 /// InitFragment.addToSource
@@ -291,7 +362,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, rspack_hash::RspackHashable)]
 pub struct NormalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -350,13 +421,28 @@ impl<C> InitFragment<C> for NormalInitFragment {
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub enum ESMExportBinding {
   Getter(Atom),
   Value(Atom),
 }
 
-#[derive(Debug, Clone, Hash)]
+impl RspackHashable for ESMExportBinding {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      ESMExportBinding::Getter(value) => {
+        "getter".hash(state);
+        value.hash(state);
+      }
+      ESMExportBinding::Value(value) => {
+        "value".hash(state);
+        value.hash(state);
+      }
+    }
+  }
+}
+
+#[derive(Debug, Clone, rspack_hash::RspackHashable)]
 pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
@@ -467,7 +553,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 pub struct AwaitDependenciesInitFragment {
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
 }
@@ -481,6 +567,14 @@ impl AwaitDependenciesInitFragment {
     let mut promises = LinkedHashSet::default();
     promises.insert(promise);
     Self { promises }
+  }
+}
+
+impl RspackHashable for AwaitDependenciesInitFragment {
+  fn hash(&self, state: &mut RspackHash) {
+    for promise in &self.promises {
+      promise.hash(state);
+    }
   }
 }
 
@@ -523,7 +617,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
   }
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, rspack_hash::RspackHashable)]
 pub struct ConditionalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -639,7 +733,7 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
   )
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, rspack_hash::RspackHashable)]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
   // webpack also supports `ImportSpecifiers` but not ever used.

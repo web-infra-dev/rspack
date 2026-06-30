@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::Arc};
+use std::sync::Arc;
 
 use rspack_core::{
   AssetInfo, CachedConstDependencyTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
@@ -496,12 +496,12 @@ async fn content_hash(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .expect_get(chunk_ukey);
-  let mut hasher = hashes
+  let hasher = hashes
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
-    chunk.id().hash(&mut hasher);
+    chunk.id().hash(hasher);
   }
 
   let module_graph = compilation.get_module_graph();
@@ -524,8 +524,8 @@ async fn content_hash(
     })
     .for_each(|(current, id)| {
       if let Some(current) = current {
-        current.hash(&mut hasher);
-        id.hash(&mut hasher);
+        current.hash(hasher);
+        id.hash(hasher);
       }
     });
 
@@ -538,7 +538,7 @@ async fn content_hash(
       .runtime_modules_hash
       .get(runtime_module_identifier)
     {
-      hash.hash(&mut hasher);
+      hash.hash(hasher);
     }
   }
 

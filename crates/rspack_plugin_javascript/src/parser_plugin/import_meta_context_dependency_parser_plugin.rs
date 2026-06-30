@@ -395,7 +395,7 @@ fn create_import_meta_glob_dependency(
     .as_ref()
     .filter(|import| import.as_str() != "*")
     .map(|import| vec![ReferencedSpecifier::new(vec![Atom::from(import.as_str())])]);
-  let namespace_object = if parser.build_meta.strict_esm_module {
+  let namespace_object = if parser.build_meta.strict_esm_module() {
     ContextNameSpaceObject::Strict
   } else {
     ContextNameSpaceObject::Bool(true)

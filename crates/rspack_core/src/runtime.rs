@@ -4,6 +4,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
+use rspack_hash::RspackHash;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rustc_hash::FxHashMap;
@@ -12,10 +13,11 @@ use ustr::{Ustr, UstrSet};
 use crate::{EntryOptions, EntryRuntime};
 
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, rspack_hash::RspackHashable)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]
 pub struct RuntimeSpec {
   #[cacheable(with=AsVec<AsRefStr>)]
+  #[rspack_hash(skip)]
   inner: UstrSet,
   key: String,
 }
@@ -197,15 +199,11 @@ pub enum RuntimeCondition {
   Spec(RuntimeSpec),
 }
 
-impl std::hash::Hash for RuntimeCondition {
-  fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+impl rspack_hash::RspackHashable for RuntimeCondition {
+  fn hash(&self, state: &mut RspackHash) {
     match self {
-      Self::Boolean(v) => v.hash(state),
-      Self::Spec(s) => {
-        for i in s.iter() {
-          i.hash(state);
-        }
-      }
+      RuntimeCondition::Boolean(value) => value.hash(state),
+      RuntimeCondition::Spec(spec) => spec.hash(state),
     }
   }
 }

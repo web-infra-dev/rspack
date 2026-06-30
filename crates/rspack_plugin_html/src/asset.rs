@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   env,
-  hash::Hasher,
   path::{Path, PathBuf},
 };
 
@@ -14,7 +13,7 @@ use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -339,7 +338,7 @@ pub async fn create_html_asset(
   compilation: &Compilation,
 ) -> Result<(String, CompilationAsset)> {
   let mut hasher = RspackHash::from(&compilation.options.output);
-  hasher.write(html.as_bytes());
+  html.hash(&mut hasher);
   let hash_digest = hasher.digest(&compilation.options.output.hash_digest);
   let content_hash = hash_digest.encoded();
 

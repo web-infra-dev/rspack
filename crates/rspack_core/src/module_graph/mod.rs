@@ -907,7 +907,7 @@ impl ModuleGraph {
     let module = self
       .module_by_identifier(module_id)
       .expect("should have module");
-    !module.build_meta().has_top_level_await
+    !module.build_meta().has_top_level_await()
   }
 
   pub fn set_async(

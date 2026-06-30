@@ -2,6 +2,7 @@ mod hook;
 mod javascript_parser_plugin_hooks;
 mod merge;
 mod plugin;
+mod rspack_hashable;
 mod runtime_module;
 mod source_map_config;
 
@@ -62,6 +63,17 @@ pub fn define_hook(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 pub fn merge_from_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
   let input = syn::parse_macro_input!(input as syn::DeriveInput);
   let output = merge::expand_merge_from_derive(input);
+  match output {
+    syn::Result::Ok(tt) => tt,
+    syn::Result::Err(err) => err.to_compile_error(),
+  }
+  .into()
+}
+
+#[proc_macro_derive(RspackHashable, attributes(rspack_hash))]
+pub fn rspack_hashable_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+  let input = syn::parse_macro_input!(input as syn::DeriveInput);
+  let output = rspack_hashable::expand_rspack_hashable_derive(input);
   match output {
     syn::Result::Ok(tt) => tt,
     syn::Result::Err(err) => err.to_compile_error(),

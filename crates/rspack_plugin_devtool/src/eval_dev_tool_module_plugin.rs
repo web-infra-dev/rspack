@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use derive_more::Debug;
@@ -9,7 +9,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,

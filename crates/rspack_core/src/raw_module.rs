@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -6,7 +6,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_macros::impl_source_map_config;
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};

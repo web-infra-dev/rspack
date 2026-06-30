@@ -16,7 +16,7 @@ use rspack_core::{
   AssetInfo, AssetInfoRelated, Compilation, CompilationAsset, CompilationLogger,
   CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
   escape_glob_pattern, find_files_by_glob,
-  rspack_sources::{BoxSource, RawBufferSource, Source, SourceExt},
+  rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};

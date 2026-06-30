@@ -7,13 +7,20 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-base64-simd      = { workspace = true }
-md4              = { workspace = true }
-rspack_cacheable = { workspace = true }
-rspack_util      = { workspace = true }
-sha2             = { workspace = true }
-smol_str         = { workspace = true }
-xxhash-rust      = { workspace = true, features = ["xxh64"] }
+base64-simd        = { workspace = true }
+itoa               = { workspace = true }
+lightningcss       = { workspace = true }
+md4                = { workspace = true }
+rspack_cacheable   = { workspace = true }
+rspack_collections = { workspace = true }
+rspack_macros      = { workspace = true }
+rspack_util        = { workspace = true }
+serde              = { workspace = true }
+sha2               = { workspace = true }
+simd-json          = { workspace = true }
+smol_str           = { workspace = true }
+swc_config         = { workspace = true }
+xxhash-rust        = { workspace = true, features = ["xxh64"] }
 
 [lints]
 workspace = true

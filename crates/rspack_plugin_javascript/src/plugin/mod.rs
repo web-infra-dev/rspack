@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   collections::hash_map::Entry,
-  hash::Hash,
   ops::Deref,
   sync::{Arc, LazyLock, RwLock as SyncRwLock},
 };
@@ -39,7 +38,7 @@ use rspack_core::{
   split_readable_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_hook::plugin;
 use rspack_util::SpanExt;
 #[cfg(allocative)]
@@ -1514,14 +1513,9 @@ var {} = {{}};
   ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
     // sample hash use content
-    let RenderBootstrapResult {
-      header,
-      startup,
-      allow_inline_startup,
-    } = Self::render_bootstrap(chunk_ukey, compilation, &runtime_template).await?;
-    header.hash(hasher);
-    startup.hash(hasher);
-    allow_inline_startup.hash(hasher);
+    Self::render_bootstrap(chunk_ukey, compilation, &runtime_template)
+      .await?
+      .hash(hasher);
     Ok(())
   }
 }
@@ -1532,7 +1526,7 @@ pub struct ExtractedCommentsInfo {
   pub comments_file_name: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, RspackHashable)]
 pub struct RenderBootstrapResult<'a> {
   pub header: Vec<Cow<'a, str>>,
   pub startup: Vec<Cow<'a, str>>,

@@ -13,6 +13,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::{Diagnostic, Result, error};
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
@@ -23,7 +24,7 @@ use super::{
 use crate::ShareScope;
 
 #[cacheable]
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone, rspack_hash::RspackHashable)]
 pub struct ConsumeOptions {
   pub import: Option<String>,
   pub import_resolved: Option<String>,
@@ -42,6 +43,15 @@ pub struct ConsumeOptions {
 pub enum ConsumeVersion {
   Version(String),
   False,
+}
+
+impl RspackHashable for ConsumeVersion {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      ConsumeVersion::Version(version) => version.hash(state),
+      ConsumeVersion::False => "false".hash(state),
+    }
+  }
 }
 
 impl fmt::Display for ConsumeVersion {

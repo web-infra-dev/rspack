@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use rspack_hash::RspackHash;
 use rustc_hash::FxHashSet;
 
 use super::*;
@@ -393,19 +394,19 @@ pub async fn create_hash(
     .sorted_unstable_by_key(|chunk| chunk.ukey())
     .for_each(|chunk| {
       if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
-        hash.hash(&mut compilation_hasher);
+        compilation_hasher.update(hash);
       }
       if let Some(content_hashes) = chunk.content_hash(&compilation.chunk_hashes_artifact) {
         content_hashes
           .iter()
           .sorted_unstable_by_key(|(source_type, _)| *source_type)
           .for_each(|(source_type, content_hash)| {
-            source_type.hash(&mut compilation_hasher);
-            content_hash.hash(&mut compilation_hasher);
+            compilation_hasher.update(source_type);
+            compilation_hasher.update(content_hash);
           });
       }
     });
-  compilation.hot_index.hash(&mut compilation_hasher);
+  compilation_hasher.update(&compilation.hot_index);
   compilation.hash = Some(compilation_hasher.digest(&compilation.options.output.hash_digest));
 
   // re-create runtime chunk hash that depend on full hash
@@ -433,12 +434,13 @@ pub async fn create_hash(
         .hash(&compilation.chunk_hashes_artifact)
         .expect("should have chunk hash");
       let mut hasher = RspackHash::from(&compilation.options.output);
-      chunk_hash.hash(&mut hasher);
-      compilation
-        .hash
-        .as_ref()
-        .expect("compilation hash should be set")
-        .hash(&mut hasher);
+      hasher.update(chunk_hash);
+      hasher.update(
+        compilation
+          .hash
+          .as_ref()
+          .expect("compilation hash should be set"),
+      );
       hasher.digest(&compilation.options.output.hash_digest)
     };
     let new_content_hash = {
@@ -449,12 +451,13 @@ pub async fn create_hash(
         .iter()
         .map(|(source_type, content_hash)| {
           let mut hasher = RspackHash::from(&compilation.options.output);
-          content_hash.hash(&mut hasher);
-          compilation
-            .hash
-            .as_ref()
-            .expect("compilation hash should be set")
-            .hash(&mut hasher);
+          hasher.update(content_hash);
+          hasher.update(
+            compilation
+              .hash
+              .as_ref()
+              .expect("compilation hash should be set"),
+          );
           (
             *source_type,
             hasher.digest(&compilation.options.output.hash_digest),
@@ -552,7 +555,7 @@ async fn process_chunk_hash(
   let content_hashes = content_hashes
     .into_iter()
     .map(|(t, mut hasher)| {
-      chunk_hash.hash(&mut hasher);
+      hasher.update(&chunk_hash);
       (t, hasher.digest(&compilation.options.output.hash_digest))
     })
     .collect();

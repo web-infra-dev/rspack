@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  hash::Hash,
   sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -15,17 +14,14 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
   SourceMapSource, WithoutOriginalOptions,
 };
-use rspack_util::{
-  ext::DynHash,
-  source_map::{ModuleSourceMapConfig, SourceMapKind},
-};
+use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 use serde_json::json;
 use tracing::{Instrument, info_span};
 
@@ -300,7 +296,7 @@ impl NormalModule {
     if let Some(error) = self.first_error() {
       error.message.hash(&mut hasher);
     } else if let Some(s) = &self.source {
-      s.hash(&mut hasher);
+      std::hash::Hash::hash(s, &mut hasher);
     }
     "meta".hash(&mut hasher);
     build_meta.hash(&mut hasher);
@@ -697,14 +693,14 @@ impl Module for NormalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.build_info.hash.dyn_hash(&mut hasher);
+    self.build_info.hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {
-      self
+      let runtime_hash = self
         .parser_and_generator
         .get_runtime_hash(self, compilation, runtime)
-        .await?
-        .dyn_hash(&mut hasher);
+        .await?;
+      runtime_hash.hash(&mut hasher);
     }
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

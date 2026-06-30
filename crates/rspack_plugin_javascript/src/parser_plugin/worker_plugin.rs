@@ -1,13 +1,10 @@
-use std::{
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
 };
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_atoms::Atom;

@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  hash::Hash,
   sync::{Arc, LazyLock},
 };
 
@@ -21,7 +20,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,

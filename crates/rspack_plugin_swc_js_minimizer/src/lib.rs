@@ -1,5 +1,6 @@
 use std::{
-  hash::{Hash, Hasher},
+  fmt::{Display, Formatter},
+  hash::Hasher,
   path::Path,
   sync::{LazyLock, Mutex, mpsc},
 };
@@ -46,7 +47,7 @@ const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
-#[derive(Debug, Hash)]
+#[derive(Debug, Hash, rspack_hash::RspackHashable)]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -70,6 +71,35 @@ pub struct MinimizerOptions {
   pub __compress_cache: OnceCell<BoolOrDataConfig<String>>,
   pub __mangle_cache: OnceCell<BoolOrDataConfig<String>>,
   pub __format_cache: OnceCell<String>,
+}
+
+impl rspack_hash::RspackHashable for MinimizerOptions {
+  fn hash(&self, state: &mut RspackHash) {
+    rspack_hash::RspackHashable::hash(
+      self
+        .__format_cache
+        .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize")),
+      state,
+    );
+    rspack_hash::RspackHashable::hash(
+      self.__compress_cache.get_or_init(|| {
+        self
+          .compress
+          .as_ref()
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
+      }),
+      state,
+    );
+    rspack_hash::RspackHashable::hash(
+      self.__mangle_cache.get_or_init(|| {
+        self
+          .mangle
+          .as_ref()
+          .map(|v| simd_json::to_string(v).expect("Should be able to serialize"))
+      }),
+      state,
+    );
+  }
 }
 
 impl std::hash::Hash for MinimizerOptions {
@@ -100,20 +130,41 @@ impl std::hash::Hash for MinimizerOptions {
 }
 
 #[derive(Debug, Hash)]
-pub enum OptionWrapper<T: std::fmt::Debug + Hash> {
+pub enum OptionWrapper<T: std::fmt::Debug + std::hash::Hash> {
   Default,
   Disabled,
   Custom(T),
 }
 
-#[derive(Debug)]
+impl<T: std::fmt::Debug + std::hash::Hash> Display for OptionWrapper<T> {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(match self {
+      OptionWrapper::Default => "default",
+      OptionWrapper::Disabled => "disabled",
+      OptionWrapper::Custom(_) => "custom",
+    })
+  }
+}
+
+impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHashable> rspack_hash::RspackHashable
+  for OptionWrapper<T>
+{
+  fn hash(&self, state: &mut RspackHash) {
+    rspack_hash::RspackHashable::hash(&self.to_string(), state);
+    if let OptionWrapper::Custom(value) = self {
+      rspack_hash::RspackHashable::hash(value, state);
+    }
+  }
+}
+
+#[derive(Debug, rspack_hash::RspackHashable)]
 pub struct ExtractComments {
   pub condition: String,
   pub condition_flags: String,
   pub banner: OptionWrapper<String>,
 }
 
-impl Hash for ExtractComments {
+impl std::hash::Hash for ExtractComments {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.condition.as_str().hash(state);
     self.condition_flags.as_str().hash(state);
@@ -137,6 +188,8 @@ pub struct SwcJsMinimizerRspackPlugin {
 
 impl SwcJsMinimizerRspackPlugin {
   pub fn new(options: PluginOptions) -> Self {
+    use std::hash::Hash;
+
     let mut hasher = FxHasher::default();
     PLUGIN_NAME.hash(&mut hasher);
     options.hash(&mut hasher);
@@ -164,7 +217,7 @@ async fn js_chunk_hash(
   _chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  self.options_hash.hash(hasher);
+  rspack_hash::RspackHashable::hash(&self.options, hasher);
   Ok(())
 }
 
@@ -233,6 +286,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         // Compute cache key and check persistent cache (only when enabled)
         let cache_key = if let Some(cache) = &minimize_persistent_cache {
           let key = {
+            use std::hash::Hash;
+
             let mut hasher = FxHasher::default();
             original_source.buffer().hash(&mut hasher);
             self.options_hash.hash(&mut hasher);

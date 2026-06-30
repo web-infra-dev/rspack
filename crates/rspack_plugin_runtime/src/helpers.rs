@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::sync::LazyLock;
 
 use itertools::Itertools;
 use regex::Regex;
@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashSet as HashSet;

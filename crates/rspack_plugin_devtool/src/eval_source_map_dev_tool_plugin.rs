@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use derive_more::Debug;
 use futures::future::join_all;
@@ -9,7 +9,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
@@ -288,7 +288,7 @@ async fn js_chunk_hash(
   _chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHash,
 ) -> Result<()> {
-  EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME.hash(hasher);
+  RspackHashable::hash(&EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME, hasher);
   Ok(())
 }
 

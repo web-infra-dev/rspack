@@ -7,6 +7,7 @@ use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
@@ -441,9 +442,27 @@ impl EntryRuntime {
   }
 }
 
+impl RspackHashable for EntryRuntime {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      EntryRuntime::String(s) => s.hash(state),
+      EntryRuntime::False => "false".hash(state),
+    }
+  }
+}
+
+impl Display for EntryRuntime {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      EntryRuntime::String(s) => f.write_str(s),
+      EntryRuntime::False => f.write_str("false"),
+    }
+  }
+}
+
 // pub type EntryRuntime = String;
 #[cacheable]
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, rspack_hash::RspackHashable)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -516,7 +535,7 @@ impl Display for ChunkGroupOrderKey {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<i32>,
@@ -545,10 +564,25 @@ impl ChunkGroupOptions {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GroupOptions {
   Entrypoint(Box<EntryOptions>),
   ChunkGroup(ChunkGroupOptions),
+}
+
+impl RspackHashable for GroupOptions {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      GroupOptions::Entrypoint(options) => {
+        "entrypoint".hash(state);
+        options.hash(state);
+      }
+      GroupOptions::ChunkGroup(options) => {
+        "chunk-group".hash(state);
+        options.hash(state);
+      }
+    }
+  }
 }
 
 impl GroupOptions {

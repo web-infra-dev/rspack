@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hasher, path::PathBuf};
+use std::{borrow::Cow, path::PathBuf};
 
 use asset_exports_dependency::AssetExportsDependency;
 use rayon::prelude::*;
@@ -15,9 +15,9 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::{base64, ext::DynHash, fx_hash::FxHashSet, identifier::make_paths_relative};
+use rspack_util::{base64, fx_hash::FxHashSet, identifier::make_paths_relative};
 
 mod asset_exports_dependency;
 
@@ -444,8 +444,8 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       ..
     } = parse_context;
     build_info.strict = true;
-    build_meta.exports_type = BuildMetaExportsType::Default;
-    build_meta.default_object = BuildMetaDefaultObject::False;
+    build_meta.set_exports_type(BuildMetaExportsType::Default);
+    build_meta.set_default_object(BuildMetaDefaultObject::False);
     let size = source.size();
 
     let data_url = match &self.data_url {
@@ -772,7 +772,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       && let Some(AssetGeneratorDataUrl::Options(data_url_options)) =
         module_generator_options.and_then(|x| x.asset_data_url())
     {
-      data_url_options.dyn_hash(&mut hasher);
+      data_url_options.hash(&mut hasher);
     } else if parsed_asset_config.is_resource() {
       let source_file_name = self.get_source_file_name(module, compilation);
       let (filename, _, _) = self
@@ -785,18 +785,24 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           false,
         )
         .await?;
-      filename.dyn_hash(&mut hasher);
+      {
+        filename.hash(&mut hasher);
+      }
       match module_generator_options.and_then(|x| x.asset_public_path()) {
         Some(public_path) => match public_path {
           PublicPath::Filename(template) => {
             let (public_path, _) = self
               .get_public_path(module, compilation, None, &source_file_name, template)
               .await?;
-            public_path.dyn_hash(&mut hasher);
+            public_path.hash(&mut hasher);
           }
-          PublicPath::Auto => "auto".dyn_hash(&mut hasher),
+          PublicPath::Auto => {
+            "auto".hash(&mut hasher);
+          }
         },
-        None => "no-path".dyn_hash(&mut hasher),
+        None => {
+          "no-path".hash(&mut hasher);
+        }
       };
     }
     Ok(hasher.digest(&compilation.options.output.hash_digest))

@@ -1503,7 +1503,7 @@ impl CompilationChunkHash for CompilationChunkHashTap {
       .function
       .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
       .await?;
-    result.hash(hasher);
+    hasher.write(&result);
     Ok(())
   }
 
@@ -1789,7 +1789,7 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
       .function
       .call_with_sync(ChunkWrapper::new(*chunk_ukey, compilation))
       .await?;
-    result.hash(hasher);
+    hasher.write(&result);
     Ok(())
   }
 

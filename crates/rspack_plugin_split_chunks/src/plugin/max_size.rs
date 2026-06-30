@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::{borrow::Cow, hash::Hasher, sync::LazyLock};
+use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{

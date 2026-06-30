@@ -1,7 +1,6 @@
 use std::{
   borrow::Cow,
   fmt::{self, Debug},
-  hash::Hash,
   str::FromStr,
   string::ParseError,
   sync::LazyLock,
@@ -9,8 +8,8 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_hash::RspackHash;
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 #[cfg(allocative)]
@@ -125,6 +124,12 @@ impl ChunkLoading {
   }
 }
 
+impl RspackHashable for ChunkLoading {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ChunkLoadingType {
@@ -168,11 +173,38 @@ impl ChunkLoadingType {
   }
 }
 
+impl RspackHashable for ChunkLoadingType {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum WasmLoading {
   Enable(WasmLoadingType),
   Disable,
+}
+
+impl RspackHashable for WasmLoading {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
+impl fmt::Display for WasmLoading {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl WasmLoading {
+  fn as_str(&self) -> &str {
+    match self {
+      WasmLoading::Enable(ty) => ty.as_str(),
+      WasmLoading::Disable => "false",
+    }
+  }
 }
 
 impl From<&str> for WasmLoading {
@@ -190,6 +222,28 @@ pub enum WasmLoadingType {
   Fetch,
   AsyncNode,
   Universal,
+}
+
+impl RspackHashable for WasmLoadingType {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
+impl fmt::Display for WasmLoadingType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl WasmLoadingType {
+  fn as_str(&self) -> &'static str {
+    match self {
+      WasmLoadingType::Fetch => "fetch",
+      WasmLoadingType::AsyncNode => "async-node",
+      WasmLoadingType::Universal => "universal",
+    }
+  }
 }
 
 impl From<&str> for WasmLoadingType {
@@ -335,6 +389,15 @@ pub enum PublicPath {
   Auto,
 }
 
+impl RspackHashable for PublicPath {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      PublicPath::Filename(filename) => filename.hash(state),
+      PublicPath::Auto => "auto".hash(state),
+    }
+  }
+}
+
 //https://github.com/webpack/webpack/blob/001cab14692eb9a833c6b56709edbab547e291a1/lib/util/identifier.js#L378
 pub fn get_undo_path(filename: &str, output_path: String, enforce_relative: bool) -> String {
   let mut depth: i32 = -1;
@@ -475,7 +538,7 @@ pub fn get_js_chunk_filename_template(
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -491,7 +554,7 @@ pub type LibraryType = String;
 pub type LibraryExport = Vec<String>;
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -506,6 +569,15 @@ pub enum LibraryName {
   UmdObject(LibraryCustomUmdObject),
 }
 
+impl RspackHashable for LibraryName {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      LibraryName::NonUmdObject(value) => value.hash(state),
+      LibraryName::UmdObject(value) => value.hash(state),
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LibraryNonUmdObject {
@@ -513,8 +585,17 @@ pub enum LibraryNonUmdObject {
   String(String),
 }
 
+impl RspackHashable for LibraryNonUmdObject {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      LibraryNonUmdObject::Array(value) => value.hash(state),
+      LibraryNonUmdObject::String(value) => value.hash(state),
+    }
+  }
+}
+
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

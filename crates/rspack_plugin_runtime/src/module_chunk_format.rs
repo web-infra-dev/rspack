@@ -1,5 +1,3 @@
-use std::hash::Hash;
-
 use rspack_core::{
   ChunkCodeTemplate, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationAdditionalChunkRuntimeRequirements, CompilationDependentFullHash, CompilationParams,
@@ -8,7 +6,7 @@ use rspack_core::{
   rspack_sources::{ConcatSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesRenderChunk, JavascriptModulesRenderStartup,

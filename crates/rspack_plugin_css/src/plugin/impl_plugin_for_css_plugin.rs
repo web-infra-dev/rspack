@@ -1,9 +1,6 @@
 #![allow(clippy::comparison_chain)]
 
-use std::{
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use atomic_refcell::AtomicRefCell;
 use rspack_core::{
@@ -18,7 +15,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
@@ -484,7 +481,7 @@ async fn content_hash(
     .get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
   let (ordered_modules, _) =
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
-  let mut hasher = hashes
+  let hasher = hashes
     .entry(SourceType::Css)
     .or_insert_with(|| RspackHash::from(&compilation.options.output));
 
@@ -500,8 +497,8 @@ async fn content_hash(
     })
     .for_each(|(current, id)| {
       if let Some(current) = current {
-        current.hash(&mut hasher);
-        id.hash(&mut hasher);
+        current.hash(hasher);
+        id.hash(hasher);
       }
     });
 

@@ -7,9 +7,12 @@ use std::{
 use base64_simd::{AsOut, STANDARD, URL_SAFE_NO_PAD};
 use md4::Digest;
 use rspack_cacheable::{cacheable, with::AsPreset};
+pub use rspack_macros::RspackHashable;
 use rspack_util::MergeFrom;
 use smol_str::SmolStr;
 use xxhash_rust::xxh64::Xxh64;
+
+mod hashable;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -107,11 +110,92 @@ impl MergeFrom for HashSalt {
   }
 }
 
+/// Hasher used for webpack-compatible content hashes.
+///
+/// `RspackHash` is the stateful writer behind output hashes such as full hash,
+/// chunk hash, content hash and module/runtime hashes that affect generated
+/// assets or persistent cache correctness. Inputs should be written through
+/// [`RspackHashable`] so the serialized form can follow webpack content-hash
+/// semantics instead of Rust collection-key hashing semantics.
 #[derive(Clone)]
 pub enum RspackHash {
   Xxhash64(Box<Xxh64>),
   MD4(Box<md4::Md4>),
   SHA256(Box<sha2::Sha256>),
+}
+
+/// Content-hash input contract for values that participate in `RspackHash`.
+///
+/// This trait is intentionally separate from [`std::hash::Hash`]. `Hash` is for
+/// hash-map/set keys and is free to optimize around Rust data-structure needs,
+/// including implementation details that may change with the standard library
+/// or with local keying requirements. `RspackHashable` is for stable,
+/// webpack-aligned content hashing: implement it only for data that should
+/// affect emitted asset hashes, runtime/module hashes, or persistent cache
+/// content keys.
+///
+/// Keeping the two traits separate lets Rspack tune key hashing independently
+/// without changing content hash behavior, and lets content hashing encode the
+/// same logical inputs webpack uses rather than the shape of Rust data
+/// structures.
+pub trait RspackHashable {
+  fn hash(&self, state: &mut RspackHash);
+}
+
+#[inline]
+pub fn hash_by_json<T: serde::Serialize>(value: &T, state: &mut RspackHash) {
+  let json = simd_json::to_string(value).expect("should be able to serialize value for hash");
+  state.write(json.as_bytes());
+}
+
+#[inline]
+pub fn write_u64_hex(value: u64, state: &mut RspackHash) {
+  if value == 0 {
+    state.write(b"0");
+    return;
+  }
+
+  let bytes = value.to_be_bytes();
+  let first = bytes
+    .iter()
+    .position(|&byte| byte != 0)
+    .expect("zero value should have returned");
+  let mut output = [0; 16];
+  let encoded = hex(&bytes[first..], &mut output).as_bytes();
+
+  if bytes[first] < 0x10 {
+    state.write(&encoded[1..]);
+  } else {
+    state.write(encoded);
+  }
+}
+
+#[macro_export]
+macro_rules! rspack_hash_object {
+  ($state:expr, { $($key:expr => $value:expr),* $(,)? }) => {{
+    $state.write(b"{");
+    let mut is_first_rspack_hash_field = true;
+    $(
+      if !is_first_rspack_hash_field {
+        $state.write(b",");
+      }
+      is_first_rspack_hash_field = false;
+      $crate::RspackHashable::hash($key, $state);
+      $state.write(b":");
+      $crate::RspackHashable::hash(&$value, $state);
+    )*
+    let _ = is_first_rspack_hash_field;
+    $state.write(b"}");
+  }};
+}
+
+#[macro_export]
+macro_rules! rspack_hash_update {
+  ($state:expr, $($value:expr),+ $(,)?) => {
+    $(
+      $state.update(&$value);
+    )+
+  };
 }
 
 impl fmt::Debug for RspackHash {
@@ -157,6 +241,40 @@ impl RspackHash {
       }
     }
   }
+
+  pub fn update<T: RspackHashable + ?Sized>(&mut self, value: &T) {
+    value.hash(self);
+  }
+
+  pub fn write(&mut self, bytes: &[u8]) {
+    match self {
+      RspackHash::Xxhash64(hasher) => hasher.write(bytes),
+      RspackHash::MD4(hasher) => hasher.update(bytes),
+      RspackHash::SHA256(hasher) => hasher.update(bytes),
+    }
+  }
+
+  pub fn finish(&self) -> u64 {
+    match self {
+      RspackHash::Xxhash64(hasher) => hasher.finish(),
+      RspackHash::MD4(hasher) => {
+        let hash = (**hasher).clone().finalize();
+        u64::from_be_bytes(
+          hash[..8]
+            .try_into()
+            .expect("md4 digest length is at least 8"),
+        )
+      }
+      RspackHash::SHA256(hasher) => {
+        let hash = (**hasher).clone().finalize();
+        u64::from_be_bytes(
+          hash[..8]
+            .try_into()
+            .expect("sha256 digest length is at least 8"),
+        )
+      }
+    }
+  }
 }
 
 impl Hasher for RspackHash {
@@ -164,29 +282,20 @@ impl Hasher for RspackHash {
     match self {
       RspackHash::Xxhash64(hasher) => hasher.finish(),
       RspackHash::MD4(hasher) => {
-        // finalize take ownership, so we need to clone it
         let hash = (**hasher).clone().finalize();
-        let msb_u64: u64 = ((hash[0] as u64) << 56)
-          | ((hash[1] as u64) << 48)
-          | ((hash[2] as u64) << 40)
-          | ((hash[3] as u64) << 32)
-          | ((hash[4] as u64) << 24)
-          | ((hash[5] as u64) << 16)
-          | ((hash[6] as u64) << 8)
-          | (hash[7] as u64);
-        msb_u64
+        u64::from_be_bytes(
+          hash[..8]
+            .try_into()
+            .expect("md4 digest length is at least 8"),
+        )
       }
       RspackHash::SHA256(hasher) => {
         let hash = (**hasher).clone().finalize();
-        let msb_u64: u64 = ((hash[0] as u64) << 56)
-          | ((hash[1] as u64) << 48)
-          | ((hash[2] as u64) << 40)
-          | ((hash[3] as u64) << 32)
-          | ((hash[4] as u64) << 24)
-          | ((hash[5] as u64) << 16)
-          | ((hash[6] as u64) << 8)
-          | (hash[7] as u64);
-        msb_u64
+        u64::from_be_bytes(
+          hash[..8]
+            .try_into()
+            .expect("sha256 digest length is at least 8"),
+        )
       }
     }
   }
@@ -257,9 +366,15 @@ impl RspackHashDigest {
   }
 }
 
+impl RspackHashable for RspackHashDigest {
+  fn hash(&self, state: &mut RspackHash) {
+    RspackHashable::hash(self.encoded.as_str(), state);
+  }
+}
+
 impl Hash for RspackHashDigest {
   fn hash<H: Hasher>(&self, state: &mut H) {
-    self.encoded.hash(state);
+    std::hash::Hash::hash(&self.encoded, state);
   }
 }
 

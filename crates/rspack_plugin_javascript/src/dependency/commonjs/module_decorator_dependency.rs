@@ -6,14 +6,16 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_no_exports_referenced,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, RspackHashable)]
 pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
   allow_exports_access: bool,
+  #[rspack_hash(skip)]
   id: DependencyId,
+  #[rspack_hash(skip)]
   factorize_info: FactorizeInfo,
 }
 
@@ -51,12 +53,11 @@ impl DependencyCodeGeneration for ModuleDecoratorDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.decorator.dyn_hash(hasher);
-    self.allow_exports_access.dyn_hash(hasher);
+    RspackHashable::hash(self, hasher);
   }
 }
 

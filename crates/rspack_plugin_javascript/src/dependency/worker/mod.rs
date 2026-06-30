@@ -9,7 +9,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -40,6 +40,15 @@ impl WorkerDependency {
       factorize_info: Default::default(),
       need_new_url,
     }
+  }
+}
+
+impl RspackHashable for WorkerDependency {
+  fn hash(&self, state: &mut RspackHash) {
+    rspack_hash::rspack_hash_object!(state, {
+      "publicPath" => self.public_path.as_str(),
+      "needNewUrl" => self.need_new_url,
+    });
   }
 }
 
@@ -103,11 +112,11 @@ impl DependencyCodeGeneration for WorkerDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.public_path.dyn_hash(hasher);
+    RspackHashable::hash(self, hasher);
   }
 }
 

@@ -615,7 +615,7 @@ impl Compilation {
     let len = import_var_map_of_module.len();
     let is_deferred = phase.is_defer()
       && !target_module
-        .map(|m| m.build_meta().has_top_level_await)
+        .map(|m| m.build_meta().has_top_level_await())
         .unwrap_or_default();
 
     match import_var_map_of_module.entry((target_module.map(|m| m.identifier()), is_deferred)) {

@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 use super::DependencyRange;
 use crate::{
@@ -22,12 +22,18 @@ impl CachedConstDependencyPlace {
   }
 }
 
+impl RspackHashable for CachedConstDependencyPlace {
+  fn hash(&self, state: &mut RspackHash) {
+    self.order().hash(state);
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct CachedConstDependency {
   pub place: CachedConstDependencyPlace,
-  pub range: Option<DependencyRange>,
   pub identifier: Box<str>,
+  pub range: Option<DependencyRange>,
   pub content: Box<str>,
 }
 
@@ -69,6 +75,18 @@ impl CachedConstDependency {
   }
 }
 
+impl RspackHashable for CachedConstDependency {
+  fn hash(&self, state: &mut RspackHash) {
+    self.place.hash(state);
+    self.identifier.hash(state);
+    match self.range {
+      Some(range) => range.hash(state),
+      None => state.write(b"null"),
+    }
+    self.content.hash(state);
+  }
+}
+
 #[cacheable_dyn]
 impl DependencyCodeGeneration for CachedConstDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
@@ -77,14 +95,11 @@ impl DependencyCodeGeneration for CachedConstDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.place.dyn_hash(hasher);
-    self.identifier.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
-    self.content.dyn_hash(hasher);
+    RspackHashable::hash(self, hasher);
   }
 }
 

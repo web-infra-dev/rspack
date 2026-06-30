@@ -1,7 +1,7 @@
 mod drive;
 
 use std::{
-  hash::{BuildHasherDefault, Hasher},
+  hash::BuildHasherDefault,
   sync::{Arc, LazyLock},
 };
 

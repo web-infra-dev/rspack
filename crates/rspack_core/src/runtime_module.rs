@@ -4,9 +4,9 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_error::Result;
-use rspack_hash::RspackHashDigest;
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt};
-use rspack_util::{ext::DynHash, source_map::SourceMapKind};
+use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
 
 use crate::{
@@ -150,25 +150,22 @@ pub async fn runtime_module_get_runtime_hash(
   compilation: &Compilation,
   _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
-  let mut hasher = rspack_hash::RspackHash::from(&compilation.options.output);
-  module.name().dyn_hash(&mut hasher);
-  module.stage().dyn_hash(&mut hasher);
+  let mut hasher = RspackHash::from(&compilation.options.output);
+  module.name().hash(&mut hasher);
+  module.stage().hash(&mut hasher);
   if module.full_hash() || module.dependent_hash() {
-    use std::hash::Hash;
-
     let runtime_template = compilation.runtime_template.create_runtime_code_template();
     let context = RuntimeModuleGenerateContext {
       compilation,
       runtime_template: &runtime_template,
     };
-    module
-      .generate_with_custom(&context)
-      .await?
-      .hash(&mut hasher);
+    RspackHashable::hash(&module.generate_with_custom(&context).await?, &mut hasher);
   } else {
+    use std::hash::Hash;
+
     runtime_module_get_generated_code(module, common, compilation)
       .await?
-      .dyn_hash(&mut hasher);
+      .hash(&mut hasher);
   }
   Ok(hasher.digest(&compilation.options.output.hash_digest))
 }
@@ -229,7 +226,7 @@ pub trait CustomSourceRuntimeModule {
 pub type BoxRuntimeModule = Box<dyn RuntimeModule>;
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RuntimeModuleStage {
   #[default]
   Normal, // Runtime modules without any dependencies to other runtime modules
@@ -258,6 +255,13 @@ impl From<RuntimeModuleStage> for u32 {
       RuntimeModuleStage::Attach => 10,
       RuntimeModuleStage::Trigger => 20,
     }
+  }
+}
+
+impl RspackHashable for RuntimeModuleStage {
+  fn hash(&self, state: &mut RspackHash) {
+    let stage: u32 = self.clone().into();
+    stage.hash(state);
   }
 }
 

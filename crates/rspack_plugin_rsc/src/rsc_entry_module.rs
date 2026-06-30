@@ -93,10 +93,7 @@ impl RscEntryModule {
         top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
+      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }

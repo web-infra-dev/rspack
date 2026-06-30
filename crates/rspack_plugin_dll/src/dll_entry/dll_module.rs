@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash, sync::Arc};
+use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
@@ -12,7 +12,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
 
 use super::dll_entry_dependency::DllEntryDependency;
 

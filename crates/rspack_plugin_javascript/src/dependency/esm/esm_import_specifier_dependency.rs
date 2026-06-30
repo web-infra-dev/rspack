@@ -15,7 +15,8 @@ use rspack_core::{
   property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_util::{ext::DynHash, json_stringify_str};
+use rspack_hash::{RspackHash, RspackHashable};
+use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
 
 use super::{
@@ -386,7 +387,7 @@ impl AsContextDependency for ESMImportSpecifierDependency {}
 impl DependencyCodeGeneration for ESMImportSpecifierDependency {
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     compilation: &rspack_core::Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
@@ -407,8 +408,8 @@ impl DependencyCodeGeneration for ESMImportSpecifierDependency {
     if let Some(UsedName::Inlined(inlined)) =
       exports_info.get_used_name(&compilation.exports_info_artifact, runtime, ids)
     {
-      ids.dyn_hash(hasher);
-      inlined.dyn_hash(hasher);
+      ids.hash(hasher);
+      inlined.hash(hasher);
     }
   }
 
@@ -557,7 +558,7 @@ impl ESMImportSpecifierDependencyTemplate {
       mg,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      self_module.build_meta().strict_esm_module,
+      self_module.build_meta().strict_esm_module(),
     );
     let first = ids
       .first()
@@ -712,7 +713,7 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
             .compilation
             .module_graph_cache_artifact,
           &code_generatable_context.compilation.exports_info_artifact,
-          self_module.build_meta().strict_esm_module,
+          self_module.build_meta().strict_esm_module(),
         );
         if matches!(
           exports_type,

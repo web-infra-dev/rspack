@@ -1,4 +1,4 @@
-use std::{borrow::Cow, hash::Hash};
+use std::borrow::Cow;
 
 use rspack_cacheable::with::AsVecConverter;
 use rspack_core::{
@@ -10,7 +10,7 @@ use rspack_core::{
   to_comment_with_nl,
 };
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::{
   CssPlugin,
@@ -247,10 +247,10 @@ async fn render_js_module_package(
   ));
 
   if self.verbose {
-    let export_type = module.build_meta().exports_type;
+    let export_type = module.build_meta().exports_type();
 
     new_source.add(RawStringSource::from(to_comment_with_nl(
-      &module.build_meta().exports_type.to_string(),
+      module.build_meta().exports_type().description(),
     )));
 
     let module_graph = compilation.get_module_graph();

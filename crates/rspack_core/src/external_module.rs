@@ -1,11 +1,11 @@
-use std::{borrow::Cow, hash::Hash, iter};
+use std::{borrow::Cow, iter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
-use rspack_util::{ext::DynHash, json_stringify_str, source_map::SourceMapKind};
+use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
@@ -720,6 +720,7 @@ impl ExternalModule {
             || self.dependency_meta.attributes.is_some()
           {
             let mut hasher = RspackHash::from(&compilation.options.output);
+            use rspack_hash::RspackHashable as _;
             request.primary.hash(&mut hasher);
             if let Some(attributes) = &self.dependency_meta.attributes {
               simd_json::to_string(attributes)
@@ -1150,16 +1151,16 @@ impl Module for ExternalModule {
             can_mangle = true;
           }
         } else {
-          self.build_meta.has_top_level_await = true;
+          self.build_meta.set_has_top_level_await(true);
           if !request.is_some_and(|r| r.has_rest()) {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.has_top_level_await = true,
+      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
       "import" => {
-        self.build_meta.has_top_level_await = true;
+        self.build_meta.set_has_top_level_await(true);
         if !request.is_some_and(|r| r.has_rest()) {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
@@ -1167,7 +1168,7 @@ impl Module for ExternalModule {
       }
       _ => {}
     }
-    self.build_meta.exports_type = exports_type;
+    self.build_meta.set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
@@ -1247,7 +1248,8 @@ impl Module for ExternalModule {
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHash::from(&compilation.options.output);
-    self.id.dyn_hash(&mut hasher);
+    use rspack_hash::RspackHashable as _;
+    self.id.as_str().hash(&mut hasher);
     let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
       .side_effects_state_artifact;
@@ -1257,7 +1259,7 @@ impl Module for ExternalModule {
       side_effects_state_artifact,
       &compilation.exports_info_artifact,
     );
-    is_optional.dyn_hash(&mut hasher);
+    is_optional.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

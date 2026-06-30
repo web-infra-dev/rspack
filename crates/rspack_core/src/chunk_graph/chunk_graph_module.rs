@@ -2,12 +2,12 @@
 
 use std::{
   fmt,
-  hash::{BuildHasherDefault, Hash, Hasher},
+  hash::{BuildHasherDefault, Hasher},
 };
 
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierSet};
-use rspack_hash::RspackHashDigest;
+use rspack_hash::{RspackHash, RspackHashDigest};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
@@ -71,6 +71,12 @@ impl ModuleId {
 
   pub fn as_str(&self) -> &str {
     self.0.as_str()
+  }
+}
+
+impl rspack_hash::RspackHashable for ModuleId {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
   }
 }
 
@@ -320,6 +326,8 @@ impl ChunkGraph {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> u64 {
+    use std::hash::Hash;
+
     let mut hasher = FxHasher::default();
     let strict = module.get_strict_esm_module();
     let mg = compilation.get_module_graph();

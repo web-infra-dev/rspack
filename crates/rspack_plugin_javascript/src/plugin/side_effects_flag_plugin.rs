@@ -191,7 +191,7 @@ async fn finish_modules(
       continue;
     }
 
-    let baseline_side_effect_free = module.build_meta().side_effect_free.unwrap_or(false);
+    let baseline_side_effect_free = module.build_meta().side_effect_free();
 
     let has_impure_deferred_check =
       // find the first deferred pure check that resolves to an impure target

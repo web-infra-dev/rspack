@@ -1,6 +1,5 @@
-use std::hash::Hash;
-
 use rspack_cacheable::cacheable;
+use rspack_hash::RspackHash;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
@@ -23,7 +22,7 @@ pub struct ModuleGraphConnection {
   conditional: bool,
 }
 
-impl Hash for ModuleGraphConnection {
+impl std::hash::Hash for ModuleGraphConnection {
   fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
     self.dependency_id.hash(state);
   }
@@ -139,6 +138,19 @@ pub enum ConnectionState {
   CircularConnection,
   // Module itself is not connected, but transitive modules are connected transitively.
   TransitiveOnly,
+}
+
+impl rspack_hash::RspackHashable for ConnectionState {
+  fn hash(&self, state: &mut RspackHash) {
+    match self {
+      ConnectionState::Active(value) => {
+        "active".hash(state);
+        value.hash(state);
+      }
+      ConnectionState::CircularConnection => "circular".hash(state),
+      ConnectionState::TransitiveOnly => "transitive-only".hash(state),
+    }
+  }
 }
 
 impl ConnectionState {

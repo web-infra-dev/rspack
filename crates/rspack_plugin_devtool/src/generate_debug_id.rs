@@ -1,5 +1,3 @@
-use std::hash::Hasher;
-
 use rspack_hash::{HashDigest, HashFunction, RspackHash};
 
 pub fn generate_debug_id(filename: &str, source: &[u8]) -> String {

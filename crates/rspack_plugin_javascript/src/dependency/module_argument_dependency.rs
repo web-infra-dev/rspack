@@ -3,7 +3,7 @@ use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -23,6 +23,33 @@ impl ModuleArgumentDependency {
   }
 }
 
+impl RspackHashable for ModuleArgumentDependency {
+  fn hash(&self, state: &mut RspackHash) {
+    "range".hash(state);
+    self.range.hash(state);
+    if let Some(id) = &self.id {
+      "id".hash(state);
+      id.hash(state);
+    }
+
+    match self.id.as_deref() {
+      Some("id") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE_ID.hash(state);
+      }
+      Some("loaded") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE_LOADED.hash(state);
+      }
+      Some("hot" | "hot.accept" | "hot.decline") => {
+        "runtime_requirements".hash(state);
+        RuntimeGlobals::MODULE.hash(state);
+      }
+      _ => {}
+    }
+  }
+}
+
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ModuleArgumentDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
@@ -31,12 +58,11 @@ impl DependencyCodeGeneration for ModuleArgumentDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.id.dyn_hash(hasher);
-    self.range.dyn_hash(hasher);
+    RspackHashable::hash(self, hasher);
   }
 }
 

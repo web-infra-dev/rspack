@@ -10,7 +10,7 @@ use rspack_core::{
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
   property_access, to_normal_comment,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 use swc_atoms::Atom;
 
 #[cacheable]
@@ -111,12 +111,12 @@ impl DependencyCodeGeneration for ProvideDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
-    self.identifier.dyn_hash(hasher);
-    self.ids.dyn_hash(hasher);
+    self.identifier.hash(hasher);
+    self.ids.hash(hasher);
     // Case: a ProvidePlugin variable is replaced by an inlined const export,
     // e.g. `provided = (__rspack_require("./constants"), 2)`. The generated
     // code embeds the target export's inline literal, so the dependency hash must
@@ -131,7 +131,7 @@ impl DependencyCodeGeneration for ProvideDependency {
         exports_info.get_used_name(&compilation.exports_info_artifact, runtime, &self.ids)
       });
     if let Some(UsedName::Inlined(inlined)) = used_name {
-      inlined.dyn_hash(hasher);
+      inlined.hash(hasher);
     }
   }
 }

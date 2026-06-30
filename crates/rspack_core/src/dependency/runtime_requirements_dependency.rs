@@ -1,5 +1,7 @@
+use std::fmt::{Display, Formatter};
+
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 use crate::{
   Compilation, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
@@ -7,7 +9,7 @@ use crate::{
 };
 
 #[cacheable]
-#[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum RuntimeRequirementsDependencyMode {
   #[default]
   Normal,
@@ -18,12 +20,70 @@ pub enum RuntimeRequirementsDependencyMode {
   UnsupportedRequireProperty,
 }
 
+impl RspackHashable for RuntimeRequirementsDependencyMode {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
+impl Display for RuntimeRequirementsDependencyMode {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl RuntimeRequirementsDependencyMode {
+  fn as_str(&self) -> &'static str {
+    match self {
+      RuntimeRequirementsDependencyMode::Normal => "normal",
+      RuntimeRequirementsDependencyMode::Call => "call",
+      RuntimeRequirementsDependencyMode::AddOnly => "add-only",
+      RuntimeRequirementsDependencyMode::Write => "write",
+      RuntimeRequirementsDependencyMode::WriteOnly => "write-only",
+      RuntimeRequirementsDependencyMode::UnsupportedRequireProperty => {
+        "unsupported-require-property"
+      }
+    }
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct RuntimeRequirementsDependency {
   pub range: DependencyRange,
   pub runtime_requirements: RuntimeGlobals,
   pub mode: RuntimeRequirementsDependencyMode,
+}
+
+impl RspackHashable for RuntimeRequirementsDependency {
+  fn hash(&self, state: &mut RspackHash) {
+    "runtime_requirements".hash(state);
+    self.runtime_requirements.hash(state);
+    match self.mode {
+      RuntimeRequirementsDependencyMode::Normal => {
+        "range".hash(state);
+        self.range.hash(state);
+      }
+      RuntimeRequirementsDependencyMode::Call => {
+        "range".hash(state);
+        self.range.hash(state);
+        "mode".hash(state);
+        self.mode.hash(state);
+      }
+      RuntimeRequirementsDependencyMode::Write
+      | RuntimeRequirementsDependencyMode::UnsupportedRequireProperty => {
+        "range".hash(state);
+        self.range.hash(state);
+        "mode".hash(state);
+        self.mode.hash(state);
+      }
+      RuntimeRequirementsDependencyMode::WriteOnly => {
+        "mode".hash(state);
+        self.mode.hash(state);
+      }
+      RuntimeRequirementsDependencyMode::AddOnly => {}
+    }
+  }
 }
 
 #[cacheable_dyn]
@@ -34,13 +94,11 @@ impl DependencyCodeGeneration for RuntimeRequirementsDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.range.dyn_hash(hasher);
-    self.runtime_requirements.dyn_hash(hasher);
-    self.mode.dyn_hash(hasher);
+    RspackHashable::hash(self, hasher);
   }
 }
 

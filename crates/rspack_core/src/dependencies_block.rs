@@ -1,11 +1,8 @@
-use std::{
-  fmt::Write as _,
-  hash::{BuildHasherDefault, Hash},
-};
+use std::{fmt::Write as _, hash::BuildHasherDefault};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHashable};
 
 use crate::{
   BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
@@ -35,7 +32,7 @@ pub type AsyncDependenciesBlockIdentifierSet =
 pub fn dependencies_block_update_hash(
   deps: &[DependencyId],
   blocks: &[AsyncDependenciesBlockIdentifier],
-  hasher: &mut dyn std::hash::Hasher,
+  hasher: &mut RspackHash,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
@@ -55,6 +52,12 @@ pub fn dependencies_block_update_hash(
 #[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
+
+impl rspack_hash::RspackHashable for AsyncDependenciesBlockIdentifier {
+  fn hash(&self, state: &mut RspackHash) {
+    self.0.as_str().hash(state);
+  }
+}
 
 impl From<String> for AsyncDependenciesBlockIdentifier {
   fn from(value: String) -> Self {
@@ -184,11 +187,11 @@ impl AsyncDependenciesBlock {
 
   pub fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHash,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {
-    self.group_options.dyn_hash(hasher);
+    self.group_options.hash(hasher);
     if let Some(chunk_group) = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -197,7 +200,7 @@ impl AsyncDependenciesBlock {
         &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
       )
     {
-      chunk_group.id(compilation).dyn_hash(hasher);
+      chunk_group.id(compilation).hash(hasher);
     }
     dependencies_block_update_hash(
       self.get_dependencies(),
