@@ -64,6 +64,88 @@ pub fn sort_indices_by_stage(stages: &[i32]) -> Vec<usize> {
   indices
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct HookTapIndex(i32);
+
+impl HookTapIndex {
+  pub fn base(index: usize) -> Self {
+    debug_assert!(index < i32::MAX as usize);
+    Self(index as i32 + 1)
+  }
+
+  pub fn additional(index: usize) -> Self {
+    debug_assert!(index < i32::MAX as usize);
+    Self(-((index as i32) + 1))
+  }
+
+  pub fn is_base(self) -> bool {
+    self.0 > 0
+  }
+
+  pub fn index(self) -> usize {
+    if self.is_base() {
+      (self.0 - 1) as usize
+    } else {
+      (-self.0 - 1) as usize
+    }
+  }
+}
+
+pub struct MergedStageIndices<'a> {
+  base_stages: &'a [i32],
+  additional_stages: &'a [i32],
+  additional_order: Vec<usize>,
+  base_index: usize,
+  additional_cursor: usize,
+}
+
+pub fn merged_stage_indices<'a>(
+  base_stages: &'a [i32],
+  additional_stages: &'a [i32],
+) -> MergedStageIndices<'a> {
+  MergedStageIndices {
+    base_stages,
+    additional_stages,
+    additional_order: sort_indices_by_stage(additional_stages),
+    base_index: 0,
+    additional_cursor: 0,
+  }
+}
+
+impl Iterator for MergedStageIndices<'_> {
+  type Item = HookTapIndex;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    if self.base_index == self.base_stages.len()
+      && self.additional_cursor == self.additional_order.len()
+    {
+      return None;
+    }
+
+    if self.additional_cursor == self.additional_order.len() {
+      let index = self.base_index;
+      self.base_index += 1;
+      return Some(HookTapIndex::base(index));
+    }
+
+    if self.base_index == self.base_stages.len() {
+      let index = self.additional_order[self.additional_cursor];
+      self.additional_cursor += 1;
+      return Some(HookTapIndex::additional(index));
+    }
+
+    let additional_index = self.additional_order[self.additional_cursor];
+    if self.base_stages[self.base_index] <= self.additional_stages[additional_index] {
+      let index = self.base_index;
+      self.base_index += 1;
+      Some(HookTapIndex::base(index))
+    } else {
+      self.additional_cursor += 1;
+      Some(HookTapIndex::additional(additional_index))
+    }
+  }
+}
+
 #[async_trait]
 pub trait Interceptor<H: Hook> {
   async fn call(&self, _hook: &H) -> Result<Vec<<H as Hook>::Tap>> {

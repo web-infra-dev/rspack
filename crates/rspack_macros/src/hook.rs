@@ -244,8 +244,7 @@ impl ExecKind {
       for interceptor in self.interceptors.iter() {
         #call
       }
-      let mut all_stages = self.common.tap_stages().to_vec();
-      all_stages.extend(additional_taps.iter().map(|tap| tap.stage()));
+      let additional_stages: std::vec::Vec<_> = additional_taps.iter().map(|tap| tap.stage()).collect();
     }
   }
 
@@ -262,11 +261,11 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
-            if index < self.taps.len() {
-              self.taps[index].run(#args).await?;
+          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
+            if index.is_base() {
+              self.taps[index.index()].run(#args).await?;
             } else {
-              additional_taps[index - self.taps.len()].run(#args).await?;
+              additional_taps[index.index()].run(#args).await?;
             }
           }
           Ok(())
@@ -282,11 +281,11 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
-            if index < self.taps.len() {
-              self.taps[index].run(#args)?;
+          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
+            if index.is_base() {
+              self.taps[index.index()].run(#args)?;
             } else {
-              additional_taps[index - self.taps.len()].run(#args)?;
+              additional_taps[index.index()].run(#args)?;
             }
           }
           Ok(())
@@ -304,12 +303,12 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
-            if index < self.taps.len() {
-              if let Some(res) = self.taps[index].run(#args).await? {
+          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
+            if index.is_base() {
+              if let Some(res) = self.taps[index.index()].run(#args).await? {
                 return Ok(Some(res));
               }
-            } else if let Some(res) = additional_taps[index - self.taps.len()].run(#args).await? {
+            } else if let Some(res) = additional_taps[index.index()].run(#args).await? {
               return Ok(Some(res));
             }
           }
@@ -327,11 +326,11 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
-            if index < self.taps.len() {
-              data = self.taps[index].run(data).await?
+          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
+            if index.is_base() {
+              data = self.taps[index.index()].run(data).await?
             } else {
-              data = additional_taps[index - self.taps.len()].run(data).await?
+              data = additional_taps[index.index()].run(data).await?
             }
           }
           Ok(data)
@@ -346,12 +345,12 @@ impl ExecKind {
           }
 
           #additional_taps
-          let mut futs = std::vec::Vec::with_capacity(all_stages.len());
-          for index in ::rspack_hook::sort_indices_by_stage(&all_stages) {
-            if index < self.taps.len() {
-              futs.push(self.taps[index].run(#args));
+          let mut futs = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
+          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
+            if index.is_base() {
+              futs.push(self.taps[index.index()].run(#args));
             } else {
-              futs.push(additional_taps[index - self.taps.len()].run(#args));
+              futs.push(additional_taps[index.index()].run(#args));
             }
           }
           futures_concurrency::vec::TryJoin(futs).await?;
