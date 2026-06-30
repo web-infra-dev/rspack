@@ -1059,10 +1059,9 @@ fn walk_unsupported_create_require_resolve(
 
 fn tag_commonjs_require_referenced(
   parser: &mut JavascriptParser,
-  require_call: &CallExpr,
+  require_span: Span,
   variable_name: Atom,
 ) {
-  let require_span = require_call.span;
   parser
     .common_js_require_references
     .add_require(require_span);
@@ -1148,15 +1147,18 @@ fn create_require_resolve_context_dependency(
   RequireResolveContextDependency::new(options, range, parser.in_try, request_context)
 }
 
-pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallExpr) -> bool {
+pub(crate) fn is_require_call_expr(parser: &mut JavascriptParser, call: &CallOrNewExpr) -> bool {
   if !should_parse_commonjs_require(parser) {
     return false;
   }
 
-  if call.args.len() != 1 {
+  let Some(args) = call.args() else {
+    return false;
+  };
+  if args.len() != 1 {
     return false;
   }
-  let Some(callee) = call.callee.as_expr() else {
+  let Some(callee) = call.callee() else {
     return false;
   };
 
@@ -1187,12 +1189,20 @@ fn should_parse_commonjs_require(parser: &JavascriptParser) -> bool {
   )
 }
 
-enum CallOrNewExpr<'a> {
+pub(super) enum CallOrNewExpr<'a> {
   Call(&'a CallExpr<'a>),
   New(&'a NewExpr<'a>),
 }
 
 impl<'a> CallOrNewExpr<'a> {
+  pub fn from_expr(expr: &'a Expr<'a>) -> Option<Self> {
+    match expr {
+      Expr::Call(call_expr) => Some(CallOrNewExpr::Call(call_expr)),
+      Expr::New(new_expr) => Some(CallOrNewExpr::New(new_expr)),
+      _ => None,
+    }
+  }
+
   pub fn callee(&self) -> Option<&'a Expr<'a>> {
     match self {
       CallOrNewExpr::Call(call_expr) => call_expr.callee.as_expr(),
@@ -1212,6 +1222,10 @@ impl<'a> CallOrNewExpr<'a> {
       CallOrNewExpr::Call(call_expr) => call_expr.span,
       CallOrNewExpr::New(new_expr) => new_expr.span,
     }
+  }
+
+  pub fn is_new(&self) -> bool {
+    matches!(self, CallOrNewExpr::New(_))
   }
 }
 
@@ -1411,6 +1425,7 @@ impl CommonJsImportsParserPlugin {
     param: &BasicEvaluatedExpression,
     request_context: Option<Context>,
     replace_call: bool,
+    call_new: bool,
   ) -> Option<bool> {
     param.is_string().then(|| {
       let (start, end) = param.range();
@@ -1441,6 +1456,9 @@ impl CommonJsImportsParserPlugin {
         if replace_call {
           dep.set_replace_call();
         }
+        if call_new {
+          dep.set_call_new();
+        }
         Box::new(dep)
       } else {
         let mut dep = CommonJsRequireDependency::new(
@@ -1453,6 +1471,9 @@ impl CommonJsImportsParserPlugin {
         );
         if replace_call {
           dep.set_replace_call();
+        }
+        if call_new {
+          dep.set_call_new();
         }
         Box::new(dep)
       };
@@ -1551,7 +1572,14 @@ impl CommonJsImportsParserPlugin {
       let mut is_expression = false;
       for p in param.options() {
         if self
-          .process_require_item(parser, expr.span(), p, request_context.clone(), false)
+          .process_require_item(
+            parser,
+            expr.span(),
+            p,
+            request_context.clone(),
+            false,
+            expr.is_new(),
+          )
           .is_none()
         {
           is_expression = true;
@@ -1582,8 +1610,16 @@ impl CommonJsImportsParserPlugin {
       return None;
     }
 
+    let is_new = expr.is_new();
     if self
-      .process_require_item(parser, expr.span(), &param, request_context.clone(), true)
+      .process_require_item(
+        parser,
+        expr.span(),
+        &param,
+        request_context.clone(),
+        true,
+        is_new,
+      )
       .is_none()
     {
       self.process_require_context(parser, &expr, &param, request_context);
@@ -1657,8 +1693,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       return None;
     }
 
-    if let Some(call) = expr.as_call()
-      && is_require_call_expr(parser, call)
+    if let Some(call) = CallOrNewExpr::from_expr(expr)
+      && is_require_call_expr(parser, &call)
     {
       return Some(true);
     }
@@ -1687,13 +1723,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
     if declaration.kind() != VariableDeclarationKind::Var
       && let Some(init) = &declarator.init
-      && let Some(call) = init.as_call()
+      && let Some(call) = CallOrNewExpr::from_expr(init)
       && let Some(binding) = declarator.name.as_ident()
-      && is_require_call_expr(parser, call)
+      && is_require_call_expr(parser, &call)
     {
       let name = Atom::from(binding.id.sym.as_str());
       parser.define_variable(name.clone());
-      tag_commonjs_require_referenced(parser, call, name);
+      tag_commonjs_require_referenced(parser, call.span(), name);
     }
     None
   }

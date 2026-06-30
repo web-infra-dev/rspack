@@ -33,6 +33,7 @@ pub struct CommonJsRequireDependency {
   resource_identifier: ResourceIdentifier,
   factorize_info: FactorizeInfo,
   replace_call: bool,
+  call_new: bool,
 }
 
 impl CommonJsRequireDependency {
@@ -57,6 +58,7 @@ impl CommonJsRequireDependency {
       resource_identifier: Default::default(),
       factorize_info: Default::default(),
       replace_call: false,
+      call_new: false,
     }
   }
 
@@ -95,6 +97,10 @@ impl CommonJsRequireDependency {
 
   pub fn set_replace_call(&mut self) {
     self.replace_call = true;
+  }
+
+  pub fn set_call_new(&mut self) {
+    self.call_new = true;
   }
 
   pub fn set_branch_guard(&mut self, guard: DependencyBranchGuard) {
@@ -297,23 +303,24 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
 
     let compilation = code_generatable_context.compilation;
     let module_graph = compilation.get_module_graph();
-    let Some(connection) = module_graph.connection_by_dependency_id(&dep.id) else {
-      return;
-    };
-    let is_target_active = connection.is_target_active(
-      module_graph,
-      code_generatable_context.runtime,
-      &compilation.module_graph_cache_artifact,
-      &compilation
-        .build_module_graph_artifact
-        .side_effects_state_artifact,
-      &compilation.exports_info_artifact,
-    );
+    let is_target_active = module_graph
+      .connection_by_dependency_id(&dep.id)
+      .is_none_or(|connection| {
+        connection.is_target_active(
+          module_graph,
+          code_generatable_context.runtime,
+          &compilation.module_graph_cache_artifact,
+          &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        )
+      });
     if dep.replace_call
       && let Some(range_expr) = dep.range_expr
     {
       let content = if is_target_active {
-        format!(
+        let require_call = format!(
           "{}({})",
           code_generatable_context
             .runtime_template
@@ -324,7 +331,12 @@ impl DependencyTemplate for CommonJsRequireDependencyTemplate {
             &dep.request,
             false,
           )
-        )
+        );
+        if dep.call_new {
+          format!("new {require_call}")
+        } else {
+          require_call
+        }
       } else {
         "(/* unused require call */ {})".to_string()
       };

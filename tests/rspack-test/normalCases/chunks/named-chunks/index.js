@@ -78,14 +78,17 @@ it("should be able to use named chunks in import()", () => new Promise((resolve,
 	const done = err => (err ? reject(err) : resolve());
 	var sync = false;
 	import("./empty?import1-in-chunk1" /* webpackChunkName: "import-named-chunk-1" */).then(function(result){
+		expect(result).toBeTruthy();
 		var i = 0;
 		import("./empty?import2-in-chunk1" /* webpackChunkName: "import-named-chunk-1" */).then(function(result){
+			expect(result).toBeTruthy();
 			expect(sync).toBeTruthy();
 			if(i++ > 0) done();
 		}).catch(function(err){
 			done(err);
 		});
 		import("./empty?import3-in-chunk2" /* webpackChunkName: "import-named-chunk-2" */).then(function(result){
+			expect(result).toBeTruthy();
 			expect(sync).toBeFalsy();
 			if(i++ > 0) done();
 		}).catch(function(err){

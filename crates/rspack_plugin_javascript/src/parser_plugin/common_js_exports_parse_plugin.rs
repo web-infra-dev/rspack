@@ -12,7 +12,7 @@ use crate::{
     CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
     ExportsBase, ModuleDecoratorDependency,
   },
-  parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
+  parser_plugin::common_js_imports_parse_plugin::{CallOrNewExpr, is_require_call_expr},
   utils::eval::{self, BasicEvaluatedExpression},
   visitors::JavascriptParser,
 };
@@ -143,7 +143,7 @@ fn parse_require_call<'p: 'a, 'a>(
     expr = &member.obj;
   }
   if let Some(call) = expr.as_call()
-    && is_require_call_expr(parser, call)
+    && is_require_call_expr(parser, &CallOrNewExpr::Call(call))
   {
     let arg = &call.args[0];
     if arg.spread.is_some() {
