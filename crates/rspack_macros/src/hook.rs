@@ -150,7 +150,7 @@ impl DefineHookInput {
       impl ::rspack_hook::Hook for #hook_name {
         type Tap = Box<dyn #trait_name + Send + Sync>;
 
-        fn used_stages(&self) -> ::rspack_hook::__macro_helper::FxHashSet<i32> {
+        fn used_stages(&self) -> Vec<i32> {
           self.common.used_stages()
         }
 

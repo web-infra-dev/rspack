@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use rspack_error::Result;
-use rustc_hash::FxHashSet;
 
 pub struct HookMetadata {
   pub name: &'static str,
@@ -49,8 +48,11 @@ impl HookCommon {
     self.interceptor_count
   }
 
-  pub fn used_stages(&self) -> FxHashSet<i32> {
-    FxHashSet::from_iter(self.tap_stages.iter().copied())
+  pub fn used_stages(&self) -> Vec<i32> {
+    let mut used_stages = self.tap_stages.clone();
+    // tap_stages is kept sorted by stage, so duplicate stages are adjacent.
+    used_stages.dedup();
+    used_stages
   }
 
   pub fn is_empty(&self) -> bool {
@@ -160,7 +162,7 @@ pub trait Interceptor<H: Hook> {
 pub trait Hook {
   type Tap;
 
-  fn used_stages(&self) -> FxHashSet<i32>;
+  fn used_stages(&self) -> Vec<i32>;
 
   fn intercept(&mut self, interceptor: impl Interceptor<Self> + Send + Sync + 'static)
   where
@@ -175,7 +177,6 @@ pub trait Hook {
 pub mod __macro_helper {
   pub use async_trait::async_trait;
   pub use rspack_error::Result;
-  pub use rustc_hash::FxHashSet;
   pub use tracing;
 }
 
