@@ -248,11 +248,11 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let build_meta = &mut *parse_context.build_meta;
 
       build_info.strict = true;
-      build_meta.is_css_module = is_css_module(
+      build_meta.set_is_css_module(is_css_module(
         parse_context.module_type,
         parse_context.resource_data.path().map(|path| path.as_str()),
-      );
-      build_meta.need_id_in_concatenation = self.export_type == Some(CssExportType::Style);
+      ));
+      build_meta.set_need_id_in_concatenation(self.export_type == Some(CssExportType::Style));
       build_meta.exports_type = if named_exports {
         BuildMetaExportsType::Namespace
       } else {

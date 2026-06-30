@@ -532,6 +532,14 @@ impl BuildMeta {
     self.esm.unwrap_or(false)
   }
 
+  pub fn is_css_module(&self) -> bool {
+    self.is_css_module.unwrap_or(false)
+  }
+
+  pub fn need_id_in_concatenation(&self) -> bool {
+    self.need_id_in_concatenation.unwrap_or(false)
+  }
+
   pub fn exports_type(&self) -> BuildMetaExportsType {
     self.exports_type
   }
@@ -554,6 +562,14 @@ impl BuildMeta {
 
   pub fn set_esm(&mut self, value: bool) {
     self.esm = Some(value);
+  }
+
+  pub fn set_is_css_module(&mut self, value: bool) {
+    self.is_css_module = Some(value);
+  }
+
+  pub fn set_need_id_in_concatenation(&mut self, value: bool) {
+    self.need_id_in_concatenation = Some(value);
   }
 
   pub fn set_exports_type(&mut self, value: BuildMetaExportsType) {

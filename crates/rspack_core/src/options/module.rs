@@ -581,11 +581,23 @@ pub enum CssExportType {
 
 impl fmt::Display for CssExportType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl RspackHashable for CssExportType {
+  fn hash(&self, state: &mut RspackHash) {
+    self.as_str().hash(state);
+  }
+}
+
+impl CssExportType {
+  fn as_str(&self) -> &'static str {
     match self {
-      CssExportType::Link => write!(f, "link"),
-      CssExportType::Text => write!(f, "text"),
-      CssExportType::CssStyleSheet => write!(f, "css-style-sheet"),
-      CssExportType::Style => write!(f, "style"),
+      CssExportType::Link => "link",
+      CssExportType::Text => "text",
+      CssExportType::CssStyleSheet => "css-style-sheet",
+      CssExportType::Style => "style",
     }
   }
 }

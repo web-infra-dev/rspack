@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  hash::{Hash, Hasher},
   path::Path,
   sync::{Arc, LazyLock},
 };
