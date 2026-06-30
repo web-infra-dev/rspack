@@ -259,13 +259,9 @@ fn build_rspack_source_map(
       linechpos,
     );
 
-    let name_index = if input_source_map.is_none() {
-      config
-        .name_for_bytepos(pos)
-        .map(|name| builder.add_name(name))
-    } else {
-      None
-    };
+    let name_index = config
+      .name_for_bytepos(pos)
+      .map(|name| builder.add_name(name));
 
     builder.add_mapping(Mapping {
       generated_line: lc.line + 1,
@@ -476,7 +472,7 @@ impl Visit for IdentCollector {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_sources::SourceMap;
+  use rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings};
   use rspack_util::source_map::SourceMapKind;
   use swc_core::common::{BytePos, FileName, LineCol, SourceMap as SwcSourceMap};
 
@@ -523,5 +519,59 @@ mod tests {
         .map(|original| original.original_line),
       Some(2)
     );
+  }
+
+  #[test]
+  fn preserves_outer_names_when_input_source_map_has_no_names() {
+    let swc_cm = Arc::new(SwcSourceMap::default());
+    let source = "const user = value;\n";
+    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
+    let user_column = source.find("user").expect("identifier column") as u32;
+    let user_pos = BytePos(file.start_pos.0 + user_column);
+
+    let input_source_map = SourceMap::new(
+      encode_mappings(
+        [Mapping {
+          generated_line: 1,
+          generated_column: user_column,
+          original: Some(OriginalLocation {
+            source_index: 0,
+            original_line: 1,
+            original_column: user_column,
+            name_index: None,
+          }),
+        }]
+        .into_iter(),
+      ),
+      vec!["original.js".into()],
+      vec![source.into()],
+      vec![],
+    );
+
+    let source_map = build_rspack_source_map(
+      &swc_cm,
+      &[(
+        user_pos,
+        LineCol {
+          line: 0,
+          col: user_column,
+        },
+      )],
+      Some(input_source_map),
+      &SourceMapConfig {
+        source_map_kind: SourceMapKind::SourceMap,
+        names: [(user_pos, "user".into())].into_iter().collect(),
+      },
+      source,
+    )
+    .expect("composed source map");
+
+    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
+    let name_index = mappings[0]
+      .original
+      .as_ref()
+      .and_then(|original| original.name_index)
+      .expect("outer name should be preserved");
+    assert_eq!(source_map.get_name(name_index as usize), Some("user"));
   }
 }

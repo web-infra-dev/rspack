@@ -455,7 +455,7 @@ impl SourceMap<'static> {
 
   /// Create a [SourceMap] from bytes.
   pub fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
-    strip_source_map_garbage_header(&mut bytes);
+    strip_source_map_garbage_header(&mut bytes)?;
 
     let fields = {
       let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut_slice())?;
@@ -480,18 +480,41 @@ impl SourceMap<'static> {
   }
 }
 
-fn strip_source_map_garbage_header(bytes: &mut Vec<u8>) {
-  const SOURCE_MAP_GARBAGE_HEADER: &[u8] = b")]}'";
-
-  if bytes.starts_with(SOURCE_MAP_GARBAGE_HEADER) {
-    bytes.drain(..SOURCE_MAP_GARBAGE_HEADER.len());
-
-    if bytes.starts_with(b"\r\n") {
-      bytes.drain(..2);
-    } else if bytes.starts_with(b"\n") {
-      bytes.drain(..1);
-    }
+fn strip_source_map_garbage_header(bytes: &mut Vec<u8>) -> Result<()> {
+  fn is_junk_json(byte: u8) -> bool {
+    matches!(byte, b')' | b']' | b'}' | b'\'')
   }
+
+  fn strip_junk_header(slice: &[u8]) -> std::io::Result<&[u8]> {
+    if slice.is_empty() || !is_junk_json(slice[0]) {
+      return Ok(slice);
+    }
+    let mut need_newline = false;
+    for (idx, &byte) in slice.iter().enumerate() {
+      if need_newline && byte != b'\n' {
+        Err(std::io::Error::new(
+          std::io::ErrorKind::InvalidData,
+          "expected newline",
+        ))?
+      } else if is_junk_json(byte) {
+        continue;
+      } else if byte == b'\r' {
+        need_newline = true;
+      } else if byte == b'\n' {
+        return Ok(&slice[idx..]);
+      }
+    }
+    Ok(&slice[slice.len()..])
+  }
+
+  let header_len = {
+    let stripped = strip_junk_header(bytes)?;
+    bytes.len() - stripped.len()
+  };
+  if header_len > 0 {
+    bytes.drain(..header_len);
+  }
+  Ok(())
 }
 
 impl<'a> SourceMap<'a> {
@@ -909,6 +932,15 @@ mod tests {
 
     let map = SourceMap::from_bytes(format!(")]}}'\r\n{source_map}").into_bytes()).unwrap();
     assert_eq!(map.sources(), &["a.js"]);
+
+    let map = SourceMap::from_json(format!(")]}}garbage\n{source_map}")).unwrap();
+    assert_eq!(map.sources(), &["a.js"]);
+
+    let map = SourceMap::from_json(format!(")]}}' extra\r\n{source_map}")).unwrap();
+    assert_eq!(map.sources(), &["a.js"]);
+
+    let err = SourceMap::from_json(format!(")]}}'\r {source_map}")).unwrap_err();
+    assert_eq!(err.to_string(), "io error: expected newline");
   }
 
   #[test]
