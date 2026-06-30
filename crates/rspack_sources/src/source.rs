@@ -455,6 +455,8 @@ impl SourceMap<'static> {
 
   /// Create a [SourceMap] from bytes.
   pub fn from_bytes(mut bytes: Vec<u8>) -> Result<Self> {
+    strip_source_map_garbage_header(&mut bytes);
+
     let fields = {
       let borrowed_value = simd_json::to_borrowed_value(bytes.as_mut_slice())?;
       let fields = deserialize_source_map_fields(&borrowed_value)?;
@@ -475,6 +477,20 @@ impl SourceMap<'static> {
   /// Create a [SourceMap] from json string.
   pub fn from_json(s: String) -> Result<Self> {
     Self::from_bytes(s.into_bytes())
+  }
+}
+
+fn strip_source_map_garbage_header(bytes: &mut Vec<u8>) {
+  const SOURCE_MAP_GARBAGE_HEADER: &[u8] = b")]}'";
+
+  if bytes.starts_with(SOURCE_MAP_GARBAGE_HEADER) {
+    bytes.drain(..SOURCE_MAP_GARBAGE_HEADER.len());
+
+    if bytes.starts_with(b"\r\n") {
+      bytes.drain(..2);
+    } else if bytes.starts_with(b"\n") {
+      bytes.drain(..1);
+    }
   }
 }
 
@@ -882,6 +898,17 @@ mod tests {
     )
     .to_json();
     assert!(!map.contains("sourcesContent"));
+  }
+
+  #[test]
+  fn should_accept_source_map_with_garbage_header() {
+    let source_map = r#"{"version":3,"sources":["a.js"],"names":[],"mappings":"AAAA"}"#;
+
+    let map = SourceMap::from_json(format!(")]}}'\n{source_map}")).unwrap();
+    assert_eq!(map.sources(), &["a.js"]);
+
+    let map = SourceMap::from_bytes(format!(")]}}'\r\n{source_map}").into_bytes()).unwrap();
+    assert_eq!(map.sources(), &["a.js"]);
   }
 
   #[test]
