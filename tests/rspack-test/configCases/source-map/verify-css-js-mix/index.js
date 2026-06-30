@@ -11,10 +11,15 @@ try {
 it("verify importing css js source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
+	const runtimePrefix = map.sources.some(source =>
+		source.startsWith("webpack:///rspack/runtime/")
+	)
+		? "rspack"
+		: "webpack";
 	expect(map.sources.sort()).toEqual([
 		"webpack:///./a.js",
 		"webpack:///./index.js",
-		"webpack:///webpack/runtime/make_namespace_object",
+		`webpack:///${runtimePrefix}/runtime/make_namespace_object`,
 	]);
 	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");

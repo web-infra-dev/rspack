@@ -10,15 +10,20 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
+	const runtimePrefix = map.sources.some(source =>
+		source.startsWith("webpack:///rspack/runtime/")
+	)
+		? "rspack"
+		: "webpack";
 	expect(map.sources.sort()).toEqual([
 		`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
 		"webpack:///./a.js",
 		"webpack:///./b-dir/b.js",
 		"webpack:///./b-dir/c-dir/c.js",
 		"webpack:///./index.js",
-		"webpack:///webpack/runtime/define_property_getters",
-		"webpack:///webpack/runtime/has_own_property",
-		"webpack:///webpack/runtime/make_namespace_object",
+		`webpack:///${runtimePrefix}/runtime/define_property_getters`,
+		`webpack:///${runtimePrefix}/runtime/has_own_property`,
+		`webpack:///${runtimePrefix}/runtime/make_namespace_object`,
 	]);
 	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");

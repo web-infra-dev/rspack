@@ -12,7 +12,10 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const map = JSON.parse(source);
 	const out = fs.readFileSync(__filename, "utf-8");
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
-		expect(map.sources.filter(source => !source.startsWith("webpack:///webpack/runtime/"))).toEqual([
+		expect(map.sources.filter(source =>
+			!source.startsWith("webpack:///webpack/runtime/") &&
+			!source.startsWith("webpack:///rspack/runtime/")
+		)).toEqual([
 			`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
 			"webpack:///./b-dir/c-dir/c.js",
 			"webpack:///./b-dir/b.js",

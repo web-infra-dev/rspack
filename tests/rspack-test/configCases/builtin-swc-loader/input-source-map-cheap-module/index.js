@@ -8,14 +8,19 @@ const source = fs.readFileSync(__filename + ".map", "utf-8");
 const map = JSON.parse(source);
 const output = fs.readFileSync(__filename, "utf-8");
 const input = fs.readFileSync(path.resolve(CONTEXT, "a.jsx"), "utf-8");
+const runtimePrefix = map.sources.some(source =>
+	source.startsWith("webpack:///rspack/runtime/")
+)
+	? "rspack"
+	: "webpack";
 
 it("should keep the original content with `devtool: \"cheap-module-source-map\"` enabled", () => {
 	expect(map.sources.sort()).toEqual([
 		"webpack:///./a.jsx",
 		"webpack:///./index.js",
-		"webpack:///webpack/runtime/define_property_getters",
-		"webpack:///webpack/runtime/has_own_property",
-		"webpack:///webpack/runtime/make_namespace_object",
+		`webpack:///${runtimePrefix}/runtime/define_property_getters`,
+		`webpack:///${runtimePrefix}/runtime/has_own_property`,
+		`webpack:///${runtimePrefix}/runtime/make_namespace_object`,
 	]);
 	expect(map.sourcesContent[0]).toEqual(input)
 })
@@ -28,4 +33,3 @@ it("should keep the mappings to the original content", async () => {
 		"'*a2*'": "webpack:///a.jsx",
 	}, CHECK_COLUMN)).toBe(true)
 })
-

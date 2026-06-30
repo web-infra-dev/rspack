@@ -195,7 +195,10 @@ impl RuntimeTemplate {
   }
 
   pub fn runtime_module_prefix(&self) -> &'static str {
-    "webpack/runtime/"
+    match self.runtime_mode {
+      RuntimeMode::Webpack => "webpack/runtime/",
+      RuntimeMode::Rspack => "rspack/runtime/",
+    }
   }
 
   pub fn create_runtime_module_identifier(&self, name: &str) -> Identifier {
