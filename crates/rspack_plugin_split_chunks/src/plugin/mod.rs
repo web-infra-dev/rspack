@@ -236,7 +236,7 @@ impl SplitChunksPlugin {
         // https://webpack.js.org/plugins/split-chunks-plugin/#splitchunksenforcesizethreshold
         let enforce_size_exceeded = !cache_group.enforce_size_threshold.is_empty()
           && module_group
-            .get_sizes(&module_sizes)
+            .get_sizes(&module_sizes, !cache_group.min_size.is_empty_or_zero())
             .bigger_than(&cache_group.enforce_size_threshold);
 
         let mut used_chunks = Cow::Borrowed(&module_group.chunks);

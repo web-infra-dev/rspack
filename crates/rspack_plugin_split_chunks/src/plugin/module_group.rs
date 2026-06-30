@@ -664,9 +664,18 @@ impl SplitChunksPlugin {
           .intersection(used_chunks)
           .next()?;
 
-        if !other_module_group.remove_matching_modules(&current_module_group.modules) {
+        let need_remove = other_module_group
+          .modules
+          .intersection(&current_module_group.modules)
+          .copied()
+          .collect::<Vec<_>>();
+
+        if need_remove.is_empty() {
           // nothing is removed
           return None;
+        }
+        for module in need_remove {
+          other_module_group.remove_module(module);
         }
 
         if other_module_group.modules.is_empty() {
@@ -700,11 +709,17 @@ impl SplitChunksPlugin {
           return Some(key.clone());
         }
 
-        if cache_group.min_size.is_empty_or_zero()
-          && cache_group.min_size_reduction.is_empty_or_zero()
-        {
-          let _ = other_module_group.get_sizes_without_source_type_index(module_sizes);
-          return None;
+        if cache_group.min_size.is_empty_or_zero() {
+          let chunks_len = other_module_group.chunks.len();
+          let sizes = other_module_group.get_sizes(module_sizes, false);
+          if Self::check_min_size_reduction(sizes, &cache_group.min_size_reduction, chunks_len) {
+            return None;
+          }
+          tracing::trace!(
+            "{key} is deleted for violating min_size {:#?}",
+            cache_group.min_size,
+          );
+          return Some(key.clone());
         }
 
         // Validate `min_size` again
@@ -718,7 +733,7 @@ impl SplitChunksPlugin {
 
         let chunks_len = other_module_group.chunks.len();
         if !Self::check_min_size_reduction(
-          other_module_group.get_sizes(module_sizes),
+          other_module_group.get_sizes(module_sizes, true),
           &cache_group.min_size_reduction,
           chunks_len,
         ) {

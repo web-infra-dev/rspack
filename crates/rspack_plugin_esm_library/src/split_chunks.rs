@@ -57,7 +57,11 @@ impl MatchGroup {
     }
   }
 
-  pub fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
+  pub fn get_sizes(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    need_source_type_index: bool,
+  ) -> &SplitChunkSizes {
     if !self.added.is_empty() {
       let added = std::mem::take(&mut self.added);
       for module in added {
@@ -66,11 +70,13 @@ impl MatchGroup {
           let size = self.sizes.entry(*ty).or_default();
           *size += s;
           self.total_size += s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .insert(module);
+          if need_source_type_index {
+            self
+              .source_types_modules
+              .entry(*ty)
+              .or_default()
+              .insert(module);
+          }
         }
       }
     }
@@ -83,11 +89,13 @@ impl MatchGroup {
           *size -= s;
           *size = size.max(0.0);
           self.total_size -= s;
-          self
-            .source_types_modules
-            .entry(*ty)
-            .or_default()
-            .remove(&module);
+          if need_source_type_index {
+            self
+              .source_types_modules
+              .entry(*ty)
+              .or_default()
+              .remove(&module);
+          }
         }
       }
     }
@@ -97,8 +105,12 @@ impl MatchGroup {
 }
 
 impl ModulesContainer for MatchGroup {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
-    MatchGroup::get_sizes(self, module_sizes)
+  fn get_sizes(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    need_source_type_index: bool,
+  ) -> &SplitChunkSizes {
+    MatchGroup::get_sizes(self, module_sizes, need_source_type_index)
   }
 
   fn get_source_types_modules(
@@ -303,7 +315,10 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
     .filter_map(|(index_or_name, mut match_group)| {
       if let Either::Right(index) = &index_or_name {
         let min_size = &groups[*index].min_size;
-        if match_group.get_sizes(&module_sizes).smaller_than(min_size) {
+        if match_group
+          .get_sizes(&module_sizes, !min_size.is_empty_or_zero())
+          .smaller_than(min_size)
+        {
           return None;
         }
       }

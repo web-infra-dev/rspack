@@ -8,7 +8,11 @@ use crate::{
 };
 
 pub trait ModulesContainer {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes;
+  fn get_sizes(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    need_source_type_index: bool,
+  ) -> &SplitChunkSizes;
   fn get_source_types_modules(
     &self,
     source_types: &[SourceType],
@@ -19,8 +23,12 @@ pub trait ModulesContainer {
 }
 
 impl ModulesContainer for ModuleGroup {
-  fn get_sizes(&mut self, module_sizes: &ModuleSizes) -> &SplitChunkSizes {
-    ModuleGroup::get_sizes(self, module_sizes)
+  fn get_sizes(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    need_source_type_index: bool,
+  ) -> &SplitChunkSizes {
+    ModuleGroup::get_sizes(self, module_sizes, need_source_type_index)
   }
 
   fn get_source_types_modules(
@@ -49,30 +57,30 @@ pub(crate) fn remove_min_size_violating_modules<T: std::fmt::Display>(
 ) -> bool {
   // Find out what `SourceType`'s size is not fit the min_size
   let violating_source_types: Box<[SourceType]> = module_group
-  .get_sizes(module_sizes)
-  .iter()
-  .filter_map(|(module_group_ty, module_group_ty_size)| {
-    let cache_group_ty_min_size = cache_group
-      .min_size
-      .get(module_group_ty)
-      .copied()
-      .unwrap_or_default();
+    .get_sizes(module_sizes, true)
+    .iter()
+    .filter_map(|(module_group_ty, module_group_ty_size)| {
+      let cache_group_ty_min_size = cache_group
+        .min_size
+        .get(module_group_ty)
+        .copied()
+        .unwrap_or_default();
 
-    if *module_group_ty_size < cache_group_ty_min_size {
-      tracing::trace!(
-        "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
-        module_group_key,
-        module_group_ty,
-        module_group_ty_size,
-        cache_group.key,
-        cache_group_ty_min_size,
-      );
-      Some(*module_group_ty)
-    } else {
-      None
-    }
-  })
-  .collect::<Box<[_]>>();
+      if *module_group_ty_size < cache_group_ty_min_size {
+        tracing::trace!(
+          "ModuleGroup({}) have violating SourceType({:?}). Reason: module_group_ty_size({:?}) < CacheGroup({}).min_size({:?})",
+          module_group_key,
+          module_group_ty,
+          module_group_ty_size,
+          cache_group.key,
+          cache_group_ty_min_size,
+        );
+        Some(*module_group_ty)
+      } else {
+        None
+      }
+    })
+    .collect::<Box<[_]>>();
 
   if violating_source_types.is_empty() {
     return module_group.modules.is_empty();
@@ -127,17 +135,18 @@ impl SplitChunksPlugin {
       .par_iter_mut()
       .filter_map(|(module_group_key, module_group)| {
         let cache_group = module_group.get_cache_group(&self.cache_groups);
-        // Fast path
-        if cache_group.min_size.is_empty_or_zero()
-          && cache_group.min_size_reduction.is_empty_or_zero()
-        {
-          let _ = module_group.get_sizes_without_source_type_index(module_sizes);
+        if cache_group.min_size.is_empty_or_zero() {
+          let chunks_len = module_group.chunks.len();
+          let sizes = module_group.get_sizes(module_sizes, false);
           tracing::debug!(
             "ModuleGroup({}) skips `minSize` checking. Reason: min_size of CacheGroup({}) is empty",
             module_group_key,
             cache_group.key,
           );
-          return None;
+          if Self::check_min_size_reduction(sizes, &cache_group.min_size_reduction, chunks_len) {
+            return None;
+          }
+          return Some(module_group_key.clone());
         }
 
         if remove_min_size_violating_modules(
@@ -150,7 +159,7 @@ impl SplitChunksPlugin {
         } else {
           let chunks_len = module_group.chunks.len();
           if !Self::check_min_size_reduction(
-            module_group.get_sizes(module_sizes),
+            module_group.get_sizes(module_sizes, true),
             &cache_group.min_size_reduction,
             chunks_len,
           ) {

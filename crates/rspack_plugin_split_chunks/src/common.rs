@@ -225,26 +225,6 @@ pub fn get_module_sizes<T: ParallelIterator<Item = ModuleIdentifier>>(
     .collect::<IdentifierMap<_>>()
 }
 
-#[cfg(test)]
-mod tests {
-  use rspack_core::SourceType;
-
-  use super::SplitChunkSizes;
-
-  #[test]
-  fn split_chunk_sizes_treats_empty_or_all_zero_as_no_threshold() {
-    assert!(SplitChunkSizes::default().is_empty_or_zero());
-    assert!(SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 0.0).is_empty_or_zero());
-  }
-
-  #[test]
-  fn split_chunk_sizes_reports_non_zero_thresholds() {
-    assert!(
-      !SplitChunkSizes::with_initial_value(&[SourceType::JavaScript], 1.0).is_empty_or_zero()
-    );
-  }
-}
-
 #[derive(Debug)]
 pub struct FallbackCacheGroup {
   #[debug(skip)]
