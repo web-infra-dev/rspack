@@ -261,8 +261,8 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
-            if index.is_base() {
+          for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+            if index.is_tap() {
               self.taps[index.index()].run(#args).await?;
             } else {
               additional_taps[index.index()].run(#args).await?;
@@ -281,8 +281,8 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
-            if index.is_base() {
+          for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+            if index.is_tap() {
               self.taps[index.index()].run(#args)?;
             } else {
               additional_taps[index.index()].run(#args)?;
@@ -303,8 +303,8 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
-            if index.is_base() {
+          for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+            if index.is_tap() {
               if let Some(res) = self.taps[index.index()].run(#args).await? {
                 return Ok(Some(res));
               }
@@ -326,8 +326,8 @@ impl ExecKind {
           }
 
           #additional_taps
-          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
-            if index.is_base() {
+          for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+            if index.is_tap() {
               data = self.taps[index.index()].run(data).await?
             } else {
               data = additional_taps[index.index()].run(data).await?
@@ -346,8 +346,8 @@ impl ExecKind {
 
           #additional_taps
           let mut futs = std::vec::Vec::with_capacity(self.taps.len() + additional_taps.len());
-          for index in ::rspack_hook::merged_stage_indices(self.common.tap_stages(), &additional_stages) {
-            if index.is_base() {
+          for index in ::rspack_hook::merged_tap_indices_by_stage(self.common.tap_stages(), &additional_stages) {
+            if index.is_tap() {
               futs.push(self.taps[index.index()].run(#args));
             } else {
               futs.push(additional_taps[index.index()].run(#args));

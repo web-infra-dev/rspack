@@ -60,90 +60,115 @@ impl HookCommon {
   }
 }
 
-pub fn sort_indices_by_stage(stages: &[i32]) -> Vec<usize> {
-  let mut indices: Vec<_> = (0..stages.len()).collect();
-  indices.sort_by_key(|&index| (stages[index], index));
+pub fn sort_indices_by_stage(stages: &[i32]) -> Vec<u16> {
+  debug_assert!(stages.len() <= HookTapIndex::INDEX_LIMIT);
+  let mut indices: Vec<_> = (0..stages.len()).map(|index| index as u16).collect();
+  indices.sort_by_key(|&index| {
+    let index = index as usize;
+    (stages[index], index)
+  });
+  debug_assert!(indices.windows(2).all(|indices| {
+    let prev = indices[0] as usize;
+    let next = indices[1] as usize;
+    (stages[prev], prev) <= (stages[next], next)
+  }));
   indices
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct HookTapIndex(i32);
+pub struct HookTapIndex(u16);
 
 impl HookTapIndex {
-  pub fn base(index: usize) -> Self {
-    debug_assert!(index < i32::MAX as usize);
-    Self(index as i32 + 1)
+  const INTERCEPT_FLAG: u16 = 1 << 15;
+  const INDEX_MASK: u16 = !Self::INTERCEPT_FLAG;
+  const INDEX_LIMIT: usize = Self::INDEX_MASK as usize + 1;
+
+  pub fn tap(index: u16) -> Self {
+    debug_assert!(index <= Self::INDEX_MASK);
+    Self(index)
   }
 
-  pub fn additional(index: usize) -> Self {
-    debug_assert!(index < i32::MAX as usize);
-    Self(-((index as i32) + 1))
+  pub fn intercept(index: u16) -> Self {
+    debug_assert!(index <= Self::INDEX_MASK);
+    Self(Self::INTERCEPT_FLAG | index)
   }
 
-  pub fn is_base(self) -> bool {
-    self.0 > 0
+  pub fn is_tap(self) -> bool {
+    self.0 & Self::INTERCEPT_FLAG == 0
   }
 
   pub fn index(self) -> usize {
-    if self.is_base() {
-      (self.0 - 1) as usize
-    } else {
-      (-self.0 - 1) as usize
-    }
+    (self.0 & Self::INDEX_MASK) as usize
   }
 }
 
-pub struct MergedStageIndices<'a> {
+pub struct MergedTapIndicesByStage<'a> {
   base_stages: &'a [i32],
   additional_stages: &'a [i32],
-  additional_order: Vec<usize>,
-  base_index: usize,
-  additional_cursor: usize,
+  additional_order: Vec<u16>,
+  base_index: u16,
+  additional_cursor: u16,
 }
 
-pub fn merged_stage_indices<'a>(
+pub fn merged_tap_indices_by_stage<'a>(
   base_stages: &'a [i32],
   additional_stages: &'a [i32],
-) -> MergedStageIndices<'a> {
-  MergedStageIndices {
+) -> MergedTapIndicesByStage<'a> {
+  debug_assert!(base_stages.len() <= HookTapIndex::INDEX_LIMIT);
+  debug_assert!(additional_stages.len() <= HookTapIndex::INDEX_LIMIT);
+  debug_assert!(base_stages.windows(2).all(|stages| stages[0] <= stages[1]));
+  let additional_order = sort_indices_by_stage(additional_stages);
+  debug_assert_eq!(additional_order.len(), additional_stages.len());
+  debug_assert!(
+    additional_order
+      .iter()
+      .all(|&index| (index as usize) < additional_stages.len())
+  );
+  MergedTapIndicesByStage {
     base_stages,
     additional_stages,
-    additional_order: sort_indices_by_stage(additional_stages),
+    additional_order,
     base_index: 0,
     additional_cursor: 0,
   }
 }
 
-impl Iterator for MergedStageIndices<'_> {
+impl Iterator for MergedTapIndicesByStage<'_> {
   type Item = HookTapIndex;
 
   fn next(&mut self) -> Option<Self::Item> {
-    if self.base_index == self.base_stages.len()
-      && self.additional_cursor == self.additional_order.len()
-    {
+    let base_index = self.base_index as usize;
+    let additional_cursor = self.additional_cursor as usize;
+    debug_assert!(base_index <= self.base_stages.len());
+    debug_assert!(additional_cursor <= self.additional_order.len());
+    if base_index == self.base_stages.len() && additional_cursor == self.additional_order.len() {
       return None;
     }
 
-    if self.additional_cursor == self.additional_order.len() {
+    if additional_cursor == self.additional_order.len() {
       let index = self.base_index;
+      debug_assert!(index <= HookTapIndex::INDEX_MASK);
       self.base_index += 1;
-      return Some(HookTapIndex::base(index));
+      return Some(HookTapIndex::tap(index));
     }
 
-    if self.base_index == self.base_stages.len() {
-      let index = self.additional_order[self.additional_cursor];
+    if base_index == self.base_stages.len() {
+      let index = self.additional_order[additional_cursor];
+      debug_assert!(self.additional_cursor <= HookTapIndex::INDEX_MASK);
       self.additional_cursor += 1;
-      return Some(HookTapIndex::additional(index));
+      return Some(HookTapIndex::intercept(index));
     }
 
-    let additional_index = self.additional_order[self.additional_cursor];
-    if self.base_stages[self.base_index] <= self.additional_stages[additional_index] {
+    let additional_index = self.additional_order[additional_cursor];
+    if self.base_stages[base_index] <= self.additional_stages[additional_index as usize] {
       let index = self.base_index;
+      debug_assert!(index <= HookTapIndex::INDEX_MASK);
       self.base_index += 1;
-      Some(HookTapIndex::base(index))
+      Some(HookTapIndex::tap(index))
     } else {
+      debug_assert!(self.additional_cursor <= HookTapIndex::INDEX_MASK);
       self.additional_cursor += 1;
-      Some(HookTapIndex::additional(additional_index))
+      Some(HookTapIndex::intercept(additional_index))
     }
   }
 }
