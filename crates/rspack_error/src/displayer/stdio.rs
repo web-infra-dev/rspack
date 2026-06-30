@@ -11,10 +11,7 @@ pub struct StdioDisplayer;
 impl Display for StdioDisplayer {
   type Output = Result<()>;
 
-  fn emit_batch_diagnostic<'a>(
-    &self,
-    diagnostics: impl Iterator<Item = &'a Diagnostic>,
-  ) -> Self::Output {
+  fn emit_batch_diagnostic(&self, diagnostics: &[Diagnostic]) -> Self::Output {
     let writer = StandardStream::stderr(ColorChoice::Always);
     let mut lock_writer = writer.lock();
     let renderer = Renderer::new(lock_writer.supports_color());
@@ -28,6 +25,6 @@ impl Display for StdioDisplayer {
   }
 
   fn emit_diagnostic(&self, diagnostic: &Diagnostic) -> Self::Output {
-    self.emit_batch_diagnostic(vec![diagnostic].into_iter())
+    self.emit_batch_diagnostic(std::slice::from_ref(diagnostic))
   }
 }

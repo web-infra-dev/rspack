@@ -81,7 +81,7 @@ impl TryFrom<RawConfig> for Config {
           RawConfigTargets::Targets(browsers) => Ok(Some(browsers)),
         })
         .transpose()
-        .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
+        .to_rspack_result_with_message_ref(&|e| format!("Failed to parse browserslist: {e}"))?
         .flatten(),
       include: value.include,
       exclude: value.exclude,

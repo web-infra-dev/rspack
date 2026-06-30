@@ -116,13 +116,24 @@ impl Error {
     error
   }
 
+  fn from_error_message_and_source(
+    message: String,
+    source: Option<&(dyn std::error::Error + 'static)>,
+  ) -> Self {
+    let mut error = Error::error(message);
+    error.source_error = source.map(|e| Box::new(Error::from_error_ref(e)));
+    error
+  }
+
+  pub fn from_error_ref(value: &(dyn std::error::Error + 'static)) -> Self {
+    Self::from_error_message_and_source(value.to_string(), value.source())
+  }
+
   pub fn from_error<T>(value: T) -> Self
   where
     T: std::error::Error,
   {
-    let mut error = Error::error(value.to_string());
-    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
-    error
+    Self::from_error_message_and_source(value.to_string(), value.source())
   }
 
   pub fn is_error(&self) -> bool {
@@ -132,15 +143,19 @@ impl Error {
     self.severity == Severity::Warning
   }
 
-  pub fn wrap_err<D>(self, msg: D) -> Self
-  where
-    D: std::fmt::Display,
-  {
+  fn wrap_err_display(self, msg: &dyn std::fmt::Display) -> Self {
     Self(Box::new(ErrorData {
       message: msg.to_string(),
       source_error: Some(Box::new(self)),
       ..Default::default()
     }))
+  }
+
+  pub fn wrap_err<D>(self, msg: D) -> Self
+  where
+    D: std::fmt::Display,
+  {
+    self.wrap_err_display(&msg)
   }
 }
 
@@ -230,9 +245,7 @@ impl<T> From<std::sync::mpsc::SendError<T>> for Error {
 
 impl From<anyhow::Error> for Error {
   fn from(value: anyhow::Error) -> Self {
-    let mut error = Error::error(value.to_string());
-    error.source_error = value.source().map(|e| Box::new(Error::from_error(e)));
-    error
+    Error::from_error_ref(value.as_ref())
   }
 }
 

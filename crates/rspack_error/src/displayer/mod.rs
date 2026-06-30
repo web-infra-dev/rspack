@@ -7,9 +7,6 @@ use crate::diagnostic::Diagnostic;
 
 pub trait Display {
   type Output;
-  fn emit_batch_diagnostic<'a>(
-    &self,
-    diagnostics: impl Iterator<Item = &'a Diagnostic>,
-  ) -> Self::Output;
+  fn emit_batch_diagnostic(&self, diagnostics: &[Diagnostic]) -> Self::Output;
   fn emit_diagnostic(&self, diagnostic: &Diagnostic) -> Self::Output;
 }

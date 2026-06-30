@@ -3,12 +3,12 @@ use crate::diagnostic::Diagnostic;
 /// A helper struct for change logic from
 /// return something to something with diagnostics array
 #[derive(Debug)]
-pub struct TWithDiagnosticArray<T: std::fmt::Debug> {
+pub struct TWithDiagnosticArray<T> {
   pub inner: T,
   pub diagnostic: Vec<Diagnostic>,
 }
 
-impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
+impl<T> TWithDiagnosticArray<T> {
   pub fn new(inner: T, diagnostic: Vec<Diagnostic>) -> Self {
     Self { inner, diagnostic }
   }
@@ -26,7 +26,7 @@ impl<T: std::fmt::Debug> TWithDiagnosticArray<T> {
   }
 }
 
-impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
+impl<T: Clone> Clone for TWithDiagnosticArray<T> {
   fn clone(&self) -> Self {
     Self {
       inner: self.inner.clone(),
@@ -39,11 +39,11 @@ impl<T: Clone + std::fmt::Debug> Clone for TWithDiagnosticArray<T> {
 pub trait IntoTWithDiagnosticArray {
   fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
   where
-    Self: Sized + std::fmt::Debug;
+    Self: Sized;
 
   fn with_empty_diagnostic(self) -> TWithDiagnosticArray<Self>
   where
-    Self: Sized + std::fmt::Debug,
+    Self: Sized,
   {
     TWithDiagnosticArray {
       inner: self,
@@ -52,10 +52,10 @@ pub trait IntoTWithDiagnosticArray {
   }
 }
 
-impl<T: Sized + std::fmt::Debug> IntoTWithDiagnosticArray for T {
+impl<T: Sized> IntoTWithDiagnosticArray for T {
   fn with_diagnostic(self, diagnostic: Vec<Diagnostic>) -> TWithDiagnosticArray<Self>
   where
-    Self: Sized + std::fmt::Debug,
+    Self: Sized,
   {
     TWithDiagnosticArray {
       inner: self,

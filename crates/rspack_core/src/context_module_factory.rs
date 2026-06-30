@@ -250,7 +250,7 @@ impl ContextModuleFactory {
           let resolve_result = loader_resolver
             .resolve(data.context.as_ref(), loader_request)
             .await
-            .to_rspack_result_with_message(|e| {
+            .to_rspack_result_with_message_ref(&|e| {
               format!(
                 "Failed to resolve loader: {loader_request} in {} {e}",
                 data.context

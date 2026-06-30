@@ -20,10 +20,7 @@ impl StringDisplayer {
 impl Display for StringDisplayer {
   type Output = crate::Result<String>;
 
-  fn emit_batch_diagnostic<'a>(
-    &self,
-    diagnostics: impl Iterator<Item = &'a Diagnostic>,
-  ) -> Self::Output {
+  fn emit_batch_diagnostic(&self, diagnostics: &[Diagnostic]) -> Self::Output {
     let renderer = Renderer::new(self.colored);
     let mut diagnostic_strings = vec![];
     for d in diagnostics {
@@ -44,6 +41,6 @@ impl Display for StringDisplayer {
   }
 
   fn emit_diagnostic(&self, diagnostic: &Diagnostic) -> Self::Output {
-    self.emit_batch_diagnostic(std::iter::once(diagnostic))
+    self.emit_batch_diagnostic(std::slice::from_ref(diagnostic))
   }
 }

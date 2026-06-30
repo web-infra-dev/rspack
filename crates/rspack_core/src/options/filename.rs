@@ -162,7 +162,7 @@ impl LocalFilenameFn for Arc<dyn FilenameFn> {
       .deref()
       .call(path_data, asset_info)
       .await
-      .to_rspack_result_with_message(|e| {
+      .to_rspack_result_with_message_ref(&|e| {
         format!("Failed to render filename function: {e}. Did you return the correct filename?")
       })
   }

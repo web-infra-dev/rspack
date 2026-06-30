@@ -101,7 +101,7 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
             })),
           })
           .transpose()
-          .to_rspack_result_with_message(|e| format!("Failed to parse browserslist: {e}"))?
+          .to_rspack_result_with_message_ref(&|e| format!("Failed to parse browserslist: {e}"))?
           .flatten(),
         include: value.minimizer_options.include,
         exclude: value.minimizer_options.exclude,

@@ -204,7 +204,7 @@ impl LightningCssLoader {
             focus_within: pseudo_classes.focus_within.as_deref(),
           }),
       })
-      .to_rspack_result_with_message(|e| format!("failed to generate css: {e}"))?;
+      .to_rspack_result_with_message_ref(&|e| format!("failed to generate css: {e}"))?;
 
     if let Some(parcel_source_map) = parcel_source_map {
       let mappings = encode_mappings(parcel_source_map.get_mappings().iter().map(|mapping| {

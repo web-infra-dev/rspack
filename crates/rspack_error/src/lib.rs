@@ -10,9 +10,10 @@ mod macros;
 
 pub use self::{
   batch_error::BatchErrors,
-  colors::{cyan, dim, red, yellow},
+  colors::{cyan, cyan_str, dim, dim_str, red, red_str, yellow, yellow_str},
   convert::{
     AnyhowResultToRspackResultExt, SerdeResultToRspackResultExt, ToStringResultToRspackResultExt,
+    error_from_display, error_from_string, serde_error_with_detail,
   },
   diagnosable::Diagnosable,
   diagnostic::Diagnostic,
