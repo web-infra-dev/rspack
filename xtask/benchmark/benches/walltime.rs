@@ -7,7 +7,7 @@ use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_con
 
 use crate::groups::{
   bundle::{
-    misc, threejs_10x,
+    threejs_10x,
     util::{CompilerBuilderGenerator, derive_projects},
   },
   diagnostics::assert_no_compilation_errors,
@@ -25,16 +25,9 @@ fn threejs_10x_bundle_benchmark(c: &mut Criterion) {
   walltime_bundle_benchmark_case(c, "threejs-10x-production-sourcemap");
 }
 
-fn misc_bundle_benchmark(c: &mut Criterion) {
-  walltime_bundle_benchmark_case(c, "misc-development");
-  walltime_bundle_benchmark_case(c, "misc-production-sourcemap");
-}
-
 fn walltime_bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
-  let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
-    ("misc", Arc::new(misc::compiler)),
-    ("threejs-10x", Arc::new(threejs_10x::compiler)),
-  ];
+  let projects: Vec<(&'static str, CompilerBuilderGenerator)> =
+    vec![("threejs-10x", Arc::new(threejs_10x::compiler))];
   let (id, get_compiler) = derive_projects(projects)
     .into_iter()
     .find(|(id, _)| id == target_id)
@@ -95,9 +88,5 @@ impl Drop for NativeOutputCleanup {
 }
 
 criterion_group!(benchmark_setup, configure_rayon_for_benchmark);
-criterion_group!(
-  walltime_benches,
-  threejs_10x_bundle_benchmark,
-  misc_bundle_benchmark
-);
+criterion_group!(walltime_benches, threejs_10x_bundle_benchmark);
 criterion_main!(benchmark_setup, walltime_benches);

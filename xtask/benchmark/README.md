@@ -16,12 +16,11 @@ pnpm run bench:prepare
 ```
 
 The prepare step also creates a local `threejs-10x` fixture by copying the
-upstream `threejs/src` input ten times. Larger bundle inputs, including
-`threejs-10x` and `misc`, are registered only by the isolated `walltime`
-benchmark target, so regular simulation runs keep using the smaller default
-benchmark set. The `threejs-10x` walltime benchmark writes outputs through the
-native filesystem instead of the in-memory filesystem used by the regular bundle
-benchmarks. Rust benchmark concurrency is selected with
+upstream `threejs/src` input ten times. This larger input is registered only by
+the isolated `walltime` benchmark target, so regular simulation runs keep using
+the smaller default benchmark set. The `threejs-10x` walltime benchmark writes
+outputs through the native filesystem instead of the in-memory filesystem used
+by the regular bundle benchmarks. Rust benchmark concurrency is selected with
 `BENCH_MODE=simulation|walltime` (default: `simulation`). Walltime bundle
 benchmarks use `BENCH_MODE=walltime`, which caps machine-size-dependent
 parallelism at up to 16 threads for each of Tokio workers, Tokio blocking tasks,
