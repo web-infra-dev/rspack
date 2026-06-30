@@ -295,7 +295,10 @@ fn build_rspack_source_map(
       inner_source_map: Some(input_source_map),
       remove_original_source: false,
     }))
-    .map_static(&ObjectPool::default(), &MapOptions::default())
+    .map_static(
+      &ObjectPool::default(),
+      &MapOptions::new(config.source_map_kind.emit_columns()),
+    )
     .map(|mut source_map| {
       restore_ignore_list(&mut source_map, &ignored_sources);
       source_map
@@ -466,5 +469,59 @@ impl Visit for IdentCollector {
 
   fn visit_ident(&mut self, ident: &Ident) {
     self.names.insert(ident.span.lo, ident.sym.clone());
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use rspack_sources::SourceMap;
+  use rspack_util::source_map::SourceMapKind;
+  use swc_core::common::{BytePos, FileName, LineCol, SourceMap as SwcSourceMap};
+
+  use super::{SourceMapConfig, build_rspack_source_map};
+
+  #[test]
+  fn composes_input_source_map_in_cheap_mode() {
+    let swc_cm = Arc::new(SwcSourceMap::default());
+    let source = "\n\n\nconsole.log(user.name);\n";
+    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
+    let line_four = BytePos(file.start_pos.0 + source.find("console").expect("source line") as u32);
+
+    let input_source_map = SourceMap::from_json(
+      r#"{
+        "version": 3,
+        "file": "input.js",
+        "sources": ["original.vue"],
+        "sourcesContent": ["<template>\n  <p>{{ user.name }}</p>\n</template>\n"],
+        "names": [],
+        "mappings": ";;;UACA"
+      }"#
+        .to_string(),
+    )
+    .expect("valid input source map");
+
+    let source_map = build_rspack_source_map(
+      &swc_cm,
+      &[(line_four, LineCol { line: 0, col: 0 })],
+      Some(input_source_map),
+      &SourceMapConfig {
+        source_map_kind: SourceMapKind::SourceMap.with_cheap(true),
+        names: Default::default(),
+      },
+      "console.log(user.name);\n",
+    )
+    .expect("composed source map");
+
+    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
+    assert_eq!(source_map.get_source(0), Some("original.vue"));
+    assert_eq!(
+      mappings[0]
+        .original
+        .as_ref()
+        .map(|original| original.original_line),
+      Some(2)
+    );
   }
 }
