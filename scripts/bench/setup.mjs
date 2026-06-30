@@ -64,7 +64,9 @@ async function rspackBenchcases() {
     ),
   );
 
-  await run('pnpm', ['install'], { cwd: RSPACK_BENCH_CASES });
+  await run('pnpm', ['install', '--ignore-scripts'], {
+    cwd: RSPACK_BENCH_CASES,
+  });
 }
 
 async function scaledThreejsBenchcase() {
