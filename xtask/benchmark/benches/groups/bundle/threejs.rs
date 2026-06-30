@@ -7,11 +7,6 @@ pub fn compiler() -> CompilerBuilder {
     project: "threejs",
     entry: "./src/Three.js",
     swc_loader: false,
-    swc_react_runtime: None,
     native_output_filesystem: false,
-    target: None,
-    resolve_alias: None,
-    resolve_extensions: None,
-    ignore_missing_reexports: false,
   })
 }
