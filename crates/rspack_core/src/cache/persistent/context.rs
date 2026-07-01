@@ -1,4 +1,4 @@
-use std::fmt::Write as _;
+use std::{fmt::Write as _, sync::Arc};
 
 use rspack_paths::{ArcPath, ArcPathSet};
 
@@ -108,7 +108,7 @@ impl CacheContext {
 
   /// Saves build dependency hashes. No-op in readonly mode.
   #[tracing::instrument("Cache::Context::save_build_deps", skip_all)]
-  pub async fn save_build_deps(
+  pub fn save_build_deps(
     &mut self,
     build_deps: &mut BuildDeps,
     added: impl Iterator<Item = ArcPath>,
@@ -121,7 +121,10 @@ impl CacheContext {
       .logger()
       .time("write build dependencies to persistent cache");
     let logger = self.logger().clone();
-    build_deps.add(&mut *self.storage, added, logger).await;
+    let added = added.collect::<Vec<_>>();
+    self
+      .storage
+      .add_update_task(Box::pin(build_deps.save_updates_task(added, logger)));
     self.logger().time_end(start);
   }
 
@@ -194,9 +197,9 @@ impl CacheContext {
 
   /// Persists snapshot data for all three scopes. No-op in readonly mode.
   #[tracing::instrument("Cache::Context::save_snapshot", skip_all)]
-  pub async fn save_snapshot(
+  pub fn save_snapshot(
     &mut self,
-    snapshot: &Snapshot,
+    snapshot: Arc<Snapshot>,
     file_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     context_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
     missing_deps: (impl Iterator<Item = ArcPath>, impl Iterator<Item = ArcPath>),
@@ -209,18 +212,16 @@ impl CacheContext {
     let (file_added, file_removed) = file_deps;
     let (context_added, context_removed) = context_deps;
     let (missing_added, missing_removed) = missing_deps;
-    snapshot.remove(&mut *self.storage, SnapshotScope::FILE, file_removed);
-    snapshot.remove(&mut *self.storage, SnapshotScope::CONTEXT, context_removed);
-    snapshot.remove(&mut *self.storage, SnapshotScope::MISSING, missing_removed);
-    snapshot
-      .add(&mut *self.storage, SnapshotScope::FILE, file_added)
-      .await;
-    snapshot
-      .add(&mut *self.storage, SnapshotScope::CONTEXT, context_added)
-      .await;
-    snapshot
-      .add(&mut *self.storage, SnapshotScope::MISSING, missing_added)
-      .await;
+    let file_deps = (file_added.collect(), file_removed.collect());
+    let context_deps = (context_added.collect(), context_removed.collect());
+    let missing_deps = (missing_added.collect(), missing_removed.collect());
+    self
+      .storage
+      .add_update_task(Box::pin(snapshot.save_updates_task(
+        file_deps,
+        context_deps,
+        missing_deps,
+      )));
     self.logger().time_end(start);
   }
 

@@ -8,11 +8,22 @@ mod error;
 mod filesystem;
 mod memory;
 
+use futures::future::BoxFuture;
+use rustc_hash::FxHashMap as HashMap;
+
 pub use self::{
   error::{Error, Result},
   filesystem::{FileSystemOptions, FileSystemStorage, Version},
   memory::MemoryStorage,
 };
+
+/// Scope-grouped storage updates.
+///
+/// Each item is `(key, Some(value))` for writes and `(key, None)` for removals.
+pub type StorageUpdates = HashMap<String, HashMap<Vec<u8>, Option<Vec<u8>>>>;
+
+/// Asynchronously collected storage updates.
+pub type StorageUpdateTask = BoxFuture<'static, StorageUpdates>;
 
 /// Persistent storage abstraction interface
 ///
@@ -27,6 +38,12 @@ pub trait Storage: std::fmt::Debug + Sync + Send {
 
   /// Removes a key from the specified scope (staged in memory)
   fn remove(&mut self, scope: &'static str, key: &[u8]);
+
+  /// Adds asynchronously collected updates to the next persistence operation.
+  ///
+  /// Storage implementations that support background persistence should merge
+  /// the returned updates into the next [`Storage::save`] call.
+  fn add_update_task(&mut self, _task: StorageUpdateTask) {}
 
   /// Enqueues a persistence operation, writing all staged memory changes to storage.
   ///

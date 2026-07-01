@@ -3,8 +3,10 @@ use std::sync::Arc;
 use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
 use rspack_fs::IntermediateFileSystem;
 use rspack_paths::Utf8PathBuf;
-pub use rspack_storage::{BoxStorage, MemoryStorage, Storage, Version};
-use rspack_storage::{FileSystemOptions, FileSystemStorage};
+use rspack_storage::FileSystemOptions;
+pub use rspack_storage::{
+  BoxStorage, FileSystemStorage, MemoryStorage, Storage, StorageUpdates, Version,
+};
 
 /// Storage Options
 ///

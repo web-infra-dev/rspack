@@ -175,31 +175,25 @@ impl Cache for PersistentCache {
     let (_, context_added, context_updated, context_removed) = compilation.context_dependencies();
     let (_, missing_added, missing_updated, missing_removed) = compilation.missing_dependencies();
     let (_, build_added, build_updated, _) = compilation.build_dependencies();
-    self
-      .ctx
-      .save_snapshot(
-        &self.snapshot,
-        (
-          file_added.chain(file_updated).cloned(),
-          file_removed.cloned(),
-        ),
-        (
-          context_added.chain(context_updated).cloned(),
-          context_removed.cloned(),
-        ),
-        (
-          missing_added.chain(missing_updated).cloned(),
-          missing_removed.cloned(),
-        ),
-      )
-      .await;
-    self
-      .ctx
-      .save_build_deps(
-        &mut self.build_deps,
-        build_added.chain(build_updated).cloned(),
-      )
-      .await;
+    self.ctx.save_snapshot(
+      self.snapshot.clone(),
+      (
+        file_added.chain(file_updated).cloned(),
+        file_removed.cloned(),
+      ),
+      (
+        context_added.chain(context_updated).cloned(),
+        context_removed.cloned(),
+      ),
+      (
+        missing_added.chain(missing_updated).cloned(),
+        missing_removed.cloned(),
+      ),
+    );
+    self.ctx.save_build_deps(
+      &mut self.build_deps,
+      build_added.chain(build_updated).cloned(),
+    );
 
     self.ctx.save_storage();
     self.ctx.reset();

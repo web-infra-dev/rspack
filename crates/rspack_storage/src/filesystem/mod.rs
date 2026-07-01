@@ -7,16 +7,18 @@ mod version;
 
 use std::sync::{Arc, Mutex};
 
-use rustc_hash::FxHashMap as HashMap;
-
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
 pub use self::{options::FileSystemOptions, version::Version};
-use crate::{Error, Result, Storage};
+use crate::{Error, Result, Storage, StorageUpdateTask, StorageUpdates};
 
-/// Type alias for in-memory update changes: key -> optional_value
-type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
+#[derive(Default)]
+struct UpdateTasks(Vec<StorageUpdateTask>);
 
-const STALE_DIR_NAME: &str = "_stale";
+impl std::fmt::Debug for UpdateTasks {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_tuple("UpdateTasks").field(&self.0.len()).finish()
+  }
+}
 
 fn spawn_cleanup_stale_versions(stale_fs: ScopeFileSystem) {
   tokio::spawn(async move {
@@ -102,7 +104,9 @@ pub struct FileSystemStorage {
   task_queue: TaskQueue,
   /// In-memory staged update operations, grouped by scope
   /// Value of Some(value) indicates write, None indicates deletion
-  updates: HashMap<String, BucketChangesMap>,
+  updates: StorageUpdates,
+  /// Async tasks that delay collecting updates until save.
+  update_tasks: Mutex<UpdateTasks>,
   /// Storage options
   options: FileSystemOptions,
   /// Next scheduled time for metadata refresh (cleanup + access time update)
@@ -118,6 +122,7 @@ impl FileSystemStorage {
       db: DB::new(fs.child_fs(options.version.as_str())),
       task_queue: TaskQueue::default(),
       updates: Default::default(),
+      update_tasks: Default::default(),
       next_meta_refresh_time: Default::default(),
       fs,
       options,
@@ -125,6 +130,7 @@ impl FileSystemStorage {
   }
 
   pub fn stale_fs(&self) -> ScopeFileSystem {
+    const STALE_DIR_NAME: &str = "_stale";
     self.fs.child_fs(STALE_DIR_NAME)
   }
 }
@@ -150,17 +156,29 @@ impl Storage for FileSystemStorage {
     scope_update.insert(key.to_vec(), None);
   }
 
+  fn add_update_task(&mut self, task: StorageUpdateTask) {
+    self
+      .update_tasks
+      .lock()
+      .expect("should lock update tasks")
+      .0
+      .push(task);
+  }
+
   fn save(&mut self) {
     // Take all pending updates and clear the memory buffer
     let updates = std::mem::take(&mut self.updates);
+    let update_tasks = std::mem::take(
+      &mut *self
+        .update_tasks
+        .get_mut()
+        .expect("should get update tasks"),
+    )
+    .0;
 
     // Queue the write and metadata refresh together so cleanup observes the
     // latest version without blocking `save()`.
     let db = self.db.clone();
-    let changes = updates
-      .into_iter()
-      .map(|(k, v)| (k, v.into_iter().collect()))
-      .collect();
     let max_pack_size = self.options.max_pack_size;
     let fs = self.fs.clone();
     let stale_fs = self.stale_fs();
@@ -170,6 +188,16 @@ impl Storage for FileSystemStorage {
     let next_meta_refresh_time = self.next_meta_refresh_time.clone();
 
     self.task_queue.add_task(async move {
+      let mut updates = updates;
+      for task in update_tasks {
+        for (scope, update) in task.await {
+          updates.entry(scope).or_default().extend(update);
+        }
+      }
+      let changes = updates
+        .into_iter()
+        .map(|(k, v)| (k, v.into_iter().collect()))
+        .collect();
       if db.save(changes, max_pack_size).await {
         refresh_metadata(
           fs,

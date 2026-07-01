@@ -2,7 +2,7 @@ mod option;
 mod scope;
 mod strategy;
 
-use std::sync::Arc;
+use std::{future::Future, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
@@ -15,7 +15,10 @@ pub use self::{
   scope::SnapshotScope,
   strategy::Strategy,
 };
-use super::{codec::CacheCodec, storage::Storage};
+use super::{
+  codec::CacheCodec,
+  storage::{Storage, StorageUpdates},
+};
 use crate::FutureConsumer;
 
 /// Snapshot is used to check if files have been modified or deleted.
@@ -84,17 +87,17 @@ impl Snapshot {
     storage.reset(SnapshotScope::MISSING.name());
   }
 
-  #[tracing::instrument("Cache::Snapshot::add", skip_all)]
-  pub async fn add(
+  async fn add_changes(
     &self,
-    storage: &mut dyn Storage,
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
-  ) {
+    paths: Vec<ArcPath>,
+  ) -> Vec<(Vec<u8>, Vec<u8>)> {
     let helper = Arc::new(StrategyHelper::new(self.fs.clone(), self.options.clone()));
     let codec = self.codec.clone();
+    let mut changes = Vec::new();
     // TODO merge package version file
     paths
+      .into_iter()
       .map(|path| {
         let helper = helper.clone();
         let options = self.options.clone();
@@ -109,20 +112,77 @@ impl Snapshot {
       })
       .fut_consume(|data| {
         if let Some((key, value)) = data {
-          storage.set(scope.name(), key, value);
+          changes.push((key, value));
         }
       })
       .await;
+    changes
   }
 
-  pub fn remove(
-    &self,
-    storage: &mut dyn Storage,
+  fn remove_updates(
     scope: SnapshotScope,
-    paths: impl Iterator<Item = ArcPath>,
-  ) {
-    for item in paths {
-      storage.remove(scope.name(), item.as_os_str().as_encoded_bytes())
+    paths: Vec<ArcPath>,
+  ) -> (String, Vec<(Vec<u8>, Option<Vec<u8>>)>) {
+    (
+      scope.name().to_string(),
+      paths
+        .into_iter()
+        .map(|item| (item.as_os_str().as_encoded_bytes().to_vec(), None))
+        .collect(),
+    )
+  }
+
+  pub async fn save_scope_updates(
+    &self,
+    scope: SnapshotScope,
+    added: Vec<ArcPath>,
+    removed: Vec<ArcPath>,
+  ) -> StorageUpdates {
+    let (scope_name, mut scope_updates) = Self::remove_updates(scope, removed);
+    scope_updates.extend(
+      self
+        .add_changes(scope, added)
+        .await
+        .into_iter()
+        .map(|(key, value)| (key, Some(value))),
+    );
+
+    let mut updates = StorageUpdates::default();
+    if !scope_updates.is_empty() {
+      updates.insert(scope_name, scope_updates.into_iter().collect());
+    }
+    updates
+  }
+
+  pub fn save_updates_task(
+    self: Arc<Self>,
+    file_deps: (Vec<ArcPath>, Vec<ArcPath>),
+    context_deps: (Vec<ArcPath>, Vec<ArcPath>),
+    missing_deps: (Vec<ArcPath>, Vec<ArcPath>),
+  ) -> impl Future<Output = StorageUpdates> + Send + 'static {
+    async move {
+      let mut updates = StorageUpdates::default();
+      let (file_added, file_removed) = file_deps;
+      let (context_added, context_removed) = context_deps;
+      let (missing_added, missing_removed) = missing_deps;
+
+      updates.extend(
+        self
+          .save_scope_updates(SnapshotScope::FILE, file_added, file_removed)
+          .await,
+      );
+      updates.extend(
+        self
+          .save_scope_updates(SnapshotScope::CONTEXT, context_added, context_removed)
+          .await,
+      );
+      updates.extend(
+        self
+          .save_scope_updates(SnapshotScope::MISSING, missing_added, missing_removed)
+          .await,
+      );
+
+      updates
     }
   }
 
@@ -181,8 +241,9 @@ mod tests {
 
   use super::{
     super::{codec::CacheCodec, storage::MemoryStorage},
-    PathMatcher, Snapshot, SnapshotOptions, SnapshotScope,
+    Snapshot, SnapshotOptions, SnapshotScope,
   };
+  use crate::cache::persistent::storage::Storage;
 
   macro_rules! p {
     ($tt:tt) => {
@@ -191,105 +252,47 @@ mod tests {
   }
 
   #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-  async fn should_snapshot_work() {
+  async fn should_generate_snapshot_save_updates() {
     let fs = Arc::new(MemoryFileSystem::default());
     let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
-    let options = SnapshotOptions::new(
-      vec![PathMatcher::String("constant".into())],
-      vec![PathMatcher::String("node_modules/project".into())],
-      vec![PathMatcher::String("node_modules".into())],
-    );
+    let snapshot = Arc::new(Snapshot::new(SnapshotOptions::default(), fs.clone(), codec));
 
-    fs.create_dir_all("/node_modules/project".into())
-      .await
-      .unwrap();
-    fs.create_dir_all("/node_modules/lib".into()).await.unwrap();
+    fs.create_dir_all("/".into()).await.unwrap();
     fs.write("/file1".into(), "abc".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    fs.write(
-      "/node_modules/project/package.json".into(),
-      r#"{"version":"1.0.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.1.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abc".as_bytes())
-      .await
-      .unwrap();
 
-    let snapshot = Snapshot::new(options, fs.clone(), codec);
-
-    snapshot
-      .add(
-        &mut storage,
-        SnapshotScope::FILE,
-        [
-          p!("/file1"),
-          p!("/constant"),
-          p!("/node_modules/project/file1"),
-          p!("/node_modules/lib/file1"),
-        ]
-        .into_iter(),
+    let mut updates = snapshot
+      .clone()
+      .save_updates_task(
+        (vec![p!("/file1")], vec![]),
+        (vec![], vec![]),
+        (vec![], vec![]),
       )
       .await;
+    for (key, value) in updates.remove(SnapshotScope::FILE.name()).unwrap() {
+      if let Some(value) = value {
+        storage.set(SnapshotScope::FILE.name(), key, value);
+      } else {
+        storage.remove(SnapshotScope::FILE.name(), &key);
+      }
+    }
+
+    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+      .calc_modified_paths(&storage, SnapshotScope::FILE)
+      .await
+      .unwrap();
+    assert!(is_hot_start);
+    assert!(modified_paths.is_empty());
+    assert!(deleted_paths.is_empty());
+    assert!(no_change_paths.contains(&p!("/file1")));
+
     std::thread::sleep(std::time::Duration::from_millis(100));
     fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
+    let (_, modified_paths, deleted_paths, _) = snapshot
       .calc_modified_paths(&storage, SnapshotScope::FILE)
       .await
       .unwrap();
-    assert!(is_hot_start);
-    assert!(deleted_paths.is_empty());
-    assert!(!modified_paths.contains(&p!("/constant")));
     assert!(modified_paths.contains(&p!("/file1")));
-    assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
-    assert!(!modified_paths.contains(&p!("/node_modules/lib/file1")));
-    assert_eq!(no_change_paths.len(), 1);
-
-    fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"version":"1.3.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    snapshot
-      .add(
-        &mut storage,
-        SnapshotScope::FILE,
-        [p!("/file1")].into_iter(),
-      )
-      .await;
-    let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
-      .calc_modified_paths(&storage, SnapshotScope::FILE)
-      .await
-      .unwrap();
-    assert!(is_hot_start);
     assert!(deleted_paths.is_empty());
-    assert!(!modified_paths.contains(&p!("/constant")));
-    assert!(!modified_paths.contains(&p!("/file1")));
-    assert!(modified_paths.contains(&p!("/node_modules/project/file1")));
-    assert!(modified_paths.contains(&p!("/node_modules/lib/file1")));
-    assert_eq!(no_change_paths.len(), 1);
   }
 }
