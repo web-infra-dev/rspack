@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use napi::{
   Either,
-  bindgen_prelude::{Either3, block_on},
+  bindgen_prelude::{Buffer, Either3, FnArgs, block_on},
 };
 use rspack_fs::{
   Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
@@ -13,7 +13,7 @@ use rspack_fs::{
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use tracing::instrument;
 
-use super::node::ThreadsafeNodeFS;
+use super::node::{NodeFsStats, ThreadsafeNodeFS};
 
 pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
 
@@ -32,7 +32,12 @@ impl NodeFileSystem {
 impl WritableFileSystem for NodeFileSystem {
   async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
     let dir = dir.as_str().to_string();
-    self.0.mkdir.call_with_promise(dir).await.to_fs_result()
+    self
+      .0
+      .mkdir
+      .call_with_promise::<String, ()>(dir)
+      .await
+      .to_fs_result()
   }
 
   async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
@@ -40,7 +45,7 @@ impl WritableFileSystem for NodeFileSystem {
     self
       .0
       .mkdirp
-      .call_with_promise(dir)
+      .call_with_promise::<String, Either<String, ()>>(dir)
       .await
       .to_fs_result()
       .map(|_| ())
@@ -52,7 +57,7 @@ impl WritableFileSystem for NodeFileSystem {
     self
       .0
       .write_file
-      .call_with_promise((file, data.into()).into())
+      .call_with_promise::<FnArgs<(String, Buffer)>, ()>((file, data.into()).into())
       .await
       .to_fs_result()
   }
@@ -62,7 +67,7 @@ impl WritableFileSystem for NodeFileSystem {
     self
       .0
       .remove_file
-      .call_with_promise(file)
+      .call_with_promise::<String, ()>(file)
       .await
       .to_fs_result()
       .map(|_| ())
@@ -73,7 +78,7 @@ impl WritableFileSystem for NodeFileSystem {
     self
       .0
       .remove_dir_all
-      .call_with_promise(dir)
+      .call_with_promise::<String, Either<String, ()>>(dir)
       .await
       .to_fs_result()
       .map(|_| ())
@@ -85,7 +90,7 @@ impl WritableFileSystem for NodeFileSystem {
     let res = self
       .0
       .read_dir
-      .call_with_promise(dir)
+      .call_with_promise::<String, Either<Vec<String>, ()>>(dir)
       .await
       .to_fs_result()?;
     match res {
@@ -103,7 +108,7 @@ impl WritableFileSystem for NodeFileSystem {
     let res = self
       .0
       .read_file
-      .call_with_promise(file)
+      .call_with_promise::<String, Either3<Buffer, String, ()>>(file)
       .await
       .to_fs_result()?;
 
@@ -119,7 +124,12 @@ impl WritableFileSystem for NodeFileSystem {
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
     let file = file.as_str().to_string();
-    let res = self.0.stat.call_with_promise(file).await.to_fs_result()?;
+    let res = self
+      .0
+      .stat
+      .call_with_promise::<String, Either<NodeFsStats, ()>>(file)
+      .await
+      .to_fs_result()?;
     match res {
       Either::A(stat) => Ok(FileMetadata::from(stat)),
       Either::B(_) => Err(Error::new(
@@ -135,7 +145,7 @@ impl WritableFileSystem for NodeFileSystem {
     {
       let file = path.as_str().to_string();
       return chmod
-        .call_with_promise((file, mode).into())
+        .call_with_promise::<FnArgs<(String, u32)>, ()>((file, mode).into())
         .await
         .to_fs_result();
     }
@@ -151,7 +161,7 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
     self
       .0
       .rename
-      .call_with_promise((from, to).into())
+      .call_with_promise::<FnArgs<(String, String)>, ()>((from, to).into())
       .await
       .to_fs_result()
   }
@@ -176,7 +186,7 @@ impl ReadableFileSystem for NodeFileSystem {
     self
       .0
       .read_file
-      .call_with_promise(path.as_str().to_string())
+      .call_with_promise::<String, Either3<Buffer, String, ()>>(path.as_str().to_string())
       .await
       .to_fs_result()
       // TODO: simplify the return value?
@@ -197,7 +207,7 @@ impl ReadableFileSystem for NodeFileSystem {
     let res = self
       .0
       .stat
-      .call_with_promise(path.as_str().to_string())
+      .call_with_promise::<String, Either<NodeFsStats, ()>>(path.as_str().to_string())
       .await
       .to_fs_result()?;
     match res {
@@ -220,7 +230,7 @@ impl ReadableFileSystem for NodeFileSystem {
     let res = self
       .0
       .lstat
-      .call_with_promise(path.as_str().to_string())
+      .call_with_promise::<String, Either<NodeFsStats, ()>>(path.as_str().to_string())
       .await
       .to_fs_result()?;
     match res {
@@ -237,7 +247,7 @@ impl ReadableFileSystem for NodeFileSystem {
     let res = self
       .0
       .realpath
-      .call_with_promise(path.as_str().to_string())
+      .call_with_promise::<String, Either<String, ()>>(path.as_str().to_string())
       .await
       .to_fs_result()?;
     match res {
@@ -254,7 +264,7 @@ impl ReadableFileSystem for NodeFileSystem {
     let res = self
       .0
       .read_dir
-      .call_with_promise(dir.as_str().to_string())
+      .call_with_promise::<String, Either<Vec<String>, ()>>(dir.as_str().to_string())
       .await
       .to_fs_result()?;
     match res {
@@ -275,7 +285,7 @@ impl ReadableFileSystem for NodeFileSystem {
     let res = self
       .0
       .stat
-      .call_with_promise(path.as_str().to_string())
+      .call_with_promise::<String, Either<NodeFsStats, ()>>(path.as_str().to_string())
       .await
       .to_fs_result()?;
     match res {
@@ -299,7 +309,9 @@ impl NodeReadStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call_with_promise((file.as_str().to_string(), "r".to_string()).into())
+      .call_with_promise::<FnArgs<(String, String)>, Either<i32, ()>>(
+        (file.as_str().to_string(), "r".to_string()).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -319,7 +331,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read
-      .call_with_promise((self.fd, length as u32, self.pos as u32).into())
+      .call_with_promise::<FnArgs<(i32, u32, u32)>, Either<Buffer, ()>>(
+        (self.fd, length as u32, self.pos as u32).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -339,7 +353,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_until
-      .call_with_promise((self.fd, byte, self.pos as u32).into())
+      .call_with_promise::<FnArgs<(i32, u8, u32)>, Either<Buffer, ()>>(
+        (self.fd, byte, self.pos as u32).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -358,7 +374,9 @@ impl ReadStream for NodeReadStream {
     let buffer = self
       .fs
       .read_to_end
-      .call_with_promise((self.fd, self.pos as u32).into())
+      .call_with_promise::<FnArgs<(i32, u32)>, Either<Buffer, ()>>(
+        (self.fd, self.pos as u32).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -381,7 +399,7 @@ impl ReadStream for NodeReadStream {
     self
       .fs
       .close
-      .call_with_promise(self.fd)
+      .call_with_promise::<i32, ()>(self.fd)
       .await
       .to_fs_result()
   }
@@ -398,7 +416,9 @@ impl NodeWriteStream {
   pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
-      .call_with_promise((file.as_str().to_string(), "w+".to_string()).into())
+      .call_with_promise::<FnArgs<(String, String)>, Either<i32, ()>>(
+        (file.as_str().to_string(), "w+".to_string()).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -423,7 +443,9 @@ impl WriteStream for NodeWriteStream {
     let res = self
       .fs
       .write
-      .call_with_promise((self.fd, buf.to_vec().into(), self.pos as u32).into())
+      .call_with_promise::<FnArgs<(i32, Buffer, u32)>, Either<u32, ()>>(
+        (self.fd, buf.to_vec().into(), self.pos as u32).into(),
+      )
       .await
       .to_fs_result()?;
 
@@ -442,7 +464,7 @@ impl WriteStream for NodeWriteStream {
     self
       .fs
       .write_all
-      .call_with_promise((self.fd, buf.to_vec().into()).into())
+      .call_with_promise::<FnArgs<(i32, Buffer)>, ()>((self.fd, buf.to_vec().into()).into())
       .await
       .to_fs_result()
   }
@@ -453,7 +475,7 @@ impl WriteStream for NodeWriteStream {
     self
       .fs
       .close
-      .call_with_promise(self.fd)
+      .call_with_promise::<i32, ()>(self.fd)
       .await
       .to_fs_result()
   }
