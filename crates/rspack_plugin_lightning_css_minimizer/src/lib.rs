@@ -4,25 +4,28 @@ use std::{
   sync::{Arc, LazyLock, RwLock},
 };
 
-pub use lightningcss::targets::Browsers;
-use lightningcss::{
-  printer::PrinterOptions,
-  stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
-  targets::{Features, Targets},
-};
 use rayon::prelude::*;
 use regex::Regex;
 use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
+    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
     SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHash;
 use rspack_hook::{plugin, plugin_hook};
+pub use rspack_loader_lightningcss::lightningcss::targets::Browsers;
+use rspack_loader_lightningcss::{
+  RspackSourceMap,
+  lightningcss::{
+    printer::{PrinterOptions, SourceMap as LightningSourceMap},
+    stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
+    targets::{Features, Targets},
+  },
+};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
 
@@ -170,16 +173,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           matches!(&minimizer_options.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
         );
 
-        let mut source_map = input_source_map
-          .as_ref()
-          .map(|input_source_map| -> Result<_> {
-            let mut sm =
-              parcel_sourcemap::SourceMap::new(input_source_map.source_root().unwrap_or("/"));
-            sm.add_source(filename);
-            sm.set_source_content(0, &input).to_rspack_result()?;
-            Ok(sm)
-          })
-          .transpose()?;
+        let mut source_map = input_source_map.as_ref().map(|input_source_map| {
+          let mut sm = RspackSourceMap::with_source_root(input_source_map.source_root());
+          let source_index = sm.add_source(filename);
+          sm.set_source_content(source_index, &input);
+          sm
+        });
         let result = {
           let warnings: Arc<RwLock<Vec<_>>> = Default::default();
           let mut stylesheet = StyleSheet::parse(
@@ -242,33 +241,27 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           stylesheet
             .to_css(PrinterOptions {
               minify: true,
-              source_map: source_map.as_mut(),
               project_root: None,
               targets,
               analyze_dependencies: None,
               pseudo_classes: minimizer_options.pseudo_classes
               .as_ref()
-              .map(|pseudo_classes| lightningcss::stylesheet::PseudoClasses {
+              .map(|pseudo_classes| rspack_loader_lightningcss::lightningcss::stylesheet::PseudoClasses {
                 hover: pseudo_classes.hover.as_deref(),
                 active: pseudo_classes.active.as_deref(),
                 focus: pseudo_classes.focus.as_deref(),
                 focus_visible: pseudo_classes.focus_visible.as_deref(),
                 focus_within: pseudo_classes.focus_within.as_deref(),
               }),
-            })
+            }, source_map.as_mut())
             .to_rspack_result()?
         };
 
-        let minimized_source = if let Some(mut source_map) = source_map {
+        let minimized_source = if let Some(source_map) = source_map {
           SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
             name: filename,
-            source_map: SourceMap::from_json(
-              source_map
-                .to_json(None)
-                .to_rspack_result()?,
-            )
-            .expect("should be able to generate source-map"),
+            source_map: source_map.finish(),
             original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
