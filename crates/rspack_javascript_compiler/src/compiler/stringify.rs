@@ -3,7 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_error::Result;
 use rspack_sources::{
   MapOptions, Mapping, ObjectPool, OriginalLocation, Source, SourceMap, SourceMapSource,
-  SourceMapSourceOptions, encode_mappings,
+  SourceMapSourceOptions, encode_mappings, utf8_column_to_utf16_column,
 };
 use rspack_util::source_map::SourceMapKind;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -173,8 +173,6 @@ fn build_rspack_source_map(
   let mut cur_file: Option<Lrc<SourceFile>> = None;
   let mut cur_src_id = 0u32;
   let mut prev_dst_line = u32::MAX;
-  let mut ch_state = ByteToCharPosState::default();
-  let mut line_state = ByteToCharPosState::default();
 
   for (raw_pos, lc) in mappings {
     let pos = *raw_pos;
@@ -221,8 +219,6 @@ fn build_rspack_source_map(
           builder.add_to_ignore_list(cur_src_id);
         }
 
-        ch_state = ByteToCharPosState::default();
-        line_state = ByteToCharPosState::default();
         cur_file = Some(file.clone());
         cur_file.as_ref().expect("source file was just set")
       }
@@ -249,15 +245,9 @@ fn build_rspack_source_map(
       linebpos,
     );
 
-    let linechpos = linebpos.to_u32() - calc_utf16_offset(file, linebpos, &mut line_state);
-    let chpos = pos.to_u32() - calc_utf16_offset(file, pos, &mut ch_state);
-    debug_assert!(
-      chpos >= linechpos,
-      "{}: chpos = {:?}; linechpos = {:?};",
-      file.name,
-      chpos,
-      linechpos,
-    );
+    let Some(original_column) = source_file_utf16_column(file, linebpos, pos) else {
+      continue;
+    };
 
     let name_index = config
       .name_for_bytepos(pos)
@@ -269,7 +259,7 @@ fn build_rspack_source_map(
       original: Some(OriginalLocation {
         source_index: cur_src_id,
         original_line: line + 1,
-        original_column: chpos - linechpos,
+        original_column,
         name_index,
       }),
     });
@@ -407,53 +397,13 @@ impl RspackSourceMapBuilder {
   }
 }
 
-#[derive(Default)]
-struct ByteToCharPosState {
-  pos: BytePos,
-  total_extra_bytes: u32,
-  mbc_index: usize,
-}
-
-fn calc_utf16_offset(file: &SourceFile, bpos: BytePos, state: &mut ByteToCharPosState) -> u32 {
-  let mut total_extra_bytes = state.total_extra_bytes;
-  let mut index = state.mbc_index;
-  let analysis = file.analyze();
-  if bpos >= state.pos {
-    for mbc in analysis.multibyte_chars[index..].iter() {
-      if mbc.pos >= bpos {
-        break;
-      }
-      total_extra_bytes += mbc.byte_to_char_diff() as u32;
-      debug_assert!(
-        bpos.to_u32() >= mbc.pos.to_u32() + mbc.bytes as u32,
-        "bpos = {:?}, mbc.pos = {:?}, mbc.bytes = {:?}",
-        bpos,
-        mbc.pos,
-        mbc.bytes,
-      );
-      index += 1;
-    }
-  } else {
-    for mbc in analysis.multibyte_chars[..index].iter().rev() {
-      if mbc.pos < bpos {
-        break;
-      }
-      total_extra_bytes -= mbc.byte_to_char_diff() as u32;
-      debug_assert!(
-        bpos.to_u32() <= mbc.pos.to_u32(),
-        "bpos = {:?}, mbc.pos = {:?}",
-        bpos,
-        mbc.pos,
-      );
-      index -= 1;
-    }
-  }
-
-  state.pos = bpos;
-  state.total_extra_bytes = total_extra_bytes;
-  state.mbc_index = index;
-
-  total_extra_bytes
+fn source_file_utf16_column(file: &SourceFile, linebpos: BytePos, pos: BytePos) -> Option<u32> {
+  let line_start = linebpos.to_u32().checked_sub(file.start_pos.to_u32())? as usize;
+  let utf8_column = pos.to_u32().checked_sub(linebpos.to_u32())? as usize;
+  let line = file.src.get(line_start..)?;
+  utf8_column_to_utf16_column(line, utf8_column)?
+    .try_into()
+    .ok()
 }
 
 struct IdentCollector {

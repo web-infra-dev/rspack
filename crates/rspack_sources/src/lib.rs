@@ -54,5 +54,8 @@ pub mod stream_chunks {
   };
 }
 
-pub use helpers::{decode_mappings, encode_mappings, utf16_len};
+pub use helpers::{
+  decode_mappings, encode_mappings, utf8_column_to_utf16_column, utf16_column_to_utf8_column,
+  utf16_len,
+};
 pub use object_pool::ObjectPool;
