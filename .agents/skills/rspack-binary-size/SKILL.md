@@ -98,7 +98,14 @@ Do not replace static dispatch inside parser, module graph, dependency, or other
 
 ## Duplicate Dependency Review
 
-Run `duplicate-deps.mjs` to capture duplicate versions and feature trees for `rspack_node` by default.
+Run `duplicate-deps.mjs` to capture duplicate versions, feature trees, and the current `deny.toml` duplicate-dependency exceptions for `rspack_node` by default.
+
+The script writes:
+
+- `duplicate-package-versions.tsv` for all duplicate package names found by `cargo metadata --all-features --locked` by default
+- `duplicate-package-versions-with-deny.tsv` to show which duplicates are currently covered by `[bans].skip` or `[bans].skip-tree`
+- `deny-skip-status.tsv` for every duplicate-dependency exception in `deny.toml`
+- `deny-skip-remove-candidates.tsv` for skip entries that no longer match a current duplicate and should be removed from `deny.toml`
 
 Review duplicate versions for:
 
@@ -107,7 +114,7 @@ Review duplicate versions for:
 - crates pulled in only by optional debug, tracing, rsdoctor, rstest, rslib, browser, loader, or builtin plugin paths
 - `napi`, `napi-derive`, `napi-sys`, `tokio`, `serde`, SWC, lightningcss, and resolver-related crates
 
-When duplicate dependencies are found, prefer workspace unification, feature narrowing, or feature-gating over local one-off dependency changes.
+When duplicate dependencies are found, prefer workspace unification, feature narrowing, or feature-gating over local one-off dependency changes. If a duplicate is fixed, remove the matching `[bans].skip` or `[bans].skip-tree` entry from `deny.toml` in the same change. Treat `deny-skip-remove-candidates.tsv` as the cleanup checklist. The deny cleanup check uses `cargo metadata --all-features --locked` by default to match the CI `cargo deny --all-features check license bans` behavior; set `DENY_METADATA_ALL_FEATURES=0` only when intentionally doing a narrower local investigation.
 
 ## Optimization Patterns
 

@@ -9,6 +9,7 @@
     "duplicate-deps": "zx scripts/duplicate-deps.mjs"
   },
   "devDependencies": {
+    "@iarna/toml": "^3.0.0",
     "zx": "8.8.5"
   }
 }

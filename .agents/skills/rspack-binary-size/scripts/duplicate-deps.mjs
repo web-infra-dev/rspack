@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import TOML from '@iarna/toml';
 import { $ } from 'zx';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,11 +40,69 @@ async function runCapture(command, args) {
 
 function writeTsv(file, header, rows) {
   const escape = (value) =>
-    String(value).replaceAll('\t', ' ').replaceAll('\n', ' ');
+    String(value ?? '')
+      .replaceAll('\t', ' ')
+      .replaceAll('\n', ' ');
   writeFileSync(
     file,
     `${header.join('\t')}\n${rows.map((row) => row.map(escape).join('\t')).join('\n')}\n`,
   );
+}
+
+function parseCrateSpec(spec) {
+  const text = String(spec ?? '').trim();
+  const at = text.lastIndexOf('@');
+  if (at > 0)
+    return { name: text.slice(0, at), versionReq: text.slice(at + 1) };
+  return { name: text, versionReq: '' };
+}
+
+function normalizeDenyEntry(kind, entry) {
+  if (typeof entry === 'string') {
+    const { name, versionReq } = parseCrateSpec(entry);
+    return { kind, spec: entry, name, versionReq, reason: '' };
+  }
+  const spec = entry?.crate ?? '';
+  const { name, versionReq } = parseCrateSpec(spec);
+  return {
+    kind,
+    spec,
+    name,
+    versionReq,
+    reason: entry?.reason ?? '',
+  };
+}
+
+function readDenyConfig(root) {
+  const denyPath = path.resolve(
+    process.env.DENY_TOML || path.join(root, 'deny.toml'),
+  );
+  if (!existsSync(denyPath)) {
+    return {
+      denyPath,
+      entries: [],
+      error: `deny.toml not found at ${denyPath}`,
+    };
+  }
+  try {
+    const parsed = TOML.parse(readFileSync(denyPath, 'utf8'));
+    const bans = parsed.bans ?? {};
+    const entries = [
+      ...(bans.skip ?? []).map((entry) => normalizeDenyEntry('skip', entry)),
+      ...(bans['skip-tree'] ?? []).map((entry) =>
+        normalizeDenyEntry('skip-tree', entry),
+      ),
+    ].filter((entry) => entry.name);
+    return { denyPath, entries, error: '' };
+  } catch (error) {
+    return { denyPath, entries: [], error: error.message };
+  }
+}
+
+function denyMatchesDuplicate(entry, duplicate) {
+  if (!duplicate || entry.name !== duplicate.name) return false;
+  if (!entry.versionReq) return true;
+  return duplicate.versions.includes(entry.versionReq);
 }
 
 const root = await repoRoot();
@@ -84,17 +143,23 @@ writeFileSync(
   features.stderr,
 );
 
-const metadataResult = await runCapture('cargo', [
-  'metadata',
-  '--format-version',
-  '1',
-  '--locked',
-]);
+const metadataArgs = ['metadata', '--format-version', '1', '--locked'];
+if (process.env.DENY_METADATA_ALL_FEATURES !== '0')
+  metadataArgs.push('--all-features');
+const metadataResult = await runCapture('cargo', metadataArgs);
 writeFileSync(path.join(outDir, 'cargo-metadata.json'), metadataResult.stdout);
 writeFileSync(
   path.join(outDir, 'cargo-metadata.stderr.txt'),
   metadataResult.stderr,
 );
+
+const deny = readDenyConfig(root);
+const duplicateRows = [];
+const duplicateMap = new Map();
+const denySkipStatusRows = [];
+const staleDenySkipRows = [];
+const duplicateWithDenyRows = [];
+let metadataSummary = `cargo ${metadataArgs.join(' ')} failed; duplicate-package-versions.tsv was not generated.`;
 
 if (metadataResult.code === 0 && metadataResult.stdout.trim()) {
   const metadata = JSON.parse(metadataResult.stdout);
@@ -113,10 +178,16 @@ if (metadataResult.code === 0 && metadataResult.stdout.trim()) {
     set.add(version);
     versions.set(name, set);
   }
-  const duplicateRows = [...versions.entries()]
-    .filter(([, set]) => set.size > 1)
-    .sort((a, b) => a[0].localeCompare(b[0]))
-    .map(([name, set]) => [name, ...[...set].sort()]);
+
+  for (const [name, set] of [...versions.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )) {
+    if (set.size <= 1) continue;
+    const versionList = [...set].sort();
+    duplicateRows.push([name, ...versionList]);
+    duplicateMap.set(name, { name, versions: versionList });
+  }
+
   writeTsv(
     path.join(outDir, 'duplicate-package-versions.tsv'),
     ['name', 'versions'],
@@ -133,6 +204,87 @@ if (metadataResult.code === 0 && metadataResult.stdout.trim()) {
     ['package_id', 'feature'],
     featureRows.sort((a, b) => a.join('\t').localeCompare(b.join('\t'))),
   );
+
+  for (const entry of deny.entries) {
+    const duplicate = duplicateMap.get(entry.name);
+    const status = denyMatchesDuplicate(entry, duplicate)
+      ? 'still_duplicate'
+      : 'remove_from_deny_toml';
+    const row = [
+      entry.kind,
+      entry.spec,
+      entry.name,
+      entry.versionReq,
+      entry.reason,
+      status,
+      duplicate?.versions.join(',') ?? '',
+      deny.denyPath,
+    ];
+    denySkipStatusRows.push(row);
+    if (status === 'remove_from_deny_toml') staleDenySkipRows.push(row);
+  }
+
+  for (const duplicate of duplicateMap.values()) {
+    const matchingSkips = deny.entries.filter((entry) =>
+      denyMatchesDuplicate(entry, duplicate),
+    );
+    duplicateWithDenyRows.push([
+      duplicate.name,
+      duplicate.versions.join(','),
+      matchingSkips.length ? 'covered_by_deny_toml' : 'not_in_deny_toml',
+      matchingSkips.map((entry) => `${entry.kind}:${entry.spec}`).join(','),
+      matchingSkips
+        .map((entry) => entry.reason)
+        .filter(Boolean)
+        .join(' | '),
+    ]);
+  }
+
+  writeTsv(
+    path.join(outDir, 'duplicate-package-versions-with-deny.tsv'),
+    ['name', 'versions', 'deny_status', 'deny_entries', 'deny_reasons'],
+    duplicateWithDenyRows.sort((a, b) => a[0].localeCompare(b[0])),
+  );
+  writeTsv(
+    path.join(outDir, 'deny-skip-status.tsv'),
+    [
+      'kind',
+      'spec',
+      'name',
+      'version_req',
+      'reason',
+      'status',
+      'current_duplicate_versions',
+      'deny_toml',
+    ],
+    denySkipStatusRows,
+  );
+  writeTsv(
+    path.join(outDir, 'deny-skip-remove-candidates.tsv'),
+    [
+      'kind',
+      'spec',
+      'name',
+      'version_req',
+      'reason',
+      'status',
+      'current_duplicate_versions',
+      'deny_toml',
+    ],
+    staleDenySkipRows,
+  );
+
+  metadataSummary = [
+    `duplicate package names: ${duplicateRows.length}`,
+    `deny.toml skip entries: ${deny.entries.length}`,
+    `deny.toml skip entries still matching duplicates: ${denySkipStatusRows.length - staleDenySkipRows.length}`,
+    `deny.toml skip entries to remove after fixes: ${staleDenySkipRows.length}`,
+    `duplicate package names not covered by deny.toml: ${duplicateWithDenyRows.filter((row) => row[2] === 'not_in_deny_toml').length}`,
+  ].join('\n');
+}
+
+if (deny.error) {
+  writeFileSync(path.join(outDir, 'deny-toml.error.txt'), `${deny.error}\n`);
 }
 
 const markers = [
@@ -153,7 +305,12 @@ const markerLines = markers.map(
 );
 writeFileSync(
   path.join(outDir, 'summary.txt'),
-  `# Duplicate dependency report\npackage: ${packageName}\n\n# cargo tree duplicate summary\n${duplicates.stdout.split('\n').slice(0, 160).join('\n')}\n\n# Common large dependency feature markers\n${markerLines.join('\n')}\n`,
+  `# Duplicate dependency report\npackage: ${packageName}\ndeny.toml: ${deny.denyPath}\nmetadata command: cargo ${metadataArgs.join(' ')}\n\n# Metadata and deny.toml status\n${metadataSummary}\n\n# cargo tree duplicate summary\n${duplicates.stdout.split('\n').slice(0, 160).join('\n')}\n\n# Common large dependency feature markers\n${markerLines.join('\n')}\n`,
 );
 
 console.log(`duplicate dependency report: ${outDir}`);
+if (staleDenySkipRows.length > 0) {
+  console.log(
+    `deny.toml remove candidates: ${staleDenySkipRows.length} (see deny-skip-remove-candidates.tsv)`,
+  );
+}
