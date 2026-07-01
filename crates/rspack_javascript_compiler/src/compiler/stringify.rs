@@ -161,11 +161,11 @@ impl JavaScriptCompiler {
   }
 }
 
-fn build_rspack_source_map<'a>(
+fn build_rspack_source_map(
   swc_cm: &SwcSourceMap,
   mappings: &[(BytePos, LineCol)],
   input_source_map: Option<SourceMap<'static>>,
-  config: &'a SourceMapConfig,
+  config: &SourceMapConfig,
   generated_code: &str,
 ) -> Option<SourceMap<'static>> {
   let mut builder = RspackSourceMapBuilder::default();
