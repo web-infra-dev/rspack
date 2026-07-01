@@ -1,4 +1,8 @@
-use std::{fmt::Debug, sync::Arc};
+use std::{
+  fmt::Debug,
+  ops::{BitOr, BitOrAssign},
+  sync::Arc,
+};
 
 use async_trait::async_trait;
 use rspack_cacheable::cacheable;
@@ -23,13 +27,35 @@ pub struct RuntimeModuleGenerateContext<'a> {
 pub struct RuntimeModuleRuntimeRequirements {
   pub dependencies: RuntimeGlobals,
   pub weak: RuntimeGlobals,
-  pub write: RuntimeGlobals,
+  pub define: RuntimeGlobals,
   pub force_context: RuntimeGlobals,
 }
 
 impl RuntimeModuleRuntimeRequirements {
   pub fn lexical_requirements(&self) -> RuntimeGlobals {
-    self.dependencies | self.weak | self.write | self.force_context
+    self.dependencies | self.weak | self.define | self.force_context
+  }
+}
+
+impl BitOr for RuntimeModuleRuntimeRequirements {
+  type Output = Self;
+
+  fn bitor(self, rhs: Self) -> Self::Output {
+    Self {
+      dependencies: self.dependencies | rhs.dependencies,
+      weak: self.weak | rhs.weak,
+      define: self.define | rhs.define,
+      force_context: self.force_context | rhs.force_context,
+    }
+  }
+}
+
+impl BitOrAssign for RuntimeModuleRuntimeRequirements {
+  fn bitor_assign(&mut self, rhs: Self) {
+    self.dependencies.insert(rhs.dependencies);
+    self.weak.insert(rhs.weak);
+    self.define.insert(rhs.define);
+    self.force_context.insert(rhs.force_context);
   }
 }
 

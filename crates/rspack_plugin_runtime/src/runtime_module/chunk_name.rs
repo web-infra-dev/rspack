@@ -20,7 +20,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::CHUNK_NAME },
+      define: { RuntimeGlobals::CHUNK_NAME },
       ..Default::default()
     }
   }

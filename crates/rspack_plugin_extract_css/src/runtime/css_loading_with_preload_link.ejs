@@ -1,6 +1,6 @@
 var link = document.createElement('link');
-if (<%- SCRIPT_NONCE %>) {
-  link.setAttribute('nonce', <%- SCRIPT_NONCE %>);
+if (<%- weak(SCRIPT_NONCE) %>) {
+  link.setAttribute('nonce', <%- weak(SCRIPT_NONCE) %>);
 }
 link.rel = "preload";
 link.as = "style";

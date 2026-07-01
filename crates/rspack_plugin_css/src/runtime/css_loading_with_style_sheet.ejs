@@ -1,4 +1,4 @@
-<%- CSS_STYLE_SHEET %> = <%- basicFunction("cssText") %> {
+<%- define(CSS_STYLE_SHEET) %> = <%- basicFunction("cssText") %> {
 	var styleSheet = new CSSStyleSheet();
 	styleSheet._cssText = cssText;
 	if (typeof styleSheet.replaceSync === "function") {

@@ -22,7 +22,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::BASE_URI },
+      define: { RuntimeGlobals::BASE_URI },
       ..Default::default()
     }
   }

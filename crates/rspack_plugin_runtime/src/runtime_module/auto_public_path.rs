@@ -76,7 +76,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       } else {
         RuntimeGlobals::GLOBAL
       },
-      write: { RuntimeGlobals::PUBLIC_PATH },
+      define: { RuntimeGlobals::PUBLIC_PATH },
       force_context: RuntimeGlobals::PUBLIC_PATH,
       ..Default::default()
     }

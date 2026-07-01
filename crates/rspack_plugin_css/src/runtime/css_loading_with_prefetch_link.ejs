@@ -3,8 +3,8 @@ link.setAttribute("data-rspack-native-css", "true");
 <% if (_cross_origin != "") { %>
 link.crossOrigin = '<%- _cross_origin %>';
 <% } %>
-if (<%- SCRIPT_NONCE %>) {
-  link.setAttribute("nonce", <%- SCRIPT_NONCE %>);
+if (<%- weak(SCRIPT_NONCE) %>) {
+  link.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
 }
 link.rel = "prefetch";
 link.as = "style";

@@ -1,6 +1,6 @@
 var initPromises = {};
 var initTokens = {};
-<%- INITIALIZE_SHARING %> = function(name, initScope) {
+<%- define(INITIALIZE_SHARING) %> = function(name, initScope) {
 	if (!initScope) initScope = [];
 	// handling circular init calls
 	var initToken = initTokens[name];

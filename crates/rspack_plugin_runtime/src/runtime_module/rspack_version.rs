@@ -22,7 +22,7 @@ impl RuntimeModule for RspackVersionRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RSPACK_VERSION },
+      define: { RuntimeGlobals::RSPACK_VERSION },
       force_context: RuntimeGlobals::RSPACK_VERSION,
       ..Default::default()
     }

@@ -425,14 +425,12 @@ async fn runtime_requirements_in_tree(
   }
 
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_INJECT_STYLE) {
-    runtime_requirements_mut.extend(
-      CssLoadingRuntimeModule::get_runtime_requirements_with_style().lexical_requirements(),
-    );
+    let requirements = CssLoadingRuntimeModule::get_runtime_requirements_with_style();
+    runtime_requirements_mut.extend(requirements.dependencies | requirements.define);
   }
   if all_runtime_requirements.contains(RuntimeGlobals::CSS_STYLE_SHEET) {
-    runtime_requirements_mut.extend(
-      CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet().lexical_requirements(),
-    );
+    let requirements = CssLoadingRuntimeModule::get_runtime_requirements_with_style_sheet();
+    runtime_requirements_mut.extend(requirements.dependencies | requirements.define);
   }
 
   if all_runtime_requirements

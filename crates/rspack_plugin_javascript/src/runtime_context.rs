@@ -417,7 +417,7 @@ fn runtime_context_current_chunk_metadata(
       .insert(module_runtime_requirements.dependencies);
     metadata
       .context_setter_fields
-      .insert(module_runtime_requirements.write);
+      .insert(module_runtime_requirements.define);
     metadata
       .force_context_fields
       .insert(module_runtime_requirements.force_context);

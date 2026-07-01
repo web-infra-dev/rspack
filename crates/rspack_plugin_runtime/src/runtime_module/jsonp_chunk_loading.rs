@@ -10,7 +10,7 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use super::generate_javascript_hmr_runtime;
 use crate::{
   LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_dependencies_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -37,86 +37,38 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
 static JSONP_CHUNK_LOADING_BASIC_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      JSONP_CHUNK_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_TEMPLATE));
 static JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE,
-    RuntimeGlobals::default(),
-  ) | extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE,
-    RuntimeGlobals::SCRIPT_NONCE,
-  ),
-  weak: RuntimeGlobals::SCRIPT_NONCE,
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_TEMPLATE)
+    | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PREFETCH_LINK_TEMPLATE)
 });
 static JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE,
-    RuntimeGlobals::default(),
-  ) | extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE,
-    RuntimeGlobals::SCRIPT_NONCE,
-  ),
-  weak: RuntimeGlobals::SCRIPT_NONCE,
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_TEMPLATE)
+    | extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_PRELOAD_LINK_TEMPLATE)
 });
 static JSONP_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_TEMPLATE));
 static JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
-    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
-  ),
-  write: RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
 });
 static JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
 });
 static JSONP_CHUNK_LOADING_WITH_CALLBACK_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE,
-    RuntimeGlobals::ON_CHUNKS_LOADED,
-  ),
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JSONP_CHUNK_LOADING_WITH_CALLBACK_TEMPLATE));
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-  ),
-  weak: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -216,10 +168,10 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       | RuntimeGlobals::MODULE_FACTORIES
       | RuntimeGlobals::REQUIRE_SCOPE
       | RuntimeGlobals::MODULE_CACHE;
-    let mut weak = RuntimeGlobals::SCRIPT_NONCE;
-    let mut write = RuntimeGlobals::default();
+    let mut weak = RuntimeGlobals::default();
+    let mut define = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      write.insert(RuntimeGlobals::BASE_URI);
+      define.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
@@ -231,22 +183,26 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           | RuntimeGlobals::ENSURE_CHUNK_HANDLERS
           | RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX,
       );
-      weak.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());
-      write.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+      define.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     }
     if runtime_requirements.contains(RuntimeGlobals::PREFETCH_CHUNK_HANDLERS) {
-      dependencies.insert(Self::get_runtime_requirements_with_prefetch());
+      let requirements = *JSONP_CHUNK_LOADING_WITH_PREFETCH_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::PRELOAD_CHUNK_HANDLERS) {
-      dependencies.insert(Self::get_runtime_requirements_with_preload());
+      let requirements = *JSONP_CHUNK_LOADING_WITH_PRELOAD_RUNTIME_REQUIREMENTS;
+      dependencies.insert(requirements.dependencies);
+      weak.insert(requirements.weak);
     }
     RuntimeModuleRuntimeRequirements {
       dependencies,
       weak,
-      write,
+      define,
       ..Default::default()
     }
   }

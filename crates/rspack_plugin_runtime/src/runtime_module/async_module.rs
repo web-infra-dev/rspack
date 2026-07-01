@@ -39,7 +39,7 @@ impl RuntimeModule for AsyncRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: { RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_CACHE },
-      write: {
+      define: {
         RuntimeGlobals::ASYNC_MODULE
           | RuntimeGlobals::ASYNC_MODULE_EXPORT_SYMBOL
           | RuntimeGlobals::DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES

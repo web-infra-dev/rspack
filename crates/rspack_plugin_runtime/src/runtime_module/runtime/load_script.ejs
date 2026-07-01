@@ -2,7 +2,7 @@ var inProgress = {};
 
 <%- _unique_prefix %>
 // loadScript function to load a script via script tag
-<%- LOAD_SCRIPT %> = function (url, done, key, chunkId<%- _fetch_priority %>) {
+<%- define(LOAD_SCRIPT) %> = function (url, done, key, chunkId<%- _fetch_priority %>) {
 	if (inProgress[url]) {
 		inProgress[url].push(done);
 		return;

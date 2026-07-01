@@ -20,7 +20,7 @@ impl RuntimeModule for AmdDefineRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::AMD_DEFINE },
+      define: { RuntimeGlobals::AMD_DEFINE },
       ..Default::default()
     }
   }

@@ -5,7 +5,7 @@ use rspack_core::{
   Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -21,13 +21,8 @@ use crate::{
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      INITIALIZE_SHARING_TEMPLATE,
-      RuntimeGlobals::INITIALIZE_SHARING,
-    ),
-    write: RuntimeGlobals::INITIALIZE_SHARING,
     force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
-    ..Default::default()
+    ..extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE)
   });
 
 #[impl_runtime_module]
@@ -53,7 +48,7 @@ impl RuntimeModule for ShareRuntimeModule {
         INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.dependencies
           | runtime_require_scope_requirement(compilation)
       },
-      write: RuntimeGlobals::INITIALIZE_SHARING,
+      define: INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.define,
       force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
       ..Default::default()
     }

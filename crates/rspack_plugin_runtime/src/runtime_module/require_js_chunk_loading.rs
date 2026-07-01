@@ -9,7 +9,7 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::{generate_javascript_hmr_runtime, utils::get_output_dir};
 use crate::{
-  extract_runtime_globals_dependencies_from_ejs, get_chunk_runtime_requirements,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -32,79 +32,36 @@ static JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE: &str =
   include_str!("runtime/javascript_hot_module_replacement.ejs");
 
 static REQUIRE_CHUNK_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      REQUIRE_CHUNK_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_TEMPLATE));
 static REQUIRE_CHUNK_LOADING_WITH_LOADING_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_LOADING_TEMPLATE));
 static REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_LOADING_MATCHER_TEMPLATE)
 });
 static REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_ON_CHUNK_LOAD_TEMPLATE)
 });
 static REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE,
-    RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-  ),
-  write: RuntimeGlobals::EXTERNAL_INSTALL_CHUNK,
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_EXTERNAL_INSTALL_CHUNK_TEMPLATE)
 });
 static REQUIRE_CHUNK_LOADING_WITH_HMR_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE,
-    RuntimeGlobals::default(),
-  ),
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_HMR_TEMPLATE));
 static REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE,
-    RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
-  ),
-  write: RuntimeGlobals::HMR_DOWNLOAD_MANIFEST,
-  ..Default::default()
+> = LazyLock::new(|| {
+  extract_runtime_globals_from_ejs(REQUIRE_CHUNK_LOADING_WITH_HMR_MANIFEST_TEMPLATE)
 });
 static JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS: LazyLock<
   RuntimeModuleRuntimeRequirements,
-> = LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-  dependencies: extract_runtime_globals_dependencies_from_ejs(
-    JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE,
-    RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-  ),
-  weak: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-  ..Default::default()
-});
+> = LazyLock::new(|| extract_runtime_globals_from_ejs(JAVASCRIPT_HOT_MODULE_REPLACEMENT_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -211,32 +168,32 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
     let mut dependencies = Self::get_runtime_requirements_basic() | RuntimeGlobals::MODULE_CACHE;
     let mut weak = RuntimeGlobals::default();
-    let mut write = RuntimeGlobals::default();
+    let mut define = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      write.insert(RuntimeGlobals::BASE_URI);
+      define.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_loading());
     }
     if runtime_requirements.contains(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK) {
       dependencies.insert(Self::get_runtime_requirements_with_external_install_chunk());
-      write.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
+      define.insert(RuntimeGlobals::EXTERNAL_INSTALL_CHUNK);
     }
     if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr());
-      weak.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
+      weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
     }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr_manifest());
-      write.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
+      define.insert(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
     }
     RuntimeModuleRuntimeRequirements {
       dependencies,
       weak,
-      write,
+      define,
       ..Default::default()
     }
   }

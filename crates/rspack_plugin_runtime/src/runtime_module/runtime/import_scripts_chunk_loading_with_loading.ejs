@@ -6,7 +6,7 @@
     if (!installedChunks[chunkId]) {
         if (<%- _js_matcher %>) {
             <% if (_with_create_script_url) { %>
-            importScripts(<%- CREATE_SCRIPT_URL %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
+            importScripts(<%- weak(CREATE_SCRIPT_URL) %>(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
             <% } else { %>
             importScripts(<%- PUBLIC_PATH %> + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId));
             <% } %>

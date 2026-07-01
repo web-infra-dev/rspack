@@ -27,7 +27,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: { RuntimeGlobals::CREATE_SCRIPT_URL },
+      define: { RuntimeGlobals::CREATE_SCRIPT_URL },
       ..Default::default()
     }
   }

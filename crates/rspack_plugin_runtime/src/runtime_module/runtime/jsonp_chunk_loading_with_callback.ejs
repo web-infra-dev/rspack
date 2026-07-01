@@ -24,7 +24,7 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 		installedChunks[chunkId] = 0;
 	}
 	<% if (_with_on_chunk_load) { %>
-	return <%- ON_CHUNKS_LOADED %>(result);
+	return <%- weak(ON_CHUNKS_LOADED) %>(result);
 	<% } %>
 };
 

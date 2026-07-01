@@ -28,7 +28,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RSC_MANIFEST },
+      define: { RuntimeGlobals::RSC_MANIFEST },
       ..Default::default()
     }
   }

@@ -20,7 +20,7 @@ impl RuntimeModule for HasOwnPropertyRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::HAS_OWN_PROPERTY },
+      define: { RuntimeGlobals::HAS_OWN_PROPERTY },
       ..Default::default()
     }
   }

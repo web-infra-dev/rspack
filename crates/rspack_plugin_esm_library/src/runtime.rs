@@ -97,7 +97,7 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      write: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
+      define: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
       ..Default::default()
     }
   }
@@ -194,7 +194,7 @@ var chunkMap = {{
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      define: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       ..Default::default()
     }
   }
