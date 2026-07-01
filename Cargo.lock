@@ -1179,9 +1179,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.11.1"
+version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "400a21f1014a968ec518c7ccdf9b4a4ed0cac8c56ccb6d604f8b91f00110501e"
+checksum = "01334b89b69ff726750c5ce5073fc8bd860e99aa9a8fc5ca11b04730e3aee97a"
 
 [[package]]
 name = "darling"
@@ -2774,13 +2774,12 @@ dependencies = [
 
 [[package]]
 name = "napi"
-version = "3.8.6"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e55037284865448ecf329baa86a4d05401f647ebde99f5747b640d32c2c5226"
+version = "3.9.4"
+source = "git+https://github.com/intellild/napi-rs.git?branch=codex%2Fraw-named-property-object-codegen#b3c15a226c23e4c7bce6a07eb07c5445c3f3e443"
 dependencies = [
  "anyhow",
  "bitflags 2.11.1",
- "ctor 0.11.1",
+ "ctor 1.0.7",
  "futures",
  "napi-build",
  "napi-sys",
@@ -2793,18 +2792,16 @@ dependencies = [
 
 [[package]]
 name = "napi-build"
-version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d376940fd5b723c6893cd1ee3f33abbfd86acb1cd1ec079f3ab04a2a3bc4d3b1"
+version = "2.3.2"
+source = "git+https://github.com/intellild/napi-rs.git?branch=codex%2Fraw-named-property-object-codegen#b3c15a226c23e4c7bce6a07eb07c5445c3f3e443"
 
 [[package]]
 name = "napi-derive"
-version = "3.5.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a4ba740fe4c9524d86fd90798fd8ccdb23402b3eef7e7c30897a8a369b529fcf"
+version = "3.5.7"
+source = "git+https://github.com/intellild/napi-rs.git?branch=codex%2Fraw-named-property-object-codegen#b3c15a226c23e4c7bce6a07eb07c5445c3f3e443"
 dependencies = [
  "convert_case 0.11.0",
- "ctor 0.11.1",
+ "ctor 1.0.7",
  "napi-derive-backend",
  "proc-macro2",
  "quote",
@@ -2813,9 +2810,8 @@ dependencies = [
 
 [[package]]
 name = "napi-derive-backend"
-version = "5.0.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d5af30503edf933ce7377cf6d4c877a62b0f1107ea05585f1b5e430e88d5baf"
+version = "5.0.5"
+source = "git+https://github.com/intellild/napi-rs.git?branch=codex%2Fraw-named-property-object-codegen#b3c15a226c23e4c7bce6a07eb07c5445c3f3e443"
 dependencies = [
  "convert_case 0.11.0",
  "proc-macro2",
@@ -2826,9 +2822,8 @@ dependencies = [
 
 [[package]]
 name = "napi-sys"
-version = "3.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8eb602b84d7c1edae45e50bbf1374696548f36ae179dfa667f577e384bb90c2b"
+version = "3.2.2"
+source = "git+https://github.com/intellild/napi-rs.git?branch=codex%2Fraw-named-property-object-codegen#b3c15a226c23e4c7bce6a07eb07c5445c3f3e443"
 dependencies = [
  "libloading",
 ]
