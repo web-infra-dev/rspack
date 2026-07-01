@@ -1,0 +1,50 @@
+name: Verify setup-node cnpm mirror
+
+# Experimental workflow: can the official actions/setup-node `mirror` input replace
+# the rstackjs/setup-node fork for cnpm on self-hosted macOS?
+# The official action force-appends `/dist` to the mirror, but cnpm serves binaries at
+# `/-/binary/node/<version>/...` with no `/dist` segment, so it 404s. See PR description.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/verify-setup-node-mirror.yml'
+
+jobs:
+  # `latest` makes setup-node fetch `${mirror}/dist/index.json` up front, bypassing both
+  # the tool-cache and the GitHub node-versions manifest. cnpm has no `/dist` -> 404 -> FAIL.
+  official-mirror-forced:
+    name: official + cnpm mirror, forced dist path (expect FAIL)
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    steps:
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: latest
+          mirror: https://registry.npmmirror.com/-/binary/node
+      - run: node -v
+
+  # The replacement config as proposed: official action + cnpm mirror + node 22.
+  # It may pass, but Node comes from the GitHub manifest or the tool-cache, never cnpm.
+  # Read the "Acquiring ... from <url>" line in the setup step to confirm the source.
+  official-mirror-real:
+    name: official + cnpm mirror + node 22 (does NOT use cnpm)
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    steps:
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+          mirror: https://registry.npmmirror.com/-/binary/node
+      - run: node -v && which node
+
+  # Baseline: the current fork hard-codes cnpm without `/dist` and downloads Node fine.
+  fork-baseline:
+    name: rstackjs/setup-node fork + cnpm (expect PASS)
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    steps:
+      - uses: rstackjs/setup-node@cc72f1c242ef8813f650223fbae3c29d450ae29e # v0.0.1
+        with:
+          registry-url: https://registry.npmmirror.com
+          node-version: '22'
+      - run: node -v && which node
