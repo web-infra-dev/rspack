@@ -28,7 +28,7 @@ ignored = ["napi-derive", "tracing"]
 [dependencies]
 rspack_binding_api = { workspace = true }
 
-napi-derive = { workspace = true, features = ["compat-mode", "type-def"] }
+napi-derive = { workspace = true, features = ["type-def"] }
 tracing     = { workspace = true }
 
 [build-dependencies]

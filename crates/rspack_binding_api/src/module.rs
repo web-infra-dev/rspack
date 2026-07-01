@@ -1,7 +1,6 @@
-#![allow(deprecated)]
 use std::{any::TypeId, cell::RefCell, ptr::NonNull, sync::Arc};
 
-use napi::{CallContext, JsObject, JsString, JsSymbol, NapiRaw};
+use napi::{JsString, sys};
 use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
@@ -10,7 +9,7 @@ use rspack_core::{
   RuntimeModuleStage, SourceType, internal,
 };
 use rspack_napi::{
-  OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
+  OneShotInstanceRef, OneShotRef, napi::bindgen_prelude::*, string::JsStringExt,
   threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -55,211 +54,83 @@ impl From<JsFactoryMeta> for FactoryMeta {
 }
 
 thread_local! {
-  pub(crate) static MODULE_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(4));
+  static MODULE_PROPERTIES_BUFFER: RefCell<Vec<Property>> = RefCell::new(Vec::with_capacity(1));
 }
+
+const COMMON_MODULE_OWN_PROPERTIES: &[&str] = &[
+  "type",
+  "context",
+  "layer",
+  "useSourceMap",
+  "useSimpleSourceMap",
+  "factoryMeta",
+  "buildInfo",
+  "buildMeta",
+];
 
 pub(crate) trait DerivedModule {
   fn as_module(&mut self) -> &mut Module;
 }
 
-#[js_function]
-fn module_context_getter(ctx: CallContext) -> napi::Result<Either<String, ()>> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let (_, module) = wrapped_value.as_ref()?;
-  Ok(match module.get_context() {
-    Some(ctx) => Either::A(ctx.to_string()),
-    None => Either::B(()),
-  })
-}
-
-#[js_function]
-fn module_layer_getter(ctx: CallContext<'_>) -> napi::Result<Either<&String, ()>> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let (_, module) = wrapped_value.as_ref()?;
-  Ok(match module.get_layer() {
-    Some(layer) => Either::A(layer),
-    None => Either::B(()),
-  })
-}
-
-#[js_function]
-fn module_use_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let (_, module) = wrapped_value.as_ref()?;
-  Ok(module.get_source_map_kind().source_map())
-}
-
-#[js_function]
-fn module_use_simple_source_map_getter(ctx: CallContext) -> napi::Result<bool> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let (_, module) = wrapped_value.as_ref()?;
-  Ok(module.get_source_map_kind().simple_source_map())
-}
-
-#[js_function]
-fn module_factory_meta_getter(ctx: CallContext) -> napi::Result<JsFactoryMeta> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let (_, module) = wrapped_value.as_ref()?;
-  Ok(match module.as_normal_module() {
-    Some(normal_module) => match normal_module.factory_meta() {
-      Some(meta) => JsFactoryMeta {
-        side_effect_free: meta.side_effect_free,
-      },
-      None => JsFactoryMeta {
-        side_effect_free: None,
-      },
-    },
-    None => JsFactoryMeta {
-      side_effect_free: None,
-    },
-  })
-}
-
-#[js_function(1)]
-fn module_factory_meta_setter(ctx: CallContext) -> napi::Result<()> {
-  let this = ctx.this_unchecked::<JsObject>();
-  let wrapped_value = unsafe { Module::from_napi_mut_ref(ctx.env.raw(), this.raw())? };
-  let module = wrapped_value.as_mut()?;
-  let factory_meta = ctx.get::<JsFactoryMeta>(0)?;
-  module.set_factory_meta(factory_meta.into());
-  Ok(())
-}
-
-#[js_function]
-fn module_build_info_getter(ctx: CallContext) -> napi::Result<Object> {
-  let mut this = ctx.this_unchecked::<JsObject>();
-  let env = ctx.env;
-  let raw_env = env.raw();
-  let mut reference: Reference<Module> =
-    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-  if let Some(r) = &reference.build_info_ref {
-    return r.as_object(env);
+pub(crate) fn define_own_properties_from_prototype(
+  env: &Env,
+  object: &mut Object,
+  names: &[&str],
+) -> napi::Result<()> {
+  if names.is_empty() {
+    return Ok(());
   }
-  let mut build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
-  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-    let sym = unsafe {
-      #[allow(clippy::unwrap_used)]
-      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-      JsSymbol::from_napi_value(env.raw(), napi_val)
-    };
-    this.set_property(sym, build_info)
-  })?;
-  let r = WeakRef::new(raw_env, &mut build_info)?;
-  let result = r.as_object(env);
-  reference.build_info_ref = Some(r);
-  result
-}
 
-#[js_function(1)]
-fn module_build_info_setter(ctx: CallContext) -> napi::Result<()> {
-  let mut this = ctx.this_unchecked::<JsObject>();
-  let input_object = ctx.get::<Object>(0)?;
-  let env = ctx.env;
-  let raw_env = env.raw();
-  let mut reference: Reference<Module> =
-    unsafe { Reference::from_napi_value(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(reference.downgrade());
-  let mut new_instance = new_build_info.get_jsobject(env)?;
+  let global = env.get_global()?;
+  let object_constructor: Function = global.get_named_property("Object")?;
+  let get_own_property_descriptor: Function<FnArgs<(Object, String)>, Either<Object, ()>> =
+    object_constructor.get_named_property("getOwnPropertyDescriptor")?;
+  let define_property: Function<FnArgs<(Object, String, Object)>, Object> =
+    object_constructor.get_named_property("defineProperty")?;
+  let prototype = object.get_prototype_unchecked::<Object>()?;
 
-  let names = input_object.get_all_property_names(
-    napi::KeyCollectionMode::OwnOnly,
-    napi::KeyFilter::AllProperties,
-    napi::KeyConversion::KeepNumbers,
-  )?;
-  let names = Array::from_unknown(names.to_unknown())?;
-  for index in 0..names.len() {
-    if let Some(name) = names.get::<Unknown>(index)? {
-      let name_clone = Object::from_raw(env.raw(), name.raw());
-      let name_str = name_clone.coerce_to_string()?.into_string();
-      // known build info properties
-      if name_str != "assets" {
-        let value = input_object.get_property::<Unknown, Unknown>(name)?;
-        new_instance.set_property::<Unknown, Unknown>(name, value)?;
-      }
+  for name in names {
+    if let Either::A(descriptor) =
+      get_own_property_descriptor.call(FnArgs::from((prototype, (*name).to_string())))?
+    {
+      define_property.call(FnArgs::from((*object, (*name).to_string(), descriptor)))?;
     }
   }
 
-  MODULE_BUILD_INFO_SYMBOL.with(|once_cell| {
-    let sym = unsafe {
-      #[allow(clippy::unwrap_used)]
-      let napi_val = ToNapiValue::to_napi_value(env.raw(), once_cell.get().unwrap())?;
-      JsSymbol::from_napi_value(env.raw(), napi_val)
-    };
-    this.set_property(sym, new_instance)
-  })?;
-  reference.build_info_ref = Some(WeakRef::new(raw_env, &mut new_instance)?);
   Ok(())
 }
 
-pub(crate) fn define_module_properties(
+pub(crate) fn define_module_instance_properties(
   env: &Env,
   instance: &mut impl DerivedModule,
   object: &mut Object,
-  properties: &mut Vec<Property>,
 ) -> napi::Result<()> {
+  define_own_properties_from_prototype(env, object, COMMON_MODULE_OWN_PROPERTIES)?;
+
   let (_, module) = instance.as_module().as_ref()?;
 
-  properties.push(
-    Property::new()
-      .with_utf8_name("type")?
-      .with_value(&env.create_string(module.module_type().as_str())?),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("context")?
-      .with_getter(module_context_getter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("layer")?
-      .with_getter(module_layer_getter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("useSourceMap")?
-      .with_getter(module_use_source_map_getter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("useSimpleSourceMap")?
-      .with_getter(module_use_simple_source_map_getter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("factoryMeta")?
-      .with_getter(module_factory_meta_getter)
-      .with_setter(module_factory_meta_setter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("buildInfo")?
-      .with_getter(module_build_info_getter)
-      .with_setter(module_build_info_setter),
-  );
-  properties.push(
-    Property::new()
-      .with_utf8_name("buildMeta")?
-      .with_value(&Object::new(env)?),
-  );
   MODULE_IDENTIFIER_SYMBOL.with(|once_cell| {
     let identifier = env.create_string(module.identifier().as_str())?;
     #[allow(clippy::unwrap_used)]
     let symbol = once_cell.get().unwrap();
-    properties.push(
-      Property::new()
-        .with_name(env, symbol)?
-        .with_value(&identifier)
-        .with_property_attributes(PropertyAttributes::Configurable),
-    );
+    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
+      let mut properties = ref_cell.borrow_mut();
+      properties.clear();
+      properties.push(
+        Property::new()
+          .with_name(env, symbol)?
+          .with_value(&identifier)
+          .with_property_attributes(PropertyAttributes::Configurable),
+      );
+      object.define_properties(&properties)
+    })?;
     Ok::<(), napi::Error>(())
-  })?;
+  })
+}
 
-  object.define_properties(properties)
+fn object_from_ref<'a>(env: &'a Env, object_ref: &OneShotRef) -> napi::Result<Object<'a>> {
+  let raw = unsafe { ToNapiValue::to_napi_value(env.raw(), object_ref)? };
+  Ok(Object::from_raw(env.raw(), raw))
 }
 
 // ## Clarify Access Methods for napi Module to Rust Module
@@ -281,7 +152,8 @@ pub struct Module {
   ptr: Option<NonNull<dyn rspack_core::Module>>,
   compiler_id: CompilerId,
   compiler_reference: WeakReference<JsCompiler>,
-  pub(crate) build_info_ref: Option<WeakRef>,
+  build_info_ref: Option<OneShotRef>,
+  build_meta_ref: Option<OneShotRef>,
 }
 
 impl DerivedModule for Module {
@@ -294,12 +166,7 @@ impl Module {
   pub(crate) fn into_module_instance(self, env: &Env) -> napi::Result<ClassInstance<'_, Self>> {
     let mut instance = self.into_instance(env)?;
     let mut object = instance.as_object(env);
-
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-      define_module_properties(env, &mut *instance, &mut object, &mut properties)
-    })?;
+    define_module_instance_properties(env, &mut *instance, &mut object)?;
 
     Ok(instance)
   }
@@ -343,10 +210,186 @@ impl Module {
       ))),
     }
   }
+
+  fn create_reference(&mut self, env: &Env) -> napi::Result<Reference<Module>> {
+    // SAFETY: Module is the first field of every derived module wrapper with #[repr(C)].
+    // The native pointer registered by napi-rs therefore has the same address as this field.
+    unsafe { Reference::from_value_ptr((self as *mut Self).cast(), env.raw()) }
+  }
+
+  pub(crate) fn get_module_type(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.module_type().as_str().to_string())
+  }
+
+  pub(crate) fn get_context(&mut self) -> napi::Result<Either<String, ()>> {
+    let (_, module) = self.as_ref()?;
+    Ok(match module.get_context() {
+      Some(ctx) => Either::A(ctx.to_string()),
+      None => Either::B(()),
+    })
+  }
+
+  pub(crate) fn get_layer(&mut self) -> napi::Result<Either<String, ()>> {
+    let (_, module) = self.as_ref()?;
+    Ok(match module.get_layer() {
+      Some(layer) => Either::A(layer.clone()),
+      None => Either::B(()),
+    })
+  }
+
+  pub(crate) fn get_use_source_map(&mut self) -> napi::Result<bool> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.get_source_map_kind().source_map())
+  }
+
+  pub(crate) fn get_use_simple_source_map(&mut self) -> napi::Result<bool> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.get_source_map_kind().simple_source_map())
+  }
+
+  pub(crate) fn get_factory_meta(&mut self) -> napi::Result<JsFactoryMeta> {
+    let (_, module) = self.as_ref()?;
+    Ok(match module.as_normal_module() {
+      Some(normal_module) => match normal_module.factory_meta() {
+        Some(meta) => JsFactoryMeta {
+          side_effect_free: meta.side_effect_free,
+        },
+        None => JsFactoryMeta {
+          side_effect_free: None,
+        },
+      },
+      None => JsFactoryMeta {
+        side_effect_free: None,
+      },
+    })
+  }
+
+  pub(crate) fn set_factory_meta_value(&mut self, factory_meta: JsFactoryMeta) -> napi::Result<()> {
+    let module = self.as_mut()?;
+    module.set_factory_meta(factory_meta.into());
+    Ok(())
+  }
+
+  pub(crate) fn get_build_info<'a>(&mut self, env: &'a Env) -> napi::Result<Object<'a>> {
+    if let Some(object_ref) = &self.build_info_ref {
+      return object_from_ref(env, object_ref);
+    }
+
+    let reference = self.create_reference(env)?;
+    let build_info = BuildInfo::new(reference.downgrade()).get_jsobject(env)?;
+    self.build_info_ref = Some(OneShotRef::new(env.raw(), build_info)?);
+    Ok(build_info)
+  }
+
+  pub(crate) fn set_build_info_object(
+    &mut self,
+    env: &Env,
+    input_object: Object,
+  ) -> napi::Result<()> {
+    let reference = self.create_reference(env)?;
+    let new_build_info = BuildInfo::new(reference.downgrade());
+    let mut new_instance = new_build_info.get_jsobject(env)?;
+
+    let names = input_object.get_all_property_names(
+      napi::KeyCollectionMode::OwnOnly,
+      napi::KeyFilter::AllProperties,
+      napi::KeyConversion::KeepNumbers,
+    )?;
+    let names = Array::from_unknown(names.to_unknown())?;
+    for index in 0..names.len() {
+      if let Some(name) = names.get::<Unknown>(index)? {
+        let name_clone = Object::from_raw(env.raw(), name.raw());
+        let name_str = name_clone.coerce_to_string()?.into_string();
+        // known build info properties
+        if name_str != "assets" {
+          let value = input_object.get_property::<Unknown, Unknown>(name)?;
+          new_instance.set_property::<Unknown, Unknown>(name, value)?;
+        }
+      }
+    }
+
+    self.build_info_ref = Some(OneShotRef::new(env.raw(), new_instance)?);
+    Ok(())
+  }
+
+  pub(crate) fn get_build_meta<'a>(&mut self, env: &'a Env) -> napi::Result<Object<'a>> {
+    if let Some(object_ref) = &self.build_meta_ref {
+      return object_from_ref(env, object_ref);
+    }
+
+    let build_meta = Object::new(env)?;
+    self.build_meta_ref = Some(OneShotRef::new(env.raw(), build_meta)?);
+    Ok(build_meta)
+  }
+
+  pub(crate) fn set_build_meta_object(
+    &mut self,
+    env: &Env,
+    build_meta: Object,
+  ) -> napi::Result<()> {
+    self.build_meta_ref = Some(OneShotRef::new(env.raw(), build_meta)?);
+    Ok(())
+  }
 }
 
 #[napi]
 impl Module {
+  #[napi(skip_typescript, getter, js_name = "type")]
+  pub fn module_type(&mut self) -> napi::Result<String> {
+    self.get_module_type()
+  }
+
+  #[napi(skip_typescript, getter)]
+  pub fn context(&mut self) -> napi::Result<Either<String, ()>> {
+    self.get_context()
+  }
+
+  #[napi(skip_typescript, getter)]
+  pub fn layer(&mut self) -> napi::Result<Either<String, ()>> {
+    self.get_layer()
+  }
+
+  #[napi(skip_typescript, getter, js_name = "useSourceMap")]
+  pub fn use_source_map(&mut self) -> napi::Result<bool> {
+    self.get_use_source_map()
+  }
+
+  #[napi(skip_typescript, getter, js_name = "useSimpleSourceMap")]
+  pub fn use_simple_source_map(&mut self) -> napi::Result<bool> {
+    self.get_use_simple_source_map()
+  }
+
+  #[napi(skip_typescript, getter, js_name = "factoryMeta")]
+  pub fn factory_meta(&mut self) -> napi::Result<JsFactoryMeta> {
+    self.get_factory_meta()
+  }
+
+  #[napi(skip_typescript, setter)]
+  pub fn set_factory_meta(&mut self, factory_meta: JsFactoryMeta) -> napi::Result<()> {
+    self.set_factory_meta_value(factory_meta)
+  }
+
+  #[napi(skip_typescript, getter, js_name = "buildInfo")]
+  pub fn build_info<'a>(&mut self, env: &'a Env) -> napi::Result<Object<'a>> {
+    self.get_build_info(env)
+  }
+
+  #[napi(skip_typescript, setter)]
+  pub fn set_build_info(&mut self, env: &Env, build_info: Object) -> napi::Result<()> {
+    self.set_build_info_object(env, build_info)
+  }
+
+  #[napi(skip_typescript, getter, js_name = "buildMeta")]
+  pub fn build_meta<'a>(&mut self, env: &'a Env) -> napi::Result<Object<'a>> {
+    self.get_build_meta(env)
+  }
+
+  #[napi(skip_typescript, setter)]
+  pub fn set_build_meta(&mut self, env: &Env, build_meta: Object) -> napi::Result<()> {
+    self.set_build_meta_object(env, build_meta)
+  }
+
   #[napi]
   pub fn readable_identifier(&mut self) -> napi::Result<String> {
     let (compilation, module) = self.as_ref()?;
@@ -634,6 +677,7 @@ impl ToNapiValue for ModuleObject {
                 ptr: val.ptr,
                 compiler_reference,
                 build_info_ref: Default::default(),
+                build_meta_ref: Default::default(),
               };
               let env_wrapper = Env::from_raw(env);
 

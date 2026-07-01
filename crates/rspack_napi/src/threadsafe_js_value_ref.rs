@@ -1,19 +1,24 @@
-use std::sync::{Arc, Mutex};
+use std::{
+  marker::PhantomData,
+  sync::{Arc, Mutex},
+};
 
-use napi::{Ref, bindgen_prelude::*};
+use napi::bindgen_prelude::*;
 
-use crate::JsCallback;
+use crate::{JsCallback, Ref};
 
 struct ThreadsafeJsValueRefHandle<T: JsValue<'static>> {
-  value_ref: Arc<Mutex<Ref<T>>>,
+  value_ref: Arc<Mutex<Ref>>,
   drop_handle: JsCallback<Box<dyn FnOnce(Env)>>,
+  _marker: PhantomData<T>,
 }
 
 impl<T: JsValue<'static>> ThreadsafeJsValueRefHandle<T> {
-  fn new(env: Env, js_ref: Ref<T>) -> Result<Self> {
+  fn new(env: Env, js_ref: Ref) -> Result<Self> {
     Ok(Self {
       value_ref: Arc::new(Mutex::new(js_ref)),
       drop_handle: unsafe { JsCallback::new(env.raw()) }?,
+      _marker: PhantomData,
     })
   }
 }
@@ -25,7 +30,7 @@ impl<T: JsValue<'static>> Drop for ThreadsafeJsValueRefHandle<T> {
       let _ = value_ref
         .lock()
         .expect("should lock `value_ref`")
-        .unref(&env);
+        .unref(env.raw());
     }))
   }
 }
@@ -63,7 +68,7 @@ impl<T: ToNapiValue + JsValue<'static>> ToNapiValue for ThreadsafeJsValueRef<T> 
 
 impl<T: JsValue<'static>> ThreadsafeJsValueRef<T> {
   pub fn new(env: Env, value: T) -> Result<Self> {
-    let js_ref = Ref::new(&env, &value)?;
+    let js_ref = Ref::new(env.raw(), value.raw(), 1)?;
 
     Ok(Self {
       inner: Arc::new(ThreadsafeJsValueRefHandle::new(env, js_ref)?),
@@ -71,11 +76,12 @@ impl<T: JsValue<'static>> ThreadsafeJsValueRef<T> {
   }
 
   pub fn get(&self, env: Env) -> Result<T> {
-    self
+    let value_ref = self
       .inner
       .value_ref
       .lock()
-      .expect("should lock `value_ref`")
-      .get_value(&env)
+      .expect("should lock `value_ref`");
+    let raw_value = unsafe { ToNapiValue::to_napi_value(env.raw(), &*value_ref) }?;
+    unsafe { T::from_napi_value(env.raw(), raw_value) }
   }
 }

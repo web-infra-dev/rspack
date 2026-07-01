@@ -198,7 +198,7 @@ impl JsEventHandler {
       .max_queue_size::<1>()
       .weak::<true>()
       .build_callback(
-        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
+        move |ctx: napi::threadsafe_function::ThreadsafeCallContext<_>| Ok(ctx.value),
       )?;
 
     Ok(Self { inner: callback })
@@ -252,7 +252,7 @@ impl JsEventHandlerUndelayed {
       .weak::<false>()
       .max_queue_size::<1>()
       .build_callback(
-        move |ctx: napi::threadsafe_function::ThreadSafeCallContext<_>| Ok(ctx.value),
+        move |ctx: napi::threadsafe_function::ThreadsafeCallContext<_>| Ok(ctx.value),
       )?;
 
     Ok(Self { inner: callback })

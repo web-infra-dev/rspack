@@ -1,5 +1,4 @@
 #![recursion_limit = "256"]
-#![allow(deprecated)]
 #![allow(unused)]
 #![allow(trivial_numeric_casts)]
 
@@ -108,7 +107,7 @@ use std::{
   sync::{Arc, RwLock},
 };
 
-use napi::{CallContext, bindgen_prelude::*};
+use napi::bindgen_prelude::*;
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
 use rspack_core::{
   BoxDependency, Compilation, CompilerId, CompilerPlatform, EntryOptions, ModuleIdentifier,
@@ -152,15 +151,6 @@ pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_vers
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
-}
-
-#[js_function(1)]
-fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
-  let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
-  let compiler_id = external.0;
-  let revoked_modules = external.1.take();
-  ModuleObject::cleanup_by_module_identifiers(&compiler_id, &revoked_modules);
-  Ok(())
 }
 
 #[napi(custom_finalize)]
@@ -233,8 +223,15 @@ impl JsCompiler {
         rspack_loader_preact_refresh::PreactRefreshLoaderPlugin::new(),
       ));
 
-      let tsfn = env
-        .create_function("cleanup_revoked_modules", cleanup_revoked_modules)?
+      let cleanup_revoked_modules =
+        env.create_function_from_closure("cleanup_revoked_modules", |ctx| {
+          let external = ctx.get::<&mut External<(CompilerId, Vec<ModuleIdentifier>)>>(0)?;
+          let compiler_id = external.0;
+          let revoked_modules = external.1.take();
+          ModuleObject::cleanup_by_module_identifiers(&compiler_id, &revoked_modules);
+          Ok(())
+        })?;
+      let tsfn = cleanup_revoked_modules
         .build_threadsafe_function::<External<(CompilerId, Vec<ModuleIdentifier>)>>()
         .weak::<true>()
         .callee_handled::<false>()

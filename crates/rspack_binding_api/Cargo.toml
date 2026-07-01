@@ -53,8 +53,8 @@ tracing                 = { workspace = true }
 tracing-subscriber      = { workspace = true }
 tracy-client            = { workspace = true, optional = true }
 
-napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi9", "compat-mode"] }
-napi-derive = { workspace = true, features = ["compat-mode"] }
+napi        = { workspace = true, features = ["async", "tokio_rt", "serde-json", "anyhow", "napi9"] }
+napi-derive = { workspace = true }
 
 derive_more                            = { workspace = true, features = ["debug"] }
 futures                                = { workspace = true }

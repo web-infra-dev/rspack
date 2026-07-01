@@ -1,18 +1,25 @@
 use napi::{
-  CallContext, Either, JsObject, NapiRaw,
-  bindgen_prelude::{FromNapiMutRef, Object, ToNapiValue},
+  Either,
+  bindgen_prelude::{Object, ToNapiValue},
 };
 use rspack_core::{ResourceData, ResourceParsedData, parse_resource};
 use rspack_error::Diagnosable;
 
 use crate::{
-  diagnostic,
-  error::RspackError,
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module},
-  plugins::JsLoaderItem,
+  diagnostic, error::RspackError, impl_module_methods, module::Module, plugins::JsLoaderItem,
   resource_data::ReadonlyResourceDataWrapper,
 };
+
+const NORMAL_MODULE_OWN_PROPERTIES: &[&str] = &[
+  "resource",
+  "request",
+  "userRequest",
+  "rawRequest",
+  "resourceResolveData",
+  "loaders",
+  "matchResource",
+  "error",
+];
 
 #[napi]
 #[repr(C)]
@@ -26,133 +33,10 @@ impl NormalModule {
   }
 
   pub(crate) fn into_module_instance(
-    mut self,
+    self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    let (_, module) = self.as_ref()?;
-
-    let resource_resolved_data = module.resource_resolved_data();
-    let resource = env.create_string(resource_resolved_data.resource())?;
-    let request = env.create_string(module.request())?;
-    let user_request = env.create_string(module.user_request())?;
-    let raw_request = env.create_string(module.raw_request())?;
-    let resource_resolve_data = Object::from_raw(env.raw(), unsafe {
-      ToNapiValue::to_napi_value(
-        env.raw(),
-        ReadonlyResourceDataWrapper::from(resource_resolved_data.clone()),
-      )?
-    });
-    let loaders = Object::from_raw(env.raw(), unsafe {
-      ToNapiValue::to_napi_value(
-        env.raw(),
-        module
-          .loaders()
-          .iter()
-          .map(JsLoaderItem::from)
-          .collect::<Vec<_>>(),
-      )?
-    });
-
-    #[js_function]
-    pub fn match_resource_getter(ctx: CallContext<'_>) -> napi::Result<Either<&str, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let (_, module) = wrapped_value.as_ref()?;
-      Ok(match module.match_resource() {
-        Some(match_resource) => Either::A(match_resource.resource()),
-        None => Either::B(()),
-      })
-    }
-
-    #[js_function(1)]
-    pub fn match_resource_setter(ctx: CallContext) -> napi::Result<()> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let val = ctx.get::<Either<String, ()>>(0)?;
-      match val {
-        Either::A(val) => {
-          let module = wrapped_value.as_mut()?;
-          let ResourceParsedData {
-            path,
-            query,
-            fragment,
-          } = parse_resource(&val).expect("Should parse resource");
-          *module.match_resource_mut() =
-            Some(ResourceData::new_with_path(val, path, query, fragment));
-        }
-        Either::B(_) => {}
-      }
-      Ok(())
-    }
-
-    #[js_function]
-    fn error_getter(ctx: CallContext<'_>) -> napi::Result<Either<RspackError, ()>> {
-      let this = ctx.this_unchecked::<JsObject>();
-      let env = ctx.env.raw();
-      let wrapped_value = unsafe { NormalModule::from_napi_mut_ref(env, this.raw())? };
-
-      let (compilation, module) = wrapped_value.as_ref()?;
-      Ok(match module.first_error() {
-        Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(
-          compilation,
-          diagnostic.as_ref(),
-        )?),
-        None => Either::B(()),
-      })
-    }
-
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resource")?
-          .with_value(&resource),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("request")?
-          .with_value(&request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("rawRequest")?
-          .with_value(&raw_request),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("resourceResolveData")?
-          .with_value(&resource_resolve_data),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("loaders")?
-          .with_value(&loaders),
-      );
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("matchResource")?
-          .with_getter(match_resource_getter)
-          .with_setter(match_resource_setter),
-      );
-      // Info from Build
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("error")?
-          .with_getter(error_getter),
-      );
-      Self::new_inherited(self, env, &mut properties)
-    })
+    Self::new_inherited(self, env, NORMAL_MODULE_OWN_PROPERTIES)
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::NormalModule)> {
@@ -175,6 +59,91 @@ impl NormalModule {
         "Module is not a NormalModule",
       )),
     }
+  }
+}
+
+#[napi]
+impl NormalModule {
+  #[napi(skip_typescript, getter)]
+  pub fn resource(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.resource_resolved_data().resource().to_string())
+  }
+
+  #[napi(skip_typescript, getter)]
+  pub fn request(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.request().to_string())
+  }
+
+  #[napi(skip_typescript, getter, js_name = "userRequest")]
+  pub fn user_request(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.user_request().to_string())
+  }
+
+  #[napi(skip_typescript, getter, js_name = "rawRequest")]
+  pub fn raw_request(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.raw_request().to_string())
+  }
+
+  #[napi(skip_typescript, getter, js_name = "resourceResolveData")]
+  pub fn resource_resolve_data<'a>(&mut self, env: &'a napi::Env) -> napi::Result<Object<'a>> {
+    let (_, module) = self.as_ref()?;
+    let resource_resolved_data = module.resource_resolved_data().clone();
+    let napi_value = unsafe {
+      ToNapiValue::to_napi_value(
+        env.raw(),
+        ReadonlyResourceDataWrapper::from(resource_resolved_data),
+      )?
+    };
+    Ok(Object::from_raw(env.raw(), napi_value))
+  }
+
+  #[napi(skip_typescript, getter)]
+  pub fn loaders(&mut self) -> napi::Result<Vec<JsLoaderItem>> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.loaders().iter().map(JsLoaderItem::from).collect())
+  }
+
+  #[napi(skip_typescript, getter, js_name = "matchResource")]
+  pub fn match_resource(&mut self) -> napi::Result<Either<String, ()>> {
+    let (_, module) = self.as_ref()?;
+    Ok(match module.match_resource() {
+      Some(match_resource) => Either::A(match_resource.resource().to_string()),
+      None => Either::B(()),
+    })
+  }
+
+  #[napi(skip_typescript, setter)]
+  pub fn set_match_resource(&mut self, val: Either<String, ()>) -> napi::Result<()> {
+    match val {
+      Either::A(val) => {
+        let module = self.as_mut()?;
+        let ResourceParsedData {
+          path,
+          query,
+          fragment,
+        } = parse_resource(&val).expect("Should parse resource");
+        *module.match_resource_mut() =
+          Some(ResourceData::new_with_path(val, path, query, fragment));
+      }
+      Either::B(_) => {}
+    }
+    Ok(())
+  }
+
+  #[napi(skip_typescript, getter)]
+  pub fn error(&mut self) -> napi::Result<Either<RspackError, ()>> {
+    let (compilation, module) = self.as_ref()?;
+    Ok(match module.first_error() {
+      Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(
+        compilation,
+        diagnostic.as_ref(),
+      )?),
+      None => Either::B(()),
+    })
   }
 }
 

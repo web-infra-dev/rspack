@@ -1,7 +1,4 @@
-use crate::{
-  impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module},
-};
+use crate::{impl_module_methods, module::Module};
 
 #[napi]
 #[repr(C)]
@@ -14,20 +11,7 @@ impl ExternalModule {
     mut self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    let (_, module) = self.as_ref()?;
-    let user_request = env.create_string(module.user_request())?;
-
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      properties.push(
-        napi::Property::new()
-          .with_utf8_name("userRequest")?
-          .with_value(&user_request),
-      );
-      Self::new_inherited(self, env, &mut properties)
-    })
+    Self::new_inherited(self, env, &["userRequest"])
   }
 
   fn as_ref(&mut self) -> napi::Result<(&rspack_core::Compilation, &rspack_core::ExternalModule)> {
@@ -39,6 +23,15 @@ impl ExternalModule {
         "Module is not a ExternalModule",
       )),
     }
+  }
+}
+
+#[napi]
+impl ExternalModule {
+  #[napi(skip_typescript, getter, js_name = "userRequest")]
+  pub fn user_request(&mut self) -> napi::Result<String> {
+    let (_, module) = self.as_ref()?;
+    Ok(module.user_request().to_string())
   }
 }
 

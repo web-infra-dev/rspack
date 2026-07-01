@@ -1,6 +1,6 @@
 use crate::{
   impl_module_methods,
-  module::{MODULE_PROPERTIES_BUFFER, Module, ModuleObject},
+  module::{Module, ModuleObject},
 };
 
 #[napi]
@@ -14,12 +14,7 @@ impl ConcatenatedModule {
     self,
     env: &napi::Env,
   ) -> napi::Result<napi::bindgen_prelude::ClassInstance<'_, Self>> {
-    MODULE_PROPERTIES_BUFFER.with(|ref_cell| {
-      let mut properties = ref_cell.borrow_mut();
-      properties.clear();
-
-      Self::new_inherited(self, env, &mut properties)
-    })
+    Self::new_inherited(self, env, &[])
   }
 
   fn as_ref(
