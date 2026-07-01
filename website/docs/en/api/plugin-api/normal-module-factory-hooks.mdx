@@ -3,6 +3,7 @@ description: 'NormalModuleFactory is used by the Compiler to generate modules (N
 ---
 
 import ResolveDataType from '../../types/resolve-data.mdx';
+import { ApiMeta } from '@components/ApiMeta';
 import { Collapse, CollapsePanel } from '@components/Collapse';
 
 # NormalModuleFactory
@@ -112,6 +113,47 @@ compiler.hooks.compilation.tap(
 :::warning
 Returning module instance or `false` is not supported for now.
 :::
+
+## `resolveError`
+
+<ApiMeta addedVersion="2.2.0" specific={['Rspack']} />
+
+`AsyncSeriesBailHook<[ResolveData, Error]>`
+
+Called when resolving a module request fails, for example when the requested module cannot be found. This hook allows recovering from the failure: a tap may modify `resolveData` (such as rewriting `resolveData.request`) and return `{ retry: true }` to retry the resolution once with the modified data.
+
+- If no tap returns `{ retry: true }`, the original resolution error is reported as usual.
+- The resolution is retried at most once. If the retried resolution also fails, the new error is reported and `resolveError` is not called again.
+- This hook is only called for failures of ordinary path resolution. It is not called for module specifiers with a scheme (URI), loader resolution failures, or other kinds of errors.
+
+The `error` argument contains the resolution error, including its `message`.
+
+```js
+compiler.hooks.compilation.tap(
+  'MyPlugin',
+  (compilation, { normalModuleFactory }) => {
+    normalModuleFactory.hooks.resolveError.tap(
+      'MyPlugin',
+      (resolveData, error) => {
+        console.log(error.message);
+        // redirect the failed request to a fallback module and retry
+        resolveData.request = './fallback-module';
+        return { retry: true };
+      },
+    );
+  },
+);
+```
+
+<Collapse>
+  <CollapsePanel
+    className="collapse-code-panel"
+    header="ResolveData.ts"
+    key="ResolveData"
+  >
+    <ResolveDataType />
+  </CollapsePanel>
+</Collapse>
 
 ## `afterResolve`
 

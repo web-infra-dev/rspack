@@ -25,6 +25,7 @@ use crate::{
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryFactorize: SeriesBail(data: &mut ModuleFactoryCreateData) -> BoxModule,tracing=false);
 define_hook!(NormalModuleFactoryResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> NormalModuleFactoryResolveResult,tracing=false);
+define_hook!(NormalModuleFactoryResolveError: SeriesBail(data: &mut ModuleFactoryCreateData, error: &rspack_error::Error) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryResolveForScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryResolveInScheme: SeriesBail(data: &mut ModuleFactoryCreateData, resource_data: &mut ResourceData, for_name: &Scheme) -> bool,tracing=false);
 define_hook!(NormalModuleFactoryAfterResolve: SeriesBail(data: &mut ModuleFactoryCreateData, create_data: &mut NormalModuleCreateData) -> bool,tracing=false);
@@ -37,6 +38,12 @@ define_hook!(NormalModuleFactoryAfterFactorize: Series(data: &mut ModuleFactoryC
 pub enum NormalModuleFactoryResolveResult {
   Module(BoxModule),
   Ignored,
+}
+
+enum ResolveNormalModuleOutcome {
+  Resolved(ModuleFactoryResult),
+  /// Resource resolution failed; the `resolve_error` hook may request a retry.
+  ResolveFailed(rspack_error::Error),
 }
 
 #[derive(Debug)]
@@ -377,6 +384,7 @@ pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
   pub factorize: NormalModuleFactoryFactorizeHook,
   pub resolve: NormalModuleFactoryResolveHook,
+  pub resolve_error: NormalModuleFactoryResolveErrorHook,
   pub resolve_for_scheme: NormalModuleFactoryResolveForSchemeHook,
   pub resolve_in_scheme: NormalModuleFactoryResolveInSchemeHook,
   pub after_resolve: NormalModuleFactoryAfterResolveHook,
@@ -716,6 +724,34 @@ impl NormalModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
+    match self.resolve_normal_module_once(data).await? {
+      ResolveNormalModuleOutcome::Resolved(result) => Ok(Some(result)),
+      ResolveNormalModuleOutcome::ResolveFailed(err) => {
+        // The hook may mutate `data` (e.g. rewrite `request`) and return `true`
+        // to retry the resolution once. It is not consulted again if the retry
+        // also fails.
+        let retry = self
+          .plugin_driver
+          .normal_module_factory_hooks
+          .resolve_error
+          .call(data, &err)
+          .await?
+          .unwrap_or_default();
+        if !retry {
+          return Err(err);
+        }
+        match self.resolve_normal_module_once(data).await? {
+          ResolveNormalModuleOutcome::Resolved(result) => Ok(Some(result)),
+          ResolveNormalModuleOutcome::ResolveFailed(err) => Err(err),
+        }
+      }
+    }
+  }
+
+  async fn resolve_normal_module_once(
+    &self,
+    data: &mut ModuleFactoryCreateData,
+  ) -> Result<ResolveNormalModuleOutcome> {
     let dependency = data.dependencies[0]
       .as_module_dependency()
       .expect("should be module dependency");
@@ -947,12 +983,16 @@ module.exports = "data:,";
               side_effect_free: Some(true),
             });
 
-            return Ok(Some(ModuleFactoryResult::new_with_module(raw_module)));
+            return Ok(ResolveNormalModuleOutcome::Resolved(
+              ModuleFactoryResult::new_with_module(raw_module),
+            ));
           }
           Err(err) => {
-            data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-            data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
-            return Err(err);
+            // Extend rather than overwrite so a retried resolution keeps the
+            // failed attempt's paths for watch-mode invalidation.
+            data.add_file_dependencies(file_dependencies);
+            data.add_missing_dependencies(missing_dependencies);
+            return Ok(ResolveNormalModuleOutcome::ResolveFailed(err));
           }
         }
       }
@@ -1138,7 +1178,9 @@ module.exports = "data:,";
       {
         // ignored
         // See https://github.com/webpack/webpack/blob/6be4065ade1e252c1d8dcba4af0f43e32af1bdc1/lib/NormalModuleFactory.js#L301
-        return Ok(Some(ModuleFactoryResult::default()));
+        return Ok(ResolveNormalModuleOutcome::Resolved(
+          ModuleFactoryResult::default(),
+        ));
       }
 
       create_data
@@ -1180,10 +1222,12 @@ module.exports = "data:,";
       .call(data, &create_data, &mut module)
       .await?;
 
-    data.file_dependencies = file_dependencies.into_iter().map(Into::into).collect();
-    data.missing_dependencies = missing_dependencies.into_iter().map(Into::into).collect();
+    data.add_file_dependencies(file_dependencies);
+    data.add_missing_dependencies(missing_dependencies);
 
-    Ok(Some(ModuleFactoryResult::new_with_module(module)))
+    Ok(ResolveNormalModuleOutcome::Resolved(
+      ModuleFactoryResult::new_with_module(module),
+    ))
   }
 
   async fn calculate_module_rules<'a>(

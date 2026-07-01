@@ -51,6 +51,24 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
         };
       },
     ),
+    registerNormalModuleFactoryResolveErrorTaps: createTap(
+      binding.RegisterJsTapKind.NormalModuleFactoryResolveError,
+
+      function () {
+        return getCompiler().__internal__get_compilation_params()!
+          .normalModuleFactory.hooks.resolveError;
+      },
+
+      function (queried) {
+        return async function (args: binding.JsResolveErrorArgs) {
+          const ret = await queried.promise(args.resolveData, args.error);
+          // Only `{ retry: true }` bails with a retry; any other return value
+          // (including `{ retry: false }`) falls through to the next tap and
+          // ultimately lets the resolution error propagate.
+          return [ret?.retry === true ? true : undefined, args.resolveData];
+        };
+      },
+    ),
     registerNormalModuleFactoryResolveForSchemeTaps: createMapTap(
       binding.RegisterJsTapKind.NormalModuleFactoryResolveForScheme,
 

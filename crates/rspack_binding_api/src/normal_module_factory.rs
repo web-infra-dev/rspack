@@ -6,7 +6,7 @@ use napi_derive::napi;
 use rspack_core::{ModuleFactoryCreateData, NormalModuleCreateData, ResourceData, parse_resource};
 use serde::Serialize;
 
-use crate::resource_data::JsResourceData;
+use crate::{error::RspackError, resource_data::JsResourceData};
 
 #[napi(object)]
 pub struct JsResolveForSchemeArgs {
@@ -15,6 +15,12 @@ pub struct JsResolveForSchemeArgs {
 }
 
 pub type JsResolveForSchemeOutput = (Option<bool>, JsResourceData);
+
+#[napi(object)]
+pub struct JsResolveErrorArgs {
+  pub resolve_data: JsResolveData,
+  pub error: RspackError,
+}
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
