@@ -1,4 +1,5 @@
 packages:
+  - '.agents/skills/*'
   - 'packages/*'
   - 'examples/*'
   - 'scripts'

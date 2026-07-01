@@ -58,6 +58,12 @@ importers:
         specifier: 8.8.5
         version: 8.8.5
 
+  .agents/skills/rspack-binary-size:
+    devDependencies:
+      zx:
+        specifier: 8.8.5
+        version: 8.8.5
+
   crates/node_binding:
     devDependencies:
       '@emnapi/core':

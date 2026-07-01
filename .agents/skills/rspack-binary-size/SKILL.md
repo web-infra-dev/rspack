@@ -20,9 +20,9 @@ The goal is to collect evidence first, then decide whether the growth comes from
 Run these from the repository root.
 
 ```sh
-bash .agents/skills/rspack-binary-size/scripts/macro-expansion-stats.sh
-bash .agents/skills/rspack-binary-size/scripts/generic-expansion-stats.sh
-bash .agents/skills/rspack-binary-size/scripts/duplicate-deps.sh
+pnpm --filter @rspack/skill-binary-size macro-expansion-stats
+pnpm --filter @rspack/skill-binary-size generic-expansion-stats
+pnpm --filter @rspack/skill-binary-size duplicate-deps
 ```
 
 Reports are written under `target/binary-size-reports/`.
@@ -31,7 +31,7 @@ For pull request review, collect reports on the base revision and the candidate 
 
 ## Macro Expansion Review
 
-Start with `macro-expansion-stats.sh`. The macro script is intentionally generic. It scans Rust source for:
+Start with `macro-expansion-stats.mjs`. The macro script is intentionally generic. It scans Rust source for:
 
 - attribute-like macro candidates, such as `#[napi]`, `#[plugin_hook]`, `#[cacheable]`, and derive attributes
 - function-like macro invocations, such as `define_hook!`, `impl_module_methods!`, and local helper macros
@@ -40,8 +40,8 @@ Start with `macro-expansion-stats.sh`. The macro script is intentionally generic
 Use optional expansion backends when counts alone are not enough:
 
 ```sh
-MACRO_EXPAND_BACKEND=rust-analyzer bash .agents/skills/rspack-binary-size/scripts/macro-expansion-stats.sh
-MACRO_EXPAND_BACKEND=cargo-expand CARGO_EXPAND_CRATES='rspack_binding_api rspack_core' bash .agents/skills/rspack-binary-size/scripts/macro-expansion-stats.sh
+MACRO_EXPAND_BACKEND=rust-analyzer pnpm --filter @rspack/skill-binary-size macro-expansion-stats
+MACRO_EXPAND_BACKEND=cargo-expand CARGO_EXPAND_CRATES='rspack_binding_api rspack_core' pnpm --filter @rspack/skill-binary-size macro-expansion-stats
 ```
 
 The rust-analyzer backend uses the custom LSP request `rust-analyzer/expandMacro` and records expansion size for candidates that the language server can expand. The cargo-expand backend records crate-level expanded output and marker counts. Prefer rust-analyzer for many individual macro locations and cargo-expand for whole-crate before/after comparisons.
@@ -72,10 +72,10 @@ For `#[napi(object)]`, check directionality first. Input-only DTOs should use `o
 
 ## Generic Expansion Review
 
-Run `generic-expansion-stats.sh` after building the relevant target. By default it groups demangled symbols from existing target artifacts, which is fast and does not trigger a release rebuild. Enable `cargo bloat` explicitly when section-level attribution is needed:
+Run `generic-expansion-stats.mjs` after building the relevant target. By default it groups demangled symbols from existing target artifacts, which is fast and does not trigger a release rebuild. Enable `cargo bloat` explicitly when section-level attribution is needed:
 
 ```sh
-RUN_CARGO_BLOAT=1 bash .agents/skills/rspack-binary-size/scripts/generic-expansion-stats.sh
+RUN_CARGO_BLOAT=1 pnpm --filter @rspack/skill-binary-size generic-expansion-stats
 ```
 
 Useful environment variables:
@@ -98,7 +98,7 @@ Do not replace static dispatch inside parser, module graph, dependency, or other
 
 ## Duplicate Dependency Review
 
-Run `duplicate-deps.sh` to capture duplicate versions and feature trees for `rspack_node` by default.
+Run `duplicate-deps.mjs` to capture duplicate versions and feature trees for `rspack_node` by default.
 
 Review duplicate versions for:
 

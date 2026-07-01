@@ -1,0 +1,14 @@
+{
+  "name": "@rspack/skill-binary-size",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "macro-expansion-stats": "zx scripts/macro-expansion-stats.mjs",
+    "generic-expansion-stats": "zx scripts/generic-expansion-stats.mjs",
+    "duplicate-deps": "zx scripts/duplicate-deps.mjs"
+  },
+  "devDependencies": {
+    "zx": "8.8.5"
+  }
+}
