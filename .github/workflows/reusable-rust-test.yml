@@ -27,6 +27,7 @@ jobs:
               - "!**/*.md"
               - "!**/*.mdx"
               - "!website/**"
+              - "!.agents/skills/**/scripts/**"
             document_changed:
               - "website/**"
 
