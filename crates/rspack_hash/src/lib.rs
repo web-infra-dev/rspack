@@ -201,9 +201,9 @@ macro_rules! rspack_hash_update {
 impl fmt::Debug for RspackHasher {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Self::Xxhash64(_) => write!(f, "RspackHash(Xxhash64)"),
-      Self::MD4(_) => write!(f, "RspackHash(MD4)"),
-      Self::SHA256(_) => write!(f, "RspackHash(SHA256"),
+      Self::Xxhash64(_) => write!(f, "RspackHasher(Xxhash64)"),
+      Self::MD4(_) => write!(f, "RspackHasher(MD4)"),
+      Self::SHA256(_) => write!(f, "RspackHasher(SHA256)"),
     }
   }
 }
