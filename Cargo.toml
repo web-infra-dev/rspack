@@ -122,9 +122,9 @@ xxhash-rust         = { version = "0.8.15", default-features = false }
 allocative = { package = "rspack-allocative", version = "0.3.5", default-features = false, features = ["camino", "dashmap", "hashbrown", "indexmap", "tokio", "once_cell", "ustr", "atomic_refcell"] }
 
 # Pinned
-napi        = { git = "https://github.com/intellild/napi-rs.git", rev = "d2fa3b605c96f7dd7abf67a0fabad4f20b160a84", default-features = false }
-napi-build  = { git = "https://github.com/intellild/napi-rs.git", rev = "d2fa3b605c96f7dd7abf67a0fabad4f20b160a84", default-features = false }
-napi-derive = { git = "https://github.com/intellild/napi-rs.git", rev = "d2fa3b605c96f7dd7abf67a0fabad4f20b160a84", default-features = false }
+napi        = { git = "https://github.com/intellild/napi-rs.git", rev = "e86ab8c3c4c601d42ba168ccbd977ea36d8f4305", default-features = false }
+napi-build  = { git = "https://github.com/intellild/napi-rs.git", rev = "e86ab8c3c4c601d42ba168ccbd977ea36d8f4305", default-features = false }
+napi-derive = { git = "https://github.com/intellild/napi-rs.git", rev = "e86ab8c3c4c601d42ba168ccbd977ea36d8f4305", default-features = false }
 
 # Serialize and Deserialize
 inventory = { version = "0.3.17", default-features = false }
