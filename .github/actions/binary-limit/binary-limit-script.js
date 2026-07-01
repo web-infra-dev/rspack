@@ -5,16 +5,12 @@ const fs = require('node:fs');
  * @param {Number} limit
  */
 module.exports = async function action({ github, context, limit }) {
-  const commits = await github.rest.repos.listCommits({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    per_page: 30,
-  });
+  const commits = await listCommitsFromMergeBase(github, context);
 
   let baseSize = 0;
   let baseCommit = null;
 
-  for (const commit of commits.data) {
+  for (const commit of commits) {
     console.log(commit.sha);
     try {
       const data = await fetchDataBySha(commit.sha);
@@ -30,7 +26,7 @@ module.exports = async function action({ github, context, limit }) {
   }
 
   if (!baseCommit) {
-    const error = `No base binary size found within ${commits.data.length} commits`;
+    const error = `No base binary size found within ${commits.length} commits`;
     console.log(error);
     throw new Error(error);
   }
@@ -57,6 +53,32 @@ module.exports = async function action({ github, context, limit }) {
     );
   }
 };
+
+// Start from the PR's merge base (fork point) rather than the base branch tip,
+// so the size diff reflects only this PR's changes and not drift merged into
+// the base branch after the PR forked. Walk its ancestors to the newest commit
+// that has recorded binary size data.
+async function listCommitsFromMergeBase(github, context) {
+  const { owner, repo } = context.repo;
+  const pr = context.payload.pull_request;
+
+  const { data: comparison } =
+    await github.rest.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${pr.base.sha}...${pr.head.sha}`,
+    });
+  const mergeBaseSha = comparison.merge_base_commit.sha;
+  console.log(`Merge base commit: ${mergeBaseSha}`);
+
+  const { data } = await github.rest.repos.listCommits({
+    owner,
+    repo,
+    sha: mergeBaseSha,
+    per_page: 30,
+  });
+  return data;
+}
 
 async function commentToPullRequest(github, context, comment) {
   const { data: comments } = await github.rest.issues.listComments({
