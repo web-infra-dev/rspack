@@ -21,7 +21,7 @@ runs:
         path: ${{ inputs.path }}
     - name: Save cache to local
       if: ${{ runner.environment == 'self-hosted' }}
-      uses: lynx-infra/cache/save@1f4c655e363ee8910dce6ee0fe9ab3289d676add # main
+      uses: lynx-infra/cache/save@d6bd70bf2182b228ff5cfa9539e5f61b0929a1ba # main
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
