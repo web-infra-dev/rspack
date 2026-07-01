@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 use rspack_hook::plugin_hook;
 use rustc_hash::FxHashMap;
 
@@ -469,7 +469,7 @@ async fn chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut HashAlgorithm,
 ) -> Result<()> {
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
@@ -490,7 +490,7 @@ async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hashes: &mut FxHashMap<SourceType, RspackHash>,
+  hashes: &mut FxHashMap<SourceType, HashAlgorithm>,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -498,7 +498,7 @@ async fn content_hash(
     .expect_get(chunk_ukey);
   let hasher = hashes
     .entry(SourceType::JavaScript)
-    .or_insert_with(|| RspackHash::from(&compilation.options.output));
+    .or_insert_with(|| HashAlgorithm::from(&compilation.options.output));
 
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(hasher);

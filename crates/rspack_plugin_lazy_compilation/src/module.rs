@@ -12,7 +12,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
 use rspack_plugin_javascript::dependency::CommonJsRequireDependency;
 use rspack_util::{
   json_stringify,
@@ -330,7 +330,7 @@ impl Module for LazyCompilationProxyModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.active.hash(&mut hasher);
     self.identifier.hash(&mut hasher);

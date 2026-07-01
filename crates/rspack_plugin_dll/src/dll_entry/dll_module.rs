@@ -12,7 +12,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
 
 use super::dll_entry_dependency::DllEntryDependency;
 
@@ -131,7 +131,7 @@ impl Module for DllModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
     format!("dll module {}", self.name).hash(&mut hasher);
 
     module_update_hash(self, &mut hasher, compilation, runtime);

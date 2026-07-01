@@ -10,7 +10,7 @@ use rspack_core::{
   RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, create_exports_object_referenced,
   property_access, to_normal_comment,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 use swc_atoms::Atom;
 
 #[cacheable]
@@ -111,7 +111,7 @@ impl DependencyCodeGeneration for ProvideDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {

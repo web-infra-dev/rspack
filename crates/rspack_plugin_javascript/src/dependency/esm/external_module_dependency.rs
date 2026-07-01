@@ -4,10 +4,10 @@ use rspack_core::{
   ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 #[cacheable]
-#[derive(Debug, Clone, RspackHashable)]
+#[derive(Debug, Clone, RspackHash)]
 pub struct ExternalModuleDependency {
   module: String,
   import_specifier: Vec<(String, String)>,
@@ -37,11 +37,11 @@ impl DependencyCodeGeneration for ExternalModuleDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    RspackHashable::hash(self, hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 

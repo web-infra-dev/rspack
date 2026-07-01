@@ -7,7 +7,7 @@ use rspack_core::{
   RuntimeCondition, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
   UsedByExports,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 use crate::runtime_condition_used_by_exports;
 
@@ -84,7 +84,7 @@ impl DependencyCodeGeneration for PureExpressionDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {

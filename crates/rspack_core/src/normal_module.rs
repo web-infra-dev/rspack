@@ -14,7 +14,7 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
 use rspack_fs::ReadableFileSystem;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{AdditionalData, Content, LoaderContext, ResourceData, run_loaders};
 use rspack_sources::{
@@ -291,7 +291,7 @@ impl NormalModule {
     output_options: &OutputOptions,
     build_meta: &BuildMeta,
   ) -> RspackHashDigest {
-    let mut hasher = RspackHash::from(output_options);
+    let mut hasher = HashAlgorithm::from(output_options);
     "source".hash(&mut hasher);
     if let Some(error) = self.first_error() {
       error.message.hash(&mut hasher);
@@ -692,7 +692,7 @@ impl Module for NormalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
     self.build_info.hash.hash(&mut hasher);
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() {

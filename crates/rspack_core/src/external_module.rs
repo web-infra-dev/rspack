@@ -3,7 +3,7 @@ use std::{borrow::Cow, iter};
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{HashAlgorithm, RspackHashDigest};
 use rspack_macros::impl_source_map_config;
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -719,8 +719,8 @@ impl ExternalModule {
           let id: Cow<'_, str> = if to_identifier(&request.primary) != request.primary
             || self.dependency_meta.attributes.is_some()
           {
-            let mut hasher = RspackHash::from(&compilation.options.output);
-            use rspack_hash::RspackHashable as _;
+            let mut hasher = HashAlgorithm::from(&compilation.options.output);
+            use rspack_hash::RspackHash as _;
             request.primary.hash(&mut hasher);
             if let Some(attributes) = &self.dependency_meta.attributes {
               simd_json::to_string(attributes)
@@ -1247,8 +1247,8 @@ impl Module for ExternalModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
-    use rspack_hash::RspackHashable as _;
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
+    use rspack_hash::RspackHash as _;
     self.id.as_str().hash(&mut hasher);
     let side_effects_state_artifact = &compilation
       .build_module_graph_artifact

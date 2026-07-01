@@ -15,7 +15,7 @@ use rspack_core::{
   property_access, to_normal_comment,
 };
 use rspack_error::Diagnostic;
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
 
@@ -387,7 +387,7 @@ impl AsContextDependency for ESMImportSpecifierDependency {}
 impl DependencyCodeGeneration for ESMImportSpecifierDependency {
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     compilation: &rspack_core::Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {

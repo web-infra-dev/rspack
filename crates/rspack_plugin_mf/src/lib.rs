@@ -2,7 +2,7 @@ mod container;
 mod manifest;
 mod sharing;
 
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize)]
@@ -35,8 +35,8 @@ impl ShareScope {
   }
 }
 
-impl RspackHashable for ShareScope {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ShareScope {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       ShareScope::Single(scope) => scope.hash(state),
       ShareScope::Multiple(scopes) => scopes.hash(state),

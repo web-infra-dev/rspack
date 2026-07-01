@@ -26,7 +26,7 @@ struct FieldHash {
   options: FieldOptions,
 }
 
-pub fn expand_rspack_hashable_derive(input: DeriveInput) -> Result<TokenStream> {
+pub fn expand_rspack_hash_derive(input: DeriveInput) -> Result<TokenStream> {
   let options = type_options(&input.attrs)?;
   let hash_crate = options
     .hash_crate
@@ -54,7 +54,7 @@ pub fn expand_rspack_hashable_derive(input: DeriveInput) -> Result<TokenStream> 
       Data::Union(data) => {
         return Err(Error::new_spanned(
           data.union_token,
-          "RspackHashable cannot be derived for unions",
+          "RspackHash cannot be derived for unions",
         ));
       }
     }
@@ -62,12 +62,12 @@ pub fn expand_rspack_hashable_derive(input: DeriveInput) -> Result<TokenStream> 
 
   let ident = &input.ident;
   let mut generics = input.generics.clone();
-  add_rspack_hashable_bounds(&mut generics, &hash_crate, use_json);
+  add_rspack_hash_bounds(&mut generics, &hash_crate, use_json);
   let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
 
   Ok(quote! {
-    impl #impl_generics #hash_crate::RspackHashable for #ident #ty_generics #where_clause {
-      fn hash(&self, state: &mut #hash_crate::RspackHash) {
+    impl #impl_generics #hash_crate::RspackHash for #ident #ty_generics #where_clause {
+      fn hash(&self, state: &mut #hash_crate::HashAlgorithm) {
         #body
       }
     }
@@ -328,7 +328,7 @@ fn hash_field_static(hash_crate: &Path, field: &FieldHash, prefix: &str) -> Toke
       match #target {
         Some(value) => {
           state.write(#prefix);
-          #hash_crate::RspackHashable::hash(value, state);
+          #hash_crate::RspackHash::hash(value, state);
         }
         None => {
           state.write(#null);
@@ -339,7 +339,7 @@ fn hash_field_static(hash_crate: &Path, field: &FieldHash, prefix: &str) -> Toke
     let prefix = Literal::byte_string(prefix.as_bytes());
     quote! {
       state.write(#prefix);
-      #hash_crate::RspackHashable::hash(#target, state);
+      #hash_crate::RspackHash::hash(#target, state);
     }
   }
 }
@@ -364,7 +364,7 @@ fn hash_field_dynamic(hash_crate: &Path, field: &FieldHash, start: &str) -> Toke
       match #target {
         Some(value) => {
           #hash_key
-          #hash_crate::RspackHashable::hash(value, state);
+          #hash_crate::RspackHash::hash(value, state);
         }
         None => {
           #hash_key
@@ -376,13 +376,13 @@ fn hash_field_dynamic(hash_crate: &Path, field: &FieldHash, start: &str) -> Toke
     quote! {
       if let Some(value) = #target {
         #hash_key
-        #hash_crate::RspackHashable::hash(value, state);
+        #hash_crate::RspackHash::hash(value, state);
       }
     }
   } else {
     quote! {
       #hash_key
-      #hash_crate::RspackHashable::hash(#target, state);
+      #hash_crate::RspackHash::hash(#target, state);
     }
   }
 }
@@ -417,9 +417,9 @@ fn sort_fields(fields: &mut [FieldHash]) -> Result<()> {
   Ok(())
 }
 
-fn add_rspack_hashable_bounds(generics: &mut Generics, hash_crate: &Path, json_hash: bool) {
+fn add_rspack_hash_bounds(generics: &mut Generics, hash_crate: &Path, json_hash: bool) {
   for param in generics.type_params_mut() {
-    let bound: TypeParamBound = parse_quote!(#hash_crate::RspackHashable);
+    let bound: TypeParamBound = parse_quote!(#hash_crate::RspackHash);
     param.bounds.push(bound);
     if json_hash {
       let serde_bound: TypeParamBound = parse_quote!(::serde::Serialize);

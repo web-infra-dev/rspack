@@ -2,7 +2,7 @@ use std::fmt::Debug;
 
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::cacheable_dyn;
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
@@ -48,7 +48,7 @@ clone_trait_object!(DependencyCodeGeneration);
 pub trait DependencyCodeGeneration: Debug + DynClone + Sync + Send + AsAny {
   fn update_hash(
     &self,
-    _hasher: &mut RspackHash,
+    _hasher: &mut HashAlgorithm,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {

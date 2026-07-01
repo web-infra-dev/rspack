@@ -22,7 +22,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
@@ -47,7 +47,7 @@ const PLUGIN_NAME: &str = "rspack.SwcJsMinimizerRspackPlugin";
 static JAVASCRIPT_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.[cm]?js(\?.*)?$").expect("Invalid RegExp"));
 
-#[derive(Debug, Hash, rspack_hash::RspackHashable)]
+#[derive(Debug, Hash, rspack_hash::RspackHash)]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -73,15 +73,15 @@ pub struct MinimizerOptions {
   pub __format_cache: OnceCell<String>,
 }
 
-impl rspack_hash::RspackHashable for MinimizerOptions {
-  fn hash(&self, state: &mut RspackHash) {
-    rspack_hash::RspackHashable::hash(
+impl rspack_hash::RspackHash for MinimizerOptions {
+  fn hash(&self, state: &mut HashAlgorithm) {
+    rspack_hash::RspackHash::hash(
       self
         .__format_cache
         .get_or_init(|| simd_json::to_string(&self.format).expect("Should be able to serialize")),
       state,
     );
-    rspack_hash::RspackHashable::hash(
+    rspack_hash::RspackHash::hash(
       self.__compress_cache.get_or_init(|| {
         self
           .compress
@@ -90,7 +90,7 @@ impl rspack_hash::RspackHashable for MinimizerOptions {
       }),
       state,
     );
-    rspack_hash::RspackHashable::hash(
+    rspack_hash::RspackHash::hash(
       self.__mangle_cache.get_or_init(|| {
         self
           .mangle
@@ -146,18 +146,18 @@ impl<T: std::fmt::Debug + std::hash::Hash> Display for OptionWrapper<T> {
   }
 }
 
-impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHashable> rspack_hash::RspackHashable
+impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHash> rspack_hash::RspackHash
   for OptionWrapper<T>
 {
-  fn hash(&self, state: &mut RspackHash) {
-    rspack_hash::RspackHashable::hash(&self.to_string(), state);
+  fn hash(&self, state: &mut HashAlgorithm) {
+    rspack_hash::RspackHash::hash(&self.to_string(), state);
     if let OptionWrapper::Custom(value) = self {
-      rspack_hash::RspackHashable::hash(value, state);
+      rspack_hash::RspackHash::hash(value, state);
     }
   }
 }
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct ExtractComments {
   pub condition: String,
   pub condition_flags: String,
@@ -215,9 +215,9 @@ async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut HashAlgorithm,
 ) -> Result<()> {
-  rspack_hash::RspackHashable::hash(&self.options, hasher);
+  rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())
 }
 

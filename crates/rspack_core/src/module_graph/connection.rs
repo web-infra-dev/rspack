@@ -1,5 +1,5 @@
 use rspack_cacheable::cacheable;
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 
 use crate::{
   DependencyId, ExportsInfoArtifact, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
@@ -140,8 +140,8 @@ pub enum ConnectionState {
   TransitiveOnly,
 }
 
-impl rspack_hash::RspackHashable for ConnectionState {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for ConnectionState {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       ConnectionState::Active(value) => {
         "active".hash(state);

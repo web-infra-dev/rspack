@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rustc_hash::FxHashSet;
 
 use super::*;
@@ -129,7 +129,7 @@ pub async fn create_hash(
       .collect()
   };
 
-  let mut compilation_hasher = RspackHash::from(&compilation.options.output);
+  let mut compilation_hasher = HashAlgorithm::from(&compilation.options.output);
 
   fn try_process_chunk_hash_results(
     compilation: &mut Compilation,
@@ -433,7 +433,7 @@ pub async fn create_hash(
       let chunk_hash = chunk
         .hash(&compilation.chunk_hashes_artifact)
         .expect("should have chunk hash");
-      let mut hasher = RspackHash::from(&compilation.options.output);
+      let mut hasher = HashAlgorithm::from(&compilation.options.output);
       hasher.update(chunk_hash);
       hasher.update(
         compilation
@@ -450,7 +450,7 @@ pub async fn create_hash(
       content_hash
         .iter()
         .map(|(source_type, content_hash)| {
-          let mut hasher = RspackHash::from(&compilation.options.output);
+          let mut hasher = HashAlgorithm::from(&compilation.options.output);
           hasher.update(content_hash);
           hasher.update(
             compilation
@@ -530,7 +530,7 @@ async fn process_chunk_hash(
   chunk_ukey: ChunkUkey,
   plugin_driver: &SharedPluginDriver,
 ) -> Result<ChunkHashResult> {
-  let mut hasher = RspackHash::from(&compilation.options.output);
+  let mut hasher = HashAlgorithm::from(&compilation.options.output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -545,7 +545,7 @@ async fn process_chunk_hash(
     .await?;
   let chunk_hash = hasher.digest(&compilation.options.output.hash_digest);
 
-  let mut content_hashes: HashMap<SourceType, RspackHash> = HashMap::default();
+  let mut content_hashes: HashMap<SourceType, HashAlgorithm> = HashMap::default();
   plugin_driver
     .compilation_hooks
     .content_hash

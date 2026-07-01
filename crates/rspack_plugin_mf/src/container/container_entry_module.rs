@@ -14,7 +14,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{HashAlgorithm, RspackHashDigest};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
 
@@ -433,7 +433,7 @@ var init = function(shareScope, initScope) {{
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

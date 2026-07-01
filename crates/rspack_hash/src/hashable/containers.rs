@@ -3,35 +3,35 @@ use std::{
   sync::Arc,
 };
 
-use crate::{RspackHash, RspackHashable};
+use crate::{HashAlgorithm, RspackHash};
 
-impl<T: RspackHashable + ?Sized> RspackHashable for &T {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash + ?Sized> RspackHash for &T {
+  fn hash(&self, state: &mut HashAlgorithm) {
     (*self).hash(state);
   }
 }
 
-impl<T: RspackHashable + ?Sized> RspackHashable for Box<T> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash + ?Sized> RspackHash for Box<T> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     (**self).hash(state);
   }
 }
 
-impl<T: RspackHashable + ?Sized> RspackHashable for Arc<T> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash + ?Sized> RspackHash for Arc<T> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     (**self).hash(state);
   }
 }
 
-impl<T: RspackHashable> RspackHashable for Option<T> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash> RspackHash for Option<T> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     if let Some(value) = self {
       value.hash(state);
     }
   }
 }
 
-fn hash_iter<T: RspackHashable>(mut iter: impl Iterator<Item = T>, state: &mut RspackHash) {
+fn hash_iter<T: RspackHash>(mut iter: impl Iterator<Item = T>, state: &mut HashAlgorithm) {
   state.write(b"[");
   if let Some(item) = iter.next() {
     item.hash(state);
@@ -44,38 +44,38 @@ fn hash_iter<T: RspackHashable>(mut iter: impl Iterator<Item = T>, state: &mut R
   state.write(b"]");
 }
 
-impl<T: RspackHashable> RspackHashable for [T] {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash> RspackHash for [T] {
+  fn hash(&self, state: &mut HashAlgorithm) {
     hash_iter(self.iter(), state);
   }
 }
 
-impl<T: RspackHashable> RspackHashable for Vec<T> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash> RspackHash for Vec<T> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     hash_iter(self.iter(), state);
   }
 }
 
-impl<T: RspackHashable + Ord> RspackHashable for BTreeSet<T> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash + Ord> RspackHash for BTreeSet<T> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     hash_iter(self.iter(), state);
   }
 }
 
-impl<K: RspackHashable + Ord, V: RspackHashable> RspackHashable for BTreeMap<K, V> {
-  fn hash(&self, state: &mut RspackHash) {
+impl<K: RspackHash + Ord, V: RspackHash> RspackHash for BTreeMap<K, V> {
+  fn hash(&self, state: &mut HashAlgorithm) {
     hash_iter(self.iter(), state);
   }
 }
 
-impl<T: RspackHashable, const N: usize> RspackHashable for [T; N] {
-  fn hash(&self, state: &mut RspackHash) {
+impl<T: RspackHash, const N: usize> RspackHash for [T; N] {
+  fn hash(&self, state: &mut HashAlgorithm) {
     hash_iter(self.iter(), state);
   }
 }
 
-impl<A: RspackHashable, B: RspackHashable> RspackHashable for (A, B) {
-  fn hash(&self, state: &mut RspackHash) {
+impl<A: RspackHash, B: RspackHash> RspackHash for (A, B) {
+  fn hash(&self, state: &mut HashAlgorithm) {
     state.write(b"(");
     self.0.hash(state);
     state.write(b",");

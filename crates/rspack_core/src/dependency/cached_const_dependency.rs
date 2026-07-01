@@ -1,5 +1,5 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 use super::DependencyRange;
 use crate::{
@@ -22,8 +22,8 @@ impl CachedConstDependencyPlace {
   }
 }
 
-impl RspackHashable for CachedConstDependencyPlace {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for CachedConstDependencyPlace {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.order().hash(state);
   }
 }
@@ -75,8 +75,8 @@ impl CachedConstDependency {
   }
 }
 
-impl RspackHashable for CachedConstDependency {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for CachedConstDependency {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.place.hash(state);
     self.identifier.hash(state);
     match self.range {
@@ -95,11 +95,11 @@ impl DependencyCodeGeneration for CachedConstDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    RspackHashable::hash(self, hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 

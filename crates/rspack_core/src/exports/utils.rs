@@ -9,7 +9,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rspack_util::{atom::Atom, json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -65,8 +65,8 @@ impl std::hash::Hash for EvaluatedInlinableValue {
   }
 }
 
-impl rspack_hash::RspackHashable for EvaluatedInlinableValue {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for EvaluatedInlinableValue {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.render("").hash(state);
   }
 }
@@ -126,8 +126,8 @@ pub enum UsedNameItem {
   Inlined(EvaluatedInlinableValue),
 }
 
-impl rspack_hash::RspackHashable for UsedNameItem {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for UsedNameItem {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       UsedNameItem::Str(value) => value.hash(state),
       UsedNameItem::Inlined(value) => value.hash(state),
@@ -135,7 +135,7 @@ impl rspack_hash::RspackHashable for UsedNameItem {
   }
 }
 
-#[derive(Debug, Clone, rspack_hash::RspackHashable)]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct InlinedUsedName {
   value: EvaluatedInlinableValue,
   suffix: Vec<Atom>,
@@ -189,8 +189,8 @@ pub enum ExportProvided {
   Unknown,
 }
 
-impl rspack_hash::RspackHashable for ExportProvided {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for ExportProvided {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -230,8 +230,8 @@ pub enum UsageState {
   Used = 4,
 }
 
-impl rspack_hash::RspackHashable for UsageState {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for UsageState {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }

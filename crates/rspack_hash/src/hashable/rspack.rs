@@ -4,22 +4,22 @@ use rspack_util::{
   atom::Atom,
 };
 
-use crate::{RspackHash, RspackHashable};
+use crate::{HashAlgorithm, RspackHash};
 
-impl RspackHashable for Atom {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for Atom {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
 
-impl RspackHashable for Identifier {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for Identifier {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
 
-impl RspackHashable for AssetCondition {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for AssetCondition {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       AssetCondition::String(value) => {
         "string".hash(state);
@@ -34,8 +34,8 @@ impl RspackHashable for AssetCondition {
   }
 }
 
-impl RspackHashable for AssetConditions {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for AssetConditions {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       AssetConditions::Single(value) => {
         "single".hash(state);

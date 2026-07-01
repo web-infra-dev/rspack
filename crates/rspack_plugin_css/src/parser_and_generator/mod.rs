@@ -18,7 +18,7 @@ use rspack_core::{
 };
 pub use rspack_core::{CssExport, CssExports};
 use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
 use rspack_util::{
   atom::Atom,
   fx_hash::{FxIndexMap, FxIndexSet},
@@ -342,7 +342,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = HashAlgorithm::from(&compilation.options.output);
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.effective_export_type(module).hash(&mut hasher);

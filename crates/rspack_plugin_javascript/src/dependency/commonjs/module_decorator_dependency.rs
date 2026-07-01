@@ -6,10 +6,10 @@ use rspack_core::{
   NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
   create_exports_object_referenced, create_no_exports_referenced,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 #[cacheable]
-#[derive(Debug, Clone, RspackHashable)]
+#[derive(Debug, Clone, RspackHash)]
 pub struct ModuleDecoratorDependency {
   decorator: RuntimeGlobals,
   allow_exports_access: bool,
@@ -53,11 +53,11 @@ impl DependencyCodeGeneration for ModuleDecoratorDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    RspackHashable::hash(self, hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 

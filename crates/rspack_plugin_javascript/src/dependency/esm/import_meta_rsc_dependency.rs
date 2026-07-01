@@ -6,7 +6,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, NormalInitFragment, RuntimeGlobals, RuntimeSpec, TemplateContext,
   TemplateReplaceSource, create_exports_object_referenced,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 use rspack_util::json_stringify_str;
 use swc_atoms::Atom;
 
@@ -112,7 +112,7 @@ impl DependencyCodeGeneration for ImportMetaRscDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     _compilation: &rspack_core::Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {

@@ -47,7 +47,7 @@ use rspack_core::{
   build_module_graph::BuildModuleGraphArtifact, parse_resource, rspack_sources::RawStringSource,
 };
 use rspack_error::Diagnostic;
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rspack_hook::{Hook, Interceptor};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
 use rspack_paths::Utf8PathBuf;
@@ -1497,7 +1497,7 @@ impl CompilationChunkHash for CompilationChunkHashTap {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
   ) -> rspack_error::Result<()> {
     let result = self
       .function
@@ -1783,7 +1783,7 @@ impl JavascriptModulesChunkHash for JavascriptModulesChunkHashTap {
     &self,
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
   ) -> rspack_error::Result<()> {
     let result = self
       .function

@@ -20,7 +20,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_hash::HashAlgorithm;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
@@ -28,7 +28,7 @@ use thread_local::ThreadLocal;
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct PluginOptions {
   pub test: Option<AssetConditions>,
   pub include: Option<AssetConditions>,
@@ -37,17 +37,17 @@ pub struct PluginOptions {
   pub minimizer_options: MinimizerOptions,
 }
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct Draft {
   pub custom_media: bool,
 }
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct NonStandard {
   pub deep_selector_combinator: bool,
 }
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct PseudoClasses {
   pub hover: Option<String>,
   pub active: Option<String>,
@@ -56,7 +56,7 @@ pub struct PseudoClasses {
   pub focus_within: Option<String>,
 }
 
-#[derive(Debug, rspack_hash::RspackHashable)]
+#[derive(Debug, rspack_hash::RspackHash)]
 pub struct MinimizerOptions {
   pub error_recovery: bool,
   pub include: Option<u32>,
@@ -85,9 +85,9 @@ async fn chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut HashAlgorithm,
 ) -> Result<()> {
-  rspack_hash::RspackHashable::hash(&self.options, hasher);
+  rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())
 }
 

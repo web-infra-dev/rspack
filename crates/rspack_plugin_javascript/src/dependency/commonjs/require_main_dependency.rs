@@ -3,10 +3,10 @@ use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
   DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 
 #[cacheable]
-#[derive(Debug, Clone, RspackHashable)]
+#[derive(Debug, Clone, RspackHash)]
 pub struct RequireMainDependency {
   pub range: DependencyRange,
 }
@@ -25,11 +25,11 @@ impl DependencyCodeGeneration for RequireMainDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut RspackHash,
+    hasher: &mut HashAlgorithm,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    RspackHashable::hash(self, hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 

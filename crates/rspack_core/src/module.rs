@@ -14,7 +14,7 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable, write_u64_hex};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest, write_u64_hex};
 use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
@@ -498,7 +498,7 @@ impl ExportsArgument {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone, Serialize, rspack_hash::RspackHashable)]
+#[derive(Debug, Default, Clone, Serialize, rspack_hash::RspackHash)]
 #[serde(rename_all = "camelCase")]
 pub struct BuildMeta {
   #[serde(skip_serializing_if = "Option::is_none")]
@@ -599,8 +599,8 @@ impl BuildMeta {
   }
 }
 
-impl RspackHashable for BuildMetaExportsType {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for BuildMetaExportsType {
+  fn hash(&self, state: &mut HashAlgorithm) {
     if matches!(self, BuildMetaExportsType::Unset) {
       return;
     }
@@ -608,26 +608,26 @@ impl RspackHashable for BuildMetaExportsType {
   }
 }
 
-impl RspackHashable for ExportsType {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ExportsType {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
 
-impl RspackHashable for BuildMetaDefaultObject {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for BuildMetaDefaultObject {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
 
-impl RspackHashable for ModuleArgument {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ModuleArgument {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
 
-impl RspackHashable for ExportsArgument {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ExportsArgument {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -945,7 +945,7 @@ fn get_exports_type_impl(
 
 pub fn module_update_hash(
   module: &dyn Module,
-  hasher: &mut RspackHash,
+  hasher: &mut HashAlgorithm,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {

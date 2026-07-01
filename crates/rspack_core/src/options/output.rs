@@ -8,8 +8,8 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
+use rspack_hash::{HashAlgorithm, RspackHash};
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
-use rspack_hash::{RspackHash, RspackHashable};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 #[cfg(allocative)]
@@ -71,7 +71,7 @@ pub struct OutputOptions {
   pub compare_before_emit: bool,
 }
 
-impl From<&OutputOptions> for RspackHash {
+impl From<&OutputOptions> for HashAlgorithm {
   fn from(value: &OutputOptions) -> Self {
     Self::with_salt(&value.hash_function, &value.hash_salt)
   }
@@ -124,8 +124,8 @@ impl ChunkLoading {
   }
 }
 
-impl RspackHashable for ChunkLoading {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ChunkLoading {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -173,8 +173,8 @@ impl ChunkLoadingType {
   }
 }
 
-impl RspackHashable for ChunkLoadingType {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for ChunkLoadingType {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -186,8 +186,8 @@ pub enum WasmLoading {
   Disable,
 }
 
-impl RspackHashable for WasmLoading {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for WasmLoading {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -224,8 +224,8 @@ pub enum WasmLoadingType {
   Universal,
 }
 
-impl RspackHashable for WasmLoadingType {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for WasmLoadingType {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }
@@ -389,8 +389,8 @@ pub enum PublicPath {
   Auto,
 }
 
-impl RspackHashable for PublicPath {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for PublicPath {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       PublicPath::Filename(filename) => filename.hash(state),
       PublicPath::Auto => "auto".hash(state),
@@ -538,7 +538,7 @@ pub fn get_js_chunk_filename_template(
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryOptions {
   pub name: Option<LibraryName>,
   pub export: Option<LibraryExport>,
@@ -554,7 +554,7 @@ pub type LibraryType = String;
 pub type LibraryExport = Vec<String>;
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryAuxiliaryComment {
   pub root: Option<String>,
   pub commonjs: Option<String>,
@@ -569,8 +569,8 @@ pub enum LibraryName {
   UmdObject(LibraryCustomUmdObject),
 }
 
-impl RspackHashable for LibraryName {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for LibraryName {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       LibraryName::NonUmdObject(value) => value.hash(state),
       LibraryName::UmdObject(value) => value.hash(state),
@@ -585,8 +585,8 @@ pub enum LibraryNonUmdObject {
   String(String),
 }
 
-impl RspackHashable for LibraryNonUmdObject {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for LibraryNonUmdObject {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       LibraryNonUmdObject::Array(value) => value.hash(state),
       LibraryNonUmdObject::String(value) => value.hash(state),
@@ -595,7 +595,7 @@ impl RspackHashable for LibraryNonUmdObject {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct LibraryCustomUmdObject {
   pub amd: Option<String>,
   pub commonjs: Option<String>,

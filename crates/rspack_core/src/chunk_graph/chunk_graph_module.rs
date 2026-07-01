@@ -7,7 +7,7 @@ use std::{
 
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierSet};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{HashAlgorithm, RspackHashDigest};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
@@ -74,8 +74,8 @@ impl ModuleId {
   }
 }
 
-impl rspack_hash::RspackHashable for ModuleId {
-  fn hash(&self, state: &mut RspackHash) {
+impl rspack_hash::RspackHash for ModuleId {
+  fn hash(&self, state: &mut HashAlgorithm) {
     self.as_str().hash(state);
   }
 }

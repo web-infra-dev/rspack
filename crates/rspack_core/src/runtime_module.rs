@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::cacheable;
 use rspack_collections::Identifier;
 use rspack_error::Result;
-use rspack_hash::{RspackHash, RspackHashDigest, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
 use rspack_sources::{BoxSource, OriginalSource, RawStringSource, Source, SourceExt};
 use rspack_util::source_map::SourceMapKind;
 use tokio::sync::OnceCell;
@@ -150,7 +150,7 @@ pub async fn runtime_module_get_runtime_hash(
   compilation: &Compilation,
   _runtime: Option<&RuntimeSpec>,
 ) -> Result<RspackHashDigest> {
-  let mut hasher = RspackHash::from(&compilation.options.output);
+  let mut hasher = HashAlgorithm::from(&compilation.options.output);
   module.name().hash(&mut hasher);
   module.stage().hash(&mut hasher);
   if module.full_hash() || module.dependent_hash() {
@@ -159,7 +159,7 @@ pub async fn runtime_module_get_runtime_hash(
       compilation,
       runtime_template: &runtime_template,
     };
-    RspackHashable::hash(&module.generate_with_custom(&context).await?, &mut hasher);
+    RspackHash::hash(&module.generate_with_custom(&context).await?, &mut hasher);
   } else {
     use std::hash::Hash;
 
@@ -258,8 +258,8 @@ impl From<RuntimeModuleStage> for u32 {
   }
 }
 
-impl RspackHashable for RuntimeModuleStage {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for RuntimeModuleStage {
+  fn hash(&self, state: &mut HashAlgorithm) {
     let stage: u32 = self.clone().into();
     stage.hash(state);
   }

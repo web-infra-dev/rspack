@@ -7,7 +7,7 @@ use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
-use rspack_hash::{RspackHash, RspackHashable};
+use rspack_hash::{HashAlgorithm, RspackHash};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
@@ -442,8 +442,8 @@ impl EntryRuntime {
   }
 }
 
-impl RspackHashable for EntryRuntime {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for EntryRuntime {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       EntryRuntime::String(s) => s.hash(state),
       EntryRuntime::False => "false".hash(state),
@@ -462,7 +462,7 @@ impl Display for EntryRuntime {
 
 // pub type EntryRuntime = String;
 #[cacheable]
-#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, rspack_hash::RspackHashable)]
+#[derive(Debug, Default, Clone, Hash, PartialEq, Eq, rspack_hash::RspackHash)]
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
@@ -535,7 +535,7 @@ impl Display for ChunkGroupOrderKey {
 }
 
 #[cacheable]
-#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHashable)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, PartialOrd, Ord, rspack_hash::RspackHash)]
 pub struct ChunkGroupOptions {
   pub name: Option<String>,
   pub preload_order: Option<i32>,
@@ -570,8 +570,8 @@ pub enum GroupOptions {
   ChunkGroup(ChunkGroupOptions),
 }
 
-impl RspackHashable for GroupOptions {
-  fn hash(&self, state: &mut RspackHash) {
+impl RspackHash for GroupOptions {
+  fn hash(&self, state: &mut HashAlgorithm) {
     match self {
       GroupOptions::Entrypoint(options) => {
         "entrypoint".hash(state);
