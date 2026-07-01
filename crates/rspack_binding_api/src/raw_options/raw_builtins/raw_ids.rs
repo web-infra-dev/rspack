@@ -3,7 +3,7 @@ use std::{ptr::NonNull, sync::Arc};
 use futures::future::BoxFuture;
 use napi_derive::napi;
 use rspack_core::{CompilerId, Module};
-use rspack_hash::{HashAlgorithm, HashDigest};
+use rspack_hash::{HashDigest, HashFunction};
 use rspack_ids::{
   DeterministicModuleIdsPluginOptions, HashedModuleIdsPluginOptions, ModuleFilterFn,
   OccurrenceChunkIdsPluginOptions, SyncModuleIdsPluginMode, SyncModuleIdsPluginOptions,
@@ -43,7 +43,7 @@ impl From<RawHashedModuleIdsPluginOptions> for HashedModuleIdsPluginOptions {
       context: value.context,
       hash_function: value
         .hash_function
-        .map_or(defaults.hash_function, |s| HashAlgorithm::from(s.as_str())),
+        .map_or(defaults.hash_function, |s| HashFunction::from(s.as_str())),
       hash_digest: value
         .hash_digest
         .map_or(defaults.hash_digest, |s| HashDigest::from(s.as_str())),

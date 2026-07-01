@@ -8,7 +8,7 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-pub use rspack_hash::{HashAlgorithm, HashDigest, HashSalt};
+pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
@@ -58,7 +58,7 @@ pub struct OutputOptions {
   pub module: bool,
   pub trusted_types: Option<TrustedTypes>,
   pub source_map_filename: Filename,
-  pub hash_function: HashAlgorithm,
+  pub hash_function: HashFunction,
   pub hash_digest: HashDigest,
   pub hash_digest_length: usize,
   pub hash_salt: HashSalt,

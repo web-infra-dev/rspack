@@ -13,7 +13,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
-use rspack_hash::{HashAlgorithm, HashDigest, RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -656,7 +656,7 @@ impl ConcatenatedModule {
   pub fn create(
     mut root_module_ctxt: RootModuleContext,
     mut modules: Vec<ConcatenatedInnerModule>,
-    hash_function: Option<HashAlgorithm>,
+    hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
     compilation: &Compilation,
   ) -> Self {
@@ -694,13 +694,13 @@ impl ConcatenatedModule {
   fn create_identifier(
     root_module_ctxt: &RootModuleContext,
     modules: &Vec<ConcatenatedInnerModule>,
-    hash_function: Option<HashAlgorithm>,
+    hash_function: Option<HashFunction>,
   ) -> String {
     let mut identifiers = vec![];
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    let mut hash = RspackHasher::new(&hash_function.unwrap_or(HashAlgorithm::MD4));
+    let mut hash = RspackHasher::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
     }
