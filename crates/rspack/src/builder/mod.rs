@@ -58,7 +58,7 @@ use rspack_core::{
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
-use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_hash::{HashAlgorithm, HashDigest, HashSalt};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_regex::RspackRegex;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
@@ -2177,7 +2177,7 @@ pub struct OutputOptionsBuilder {
   /// Set the source map filename.
   source_map_filename: Option<Filename>,
   /// Set the hash function.
-  hash_function: Option<HashFunction>,
+  hash_function: Option<HashAlgorithm>,
   /// Set the hash digest.
   hash_digest: Option<HashDigest>,
   /// Set the hash digest length.
@@ -2535,7 +2535,7 @@ impl OutputOptionsBuilder {
   }
 
   /// Set the hash function.
-  pub fn hash_function(&mut self, function: HashFunction) -> &mut Self {
+  pub fn hash_function(&mut self, function: HashAlgorithm) -> &mut Self {
     self.hash_function = Some(function);
     self
   }
@@ -2901,7 +2901,7 @@ impl OutputOptionsBuilder {
     let module = d!(self.module.take(), output_module);
     let source_map_filename = f!(self.source_map_filename.take(), || "[file].map[query]"
       .into());
-    let hash_function = d!(self.hash_function.take(), HashFunction::Xxhash64);
+    let hash_function = d!(self.hash_function.take(), HashAlgorithm::Xxhash64);
     let hash_digest = d!(self.hash_digest.take(), HashDigest::Hex);
     let hash_digest_length = d!(self.hash_digest_length.take(), 16);
     let hash_salt = d!(self.hash_salt.take(), HashSalt::None);

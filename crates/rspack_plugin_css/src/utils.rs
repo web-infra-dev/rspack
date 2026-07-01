@@ -16,7 +16,7 @@ use rspack_core::{
   ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
-use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
+use rspack_hash::{HashAlgorithm, HashDigest, HashSalt, RspackHasher};
 use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::{FxHashSet, FxHasher};
 
@@ -170,7 +170,7 @@ pub struct LocalIdentOptions<'a> {
   local_ident_name: &'a LocalIdentName,
   local_ident_hash_digest: HashDigest,
   local_ident_hash_digest_length: usize,
-  local_ident_hash_function: HashFunction,
+  local_ident_hash_function: HashAlgorithm,
   local_ident_hash_salt: &'a HashSalt,
 }
 

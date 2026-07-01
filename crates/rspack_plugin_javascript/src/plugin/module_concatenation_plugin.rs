@@ -1664,7 +1664,7 @@ async fn create_concatenated_module(
   let mut new_module = BoxModule::new(Box::from(ConcatenatedModule::create(
     root_module_ctxt,
     modules,
-    Some(rspack_hash::HashFunction::Xxhash64),
+    Some(rspack_hash::HashAlgorithm::Xxhash64),
     config.runtime.clone(),
     compilation,
   )));

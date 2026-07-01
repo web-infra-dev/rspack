@@ -1,11 +1,11 @@
-use rspack_hash::{HashDigest, HashFunction, RspackHasher};
+use rspack_hash::{HashAlgorithm, HashDigest, RspackHasher};
 
 pub fn generate_debug_id(filename: &str, source: &[u8]) -> String {
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut hasher = RspackHasher::new(&HashAlgorithm::Xxhash64);
   hasher.write(source);
   let source_hash = hasher.digest(&HashDigest::Hex);
 
-  let mut file_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut file_hasher = RspackHasher::new(&HashAlgorithm::Xxhash64);
   file_hasher.write(filename.as_bytes());
   file_hasher.write(source_hash.encoded().as_bytes());
   let file_hash = file_hasher.digest(&HashDigest::Hex);

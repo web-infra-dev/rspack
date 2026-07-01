@@ -1,5 +1,5 @@
 use rspack_hash::{
-  HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher, write_u64_hex,
+  HashAlgorithm, HashDigest, HashSalt, RspackHash, RspackHashDigest, RspackHasher, write_u64_hex,
 };
 
 #[test]
@@ -27,12 +27,12 @@ fn encodes_base64url_without_padding() {
 #[test]
 fn hash_salt_is_written_as_raw_bytes() {
   let salt = HashSalt::Salt("salt".into());
-  let salted = RspackHasher::with_salt(&HashFunction::Xxhash64, &salt)
+  let salted = RspackHasher::with_salt(&HashAlgorithm::Xxhash64, &salt)
     .digest(&HashDigest::Hex)
     .encoded()
     .to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"salt");
   let expected = expected.digest(&HashDigest::Hex).encoded().to_string();
 
@@ -48,11 +48,11 @@ fn writes_u64_hex_without_leading_zeroes() {
     (0x0abc, "abc"),
     (u64::MAX, "ffffffffffffffff"),
   ] {
-    let mut actual = RspackHasher::new(&HashFunction::Xxhash64);
+    let mut actual = RspackHasher::new(&HashAlgorithm::Xxhash64);
     write_u64_hex(value, &mut actual);
     let actual = actual.digest(&HashDigest::Hex).encoded().to_string();
 
-    let mut expected_hash = RspackHasher::new(&HashFunction::Xxhash64);
+    let mut expected_hash = RspackHasher::new(&HashAlgorithm::Xxhash64);
     expected_hash.write(expected.as_bytes());
     let expected = expected_hash.digest(&HashDigest::Hex).encoded().to_string();
 
@@ -69,14 +69,14 @@ fn derive_rspack_hash_skips_marked_fields() {
     _cached: &'static str,
   }
 
-  let mut derived = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut derived = RspackHasher::new(&HashAlgorithm::Xxhash64);
   derived.update(&Value {
     content: "payload",
     _cached: "cache",
   });
   let derived = derived.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"{");
   expected.write(b"content");
   expected.write(b":");
@@ -97,14 +97,14 @@ fn derive_rspack_hash_respects_explicit_field_order() {
     first: &'static str,
   }
 
-  let mut derived = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut derived = RspackHasher::new(&HashAlgorithm::Xxhash64);
   derived.update(&Value {
     first: "a",
     second: "b",
   });
   let derived = derived.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"{");
   expected.write(b"first");
   expected.write(b":");
@@ -121,22 +121,22 @@ fn derive_rspack_hash_respects_explicit_field_order() {
 
 #[test]
 fn option_rspack_hash_skips_none() {
-  let mut none = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut none = RspackHasher::new(&HashAlgorithm::Xxhash64);
   none.update(&Option::<&str>::None);
   let none = none.digest(&HashDigest::Hex).encoded().to_string();
 
-  let empty = RspackHasher::new(&HashFunction::Xxhash64)
+  let empty = RspackHasher::new(&HashAlgorithm::Xxhash64)
     .digest(&HashDigest::Hex)
     .encoded()
     .to_string();
 
   assert_eq!(none, empty);
 
-  let mut some = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut some = RspackHasher::new(&HashAlgorithm::Xxhash64);
   some.update(&Some("value"));
   let some = some.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"value");
   let expected = expected.digest(&HashDigest::Hex).encoded().to_string();
 
@@ -151,11 +151,11 @@ fn derive_rspack_hash_can_hash_none_as_null() {
     value: Option<&'static str>,
   }
 
-  let mut none = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut none = RspackHasher::new(&HashAlgorithm::Xxhash64);
   none.update(&Value { value: None });
   let none = none.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected_none = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected_none = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected_none.write(b"{");
   expected_none.write(b"value");
   expected_none.write(b":");
@@ -165,13 +165,13 @@ fn derive_rspack_hash_can_hash_none_as_null() {
 
   assert_eq!(none, expected_none);
 
-  let mut some = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut some = RspackHasher::new(&HashAlgorithm::Xxhash64);
   some.update(&Value {
     value: Some("present"),
   });
   let some = some.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected_some = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected_some = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected_some.write(b"{");
   expected_some.write(b"value");
   expected_some.write(b":");
@@ -190,14 +190,14 @@ fn derive_rspack_hash_hashes_option_field_names() {
     commonjs: Option<&'static str>,
   }
 
-  let mut root = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut root = RspackHasher::new(&HashAlgorithm::Xxhash64);
   root.update(&Value {
     root: Some("x"),
     commonjs: None,
   });
   let root = root.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut commonjs = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut commonjs = RspackHasher::new(&HashAlgorithm::Xxhash64);
   commonjs.update(&Value {
     root: None,
     commonjs: Some("x"),
@@ -206,7 +206,7 @@ fn derive_rspack_hash_hashes_option_field_names() {
 
   assert_ne!(root, commonjs);
 
-  let mut expected_root = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected_root = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected_root.write(b"{");
   expected_root.write(b"root");
   expected_root.write(b":");
@@ -224,11 +224,11 @@ fn derive_rspack_hash_does_not_use_json_by_default() {
     content: &'static str,
   }
 
-  let mut derived = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut derived = RspackHasher::new(&HashAlgorithm::Xxhash64);
   derived.update(&Value { content: "payload" });
   let derived = derived.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"{");
   expected.write(b"content");
   expected.write(b":");
@@ -247,11 +247,11 @@ fn derive_rspack_hash_can_use_explicit_json() {
     content: &'static str,
   }
 
-  let mut derived = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut derived = RspackHasher::new(&HashAlgorithm::Xxhash64);
   derived.update(&Value { content: "payload" });
   let derived = derived.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(br#"{"content":"payload"}"#);
   let expected = expected.digest(&HashDigest::Hex).encoded().to_string();
 
@@ -260,13 +260,13 @@ fn derive_rspack_hash_can_use_explicit_json() {
 
 #[test]
 fn rspack_hash_object_hashes_object_fields() {
-  let mut derived = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut derived = RspackHasher::new(&HashAlgorithm::Xxhash64);
   rspack_hash::rspack_hash_object!(&mut derived, {
     "content" => "payload",
   });
   let derived = derived.digest(&HashDigest::Hex).encoded().to_string();
 
-  let mut expected = RspackHasher::new(&HashFunction::Xxhash64);
+  let mut expected = RspackHasher::new(&HashAlgorithm::Xxhash64);
   expected.write(b"{");
   expected.write(b"content");
   expected.write(b":");

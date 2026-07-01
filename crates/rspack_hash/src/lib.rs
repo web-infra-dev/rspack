@@ -16,24 +16,24 @@ mod hashable;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
-pub enum HashFunction {
+pub enum HashAlgorithm {
   Xxhash64,
   MD4,
   SHA256,
 }
 
-impl From<&str> for HashFunction {
+impl From<&str> for HashAlgorithm {
   fn from(value: &str) -> Self {
     match value {
-      "xxhash64" => HashFunction::Xxhash64,
-      "md4" => HashFunction::MD4,
-      "sha256" => HashFunction::SHA256,
-      _ => panic!("Unsupported hash function: '{value}'. Expected one of: xxhash64, md4, sha256"),
+      "xxhash64" => HashAlgorithm::Xxhash64,
+      "md4" => HashAlgorithm::MD4,
+      "sha256" => HashAlgorithm::SHA256,
+      _ => panic!("Unsupported hash algorithm: '{value}'. Expected one of: xxhash64, md4, sha256"),
     }
   }
 }
 
-impl MergeFrom for HashFunction {
+impl MergeFrom for HashAlgorithm {
   fn merge_from(self, other: &Self) -> Self {
     *other
   }
@@ -209,15 +209,15 @@ impl fmt::Debug for RspackHasher {
 }
 
 impl RspackHasher {
-  pub fn new(function: &HashFunction) -> Self {
+  pub fn new(function: &HashAlgorithm) -> Self {
     match function {
-      HashFunction::Xxhash64 => Self::Xxhash64(Box::new(Xxh64::new(0))),
-      HashFunction::MD4 => Self::MD4(Box::new(md4::Md4::new())),
-      HashFunction::SHA256 => Self::SHA256(Box::new(sha2::Sha256::new())),
+      HashAlgorithm::Xxhash64 => Self::Xxhash64(Box::new(Xxh64::new(0))),
+      HashAlgorithm::MD4 => Self::MD4(Box::new(md4::Md4::new())),
+      HashAlgorithm::SHA256 => Self::SHA256(Box::new(sha2::Sha256::new())),
     }
   }
 
-  pub fn with_salt(function: &HashFunction, salt: &HashSalt) -> Self {
+  pub fn with_salt(function: &HashAlgorithm, salt: &HashSalt) -> Self {
     let mut this = Self::new(function);
     if let HashSalt::Salt(salt) = salt {
       this.write(salt.as_bytes());

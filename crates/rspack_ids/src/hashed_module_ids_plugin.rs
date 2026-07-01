@@ -3,7 +3,7 @@ use rspack_core::{
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::{HashDigest, HashFunction, RspackHasher};
+use rspack_hash::{HashAlgorithm, HashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 
@@ -15,7 +15,7 @@ use crate::id_helpers::{
 #[derive(Debug, Clone)]
 pub struct HashedModuleIdsPluginOptions {
   pub context: Option<String>,
-  pub hash_function: HashFunction,
+  pub hash_function: HashAlgorithm,
   pub hash_digest: HashDigest,
   pub hash_digest_length: usize,
 }
@@ -24,7 +24,7 @@ impl Default for HashedModuleIdsPluginOptions {
   fn default() -> Self {
     Self {
       context: None,
-      hash_function: HashFunction::MD4,
+      hash_function: HashAlgorithm::MD4,
       hash_digest: HashDigest::Base64,
       hash_digest_length: 4,
     }
@@ -35,7 +35,7 @@ impl Default for HashedModuleIdsPluginOptions {
 #[derive(Debug)]
 pub struct HashedModuleIdsPlugin {
   context: Option<String>,
-  hash_function: HashFunction,
+  hash_function: HashAlgorithm,
   hash_digest: HashDigest,
   hash_digest_length: usize,
 }

@@ -6,7 +6,9 @@ use std::{
 
 use anymap::CloneAny;
 use rspack_collections::IdentifierMap;
-use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
+use rspack_hash::{
+  HashAlgorithm, HashDigest, HashSalt, RspackHash, RspackHashDigest, RspackHasher,
+};
 use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -159,7 +161,7 @@ impl CodeGenerationResult {
 
   pub fn set_hash(
     &mut self,
-    hash_function: &HashFunction,
+    hash_function: &HashAlgorithm,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
   ) {
@@ -180,7 +182,7 @@ impl CodeGenerationResult {
   pub fn set_hash_for_concatenated_module(
     &mut self,
     runtime_hash: &RspackHashDigest,
-    hash_function: &HashFunction,
+    hash_function: &HashAlgorithm,
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
   ) {
