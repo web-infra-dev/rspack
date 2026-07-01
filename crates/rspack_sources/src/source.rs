@@ -496,12 +496,12 @@ fn strip_source_map_garbage_header(bytes: &mut Vec<u8>) -> Result<()> {
           std::io::ErrorKind::InvalidData,
           "expected newline",
         ))?
-      } else if is_junk_json(byte) {
-        continue;
-      } else if byte == b'\r' {
-        need_newline = true;
-      } else if byte == b'\n' {
-        return Ok(&slice[idx..]);
+      } else if !is_junk_json(byte) {
+        if byte == b'\r' {
+          need_newline = true;
+        } else if byte == b'\n' {
+          return Ok(&slice[idx..]);
+        }
       }
     }
     Ok(&slice[slice.len()..])
