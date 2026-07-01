@@ -2,7 +2,7 @@ mod option;
 mod scope;
 mod strategy;
 
-use std::{future::Future, sync::Arc};
+use std::sync::Arc;
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
@@ -119,26 +119,16 @@ impl Snapshot {
     changes
   }
 
-  fn remove_updates(
-    scope: SnapshotScope,
-    paths: Vec<ArcPath>,
-  ) -> (String, Vec<(Vec<u8>, Option<Vec<u8>>)>) {
-    (
-      scope.name().to_string(),
-      paths
-        .into_iter()
-        .map(|item| (item.as_os_str().as_encoded_bytes().to_vec(), None))
-        .collect(),
-    )
-  }
-
   pub async fn save_scope_updates(
     &self,
     scope: SnapshotScope,
     added: Vec<ArcPath>,
     removed: Vec<ArcPath>,
   ) -> StorageUpdates {
-    let (scope_name, mut scope_updates) = Self::remove_updates(scope, removed);
+    let mut scope_updates: Vec<_> = removed
+      .into_iter()
+      .map(|item| (item.as_os_str().as_encoded_bytes().to_vec(), None))
+      .collect();
     scope_updates.extend(
       self
         .add_changes(scope, added)
@@ -149,41 +139,42 @@ impl Snapshot {
 
     let mut updates = StorageUpdates::default();
     if !scope_updates.is_empty() {
-      updates.insert(scope_name, scope_updates.into_iter().collect());
+      updates.insert(
+        scope.name().to_string(),
+        scope_updates.into_iter().collect(),
+      );
     }
     updates
   }
 
-  pub fn save_updates_task(
+  pub async fn save_updates_task(
     self: Arc<Self>,
     file_deps: (Vec<ArcPath>, Vec<ArcPath>),
     context_deps: (Vec<ArcPath>, Vec<ArcPath>),
     missing_deps: (Vec<ArcPath>, Vec<ArcPath>),
-  ) -> impl Future<Output = StorageUpdates> + Send + 'static {
-    async move {
-      let mut updates = StorageUpdates::default();
-      let (file_added, file_removed) = file_deps;
-      let (context_added, context_removed) = context_deps;
-      let (missing_added, missing_removed) = missing_deps;
+  ) -> StorageUpdates {
+    let mut updates = StorageUpdates::default();
+    let (file_added, file_removed) = file_deps;
+    let (context_added, context_removed) = context_deps;
+    let (missing_added, missing_removed) = missing_deps;
 
-      updates.extend(
-        self
-          .save_scope_updates(SnapshotScope::FILE, file_added, file_removed)
-          .await,
-      );
-      updates.extend(
-        self
-          .save_scope_updates(SnapshotScope::CONTEXT, context_added, context_removed)
-          .await,
-      );
-      updates.extend(
-        self
-          .save_scope_updates(SnapshotScope::MISSING, missing_added, missing_removed)
-          .await,
-      );
+    updates.extend(
+      self
+        .save_scope_updates(SnapshotScope::FILE, file_added, file_removed)
+        .await,
+    );
+    updates.extend(
+      self
+        .save_scope_updates(SnapshotScope::CONTEXT, context_added, context_removed)
+        .await,
+    );
+    updates.extend(
+      self
+        .save_scope_updates(SnapshotScope::MISSING, missing_added, missing_removed)
+        .await,
+    );
 
-      updates
-    }
+    updates
   }
 
   #[allow(clippy::type_complexity)]

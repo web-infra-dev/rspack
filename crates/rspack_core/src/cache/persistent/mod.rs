@@ -190,10 +190,13 @@ impl Cache for PersistentCache {
         missing_removed.cloned(),
       ),
     );
-    self.ctx.save_build_deps(
-      &mut self.build_deps,
-      build_added.chain(build_updated).cloned(),
-    );
+    self
+      .ctx
+      .save_build_deps(
+        &mut self.build_deps,
+        build_added.chain(build_updated).cloned(),
+      )
+      .await;
 
     self.ctx.save_storage();
     self.ctx.reset();

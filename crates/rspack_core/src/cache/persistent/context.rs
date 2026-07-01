@@ -108,7 +108,7 @@ impl CacheContext {
 
   /// Saves build dependency hashes. No-op in readonly mode.
   #[tracing::instrument("Cache::Context::save_build_deps", skip_all)]
-  pub fn save_build_deps(
+  pub async fn save_build_deps(
     &mut self,
     build_deps: &mut BuildDeps,
     added: impl Iterator<Item = ArcPath>,
@@ -122,9 +122,9 @@ impl CacheContext {
       .time("write build dependencies to persistent cache");
     let logger = self.logger().clone();
     let added = added.collect::<Vec<_>>();
-    self
-      .storage
-      .add_update_task(Box::pin(build_deps.save_updates_task(added, logger)));
+    build_deps
+      .save_updates(&mut *self.storage, added, logger)
+      .await;
     self.logger().time_end(start);
   }
 

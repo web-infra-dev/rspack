@@ -1,6 +1,6 @@
 mod helper;
 
-use std::{collections::VecDeque, future::Future, path::PathBuf, sync::Arc};
+use std::{collections::VecDeque, path::PathBuf, sync::Arc};
 
 use rspack_error::Result;
 use rspack_fs::ReadableFileSystem;
@@ -10,7 +10,7 @@ use rustc_hash::FxHashSet as HashSet;
 use self::helper::{Helper, is_node_package_path};
 use super::{
   snapshot::{Snapshot, SnapshotScope},
-  storage::{Storage, StorageUpdates},
+  storage::Storage,
 };
 use crate::CompilationLogger;
 
@@ -67,13 +67,13 @@ impl BuildDeps {
   /// Saves update changes for build dependencies.
   ///
   /// For performance reasons, recursive searches will stop for build dependencies in node_modules.
-  pub fn save_updates_task(
+  pub async fn save_updates(
     &mut self,
+    storage: &mut dyn Storage,
     data: impl IntoIterator<Item = ArcPath>,
     logger: CompilationLogger,
-  ) -> impl Future<Output = StorageUpdates> + Send + 'static {
+  ) {
     let fs = self.fs.clone();
-    let snapshot = self.snapshot.clone();
     let pending = std::mem::take(&mut self.pending);
     let data = data.into_iter().collect::<Vec<_>>();
     let mut queue = VecDeque::new();
@@ -83,25 +83,34 @@ impl BuildDeps {
       }
     }
 
-    async move {
-      let mut helper = Helper::new(fs, logger);
-      let mut new_deps = HashSet::default();
-      while let Some(current) = queue.pop_front() {
-        if !new_deps.insert(current.clone()) {
-          continue;
-        }
-        if is_node_package_path(&current) {
-          // node package path skip recursive search.
-          continue;
-        }
-        if let Some(children) = helper.resolve(current.assert_utf8()).await {
-          queue.extend(children.iter().map(|item| item.as_path().into()));
-        }
+    let mut helper = Helper::new(fs, logger);
+    let mut new_deps = HashSet::default();
+    while let Some(current) = queue.pop_front() {
+      if !new_deps.insert(current.clone()) {
+        continue;
       }
+      if is_node_package_path(&current) {
+        // node package path skip recursive search.
+        continue;
+      }
+      if let Some(children) = helper.resolve(current.assert_utf8()).await {
+        queue.extend(children.iter().map(|item| item.as_path().into()));
+      }
+    }
 
-      snapshot
-        .save_scope_updates(SnapshotScope::BUILD, new_deps.into_iter().collect(), vec![])
-        .await
+    let mut updates = self
+      .snapshot
+      .save_scope_updates(SnapshotScope::BUILD, new_deps.into_iter().collect(), vec![])
+      .await;
+    for (key, value) in updates
+      .remove(SnapshotScope::BUILD.name())
+      .unwrap_or_default()
+    {
+      if let Some(value) = value {
+        storage.set(SnapshotScope::BUILD.name(), key, value);
+      } else {
+        storage.remove(SnapshotScope::BUILD.name(), &key);
+      }
     }
   }
 
@@ -136,7 +145,7 @@ mod test {
     super::{
       codec::CacheCodec,
       snapshot::{Snapshot, SnapshotOptions, SnapshotScope},
-      storage::{MemoryStorage, Storage, StorageUpdates},
+      storage::{MemoryStorage, Storage},
     },
     BuildDeps, BuildDepsValidationResult,
   };
@@ -160,20 +169,6 @@ mod test {
           .count()
       })
       .unwrap_or_default()
-  }
-
-  fn apply_scope_updates(
-    storage: &mut MemoryStorage,
-    scope: &'static str,
-    mut updates: StorageUpdates,
-  ) {
-    for (key, value) in updates.remove(scope).unwrap_or_default() {
-      if let Some(value) = value {
-        storage.set(scope, key, value);
-      } else {
-        storage.remove(scope, &key);
-      }
-    }
   }
 
   #[tokio::test]
@@ -220,9 +215,9 @@ mod test {
     let mut build_deps = BuildDeps::new(&options, fs.clone(), snapshot.clone());
 
     let (logger, logging) = test_logger("test");
-    let update_task = build_deps.save_updates_task(Vec::new(), logger);
+    let update_task = build_deps.save_updates(&mut storage, Vec::new(), logger);
     assert_eq!(warn_count(&logging, "test"), 0);
-    apply_scope_updates(&mut storage, scope, update_task.await);
+    update_task.await;
     assert_eq!(warn_count(&logging, "test"), 1);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 9);
@@ -245,8 +240,8 @@ mod test {
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 0);
     let (logger, logging) = test_logger("test");
-    let update_task = build_deps.save_updates_task(Vec::new(), logger);
-    apply_scope_updates(&mut storage, scope, update_task.await);
+    let update_task = build_deps.save_updates(&mut storage, Vec::new(), logger);
+    update_task.await;
     assert_eq!(warn_count(&logging, "test"), 0);
     let data = storage.load(scope).await.expect("should load success");
     assert_eq!(data.len(), 10);
