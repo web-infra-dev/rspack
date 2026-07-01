@@ -1,2 +1,2 @@
-asset a372243665a60481.js xx KiB [emitted] [immutable] (name: main)
-asset bc31427e1753f078.js xx bytes [emitted] [immutable]
+asset 0084781062c3c233.js xx KiB [emitted] [immutable] (name: main)
+asset 5cd84ab679fd62af.js xx bytes [emitted] [immutable]

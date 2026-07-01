@@ -498,14 +498,23 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_callback || with_loading {
-      let chunk_loading_global_expr = format!(
-        r#"{}["{}"]"#,
-        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
-      );
+      let global_object = &compilation.options.output.global_object;
+      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
+      let chunk_loading_global_init_expr = if compilation
+        .options
+        .output
+        .environment
+        .supports_logical_assignment()
+      {
+        format!("{chunk_loading_global_expr} ||= []")
+      } else {
+        format!("{chunk_loading_global_expr} = {chunk_loading_global_expr} || []")
+      };
       let source_with_callback = runtime_template.render(
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
-          "_chunk_loading_global_expr": &chunk_loading_global_expr,
+          "_chunk_loading_global_init_expr": &chunk_loading_global_init_expr,
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;

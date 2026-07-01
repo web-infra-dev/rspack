@@ -765,6 +765,12 @@ const applyOutputDefaults = (
   );
   F(
     environment,
+    'logicalAssignment',
+    // No optimistic, because it is new syntax and older runtimes parse-fail on it.
+    () => tp && tp.logicalAssignment === true,
+  );
+  F(
+    environment,
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
   );

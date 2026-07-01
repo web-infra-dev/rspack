@@ -1,6 +1,6 @@
 /** @type {import("@rspack/core").Configuration} */
 module.exports = {
-  target: ['browserslist'],
+  target: 'browserslist: kaios 3.0',
   plugins: [
     (compiler) => {
       compiler.hooks.compilation.tap('Test', (compilation) => {
@@ -12,31 +12,31 @@ module.exports = {
             computedProperty: true,
             const: true,
             destructuring: true,
-            document: false,
+            document: true,
             dynamicImport: true,
-            dynamicImportInWorker: false,
+            dynamicImportInWorker: true,
             forOf: true,
             globalThis: true,
             importMetaDirnameAndFilename: false,
-            logicalAssignment: true,
+            logicalAssignment: false,
             methodShorthand: true,
             module: true,
-            nodePrefixForCoreModules: true,
+            nodePrefixForCoreModules: false,
             optionalChaining: true,
             templateLiteral: true,
           }
         `);
         expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`
-			Object {
-			  electron: false,
-			  electronMain: false,
-			  electronPreload: false,
-			  electronRenderer: false,
-			  node: true,
-			  nwjs: false,
-			  web: false,
-			}
-		`);
+          Object {
+            electron: false,
+            electronMain: false,
+            electronPreload: false,
+            electronRenderer: false,
+            node: false,
+            nwjs: false,
+            web: true,
+          }
+        `);
       });
     },
   ],
