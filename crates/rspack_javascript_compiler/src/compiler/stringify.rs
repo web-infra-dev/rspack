@@ -289,7 +289,7 @@ fn build_rspack_source_map(
       source_map: intermediate_map,
       original_source: None,
       inner_source_map: Some(input_source_map),
-      remove_original_source: false,
+      remove_original_source: true,
     }))
     .map_static(
       &ObjectPool::default(),
@@ -573,5 +573,67 @@ mod tests {
       .and_then(|original| original.name_index)
       .expect("outer name should be preserved");
     assert_eq!(source_map.get_name(name_index as usize), Some("user"));
+  }
+
+  #[test]
+  fn keeps_input_source_map_gaps_unmapped() {
+    let swc_cm = Arc::new(SwcSourceMap::default());
+    let source = "const a = 1; const b = 2;\n";
+    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
+    let a_pos = BytePos(file.start_pos.0 + source.find("a").expect("a column") as u32);
+    let b_column = source.find("b").expect("b column") as u32;
+    let b_pos = BytePos(file.start_pos.0 + b_column);
+
+    let input_source_map = SourceMap::new(
+      encode_mappings(
+        [
+          Mapping {
+            generated_line: 1,
+            generated_column: 0,
+            original: Some(OriginalLocation {
+              source_index: 0,
+              original_line: 1,
+              original_column: 0,
+              name_index: None,
+            }),
+          },
+          Mapping {
+            generated_line: 1,
+            generated_column: b_column,
+            original: None,
+          },
+        ]
+        .into_iter(),
+      ),
+      vec!["original.js".into()],
+      vec![source.into()],
+      vec![],
+    );
+
+    let source_map = build_rspack_source_map(
+      &swc_cm,
+      &[
+        (a_pos, LineCol { line: 0, col: 0 }),
+        (
+          b_pos,
+          LineCol {
+            line: 0,
+            col: b_column,
+          },
+        ),
+      ],
+      Some(input_source_map),
+      &SourceMapConfig {
+        source_map_kind: SourceMapKind::SourceMap,
+        names: Default::default(),
+      },
+      source,
+    )
+    .expect("composed source map");
+
+    assert_eq!(source_map.sources(), &["original.js"]);
+    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
+    assert!(mappings[0].original.is_some());
+    assert!(mappings[1].original.is_none());
   }
 }
