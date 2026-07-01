@@ -1,0 +1,24 @@
+name: Verify mirror - official forced (expect FAIL)
+
+# Experiment 1: can the official actions/setup-node `mirror` input use cnpm at all?
+# `latest` makes setup-node fetch `${mirror}/dist/index.json` up front, before touching
+# the tool-cache or the GitHub node-versions manifest. cnpm has no `/dist` segment, so
+# the request 404s and version resolution fails -> this run MUST fail.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - '.github/workflows/verify-mirror-forced.yml'
+
+jobs:
+  official-mirror-forced:
+    name: official setup-node + cnpm mirror (latest)
+    runs-on: ${{ fromJSON(vars.MAC_SELF_HOSTED_RUNNER_LABELS || '"macos-latest"') }}
+    steps:
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: latest
+          mirror: https://registry.npmmirror.com/-/binary/node
+      - run: node -v
