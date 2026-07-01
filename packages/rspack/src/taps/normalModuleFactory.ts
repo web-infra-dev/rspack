@@ -62,9 +62,8 @@ export const createNormalModuleFactoryHooksRegisters: CreatePartialRegisters<
       function (queried) {
         return async function (args: binding.JsResolveErrorArgs) {
           const ret = await queried.promise(args.resolveData, args.error);
-          // Only `{ retry: true }` bails with a retry; any other return value
-          // (including `{ retry: false }`) falls through to the next tap and
-          // ultimately lets the resolution error propagate.
+          // Anything other than `{ retry: true }` means no retry, letting the
+          // resolution error propagate.
           return [ret?.retry === true ? true : undefined, args.resolveData];
         };
       },

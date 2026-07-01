@@ -724,27 +724,28 @@ impl NormalModuleFactory {
     &self,
     data: &mut ModuleFactoryCreateData,
   ) -> Result<Option<ModuleFactoryResult>> {
+    let err = match self.resolve_normal_module_once(data).await? {
+      ResolveNormalModuleOutcome::Resolved(result) => return Ok(Some(result)),
+      ResolveNormalModuleOutcome::ResolveFailed(err) => err,
+    };
+
+    // The hook may mutate `data` (e.g. rewrite `request`) and return `true`
+    // to retry the resolution once. It is not consulted again if the retry
+    // also fails.
+    let retry = self
+      .plugin_driver
+      .normal_module_factory_hooks
+      .resolve_error
+      .call(data, &err)
+      .await?
+      .unwrap_or_default();
+    if !retry {
+      return Err(err);
+    }
+
     match self.resolve_normal_module_once(data).await? {
       ResolveNormalModuleOutcome::Resolved(result) => Ok(Some(result)),
-      ResolveNormalModuleOutcome::ResolveFailed(err) => {
-        // The hook may mutate `data` (e.g. rewrite `request`) and return `true`
-        // to retry the resolution once. It is not consulted again if the retry
-        // also fails.
-        let retry = self
-          .plugin_driver
-          .normal_module_factory_hooks
-          .resolve_error
-          .call(data, &err)
-          .await?
-          .unwrap_or_default();
-        if !retry {
-          return Err(err);
-        }
-        match self.resolve_normal_module_once(data).await? {
-          ResolveNormalModuleOutcome::Resolved(result) => Ok(Some(result)),
-          ResolveNormalModuleOutcome::ResolveFailed(err) => Err(err),
-        }
-      }
+      ResolveNormalModuleOutcome::ResolveFailed(err) => Err(err),
     }
   }
 
