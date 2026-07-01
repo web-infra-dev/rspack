@@ -25,7 +25,7 @@ export type { AssetInfo } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { EntryOptions, EntryPlugin } from './builtin-plugin';
-import type { Chunk } from './Chunk';
+import { Chunk } from './Chunk';
 import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
@@ -61,8 +61,6 @@ import { createFakeCompilationDependencies } from './util/fake';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
-// patch Chunk
-import './Chunk';
 // patch Chunks
 import './Chunks';
 // patch ChunkGraph
@@ -79,13 +77,6 @@ export interface Asset {
   info: AssetInfo;
 }
 
-export type ChunkPathData = {
-  id?: string | number;
-  name?: string;
-  hash?: string;
-  contentHash?: Record<string, string>;
-};
-
 export type PathData = {
   filename?: string;
   hash?: string;
@@ -93,7 +84,7 @@ export type PathData = {
   runtime?: string;
   url?: string;
   id?: string | number;
-  chunk?: Chunk | ChunkPathData;
+  chunk?: Chunk;
   contentHashType?: string;
 };
 
@@ -110,12 +101,8 @@ function normalizePathData(data: PathData = {}): JsPathData {
     pathData.id = String(data.id);
   }
 
-  if (data.chunk) {
-    pathData.chunk = {
-      id: data.chunk.id !== undefined ? String(data.chunk.id) : undefined,
-      name: data.chunk.name,
-      hash: data.chunk.hash,
-    };
+  if (data.chunk instanceof Chunk) {
+    pathData.chunk = data.chunk;
   }
 
   return pathData;

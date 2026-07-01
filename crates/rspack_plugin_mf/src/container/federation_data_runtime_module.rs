@@ -6,9 +6,9 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher,
-  get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
+  BooleanMatcher, Chunk, Compilation, PathData, RuntimeCodeTemplate, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
+  compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
@@ -87,7 +87,23 @@ chunkMatcher: function(chunkId) {{
       &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
     );
     let output_name = compilation
-      .get_path(&filename, Default::default())
+      .get_path(
+        &filename,
+        PathData::default()
+          .chunk(chunk.ukey(), compilation)
+          .chunk_hash_optional(chunk.rendered_hash(
+            &compilation.chunk_hashes_artifact,
+            compilation.options.output.hash_digest_length,
+          ))
+          .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+          .chunk_name_optional(chunk.name_for_filename_template())
+          .content_hash_optional(chunk.rendered_content_hash_by_source_type(
+            &compilation.chunk_hashes_artifact,
+            &SourceType::JavaScript,
+            compilation.options.output.hash_digest_length,
+          ))
+          .runtime(chunk.runtime().as_str()),
+      )
       .await
       .expect("failed to get output path");
     get_undo_path(

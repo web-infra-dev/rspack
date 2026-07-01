@@ -66,6 +66,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
       .get_path(
         &self.options.path,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
@@ -85,6 +86,7 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
           .get_path(
             name,
             PathData::default()
+              .chunk(chunk.ukey(), compilation)
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,

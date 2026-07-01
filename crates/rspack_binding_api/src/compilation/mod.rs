@@ -523,8 +523,10 @@ impl JsCompilation {
   pub fn get_asset_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
-    futures::executor::block_on(compilation.get_asset_path(&filename.into(), data.to_path_data()))
-      .to_napi_result()
+    futures::executor::block_on(
+      compilation.get_asset_path(&filename.into(), data.to_path_data(compilation)?),
+    )
+    .to_napi_result()
   }
 
   #[napi]
@@ -537,7 +539,7 @@ impl JsCompilation {
 
     #[allow(clippy::disallowed_methods)]
     let res = futures::executor::block_on(
-      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data()),
+      compilation.get_asset_path_with_info(&filename.into(), data.to_path_data(compilation)?),
     )
     .to_napi_result()?;
     Ok(res.into())
@@ -547,8 +549,10 @@ impl JsCompilation {
   pub fn get_path(&self, filename: String, data: JsPathData) -> Result<String> {
     let compilation = self.as_ref()?;
     #[allow(clippy::disallowed_methods)]
-    futures::executor::block_on(compilation.get_path(&filename.into(), data.to_path_data()))
-      .to_napi_result()
+    futures::executor::block_on(
+      compilation.get_path(&filename.into(), data.to_path_data(compilation)?),
+    )
+    .to_napi_result()
   }
 
   #[napi]
@@ -560,7 +564,7 @@ impl JsCompilation {
     #[allow(clippy::disallowed_methods)]
     let path = futures::executor::block_on(compilation.get_path_with_info(
       &filename.into(),
-      data.to_path_data(),
+      data.to_path_data(compilation)?,
       &mut asset_info,
     ))
     .to_napi_result()?;
