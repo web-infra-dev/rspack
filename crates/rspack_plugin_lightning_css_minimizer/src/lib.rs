@@ -15,8 +15,8 @@ use rspack_core::{
   ChunkUkey, Compilation, CompilationChunkHash, CompilationProcessAssets, Plugin,
   diagnostics::MinifyError,
   rspack_sources::{
-    MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap, SourceMapSource,
-    SourceMapSourceOptions,
+    CachedSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMap,
+    SourceMapSource, SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -230,7 +230,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         };
 
         let minimized_source = if let Some(mut source_map) = source_map {
-          SourceMapSource::new(SourceMapSourceOptions {
+          CachedSource::new(SourceMapSource::new(SourceMapSourceOptions {
             value: result.code,
             name: filename,
             source_map: SourceMap::from_json(
@@ -242,7 +242,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
             original_source: Some(Box::from(input)),
             inner_source_map: input_source_map,
             remove_original_source: true,
-          })
+          }))
           .boxed()
         } else {
           RawStringSource::from(result.code).boxed()

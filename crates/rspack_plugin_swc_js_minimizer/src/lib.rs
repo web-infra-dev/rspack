@@ -17,8 +17,8 @@ use rspack_core::{
   },
   diagnostics::MinifyError,
   rspack_sources::{
-    ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt, SourceMapSource,
-    SourceMapSourceOptions,
+    CachedSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, Source, SourceExt,
+    SourceMapSource, SourceMapSourceOptions,
   },
 };
 use rspack_error::{Diagnostic, Result};
@@ -465,21 +465,24 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 }
               }
 
-              let source = if let Some(source_map) = output.map {
-                SourceMapSource::new(SourceMapSourceOptions {
-                  value: output.code,
-                  name: filename,
-                  source_map,
-                  original_source: None,
-                  inner_source_map: input_source_map,
-                  remove_original_source: true,
-                })
-                .boxed()
+              let (source, should_cache_source) = if let Some(source_map) = output.map {
+                (
+                  SourceMapSource::new(SourceMapSourceOptions {
+                    value: output.code,
+                    name: filename,
+                    source_map,
+                    original_source: None,
+                    inner_source_map: input_source_map,
+                    remove_original_source: true,
+                  })
+                  .boxed(),
+                  true,
+                )
               } else {
-                RawStringSource::from(output.code).boxed()
+                (RawStringSource::from(output.code).boxed(), false)
               };
 
-              if let Some(shebang) = shebang {
+              let source = if let Some(shebang) = shebang {
                 ConcatSource::new([
                   RawStringSource::from(shebang).boxed(),
                   RawStringSource::from(banner).boxed(),
@@ -492,19 +495,25 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                   RawStringSource::from_static("\n").boxed(),
                   source
                 ]).boxed()
+              };
+
+              if should_cache_source {
+                CachedSource::new(source).boxed()
+              } else {
+                source
               }
             },
             None => {
               // If there's no banner, we don't need to handle `output.code` at all.
               if let Some(source_map) = output.map {
-                SourceMapSource::new(SourceMapSourceOptions {
+                CachedSource::new(SourceMapSource::new(SourceMapSourceOptions {
                   value: output.code,
                   name: filename,
                   source_map,
                   original_source: None,
                   inner_source_map: input_source_map,
                   remove_original_source: true,
-                })
+                }))
                 .boxed()
               } else {
                 RawStringSource::from(output.code).boxed()

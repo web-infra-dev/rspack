@@ -452,18 +452,17 @@ pub fn split_into_lines(source: &str) -> impl Iterator<Item = &str> {
 }
 
 pub(crate) fn get_generated_source_info(source: TextSpan<'_>) -> GeneratedInfo {
-  let (generated_line, generated_column) = if source.ends_with('\n') {
-    (split_into_lines(source.as_str()).count() + 1, 0)
+  let source_str = source.as_str();
+  let mut generated_line = 1;
+  let mut last_line_start = 0;
+  for newline_pos in memchr::memchr_iter(b'\n', source_str.as_bytes()) {
+    generated_line += 1;
+    last_line_start = newline_pos + 1;
+  }
+  let generated_column = if last_line_start == source_str.len() {
+    0
   } else {
-    let mut line_count = 0;
-    let mut last_line = "";
-
-    for line in split_into_lines(source.as_str()) {
-      line_count += 1;
-      last_line = line;
-    }
-
-    (line_count.max(1), source.utf16_len_of(last_line))
+    source.utf16_len_of(&source_str[last_line_start..])
   };
   GeneratedInfo {
     generated_line: generated_line as u32,
@@ -1420,9 +1419,9 @@ mod tests {
   use std::sync::LazyLock;
 
   use super::{
-    GeneratedInfo, TextSpan, split_into_potential_tokens, stream_chunks_of_source_map_final,
-    stream_chunks_of_source_map_full, stream_chunks_of_source_map_lines_final,
-    stream_chunks_of_source_map_lines_full,
+    GeneratedInfo, TextSpan, get_generated_source_info, split_into_potential_tokens,
+    stream_chunks_of_source_map_final, stream_chunks_of_source_map_full,
+    stream_chunks_of_source_map_lines_final, stream_chunks_of_source_map_lines_full,
   };
   use crate::{Mapping, ObjectPool, OriginalLocation, SourceMap};
 
@@ -1431,6 +1430,29 @@ mod tests {
   static UTF16_SOURCE_MAP: LazyLock<SourceMap<'static>> = LazyLock::new(|| {
     SourceMap::from_json("{\"version\":3,\"sources\":[\"i18.js\"],\"sourcesContent\":[\"var i18n = JSON.parse('{\\\"魑魅魍魉\\\":{\\\"en-US\\\":\\\"Evil spirits\\\",\\\"zh-CN\\\":\\\"魑魅魍魉\\\"}}');\\nvar __webpack_exports___ = i18n[\\\"魑魅魍魉\\\"];\\nexport { __webpack_exports___ as 魑魅魍魉 };\\n\"],\"names\":[\"i18n\",\"JSON\",\"__webpack_exports___\",\"魑魅魍魉\"],\"mappings\":\"AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACvC,SAASE,wBAAwBC,IAAI,GAAG\"}".to_string()).unwrap()
   });
+
+  #[test]
+  fn test_get_generated_source_info() {
+    let cases = [
+      ("", 1, 0),
+      ("a", 1, 1),
+      ("a\n", 2, 0),
+      ("a\nb", 2, 1),
+      ("\n\n", 3, 0),
+      ("a\n😀z", 2, 3),
+    ];
+
+    for (source, generated_line, generated_column) in cases {
+      assert_eq!(
+        get_generated_source_info(TextSpan::new(source)),
+        GeneratedInfo {
+          generated_line,
+          generated_column
+        },
+        "{source:?}"
+      );
+    }
+  }
 
   #[test]
   fn test_stream_chunks_of_source_map_full_handles_multi_unit_utf16() {
