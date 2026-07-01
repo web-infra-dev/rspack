@@ -161,11 +161,11 @@ impl JavaScriptCompiler {
   }
 }
 
-fn build_rspack_source_map(
+fn build_rspack_source_map<'a>(
   swc_cm: &SwcSourceMap,
   mappings: &[(BytePos, LineCol)],
   input_source_map: Option<SourceMap<'static>>,
-  config: &SourceMapConfig,
+  config: &'a SourceMapConfig,
   generated_code: &str,
 ) -> Option<SourceMap<'static>> {
   let mut builder = RspackSourceMapBuilder::default();
@@ -210,10 +210,10 @@ fn build_rspack_source_map(
         }
 
         cur_src_id = builder.add_source(
-          config.file_name_to_source(&file.name),
+          Cow::Owned(config.file_name_to_source(&file.name)),
           config
             .inline_sources_content(&file.name)
-            .then(|| file.src.to_string()),
+            .then(|| Cow::Owned(file.src.to_string())),
         );
         if input_source_map.is_none() && config.ignore_list(&file.name) {
           builder.add_to_ignore_list(cur_src_id);
@@ -337,27 +337,24 @@ fn source_with_root(source_map: &SourceMap<'_>, source: &str) -> String {
 }
 
 #[derive(Default)]
-struct RspackSourceMapBuilder {
+struct RspackSourceMapBuilder<'a> {
   mappings: Vec<Mapping>,
-  sources: Vec<Cow<'static, str>>,
-  sources_content: Vec<Cow<'static, str>>,
-  names: Vec<Cow<'static, str>>,
-  source_indices: FxHashMap<String, u32>,
-  name_indices: FxHashMap<String, u32>,
+  sources_content: Vec<Cow<'a, str>>,
+  source_indices: FxHashMap<Cow<'a, str>, u32>,
+  name_indices: FxHashMap<Cow<'a, str>, u32>,
   ignore_list: FxHashSet<u32>,
 }
 
-impl RspackSourceMapBuilder {
-  fn add_source(&mut self, source: String, source_content: Option<String>) -> u32 {
-    if let Some(index) = self.source_indices.get(&source) {
+impl<'a> RspackSourceMapBuilder<'a> {
+  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<Cow<'a, str>>) -> u32 {
+    if let Some(index) = self.source_indices.get(source.as_ref()) {
       return *index;
     }
 
-    let index = self.sources.len() as u32;
-    self.sources.push(Cow::Owned(source.clone()));
+    let index = self.source_indices.len() as u32;
     self
       .sources_content
-      .push(Cow::Owned(source_content.unwrap_or_default()));
+      .push(source_content.unwrap_or(Cow::Borrowed("")));
     self.source_indices.insert(source, index);
     index
   }
@@ -366,14 +363,13 @@ impl RspackSourceMapBuilder {
     self.ignore_list.insert(source_index);
   }
 
-  fn add_name(&mut self, name: &str) -> u32 {
+  fn add_name(&mut self, name: &'a str) -> u32 {
     if let Some(index) = self.name_indices.get(name) {
       return *index;
     }
 
-    let index = self.names.len() as u32;
-    self.names.push(Cow::Owned(name.to_string()));
-    self.name_indices.insert(name.to_string(), index);
+    let index = self.name_indices.len() as u32;
+    self.name_indices.insert(Cow::Borrowed(name), index);
     index
   }
 
@@ -384,9 +380,13 @@ impl RspackSourceMapBuilder {
   fn into_source_map(self) -> SourceMap<'static> {
     let mut source_map = SourceMap::new(
       encode_mappings(self.mappings.into_iter()),
-      self.sources,
-      self.sources_content,
-      self.names,
+      ordered_cows(self.source_indices),
+      self
+        .sources_content
+        .into_iter()
+        .map(|source_content| Cow::Owned(source_content.into_owned()))
+        .collect(),
+      ordered_cows(self.name_indices),
     );
     if !self.ignore_list.is_empty() {
       let mut ignore_list = self.ignore_list.into_iter().collect::<Vec<_>>();
@@ -395,6 +395,14 @@ impl RspackSourceMapBuilder {
     }
     source_map
   }
+}
+
+fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>> {
+  let mut ordered = vec![Cow::Borrowed(""); entries.len()];
+  for (value, index) in entries {
+    ordered[index as usize] = Cow::Owned(value.into_owned());
+  }
+  ordered
 }
 
 fn source_file_utf16_column(file: &SourceFile, linebpos: BytePos, pos: BytePos) -> Option<u32> {
