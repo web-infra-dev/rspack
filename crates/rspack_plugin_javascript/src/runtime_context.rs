@@ -345,11 +345,15 @@ pub async fn render_hot_update_chunk_runtime_modules(
       ) else {
         continue;
       };
+      let json_key = rspack_util::json_stringify(key);
+      let context_property = property_access([key], 0);
       sources.add(RawStringSource::from(format!(
-        ";{}{} = {};\n",
-        runtime_context,
-        property_access([key], 0),
-        lexical_name
+        r#";(function() {{
+var oldSetter = Object.getOwnPropertyDescriptor({runtime_context}, {json_key}) && Object.getOwnPropertyDescriptor({runtime_context}, {json_key}).set;
+Object.defineProperty({runtime_context}, {json_key}, {{ configurable: true, get: function() {{ return {lexical_name}; }}, set: function(value) {{ {lexical_name} = value; if (oldSetter) oldSetter.call({runtime_context}, value); }} }});
+{runtime_context}{context_property} = {lexical_name};
+}})();
+"#
       )));
     }
   }
