@@ -9,7 +9,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, Source, SourceExt},
 };
 use rspack_error::Result;
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesInlineInRuntimeBailout,
@@ -183,7 +183,7 @@ async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   EVAL_DEV_TOOL_MODULE_PLUGIN_NAME.hash(hasher);
   Ok(())

@@ -11,7 +11,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, error};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_plugin_javascript::runtime::stringify_chunks_to_array;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::FxHashSet as HashSet;
@@ -34,7 +34,7 @@ pub fn should_export_webpack_require_for_module_chunk_loading(
 }
 
 pub fn update_hash_for_entry_startup(
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
   compilation: &Compilation,
   entries: &IdentifierLinkedMap<ChunkGroupUkey>,
   chunk: &ChunkUkey,

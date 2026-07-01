@@ -14,7 +14,7 @@ use rspack_core::{
   to_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error, error_bail};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
@@ -356,7 +356,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

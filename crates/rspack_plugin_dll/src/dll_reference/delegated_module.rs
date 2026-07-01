@@ -13,7 +13,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify, source_map::ModuleSourceMapConfig};
 
 use super::delegated_source_dependency::DelegatedSourceDependency;
@@ -193,7 +193,7 @@ impl Module for DelegatedModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = HashAlgorithm::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     self.delegation_type.hash(&mut hasher);
     self.request.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);

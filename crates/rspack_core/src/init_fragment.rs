@@ -9,7 +9,7 @@ use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
 use rspack_error::Result;
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
@@ -53,7 +53,7 @@ impl InitFragmentKey {
 }
 
 impl RspackHash for InitFragmentKey {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       InitFragmentKey::Unique(id) => {
         "unique".hash(state);
@@ -255,7 +255,7 @@ pub enum InitFragmentStage {
 }
 
 impl RspackHash for InitFragmentStage {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -428,7 +428,7 @@ pub enum ESMExportBinding {
 }
 
 impl RspackHash for ESMExportBinding {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       ESMExportBinding::Getter(value) => {
         "getter".hash(state);
@@ -571,7 +571,7 @@ impl AwaitDependenciesInitFragment {
 }
 
 impl RspackHash for AwaitDependenciesInitFragment {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     for promise in &self.promises {
       promise.hash(state);
     }

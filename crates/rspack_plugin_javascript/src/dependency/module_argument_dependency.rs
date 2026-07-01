@@ -3,7 +3,7 @@ use rspack_core::{
   Compilation, DependencyCodeGeneration, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -24,7 +24,7 @@ impl ModuleArgumentDependency {
 }
 
 impl RspackHash for ModuleArgumentDependency {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     "range".hash(state);
     self.range.hash(state);
     if let Some(id) = &self.id {
@@ -58,7 +58,7 @@ impl DependencyCodeGeneration for ModuleArgumentDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut HashAlgorithm,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {

@@ -2,7 +2,7 @@ use std::{fmt::Write as _, hash::BuildHasherDefault};
 
 use rspack_cacheable::cacheable;
 use rspack_collections::{Identifier, IdentifierHasher};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
   BoxDependency, Compilation, DependencyId, DependencyLocation, GroupOptions, ModuleIdentifier,
@@ -32,7 +32,7 @@ pub type AsyncDependenciesBlockIdentifierSet =
 pub fn dependencies_block_update_hash(
   deps: &[DependencyId],
   blocks: &[AsyncDependenciesBlockIdentifier],
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {
@@ -54,7 +54,7 @@ pub fn dependencies_block_update_hash(
 pub struct AsyncDependenciesBlockIdentifier(Identifier);
 
 impl rspack_hash::RspackHash for AsyncDependenciesBlockIdentifier {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.0.as_str().hash(state);
   }
 }
@@ -187,7 +187,7 @@ impl AsyncDependenciesBlock {
 
   pub fn update_hash(
     &self,
-    hasher: &mut HashAlgorithm,
+    hasher: &mut RspackHasher,
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) {

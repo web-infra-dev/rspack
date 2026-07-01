@@ -3,7 +3,7 @@ use rspack_core::{
   incremental::IncrementalPasses,
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::{HashAlgorithm, HashDigest, HashFunction};
+use rspack_hash::{HashDigest, HashFunction, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashSet;
 
@@ -90,7 +90,7 @@ async fn module_ids(
     };
     let ident = get_full_module_name(module, context);
 
-    let mut hasher = HashAlgorithm::new(&self.hash_function);
+    let mut hasher = RspackHasher::new(&self.hash_function);
     hasher.write(ident.as_bytes());
     let hash_digest = hasher.digest(&self.hash_digest);
     let hash_id = hash_digest.encoded();

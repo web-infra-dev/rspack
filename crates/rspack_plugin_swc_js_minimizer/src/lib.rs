@@ -22,7 +22,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_plugin_javascript::{ExtractedCommentsInfo, JavascriptModulesChunkHash, JsPlugin};
@@ -74,7 +74,7 @@ pub struct MinimizerOptions {
 }
 
 impl rspack_hash::RspackHash for MinimizerOptions {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     rspack_hash::RspackHash::hash(
       self
         .__format_cache
@@ -149,7 +149,7 @@ impl<T: std::fmt::Debug + std::hash::Hash> Display for OptionWrapper<T> {
 impl<T: std::fmt::Debug + std::hash::Hash + rspack_hash::RspackHash> rspack_hash::RspackHash
   for OptionWrapper<T>
 {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     rspack_hash::RspackHash::hash(&self.to_string(), state);
     if let OptionWrapper::Custom(value) = self {
       rspack_hash::RspackHash::hash(value, state);
@@ -215,7 +215,7 @@ async fn js_chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())

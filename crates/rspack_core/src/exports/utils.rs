@@ -9,7 +9,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsPreset, AsVec},
 };
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 use rspack_util::{atom::Atom, json_stringify, ryu_js};
 use rustc_hash::FxHashSet as HashSet;
 
@@ -66,7 +66,7 @@ impl std::hash::Hash for EvaluatedInlinableValue {
 }
 
 impl rspack_hash::RspackHash for EvaluatedInlinableValue {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.render("").hash(state);
   }
 }
@@ -127,7 +127,7 @@ pub enum UsedNameItem {
 }
 
 impl rspack_hash::RspackHash for UsedNameItem {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       UsedNameItem::Str(value) => value.hash(state),
       UsedNameItem::Inlined(value) => value.hash(state),
@@ -190,7 +190,7 @@ pub enum ExportProvided {
 }
 
 impl rspack_hash::RspackHash for ExportProvided {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -231,7 +231,7 @@ pub enum UsageState {
 }
 
 impl rspack_hash::RspackHash for UsageState {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }

@@ -20,7 +20,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
 use thread_local::ThreadLocal;
@@ -85,7 +85,7 @@ async fn chunk_hash(
   &self,
   _compilation: &Compilation,
   _chunk_ukey: &ChunkUkey,
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   rspack_hash::RspackHash::hash(&self.options, hasher);
   Ok(())

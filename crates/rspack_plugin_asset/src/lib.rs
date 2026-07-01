@@ -15,7 +15,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, IntoTWithDiagnosticArray, Result, error};
-use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::{base64, fx_hash::FxHashSet, identifier::make_paths_relative};
 
@@ -115,7 +115,7 @@ impl AssetParserAndGenerator {
     source: &BoxSource,
     compiler_options: &CompilerOptions,
   ) -> RspackHashDigest {
-    let mut hasher = HashAlgorithm::from(&compiler_options.output);
+    let mut hasher = RspackHasher::from(&compiler_options.output);
     hasher.write(&source.buffer());
     hasher.digest(&compiler_options.output.hash_digest)
   }
@@ -760,7 +760,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = HashAlgorithm::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     let asset_build_info = module
       .build_info()
       .asset

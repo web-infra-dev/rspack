@@ -112,19 +112,19 @@ impl MergeFrom for HashSalt {
 
 /// Hasher used for webpack-compatible content hashes.
 ///
-/// `HashAlgorithm` is the stateful writer behind output hashes such as full hash,
+/// `RspackHasher` is the stateful writer behind output hashes such as full hash,
 /// chunk hash, content hash and module/runtime hashes that affect generated
 /// assets or persistent cache correctness. Inputs should be written through
 /// [`RspackHash`] so the serialized form can follow webpack content-hash
 /// semantics instead of Rust collection-key hashing semantics.
 #[derive(Clone)]
-pub enum HashAlgorithm {
+pub enum RspackHasher {
   Xxhash64(Box<Xxh64>),
   MD4(Box<md4::Md4>),
   SHA256(Box<sha2::Sha256>),
 }
 
-/// Content-hash input contract for values that participate in `HashAlgorithm`.
+/// Content-hash input contract for values that participate in `RspackHasher`.
 ///
 /// This trait is intentionally separate from [`std::hash::Hash`]. `Hash` is for
 /// hash-map/set keys and is free to optimize around Rust data-structure needs,
@@ -139,17 +139,17 @@ pub enum HashAlgorithm {
 /// same logical inputs webpack uses rather than the shape of Rust data
 /// structures.
 pub trait RspackHash {
-  fn hash(&self, state: &mut HashAlgorithm);
+  fn hash(&self, state: &mut RspackHasher);
 }
 
 #[inline]
-pub fn hash_by_json<T: serde::Serialize>(value: &T, state: &mut HashAlgorithm) {
+pub fn hash_by_json<T: serde::Serialize>(value: &T, state: &mut RspackHasher) {
   let json = simd_json::to_string(value).expect("should be able to serialize value for hash");
   state.write(json.as_bytes());
 }
 
 #[inline]
-pub fn write_u64_hex(value: u64, state: &mut HashAlgorithm) {
+pub fn write_u64_hex(value: u64, state: &mut RspackHasher) {
   if value == 0 {
     state.write(b"0");
     return;
@@ -198,7 +198,7 @@ macro_rules! rspack_hash_update {
   };
 }
 
-impl fmt::Debug for HashAlgorithm {
+impl fmt::Debug for RspackHasher {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Xxhash64(_) => write!(f, "RspackHash(Xxhash64)"),
@@ -208,7 +208,7 @@ impl fmt::Debug for HashAlgorithm {
   }
 }
 
-impl HashAlgorithm {
+impl RspackHasher {
   pub fn new(function: &HashFunction) -> Self {
     match function {
       HashFunction::Xxhash64 => Self::Xxhash64(Box::new(Xxh64::new(0))),
@@ -227,15 +227,15 @@ impl HashAlgorithm {
 
   pub fn digest(self, digest: &HashDigest) -> RspackHashDigest {
     match self {
-      HashAlgorithm::Xxhash64(hasher) => {
+      RspackHasher::Xxhash64(hasher) => {
         let buf = hasher.finish().to_be_bytes();
         RspackHashDigest::new(&buf, digest)
       }
-      HashAlgorithm::MD4(hash) => {
+      RspackHasher::MD4(hash) => {
         let buf = hash.finalize();
         RspackHashDigest::new(&buf, digest)
       }
-      HashAlgorithm::SHA256(hash) => {
+      RspackHasher::SHA256(hash) => {
         let buf = hash.finalize();
         RspackHashDigest::new(&buf, digest)
       }
@@ -248,16 +248,16 @@ impl HashAlgorithm {
 
   pub fn write(&mut self, bytes: &[u8]) {
     match self {
-      HashAlgorithm::Xxhash64(hasher) => hasher.write(bytes),
-      HashAlgorithm::MD4(hasher) => hasher.update(bytes),
-      HashAlgorithm::SHA256(hasher) => hasher.update(bytes),
+      RspackHasher::Xxhash64(hasher) => hasher.write(bytes),
+      RspackHasher::MD4(hasher) => hasher.update(bytes),
+      RspackHasher::SHA256(hasher) => hasher.update(bytes),
     }
   }
 
   pub fn finish(&self) -> u64 {
     match self {
-      HashAlgorithm::Xxhash64(hasher) => hasher.finish(),
-      HashAlgorithm::MD4(hasher) => {
+      RspackHasher::Xxhash64(hasher) => hasher.finish(),
+      RspackHasher::MD4(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
           hash[..8]
@@ -265,7 +265,7 @@ impl HashAlgorithm {
             .expect("md4 digest length is at least 8"),
         )
       }
-      HashAlgorithm::SHA256(hasher) => {
+      RspackHasher::SHA256(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
           hash[..8]
@@ -277,11 +277,11 @@ impl HashAlgorithm {
   }
 }
 
-impl Hasher for HashAlgorithm {
+impl Hasher for RspackHasher {
   fn finish(&self) -> u64 {
     match self {
-      HashAlgorithm::Xxhash64(hasher) => hasher.finish(),
-      HashAlgorithm::MD4(hasher) => {
+      RspackHasher::Xxhash64(hasher) => hasher.finish(),
+      RspackHasher::MD4(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
           hash[..8]
@@ -289,7 +289,7 @@ impl Hasher for HashAlgorithm {
             .expect("md4 digest length is at least 8"),
         )
       }
-      HashAlgorithm::SHA256(hasher) => {
+      RspackHasher::SHA256(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
           hash[..8]
@@ -302,9 +302,9 @@ impl Hasher for HashAlgorithm {
 
   fn write(&mut self, bytes: &[u8]) {
     match self {
-      HashAlgorithm::Xxhash64(hasher) => hasher.write(bytes),
-      HashAlgorithm::MD4(hasher) => hasher.update(bytes),
-      HashAlgorithm::SHA256(hasher) => hasher.update(bytes),
+      RspackHasher::Xxhash64(hasher) => hasher.write(bytes),
+      RspackHasher::MD4(hasher) => hasher.update(bytes),
+      RspackHasher::SHA256(hasher) => hasher.update(bytes),
     }
   }
 }
@@ -367,7 +367,7 @@ impl RspackHashDigest {
 }
 
 impl RspackHash for RspackHashDigest {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     RspackHash::hash(self.encoded.as_str(), state);
   }
 }

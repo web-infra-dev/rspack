@@ -13,7 +13,7 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
-use rspack_hash::{HashAlgorithm, HashDigest, HashFunction, RspackHash, RspackHashDigest};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
@@ -700,7 +700,7 @@ impl ConcatenatedModule {
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    let mut hash = HashAlgorithm::new(&hash_function.unwrap_or(HashFunction::MD4));
+    let mut hash = RspackHasher::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
     }
@@ -2039,7 +2039,7 @@ impl Module for ConcatenatedModule {
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = HashAlgorithm::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {

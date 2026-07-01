@@ -1,10 +1,10 @@
 use lightningcss::targets::Browsers;
 use swc_config::types::{BoolOr, BoolOrDataConfig};
 
-use crate::{HashAlgorithm, RspackHash, hash_by_json};
+use crate::{RspackHash, RspackHasher, hash_by_json};
 
 impl<T: RspackHash> RspackHash for BoolOr<T> {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       BoolOr::Bool(value) => {
         "bool".hash(state);
@@ -19,7 +19,7 @@ impl<T: RspackHash> RspackHash for BoolOr<T> {
 }
 
 impl<T: RspackHash> RspackHash for BoolOrDataConfig<T> {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     if let Some(value) = self.inner() {
       value.hash(state);
     }
@@ -27,7 +27,7 @@ impl<T: RspackHash> RspackHash for BoolOrDataConfig<T> {
 }
 
 impl RspackHash for Browsers {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     hash_by_json(self, state);
   }
 }

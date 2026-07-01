@@ -14,7 +14,7 @@ use rspack_cacheable::{
 use rspack_collections::{Identifiable, Identifier, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest, write_u64_hex};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher, write_u64_hex};
 use rspack_paths::ArcPathSet;
 use rspack_sources::BoxSource;
 use rspack_util::{
@@ -600,7 +600,7 @@ impl BuildMeta {
 }
 
 impl RspackHash for BuildMetaExportsType {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     if matches!(self, BuildMetaExportsType::Unset) {
       return;
     }
@@ -609,25 +609,25 @@ impl RspackHash for BuildMetaExportsType {
 }
 
 impl RspackHash for ExportsType {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
 
 impl RspackHash for BuildMetaDefaultObject {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
 
 impl RspackHash for ModuleArgument {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
 
 impl RspackHash for ExportsArgument {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -945,7 +945,7 @@ fn get_exports_type_impl(
 
 pub fn module_update_hash(
   module: &dyn Module,
-  hasher: &mut HashAlgorithm,
+  hasher: &mut RspackHasher,
   compilation: &Compilation,
   runtime: Option<&RuntimeSpec>,
 ) {

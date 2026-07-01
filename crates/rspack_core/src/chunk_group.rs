@@ -7,7 +7,7 @@ use itertools::Itertools;
 use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
@@ -443,7 +443,7 @@ impl EntryRuntime {
 }
 
 impl RspackHash for EntryRuntime {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       EntryRuntime::String(s) => s.hash(state),
       EntryRuntime::False => "false".hash(state),
@@ -571,7 +571,7 @@ pub enum GroupOptions {
 }
 
 impl RspackHash for GroupOptions {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       GroupOptions::Entrypoint(options) => {
         "entrypoint".hash(state);

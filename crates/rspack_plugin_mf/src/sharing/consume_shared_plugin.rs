@@ -13,7 +13,7 @@ use rspack_core::{
   RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::{Diagnostic, Result, error};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 
@@ -46,7 +46,7 @@ pub enum ConsumeVersion {
 }
 
 impl RspackHash for ConsumeVersion {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       ConsumeVersion::Version(version) => version.hash(state),
       ConsumeVersion::False => "false".hash(state),

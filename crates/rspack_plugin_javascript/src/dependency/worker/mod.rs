@@ -9,7 +9,7 @@ use rspack_core::{
   ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
 };
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -44,7 +44,7 @@ impl WorkerDependency {
 }
 
 impl RspackHash for WorkerDependency {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     rspack_hash::rspack_hash_object!(state, {
       "publicPath" => self.public_path.as_str(),
       "needNewUrl" => self.need_new_url,
@@ -112,7 +112,7 @@ impl DependencyCodeGeneration for WorkerDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut HashAlgorithm,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {

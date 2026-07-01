@@ -21,7 +21,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{
@@ -1012,7 +1012,7 @@ impl SourceMapDevToolPlugin {
 
       let content_hash_digest =
         if chunk.is_some() && has_content_hash_placeholder(source_map_filename_config.as_str()) {
-          let mut hasher = HashAlgorithm::from(&compilation.options.output);
+          let mut hasher = RspackHasher::from(&compilation.options.output);
           source_map_json.hash(&mut hasher);
           let digest = hasher.digest(&compilation.options.output.hash_digest);
           Some(digest)

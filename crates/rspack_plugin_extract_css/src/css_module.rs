@@ -8,7 +8,7 @@ use rspack_core::{
   impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{HashAlgorithm, RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_util::itoa;
 
 use crate::{
@@ -83,7 +83,7 @@ impl CssModule {
   }
 
   fn compute_hash(&self, options: &CompilerOptions) -> RspackHashDigest {
-    let mut hasher = HashAlgorithm::from(&options.output);
+    let mut hasher = RspackHasher::from(&options.output);
 
     self.content.hash(&mut hasher);
     if let Some(layer) = &self.css_layer {
@@ -191,7 +191,7 @@ impl Module for CssModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = HashAlgorithm::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.build_info.hash.hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))

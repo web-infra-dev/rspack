@@ -5,7 +5,7 @@ use rspack_cacheable::{
   with::{AsPreset, Unsupported},
 };
 use rspack_error::ToStringResultToRspackResultExt;
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 use rspack_paths::Utf8PathBuf;
 use rspack_util::{MergeFrom, atom::Atom, base64, ext::CowExt};
 
@@ -83,7 +83,7 @@ impl Filename {
 }
 
 impl rspack_hash::RspackHash for Filename {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     if let FilenameKind::Template(template) = &self.0 {
       template.hash(state);
     }

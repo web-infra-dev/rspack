@@ -19,7 +19,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Error, Result};
-use rspack_hash::{HashAlgorithm, HashDigest, HashFunction, HashSalt, RspackHashDigest};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::fx_hash::FxDashSet;
@@ -151,7 +151,7 @@ impl CopyRspackPlugin {
     digest: &HashDigest,
     salt: &HashSalt,
   ) -> RspackHashDigest {
-    let mut hasher = HashAlgorithm::with_salt(function, salt);
+    let mut hasher = RspackHasher::with_salt(function, salt);
     source.buffer().hash(&mut hasher);
     hasher.digest(digest)
   }

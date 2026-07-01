@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::{
   Compilation, DependencyCodeGeneration, DependencyRange, DependencyTemplate,
@@ -21,7 +21,7 @@ pub enum RuntimeRequirementsDependencyMode {
 }
 
 impl RspackHash for RuntimeRequirementsDependencyMode {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -56,7 +56,7 @@ pub struct RuntimeRequirementsDependency {
 }
 
 impl RspackHash for RuntimeRequirementsDependency {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     "runtime_requirements".hash(state);
     self.runtime_requirements.hash(state);
     match self.mode {
@@ -94,7 +94,7 @@ impl DependencyCodeGeneration for RuntimeRequirementsDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut HashAlgorithm,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {

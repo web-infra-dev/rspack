@@ -67,7 +67,7 @@ pub fn expand_rspack_hash_derive(input: DeriveInput) -> Result<TokenStream> {
 
   Ok(quote! {
     impl #impl_generics #hash_crate::RspackHash for #ident #ty_generics #where_clause {
-      fn hash(&self, state: &mut #hash_crate::HashAlgorithm) {
+      fn hash(&self, state: &mut #hash_crate::RspackHasher) {
         #body
       }
     }

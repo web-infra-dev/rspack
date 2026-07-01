@@ -4,7 +4,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsRefStr, AsVec},
 };
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rustc_hash::FxHashMap;
@@ -200,7 +200,7 @@ pub enum RuntimeCondition {
 }
 
 impl rspack_hash::RspackHash for RuntimeCondition {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       RuntimeCondition::Boolean(value) => value.hash(state),
       RuntimeCondition::Spec(spec) => spec.hash(state),

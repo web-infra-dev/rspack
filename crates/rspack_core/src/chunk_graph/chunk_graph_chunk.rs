@@ -7,7 +7,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_collections::{IdentifierHasher, IdentifierLinkedMap, IdentifierMap, IdentifierSet};
-use rspack_hash::HashAlgorithm;
+use rspack_hash::RspackHasher;
 use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Serialize, Serializer};
@@ -79,7 +79,7 @@ impl ChunkId {
 }
 
 impl rspack_hash::RspackHash for ChunkId {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.0.as_str().hash(state);
   }
 }

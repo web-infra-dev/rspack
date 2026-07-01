@@ -8,8 +8,8 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::cacheable;
-use rspack_hash::{HashAlgorithm, RspackHash};
 pub use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_paths::Utf8PathBuf;
 #[cfg(allocative)]
@@ -71,7 +71,7 @@ pub struct OutputOptions {
   pub compare_before_emit: bool,
 }
 
-impl From<&OutputOptions> for HashAlgorithm {
+impl From<&OutputOptions> for RspackHasher {
   fn from(value: &OutputOptions) -> Self {
     Self::with_salt(&value.hash_function, &value.hash_salt)
   }
@@ -125,7 +125,7 @@ impl ChunkLoading {
 }
 
 impl RspackHash for ChunkLoading {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -174,7 +174,7 @@ impl ChunkLoadingType {
 }
 
 impl RspackHash for ChunkLoadingType {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -187,7 +187,7 @@ pub enum WasmLoading {
 }
 
 impl RspackHash for WasmLoading {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -225,7 +225,7 @@ pub enum WasmLoadingType {
 }
 
 impl RspackHash for WasmLoadingType {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     self.as_str().hash(state);
   }
 }
@@ -390,7 +390,7 @@ pub enum PublicPath {
 }
 
 impl RspackHash for PublicPath {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       PublicPath::Filename(filename) => filename.hash(state),
       PublicPath::Auto => "auto".hash(state),
@@ -570,7 +570,7 @@ pub enum LibraryName {
 }
 
 impl RspackHash for LibraryName {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       LibraryName::NonUmdObject(value) => value.hash(state),
       LibraryName::UmdObject(value) => value.hash(state),
@@ -586,7 +586,7 @@ pub enum LibraryNonUmdObject {
 }
 
 impl RspackHash for LibraryNonUmdObject {
-  fn hash(&self, state: &mut HashAlgorithm) {
+  fn hash(&self, state: &mut RspackHasher) {
     match self {
       LibraryNonUmdObject::Array(value) => value.hash(state),
       LibraryNonUmdObject::String(value) => value.hash(state),

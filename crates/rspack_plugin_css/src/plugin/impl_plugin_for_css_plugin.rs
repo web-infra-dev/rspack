@@ -15,7 +15,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
-use rspack_hash::{HashAlgorithm, RspackHash};
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rspack_util::fx_hash::FxDashMap;
@@ -464,7 +464,7 @@ async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hashes: &mut HashMap<SourceType, HashAlgorithm>,
+  hashes: &mut HashMap<SourceType, RspackHasher>,
 ) -> Result<()> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -483,7 +483,7 @@ async fn content_hash(
     Self::get_ordered_chunk_css_modules(chunk, compilation, css_import_modules, css_modules);
   let hasher = hashes
     .entry(SourceType::Css)
-    .or_insert_with(|| HashAlgorithm::from(&compilation.options.output));
+    .or_insert_with(|| RspackHasher::from(&compilation.options.output));
 
   ordered_modules
     .iter()
