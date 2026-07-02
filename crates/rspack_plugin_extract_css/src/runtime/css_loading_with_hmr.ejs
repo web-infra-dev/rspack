@@ -1,25 +1,31 @@
 var oldTags = [];
 var newTags = [];
+var cssTextKey = function (link) {
+	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
+}
 var applyHandler = function (options) {
 	return {
-		dispose: function () {
+		dispose: function () {},
+		apply: function () {
+			for (var i = 0; i < newTags.length; i++) newTags[i].sheet.disabled = false;
 			for (var i = 0; i < oldTags.length; i++) {
 				var oldTag = oldTags[i];
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
 			oldTags.length = 0;
-		},
-		apply: function () {
-			for (var i = 0; i < newTags.length; i++) newTags[i].rel = "stylesheet";
 			newTags.length = 0;
 		}
 	}
 }
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
 	applyHandlers.push(applyHandler);
+	var seen = {};
 	chunkIds.forEach(function (chunkId) {
 		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
+		if (seen[fullhref]) return;
+		seen[fullhref] = true;
 		var oldTag = findStylesheet(href, fullhref);
 		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {
@@ -33,14 +39,19 @@ var applyHandler = function (options) {
 				`${fullhref}?${Date.now()}`,
 				oldTag,
 				function () {
-					tag.as = "style";
-					tag.rel = "preload";
+					try {
+						if (cssTextKey(oldTag) === cssTextKey(tag)) {
+							if (tag.parentNode) tag.parentNode.removeChild(tag);
+							return resolve();
+						}
+					} catch (e) {}
+					tag.sheet.disabled = true;
+					oldTags.push(oldTag);
+					newTags.push(tag);
 					resolve();
 				},
 				reject
 			);
-			oldTags.push(oldTag);
-			newTags.push(tag);
 		}))
 	});
 }
