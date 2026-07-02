@@ -340,20 +340,15 @@ impl ChunkGraph {
       .get_module_graph_hash_without_connections(module, compilation, runtime)
       .hash(&mut hasher);
 
-    const INLINE_VISITED_MODULES: usize = 8;
-    let mut visited_modules = SmallVec::<[ModuleIdentifier; INLINE_VISITED_MODULES]>::new();
+    let mut visited_modules = SmallVec::<[ModuleIdentifier; 8]>::new();
     visited_modules.push(module.identifier());
-    let mut visited_modules_set: Option<IdentifierSet> = None;
 
     for c in mg.get_outgoing_deps_in_order(&module.identifier()) {
       let Some(connection) = mg.connection_by_dependency_id(c) else {
         continue;
       };
       let module_identifier = connection.module_identifier();
-      if visited_modules_set.as_ref().map_or_else(
-        || visited_modules.contains(module_identifier),
-        |set| set.contains(module_identifier),
-      ) {
+      if visited_modules.contains(module_identifier) {
         continue;
       }
       let active_state = connection.active_state(
@@ -367,11 +362,6 @@ impl ChunkGraph {
         continue;
       }
       visited_modules.push(*module_identifier);
-      if let Some(set) = &mut visited_modules_set {
-        set.insert(*module_identifier);
-      } else if visited_modules.len() > INLINE_VISITED_MODULES {
-        visited_modules_set = Some(visited_modules.iter().copied().collect());
-      }
       for_each_runtime(
         runtime,
         |runtime| {
