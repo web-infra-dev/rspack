@@ -1,0 +1,129 @@
+name: Bench Split Validate
+
+# Validation experiment: build the simulation bench binary on a self-hosted
+# runner, then run it on a github-hosted runner. Each push to the experiment
+# branch is one validation round.
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - ci/bench-split-runner-validation
+
+env:
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build:
+    name: Build bench (self-hosted)
+    runs-on: ${{ fromJSON(vars.LINUX_SELF_HOSTED_RUNNER_LABELS || '"ubuntu-22.04"') }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Log build environment
+        run: |
+          echo "runner.name=${{ runner.name }}"
+          echo "runner.environment=${{ runner.environment }}"
+          uname -a
+          ldd --version | head -1
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: true
+          key: rust-bench-split-x86_64-unknown-linux-gnu
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
+        with:
+          tool: cargo-codspeed@4.4.1
+
+      - name: Setup Rust Target
+        run: rustup target add x86_64-unknown-linux-gnu
+
+      - name: Run Cargo codegen
+        run: cargo codegen
+
+      - name: Build benchmark (simulation)
+        run: cargo codspeed build -m simulation --profile codspeed -p rspack_benchmark --bench benches --bench rspack_sources
+
+      - name: Pack bench binaries
+        run: |
+          ls -lR target/codspeed
+          tar -cf bench-codspeed-simulation.tar target/codspeed
+          ls -l bench-codspeed-simulation.tar
+
+      - name: Upload bench binaries
+        uses: ./.github/actions/artifact/upload
+        with:
+          name: bench-codspeed-simulation
+          path: bench-codspeed-simulation.tar
+
+  run:
+    name: Run bench (github-hosted)
+    needs: build
+    runs-on: ubuntu-22.04
+    env:
+      BENCH_MODE: simulation
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+
+      - name: Pnpm Setup
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+
+      - name: Prepare benchmark cases
+        run: pnpm run bench:prepare
+
+      - name: Install Rust Toolchain
+        uses: ./.github/actions/rustup
+        with:
+          save-if: false
+          use-cache: false
+          key: rust-bench-split-run
+
+      - name: Install cargo-codspeed binary
+        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
+        with:
+          tool: cargo-codspeed@4.4.1
+
+      - name: Download bench binaries
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bench-codspeed-simulation
+          path: .
+
+      - name: Unpack bench binaries
+        run: |
+          tar -xf bench-codspeed-simulation.tar
+          ls -lR target/codspeed
+
+      - name: Prepare CodSpeed temporary directory
+        run: mkdir -p "${RUNNER_TEMP}/codspeed-valgrind-tmp"
+
+      - name: Run benchmark (simulation)
+        uses: hardfist/action@750625725fb8def914579fc789c6249580c84a95
+        timeout-minutes: 30
+        env:
+          TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
+          CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
+          MIMALLOC_PURGE_DELAY: '-1'
+          # The bench binary is built on another machine; redirect its
+          # compiled-in target dir to this checkout.
+          CARGO_TARGET_DIR: ${{ github.workspace }}/target
+        with:
+          mode: simulation
+          run: RSPACK_BENCHCASES_DIR=$PWD/.bench/rspack-benchcases cargo codspeed run
+          token: ${{ secrets.CODSPEED_TOKEN }}
+          runner-version: rev:2ca934f5a71e0299e0a3941a84ac3b242b3b63b6
+          skip-hash-check-warning: true
