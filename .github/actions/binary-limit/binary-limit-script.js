@@ -40,7 +40,9 @@ const MAX_PAGES = 4;
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
   const pr = context.payload.pull_request;
-
+  if (!pr) {
+    throw new Error('binary-limit action requires pull_request context');
+  }
   const { data: comparison } =
     await github.rest.repos.compareCommitsWithBasehead({
       owner,
