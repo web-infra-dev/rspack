@@ -340,17 +340,32 @@ fn map_rspack_resolver_error(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Error {
+  // Classify on the original resolver variant, before the mapping below loses
+  // that distinction. Only genuine "module could not be found" misses get the
+  // module-not-found code, which makes them recoverable through the
+  // `resolve_error` hook; recursion (cyclic aliases) and config/metadata
+  // errors must surface directly.
+  let is_module_not_found = matches!(
+    error,
+    rspack_resolver::ResolveError::NotFound(_)
+      | rspack_resolver::ResolveError::MatchedAliasNotFound(..)
+      | rspack_resolver::ResolveError::ExtensionAlias(..)
+  );
+  let mut mapped = map_rspack_resolver_error_inner(error, args);
+  if is_module_not_found {
+    mapped.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+  }
+  mapped
+}
+
+fn map_rspack_resolver_error_inner(
+  error: rspack_resolver::ResolveError,
+  args: &ResolveArgs<'_>,
+) -> Error {
   match error {
     rspack_resolver::ResolveError::IOError(error) => rspack_error::error!(error.to_string()),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
-    // Keep the alias-specific message, but tag it as module-not-found so the
-    // `resolve_error` hook can recover alias-target misses too.
-    rspack_resolver::ResolveError::MatchedAliasNotFound(..) => {
-      let mut mapped = Error::error(error.to_string());
-      mapped.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
-      mapped
-    }
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
         let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {
@@ -413,15 +428,11 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
 
   let importer = args.importer;
   if importer.is_none() {
-    let mut error = rspack_error::error!(format!(
+    return rspack_error::error!(format!(
       "Module not found: Can't resolve {} in {}",
       yellow(&format!("'{request}'")),
       cyan(&format!("'{context}'")),
     ));
-    if !is_recursion {
-      error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
-    }
-    return error;
   }
 
   let message = format!(
@@ -444,12 +455,6 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     "Module not found".to_string(),
     message,
   );
-  // Recursion (cyclic alias) failures must not be tagged as module-not-found,
-  // otherwise the `resolve_error` hook could retry past the cyclic-alias
-  // diagnostic.
-  if !is_recursion {
-    error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
-  }
   error.help = if is_recursion {
     Some("maybe it had cyclic aliases".into())
   } else {
