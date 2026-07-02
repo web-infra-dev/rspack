@@ -351,14 +351,17 @@ fn map_rspack_resolver_error(
       | rspack_resolver::ResolveError::MatchedAliasNotFound(..)
       | rspack_resolver::ResolveError::ExtensionAlias(..)
   );
-  let mut mapped = map_rspack_resolver_error_inner(error, args);
+  let mut mapped = map_rspack_resolver_error_untagged(error, args);
   if is_module_not_found {
     mapped.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
   }
   mapped
 }
 
-fn map_rspack_resolver_error_inner(
+/// Maps the resolver error to a displayable [`Error`] without assigning an
+/// error code; [`map_rspack_resolver_error`] tags module-not-found codes
+/// centrally based on the original resolver variant.
+fn map_rspack_resolver_error_untagged(
   error: rspack_resolver::ResolveError,
   args: &ResolveArgs<'_>,
 ) -> Error {

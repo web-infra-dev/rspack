@@ -42,9 +42,10 @@ pub enum NormalModuleFactoryResolveResult {
 
 enum ResolveNormalModuleOutcome {
   Resolved(ModuleFactoryResult),
-  /// Resource resolution failed with module-not-found; the `resolve_error`
-  /// hook may request a retry.
-  ResolveFailed(rspack_error::Error),
+  /// Resource resolution failed with module-not-found, which the
+  /// `resolve_error` hook may recover from; unrecoverable failures are
+  /// returned as `Err` instead.
+  RecoverableFailure(rspack_error::Error),
 }
 
 #[derive(Debug)]
@@ -724,10 +725,10 @@ impl NormalModuleFactory {
   async fn resolve_normal_module(
     &self,
     data: &mut ModuleFactoryCreateData,
-  ) -> Result<Option<ModuleFactoryResult>> {
+  ) -> Result<ModuleFactoryResult> {
     let err = match self.resolve_normal_module_once(data).await? {
-      ResolveNormalModuleOutcome::Resolved(result) => return Ok(Some(result)),
-      ResolveNormalModuleOutcome::ResolveFailed(err) => err,
+      ResolveNormalModuleOutcome::Resolved(result) => return Ok(result),
+      ResolveNormalModuleOutcome::RecoverableFailure(err) => err,
     };
 
     // The hook may mutate `data` (e.g. rewrite `request`) and return `true`
@@ -745,8 +746,8 @@ impl NormalModuleFactory {
     }
 
     match self.resolve_normal_module_once(data).await? {
-      ResolveNormalModuleOutcome::Resolved(result) => Ok(Some(result)),
-      ResolveNormalModuleOutcome::ResolveFailed(err) => Err(err),
+      ResolveNormalModuleOutcome::Resolved(result) => Ok(result),
+      ResolveNormalModuleOutcome::RecoverableFailure(err) => Err(err),
     }
   }
 
@@ -999,7 +1000,7 @@ module.exports = "data:,";
             // `package.json`, exports violations, IO errors, ...) must
             // surface directly.
             if err.code.as_deref() == Some(MODULE_NOT_FOUND_ERROR_CODE) {
-              return Ok(ResolveNormalModuleOutcome::ResolveFailed(err));
+              return Ok(ResolveNormalModuleOutcome::RecoverableFailure(err));
             }
             return Err(err);
           }
@@ -1381,13 +1382,7 @@ module.exports = "data:,";
       }
     }
 
-    if let Some(result) = self.resolve_normal_module(data).await? {
-      return Ok(result);
-    }
-
-    Err(error!(
-      "Failed to factorize module, neither hook nor factorize method returns"
-    ))
+    self.resolve_normal_module(data).await
   }
 }
 
