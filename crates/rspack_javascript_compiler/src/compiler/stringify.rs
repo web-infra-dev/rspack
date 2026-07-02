@@ -547,4 +547,83 @@ mod tests {
     assert!(mappings[0].original.is_some());
     assert!(mappings[1].original.is_none());
   }
+
+  #[test]
+  fn preserves_absolute_input_sources_under_source_root() {
+    let swc_cm = Arc::new(SwcSourceMap::default());
+    let source = "const first = second;\n";
+    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
+    let first_column = source.find("first").expect("first column") as u32;
+    let second_column = source.find("second").expect("second column") as u32;
+    let first_pos = BytePos(file.start_pos.0 + first_column);
+    let second_pos = BytePos(file.start_pos.0 + second_column);
+
+    let mut input_source_map = SourceMap::new(
+      encode_mappings(
+        [
+          Mapping {
+            generated_line: 1,
+            generated_column: first_column,
+            original: Some(OriginalLocation {
+              source_index: 0,
+              original_line: 1,
+              original_column: 0,
+              name_index: None,
+            }),
+          },
+          Mapping {
+            generated_line: 1,
+            generated_column: second_column,
+            original: Some(OriginalLocation {
+              source_index: 1,
+              original_line: 1,
+              original_column: 0,
+              name_index: None,
+            }),
+          },
+        ]
+        .into_iter(),
+      ),
+      vec!["/src/app.js".into(), "https://example.com/vendor.js".into()],
+      vec![
+        "const first = second;\n".into(),
+        "export const second = 1;\n".into(),
+      ],
+      vec![],
+    );
+    input_source_map.set_source_root(Some("/root".into()));
+
+    let source_map = build_rspack_source_map(
+      &swc_cm,
+      &[
+        (
+          first_pos,
+          LineCol {
+            line: 0,
+            col: first_column,
+          },
+        ),
+        (
+          second_pos,
+          LineCol {
+            line: 0,
+            col: second_column,
+          },
+        ),
+      ],
+      Some(input_source_map),
+      &SourceMapConfig {
+        source_map_kind: SourceMapKind::SourceMap,
+        names: Default::default(),
+      },
+      source,
+    )
+    .expect("composed source map");
+
+    assert_eq!(source_map.get_source(0), Some("/src/app.js"));
+    assert_eq!(
+      source_map.get_source(1),
+      Some("https://example.com/vendor.js")
+    );
+  }
 }

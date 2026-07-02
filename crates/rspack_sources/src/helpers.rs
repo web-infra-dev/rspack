@@ -561,10 +561,27 @@ fn get_source<'a>(source_map: &SourceMapFields, source: &'a str) -> Cow<'a, str>
   let source_root = source_map.source_root();
   match source_root {
     Some("") => Cow::Borrowed(source),
+    Some(_) if is_absolute_source(source) => Cow::Borrowed(source),
     Some(root) if root.ends_with('/') => Cow::Owned(format!("{root}{source}")),
     Some(root) => Cow::Owned(format!("{root}/{source}")),
     None => Cow::Borrowed(source),
   }
+}
+
+fn is_absolute_source(source: &str) -> bool {
+  source.starts_with('/') || has_uri_scheme(source)
+}
+
+fn has_uri_scheme(source: &str) -> bool {
+  let Some((scheme, _)) = source.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  let Some(first) = chars.next() else {
+    return false;
+  };
+  first.is_ascii_alphabetic()
+    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
 }
 
 fn stream_chunks_of_source_map_final<'chunk, 'source>(
