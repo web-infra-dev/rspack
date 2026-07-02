@@ -3,6 +3,7 @@ mod esm_import_dependency;
 mod import_dependency;
 mod mock_method_dependency;
 mod mock_module_id_dependency;
+mod mock_resolved_info;
 mod module_path_name_dependency;
 mod parser_plugin;
 mod plugin;

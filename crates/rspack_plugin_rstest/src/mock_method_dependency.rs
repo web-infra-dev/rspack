@@ -7,6 +7,8 @@ use rspack_core::{
 };
 use rspack_util::json_stringify_str;
 
+use crate::mock_resolved_info::MockResolvedInfo;
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct MockMethodDependency {
@@ -26,6 +28,12 @@ pub struct MockMethodDependency {
   /// auto-mock form (whose request is carried by the synthetic-target
   /// dependency's suffix instead, to avoid colliding at the same offset).
   args_request_end: Option<u32>,
+  /// Build-resolved mock identity, rendered after the request at
+  /// `args_request_end` — it always rides the same carrier as the request, so
+  /// it is `None` in the same cases as `args_request_end` (1-arg auto-mock:
+  /// both ride the synthetic-target dependency instead), plus when the
+  /// declaring module's resource has no path.
+  resolved_info: Option<MockResolvedInfo>,
 }
 
 #[cacheable]
@@ -57,6 +65,7 @@ impl MockMethodDependency {
       hoist,
       method,
       args_request_end: None,
+      resolved_info: None,
     }
   }
 
@@ -76,12 +85,19 @@ impl MockMethodDependency {
       hoist,
       method,
       args_request_end: None,
+      resolved_info: None,
     }
   }
 
   /// Set the request-injection offset. See [`Self::args_request_end`].
   pub fn with_request_arg_end(mut self, end: Option<u32>) -> Self {
     self.args_request_end = end;
+    self
+  }
+
+  /// Attach the build-resolved mock identity. See [`Self::resolved_info`].
+  pub fn with_resolved_info(mut self, info: Option<MockResolvedInfo>) -> Self {
+    self.resolved_info = info;
     self
   }
 }
@@ -116,6 +132,7 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     let TemplateContext {
       init_fragments,
       runtime_template,
+      compilation,
       ..
     } = code_generatable_context;
     let dep = dep
@@ -153,7 +170,12 @@ impl DependencyTemplate for MockMethodDependencyTemplate {
     // valid for `rs.mock('x', f,)`) so a dynamic `import(request)` resolves to the
     // mock by request. See `args_request_end` for the `None` cases.
     if let Some(end) = dep.args_request_end {
-      source.replace(end, end, format!(", {}", json_stringify_str(request)), None);
+      let trailing = format!(
+        ", {}{}",
+        json_stringify_str(request),
+        MockResolvedInfo::render_trailing_arg(dep.resolved_info.as_ref(), compilation),
+      );
+      source.replace(end, end, trailing, None);
     }
   }
 }
