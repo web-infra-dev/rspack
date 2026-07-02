@@ -344,6 +344,13 @@ fn map_rspack_resolver_error(
     rspack_resolver::ResolveError::IOError(error) => rspack_error::error!(error.to_string()),
     rspack_resolver::ResolveError::Recursion => map_resolver_error(true, args),
     rspack_resolver::ResolveError::NotFound(_) => map_resolver_error(false, args),
+    // Keep the alias-specific message, but tag it as module-not-found so the
+    // `resolve_error` hook can recover alias-target misses too.
+    rspack_resolver::ResolveError::MatchedAliasNotFound(..) => {
+      let mut mapped = Error::error(error.to_string());
+      mapped.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+      mapped
+    }
     rspack_resolver::ResolveError::JSON(error) => {
       if let Some(content) = &error.content {
         let Some(offset) = byte_line_column_to_offset(content, error.line, error.column) else {
