@@ -411,7 +411,9 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
       yellow(&format!("'{request}'")),
       cyan(&format!("'{context}'")),
     ));
-    error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+    if !is_recursion {
+      error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+    }
     return error;
   }
 
@@ -435,7 +437,12 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     "Module not found".to_string(),
     message,
   );
-  error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+  // Recursion (cyclic alias) failures must not be tagged as module-not-found,
+  // otherwise the `resolve_error` hook could retry past the cyclic-alias
+  // diagnostic.
+  if !is_recursion {
+    error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+  }
   error.help = if is_recursion {
     Some("maybe it had cyclic aliases".into())
   } else {
