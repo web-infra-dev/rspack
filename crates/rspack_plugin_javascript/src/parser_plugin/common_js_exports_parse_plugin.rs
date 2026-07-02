@@ -72,8 +72,10 @@ impl JavascriptParser<'_> {
   // can't scan `__esModule` value
   fn bailout(&mut self) {
     if matches!(self.parser_exports_state, Some(true)) {
-      self.build_meta.exports_type = BuildMetaExportsType::Unset;
-      self.build_meta.default_object = BuildMetaDefaultObject::False;
+      self.build_meta.clear_exports_type();
+      self
+        .build_meta
+        .set_default_object(BuildMetaDefaultObject::False);
     }
     self.parser_exports_state = Some(false);
   }
@@ -84,8 +86,12 @@ impl JavascriptParser<'_> {
       return;
     }
     if self.parser_exports_state.is_none() {
-      self.build_meta.exports_type = BuildMetaExportsType::Default;
-      self.build_meta.default_object = BuildMetaDefaultObject::Redirect;
+      self
+        .build_meta
+        .set_exports_type(BuildMetaExportsType::Default);
+      self
+        .build_meta
+        .set_default_object(BuildMetaDefaultObject::Redirect);
     }
     self.parser_exports_state = Some(true);
   }
@@ -95,10 +101,15 @@ impl JavascriptParser<'_> {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
-    if matches!(self.build_meta.exports_type, BuildMetaExportsType::Dynamic) {
+    if matches!(
+      self.build_meta.exports_type(),
+      BuildMetaExportsType::Dynamic
+    ) {
       return;
     }
-    self.build_meta.exports_type = BuildMetaExportsType::Flagged;
+    self
+      .build_meta
+      .set_exports_type(BuildMetaExportsType::Flagged);
   }
 
   // `__esModule` is dynamic, eg `true && true`
@@ -106,7 +117,9 @@ impl JavascriptParser<'_> {
     if matches!(self.parser_exports_state, Some(false)) || self.parser_exports_state.is_none() {
       return;
     }
-    self.build_meta.exports_type = BuildMetaExportsType::Dynamic;
+    self
+      .build_meta
+      .set_exports_type(BuildMetaExportsType::Dynamic);
   }
 
   fn check_namespace(&mut self, top_level: bool, value_expr: Option<&Expr>) {

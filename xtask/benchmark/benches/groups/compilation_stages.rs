@@ -27,7 +27,7 @@ use rspack_core::{
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::{MemoryFileSystem, WritableFileSystem};
-use rspack_hash::RspackHash;
+use rspack_hash::RspackHasher;
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, ChunkNameGetter, FallbackCacheGroup, PluginOptions, SplitChunkSizes,
   SplitChunksPlugin, create_all_chunk_filter, create_default_module_layer_filter,
@@ -1668,7 +1668,7 @@ async fn process_chunk_hash(
   compilation: &Compilation,
   chunk_ukey: ChunkUkey,
 ) -> Result<(rspack_hash::RspackHashDigest, ChunkContentHash)> {
-  let mut hasher = RspackHash::from(&compilation.options.output);
+  let mut hasher = RspackHasher::from(&compilation.options.output);
   if let Some(chunk) = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey

@@ -90,7 +90,7 @@ impl DependencyTemplate for ESMCompatibilityDependencyTemplate {
         InitFragmentKey::unique(),
         Some(format!(
           "\n__rspack_async_done();\n}} catch(e) {{ __rspack_async_done(e); }} }}{});",
-          if module.build_meta().has_top_level_await {
+          if module.build_meta().has_top_level_await() {
             ", 1"
           } else {
             ""

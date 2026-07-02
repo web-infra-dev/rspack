@@ -18,10 +18,9 @@ use rspack_core::{
 };
 pub use rspack_core::{CssExport, CssExports};
 use rspack_error::{Result, TWithDiagnosticArray};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_util::{
   atom::Atom,
-  ext::DynHash,
   fx_hash::{FxIndexMap, FxIndexSet},
 };
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -249,21 +248,21 @@ impl ParserAndGenerator for CssParserAndGenerator {
       let build_meta = &mut *parse_context.build_meta;
 
       build_info.strict = true;
-      build_meta.is_css_module = is_css_module(
+      build_meta.set_is_css_module(is_css_module(
         parse_context.module_type,
         parse_context.resource_data.path().map(|path| path.as_str()),
-      );
-      build_meta.need_id_in_concatenation = self.export_type == Some(CssExportType::Style);
+      ));
+      build_meta.set_need_id_in_concatenation(self.export_type == Some(CssExportType::Style));
       build_meta.exports_type = if named_exports {
         BuildMetaExportsType::Namespace
       } else {
         BuildMetaExportsType::Default
       };
-      build_meta.default_object = if named_exports {
+      build_meta.set_default_object(if named_exports {
         BuildMetaDefaultObject::False
       } else {
         BuildMetaDefaultObject::Redirect
-      };
+      });
     }
 
     let exports_only = generator_options
@@ -343,10 +342,10 @@ impl ParserAndGenerator for CssParserAndGenerator {
     compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
-    self.es_module.dyn_hash(&mut hasher);
-    self.exports_only.dyn_hash(&mut hasher);
-    self.effective_export_type(module).dyn_hash(&mut hasher);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    self.es_module.hash(&mut hasher);
+    self.exports_only.hash(&mut hasher);
+    self.effective_export_type(module).hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }

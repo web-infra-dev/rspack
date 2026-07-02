@@ -12,7 +12,7 @@ use rspack_cacheable::{
 };
 use rspack_collections::{Identifiable, Identifier};
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_macros::impl_source_map_config;
 use rspack_paths::{ArcPathSet, Utf8PathBuf};
 use rspack_regex::RspackRegex;
@@ -292,11 +292,9 @@ impl ContextModule {
       options,
       factory_meta: None,
       build_info,
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Default,
-        default_object: BuildMetaDefaultObject::RedirectWarn,
-        ..Default::default()
-      },
+      build_meta: BuildMeta::default()
+        .with_exports_type(BuildMetaExportsType::Default)
+        .with_default_object(BuildMetaDefaultObject::RedirectWarn),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
@@ -389,7 +387,7 @@ impl ContextModule {
     let mut map: HashMap<String, Vec<ModuleId>> = HashMap::default();
     for dep_id in dependencies {
       if let Some(module) = module_graph.get_module_by_dependency_id(dep_id)
-        && !module.build_meta().has_top_level_await
+        && !module.build_meta().has_top_level_await()
       {
         let id = ChunkGraph::get_module_id(&compilation.module_ids_artifact, module.identifier());
         if let Some(id) = id {
@@ -819,11 +817,11 @@ impl ContextModule {
           .phase
           .unwrap_or_default()
           .is_defer()
-          && !module.build_meta().has_top_level_await)
-          .then(|| {
-            has_no_module_deferred = false;
-            get_outgoing_async_modules(compilation, module.as_ref())
-          });
+          && !module.build_meta().has_top_level_await())
+        .then(|| {
+          has_no_module_deferred = false;
+          get_outgoing_async_modules(compilation, module.as_ref())
+        });
         Some((user_request, module_id.to_string(), chunks, async_deps))
       })
       .collect::<Vec<_>>();
@@ -1540,7 +1538,7 @@ impl Module for ContextModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

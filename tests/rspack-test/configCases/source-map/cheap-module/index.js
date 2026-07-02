@@ -5,7 +5,11 @@ require("./index.scss");
 it("should only map original lines if cheap module options is used", async () => {
 	const source = fs.readFileSync(__dirname + "/bundle0.css.map", "utf-8");
 	const map = JSON.parse(source);
-	expect(map.sources).toContain("webpack:///./index.scss");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	expect(map.sources).toContain(sourceUrl("./index.scss"));
 	expect(map.file).toEqual("bundle0.css");
 	expect(map.sourcesContent[0]).toContain("$backgroundColor");
 	const consumer = await new sourceMap.SourceMapConsumer(map);

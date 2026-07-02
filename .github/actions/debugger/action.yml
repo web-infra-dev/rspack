@@ -6,4 +6,4 @@ runs:
   using: composite
   steps:
     - name: Debug
-      uses: mxschmitt/action-tmate@c0afd6f790e3a5564914980036ebf83216678101 # v3.23
+      uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3.24

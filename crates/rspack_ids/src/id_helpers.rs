@@ -30,7 +30,7 @@ pub type ModuleFilterFn =
 
 pub(crate) fn should_assign_module_id_without_chunk(module: &dyn Module) -> bool {
   let build_meta = module.build_meta();
-  build_meta.is_css_module || build_meta.need_id_in_concatenation
+  build_meta.is_css_module() || build_meta.need_id_in_concatenation()
 }
 
 #[allow(clippy::type_complexity)]

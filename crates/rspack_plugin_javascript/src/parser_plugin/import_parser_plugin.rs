@@ -485,7 +485,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           category: DependencyCategory::Esm,
           request: format!("{context}{query}{fragment}"),
           context,
-          namespace_object: if parser.build_meta.strict_esm_module {
+          namespace_object: if parser.build_meta.strict_esm_module() {
             ContextNameSpaceObject::Strict
           } else {
             ContextNameSpaceObject::Bool(true)

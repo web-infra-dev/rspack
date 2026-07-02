@@ -11,43 +11,47 @@ it("verify es6 (esmodule) bundle source map", async () => {
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
 	const out = fs.readFileSync(__filename, "utf-8");
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		expect(map.sources.filter(source =>
 			!source.startsWith("webpack:///webpack/runtime/") &&
-			!source.startsWith("webpack:///rspack/runtime/")
+			!source.startsWith("rspack:///rspack/runtime/")
 		)).toEqual([
-			`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
-			"webpack:///./b-dir/c-dir/c.js",
-			"webpack:///./b-dir/b.js",
-			"webpack:///./a.js",
-			"webpack:///./index.js",
+			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
+			sourceUrl("./b-dir/c-dir/c.js"),
+			sourceUrl("./b-dir/b.js"),
+			sourceUrl("./a.js"),
+			sourceUrl("./index.js"),
 		]);
 	} else {
 		expect(map.sources).toEqual([
-			`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
-			"webpack:///./b-dir/c-dir/c.js",
-			"webpack:///./b-dir/b.js",
-			"webpack:///./a.js",
-			"webpack:///./index.js",
+			sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
+			sourceUrl("./b-dir/c-dir/c.js"),
+			sourceUrl("./b-dir/b.js"),
+			sourceUrl("./a.js"),
+			sourceUrl("./index.js"),
 		]);
 	}
 	expect(map.file).toEqual("bundle0.js");
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`
-			['"*a0*"']: "webpack:///a.js",
-			['"*a1*"']: "webpack:///a.js",
+			['"*a0*"']: sourceUrl("a.js"),
+			['"*a1*"']: sourceUrl("a.js"),
 			// The result is generated upon `OriginalSource`
 			// and webpack generates sourcemap of`("xx")` as a block.
-			['("*a2*")']: checkColumn("webpack:///a.js"),
-			['"*b0*"']: "webpack:///b-dir/b.js",
-			['"*b1*"']: "webpack:///b-dir/b.js",
+			['("*a2*")']: checkColumn(sourceUrl("a.js")),
+			['"*b0*"']: sourceUrl("b-dir/b.js"),
+			['"*b1*"']: sourceUrl("b-dir/b.js"),
 			// The result is generated upon `OriginalSource`
 			// and webpack generates sourcemap of`("xx")` as a block.
-			['("*b2*")']: checkColumn("webpack:///b-dir/b.js"),
-			['"*c0*"']: "webpack:///b-dir/c-dir/c.js",
-			['"*c1*"']: "webpack:///b-dir/c-dir/c.js",
-			['"*c2*"']: "webpack:///b-dir/c-dir/c.js"
+			['("*b2*")']: checkColumn(sourceUrl("b-dir/b.js")),
+			['"*c0*"']: sourceUrl("b-dir/c-dir/c.js"),
+			['"*c1*"']: sourceUrl("b-dir/c-dir/c.js"),
+			['"*c2*"']: sourceUrl("b-dir/c-dir/c.js")
 		}, false)
 	).toBe(true);
 });

@@ -9,6 +9,9 @@ module.exports = {
   devtool: 'eval-source-map',
   externals: ['source-map'],
   externalsType: 'commonjs',
+  output: {
+    devtoolFallbackModuleFilenameTemplate: 'fallback://[resource-path]?[hash]',
+  },
   optimization: {
     moduleIds: 'named',
   },

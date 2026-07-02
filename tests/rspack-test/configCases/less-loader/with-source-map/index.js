@@ -6,7 +6,11 @@ it("basic", () => {
 	expect(css).toEqual(nsObj({}));
 	const sourceMap = fs.readFileSync(__dirname + "/bundle0.css.map", "utf-8");
 	const map = JSON.parse(sourceMap);
-	expect(map.sources).toContain("webpack:///./index.less");
+	let source = "webpack:///./index.less";
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		source = "rspack:///./index.less";
+	}
+	expect(map.sources).toContain(source);
 	expect(map.file).toEqual("bundle0.css");
 	expect(map.sourcesContent).toEqual([
 		fs.readFileSync(

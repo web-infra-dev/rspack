@@ -45,7 +45,10 @@ module.exports = {
             const sourceMapJSON = fs.readFileSync(sourceMapPath, 'utf-8');
             const sourceMap = JSON.parse(sourceMapJSON);
             const realSources = sourceMap.sources
-              .filter((s) => !s.startsWith('webpack://'))
+              .filter(
+                (s) =>
+                  !s.startsWith('webpack://') && !s.startsWith('rspack://'),
+              )
               .sort();
 
             realSources.forEach((s) => {

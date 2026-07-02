@@ -10,33 +10,34 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const fs = require("fs");
 	const source = fs.readFileSync(__filename + ".map", "utf-8");
 	const map = JSON.parse(source);
-	const runtimePrefix = map.sources.some(source =>
-		source.startsWith("webpack:///rspack/runtime/")
-	)
-		? "rspack"
-		: "webpack";
+	let sourceUrl = source => `webpack:///${source}`;
+	let runtimeSource = name => sourceUrl(`webpack/runtime/${name}`);
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+		runtimeSource = name => sourceUrl(`rspack/runtime/${name}`);
+	}
 	expect(map.sources.sort()).toEqual([
-		`webpack:///../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`,
-		"webpack:///./a.js",
-		"webpack:///./b-dir/b.js",
-		"webpack:///./b-dir/c-dir/c.js",
-		"webpack:///./index.js",
-		`webpack:///${runtimePrefix}/runtime/define_property_getters`,
-		`webpack:///${runtimePrefix}/runtime/has_own_property`,
-		`webpack:///${runtimePrefix}/runtime/make_namespace_object`,
-	]);
+		sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.js`),
+		sourceUrl("./a.js"),
+		sourceUrl("./b-dir/b.js"),
+		sourceUrl("./b-dir/c-dir/c.js"),
+		sourceUrl("./index.js"),
+		runtimeSource("define_property_getters"),
+		runtimeSource("has_own_property"),
+		runtimeSource("make_namespace_object"),
+	].sort());
 	expect(map.file).toEqual("bundle0.js");
 	const out = fs.readFileSync(__filename, "utf-8");
 	expect(
 		await checkMap(out, source, {
 			// *${id}* as the search key to avoid conflict with `Object.defineProperty(exports, ${id}, ...)`
 			// "*a0*", "*a1*" is eliminate by minify
-			['"*a2*"']: checkColumn("webpack:///a.js"),
+			['"*a2*"']: checkColumn(sourceUrl("a.js")),
 			// "*b0*", "*b1*" is eliminate by minify
-			['"*b2*"']: checkColumn("webpack:///b-dir/b.js"),
+			['"*b2*"']: checkColumn(sourceUrl("b-dir/b.js")),
 			// "*c0*" is eliminate by minify
 			// "*c1*" is eliminate by minify
-			['"*c2*"']: "webpack:///b-dir/c-dir/c.js"
+			['"*c2*"']: sourceUrl("b-dir/c-dir/c.js")
 		})
 	).toBe(true);
 });

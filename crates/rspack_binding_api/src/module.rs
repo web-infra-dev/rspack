@@ -828,36 +828,25 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_type: raw_exports_type,
     } = value;
 
-    let default_object = if let Some(raw_default_object) = raw_default_object {
-      match raw_default_object.as_str() {
+    let default_object =
+      raw_default_object.map(|raw_default_object| match raw_default_object.as_str() {
         "false" => BuildMetaDefaultObject::False,
         "redirect" => BuildMetaDefaultObject::Redirect,
         "redirect-warn" => BuildMetaDefaultObject::RedirectWarn,
         _ => unreachable!(),
-      }
-    } else {
-      BuildMetaDefaultObject::False
-    };
+      });
 
-    let exports_type = if let Some(raw_exports_type) = raw_exports_type {
-      match raw_exports_type.as_str() {
-        "unset" => BuildMetaExportsType::Unset,
-        "default" => BuildMetaExportsType::Default,
-        "namespace" => BuildMetaExportsType::Namespace,
-        "flagged" => BuildMetaExportsType::Flagged,
-        "dynamic" => BuildMetaExportsType::Dynamic,
-        _ => unreachable!(),
-      }
-    } else {
-      BuildMetaExportsType::Unset
-    };
+    let exports_type = raw_exports_type
+      .as_deref()
+      .map(BuildMetaExportsType::from)
+      .unwrap_or_default();
 
-    Self {
-      strict_esm_module: strict_esm_module.unwrap_or_default(),
-      has_top_level_await: has_top_level_await.unwrap_or_default(),
-      esm: esm.unwrap_or_default(),
-      is_css_module: false,
-      need_id_in_concatenation: false,
+    BuildMeta {
+      strict_esm_module,
+      has_top_level_await,
+      esm,
+      is_css_module: None,
+      need_id_in_concatenation: None,
       exports_type,
       default_object,
       side_effect_free,

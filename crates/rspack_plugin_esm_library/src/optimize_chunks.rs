@@ -40,7 +40,7 @@ pub(crate) fn extract_tla_shared_modules(compilation: &mut Compilation) -> bool 
   // at module top level" info which is not exposed on the block.
   let mut async_chunks_set: FxHashSet<ChunkUkey> = FxHashSet::default();
   for (module_id, module) in module_graph.modules() {
-    if !module.build_meta().has_top_level_await {
+    if !module.build_meta().has_top_level_await() {
       continue;
     }
     for block_id in module.get_blocks() {

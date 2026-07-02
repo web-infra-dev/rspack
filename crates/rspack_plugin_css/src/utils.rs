@@ -16,7 +16,7 @@ use rspack_core::{
   ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Result, Severity};
-use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHasher};
 use rspack_util::{base64, identifier::make_paths_relative, itoa, json_stringify_str};
 use rustc_hash::{FxHashSet, FxHasher};
 
@@ -227,7 +227,7 @@ impl<'a> LocalIdentOptions<'a> {
   fn get_module_hash(&self, module_hash_options: &LocalIdentModuleHashOptions<'_>) -> String {
     let local_ident_name = self.local_ident_name.template.as_str();
     let build_hash = {
-      let mut hasher = RspackHash::new(&self.local_ident_hash_function);
+      let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
       hasher.write(b"source");
       hasher.write(b"OriginalSource");
       hasher.write(self.source.as_bytes());
@@ -250,7 +250,7 @@ impl<'a> LocalIdentOptions<'a> {
         .collect::<Vec<_>>();
       graph_exports.sort();
 
-      let mut hasher = RspackHash::new(&self.local_ident_hash_function);
+      let mut hasher = RspackHasher::new(&self.local_ident_hash_function);
       hasher.write(self.relative_resource.as_bytes());
       hasher.write(b"false");
       for name in graph_exports {
@@ -263,7 +263,7 @@ impl<'a> LocalIdentOptions<'a> {
     };
 
     let mut hasher =
-      RspackHash::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
+      RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
     hasher.write(build_hash.as_bytes());
     if module_hash_options.exports_only {
       hasher.write(b"javascript");
@@ -322,7 +322,7 @@ impl<'a> LocalIdentOptions<'a> {
     let output = &self.compiler_options.output;
     let local_ident_hash = {
       let mut hasher =
-        RspackHash::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
+        RspackHasher::with_salt(&self.local_ident_hash_function, self.local_ident_hash_salt);
       if !output.unique_name.is_empty() {
         hasher.write(output.unique_name.as_bytes());
       }
@@ -340,7 +340,7 @@ impl<'a> LocalIdentOptions<'a> {
       .as_str()
       .contains("[contenthash")
     {
-      let mut hasher = RspackHash::new(&output.hash_function);
+      let mut hasher = RspackHasher::new(&output.hash_function);
       hasher.write(self.source.as_bytes());
       let hash = hasher.digest(&output.hash_digest);
       content_hash = non_numeric_only_hash(hash.encoded(), output.hash_digest_length);

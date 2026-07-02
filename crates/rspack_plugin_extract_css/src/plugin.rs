@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  hash::Hash,
   sync::{Arc, LazyLock},
 };
 
@@ -21,7 +20,7 @@ use rspack_core::{
   },
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
@@ -601,7 +600,7 @@ async fn content_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hashes: &mut FxHashMap<SourceType, RspackHash>,
+  hashes: &mut FxHashMap<SourceType, RspackHasher>,
 ) -> Result<()> {
   let module_graph = compilation.get_module_graph();
 
@@ -623,7 +622,7 @@ async fn content_hash(
 
   let hasher = hashes
     .entry(SOURCE_TYPE[0])
-    .or_insert_with(|| RspackHash::from(&compilation.options.output));
+    .or_insert_with(|| RspackHasher::from(&compilation.options.output));
 
   used_modules
     .iter()

@@ -608,7 +608,7 @@ pub fn get_outgoing_async_modules(
     if !visited.insert(module_identifier) {
       return;
     }
-    if module.build_meta().has_top_level_await {
+    if module.build_meta().has_top_level_await() {
       set.insert(
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
           .expect("should have module_id")
@@ -1122,7 +1122,7 @@ impl ModuleCodeTemplate {
       &module.identifier(),
     );
 
-    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
@@ -1179,7 +1179,7 @@ impl ModuleCodeTemplate {
 
     let target_module_identifier = target_module.identifier();
 
-    let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await;
+    let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await();
 
     let mut exclude_default_export_name = None;
     if default_interop {
@@ -1426,7 +1426,7 @@ impl ModuleCodeTemplate {
 
     let mut appending;
 
-    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
       let mode = format!(
         "{} | 16",
         render_make_deferred_namespace_mode_from_exports_type(exports_type)

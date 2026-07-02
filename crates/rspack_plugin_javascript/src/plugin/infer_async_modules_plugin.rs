@@ -43,7 +43,7 @@ async fn finish_modules(
   let mut async_modules = IdentifierLinkedSet::default();
   for (module_identifier, module) in module_graph.modules() {
     let build_meta = module.build_meta();
-    if build_meta.has_top_level_await {
+    if build_meta.has_top_level_await() {
       async_modules.insert(*module_identifier);
     } else {
       sync_modules.insert(*module_identifier);

@@ -1,7 +1,7 @@
 import { __rspack_context } from "./runtime~0.mjs";
 
-import * as __rspack_external_external1_alias_bc4b12e4 from "external1-alias";
-import * as __rspack_external_external2_alias_e5239a01 from "external2-alias";
+import * as __rspack_external_external1_alias_dd38afe7 from "external1-alias";
+import * as __rspack_external_external2_alias_d6100a5a from "external2-alias";
 __rspack_context.m.add({
 42(__unused_rspack_module, __rspack_exports, __rspack_context) {
 __rspack_context.N(__rspack_exports);
@@ -22,13 +22,13 @@ __rspack_context.N(__rspack_exports);
 },
 322(module) {
 
-module.exports = __rspack_external_external1_alias_bc4b12e4;
+module.exports = __rspack_external_external1_alias_dd38afe7;
 
 
 },
 101(module) {
 
-module.exports = __rspack_external_external2_alias_e5239a01;
+module.exports = __rspack_external_external2_alias_d6100a5a;
 
 
 },

@@ -325,7 +325,7 @@ fn resolve_esm_imported_in_operator_guard(
     module_graph,
     module_graph_cache,
     exports_info_artifact,
-    parent_module.build_meta().strict_esm_module,
+    parent_module.build_meta().strict_esm_module(),
   );
   let provided = match exports_type {
     ExportsType::DefaultWithNamed => {
