@@ -621,8 +621,7 @@ pub struct RegisterJsTaps {
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveErrorArgs) => Promise<[boolean | undefined, JsResolveData]>); stage: number; }>"
   )]
-  pub register_normal_module_factory_resolve_error_taps:
-    RegisterFunction<JsResolveErrorArgs, Promise<(Option<bool>, JsResolveData)>>,
+  pub register_normal_module_factory_resolve_error_taps: RegisterFunction,
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsResolveForSchemeArgs) => Promise<[boolean | undefined, JsResolveForSchemeArgs]>); stage: number; }>"
   )]
