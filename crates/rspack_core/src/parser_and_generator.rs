@@ -165,7 +165,7 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
   }
 
   fn has_runtime_hash(&self) -> bool {
-    true
+    false
   }
 }
 

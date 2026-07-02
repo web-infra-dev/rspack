@@ -11,7 +11,6 @@ use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::ext::DynHash;
 use rustc_hash::{FxHashSet, FxHasher};
 use serde::{Serialize, Serializer};
-use smallvec::SmallVec;
 use ustr::Ustr;
 
 use crate::{
@@ -340,46 +339,48 @@ impl ChunkGraph {
       .get_module_graph_hash_without_connections(module, compilation, runtime)
       .hash(&mut hasher);
 
-    let mut visited_modules = SmallVec::<[ModuleIdentifier; 8]>::new();
-    visited_modules.push(module.identifier());
+    let mut visited_modules = IdentifierSet::default();
+    visited_modules.insert(module.identifier());
 
-    for c in mg.get_outgoing_deps_in_order(&module.identifier()) {
-      let Some(connection) = mg.connection_by_dependency_id(c) else {
-        continue;
-      };
-      let module_identifier = connection.module_identifier();
-      if visited_modules.contains(module_identifier) {
-        continue;
-      }
-      let active_state = connection.active_state(
-        mg,
-        runtime,
-        mg_cache,
-        side_effects_state_artifact,
-        &compilation.exports_info_artifact,
-      );
-      if active_state.is_false() {
-        continue;
-      }
-      visited_modules.push(*module_identifier);
-      for_each_runtime(
-        runtime,
-        |runtime| {
-          let runtime = runtime.map(|r| RuntimeSpec::from_iter([*r]));
-          let active_state = connection.active_state(
-            mg,
-            runtime.as_ref(),
-            mg_cache,
-            side_effects_state_artifact,
-            &compilation.exports_info_artifact,
-          );
-          active_state.hash(&mut hasher);
-        },
-        true,
-      );
-    }
+    let hash_modules = mg
+      .get_outgoing_deps_in_order(&module.identifier())
+      .filter_map(|c| {
+        let connection = mg.connection_by_dependency_id(c)?;
+        let module_identifier = connection.module_identifier();
+        if visited_modules.contains(module_identifier) {
+          return None;
+        }
+        let active_state = connection.active_state(
+          mg,
+          runtime,
+          mg_cache,
+          side_effects_state_artifact,
+          &compilation.exports_info_artifact,
+        );
+        if active_state.is_false() {
+          return None;
+        }
+        visited_modules.insert(*module_identifier);
+        for_each_runtime(
+          runtime,
+          |runtime| {
+            let runtime = runtime.map(|r| RuntimeSpec::from_iter([*r]));
+            let active_state = connection.active_state(
+              mg,
+              runtime.as_ref(),
+              mg_cache,
+              side_effects_state_artifact,
+              &compilation.exports_info_artifact,
+            );
+            active_state.hash(&mut hasher);
+          },
+          true,
+        );
+        Some(module_identifier)
+      })
+      .collect::<Vec<_>>();
 
-    for module_identifier in visited_modules.iter().skip(1) {
+    for module_identifier in hash_modules {
       let module = mg
         .module_by_identifier(module_identifier)
         .expect("should have module")

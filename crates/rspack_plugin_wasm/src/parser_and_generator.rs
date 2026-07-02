@@ -151,10 +151,6 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     }
   }
 
-  fn has_runtime_hash(&self) -> bool {
-    false
-  }
-
   #[allow(clippy::unwrap_in_result)]
   async fn generate(
     &self,

@@ -49,10 +49,6 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       .map_or(0.0, |data| stringify(data.clone()).len() as f64)
   }
 
-  fn has_runtime_hash(&self) -> bool {
-    false
-  }
-
   async fn parse<'a>(
     &mut self,
     parse_context: rspack_core::ParseContext<'a>,

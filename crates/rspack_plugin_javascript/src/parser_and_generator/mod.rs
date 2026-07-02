@@ -187,10 +187,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     module.source().map_or(0, |source| source.size()) as f64
   }
 
-  fn has_runtime_hash(&self) -> bool {
-    false
-  }
-
   #[tracing::instrument("JavaScriptParser:parse", skip_all,fields(
     resource = parse_context.resource_data.resource()
   ))]
