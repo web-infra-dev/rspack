@@ -124,7 +124,7 @@ compiler.hooks.compilation.tap(
 
 - 如果没有任何 tap 返回 `{ retry: true }`，则照常报告原始的解析错误。
 - 最多只会重试一次。如果重试后的解析仍然失败，将报告新的错误，且不会再次调用 `resolveError`。
-- 该钩子仅在普通路径解析失败时调用。对于带有 scheme（URI）的模块标识符、loader 解析失败或其他类型的错误，不会调用该钩子。
+- 该钩子仅在普通路径解析出现模块未找到（module-not-found）错误时调用。对于其他解析错误（例如无效的 `package.json` 或违反 package `exports` 规则）、带有 scheme（URI）的模块标识符、loader 解析失败或其他类型的错误，不会调用该钩子。
 
 `error` 参数包含解析错误的信息，包括 `message`。
 

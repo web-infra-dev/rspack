@@ -18,8 +18,8 @@ use crate::{
   ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory,
   ResourceData, ResourceParsedData, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  diagnostics::{EmptyDependency, MODULE_NOT_FOUND_ERROR_CODE},
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -42,7 +42,8 @@ pub enum NormalModuleFactoryResolveResult {
 
 enum ResolveNormalModuleOutcome {
   Resolved(ModuleFactoryResult),
-  /// Resource resolution failed; the `resolve_error` hook may request a retry.
+  /// Resource resolution failed with module-not-found; the `resolve_error`
+  /// hook may request a retry.
   ResolveFailed(rspack_error::Error),
 }
 
@@ -993,7 +994,14 @@ module.exports = "data:,";
             // failed attempt's paths for watch-mode invalidation.
             data.add_file_dependencies(file_dependencies);
             data.add_missing_dependencies(missing_dependencies);
-            return Ok(ResolveNormalModuleOutcome::ResolveFailed(err));
+            // Only module-not-found failures are recoverable via the
+            // `resolve_error` hook; other resolver errors (invalid
+            // `package.json`, exports violations, IO errors, ...) must
+            // surface directly.
+            if err.code.as_deref() == Some(MODULE_NOT_FOUND_ERROR_CODE) {
+              return Ok(ResolveNormalModuleOutcome::ResolveFailed(err));
+            }
+            return Err(err);
           }
         }
       }

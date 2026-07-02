@@ -124,7 +124,7 @@ Called when resolving a module request fails, for example when the requested mod
 
 - If no tap returns `{ retry: true }`, the original resolution error is reported as usual.
 - The resolution is retried at most once. If the retried resolution also fails, the new error is reported and `resolveError` is not called again.
-- This hook is only called for failures of ordinary path resolution. It is not called for module specifiers with a scheme (URI), loader resolution failures, or other kinds of errors.
+- This hook is only called for module-not-found failures of ordinary path resolution. It is not called for other resolver errors (such as invalid `package.json` or package `exports` violations), module specifiers with a scheme (URI), loader resolution failures, or other kinds of errors.
 
 The `error` argument contains the resolution error, including its `message`.
 

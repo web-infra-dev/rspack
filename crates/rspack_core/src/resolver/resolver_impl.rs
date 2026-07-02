@@ -13,6 +13,7 @@ use rspack_util::location::byte_line_column_to_offset;
 use super::{ResolveResult, Resource, boxfs::BoxFS};
 use crate::{
   Alias, AliasMap, DependencyCategory, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  diagnostics::MODULE_NOT_FOUND_ERROR_CODE,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -405,11 +406,13 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
 
   let importer = args.importer;
   if importer.is_none() {
-    return rspack_error::error!(format!(
+    let mut error = rspack_error::error!(format!(
       "Module not found: Can't resolve {} in {}",
       yellow(&format!("'{request}'")),
       cyan(&format!("'{context}'")),
     ));
+    error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
+    return error;
   }
 
   let message = format!(
@@ -432,6 +435,7 @@ fn map_resolver_error(is_recursion: bool, args: &ResolveArgs<'_>) -> Error {
     "Module not found".to_string(),
     message,
   );
+  error.code = Some(MODULE_NOT_FOUND_ERROR_CODE.to_string());
   error.help = if is_recursion {
     Some("maybe it had cyclic aliases".into())
   } else {

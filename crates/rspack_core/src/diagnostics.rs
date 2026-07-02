@@ -5,6 +5,10 @@ use crate::{BoxLoader, DependencyRange};
 
 ///////////////////// Module Factory /////////////////////
 
+/// Error code for module-not-found resolution failures, matching webpack's
+/// `ModuleNotFoundError` name.
+pub const MODULE_NOT_FOUND_ERROR_CODE: &str = "ModuleNotFoundError";
+
 #[derive(Debug)]
 pub struct EmptyDependency(Error);
 
