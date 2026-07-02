@@ -6,10 +6,9 @@ use rspack_util::fx_hash::FxDashMap;
 use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
   CompilerHooks, CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
-  CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, CssModuleParserOptions,
-  GeneratorOptions, JsonGeneratorOptions, JsonParserOptions, MODULE_RULE_ID_UNASSIGNED,
-  ModuleRuleEffect, ModuleRuleIds, ModuleType, NormalModuleFactoryHooks, NormalModuleHooks,
-  ParserAndGenerator, ParserOptions,
+  CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, GeneratorOptions, JsonGeneratorOptions,
+  JsonParserOptions, MODULE_RULE_ID_UNASSIGNED, ModuleRuleEffect, ModuleRuleIds, ModuleType,
+  NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
 };
 
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
@@ -89,15 +88,6 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a AssetParserOptions {
       .parser_options()
       .and_then(ParserOptions::get_asset)
       .expect("should have AssetParserOptions")
-  }
-}
-
-impl<'a> From<&'a ResolvedModuleOptions> for &'a CssModuleParserOptions {
-  fn from(owner: &'a ResolvedModuleOptions) -> Self {
-    owner
-      .parser_options()
-      .and_then(ParserOptions::get_css_global)
-      .expect("should have CssModuleParserOptions")
   }
 }
 

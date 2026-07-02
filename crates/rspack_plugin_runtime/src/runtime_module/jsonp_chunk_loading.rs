@@ -174,7 +174,7 @@ impl JsonpChunkLoadingRuntimeModule {
   }
 
   fn template_id(&self, id: TemplateId) -> String {
-    let base_id = self.id.as_str();
+    let base_id = self.id().as_str();
 
     match id {
       TemplateId::Raw => base_id.to_string(),
@@ -208,7 +208,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
-    let Some(chunk_ukey) = self.chunk else {
+    let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -305,7 +305,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached"));
+      .expect_get(&self.chunk().expect("The chunk should be attached"));
 
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
     let with_base_uri = runtime_requirements.contains(RuntimeGlobals::BASE_URI);
@@ -341,7 +341,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       .chunk_graph
       .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+    let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
 
     let js_matcher = has_js_matcher.render("chunkId");
 
@@ -408,7 +408,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk.expect("The chunk should be attached");
+      let chunk_ukey = self.chunk().expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_prefetch
@@ -442,7 +442,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk.expect("The chunk should be attached");
+      let chunk_ukey = self.chunk().expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_preload

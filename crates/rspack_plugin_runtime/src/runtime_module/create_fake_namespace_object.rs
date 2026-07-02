@@ -31,7 +31,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
@@ -51,7 +51,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
         })
       },
     );
-    let source = context.runtime_template.render(&self.id, params)?;
+    let source = context.runtime_template.render(self.id(), params)?;
 
     Ok(source)
   }

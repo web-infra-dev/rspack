@@ -1,13 +1,10 @@
-use std::{
-  hash::Hash,
-  sync::{Arc, LazyLock},
-};
+use std::sync::{Arc, LazyLock};
 
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
 };
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::SpanExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_atoms::Atom;
@@ -84,7 +81,7 @@ fn add_dependencies(
   need_new_url: bool,
 ) {
   let output_options = &parser.compiler_options.output;
-  let mut hasher = RspackHash::from(output_options);
+  let mut hasher = RspackHasher::from(output_options);
   parser.module_identifier.hash(&mut hasher);
   parser.worker_index.hash(&mut hasher);
   parser.worker_index += 1;

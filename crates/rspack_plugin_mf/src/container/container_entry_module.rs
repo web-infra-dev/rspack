@@ -14,7 +14,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
 
@@ -71,10 +71,7 @@ impl ContainerEntryModule {
         top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
+      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       enhanced,
       request: None,
       version: None,
@@ -99,10 +96,7 @@ impl ContainerEntryModule {
         top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
+      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       enhanced: false,
       request: Some(request),
       version: Some(version),
@@ -280,7 +274,7 @@ impl Module for ContainerEntryModule {
 
       // Generate installInitialConsumes function using returning_function
       let install_initial_consumes_call = format!(
-        r#"localBundlerRuntime.installInitialConsumes({{ 
+        r#"localBundlerRuntime.installInitialConsumes({{
             installedModules: localInstalledModules, 
             initialConsumes: {require_name}.consumesLoadingData.initialConsumes, 
             moduleToHandlerMapping: {require_name}.federation.consumesLoadingModuleToHandlerMapping || {{}}, 
@@ -439,7 +433,7 @@ var init = function(shareScope, initScope) {{
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

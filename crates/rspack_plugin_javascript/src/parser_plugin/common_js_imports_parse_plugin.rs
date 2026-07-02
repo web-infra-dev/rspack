@@ -1098,7 +1098,6 @@ fn create_commonjs_require_context_dependency(
     replaces: result.replaces,
     start: span.real_lo(),
     end: span.real_hi(),
-    referenced_specifiers,
     ..Default::default()
   };
   let range = call_expr.span.into();
@@ -1113,6 +1112,9 @@ fn create_commonjs_require_context_dependency(
     parser.in_try,
     request_context,
   );
+  if let Some(referenced_specifiers) = referenced_specifiers {
+    dep.set_referenced_specifiers(referenced_specifiers);
+  }
   *dep.critical_mut() = result.critical;
   dep
 }
@@ -1427,26 +1429,27 @@ impl CommonJsImportsParserPlugin {
             });
             refs
           });
-      let dep: Box<dyn rspack_core::Dependency> = if let Some(context) = request_context {
-        Box::new(CommonJsRequireDependency::new_contextual(
+      let mut dep = if let Some(context) = request_context {
+        CommonJsRequireDependency::new_contextual(
           param.string().clone(),
           range_expr,
           Some(span.into()),
           parser.in_try,
           context,
           loc,
-          referenced_specifiers,
-        ))
+        )
       } else {
-        Box::new(CommonJsRequireDependency::new(
+        CommonJsRequireDependency::new(
           param.string().clone(),
           range_expr,
           Some(span.into()),
           parser.in_try,
           loc,
-          referenced_specifiers,
-        ))
+        )
       };
+      if let Some(referenced_specifiers) = referenced_specifiers {
+        dep.set_referenced_specifiers(referenced_specifiers);
+      }
       let dep_idx = parser.next_dependency_idx();
       if let Some(require_references) = parser.common_js_require_references.get_require_mut(&span) {
         require_references.dep_locator = Some(RequireDependencyLocator {
@@ -1455,7 +1458,7 @@ impl CommonJsImportsParserPlugin {
           dep_type: DependencyType::CjsRequire,
         });
       }
-      parser.add_dependency(dep);
+      parser.add_dependency(Box::new(dep));
       true
     })
   }

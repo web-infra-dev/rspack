@@ -27,7 +27,7 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/on_chunk_loaded.ejs").to_string(),
     )]
   }
@@ -36,7 +36,7 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

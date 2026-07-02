@@ -26,6 +26,8 @@ criterion_main!(
   cases::scan_dependencies::case,
   cases::bundle_basic_react_development::case,
   cases::bundle_basic_react_production_sourcemap::case,
+  cases::bundle_misc_development::case,
+  cases::bundle_misc_production_sourcemap::case,
   cases::bundle_threejs_development::case,
   cases::bundle_threejs_production_sourcemap::case,
   stages::flag_dependency_exports::stage,

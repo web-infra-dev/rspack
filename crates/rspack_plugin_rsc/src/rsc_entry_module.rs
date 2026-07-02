@@ -17,7 +17,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_plugin_javascript::dependency::ImportEagerDependency;
 use rspack_util::{fx_hash::FxIndexSet, source_map::SourceMapKind};
 use rustc_hash::FxHashSet;
@@ -93,10 +93,7 @@ impl RscEntryModule {
         top_level_declarations: Some(FxHashSet::default()),
         ..Default::default()
       },
-      build_meta: BuildMeta {
-        exports_type: BuildMetaExportsType::Namespace,
-        ..Default::default()
-      },
+      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
       source_map_kind: SourceMapKind::empty(),
       layer,
     }
@@ -261,13 +258,15 @@ impl Module for RscEntryModule {
       let mut dependencies: Vec<BoxDependency> = Vec::with_capacity(all_client_modules.len());
       for client_module in all_client_modules {
         let referenced_specifiers = create_referenced_specifiers(&client_module.ids);
-        let dep = ImportEagerDependency::new(
+        let mut dep = ImportEagerDependency::new(
           Atom::from(client_module.request.as_str()),
           DependencyRange { start: 0, end: 0 },
-          referenced_specifiers,
           None,
           ImportPhase::Evaluation,
         );
+        if let Some(referenced_specifiers) = referenced_specifiers {
+          dep.set_referenced_specifiers(referenced_specifiers, true);
+        }
         dependencies.push(Box::new(dep));
       }
       Ok(BuildResult {
@@ -403,7 +402,7 @@ impl Module for RscEntryModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

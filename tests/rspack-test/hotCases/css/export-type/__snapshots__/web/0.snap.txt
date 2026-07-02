@@ -1,0 +1,14 @@
+# Case export-type: Step 0
+
+## Changed Files
+
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: hi_txt.chunk.CURRENT_HASH.js
+- Bundle: stylesheet_css.chunk.CURRENT_HASH.js
+
+## Manifest
+
+
+## Update

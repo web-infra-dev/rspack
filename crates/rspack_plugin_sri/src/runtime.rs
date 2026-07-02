@@ -49,7 +49,7 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
   async fn generate(&self, context: &RuntimeModuleGenerateContext<'_>) -> Result<String> {
     let compilation = context.compilation;
     let Some(chunk) = self
-      .chunk
+      .chunk()
       .as_ref()
       .and_then(|c| compilation.build_chunk_graph_artifact.chunk_by_ukey.get(c))
     else {
@@ -96,23 +96,20 @@ impl RuntimeModule for SRIHashVariableRuntimeModule {
       ),
     ];
 
-    let all_chunks = find_chunks(
-      self.chunk.as_ref().expect("should attached chunk"),
-      compilation,
-    )
-    .into_iter()
-    .filter(|c| {
-      compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_modules(c, module_graph)
-        .iter()
-        .any(|m| {
-          let result = compilation.code_generation_results.get_one(&m.identifier());
-          result.inner.values().any(|v| v.size() != 0)
-        })
-    })
-    .collect::<Vec<_>>();
+    let all_chunks = find_chunks(&self.chunk().expect("should attached chunk"), compilation)
+      .into_iter()
+      .filter(|c| {
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules(c, module_graph)
+          .iter()
+          .any(|m| {
+            let result = compilation.code_generation_results.get_one(&m.identifier());
+            result.inner.values().any(|v| v.size() != 0)
+          })
+      })
+      .collect::<Vec<_>>();
 
     let mut code = vec![];
 

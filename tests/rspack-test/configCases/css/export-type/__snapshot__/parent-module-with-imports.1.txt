@@ -1,0 +1,118 @@
+@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+.foo {
+    color: rebeccapurple;
+}
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+.auto-no-esm-text {
+	color: brown;
+	font-style: italic;
+}
+
+.another-auto {
+	display: block;
+}
+
+
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+@layer utilities {
+.imported-layer_css_a34c-imported-layer {
+	padding: 10px;
+	margin: 5px;
+}
+
+
+}
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+@supports (display: grid) {
+.imported-base_css_fe88-imported-base {
+	color: blue;
+	font-size: 14px;
+}
+
+
+}
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+@media screen and (min-width: 768px){
+.imported-base_css_fe88-imported-base {
+	color: blue;
+	font-size: 14px;
+}
+
+
+}
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+@media screen and (max-width: 1024px){
+@supports (display: flex) {
+@layer components {
+.imported-layer_css_a34c-imported-layer {
+	padding: 10px;
+	margin: 5px;
+}
+
+
+}
+}
+}
+}
+}
+}@media screen and (min-width: 1024px){
+@supports (display: flex) {
+@layer framework {
+
+
+
+
+
+
+
+
+.module-with-imports_css_e314-main-class {
+	color: purple;
+	display: flex;
+	background-image: url(7bc91c245a8a10a4.png);
+}
+
+@layer base {
+	.module-with-imports_css_e314-base-class {
+		font-family: sans-serif;
+	}
+}
+
+@supports (display: grid) {
+	.module-with-imports_css_e314-grid-class {
+		display: grid;
+	}
+}
+
+@media (min-width: 600px) {
+	.module-with-imports_css_e314-responsive-class {
+		width: 100%;
+	}
+}
+
+
+}
+}
+}

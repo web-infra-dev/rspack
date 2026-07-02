@@ -34,7 +34,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/create_script_url.ejs").to_string(),
     )]
   }
@@ -45,7 +45,7 @@ impl RuntimeModule for CreateScriptUrlRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_trusted_types": compilation.options.output.trusted_types.is_some(),
       })),

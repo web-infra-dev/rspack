@@ -26,7 +26,7 @@ impl JavascriptParser<'_> {
 
   fn handle_top_level_await(&mut self, span: Span) {
     if self.is_esm {
-      self.build_meta.has_top_level_await = true;
+      self.build_meta.set_has_top_level_await(true);
     } else {
       self.throw_top_level_await_error(
         "Top-level-await is only supported in ECMAScript Modules".into(),
@@ -54,14 +54,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMDetectionParserPlugin {
 
     if is_esm {
       parser.add_presentational_dependency(Box::new(ESMCompatibilityDependency));
-      parser.build_meta.esm = true;
-      parser.build_meta.exports_type = BuildMetaExportsType::Namespace;
+      parser.build_meta.set_esm(true);
+      parser
+        .build_meta
+        .set_exports_type(BuildMetaExportsType::Namespace);
       parser.build_info.strict = true;
       parser.build_info.exports_argument = ExportsArgument::RspackExports;
     }
 
     if is_strict_esm {
-      parser.build_meta.strict_esm_module = true;
+      parser.build_meta.set_strict_esm_module(true);
       parser.build_info.module_argument = ModuleArgument::RspackModule;
     }
 

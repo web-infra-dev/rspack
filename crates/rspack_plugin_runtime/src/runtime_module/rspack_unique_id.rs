@@ -38,7 +38,7 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
   }
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_unique_id.ejs").to_string(),
     )]
   }
@@ -48,7 +48,7 @@ impl RuntimeModule for RspackUniqueIdRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_bundler_name": &self.bundler_name,
         "_bundler_version": &self.bundler_version,

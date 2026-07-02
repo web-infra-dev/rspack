@@ -176,15 +176,15 @@ impl ModuleChunkLoadingRuntimeModule {
 
   fn template(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Raw => self.id.to_string(),
-      TemplateId::WithLoading => format!("{}_with_loading", self.id),
-      TemplateId::WithPrefetch => format!("{}_with_prefetch", self.id),
-      TemplateId::WithPrefetchLink => format!("{}_with_prefetch_link", self.id),
-      TemplateId::WithPreload => format!("{}_with_preload", self.id),
-      TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id),
-      TemplateId::WithHMR => format!("{}_with_hmr", self.id),
-      TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id),
-      TemplateId::HmrRuntime => format!("{}_hmr_runtime", self.id),
+      TemplateId::Raw => self.id().to_string(),
+      TemplateId::WithLoading => format!("{}_with_loading", self.id()),
+      TemplateId::WithPrefetch => format!("{}_with_prefetch", self.id()),
+      TemplateId::WithPrefetchLink => format!("{}_with_prefetch_link", self.id()),
+      TemplateId::WithPreload => format!("{}_with_preload", self.id()),
+      TemplateId::WithPreloadLink => format!("{}_with_preload_link", self.id()),
+      TemplateId::WithHMR => format!("{}_with_hmr", self.id()),
+      TemplateId::WithHMRManifest => format!("{}_with_hmr_manifest", self.id()),
+      TemplateId::HmrRuntime => format!("{}_hmr_runtime", self.id()),
     }
   }
 }
@@ -204,7 +204,7 @@ enum TemplateId {
 #[async_trait::async_trait]
 impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
   fn runtime_requirements(&self, compilation: &Compilation) -> RuntimeModuleRuntimeRequirements {
-    let Some(chunk_ukey) = self.chunk else {
+    let Some(chunk_ukey) = self.chunk() else {
       return RuntimeModuleRuntimeRequirements::default();
     };
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
@@ -292,7 +292,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .expect_get(&self.chunk.expect("The chunk should be attached."));
+      .expect_get(&self.chunk().expect("The chunk should be attached."));
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
 
     let hooks = RuntimePlugin::get_compilation_hooks(compilation.id());
@@ -330,7 +330,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       .chunk_graph
       .get_chunk_condition_map(&chunk.ukey(), compilation, chunk_has_js);
     let has_js_matcher = compile_boolean_matcher(&condition_map);
-    let initial_chunks = get_initial_chunk_ids(self.chunk, compilation, chunk_has_js);
+    let initial_chunks = get_initial_chunk_ids(self.chunk(), compilation, chunk_has_js);
 
     let root_output_dir = get_output_dir(chunk, compilation, true).await?;
     let import_function_name = &compilation.options.output.import_function_name;
@@ -421,7 +421,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           })),
         )?;
 
-        let chunk_ukey = self.chunk.expect("The chunk should be attached");
+        let chunk_ukey = self.chunk().expect("The chunk should be attached");
         let res = hooks
           .borrow()
           .link_prefetch
@@ -454,7 +454,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           })),
         )?;
 
-        let chunk_ukey = self.chunk.expect("The chunk should be attached");
+        let chunk_ukey = self.chunk().expect("The chunk should be attached");
         let res = hooks
           .borrow()
           .link_preload

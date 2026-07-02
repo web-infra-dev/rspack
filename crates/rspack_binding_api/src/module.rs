@@ -6,15 +6,14 @@ use napi_derive::napi;
 use rspack_collections::{Identifier, IdentifierMap};
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleStage, SourceType,
-  internal,
+  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
+  RuntimeModuleStage, SourceType, internal,
 };
 use rspack_napi::{
   OneShotInstanceRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt,
   threadsafe_function::ThreadsafeFunction,
 };
 use rspack_plugin_runtime::RuntimeModuleFromJs;
-use rspack_util::source_map::SourceMapKind;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -790,8 +789,10 @@ pub struct JsAddingRuntimeModule {
 impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
   fn from(value: JsAddingRuntimeModule) -> Self {
     Self {
-      chunk: None,
-      id: Identifier::from(value.name),
+      common: RuntimeModuleCommon {
+        id: Identifier::from(value.name),
+        ..Default::default()
+      },
       full_hash: value.full_hash,
       dependent_hash: value.dependent_hash,
       isolate: value.isolate,
@@ -800,9 +801,6 @@ impl From<JsAddingRuntimeModule> for RuntimeModuleFromJs {
         let generator = value.generator.clone();
         Box::pin(async move { generator.call_with_sync(()).await })
       }),
-      source_map_kind: SourceMapKind::empty(),
-      custom_source: None,
-      cached_generated_code: Default::default(),
     }
   }
 }
@@ -830,34 +828,25 @@ impl From<JsBuildMeta> for BuildMeta {
       exports_type: raw_exports_type,
     } = value;
 
-    let default_object = if let Some(raw_default_object) = raw_default_object {
-      match raw_default_object.as_str() {
+    let default_object =
+      raw_default_object.map(|raw_default_object| match raw_default_object.as_str() {
         "false" => BuildMetaDefaultObject::False,
         "redirect" => BuildMetaDefaultObject::Redirect,
         "redirect-warn" => BuildMetaDefaultObject::RedirectWarn,
         _ => unreachable!(),
-      }
-    } else {
-      BuildMetaDefaultObject::False
-    };
+      });
 
-    let exports_type = if let Some(raw_exports_type) = raw_exports_type {
-      match raw_exports_type.as_str() {
-        "unset" => BuildMetaExportsType::Unset,
-        "default" => BuildMetaExportsType::Default,
-        "namespace" => BuildMetaExportsType::Namespace,
-        "flagged" => BuildMetaExportsType::Flagged,
-        "dynamic" => BuildMetaExportsType::Dynamic,
-        _ => unreachable!(),
-      }
-    } else {
-      BuildMetaExportsType::Unset
-    };
+    let exports_type = raw_exports_type
+      .as_deref()
+      .map(BuildMetaExportsType::from)
+      .unwrap_or_default();
 
-    Self {
-      strict_esm_module: strict_esm_module.unwrap_or_default(),
-      has_top_level_await: has_top_level_await.unwrap_or_default(),
-      esm: esm.unwrap_or_default(),
+    BuildMeta {
+      strict_esm_module,
+      has_top_level_await,
+      esm,
+      is_css_module: None,
+      need_id_in_concatenation: None,
       exports_type,
       default_object,
       side_effect_free,

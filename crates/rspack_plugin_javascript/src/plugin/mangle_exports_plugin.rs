@@ -153,7 +153,7 @@ async fn optimize_code_generation(
     .modules()
     .map(|(mid, module)| {
       let is_namespace = matches!(
-        module.build_meta().exports_type,
+        module.build_meta().exports_type(),
         BuildMetaExportsType::Namespace
       );
       (exports_info_artifact.get_exports_info(mid), is_namespace)

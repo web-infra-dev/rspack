@@ -2,7 +2,7 @@ use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation,
   Module, ModuleIdentifier, rspack_sources::BoxSource,
 };
-use rspack_hash::RspackHash;
+use rspack_hash::RspackHasher;
 use rspack_hook::define_hook;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -14,7 +14,7 @@ define_hook!(JavascriptModulesRenderStartup: Series(compilation: &Compilation, c
 define_hook!(JavascriptModulesRenderModuleContent: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &ChunkCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesRenderModuleContainer: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey,module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &ChunkCodeTemplate),tracing=false);
 define_hook!(JavascriptModulesRenderModulePackage: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, module: &dyn Module, source: &mut RenderSource, init_fragments: &mut ChunkInitFragments, runtime_template: &ChunkCodeTemplate),tracing=false);
-define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHash));
+define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk_ukey: &ChunkUkey, hasher: &mut RspackHasher));
 define_hook!(JavascriptModulesInlineInRuntimeBailout: SeriesBail(compilation: &Compilation) -> String);
 define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &BoxModule, chunk: &Chunk) -> String);
 define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);

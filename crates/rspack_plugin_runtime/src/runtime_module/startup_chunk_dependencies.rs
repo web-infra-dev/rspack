@@ -39,7 +39,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/startup_chunk_dependencies.ejs").to_string(),
     )]
   }
@@ -50,7 +50,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk {
+    if let Some(chunk_ukey) = self.chunk() {
       let chunk_ids = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -109,7 +109,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
       };
 
       let source = runtime_template.render(
-        &self.id,
+        self.id(),
         Some(serde_json::json!({
           "_body": body,
         })),

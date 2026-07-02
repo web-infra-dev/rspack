@@ -37,7 +37,7 @@ impl ChunkPrefetchStartupRuntimeModule {
 impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       CHUNK_PREFETCH_STARTUP_TEMPLATE.to_string(),
     )]
   }
@@ -47,7 +47,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    let chunk_ukey = self.chunk.expect("chunk do not attached");
+    let chunk_ukey = self.chunk().expect("chunk do not attached");
 
     let source = self
       .startup_chunks
@@ -80,7 +80,7 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
           .collect_vec();
 
         let source = context.runtime_template.render(
-          &self.id,
+          self.id(),
           Some(serde_json::json!({
             "_chunk_ids": simd_json::to_string(&group_chunk_ids).expect("invalid json to_string"),
             "_child_chunk_ids": simd_json::to_string(&child_chunk_ids).expect("invalid json to_string"),

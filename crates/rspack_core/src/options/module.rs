@@ -10,7 +10,7 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::{Result, error};
-use rspack_hash::{HashDigest, HashFunction, HashSalt};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
@@ -77,9 +77,6 @@ macro_rules! get_variant {
 
 impl ParserOptions {
   get_variant!(get_asset, Asset, AssetParserOptions);
-  get_variant!(get_css, Css, CssParserOptions);
-  get_variant!(get_css_auto, CssAutoOrModule, CssAutoOrModuleParserOptions);
-  get_variant!(get_css_global, CssModule, CssModuleParserOptions);
   get_variant!(
     get_css_module,
     CssAutoOrModule,
@@ -141,10 +138,22 @@ impl From<&str> for DynamicImportFetchPriority {
 
 impl fmt::Display for DynamicImportFetchPriority {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl RspackHash for DynamicImportFetchPriority {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl DynamicImportFetchPriority {
+  fn as_str(&self) -> &'static str {
     match self {
-      DynamicImportFetchPriority::Low => write!(f, "low"),
-      DynamicImportFetchPriority::High => write!(f, "high"),
-      DynamicImportFetchPriority::Auto => write!(f, "auto"),
+      DynamicImportFetchPriority::Low => "low",
+      DynamicImportFetchPriority::High => "high",
+      DynamicImportFetchPriority::Auto => "auto",
     }
   }
 }
@@ -247,7 +256,7 @@ impl ExportPresenceMode {
       ExportPresenceMode::None => None,
       ExportPresenceMode::Warn => Some(false),
       ExportPresenceMode::Error => Some(true),
-      ExportPresenceMode::Auto => Some(module.build_meta().strict_esm_module),
+      ExportPresenceMode::Auto => Some(module.build_meta().strict_esm_module()),
     }
   }
 }
@@ -437,6 +446,7 @@ impl MergeFrom for CssParserImport {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -446,6 +456,7 @@ pub struct CssParserOptions {
 impl Default for CssParserOptions {
   fn default() -> Self {
     Self {
+      export_type: None,
       named_exports: Some(true),
       url: Some(true),
       r#import: Some(true),
@@ -457,6 +468,7 @@ impl Default for CssParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssModuleParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -472,6 +484,7 @@ pub struct CssModuleParserOptions {
 impl Default for CssModuleParserOptions {
   fn default() -> Self {
     Self {
+      export_type: None,
       named_exports: Some(true),
       url: Some(true),
       r#import: Some(true),
@@ -489,6 +502,7 @@ impl Default for CssModuleParserOptions {
 #[cacheable]
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssAutoOrModuleParserOptions {
+  pub export_type: Option<CssExportType>,
   pub named_exports: Option<bool>,
   pub url: Option<bool>,
   pub r#import: Option<bool>,
@@ -505,6 +519,7 @@ pub struct CssAutoOrModuleParserOptions {
 impl From<&CssParserOptions> for CssModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -526,6 +541,7 @@ impl Default for CssAutoOrModuleParserOptions {
 impl From<CssModuleParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: CssModuleParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
@@ -544,11 +560,56 @@ impl From<CssModuleParserOptions> for CssAutoOrModuleParserOptions {
 impl From<&CssParserOptions> for CssAutoOrModuleParserOptions {
   fn from(value: &CssParserOptions) -> Self {
     Self {
+      export_type: value.export_type,
       named_exports: value.named_exports,
       url: value.url,
       r#import: value.r#import,
       resolve_import: value.resolve_import.clone(),
       ..Default::default()
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, MergeFrom, Hash)]
+pub enum CssExportType {
+  Link,
+  Text,
+  CssStyleSheet,
+  Style,
+}
+
+impl fmt::Display for CssExportType {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl RspackHash for CssExportType {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl CssExportType {
+  fn as_str(&self) -> &'static str {
+    match self {
+      CssExportType::Link => "link",
+      CssExportType::Text => "text",
+      CssExportType::CssStyleSheet => "css-style-sheet",
+      CssExportType::Style => "style",
+    }
+  }
+}
+
+impl From<String> for CssExportType {
+  fn from(value: String) -> Self {
+    match value.as_str() {
+      "link" => CssExportType::Link,
+      "text" => CssExportType::Text,
+      "css-style-sheet" => CssExportType::CssStyleSheet,
+      "style" => CssExportType::Style,
+      _ => unreachable!("css exportType error"),
     }
   }
 }
@@ -816,14 +877,29 @@ impl MergeFrom for AssetGeneratorDataUrl {
 }
 
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom, Hash)]
+#[derive(Debug, Clone, MergeFrom)]
 pub struct AssetGeneratorDataUrlOptions {
   pub encoding: Option<DataUrlEncoding>,
   pub mimetype: Option<String>,
 }
 
+impl RspackHash for AssetGeneratorDataUrlOptions {
+  fn hash(&self, state: &mut RspackHasher) {
+    if let Some(encoding) = &self.encoding
+      && !matches!(encoding, DataUrlEncoding::Base64)
+    {
+      "encoding".hash(state);
+      state.update(encoding);
+    }
+    if let Some(mimetype) = &self.mimetype {
+      "mimetype".hash(state);
+      state.update(mimetype);
+    }
+  }
+}
+
 #[cacheable]
-#[derive(Debug, Clone, MergeFrom, Hash)]
+#[derive(Debug, Clone, MergeFrom)]
 pub enum DataUrlEncoding {
   None,
   Base64,
@@ -831,9 +907,21 @@ pub enum DataUrlEncoding {
 
 impl fmt::Display for DataUrlEncoding {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str(self.as_str())
+  }
+}
+
+impl RspackHash for DataUrlEncoding {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_str().hash(state);
+  }
+}
+
+impl DataUrlEncoding {
+  fn as_str(&self) -> &'static str {
     match self {
-      DataUrlEncoding::None => write!(f, ""),
-      DataUrlEncoding::Base64 => write!(f, "base64"),
+      DataUrlEncoding::None => "",
+      DataUrlEncoding::Base64 => "base64",
     }
   }
 }

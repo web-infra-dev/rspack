@@ -1,14 +1,10 @@
-use std::{
-  borrow::Cow,
-  cell::OnceCell,
-  hash::{Hash, Hasher},
-  path::Path,
-};
+use std::{borrow::Cow, cell::OnceCell, path::Path, sync::LazyLock};
 
 use cow_utils::CowUtils;
-use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify};
+use regex::Regex;
+use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify, runtime_mode::RuntimeMode};
 use rspack_error::Result;
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
@@ -32,8 +28,8 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
     hash_salt,
     ..
   } = output_options;
-  let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
-  text.as_bytes().hash(&mut hasher);
+  let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
+  text.hash(&mut hasher);
   let mut buf = format!("{:x}", hasher.finish());
   buf.truncate(4);
   buf
@@ -41,14 +37,32 @@ fn get_hash(text: &str, output_options: &OutputOptions) -> String {
 
 pub struct ModuleFilenameHelpers;
 
+static DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP: LazyLock<Regex> = LazyLock::new(|| {
+  Regex::new(r"^(webpack://|rspack://)\[namespace\]/\[resourcePath\]$")
+    .expect("failed to compile DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP regex")
+});
+
+fn default_resource_path_template_scheme(module_filename_template: &str) -> Option<&str> {
+  DEFAULT_RESOURCE_PATH_TEMPLATE_REGEXP
+    .captures(module_filename_template)
+    .and_then(|captures| captures.get(1).map(|scheme| scheme.as_str()))
+}
+
 // sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
+  runtime_mode: RuntimeMode,
 ) -> Option<String> {
-  if absolute_resource_path.starts_with("webpack/runtime") {
-    // Webpack runtime modules are virtual
-    return Some(format!("webpack://{absolute_resource_path}"));
+  if absolute_resource_path.starts_with("webpack/runtime")
+    || absolute_resource_path.starts_with("rspack/runtime")
+  {
+    // Runtime modules are virtual
+    let scheme = match runtime_mode {
+      RuntimeMode::Webpack => "webpack",
+      RuntimeMode::Rspack => "rspack",
+    };
+    return Some(format!("{scheme}://{absolute_resource_path}"));
   }
 
   let Some(source_map_path) = source_map_path else {
@@ -168,8 +182,11 @@ impl ModuleFilenameHelpers {
         };
 
         let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
-        let relative_resource_path =
-          resolve_relative_resource_path(&absolute_resource_path, unresolved_source_map_path);
+        let relative_resource_path = resolve_relative_resource_path(
+          &absolute_resource_path,
+          unresolved_source_map_path,
+          options.experiments.runtime_mode,
+        );
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -216,8 +233,8 @@ impl ModuleFilenameHelpers {
     namespace: &str,
     unresolved_source_map_path: Option<&Utf8Path>,
   ) -> String {
-    if module_filename_template == "webpack://[namespace]/[resourcePath]" {
-      return create_default_module_filename(source_reference, compilation, namespace);
+    if let Some(scheme) = default_resource_path_template_scheme(module_filename_template) {
+      return create_default_module_filename(source_reference, compilation, namespace, scheme);
     }
 
     let ctx = ModuleFilenameHelpers::create_module_filename_template_string_ctx(
@@ -287,6 +304,7 @@ fn create_default_module_filename(
   source_reference: &SourceReference,
   compilation: &Compilation,
   namespace: &str,
+  scheme: &str,
 ) -> String {
   let Compilation { options, .. } = compilation;
   let context = &options.context;
@@ -307,9 +325,8 @@ fn create_default_module_filename(
   let resource = short_identifier.split('!').next_back().unwrap_or("");
   let resource_path = resource.split_once('?').map_or(resource, |(path, _)| path);
 
-  let mut result =
-    String::with_capacity("webpack://".len() + namespace.len() + 1 + resource_path.len());
-  result.push_str("webpack://");
+  let mut result = String::with_capacity(scheme.len() + namespace.len() + 1 + resource_path.len());
+  result.push_str(scheme);
   result.push_str(namespace);
   result.push('/');
   result.push_str(resource_path);
@@ -393,8 +410,12 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
       }
       SourceReference::Source(_) => {
         let absolute_resource_path = self.absolute_resource_path();
-        resolve_relative_resource_path(absolute_resource_path, self.unresolved_source_map_path)
-          .map(Cow::Owned)
+        resolve_relative_resource_path(
+          absolute_resource_path,
+          self.unresolved_source_map_path,
+          self.compilation.options.experiments.runtime_mode,
+        )
+        .map(Cow::Owned)
       }
     }
   }

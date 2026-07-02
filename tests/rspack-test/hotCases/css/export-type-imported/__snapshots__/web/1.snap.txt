@@ -1,0 +1,63 @@
+# Case export-type-imported: Step 1
+
+## Changed Files
+- bar.css
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 737
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./bar.css
+- ./foo.css
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./bar.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "bar-v2": "bar_css-bar-v2",
+};
+__webpack_require__.r(module.exports = Object.assign({}, exports));
+module.exports.default = ".bar_css-bar-v2 {\n\tcolor: bar-updated;\n}";
+
+
+},
+"./foo.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "foo": "foo_css-foo",
+};
+__webpack_require__.r(module.exports = Object.assign({}, exports));
+module.exports.default = ".bar_css-bar-v2 {\n\tcolor: bar-updated;\n}\n\n.foo_css-foo {\n\tcolor: foo;\n}";
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

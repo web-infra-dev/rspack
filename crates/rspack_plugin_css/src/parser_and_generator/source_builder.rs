@@ -1,26 +1,39 @@
+use cow_utils::CowUtils;
 use rspack_core::{
-  CssLayer as CssModuleRenderLayer, CssModuleRenderCondition,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
+  Context, CssLayer, CssModuleRenderCondition,
+  rspack_sources::{
+    BoxSource, ConcatSource, MapOptions, ObjectPool, RawStringSource, ReplaceSource, Source,
+    SourceExt,
+  },
 };
+use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
 
 const CSS_UTF8_CHARSET: &str = r#"@charset "UTF-8";"#;
 
 pub(crate) struct CssSourceBuilder {
   source: ConcatSource,
   has_charset: bool,
+  include_sources_content: bool,
+  source_map_context: Context,
 }
 
 impl Default for CssSourceBuilder {
   fn default() -> Self {
-    Self::new(true)
+    Self::new(true, true, Default::default())
   }
 }
 
 impl CssSourceBuilder {
-  pub(crate) fn new(with_charset: bool) -> Self {
+  pub(crate) fn new(
+    with_charset: bool,
+    include_sources_content: bool,
+    source_map_context: Context,
+  ) -> Self {
     Self {
       source: ConcatSource::default(),
       has_charset: with_charset,
+      include_sources_content,
+      source_map_context,
     }
   }
 
@@ -53,12 +66,12 @@ impl CssSourceBuilder {
 
       if let Some(layer) = &conditions.layer {
         match layer {
-          CssModuleRenderLayer::Named(layer) => {
+          CssLayer::Named(layer) => {
             self.add(RawStringSource::from_static("@layer "));
             self.add(RawStringSource::from(layer.to_string()));
             self.add(RawStringSource::from_static(" {\n"));
           }
-          CssModuleRenderLayer::Anonymous => {
+          CssLayer::Anonymous => {
             self.add(RawStringSource::from_static("@layer {\n"));
           }
         }
@@ -66,6 +79,7 @@ impl CssSourceBuilder {
       }
     }
 
+    // TODO: use PrefixSource to create indent
     self.add(source);
     while depth > 0 {
       depth -= 1;
@@ -79,6 +93,10 @@ impl CssSourceBuilder {
     self.add(RawStringSource::from_static("\n"));
   }
 
+  pub(crate) fn set_has_charset(&mut self) {
+    self.has_charset = true;
+  }
+
   pub(crate) fn into_source(self) -> BoxSource {
     if self.has_charset {
       ConcatSource::new([
@@ -90,6 +108,41 @@ impl CssSourceBuilder {
     } else {
       self.source.boxed()
     }
+  }
+
+  pub(crate) fn into_css_text(self) -> String {
+    let include_sources_content = self.include_sources_content;
+    let source_map_context = self.source_map_context.clone();
+    let source = self.into_source();
+    let mut css_text = source
+      .source()
+      .into_string_lossy()
+      .cow_replace(crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER, "")
+      .into_owned();
+
+    if let Some(mut source_map) = source.map(&ObjectPool::default(), &MapOptions::default()) {
+      if !source_map_context.as_str().is_empty() {
+        source_map.set_sources(
+          source_map
+            .sources()
+            .iter()
+            .map(|source| make_paths_relative(source_map_context.as_str(), source))
+            .collect::<Vec<_>>(),
+        );
+      }
+      if !include_sources_content {
+        source_map.set_sources_content(Vec::new());
+      }
+      let base64_map = encode_to_string(source_map.to_json().as_bytes());
+      if !css_text.ends_with('\n') {
+        css_text.push('\n');
+      }
+      css_text.push_str("/*# sourceMappingURL=data:application/json;charset=utf-8;base64,");
+      css_text.push_str(&base64_map);
+      css_text.push_str("*/");
+    }
+
+    css_text
   }
 
   fn add<S: Source + 'static>(&mut self, source: S) {
@@ -126,6 +179,7 @@ impl CssSourceBuilder {
 
 #[cfg(test)]
 mod tests {
+  use concat_string::concat_string;
   use rspack_core::rspack_sources::{RawStringSource, Source, SourceExt};
 
   use super::*;
@@ -157,9 +211,9 @@ mod tests {
           layer.map(|layer| {
             let layer = layer.trim();
             if layer.is_empty() {
-              CssModuleRenderLayer::Anonymous
+              CssLayer::Anonymous
             } else {
-              CssModuleRenderLayer::Named(layer.into())
+              CssLayer::Named(layer.into())
             }
           }),
         )),
@@ -170,7 +224,7 @@ mod tests {
 
   #[test]
   fn css_source_builder_adds_charset_once() {
-    let mut builder = CssSourceBuilder::new(true);
+    let mut builder = CssSourceBuilder::new(true, true, Default::default());
 
     builder.push_css_source(css_source(".a{}"), &[], false);
 
@@ -183,7 +237,7 @@ mod tests {
 
   #[test]
   fn css_source_builder_can_skip_charset() {
-    let mut builder = CssSourceBuilder::new(false);
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
 
     builder.push_css_source(css_source(".a{}"), &[], false);
 
@@ -195,7 +249,7 @@ mod tests {
     let conditions = css_import_conditions(
       r#"@import url("./a.css") layer(theme) supports(display: grid) screen;"#,
     );
-    let mut builder = CssSourceBuilder::new(false);
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
 
     builder.push_css_source(css_source(".a{}"), &conditions, false);
 
@@ -212,6 +266,37 @@ mod tests {
   }
 
   #[test]
+  fn css_source_builder_wraps_multiline_css_import_conditions() {
+    let conditions = css_import_conditions(
+      r#"@import url("./a.css") layer(theme) supports(display: grid) screen;"#,
+    );
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
+
+    builder.push_css_source(
+      css_source(
+        r#".a {
+  color: red;
+}"#,
+      ),
+      &conditions,
+      false,
+    );
+
+    assert_eq!(
+      source_text(builder.into_source()),
+      r#"@media screen{
+@supports (display: grid) {
+@layer theme {
+.a {
+  color: red;
+}
+}
+}
+}"#
+    );
+  }
+
+  #[test]
   fn css_source_builder_wraps_multiple_import_conditions_in_rspack_order() {
     let outer_import =
       css_import_conditions(r#"@import url("./nested.css") screen and (min-width: 768px);"#);
@@ -221,7 +306,7 @@ mod tests {
       .into_iter()
       .chain(inner_import)
       .collect::<Vec<_>>();
-    let mut builder = CssSourceBuilder::new(false);
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
 
     assert_eq!(conditions.len(), 2);
     builder.push_css_source(css_source(".a{}"), &conditions, false);
@@ -240,7 +325,7 @@ mod tests {
 
   #[test]
   fn css_source_builder_pushes_lines_explicitly() {
-    let mut builder = CssSourceBuilder::new(false);
+    let mut builder = CssSourceBuilder::new(false, true, Default::default());
 
     builder.push_css_source(css_source(".a{}"), &[], false);
     builder.push_line();
@@ -250,6 +335,27 @@ mod tests {
       source_text(builder.into_source()),
       r#".a{}
 .b{}"#
+    );
+  }
+
+  #[test]
+  fn css_source_builder_css_text_removes_auto_public_path_placeholder() {
+    let mut builder = CssSourceBuilder::new(true, true, Default::default());
+
+    builder.push_css_source(
+      css_source(&concat_string!(
+        ".a{background:url(",
+        crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
+        ");}"
+      )),
+      &[],
+      false,
+    );
+
+    assert_eq!(
+      builder.into_css_text(),
+      r#"@charset "UTF-8";
+.a{background:url();}"#
     );
   }
 }

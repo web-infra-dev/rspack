@@ -1,7 +1,7 @@
 mod drive;
 
 use std::{
-  hash::{BuildHasherDefault, Hasher},
+  hash::BuildHasherDefault,
   sync::{Arc, LazyLock},
 };
 
@@ -17,7 +17,7 @@ use rspack_core::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt, SourceValue},
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_hash::RspackHash;
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::fx_hash::FxDashMap;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet, FxHasher};
@@ -215,7 +215,7 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
               let new_hash = if let Some(new_hash) = updated_hash {
                 new_hash
               } else {
-                let mut hasher = RspackHash::from(&compilation.options.output);
+                let mut hasher = RspackHasher::from(&compilation.options.output);
                 for asset_content in asset_contents {
                   hasher.write(&asset_content.buffer());
                 }

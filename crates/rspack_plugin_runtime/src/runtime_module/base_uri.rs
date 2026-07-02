@@ -33,7 +33,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let base_uri = self
-      .chunk
+      .chunk()
       .and_then(|ukey| {
         compilation
           .build_chunk_graph_artifact

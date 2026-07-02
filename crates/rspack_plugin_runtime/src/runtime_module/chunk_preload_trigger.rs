@@ -36,7 +36,7 @@ impl ChunkPreloadTriggerRuntimeModule {
 impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       CHUNK_PRELOAD_TRIGGER_TEMPLATE.to_string(),
     )]
   }
@@ -46,7 +46,7 @@ impl RuntimeModule for ChunkPreloadTriggerRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_chunk_map": &self.chunk_map,
       })),

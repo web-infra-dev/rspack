@@ -238,7 +238,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               .module_by_identifier(&module_id)
               .expect("should have module");
             let is_exports_type_unset = matches!(
-              module.build_meta().exports_type,
+              module.build_meta().exports_type(),
               BuildMetaExportsType::Unset
             );
             let is_side_effect_free =
@@ -438,7 +438,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
       .expect("should have module");
     if !used_exports.is_empty() {
       let need_insert = matches!(
-        module.build_meta().exports_type,
+        module.build_meta().exports_type(),
         BuildMetaExportsType::Unset
       );
 

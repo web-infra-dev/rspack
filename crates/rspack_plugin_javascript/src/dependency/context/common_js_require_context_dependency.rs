@@ -55,6 +55,12 @@ impl CommonJsRequireContextDependency {
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    if referenced_specifiers.is_empty() {
+      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
+      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
+      // see test case `tests/rspack-test/configCases/cjs-tree-shaking/side-effects-free`
+      return;
+    }
     self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier = create_resource_identifier_for_context_dependency(
       self.context.as_ref().map(|c| c.as_str()),

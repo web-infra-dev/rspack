@@ -5,35 +5,7 @@ const fs = require('node:fs');
  * @param {Number} limit
  */
 module.exports = async function action({ github, context, limit }) {
-  const commits = await github.rest.repos.listCommits({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    per_page: 30,
-  });
-
-  let baseSize = 0;
-  let baseCommit = null;
-
-  for (const commit of commits.data) {
-    console.log(commit.sha);
-    try {
-      const data = await fetchDataBySha(commit.sha);
-      if (data?.size) {
-        baseCommit = commit;
-        baseSize = data.size;
-        console.log(`Commit ${commit.sha} has binary size: ${data.size}`);
-        break;
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  }
-
-  if (!baseCommit) {
-    const error = `No base binary size found within ${commits.data.length} commits`;
-    console.log(error);
-    throw new Error(error);
-  }
+  const { baseCommit, baseSize } = await findBaseCommit(github, context);
 
   const headSize = fs.statSync(
     './crates/node_binding/rspack.linux-x64-gnu.node',
@@ -57,6 +29,58 @@ module.exports = async function action({ github, context, limit }) {
     );
   }
 };
+
+const PER_PAGE = 30;
+const MAX_PAGES = 4;
+
+// Start from the PR's merge base (fork point) rather than the base branch tip,
+// so the size diff reflects only this PR's changes and not drift merged into
+// the base branch after the PR forked. Walk its ancestors page by page and
+// return the newest commit that has recorded binary size data.
+async function findBaseCommit(github, context) {
+  const { owner, repo } = context.repo;
+  const pr = context.payload.pull_request;
+  if (!pr) {
+    throw new Error('binary-limit action requires pull_request context');
+  }
+  const { data: comparison } =
+    await github.rest.repos.compareCommitsWithBasehead({
+      owner,
+      repo,
+      basehead: `${pr.base.sha}...${pr.head.sha}`,
+    });
+  const mergeBaseSha = comparison.merge_base_commit.sha;
+  console.log(`Merge base commit: ${mergeBaseSha}`);
+
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const { data: commits } = await github.rest.repos.listCommits({
+      owner,
+      repo,
+      sha: mergeBaseSha,
+      per_page: PER_PAGE,
+      page,
+    });
+
+    for (const commit of commits) {
+      console.log(commit.sha);
+      try {
+        const data = await fetchDataBySha(commit.sha);
+        if (data?.size) {
+          console.log(`Commit ${commit.sha} has binary size: ${data.size}`);
+          return { baseCommit: commit, baseSize: data.size };
+        }
+      } catch (e) {
+        console.log(e);
+      }
+    }
+
+    if (commits.length < PER_PAGE) break;
+  }
+
+  throw new Error(
+    `No base binary size found within ${MAX_PAGES} pages of commits from the merge base`,
+  );
+}
 
 async function commentToPullRequest(github, context, comment) {
   const { data: comments } = await github.rest.issues.listComments({
