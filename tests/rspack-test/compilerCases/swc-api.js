@@ -1,6 +1,3 @@
-const fs = require("fs");
-const path = require("path");
-
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [{
 	description: "should load @swc/plugin-remove-console successfully and transform code using rspack inner swc api",
@@ -67,7 +64,7 @@ module.exports = [{
 		]);
 	}
 }, {
-	description: "should preserve input sourcemap ignoreList in swc API",
+	description: "should not inherit input sourcemap ignoreList in swc API",
 	async check({ compiler }) {
 		let swc = compiler.rspack.experiments.swc;
 
@@ -97,85 +94,12 @@ module.exports = [{
 			const sourceMap = JSON.parse(result.map);
 			const ignoredIndex = sourceMap.sources.indexOf("vendor.js");
 			expect(ignoredIndex).not.toBe(-1);
-			expect(sourceMap.ignoreList).toContain(ignoredIndex);
+			expect(sourceMap.ignoreList).toBeUndefined();
 		}
 
 		await Promise.all([
 			check_transform_input_ignore_list(swc.transform),
 			check_transform_input_ignore_list(swc.transformSync)
-		]);
-	}
-}, {
-	description: "should accept input sourcemaps with garbage headers in swc API",
-	async check({ compiler, context }) {
-		let swc = compiler.rspack.experiments.swc;
-
-		async function check_transform_input_garbage_header(transformApi) {
-			let source = 'console.log("Hello Rspack");';
-			let inputSourceMap = JSON.stringify({
-				version: 3,
-				file: "index.js",
-				sources: ["original.js"],
-				sourcesContent: [source],
-				names: [],
-				mappings: "AAAA"
-			});
-			let inputSourceMapWithHeader = `)]}'\n${inputSourceMap}`;
-
-			let userProvidedResult = await transformApi(source, {
-				filename: "index.js",
-				sourceMaps: true,
-				inputSourceMap: inputSourceMapWithHeader,
-				jsc: {
-					parser: {
-						syntax: "ecmascript"
-					}
-				}
-			});
-
-			expect(JSON.parse(userProvidedResult.map).sources).toContain("original.js");
-
-			let inlineResult = await transformApi(
-				`${source}\n//# sourceMappingURL=data:application/json;charset=utf-8;base64,${Buffer.from(inputSourceMapWithHeader).toString("base64")}`,
-				{
-					filename: "index.js",
-					sourceMaps: true,
-					inputSourceMap: true,
-					jsc: {
-						parser: {
-							syntax: "ecmascript"
-						}
-					}
-				}
-			);
-
-			expect(JSON.parse(inlineResult.map).sources).toContain("original.js");
-
-			const filename = context.getDist("source-map-garbage-header.js");
-			const mapFilename = `${filename}.map`;
-			fs.mkdirSync(path.dirname(mapFilename), { recursive: true });
-			fs.writeFileSync(mapFilename, inputSourceMapWithHeader, "utf-8");
-
-			let fileResult = await transformApi(
-				`${source}\n//# sourceMappingURL=${path.basename(mapFilename)}`,
-				{
-					filename,
-					sourceMaps: true,
-					inputSourceMap: true,
-					jsc: {
-						parser: {
-							syntax: "ecmascript"
-						}
-					}
-				}
-			);
-
-			expect(JSON.parse(fileResult.map).sources).toContain("original.js");
-		}
-
-		await Promise.all([
-			check_transform_input_garbage_header(swc.transform),
-			check_transform_input_garbage_header(swc.transformSync)
 		]);
 	}
 }]

@@ -268,7 +268,6 @@ fn build_rspack_source_map(
 
   let intermediate_map = builder.into_source_map();
   if let Some(input_source_map) = input_source_map {
-    let ignored_sources = ignored_sources(&input_source_map);
     let name = intermediate_map
       .get_source(0)
       .map(ToString::to_string)
@@ -285,54 +284,8 @@ fn build_rspack_source_map(
       &ObjectPool::default(),
       &MapOptions::new(config.source_map_kind.emit_columns()),
     )
-    .map(|mut source_map| {
-      restore_ignore_list(&mut source_map, &ignored_sources);
-      source_map
-    })
   } else {
     Some(intermediate_map)
-  }
-}
-
-fn ignored_sources(source_map: &SourceMap<'_>) -> FxHashSet<String> {
-  source_map
-    .ignore_list()
-    .into_iter()
-    .flatten()
-    .filter_map(|source_index| {
-      source_map
-        .get_source(*source_index as usize)
-        .map(|source| source_with_root(source_map, source))
-    })
-    .collect()
-}
-
-fn restore_ignore_list(source_map: &mut SourceMap<'static>, ignored_sources: &FxHashSet<String>) {
-  if ignored_sources.is_empty() {
-    return;
-  }
-
-  let ignore_list = source_map
-    .sources()
-    .iter()
-    .enumerate()
-    .filter_map(|(source_index, source)| {
-      ignored_sources
-        .contains(&source_with_root(source_map, source))
-        .then_some(source_index as u32)
-    })
-    .collect::<Vec<_>>();
-
-  if !ignore_list.is_empty() {
-    source_map.set_ignore_list(Some(Cow::Owned(ignore_list)));
-  }
-}
-
-fn source_with_root(source_map: &SourceMap<'_>, source: &str) -> String {
-  match source_map.source_root() {
-    Some("") | None => source.to_string(),
-    Some(source_root) if source_root.ends_with('/') => format!("{source_root}{source}"),
-    Some(source_root) => format!("{source_root}/{source}"),
   }
 }
 
