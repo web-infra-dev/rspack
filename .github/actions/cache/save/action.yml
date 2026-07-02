@@ -15,7 +15,7 @@ runs:
   steps:
     - name: Save cache to github
       if: ${{ runner.environment == 'github-hosted' }}
-      uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+      uses: actions/cache/save@2c8a9bd7457de244a408f35966fab2fb45fda9c8 # v6
       with:
         key: ${{ inputs.key }}
         path: ${{ inputs.path }}
