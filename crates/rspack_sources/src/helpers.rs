@@ -379,29 +379,6 @@ pub fn utf8_column_to_utf16_column(line: &str, utf8_column: usize) -> Option<usi
   line.get(..utf8_column).map(utf16_len)
 }
 
-/// Convert a source-map column within a line to a UTF-8 byte column.
-///
-/// Returns `None` when the UTF-16 column falls inside a surrogate pair.
-pub fn utf16_column_to_utf8_column(line: &str, utf16_column: usize) -> Option<usize> {
-  let mut current_column = 0;
-  for (byte_offset, ch) in line.char_indices() {
-    if current_column == utf16_column {
-      return Some(byte_offset);
-    }
-
-    current_column += ch.len_utf16();
-    if current_column > utf16_column {
-      return None;
-    }
-  }
-
-  if current_column == utf16_column {
-    Some(line.len())
-  } else {
-    None
-  }
-}
-
 pub struct PotentialTokens<'a> {
   text: &'a str,
 }
@@ -1472,12 +1449,6 @@ mod tests {
     assert_eq!(super::utf8_column_to_utf16_column(line, 7), Some(3));
     assert_eq!(super::utf8_column_to_utf16_column(line, 8), Some(4));
     assert_eq!(super::utf8_column_to_utf16_column(line, 4), None);
-
-    assert_eq!(super::utf16_column_to_utf8_column(line, 0), Some(0));
-    assert_eq!(super::utf16_column_to_utf8_column(line, 1), Some(3));
-    assert_eq!(super::utf16_column_to_utf8_column(line, 3), Some(7));
-    assert_eq!(super::utf16_column_to_utf8_column(line, 4), Some(8));
-    assert_eq!(super::utf16_column_to_utf8_column(line, 2), None);
   }
 
   #[test]
