@@ -9,6 +9,7 @@ use rspack_core::{
 use rspack_hook::{Hook as _, plugin, plugin_hook};
 use rspack_plugin_html::HtmlRspackPlugin;
 use rspack_plugin_javascript::JsPlugin;
+use rspack_plugin_real_content_hash::RealContentHashPlugin;
 use rspack_plugin_rsdoctor::RsdoctorPlugin;
 use rspack_plugin_runtime::RuntimePlugin;
 
@@ -69,6 +70,7 @@ pub struct JsHooksAdapterPlugin {
   register_runtime_plugin_create_link_taps: RegisterRuntimePluginCreateLinkTaps,
   register_runtime_plugin_link_preload_taps: RegisterRuntimePluginLinkPreloadTaps,
   register_runtime_plugin_link_prefetch_taps: RegisterRuntimePluginLinkPrefetchTaps,
+  register_real_content_hash_plugin_update_hash_taps: RegisterRealContentHashPluginUpdateHashTaps,
   register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps,
   register_rsdoctor_plugin_chunk_graph_taps: RegisterRsdoctorPluginChunkGraphTaps,
   register_rsdoctor_plugin_assets_taps: RegisterRsdoctorPluginAssetsTaps,
@@ -265,6 +267,11 @@ impl Plugin for JsHooksAdapterPlugin {
     ctx
       .compiler_hooks
       .compilation
+      .tap(real_content_hash_hooks_adapter_compilation::new(self));
+
+    ctx
+      .compiler_hooks
+      .compilation
       .tap(rsdoctor_hooks_adapter_compilation::new(self));
 
     Ok(())
@@ -362,6 +369,9 @@ impl Plugin for JsHooksAdapterPlugin {
     self.register_runtime_plugin_link_preload_taps.clear_cache();
     self
       .register_runtime_plugin_link_prefetch_taps
+      .clear_cache();
+    self
+      .register_real_content_hash_plugin_update_hash_taps
       .clear_cache();
     self
       .register_rsdoctor_plugin_module_graph_taps
@@ -473,6 +483,22 @@ async fn rsdoctor_hooks_adapter_compilation(
     .module_sources
     .intercept(self.register_rsdoctor_plugin_module_sources_taps.clone());
 
+  Ok(())
+}
+
+#[plugin_hook(CompilerCompilation for JsHooksAdapterPlugin)]
+async fn real_content_hash_hooks_adapter_compilation(
+  &self,
+  compilation: &mut Compilation,
+  _params: &mut CompilationParams,
+) -> rspack_error::Result<()> {
+  let hooks = RealContentHashPlugin::get_compilation_hooks_mut(compilation.id());
+  let mut hooks = hooks.borrow_mut();
+  hooks.update_hash.intercept(
+    self
+      .register_real_content_hash_plugin_update_hash_taps
+      .clone(),
+  );
   Ok(())
 }
 
@@ -681,6 +707,11 @@ impl JsHooksAdapterPlugin {
           register_js_taps.register_runtime_plugin_link_prefetch_taps,
           non_skippable_registers.clone(),
         ),
+        register_real_content_hash_plugin_update_hash_taps:
+          RegisterRealContentHashPluginUpdateHashTaps::new(
+            register_js_taps.register_real_content_hash_plugin_update_hash_taps,
+            non_skippable_registers.clone(),
+          ),
         register_rsdoctor_plugin_module_graph_taps: RegisterRsdoctorPluginModuleGraphTaps::new(
           register_js_taps.register_rsdoctor_plugin_module_graph_taps,
           non_skippable_registers.clone(),

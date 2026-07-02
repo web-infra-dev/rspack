@@ -3227,11 +3227,12 @@ export declare enum RegisterJsTapKind {
   RuntimePluginCreateLink = 43,
   RuntimePluginLinkPreload = 44,
   RuntimePluginLinkPrefetch = 45,
-  RsdoctorPluginModuleGraph = 46,
-  RsdoctorPluginChunkGraph = 47,
-  RsdoctorPluginModuleIds = 48,
-  RsdoctorPluginModuleSources = 49,
-  RsdoctorPluginAssets = 50
+  RealContentHashPluginUpdateHash = 46,
+  RsdoctorPluginModuleGraph = 47,
+  RsdoctorPluginChunkGraph = 48,
+  RsdoctorPluginModuleIds = 49,
+  RsdoctorPluginModuleSources = 50,
+  RsdoctorPluginAssets = 51
 }
 
 export interface RegisterJsTaps {
@@ -3281,6 +3282,7 @@ export interface RegisterJsTaps {
   registerRuntimePluginCreateLinkTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPreloadData) => String); stage: number; }>
   registerRuntimePluginLinkPreloadTaps: (stages: Array<number>) => Array<{ function: ((arg: JsCreateLinkData) => String); stage: number; }>
   registerRuntimePluginLinkPrefetchTaps: (stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>
+  registerRealContentHashPluginUpdateHashTaps: (stages: Array<number>) => Array<{ function: ((assets: Array<Buffer>, oldHash: string) => string | undefined); stage: number; }>
   registerRsdoctorPluginModuleGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginChunkGraphTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorChunkGraph) => Promise<boolean | undefined>); stage: number; }>
   registerRsdoctorPluginModuleIdsTaps: (stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleIdsPatch) => Promise<boolean | undefined>); stage: number; }>

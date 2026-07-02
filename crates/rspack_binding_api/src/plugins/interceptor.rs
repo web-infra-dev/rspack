@@ -61,6 +61,9 @@ use rspack_plugin_html::{
   HtmlPluginBeforeAssetTagGenerationHook, HtmlPluginBeforeEmit, HtmlPluginBeforeEmitHook,
 };
 use rspack_plugin_javascript::{JavascriptModulesChunkHash, JavascriptModulesChunkHashHook};
+use rspack_plugin_real_content_hash::{
+  RealContentHashPluginUpdateHash, RealContentHashPluginUpdateHashHook,
+};
 use rspack_plugin_rsdoctor::{
   RsdoctorAssetPatch, RsdoctorChunkGraph, RsdoctorModuleGraph, RsdoctorModuleIdsPatch,
   RsdoctorModuleSourcesPatch, RsdoctorPluginAssets, RsdoctorPluginAssetsHook,
@@ -475,6 +478,7 @@ pub enum RegisterJsTapKind {
   RuntimePluginCreateLink,
   RuntimePluginLinkPreload,
   RuntimePluginLinkPrefetch,
+  RealContentHashPluginUpdateHash,
   RsdoctorPluginModuleGraph,
   RsdoctorPluginChunkGraph,
   RsdoctorPluginModuleIds,
@@ -682,6 +686,11 @@ pub struct RegisterJsTaps {
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsLinkPrefetchData) => String); stage: number; }>"
   )]
   pub register_runtime_plugin_link_prefetch_taps: RegisterFunction,
+  // real content hash plugin
+  #[napi(
+    ts_type = "(stages: Array<number>) => Array<{ function: ((assets: Array<Buffer>, oldHash: string) => string | undefined); stage: number; }>"
+  )]
+  pub register_real_content_hash_plugin_update_hash_taps: RegisterFunction,
   // rsdoctor plugin
   #[napi(
     ts_type = "(stages: Array<number>) => Array<{ function: ((arg: JsRsdoctorModuleGraph) => Promise<boolean | undefined>); stage: number; }>"
@@ -1042,6 +1051,15 @@ define_register!(
   cache = true,
   kind = RegisterJsTapKind::RuntimePluginLinkPrefetch,
   skip = true,
+);
+
+/* RealContentHashPlugin Hooks */
+define_register!(
+  RegisterRealContentHashPluginUpdateHashTaps,
+  tap = RealContentHashPluginUpdateHashTap<(Vec<Buffer>, String), Option<String>> @ RealContentHashPluginUpdateHashHook,
+  cache = true,
+  kind = RegisterJsTapKind::RealContentHashPluginUpdateHash,
+  skip = false,
 );
 
 /* Rsdoctor Plugin Hooks */
@@ -2013,6 +2031,29 @@ impl RuntimePluginLinkPrefetch for RuntimePluginLinkPrefetchTap {
       data.code = code;
     }
     Ok(data)
+  }
+
+  fn stage(&self) -> i32 {
+    self.stage
+  }
+}
+
+#[async_trait]
+impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
+  async fn run(
+    &self,
+    _compilation: &Compilation,
+    assets: &[Arc<dyn rspack_core::rspack_sources::Source>],
+    old_hash: &str,
+  ) -> rspack_error::Result<Option<String>> {
+    let assets = assets
+      .iter()
+      .map(|asset| Buffer::from(asset.buffer().to_vec()))
+      .collect::<Vec<_>>();
+    self
+      .function
+      .call_with_sync((assets, old_hash.to_string()))
+      .await
   }
 
   fn stage(&self) -> i32 {
