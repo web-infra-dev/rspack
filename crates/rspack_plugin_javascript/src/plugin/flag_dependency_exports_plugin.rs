@@ -34,26 +34,27 @@ impl<'a> FlagDependencyExportsState<'a> {
   pub fn apply(&mut self, modules: IdentifierSet) {
     // initialize the exports info data and their provided info for all modules
     for module_id in &modules {
-      let exports_type_unset = self
+      let module = self
         .mg
         .module_by_identifier(module_id)
-        .expect("should have module")
-        .build_meta()
-        .exports_type()
-        == BuildMetaExportsType::Unset;
+        .expect("should have module");
+      let exports_type_unset = module.build_meta().exports_type() == BuildMetaExportsType::Unset;
+      let access_module_exports = module.build_info().access_module_exports;
       let exports_info = self
         .exports_info_artifact
         .get_exports_info_data_mut(module_id);
       // Reset exports provide info back to initial
       exports_info.reset_provide_info();
-      if exports_type_unset
-        && !matches!(
-          exports_info.other_exports_info().provided(),
-          Some(ExportProvided::Unknown)
-        )
-      {
+      if exports_type_unset {
         exports_info.set_has_provide_info();
-        exports_info.set_unknown_exports_provided(false, None, None, None, None);
+        if access_module_exports
+          && !matches!(
+            exports_info.other_exports_info().provided(),
+            Some(ExportProvided::Unknown)
+          )
+        {
+          exports_info.set_unknown_exports_provided(false, None, None, None, None);
+        }
         continue;
       }
 

@@ -1,0 +1,32 @@
+/** @type {import("@rspack/core").Configuration} */
+module.exports = {
+  mode: 'production',
+  target: 'node',
+  optimization: {
+    concatenateModules: false,
+    minimize: false,
+    moduleIds: 'named',
+    providedExports: true,
+    usedExports: true,
+  },
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        type: 'javascript/auto',
+      },
+      {
+        test: /disabled-commonjs\.js$/,
+        parser: {
+          commonjs: {
+            exports: false,
+          },
+        },
+      },
+    ],
+  },
+  stats: {
+    modules: true,
+    providedExports: true,
+  },
+};
