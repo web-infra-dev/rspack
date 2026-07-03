@@ -12,12 +12,12 @@ use rspack_sources::{BoxSource, OriginalSource, RawStringSource, SourceExt};
 use rspack_util::source_map::{ModuleSourceMapConfig, SourceMapKind};
 
 use crate::{
-  BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
-  ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
+  BoxModule, BuildContext, BuildInfo, BuildResult, CodeGenerationResult, Compilation,
+  ConnectionState, Context, DependenciesBlock, DependencyId, Module, ModuleCodeGenerationContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleMeta, ModuleState, ModuleType,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
-  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
-  module_declared_side_effect_free, module_update_hash,
+  dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_identifier,
+  impl_module_meta_info, module_declared_side_effect_free, module_update_hash,
 };
 
 #[impl_source_map_config]
@@ -29,12 +29,10 @@ pub struct RawModule {
   source_str: String,
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -51,25 +49,21 @@ impl RawModule {
       dependencies: Default::default(),
       source_str,
       source: None,
-      identifier,
+      meta: ModuleMeta::new(identifier, ModuleType::JsAuto, None),
       readable_identifier,
       runtime_requirements,
-      factory_meta: None,
-      build_info: BuildInfo {
+      state: ModuleState::with_build_info(BuildInfo {
         cacheable: true,
         strict: true,
         ..Default::default()
-      },
-      build_meta: Default::default(),
+      }),
       source_map_kind: SourceMapKind::empty(),
     }
   }
 }
 
 impl Identifiable for RawModule {
-  fn identifier(&self) -> ModuleIdentifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for RawModule {
@@ -97,11 +91,7 @@ impl DependenciesBlock for RawModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for RawModule {
-  impl_module_meta_info!();
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsAuto
-  }
+  impl_module_meta_info!(meta, state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     RAW_MODULE_SOURCE_TYPES
@@ -132,7 +122,7 @@ impl Module for RawModule {
     if self.get_source_map_kind().enabled() {
       cgr.add(
         SourceType::JavaScript,
-        OriginalSource::new(self.source_str.clone(), self.identifier.to_string()).boxed(),
+        OriginalSource::new(self.source_str.clone(), self.identifier().to_string()).boxed(),
       );
     } else {
       cgr.add(

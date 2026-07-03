@@ -4,11 +4,11 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsVec};
 use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context,
-  DependenciesBlock, DependencyId, DependencyRange, FactoryMeta, ImportPhase, LibIdentOptions,
-  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph,
-  ModuleIdentifier, ModuleLayer, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec,
-  SourceType, ValueCacheVersions, impl_module_meta_info, module_update_hash,
+  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
+  DependencyId, DependencyRange, ImportPhase, LibIdentOptions, Module, ModuleArgument,
+  ModuleCodeGenerationContext, ModuleFactoryCreateData, ModuleGraph, ModuleIdentifier, ModuleMeta,
+  ModuleState, ModuleType, OutputOptions, RuntimeGlobals, RuntimeSpec, SourceType,
+  ValueCacheVersions, impl_module_identifier, impl_module_meta_info, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -47,12 +47,10 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  factory_meta: Option<FactoryMeta>,
+  meta: ModuleMeta,
+  state: ModuleState,
 
   readable_identifier: String,
-  identifier: ModuleIdentifier,
   lib_ident: Option<String>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
@@ -61,7 +59,6 @@ pub(crate) struct LazyCompilationProxyModule {
   source_map_kind: SourceMapKind,
 
   context: Box<Context>,
-  layer: Option<ModuleLayer>,
   dep_options: DependencyOptions,
   resource: String,
   active: bool,
@@ -106,17 +103,14 @@ impl LazyCompilationProxyModule {
     };
 
     Self {
-      build_info: Default::default(),
-      build_meta: Default::default(),
-      factory_meta: None,
+      meta: ModuleMeta::new(identifier, MODULE_TYPE, create_data.issuer_layer.clone()),
+      state: Default::default(),
       readable_identifier,
       lib_ident,
-      identifier,
       source_map_kind: SourceMapKind::empty(),
       blocks: vec![],
       dependencies: vec![],
       context: Box::new(create_data.context.clone()),
-      layer: create_data.issuer_layer.clone(),
       dep_options,
       resource,
       active,
@@ -136,22 +130,14 @@ impl_empty_diagnosable_trait!(LazyCompilationProxyModule);
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for LazyCompilationProxyModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &SOURCE_TYPE
   }
 
-  fn module_type(&self) -> &ModuleType {
-    &MODULE_TYPE
-  }
-
   fn get_context(&self) -> Option<Box<Context>> {
     Some(self.context.clone())
-  }
-
-  fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.layer.as_ref()
   }
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
@@ -206,7 +192,7 @@ impl Module for LazyCompilationProxyModule {
       let dep = LazyCompilationDependency::new(self.dep_options.clone());
 
       blocks.push(Box::new(AsyncDependenciesBlock::new(
-        self.identifier,
+        self.identifier(),
         None,
         None,
         vec![Box::new(dep)],
@@ -261,7 +247,7 @@ impl Module for LazyCompilationProxyModule {
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *client_module)
         .expect("should have module id"),
-      simd_json::to_string(&self.identifier).expect("should serialize identifier")
+      simd_json::to_string(&self.identifier()).expect("should serialize identifier")
     );
 
     let module_argument = runtime_template.render_module_argument(ModuleArgument::Module);
@@ -333,15 +319,13 @@ impl Module for LazyCompilationProxyModule {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     module_update_hash(self, &mut hasher, compilation, runtime);
     self.active.hash(&mut hasher);
-    self.identifier.hash(&mut hasher);
+    self.identifier().hash(&mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
 }
 
 impl Identifiable for LazyCompilationProxyModule {
-  fn identifier(&self) -> rspack_collections::Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for LazyCompilationProxyModule {

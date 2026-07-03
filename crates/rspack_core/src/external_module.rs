@@ -10,15 +10,15 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey,
-  CodeGenerationDataUrl, CodeGenerationResult, Compilation, ConcatenationScope, Context,
-  DependenciesBlock, DependencyId, ExportProvided, ExternalType, FactoryMeta, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module,
-  ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  extract_url_and_global, impl_module_meta_info, module_update_hash, property_access,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMetaExportsType,
+  BuildResult, ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataUrl,
+  CodeGenerationResult, Compilation, ConcatenationScope, Context, DependenciesBlock, DependencyId,
+  ExportProvided, ExternalType, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
+  InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleGraph, ModuleMeta, ModuleState, ModuleType, NAMESPACE_OBJECT_EXPORT,
+  NormalInitFragment, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, UsageState, UsedExports, UsedNameItem, extract_url_and_global,
+  impl_module_identifier, impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -436,14 +436,12 @@ fn resolve_external_type<'a>(
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  pub id: Identifier,
+  meta: ModuleMeta,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -478,35 +476,37 @@ impl ExternalModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      id: Identifier::from({
-        let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
-        let request_str = simd_json::to_string(&request).expect("invalid json to_string");
-        let attrs_str = dependency_meta
-          .attributes
-          .as_ref()
-          .map_or(String::new(), |attrs| {
-            format!(
-              " {}",
-              simd_json::to_string(attrs).expect("invalid json to_string")
-            )
-          });
-        let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
-          String::new()
-        } else {
-          format!(" phase={}", dependency_meta.phase.as_str())
-        };
-        format!("external {resolved_type} {request_str}{attrs_str}{phase_str}")
-      }),
+      meta: ModuleMeta::new(
+        Identifier::from({
+          let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
+          let request_str = simd_json::to_string(&request).expect("invalid json to_string");
+          let attrs_str = dependency_meta
+            .attributes
+            .as_ref()
+            .map_or(String::new(), |attrs| {
+              format!(
+                " {}",
+                simd_json::to_string(attrs).expect("invalid json to_string")
+              )
+            });
+          let phase_str = if dependency_meta.phase == ImportPhase::Evaluation {
+            String::new()
+          } else {
+            format!(" phase={}", dependency_meta.phase.as_str())
+          };
+          format!("external {resolved_type} {request_str}{attrs_str}{phase_str}")
+        }),
+        ModuleType::JsDynamic,
+        None,
+      ),
       request,
       external_type,
       user_request,
-      factory_meta: None,
-      build_info: BuildInfo {
+      state: ModuleState::with_build_info(BuildInfo {
         top_level_declarations: Some(FxHashSet::default()),
         strict: true,
         ..Default::default()
-      },
-      build_meta: Default::default(),
+      }),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
       place_in_initial,
@@ -522,7 +522,7 @@ impl ExternalModule {
   }
 
   pub fn set_id(&mut self, id: Identifier) {
-    self.id = id;
+    self.meta.set_identifier(id);
   }
 
   pub fn get_external_type(&self) -> &ExternalType {
@@ -651,7 +651,7 @@ impl ExternalModule {
           .build_module_graph_artifact
           .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
-          &self.id,
+          &self.identifier(),
           module_graph_cache,
           side_effects_state_artifact,
           &compilation.exports_info_artifact,
@@ -691,7 +691,7 @@ impl ExternalModule {
           .build_module_graph_artifact
           .side_effects_state_artifact;
         let check_external_variable = if module_graph.is_optional(
-          &self.id,
+          &self.identifier(),
           module_graph_cache,
           side_effects_state_artifact,
           &compilation.exports_info_artifact,
@@ -992,7 +992,7 @@ if(typeof {global} !== "undefined") return resolve();
           "undefined".to_string()
         };
         let check_external_variable = if module_graph.is_optional(
-          &self.id,
+          &self.identifier(),
           module_graph_cache,
           &compilation
             .build_module_graph_artifact
@@ -1020,9 +1020,7 @@ if(typeof {global} !== "undefined") return resolve();
 }
 
 impl Identifiable for ExternalModule {
-  fn identifier(&self) -> Identifier {
-    self.id
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for ExternalModule {
@@ -1050,7 +1048,7 @@ impl DependenciesBlock for ExternalModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ExternalModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn get_concatenation_bailout_reason(
     &self,
@@ -1064,10 +1062,6 @@ impl Module for ExternalModule {
       }
       _ => None,
     }
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -1126,49 +1120,50 @@ impl Module for ExternalModule {
     build_context: BuildContext,
     _: Option<&Compilation>,
   ) -> Result<BuildResult> {
-    self.build_info.module = build_context.compiler_options.output.module;
+    self.build_info_mut().module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
       ExternalRequest::Single(request) => Some(request),
       ExternalRequest::Map(map) => map.get(&self.external_type),
     };
+    let request_has_rest = request.is_some_and(|r| r.has_rest());
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
 
     #[allow(clippy::collapsible_match)]
     match resolved_external_type {
-      "this" => self.build_info.strict = false,
+      "this" => self.build_info_mut().strict = false,
       "system" => {
-        if !request.is_some_and(|r| r.has_rest()) {
+        if !request_has_rest {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = true;
         }
       }
       "module" => {
-        if self.build_info.module {
-          if !request.is_some_and(|r| r.has_rest()) {
+        if self.build_info().module {
+          if !request_has_rest {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = true;
           }
         } else {
-          self.build_meta.set_has_top_level_await(true);
-          if !request.is_some_and(|r| r.has_rest()) {
+          self.build_meta_mut().set_has_top_level_await(true);
+          if !request_has_rest {
             exports_type = BuildMetaExportsType::Namespace;
             can_mangle = false;
           }
         }
       }
-      "script" | "promise" => self.build_meta.set_has_top_level_await(true),
+      "script" | "promise" => self.build_meta_mut().set_has_top_level_await(true),
       "import" => {
-        self.build_meta.set_has_top_level_await(true);
-        if !request.is_some_and(|r| r.has_rest()) {
+        self.build_meta_mut().set_has_top_level_await(true);
+        if !request_has_rest {
           exports_type = BuildMetaExportsType::Namespace;
           can_mangle = false;
         }
       }
       _ => {}
     }
-    self.build_meta.set_exports_type(exports_type);
+    self.build_meta_mut().set_exports_type(exports_type);
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
@@ -1249,12 +1244,12 @@ impl Module for ExternalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     use rspack_hash::RspackHash as _;
-    self.id.as_str().hash(&mut hasher);
+    self.identifier().as_str().hash(&mut hasher);
     let side_effects_state_artifact = &compilation
       .build_module_graph_artifact
       .side_effects_state_artifact;
     let is_optional = compilation.get_module_graph().is_optional(
-      &self.id,
+      &self.identifier(),
       &compilation.module_graph_cache_artifact,
       side_effects_state_artifact,
       &compilation.exports_info_artifact,

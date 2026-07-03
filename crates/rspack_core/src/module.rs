@@ -651,6 +651,108 @@ pub struct FactoryMeta {
 pub type ModuleIdentifier = Identifier;
 pub type ResourceIdentifier = Identifier;
 
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct ModuleMeta {
+  identifier: ModuleIdentifier,
+  module_type: ModuleType,
+  layer: Option<ModuleLayer>,
+}
+
+impl Default for ModuleMeta {
+  fn default() -> Self {
+    Self {
+      identifier: Default::default(),
+      module_type: ModuleType::JsAuto,
+      layer: None,
+    }
+  }
+}
+
+impl ModuleMeta {
+  pub fn new(
+    identifier: ModuleIdentifier,
+    module_type: ModuleType,
+    layer: Option<ModuleLayer>,
+  ) -> Self {
+    Self {
+      identifier,
+      module_type,
+      layer,
+    }
+  }
+
+  pub fn identifier(&self) -> ModuleIdentifier {
+    self.identifier
+  }
+
+  pub fn set_identifier(&mut self, identifier: ModuleIdentifier) {
+    self.identifier = identifier;
+  }
+
+  pub fn module_type(&self) -> &ModuleType {
+    &self.module_type
+  }
+
+  pub fn layer(&self) -> Option<&ModuleLayer> {
+    self.layer.as_ref()
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Default)]
+pub struct ModuleState {
+  factory_meta: Option<FactoryMeta>,
+  build_info: BuildInfo,
+  build_meta: BuildMeta,
+}
+
+impl ModuleState {
+  pub fn new(build_info: BuildInfo, build_meta: BuildMeta) -> Self {
+    Self {
+      factory_meta: None,
+      build_info,
+      build_meta,
+    }
+  }
+
+  pub fn with_build_info(build_info: BuildInfo) -> Self {
+    Self::new(build_info, Default::default())
+  }
+
+  pub fn factory_meta(&self) -> Option<&FactoryMeta> {
+    self.factory_meta.as_ref()
+  }
+
+  pub fn set_factory_meta(&mut self, factory_meta: FactoryMeta) {
+    self.factory_meta = Some(factory_meta);
+  }
+
+  pub fn build_info(&self) -> &BuildInfo {
+    &self.build_info
+  }
+
+  pub fn build_info_mut(&mut self) -> &mut BuildInfo {
+    &mut self.build_info
+  }
+
+  pub fn build_meta(&self) -> &BuildMeta {
+    &self.build_meta
+  }
+
+  pub fn build_meta_mut(&mut self) -> &mut BuildMeta {
+    &mut self.build_meta
+  }
+
+  pub fn parse_meta_mut(&mut self) -> (Option<&FactoryMeta>, &mut BuildInfo, &mut BuildMeta) {
+    (
+      self.factory_meta.as_ref(),
+      &mut self.build_info,
+      &mut self.build_meta,
+    )
+  }
+}
+
 #[derive(Debug)]
 pub struct ModuleCodeGenerationContext<'a> {
   pub compilation: &'a Compilation,
@@ -1068,29 +1170,46 @@ impl dyn Module {
 
 #[macro_export]
 macro_rules! impl_module_meta_info {
-  () => {
+  ($meta:ident, $state:ident) => {
+    fn module_type(&self) -> &$crate::ModuleType {
+      self.$meta.module_type()
+    }
+
+    fn get_layer(&self) -> Option<&$crate::ModuleLayer> {
+      self.$meta.layer()
+    }
+
     fn factory_meta(&self) -> Option<&$crate::FactoryMeta> {
-      self.factory_meta.as_ref()
+      self.$state.factory_meta()
     }
 
     fn set_factory_meta(&mut self, v: $crate::FactoryMeta) {
-      self.factory_meta = Some(v);
+      self.$state.set_factory_meta(v);
     }
 
     fn build_info(&self) -> &$crate::BuildInfo {
-      &self.build_info
+      self.$state.build_info()
     }
 
     fn build_info_mut(&mut self) -> &mut $crate::BuildInfo {
-      &mut self.build_info
+      self.$state.build_info_mut()
     }
 
     fn build_meta(&self) -> &$crate::BuildMeta {
-      &self.build_meta
+      self.$state.build_meta()
     }
 
     fn build_meta_mut(&mut self) -> &mut $crate::BuildMeta {
-      &mut self.build_meta
+      self.$state.build_meta_mut()
+    }
+  };
+}
+
+#[macro_export]
+macro_rules! impl_module_identifier {
+  ($meta:ident) => {
+    fn identifier(&self) -> $crate::ModuleIdentifier {
+      self.$meta.identifier()
     }
   };
 }

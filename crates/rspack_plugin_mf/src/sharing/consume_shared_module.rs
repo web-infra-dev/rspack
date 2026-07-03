@@ -2,13 +2,14 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
+  ExportsType, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
+  ModuleMeta, ModuleState, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  impl_module_identifier, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -27,14 +28,12 @@ pub struct ConsumeSharedModule {
   #[cacheable(with=Unsupported)]
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   lib_ident: String,
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
 }
 
 impl ConsumeSharedModule {
@@ -76,7 +75,11 @@ impl ConsumeSharedModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(identifier.as_ref()),
+      meta: ModuleMeta::new(
+        ModuleIdentifier::from(identifier.as_ref()),
+        ModuleType::ConsumeShared,
+        None,
+      ),
       lib_ident: format!(
         "webpack/sharing/consume/{}/{}{}",
         &scopes_key,
@@ -90,18 +93,14 @@ impl ConsumeSharedModule {
       readable_identifier: identifier,
       context,
       options,
-      factory_meta: None,
-      build_info: Default::default(),
-      build_meta: Default::default(),
+      state: Default::default(),
       source_map_kind: SourceMapKind::empty(),
     }
   }
 }
 
 impl Identifiable for ConsumeSharedModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for ConsumeSharedModule {
@@ -129,14 +128,10 @@ impl DependenciesBlock for ConsumeSharedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ConsumeSharedModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::ConsumeShared
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -181,7 +176,7 @@ impl Module for ConsumeSharedModule {
       if self.options.eager {
         dependencies.push(dep as BoxDependency);
       } else {
-        let block = AsyncDependenciesBlock::new(self.identifier, None, None, vec![dep], None);
+        let block = AsyncDependenciesBlock::new(self.identifier(), None, None, vec![dep], None);
         blocks.push(Box::new(block));
       }
     }

@@ -6,14 +6,14 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsMap, AsVec},
 };
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, CodeGenerationResult, Compilation,
-  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, FactoryMeta, ImportPhase,
-  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  Context, DependenciesBlock, Dependency, DependencyId, DependencyRange, ImportPhase,
+  LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleMeta,
+  ModuleState, ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_identifier, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -35,7 +35,7 @@ use crate::{
 pub struct RscEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
   root_client_modules: Vec<ClientModuleImport>,
@@ -46,10 +46,7 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
-  layer: Option<ModuleLayer>,
+  state: ModuleState,
 }
 
 impl RscEntryModule {
@@ -79,7 +76,7 @@ impl RscEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier,
+      meta: ModuleMeta::new(identifier, ModuleType::JsDynamic, layer),
       lib_ident,
       client_modules,
       root_client_modules,
@@ -87,15 +84,15 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
-        ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      state: ModuleState::new(
+        BuildInfo {
+          strict: true,
+          top_level_declarations: Some(FxHashSet::default()),
+          ..Default::default()
+        },
+        BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      ),
       source_map_kind: SourceMapKind::empty(),
-      layer,
     }
   }
 
@@ -187,9 +184,7 @@ impl RscEntryModule {
 }
 
 impl Identifiable for RscEntryModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for RscEntryModule {
@@ -217,14 +212,10 @@ impl DependenciesBlock for RscEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RscEntryModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -241,10 +232,6 @@ impl Module for RscEntryModule {
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {
     Some(self.lib_ident.as_str().into())
-  }
-
-  fn get_layer(&self) -> Option<&ModuleLayer> {
-    self.layer.as_ref()
   }
 
   async fn build(
@@ -326,7 +313,7 @@ impl Module for RscEntryModule {
 
         let block_modifier = format!("server-entry={server_entry}");
         let block = AsyncDependenciesBlock::new(
-          self.identifier,
+          self.identifier(),
           None,
           Some(&block_modifier),
           block_dependencies,
@@ -349,7 +336,7 @@ impl Module for RscEntryModule {
           .collect::<Vec<_>>();
 
         let block = AsyncDependenciesBlock::new(
-          self.identifier,
+          self.identifier(),
           None,
           None,
           dependencies,
@@ -365,7 +352,7 @@ impl Module for RscEntryModule {
           self.is_server_side_rendering,
         );
         let block = AsyncDependenciesBlock::new(
-          self.identifier,
+          self.identifier(),
           None,
           None,
           vec![Box::new(dep) as Box<dyn Dependency>],

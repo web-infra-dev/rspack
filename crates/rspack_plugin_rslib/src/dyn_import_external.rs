@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_collections::{IdentifierMap, IdentifierSet};
+use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
   BuildModuleGraphArtifact, Compilation, DependenciesBlock, Dependency, DependencyId,
   DependencyTemplate, ExportsInfoArtifact, ExternalModule, ImportPhase, InitFragmentExt,
@@ -51,7 +51,7 @@ pub fn cutout_star_re_export_externals(
 
       if dep.as_any().is::<ESMImportSideEffectDependency>() {
         side_effects_deps_by_module
-          .entry(external_module.id)
+          .entry(external_module.identifier())
           .or_default()
           .push(*dep_id);
       } else if let Some(esm_export_dep) = dep
@@ -61,7 +61,7 @@ pub fn cutout_star_re_export_externals(
         && esm_export_dep.other_star_exports.is_some()
       {
         *star_export_deps_by_module
-          .entry(external_module.id)
+          .entry(external_module.identifier())
           .or_insert(0) += 1;
 
         connections_to_disable.insert(*dep_id);

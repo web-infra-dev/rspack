@@ -2,13 +2,13 @@ use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency, DependencyId,
-  EntryDependency, FactoryMeta, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph,
-  ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildResult, CodeGenerationResult,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, EntryDependency, Module,
+  ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleMeta, ModuleState, ModuleType,
+  RuntimeGlobals, RuntimeSpec, SourceType, ValueCacheVersions, impl_module_identifier,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -23,11 +23,9 @@ pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
-  factory_meta: Option<FactoryMeta>,
+  meta: ModuleMeta,
 
-  build_info: BuildInfo,
-
-  build_meta: BuildMeta,
+  state: ModuleState,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 
@@ -48,9 +46,14 @@ impl DllModule {
     } = dep.clone();
 
     Self {
-      name,
+      meta: ModuleMeta::new(
+        format!("dll {name}").as_str().into(),
+        ModuleType::JsDynamic,
+        None,
+      ),
       entries,
       context,
+      name,
       ..Default::default()
     }
   }
@@ -59,11 +62,7 @@ impl DllModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DllModule {
-  impl_module_meta_info!();
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
-  }
+  impl_module_meta_info!(meta, state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
@@ -141,9 +140,7 @@ impl Module for DllModule {
 }
 
 impl Identifiable for DllModule {
-  fn identifier(&self) -> Identifier {
-    format!("dll {}", self.name).as_str().into()
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for DllModule {

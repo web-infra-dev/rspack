@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::RspackHashDigest;
 use rspack_macros::impl_source_map_config;
@@ -10,48 +10,46 @@ use rspack_sources::BoxSource;
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult,
-  ChunkUkey, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier,
-  ModuleType, RuntimeSpec, SourceType, impl_module_meta_info,
+  AsyncDependenciesBlockIdentifier, BoxModule, BuildContext, BuildInfo, BuildResult, ChunkUkey,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
+  Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleMeta, ModuleState,
+  ModuleType, RuntimeSpec, SourceType, impl_module_identifier, impl_module_meta_info,
 };
 
 #[impl_source_map_config]
 #[cacheable]
 #[derive(Debug)]
 pub struct SelfModule {
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
 }
 
 impl SelfModule {
   pub fn new(module_identifier: ModuleIdentifier) -> Self {
     let identifier = format!("self {module_identifier}");
     Self {
-      identifier: ModuleIdentifier::from(identifier.as_str()),
+      meta: ModuleMeta::new(
+        ModuleIdentifier::from(identifier.as_str()),
+        ModuleType::Fallback,
+        None,
+      ),
       readable_identifier: identifier,
       blocks: Default::default(),
       dependencies: Default::default(),
-      factory_meta: None,
-      build_info: BuildInfo {
+      state: ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      },
-      build_meta: Default::default(),
+      }),
       source_map_kind: SourceMapKind::empty(),
     }
   }
 }
 
 impl Identifiable for SelfModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for SelfModule {
@@ -79,14 +77,10 @@ impl DependenciesBlock for SelfModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for SelfModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
-    self.identifier.len() as f64
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::Fallback
+    self.identifier().len() as f64
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

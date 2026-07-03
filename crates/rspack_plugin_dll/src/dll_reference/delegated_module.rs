@@ -2,13 +2,13 @@ use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId,
-  FactoryMeta, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
-  ModuleDependency, ModuleGraph, ModuleId, ModuleType, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, ValueCacheVersions, impl_module_meta_info,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildResult,
+  CodeGenerationResult, Compilation, Context, DependenciesBlock, DependencyId, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleDependency, ModuleGraph, ModuleId,
+  ModuleMeta, ModuleState, ModuleType, RuntimeSpec, SourceType, StaticExportsDependency,
+  StaticExportsSpec, ValueCacheVersions, impl_module_identifier, impl_module_meta_info,
   impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource},
 };
@@ -33,9 +33,8 @@ pub struct DelegatedModule {
   delegate_data: DllManifestContentItem,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  meta: ModuleMeta,
+  state: ModuleState,
 }
 
 impl DelegatedModule {
@@ -46,13 +45,20 @@ impl DelegatedModule {
     user_request: String,
     original_request: Option<String>,
   ) -> Self {
+    let request = data.id.clone();
+    let identifier = format!(
+      "delegated {} from {}",
+      request.as_ref().map(|r| r.to_string()).unwrap_or_default(),
+      source_request
+    );
     Self {
       source_request,
-      request: data.id.clone(),
+      request,
       delegation_type,
       user_request,
       original_request,
       delegate_data: data,
+      meta: ModuleMeta::new(identifier.as_str().into(), ModuleType::JsDynamic, None),
       ..Default::default()
     }
   }
@@ -61,11 +67,7 @@ impl DelegatedModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for DelegatedModule {
-  impl_module_meta_info!();
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsDynamic
-  }
+  impl_module_meta_info!(meta, state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
@@ -109,7 +111,7 @@ impl Module for DelegatedModule {
         false,
       )) as BoxDependency,
     ];
-    self.build_meta = self.delegate_data.build_meta.clone();
+    *self.build_meta_mut() = self.delegate_data.build_meta.clone();
     Ok(BuildResult {
       module: BoxModule::new(self),
       dependencies,
@@ -203,18 +205,7 @@ impl Module for DelegatedModule {
 }
 
 impl Identifiable for DelegatedModule {
-  fn identifier(&self) -> Identifier {
-    format!(
-      "delegated {} from {}",
-      self
-        .request
-        .as_ref()
-        .map(|r| r.to_string())
-        .unwrap_or_default(),
-      self.source_request
-    )
-    .into()
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for DelegatedModule {

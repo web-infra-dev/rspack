@@ -2,15 +2,16 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
   BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
   CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  DependencyId, DependencyType, ExportsArgument, GroupOptions, LibIdentOptions, Module,
+  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier,
+  ModuleMeta, ModuleState, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
+  StaticExportsDependency, StaticExportsSpec, impl_module_identifier, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -32,13 +33,11 @@ use crate::{
 pub struct ContainerEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -57,21 +56,26 @@ impl ContainerEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(format!(
-        "container entry ({}) {}",
-        share_scope.key(),
-        json_stringify(&exposes),
-      )),
+      meta: ModuleMeta::new(
+        ModuleIdentifier::from(format!(
+          "container entry ({}) {}",
+          share_scope.key(),
+          json_stringify(&exposes),
+        )),
+        ModuleType::JsDynamic,
+        None,
+      ),
       lib_ident,
       exposes,
       share_scope,
-      factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
-        ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      state: ModuleState::new(
+        BuildInfo {
+          strict: true,
+          top_level_declarations: Some(FxHashSet::default()),
+          ..Default::default()
+        },
+        BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      ),
       enhanced,
       request: None,
       version: None,
@@ -86,17 +90,22 @@ impl ContainerEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      identifier: ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
+      meta: ModuleMeta::new(
+        ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
+        ModuleType::ShareContainerShared,
+        None,
+      ),
       lib_ident,
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
-      factory_meta: None,
-      build_info: BuildInfo {
-        strict: true,
-        top_level_declarations: Some(FxHashSet::default()),
-        ..Default::default()
-      },
-      build_meta: BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      state: ModuleState::new(
+        BuildInfo {
+          strict: true,
+          top_level_declarations: Some(FxHashSet::default()),
+          ..Default::default()
+        },
+        BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
+      ),
       enhanced: false,
       request: Some(request),
       version: Some(version),
@@ -116,9 +125,7 @@ impl ContainerEntryModule {
 }
 
 impl Identifiable for ContainerEntryModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for ContainerEntryModule {
@@ -146,18 +153,10 @@ impl DependenciesBlock for ContainerEntryModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for ContainerEntryModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     42.0
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    if self.dependency_type == DependencyType::ShareContainerEntry {
-      &ModuleType::ShareContainerShared
-    } else {
-      &ModuleType::JsDynamic
-    }
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
@@ -202,7 +201,7 @@ impl Module for ContainerEntryModule {
       // Container logic
       for (name, options) in &self.exposes {
         let mut block = AsyncDependenciesBlock::new(
-          self.identifier,
+          self.identifier(),
           None,
           Some(name),
           options

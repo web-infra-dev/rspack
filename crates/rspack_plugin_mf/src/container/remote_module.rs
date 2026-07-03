@@ -2,13 +2,13 @@ use std::borrow::Cow;
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier};
+use rspack_collections::Identifiable;
 use rspack_core::{
-  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildResult, ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock,
-  Dependency, DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash,
+  AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildResult,
+  ChunkGraph, CodeGenerationResult, Compilation, Context, DependenciesBlock, Dependency,
+  DependencyId, ExportsType, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph,
+  ModuleIdentifier, ModuleMeta, ModuleState, ModuleType, RuntimeSpec, SourceType,
+  impl_module_identifier, impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -30,7 +30,7 @@ use crate::{
 pub struct RemoteModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  identifier: ModuleIdentifier,
+  meta: ModuleMeta,
   readable_identifier: String,
   lib_ident: String,
   request: String,
@@ -38,9 +38,7 @@ pub struct RemoteModule {
   pub internal_request: String,
   pub share_scope: ShareScope,
   pub remote_key: String,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
 }
 
 impl RemoteModule {
@@ -56,12 +54,16 @@ impl RemoteModule {
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
-      identifier: ModuleIdentifier::from(format!(
-        "remote ({}) {} {}",
-        share_scope.key(),
-        external_requests.join(" "),
-        internal_request
-      )),
+      meta: ModuleMeta::new(
+        ModuleIdentifier::from(format!(
+          "remote ({}) {} {}",
+          share_scope.key(),
+          external_requests.join(" "),
+          internal_request
+        )),
+        ModuleType::Remote,
+        None,
+      ),
       readable_identifier,
       lib_ident,
       request,
@@ -69,21 +71,17 @@ impl RemoteModule {
       internal_request,
       share_scope,
       remote_key,
-      factory_meta: None,
-      build_info: BuildInfo {
+      state: ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      },
-      build_meta: Default::default(),
+      }),
       source_map_kind: SourceMapKind::empty(),
     }
   }
 }
 
 impl Identifiable for RemoteModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 impl DependenciesBlock for RemoteModule {
@@ -111,14 +109,10 @@ impl DependenciesBlock for RemoteModule {
 #[cacheable_dyn]
 #[async_trait]
 impl Module for RemoteModule {
-  impl_module_meta_info!();
+  impl_module_meta_info!(meta, state);
 
   fn size(&self, _source_type: Option<&SourceType>, _compilation: Option<&Compilation>) -> f64 {
     6.0
-  }
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::Remote
   }
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {

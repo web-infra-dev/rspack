@@ -30,12 +30,12 @@ use crate::{
   BuildInfo, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, BuildResult, ChunkGraph,
   ChunkGroupOptions, CodeGenerationResult, Compilation, ContextElementDependency,
   DependenciesBlock, Dependency, DependencyCategory, DependencyId, DependencyLocation,
-  DynamicImportMode, ExportsType, FactoryMeta, FakeNamespaceObjectMode, GroupOptions,
-  ImportAttributes, ImportPhase, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact,
-  ModuleLayer, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
+  DynamicImportMode, ExportsType, FakeNamespaceObjectMode, GroupOptions, ImportAttributes,
+  ImportPhase, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleGraph, ModuleId, ModuleIdsArtifact, ModuleLayer, ModuleMeta,
+  ModuleState, ModuleType, RealDependencyLocation, ReferencedSpecifier, Resolve, RuntimeGlobals,
   RuntimeSpec, SourceType, contextify, get_exports_type_with_strict, get_outgoing_async_modules,
-  impl_module_meta_info, module_update_hash, property_access, to_path,
+  impl_module_identifier, impl_module_meta_info, module_update_hash, property_access, to_path,
 };
 
 static CHUNK_NAME_INDEX_PLACEHOLDER: &str = "[index]";
@@ -257,11 +257,9 @@ pub type ResolveContextModuleDependencies = Arc<
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  identifier: Identifier,
+  meta: ModuleMeta,
   options: ContextModuleOptions,
-  factory_meta: Option<FactoryMeta>,
-  build_info: BuildInfo,
-  build_meta: BuildMeta,
+  state: ModuleState,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -284,24 +282,27 @@ impl ContextModule {
     if let Some(strict) = strict {
       build_info.strict = strict;
     }
+    let identifier = create_identifier(&options, None);
+    let layer = options.layer.clone();
 
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      identifier: create_identifier(&options, None),
+      meta: ModuleMeta::new(identifier, ModuleType::JsAuto, layer),
       options,
-      factory_meta: None,
-      build_info,
-      build_meta: BuildMeta::default()
-        .with_exports_type(BuildMetaExportsType::Default)
-        .with_default_object(BuildMetaDefaultObject::RedirectWarn),
+      state: ModuleState::new(
+        build_info,
+        BuildMeta::default()
+          .with_exports_type(BuildMetaExportsType::Default)
+          .with_default_object(BuildMetaDefaultObject::RedirectWarn),
+      ),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }
   }
 
   fn get_module_id<'a>(&self, module_ids: &'a ModuleIdsArtifact) -> &'a ModuleId {
-    ChunkGraph::get_module_id(module_ids, self.identifier).expect("module id not found")
+    ChunkGraph::get_module_id(module_ids, self.identifier()).expect("module id not found")
   }
 
   pub fn get_context_options(&self) -> &ContextOptions {
@@ -621,10 +622,11 @@ impl ContextModule {
         let block_info = self.get_sorted_context_block_info(compilation);
 
         let mut entries = String::with_capacity(block_info.len() * 96);
+        let identifier = self.identifier();
         for (i, info) in block_info.iter().enumerate() {
           let mut import_promise = runtime_template.module_namespace_promise(
             compilation,
-            self.identifier,
+            identifier,
             &info.dep_id,
             Some(&info.block_id),
             &info.user_request,
@@ -1267,11 +1269,12 @@ impl ContextModule {
   fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled() {
+      let identifier = self.identifier();
       OriginalSource::new(
         source_string,
         format!(
           "webpack://{}",
-          make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
+          make_paths_relative(&compilation.options.context, identifier.as_str(),)
         ),
       )
       .boxed()
@@ -1306,11 +1309,7 @@ impl DependenciesBlock for ContextModule {
 #[cacheable_dyn]
 #[async_trait::async_trait]
 impl Module for ContextModule {
-  impl_module_meta_info!();
-
-  fn module_type(&self) -> &ModuleType {
-    &ModuleType::JsAuto
-  }
+  impl_module_meta_info!(meta, state);
 
   fn source_types(&self, _module_graph: &ModuleGraph) -> &[SourceType] {
     &[SourceType::JavaScript]
@@ -1344,7 +1343,7 @@ impl Module for ContextModule {
 
   fn lib_ident(&self, options: LibIdentOptions) -> Option<Cow<'_, str>> {
     let mut id = String::new();
-    if let Some(layer) = &self.options.layer {
+    if let Some(layer) = self.get_layer() {
       id += "(";
       id += layer;
       id += ")/";
@@ -1424,7 +1423,7 @@ impl Module for ContextModule {
         None,
       ));
       let mut block = AsyncDependenciesBlock::new(
-        (*self.identifier).into(),
+        self.identifier(),
         Some(loc),
         None,
         context_element_dependencies
@@ -1470,7 +1469,7 @@ impl Module for ContextModule {
         let prefetch_order = group_options.and_then(|o| o.prefetch_order);
         let fetch_priority = group_options.and_then(|o| o.fetch_priority);
         let mut block = AsyncDependenciesBlock::new(
-          (*self.identifier).into(),
+          self.identifier(),
           None,
           Some(&context_element_dependency.user_request.clone()),
           vec![Box::new(context_element_dependency)],
@@ -1494,7 +1493,7 @@ impl Module for ContextModule {
     if !self.options.resource.as_str().is_empty() {
       let mut context_dependencies: ArcPathSet = Default::default();
       context_dependencies.insert(self.options.resource.as_std_path().into());
-      self.build_info.context_dependencies = context_dependencies;
+      self.build_info_mut().context_dependencies = context_dependencies;
     }
 
     Ok(BuildResult {
@@ -1547,9 +1546,7 @@ impl Module for ContextModule {
 impl_empty_diagnosable_trait!(ContextModule);
 
 impl Identifiable for ContextModule {
-  fn identifier(&self) -> Identifier {
-    self.identifier
-  }
+  impl_module_identifier!(meta);
 }
 
 fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> Identifier {
