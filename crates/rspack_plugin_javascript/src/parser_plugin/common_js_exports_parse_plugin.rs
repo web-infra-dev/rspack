@@ -277,6 +277,10 @@ impl CommonJsExportsParserPlugin {
   fn should_skip_handler(&self, parser: &JavascriptParser) -> bool {
     self.skip_in_esm && parser.is_esm
   }
+
+  fn mark_access_module_exports(&self, parser: &mut JavascriptParser) {
+    parser.build_info.access_module_exports = true;
+  }
 }
 
 #[rspack_macros::implemented_javascript_parser_hooks]
@@ -294,10 +298,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "exports" {
+      self.mark_access_module_exports(parser);
       // exports.x = y;
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::Exports);
     }
     if for_name == "module" && matches!(remaining.first(), Some(first) if first == "exports") {
+      self.mark_access_module_exports(parser);
       // module.exports.x = y;
       return handle_assign_export(
         parser,
@@ -307,6 +313,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
       );
     }
     if for_name == "this" && parser.is_top_level_scope() {
+      self.mark_access_module_exports(parser);
       // this.x = y
       return handle_assign_export(parser, assign_expr, remaining, ExportsBase::This);
     }
@@ -325,6 +332,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
 
     if parser.is_esm {
       return None;
+    }
+    if matches!(for_name, "module" | "exports") {
+      self.mark_access_module_exports(parser);
     }
     if for_name == "Object.defineProperty"
       && parser.is_statement_level_expression(call_expr.span)
@@ -388,6 +398,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module" {
+      self.mark_access_module_exports(parser);
       let decorator = if parser.is_esm {
         RuntimeGlobals::ESM_MODULE_DECORATOR
       } else {
@@ -402,6 +413,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "exports" {
+      self.mark_access_module_exports(parser);
       // exports
       return handle_access_export(parser, ident.span, &[], &[], ExportsBase::Exports, None);
     }
@@ -420,6 +432,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if parser.is_top_level_this() {
+      self.mark_access_module_exports(parser);
       // this
       return handle_access_export(parser, expr.span, &[], &[], ExportsBase::This, None);
     }
@@ -437,6 +450,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module.exports" {
+      self.mark_access_module_exports(parser);
       // module.exports
       return handle_access_export(
         parser,
@@ -464,6 +478,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "exports" {
+      self.mark_access_module_exports(parser);
       // exports.a.b.c
       return handle_access_export(
         parser,
@@ -476,6 +491,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
+      self.mark_access_module_exports(parser);
       // module.exports.a.b.c
       return handle_access_export(
         parser,
@@ -488,6 +504,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "this" && parser.is_top_level_scope() {
+      self.mark_access_module_exports(parser);
       // this.a.b.c
       return handle_access_export(
         parser,
@@ -516,6 +533,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "exports" {
+      self.mark_access_module_exports(parser);
       // exports.a.b.c()
       return handle_access_export(
         parser,
@@ -528,6 +546,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "module" && matches!(members.first(), Some(first) if first == "exports") {
+      self.mark_access_module_exports(parser);
       // module.exports.a.b.c()
       return handle_access_export(
         parser,
@@ -540,6 +559,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     if for_name == "this" && parser.is_top_level_scope() {
+      self.mark_access_module_exports(parser);
       // this.a.b.c()
       return handle_access_export(
         parser,
@@ -565,6 +585,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsExportsParserPlugin {
     }
 
     (for_name == "module" || for_name == "exports").then(|| {
+      self.mark_access_module_exports(parser);
       eval::evaluate_to_string(
         "object".to_string(),
         expr.span.real_lo(),
