@@ -31,7 +31,7 @@ use crate::{
 };
 
 fn css_javascript_source_map_module_name(module: &dyn Module, context: &Context) -> String {
-  format!("css {}", module.readable_identifier(context))
+  concat_string!("css ", module.readable_identifier(context))
 }
 
 pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssExport) -> bool {
