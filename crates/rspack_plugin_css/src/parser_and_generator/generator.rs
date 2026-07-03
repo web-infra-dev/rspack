@@ -225,7 +225,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       }
     }
     let generated_source = self.concat_source.source().into_string_lossy().into_owned();
-    if self.module.get_source_map_kind().enabled() {
+    if self.module.get_source_map_kind().enabled() && !self.should_omit_javascript_source_map() {
       let source_name = css_source_map_module_name(
         self.module,
         &self.generate_context.compilation.options.context,
@@ -234,6 +234,12 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     } else {
       Ok(RawStringSource::from(generated_source).boxed())
     }
+  }
+
+  fn should_omit_javascript_source_map(&self) -> bool {
+    self.export_type.is_none()
+      && self.css_build_info.exports().is_none()
+      && !self.module.build_meta().is_css_module()
   }
 
   fn generate_js_exports(&mut self) -> Result<()> {
