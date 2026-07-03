@@ -12,7 +12,7 @@ use regex::{Captures, Regex};
 use rspack_collections::{Identifier, IdentifierSet};
 use rspack_dojang::{Context, Dojang, FunctionContainer, Operand};
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt, error};
-use rspack_util::{fx_hash::FxIndexSet, json_stringify};
+use rspack_util::{fx_hash::FxIndexSet, json_stringify, json_stringify_str};
 use rustc_hash::{FxHashMap, FxHashSet as HashSet};
 use serde_json::{Value, json};
 use swc_core::atoms::Atom;
@@ -687,6 +687,13 @@ pub struct ModuleCodeTemplate {
   runtime_requirements: RuntimeGlobals,
 }
 
+fn module_id_expr_value(module_id: &ModuleId) -> String {
+  module_id
+    .as_number()
+    .map(|id| id.to_string())
+    .unwrap_or_else(|| json_stringify_str(module_id.as_str()))
+}
+
 impl ModuleCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
@@ -1047,7 +1054,7 @@ impl ModuleCodeTemplate {
         request: Some(request),
         ..Default::default()
       }),
-      json_stringify(module_id)
+      module_id_expr_value(module_id)
     )
   }
 
@@ -1698,6 +1705,20 @@ impl ChunkCodeTemplate {
       uses_runtime_context,
       uses_lexical_runtime_globals,
     }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::{ModuleId, module_id_expr_value};
+
+  #[test]
+  fn module_id_expr_value_renders_numbers_and_strings() {
+    assert_eq!(module_id_expr_value(&ModuleId::from("42")), "42");
+    assert_eq!(
+      module_id_expr_value(&ModuleId::from("javascript/dynamic|/repo/noSourceMaps.js")),
+      r#""javascript/dynamic|/repo/noSourceMaps.js""#
+    );
   }
 }
 
