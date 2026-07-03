@@ -37,6 +37,9 @@ fn css_source_map_module_name(module: &dyn Module, context: &Context) -> String 
   let Some((prefix, resource)) = identifier.rsplit_once('|') else {
     return identifier.to_string();
   };
+  let resource = resource
+    .split_once(['?', '#'])
+    .map_or(resource, |(resource, _)| resource);
 
   if resource.starts_with('/') || resource.as_bytes().get(1).is_some_and(|ch| *ch == b':') {
     return format!(
@@ -45,7 +48,7 @@ fn css_source_map_module_name(module: &dyn Module, context: &Context) -> String 
     );
   }
 
-  identifier.to_string()
+  format!("{prefix}|{resource}")
 }
 
 pub fn update_css_exports(exports: &mut CssExports, name: &str, css_export: CssExport) -> bool {
