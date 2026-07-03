@@ -1,5 +1,5 @@
 ```mjs title=dynamic.mjs
-import { __webpack_require__ } from "./runtime.mjs";
+import { __webpack_require__ } from "./main_runtime.mjs";
 
 __webpack_require__.add({
 "./dynamic.js"
@@ -34,7 +34,7 @@ export default dynamic_default_0;
 ```
 
 ```mjs title=main.mjs
-import { __webpack_require__ } from "./runtime.mjs";
+import { __webpack_require__ } from "./main_runtime.mjs";
 
 // ./index.js
 it("should split runtime for Promise.all with external and bundled async chunks", async () => {
@@ -51,7 +51,7 @@ export {};
 
 ```
 
-```mjs title=runtime.mjs
+```mjs title=main_runtime.mjs
 
 var __webpack_modules__ = {};
 // The module cache
