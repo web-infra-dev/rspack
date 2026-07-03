@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
+use std::{ptr::NonNull, sync::LazyLock};
 
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
@@ -333,63 +333,12 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           .await?;
 
         let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
-        let module_factories =
-          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
-
-        let load_css_chunk_data = runtime_template.basic_function(
-          "target, chunkId",
-          &format!(
-            r#"{}
-installedChunks[chunkId] = 0;
-{}"#,
-            with_css_hmr
-              .then_some(format!(
-                "var moduleIds = [];\nif(target == {module_factories})"
-              ))
-              .unwrap_or_default(),
-            if with_css_hmr {
-              "return moduleIds"
-            } else {
-              Default::default()
-            },
-          ),
-        );
-        let load_initial_chunk_data = if initial_chunk_ids.len() > 2 {
-          Cow::Owned(format!(
-            "[{}].forEach(loadCssChunkData.bind(null, {}, 0));",
-            initial_chunk_ids
-              .iter()
-              .map(rspack_util::json_stringify)
-              .collect::<Vec<_>>()
-              .join(","),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
-          ))
-        } else if !initial_chunk_ids.is_empty() {
-          Cow::Owned(
-            initial_chunk_ids
-              .iter()
-              .map(|id| {
-                let id = rspack_util::json_stringify(id);
-                format!(
-                  "loadCssChunkData({}, 0, {});",
-                  runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
-                  id
-                )
-              })
-              .collect::<String>(),
-          )
-        } else {
-          Cow::Borrowed("// no initial css")
-        };
-
         let raw_source = context.runtime_template.render(
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_unique_name": unique_name,
-            "_css_chunk_data": &load_css_chunk_data,
             "_create_link": &create_link.code,
             "_chunk_load_timeout": &chunk_load_timeout,
-            "_initial_css_chunk_data": &load_initial_chunk_data,
           })),
         )?;
         source.push_str(&raw_source);
@@ -489,7 +438,6 @@ installedChunks[chunkId] = 0;
         let create_style_element_code = {
           let mut code = String::new();
           code.push_str("var style = document.createElement(\"style\");\n");
-          code.push_str("style.setAttribute(\"data-rspack-native-css\", \"true\");\n");
           if runtime_requirements.contains(RuntimeGlobals::SCRIPT_NONCE) {
             code.push_str(&format!(
               "if ({}) {{\n  style.setAttribute(\"nonce\", {});\n}}\n",

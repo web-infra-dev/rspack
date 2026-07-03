@@ -42,7 +42,7 @@
 								error.request = realSrc;
 								installedChunkData[1](error);
 							} else {
-								loadCssChunkData(<%- MODULE_FACTORIES %>, chunkId);
+								installedChunks[chunkId] = 0;
 								installedChunkData[0]();
 							}
 						}

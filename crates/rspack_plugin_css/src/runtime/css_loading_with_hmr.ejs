@@ -4,24 +4,16 @@ var applyHandler = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
-			var moduleIds = [];
-			newTags.forEach(<%- basicFunction("info") %> {
-				info[1].sheet.disabled = false;
+			newTags.forEach(<%- basicFunction("newTag") %> {
+				newTag.sheet.disabled = false;
 			});
 			while (oldTags.length) {
 				var oldTag = oldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
 			while (newTags.length) {
-				var info = newTags.pop();
-				info[0].forEach(function(chunkId) {
-					var chunkModuleIds = loadCssChunkData(<%- MODULE_FACTORIES %>, chunkId);
-					chunkModuleIds.forEach(function(id) {
-						moduleIds.push(id)
-					});
-				});
+				newTags.pop();
 			}
-			return moduleIds;
 		}
 	};
 };
@@ -37,10 +29,9 @@ var cssTextKey = <%- basicFunction("link") %> {
 		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
 		if (seen[url]) {
-			seen[url].push(chunkId);
 			return;
 		}
-		var currentChunkIds = seen[url] = [chunkId];
+		seen[url] = true;
 		var oldTag = loadStylesheet(chunkId, url);
 		if (!oldTag) return;
 		promises.push(
@@ -72,16 +63,9 @@ var cssTextKey = <%- basicFunction("link") %> {
 									return resolve();
 								}
 							} catch (e) {}
-							var factories = {};
-							currentChunkIds.forEach(function(chunkId) {
-								loadCssChunkData(factories, chunkId);
-							});
-							Object.keys(factories).forEach(function(id) {
-								(updatedModulesList.push(id));
-							});
 							link.sheet.disabled = true;
 							oldTags.push(oldTag);
-							newTags.push([currentChunkIds, link]);
+							newTags.push(link);
 							resolve();
 						}
 					},

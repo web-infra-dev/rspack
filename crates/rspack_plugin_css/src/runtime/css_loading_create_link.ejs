@@ -1,5 +1,4 @@
 link = document.createElement("link");
-link.setAttribute("data-rspack-native-css", "true");
 if (<%- weak(SCRIPT_NONCE) %>) {
   link.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
 }
