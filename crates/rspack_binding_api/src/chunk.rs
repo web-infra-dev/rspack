@@ -104,7 +104,7 @@ impl Chunk {
     })
   }
 
-  #[napi(getter)]
+  #[napi(getter, ts_return_type = "Array<string>")]
   pub fn id_name_hints<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
     self.with_ref(|_, chunk| {
       let id_name_hints = chunk.id_name_hints();
@@ -138,7 +138,7 @@ impl Chunk {
     })
   }
 
-  #[napi(getter, js_name = "_files")]
+  #[napi(getter, js_name = "_files", ts_return_type = "Array<string>")]
   pub fn files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
     self.with_ref(|_, chunk| {
       let mut files = chunk.files().iter().collect::<Vec<_>>();
@@ -151,7 +151,7 @@ impl Chunk {
     })
   }
 
-  #[napi(getter, js_name = "_runtime")]
+  #[napi(getter, js_name = "_runtime", ts_return_type = "Array<string>")]
   pub fn runtime<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
     self.with_ref(|_, chunk| {
       let runtime = chunk.runtime();
@@ -216,7 +216,7 @@ impl Chunk {
     })
   }
 
-  #[napi(getter, js_name = "_auxiliaryFiles")]
+  #[napi(getter, js_name = "_auxiliaryFiles", ts_return_type = "Array<string>")]
   pub fn auxiliary_files<'a>(&self, env: &'a Env) -> napi::Result<Array<'a>> {
     self.with_ref(|_, chunk| {
       let auxiliary_files = chunk.auxiliary_files();
