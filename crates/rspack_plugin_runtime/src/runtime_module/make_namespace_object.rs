@@ -20,7 +20,7 @@ impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::MAKE_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::MAKE_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }

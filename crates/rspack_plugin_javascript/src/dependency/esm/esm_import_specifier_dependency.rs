@@ -773,6 +773,16 @@ fn connection_active_for_esm_import_specifier(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
 ) -> bool {
+  if !connection_active_inline_value_for_esm_import_specifier(
+    dependency,
+    connection,
+    runtime,
+    module_graph,
+    exports_info_artifact,
+  ) {
+    return false;
+  }
+
   if let Some(used_by_exports) = dependency.used_by_exports.as_ref() {
     if has_impure_deferred_pure_checks(module_graph, exports_info_artifact, used_by_exports) {
       return true;
@@ -783,7 +793,7 @@ fn connection_active_for_esm_import_specifier(
     }
   }
 
-  let active_by_used_exports = match dependency.used_by_exports.as_ref() {
+  match dependency.used_by_exports.as_ref() {
     Some(_) => connection_active_used_by_exports(
       connection,
       runtime,
@@ -792,16 +802,7 @@ fn connection_active_for_esm_import_specifier(
       dependency.used_by_exports.as_ref(),
     ),
     None => true,
-  };
-
-  active_by_used_exports
-    && connection_active_inline_value_for_esm_import_specifier(
-      dependency,
-      connection,
-      runtime,
-      module_graph,
-      exports_info_artifact,
-    )
+  }
 }
 
 impl DependencyConditionFn for ESMImportSpecifierDependencyCondition {

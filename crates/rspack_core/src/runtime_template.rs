@@ -174,6 +174,22 @@ impl RuntimeTemplate {
       })),
     );
 
+    let runtime_globals_cloned = runtime_globals.clone();
+    dojang.functions.insert(
+      "define".into(),
+      FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
+        dojang_define(runtime_global, &runtime_globals_cloned)
+      })),
+    );
+
+    let runtime_globals_cloned = runtime_globals.clone();
+    dojang.functions.insert(
+      "weak".into(),
+      FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
+        dojang_weak(runtime_global, &runtime_globals_cloned)
+      })),
+    );
+
     Self {
       compiler_options,
       runtime_mode,
@@ -498,6 +514,20 @@ fn dojang_array_destructure(
     };
     Operand::Value(Value::from(items))
   }
+}
+
+fn dojang_define(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+  // `define(...)` marks a runtime global assignment; the EJS extractor records it in `define`.
+  Operand::Value(Value::from(
+    to_cow(&runtime_global, runtime_globals).into_owned(),
+  ))
+}
+
+fn dojang_weak(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+  // `weak(...)` marks an optional runtime global read; the extractor records it in `weak`.
+  Operand::Value(Value::from(
+    to_cow(&runtime_global, runtime_globals).into_owned(),
+  ))
 }
 
 // information content of the comment

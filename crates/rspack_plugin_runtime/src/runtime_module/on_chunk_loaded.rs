@@ -20,7 +20,7 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::ON_CHUNKS_LOADED },
+      define: { RuntimeGlobals::ON_CHUNKS_LOADED },
       ..Default::default()
     }
   }

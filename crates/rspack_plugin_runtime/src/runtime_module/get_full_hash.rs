@@ -20,7 +20,7 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::GET_FULL_HASH },
+      define: { RuntimeGlobals::GET_FULL_HASH },
       ..Default::default()
     }
   }

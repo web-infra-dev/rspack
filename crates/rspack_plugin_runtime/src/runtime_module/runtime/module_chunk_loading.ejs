@@ -18,5 +18,5 @@ var installChunk = <%- basicFunction("data") %> {
         }
         installedChunks[__rspack_esm_ids[i]] = 0;
     }
-    <% if (_with_on_chunk_load) { %><%- ON_CHUNKS_LOADED %>();<% } %>
+    <% if (_with_on_chunk_load) { %><%- weak(ON_CHUNKS_LOADED) %>();<% } %>
 };

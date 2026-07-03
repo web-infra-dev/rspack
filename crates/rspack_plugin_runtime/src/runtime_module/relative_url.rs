@@ -20,7 +20,7 @@ impl RuntimeModule for RelativeUrlRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RELATIVE_URL },
+      define: { RuntimeGlobals::RELATIVE_URL },
       ..Default::default()
     }
   }

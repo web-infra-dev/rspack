@@ -22,7 +22,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::PUBLIC_PATH },
+      define: { RuntimeGlobals::PUBLIC_PATH },
       force_context: RuntimeGlobals::PUBLIC_PATH,
       ..Default::default()
     }

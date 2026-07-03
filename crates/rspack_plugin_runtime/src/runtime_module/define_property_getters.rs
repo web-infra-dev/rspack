@@ -23,7 +23,7 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::HAS_OWN_PROPERTY,
-      write: { RuntimeGlobals::DEFINE_PROPERTY_GETTERS },
+      define: { RuntimeGlobals::DEFINE_PROPERTY_GETTERS },
       ..Default::default()
     }
   }

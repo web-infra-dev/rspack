@@ -89,7 +89,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: {
+      define: {
         match self.source_type {
           SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
           SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,

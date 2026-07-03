@@ -40,7 +40,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: { self.global },
+      define: { self.global },
       ..Default::default()
     }
   }

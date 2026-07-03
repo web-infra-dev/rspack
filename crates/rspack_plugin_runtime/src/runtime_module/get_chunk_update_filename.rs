@@ -34,7 +34,7 @@ impl RuntimeModule for GetChunkUpdateFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: { RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME },
+      define: { RuntimeGlobals::GET_CHUNK_UPDATE_SCRIPT_FILENAME },
       ..Default::default()
     }
   }

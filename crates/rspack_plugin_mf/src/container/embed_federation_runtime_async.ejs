@@ -50,5 +50,5 @@ var wrapStartup = function (prev, isEntry) {
 	};
 };
 
-<%- STARTUP %> = wrapStartup(<%- STARTUP %>);
-<%- STARTUP_ENTRYPOINT %> = wrapStartup(<%- STARTUP_ENTRYPOINT %>, 1);
+<%- define(STARTUP) %> = wrapStartup(<%- STARTUP %>);
+<%- define(STARTUP_ENTRYPOINT) %> = wrapStartup(<%- STARTUP_ENTRYPOINT %>, 1);

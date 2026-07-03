@@ -32,7 +32,7 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      write: { RuntimeGlobals::STARTUP },
+      define: { RuntimeGlobals::STARTUP },
       ..Default::default()
     }
   }

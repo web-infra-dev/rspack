@@ -20,7 +20,7 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::NODE_MODULE_DECORATOR },
+      define: { RuntimeGlobals::NODE_MODULE_DECORATOR },
       ..Default::default()
     }
   }

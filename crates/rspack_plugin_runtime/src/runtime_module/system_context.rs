@@ -20,7 +20,7 @@ impl RuntimeModule for SystemContextRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::SYSTEM_CONTEXT },
+      define: { RuntimeGlobals::SYSTEM_CONTEXT },
       ..Default::default()
     }
   }

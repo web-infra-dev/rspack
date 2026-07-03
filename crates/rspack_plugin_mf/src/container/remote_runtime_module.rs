@@ -6,7 +6,7 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -19,12 +19,8 @@ use crate::{
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      REMOTES_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
     force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-    ..Default::default()
+    ..extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE)
   });
 
 #[impl_runtime_module]

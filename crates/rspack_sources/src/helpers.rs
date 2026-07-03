@@ -371,6 +371,14 @@ pub fn utf16_len(s: &str) -> usize {
   simd_utf16_len::utf16_len(s)
 }
 
+/// Convert a UTF-8 byte column within a line to a source-map column.
+///
+/// JavaScript source maps use zero-based UTF-16 code unit columns.
+#[inline]
+pub fn utf8_column_to_utf16_column(line: &str, utf8_column: usize) -> Option<usize> {
+  line.get(..utf8_column).map(utf16_len)
+}
+
 pub struct PotentialTokens<'a> {
   text: &'a str,
 }
@@ -553,10 +561,27 @@ fn get_source<'a>(source_map: &SourceMapFields, source: &'a str) -> Cow<'a, str>
   let source_root = source_map.source_root();
   match source_root {
     Some("") => Cow::Borrowed(source),
+    Some(_) if is_absolute_source(source) => Cow::Borrowed(source),
     Some(root) if root.ends_with('/') => Cow::Owned(format!("{root}{source}")),
     Some(root) => Cow::Owned(format!("{root}/{source}")),
     None => Cow::Borrowed(source),
   }
+}
+
+fn is_absolute_source(source: &str) -> bool {
+  source.starts_with('/') || has_uri_scheme(source)
+}
+
+fn has_uri_scheme(source: &str) -> bool {
+  let Some((scheme, _)) = source.split_once(':') else {
+    return false;
+  };
+  let mut chars = scheme.chars();
+  let Some(first) = chars.next() else {
+    return false;
+  };
+  first.is_ascii_alphabetic()
+    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
 }
 
 fn stream_chunks_of_source_map_final<'chunk, 'source>(
@@ -1431,6 +1456,17 @@ mod tests {
   static UTF16_SOURCE_MAP: LazyLock<SourceMap<'static>> = LazyLock::new(|| {
     SourceMap::from_json("{\"version\":3,\"sources\":[\"i18.js\"],\"sourcesContent\":[\"var i18n = JSON.parse('{\\\"魑魅魍魉\\\":{\\\"en-US\\\":\\\"Evil spirits\\\",\\\"zh-CN\\\":\\\"魑魅魍魉\\\"}}');\\nvar __webpack_exports___ = i18n[\\\"魑魅魍魉\\\"];\\nexport { __webpack_exports___ as 魑魅魍魉 };\\n\"],\"names\":[\"i18n\",\"JSON\",\"__webpack_exports___\",\"魑魅魍魉\"],\"mappings\":\"AAAA,IAAIA,OAAOC,KAAK,KAAK,CAAC;AACtB,IAAIC,uBAAuBF,IAAI,CAAC,OAAO;AACvC,SAASE,wBAAwBC,IAAI,GAAG\"}".to_string()).unwrap()
   });
+
+  #[test]
+  fn should_convert_between_utf8_and_utf16_columns() {
+    let line = "中😀a";
+
+    assert_eq!(super::utf8_column_to_utf16_column(line, 0), Some(0));
+    assert_eq!(super::utf8_column_to_utf16_column(line, 3), Some(1));
+    assert_eq!(super::utf8_column_to_utf16_column(line, 7), Some(3));
+    assert_eq!(super::utf8_column_to_utf16_column(line, 8), Some(4));
+    assert_eq!(super::utf8_column_to_utf16_column(line, 4), None);
+  }
 
   #[test]
   fn test_stream_chunks_of_source_map_full_handles_multi_unit_utf16() {

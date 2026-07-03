@@ -21,7 +21,7 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RUNTIME_ID },
+      define: { RuntimeGlobals::RUNTIME_ID },
       ..Default::default()
     }
   }

@@ -2,22 +2,16 @@ use std::sync::LazyLock;
 
 use rspack_cacheable::with::AsMap;
 use rspack_core::{
-  Compilation, IndexChunkIdMap, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  Compilation, IndexChunkIdMap, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeTemplate,
   chunk_graph_chunk::ChunkId, impl_runtime_module,
 };
 
-use crate::extract_runtime_globals_dependencies_from_ejs;
+use crate::extract_runtime_globals_from_ejs;
 
 static CHUNK_PRELOAD_TRIGGER_TEMPLATE: &str = include_str!("runtime/chunk_preload_trigger.ejs");
 static CHUNK_PRELOAD_TRIGGER_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CHUNK_PRELOAD_TRIGGER_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CHUNK_PRELOAD_TRIGGER_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]

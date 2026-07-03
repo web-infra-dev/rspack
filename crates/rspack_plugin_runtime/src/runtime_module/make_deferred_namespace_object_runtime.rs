@@ -61,7 +61,7 @@ impl RuntimeModule for MakeDeferredNamespaceObjectRuntimeModule {
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      write: { RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }

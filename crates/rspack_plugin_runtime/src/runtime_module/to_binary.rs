@@ -20,7 +20,7 @@ impl RuntimeModule for ToBinaryRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::TO_BINARY },
+      define: { RuntimeGlobals::TO_BINARY },
       ..Default::default()
     }
   }

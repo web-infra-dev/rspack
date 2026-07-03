@@ -20,7 +20,7 @@ impl RuntimeModule for ESMModuleDecoratorRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::ESM_MODULE_DECORATOR },
+      define: { RuntimeGlobals::ESM_MODULE_DECORATOR },
       ..Default::default()
     }
   }

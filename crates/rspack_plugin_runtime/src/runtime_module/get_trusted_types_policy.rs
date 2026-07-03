@@ -22,7 +22,7 @@ impl RuntimeModule for GetTrustedTypesPolicyRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::GET_TRUSTED_TYPES_POLICY },
+      define: { RuntimeGlobals::GET_TRUSTED_TYPES_POLICY },
       ..Default::default()
     }
   }

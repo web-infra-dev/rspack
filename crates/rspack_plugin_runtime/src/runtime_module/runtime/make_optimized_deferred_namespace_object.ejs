@@ -1,4 +1,4 @@
-<%- MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT %> = function(moduleId, mode, asyncDeps) {
+<%- define(MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT) %> = function(moduleId, mode, asyncDeps) {
 	var r = <%- REQUIRE %>;
 	<% if (_has_async) { %>
 	var isAsync = asyncDeps && asyncDeps.length;
