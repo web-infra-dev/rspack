@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 
+use rspack_collections::Identifiable;
 use rspack_core::{
   Chunk, ChunkCodeTemplate, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationParams, CompilerCompilation, ExportsInfoArtifact, ExternalModule, ExternalRequest,
@@ -139,7 +140,7 @@ async fn render(
       .side_effects_state_artifact;
     for module in &externals {
       if module_graph.is_optional(
-        &module.id,
+        &module.identifier(),
         module_graph_cache,
         side_effects_state_artifact,
         &compilation.exports_info_artifact,
@@ -420,7 +421,7 @@ fn externals_require_array(
           format!("require({primary})")
         };
         if module_graph.is_optional(
-          &m.id,
+          &m.identifier(),
           module_graph_cache,
           side_effects_state_artifact,
           exports_info_artifact,
