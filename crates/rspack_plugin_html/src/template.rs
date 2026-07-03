@@ -212,7 +212,7 @@ impl HtmlTemplate {
           .expect("failed to add template");
 
         dj.render(&self.url, parameters)
-          .to_rspack_result_with_message_ref(&|e| {
+          .to_rspack_result_with_message(&|e| {
             format!("HtmlRspackPlugin: failed to render template from string: {e}")
           })
       }
@@ -224,7 +224,7 @@ impl HtmlTemplate {
         simd_json::to_string(&parameters).unwrap_or_else(|_| panic!("invalid json to_string")),
       )
       .await
-      .to_rspack_result_with_message_ref(&|e| {
+      .to_rspack_result_with_message(&|e| {
         format!("HtmlRspackPlugin: failed to render template from function: {e}")
       }),
     }

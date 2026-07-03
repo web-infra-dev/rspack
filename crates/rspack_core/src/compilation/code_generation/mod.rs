@@ -76,7 +76,7 @@ async fn code_generation_pass_impl(compilation: &mut Compilation) -> Result<()> 
     .after_code_generation
     .call(compilation, &mut diagnostics)
     .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
+    .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.afterCodeGeneration"))?;
   compilation.extend_diagnostics(diagnostics);
 
   Ok(())

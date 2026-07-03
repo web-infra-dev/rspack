@@ -114,7 +114,7 @@ impl GraphicalReportHandler {
   /// Render a [`Diagnostic`]. This function is mostly internal and meant to
   /// be called by the toplevel [`ReportHandler`] handler, but is made public
   /// to make it easier (possible) to test in isolation from global state.
-  pub fn render_report(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+  pub fn render_report(&self, f: &mut dyn fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     // CHANGE: skip, `render_header` is not used in rspack
     // self.render_header(f, diagnostic)?;
     self.render_causes(f, diagnostic)?;
@@ -133,7 +133,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_header(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+  fn render_header(&self, f: &mut dyn fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     let severity_style = match diagnostic.severity() {
       Some(Severity::Error) | None => self.theme.styles.error,
       Some(Severity::Warning) => self.theme.styles.warning,
@@ -168,7 +168,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_causes(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+  fn render_causes(&self, f: &mut dyn fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     let (severity_style, severity_icon) = match diagnostic.severity() {
       Some(Severity::Error) | None => (self.theme.styles.error, &self.theme.characters.error),
       Some(Severity::Warning) => (self.theme.styles.warning, &self.theme.characters.warning),
@@ -244,7 +244,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_footer(&self, f: &mut impl fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
+  fn render_footer(&self, f: &mut dyn fmt::Write, diagnostic: &dyn Diagnostic) -> fmt::Result {
     if let Some(help) = diagnostic.help() {
       let width = self.termwidth.saturating_sub(4);
       let initial_indent = "  help: ".style(self.theme.styles.help).to_string();
@@ -258,7 +258,7 @@ impl GraphicalReportHandler {
 
   fn render_related(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     diagnostic: &dyn Diagnostic,
     parent_src: Option<&dyn SourceCode>,
   ) -> fmt::Result {
@@ -283,7 +283,7 @@ impl GraphicalReportHandler {
 
   fn render_snippets(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     diagnostic: &dyn Diagnostic,
     opt_source: Option<&dyn SourceCode>,
   ) -> fmt::Result {
@@ -346,7 +346,7 @@ impl GraphicalReportHandler {
 
   fn render_context<'a>(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     source: &'a dyn SourceCode,
     context: &LabeledSpan,
     labels: &[LabeledSpan],
@@ -464,7 +464,7 @@ impl GraphicalReportHandler {
 
   fn render_line_gutter(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     max_gutter: usize,
     line: &Line,
     highlights: &[FancySpan],
@@ -524,7 +524,7 @@ impl GraphicalReportHandler {
 
   fn render_highlight_gutter(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     max_gutter: usize,
     line: &Line,
     highlights: &[FancySpan],
@@ -555,7 +555,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn write_linum(&self, f: &mut impl fmt::Write, width: usize, linum: usize) -> fmt::Result {
+  fn write_linum(&self, f: &mut dyn fmt::Write, width: usize, linum: usize) -> fmt::Result {
     write!(
       f,
       " {:width$} {} ",
@@ -566,7 +566,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn write_no_linum(&self, f: &mut impl fmt::Write, width: usize) -> fmt::Result {
+  fn write_no_linum(&self, f: &mut dyn fmt::Write, width: usize) -> fmt::Result {
     write!(
       f,
       " {:width$} {} ",
@@ -617,7 +617,7 @@ impl GraphicalReportHandler {
   }
 
   /// Renders a line to the output formatter, replacing tabs with spaces.
-  fn render_line_text(&self, f: &mut impl fmt::Write, text: &str) -> fmt::Result {
+  fn render_line_text(&self, f: &mut dyn fmt::Write, text: &str) -> fmt::Result {
     for (c, width) in text.chars().zip(self.line_visual_char_width(text)) {
       if c == '\t' {
         for _ in 0..width {
@@ -633,7 +633,7 @@ impl GraphicalReportHandler {
 
   fn render_single_line_highlights(
     &self,
-    f: &mut impl fmt::Write,
+    f: &mut dyn fmt::Write,
     line: &Line,
     linum_width: usize,
     max_gutter: usize,
@@ -713,7 +713,7 @@ impl GraphicalReportHandler {
     Ok(())
   }
 
-  fn render_multi_line_end(&self, f: &mut impl fmt::Write, hl: &FancySpan) -> fmt::Result {
+  fn render_multi_line_end(&self, f: &mut dyn fmt::Write, hl: &FancySpan) -> fmt::Result {
     writeln!(
       f,
       "{} {}",

@@ -27,7 +27,7 @@ impl PassExt for OptimizeCodeGenerationPass {
         &mut diagnostics,
       )
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeCodeGeneration"))?;
 
     compilation.build_module_graph_artifact = build_module_graph_artifact.into();
     compilation.exports_info_artifact = exports_info_artifact.into();

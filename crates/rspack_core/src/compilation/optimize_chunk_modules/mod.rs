@@ -24,7 +24,7 @@ impl PassExt for OptimizeChunkModulesPass {
       .call(compilation)
       .await
       .map(|_| ())
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
 
     Ok(())
   }

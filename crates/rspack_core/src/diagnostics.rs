@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use rspack_error::{Diagnostic, Error, Label, dim};
+use rspack_error::{Diagnostic, Error, Label, dim_str};
 
 use crate::{BoxLoader, DependencyRange};
 
@@ -48,7 +48,10 @@ impl From<ModuleBuildError> for Error {
     let source = value.error;
 
     let message = if let Some(from) = value.from {
-      format!("Module build failed {}:", dim(&format!("(from {from})")))
+      format!(
+        "Module build failed {}:",
+        dim_str(&format!("(from {from})"))
+      )
     } else {
       "Module build failed:".to_string()
     };

@@ -66,7 +66,7 @@ impl PassExt for ModuleIdsPass {
         .revive_modules
         .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.reviveModules"))?;
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.reviveModules"))?;
     }
 
     // Call beforeModuleIds hook - allows plugins to assign custom IDs
@@ -84,7 +84,7 @@ impl PassExt for ModuleIdsPass {
         .before_module_ids
         .call(compilation, &modules_needing_ids, &mut module_ids_artifact)
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.beforeModuleIds"))?;
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.beforeModuleIds"))?;
     }
 
     // Put artifact back so moduleIds plugins can see custom IDs from beforeModuleIds
@@ -100,7 +100,7 @@ impl PassExt for ModuleIdsPass {
       .module_ids
       .call(compilation, &mut module_ids_artifact, &mut diagnostics)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.moduleIds"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.moduleIds"))?;
     if !compilation
       .plugin_driver
       .compilation_hooks
@@ -114,7 +114,7 @@ impl PassExt for ModuleIdsPass {
         .record_modules
         .call(compilation, &module_ids_artifact)
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.recordModules"))?;
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.recordModules"))?;
     }
     compilation.module_ids_artifact = module_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);

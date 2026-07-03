@@ -3,7 +3,7 @@ use rspack_core::{
   NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, RuntimeGlobals,
   RuntimeRequirementsDependency, get_context, parse_resource,
 };
-use rspack_error::{Diagnostic, cyan, yellow};
+use rspack_error::{Diagnostic, cyan_str, yellow_str};
 use rspack_util::SpanExt;
 use sugar_path::SugarPath;
 use swc_experimental_ecma_ast::{Expr, GetSpan, Ident, MemberExpr, Span, UnaryExpr};
@@ -69,13 +69,13 @@ impl NodeMetaProperty {
     match self {
       NodeMetaProperty::Filename => format!(
         "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
-        yellow(&IMPORT_META_FILENAME),
-        cyan(&"node.__filename")
+        yellow_str(IMPORT_META_FILENAME),
+        cyan_str("node.__filename")
       ),
       NodeMetaProperty::Dirname => format!(
         "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
-        yellow(&IMPORT_META_DIRNAME),
-        cyan(&"node.__dirname")
+        yellow_str(IMPORT_META_DIRNAME),
+        cyan_str("node.__dirname")
       ),
     }
   }
@@ -481,7 +481,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeDirnameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_DIRNAME".to_string(),
-            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&DIRNAME), cyan(&"node.__dirname")),
+            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow_str(DIRNAME), cyan_str("node.__dirname")),
           ));
           Some(MOCK_DIRNAME.to_string())
         }
@@ -534,7 +534,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for NodeStuffPlugin {
         NodeFilenameOption::WarnMock => {
           parser.add_warning(Diagnostic::warn(
             "NODE_FILENAME".to_string(),
-            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow(&FILENAME), cyan(&"node.__filename")),
+            format!("\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.", yellow_str(FILENAME), cyan_str("node.__filename")),
           ));
           Some(MOCK_FILENAME.to_string())
         }

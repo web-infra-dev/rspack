@@ -39,7 +39,7 @@ impl IgnorePlugin {
       match check_resource {
         CheckResourceContent::Fn(check) => match check(request, context).await {
           Ok(true) => return Ok(Some(false)),
-          Err(err) => return Err(err.wrap_err("IgnorePlugin: failed to call `checkResource`")),
+          Err(err) => return Err(err.wrap_err(&"IgnorePlugin: failed to call `checkResource`")),
           _ => {}
         },
       }

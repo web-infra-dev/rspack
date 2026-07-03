@@ -20,7 +20,7 @@ impl PassExt for OptimizeChunksPass {
         .optimize_chunks
         .call(compilation)
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunks"))?,
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeChunks"))?,
       Some(true)
     ) {}
 

@@ -21,7 +21,7 @@ use rspack_core::{
     SourceMapSourceOptions,
   },
 };
-use rspack_error::{Diagnostic, Result};
+use rspack_error::{Diagnostic, Result, error};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_javascript_compiler::JavaScriptCompiler;
@@ -433,7 +433,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
                 d.file = Some(filename.into());
                 d
               }).collect::<Vec<_>>();
-              tx.send(errors)?;
+              tx.send(errors).map_err(|e| error!(e.to_string()))?;
               return Ok(())
             },
         };

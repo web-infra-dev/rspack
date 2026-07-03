@@ -236,7 +236,7 @@ pub async fn process_modules_runtime_requirements(
                   .await
                   .map_err(|e| {
                     e.wrap_err(
-                      "caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements",
+                      &"caused by plugins in Compilation.hooks.additionalModuleRuntimeRequirements",
                     )
                   })?;
 
@@ -267,7 +267,7 @@ pub async fn process_modules_runtime_requirements(
                             .await
                             .map_err(|e| {
                               e.wrap_err(
-                                "caused by plugins in Compilation.hooks.runtimeRequirementInModule",
+                                &"caused by plugins in Compilation.hooks.runtimeRequirementInModule",
                               )
                             })?;
                           Ok(())
@@ -347,7 +347,7 @@ pub async fn process_chunks_runtime_requirements(
       )
       .await
       .map_err(|e| {
-        e.wrap_err("caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
+        e.wrap_err(&"caused by plugins in Compilation.hooks.additionalChunkRuntimeRequirements")
       })?;
 
     for module in additional_runtime_modules {
@@ -380,7 +380,7 @@ pub async fn process_chunks_runtime_requirements(
               )
               .await
               .map_err(|e| {
-                e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
+                e.wrap_err(&"caused by plugins in Compilation.hooks.runtimeRequirementInChunk")
               })?;
             for runtime_module in runtime_modules_to_add.iter() {
               let runtime_requirements = runtime_module.runtime_requirements(compilation);
@@ -437,7 +437,7 @@ pub async fn process_chunks_runtime_requirements(
       )
       .await
       .map_err(|e| {
-        e.wrap_err("caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
+        e.wrap_err(&"caused by plugins in Compilation.hooks.additionalTreeRuntimeRequirements")
       })?;
     hook_exposed_requirements_by_entry.insert(
       entry_ukey,
@@ -469,7 +469,7 @@ pub async fn process_chunks_runtime_requirements(
           )
           .await
           .map_err(|e| {
-            e.wrap_err("caused by plugins in Compilation.hooks.runtimeRequirementInTree")
+            e.wrap_err(&"caused by plugins in Compilation.hooks.runtimeRequirementInTree")
           })?;
 
         for runtime_module in runtime_modules_to_add.iter() {
@@ -518,7 +518,7 @@ pub async fn process_chunks_runtime_requirements(
           &mut runtime_modules,
         )
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.runtimeModule"))?;
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.runtimeModule"))?;
     }
   }
   compilation.runtime_modules = runtime_modules;

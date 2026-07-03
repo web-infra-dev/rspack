@@ -26,7 +26,7 @@ impl PassExt for SealPass {
       .seal
       .call(compilation, &mut diagnostics)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.seal"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.seal"))?;
     compilation.extend_diagnostics(diagnostics);
 
     Ok(())

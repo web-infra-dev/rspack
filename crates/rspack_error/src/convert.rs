@@ -29,11 +29,7 @@ pub fn serde_error_with_detail(e: &serde_json::Error, content: &str, msg: &str) 
 
 pub trait ToStringResultToRspackResultExt<T, E: Display> {
   fn to_rspack_result(self) -> Result<T>;
-  fn to_rspack_result_with_message(self, formatter: impl FnOnce(E) -> String) -> Result<T>;
-  fn to_rspack_result_with_message_ref(
-    self,
-    formatter: &dyn Fn(&dyn Display) -> String,
-  ) -> Result<T>;
+  fn to_rspack_result_with_message(self, formatter: &dyn Fn(&dyn Display) -> String) -> Result<T>;
 }
 
 impl<T, E: Display> ToStringResultToRspackResultExt<T, E> for std::result::Result<T, E> {
@@ -41,14 +37,7 @@ impl<T, E: Display> ToStringResultToRspackResultExt<T, E> for std::result::Resul
     self.map_err(|e| error_from_display(&e))
   }
 
-  fn to_rspack_result_with_message(self, formatter: impl FnOnce(E) -> String) -> Result<T> {
-    self.map_err(|e| error_from_string(formatter(e)))
-  }
-
-  fn to_rspack_result_with_message_ref(
-    self,
-    formatter: &dyn Fn(&dyn Display) -> String,
-  ) -> Result<T> {
+  fn to_rspack_result_with_message(self, formatter: &dyn Fn(&dyn Display) -> String) -> Result<T> {
     self.map_err(|e| error_from_string(formatter(&e)))
   }
 }

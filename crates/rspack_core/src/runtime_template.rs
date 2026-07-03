@@ -1786,7 +1786,7 @@ impl RuntimeCodeTemplateInner<'_> {
         )
         // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
         .map(|render| render.cow_replace("\r\n", "\n").to_string())
-        .to_rspack_result_with_message_ref(&|e| {
+        .to_rspack_result_with_message(&|e| {
           format!("Runtime module: failed to render template {key} from: {e}")
         })
     } else {

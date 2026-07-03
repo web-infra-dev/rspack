@@ -36,7 +36,7 @@ impl PassExt for OptimizeDependenciesPass {
           &mut diagnostics
         )
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeDependencies"))?,
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeDependencies"))?,
       Some(true)
     ) {}
     compilation.side_effects_optimize_artifact = side_effects_optimize_artifact.into();

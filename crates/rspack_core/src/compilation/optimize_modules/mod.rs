@@ -22,7 +22,7 @@ impl PassExt for OptimizeModulesPass {
         .optimize_modules
         .call(compilation, &mut circular_modules, &mut diagnostics)
         .await
-        .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeModules"))?,
+        .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeModules"))?,
       Some(true)
     ) {}
     compilation.circular_modules = circular_modules.into();
@@ -35,7 +35,7 @@ impl PassExt for OptimizeModulesPass {
       .after_optimize_modules
       .call(compilation)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.afterOptimizeModules"))?;
 
     Ok(())
   }

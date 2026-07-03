@@ -35,5 +35,5 @@ pub async fn process_assets(
     .process_assets
     .call(compilation)
     .await
-    .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.processAssets"))
+    .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.processAssets"))
 }

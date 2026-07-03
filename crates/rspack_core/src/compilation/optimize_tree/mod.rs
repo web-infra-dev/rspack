@@ -19,7 +19,7 @@ impl PassExt for OptimizeTreePass {
       .optimize_tree
       .call(compilation)
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeTree"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.optimizeTree"))?;
 
     Ok(())
   }

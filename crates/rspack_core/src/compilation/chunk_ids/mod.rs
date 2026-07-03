@@ -39,7 +39,7 @@ impl PassExt for ChunkIdsPass {
         &mut diagnostics,
       )
       .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.chunkIds"))?;
+      .map_err(|e| e.wrap_err(&"caused by plugins in Compilation.hooks.chunkIds"))?;
     compilation.build_chunk_graph_artifact.chunk_by_ukey = chunk_by_ukey;
     compilation.named_chunk_ids_artifact = named_chunk_ids_artifact.into();
     compilation.extend_diagnostics(diagnostics);
