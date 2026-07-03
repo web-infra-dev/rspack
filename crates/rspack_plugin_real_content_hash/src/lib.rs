@@ -221,7 +221,10 @@ async fn inner_impl(compilation: &mut Compilation) -> Result<()> {
                 }
                 let new_hash = hasher.digest(&compilation.options.output.hash_digest);
 
-                new_hash.rendered(old_hash.len()).to_string()
+                // old_hash may be a sentinel (#8474): truncate to the length it encodes
+                let len =
+                  rspack_core::parse_content_hash_sentinel_len(&old_hash).unwrap_or(old_hash.len());
+                new_hash.rendered(len).to_string()
               };
 
               Ok((old_hash.clone(), new_hash))

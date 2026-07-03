@@ -287,6 +287,9 @@ pub struct PathData<'a> {
   pub runtime: Option<&'a str>,
   pub url: Option<&'a str>,
   pub id: Option<&'a str>,
+  /// When set, `[contenthash]` renders as a collision-resistant sentinel (#8474);
+  /// the compilation path helpers set it from `optimization.realContentHash`.
+  pub real_content_hash: bool,
 }
 
 static MATCH_ID_REGEX: LazyLock<Regex> =
@@ -363,6 +366,11 @@ impl<'a> PathData<'a> {
 
   pub fn content_hash_optional(mut self, v: Option<&'a str>) -> Self {
     self.content_hash = v;
+    self
+  }
+
+  pub fn real_content_hash(mut self, v: bool) -> Self {
+    self.real_content_hash = v;
     self
   }
 

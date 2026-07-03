@@ -1211,6 +1211,7 @@ impl Compilation {
     if data.hash.is_none() {
       data.hash = self.get_hash();
     }
+    data.real_content_hash = self.options.optimization.real_content_hash;
     let path = filename.render(data, Some(info)).await?;
     Ok(path)
   }
@@ -1222,8 +1223,9 @@ impl Compilation {
   pub async fn get_asset_path_with_info(
     &self,
     filename: &Filename,
-    data: PathData<'_>,
+    mut data: PathData<'_>,
   ) -> Result<(String, AssetInfo)> {
+    data.real_content_hash = self.options.optimization.real_content_hash;
     let mut info = AssetInfo::default();
     let path = filename.render(data, Some(&mut info)).await?;
     Ok((path, info))

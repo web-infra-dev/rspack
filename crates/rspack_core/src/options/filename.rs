@@ -196,6 +196,32 @@ pub fn has_content_hash_placeholder(template: &str) -> bool {
   false
 }
 
+// realContentHash sentinel (#8474): while realContentHash is on, `[contenthash]`
+// renders as this token instead of the raw hash, so RealContentHashPlugin rewrites
+// only real insertion sites, never source data that merely looks like a hash.
+// Charset is `[A-Za-z0-9_]`: filename-safe and minify-stable inside string literals.
+const CONTENT_HASH_SENTINEL_PREFIX: &str = "__rspackRealCH_";
+const CONTENT_HASH_SENTINEL_SUFFIX: &str = "_HClaeRkcapsr__";
+
+/// `<prefix><digest>_<len><suffix>`: digest keeps it unique per hash; len carries the
+/// requested `[contenthash:len]` so the plugin can truncate the real hash to match.
+pub fn content_hash_sentinel(digest: &str, len: usize) -> String {
+  format!("{CONTENT_HASH_SENTINEL_PREFIX}{digest}_{len}{CONTENT_HASH_SENTINEL_SUFFIX}")
+}
+
+pub fn is_content_hash_sentinel(s: &str) -> bool {
+  s.starts_with(CONTENT_HASH_SENTINEL_PREFIX) && s.ends_with(CONTENT_HASH_SENTINEL_SUFFIX)
+}
+
+pub fn parse_content_hash_sentinel_len(s: &str) -> Option<usize> {
+  s.strip_prefix(CONTENT_HASH_SENTINEL_PREFIX)?
+    .strip_suffix(CONTENT_HASH_SENTINEL_SUFFIX)?
+    .rsplit_once('_')?
+    .1
+    .parse::<usize>()
+    .ok()
+}
+
 fn render_template(
   template: Cow<str>,
   options: PathData,
@@ -300,19 +326,28 @@ fn render_template(
       asset_info.version = content_hash.to_string();
     }
     t = t.map(|t| {
-      t.replace_all_with_len(CONTENT_HASH_PLACEHOLDER, |len, need_base64| {
-        let content: Cow<str> = if need_base64 {
-          base64::encode_to_string(content_hash).into()
-        } else {
-          content_hash.into()
-        };
-        let content = content.map(|s| s[..hash_len(s, len)].into());
-        if let Some(asset_info) = asset_info.as_mut() {
-          asset_info.set_immutable(Some(true));
-          asset_info.set_content_hash(content.to_string());
-        }
-        content
-      })
+      t.replace_all_with_len(
+        CONTENT_HASH_PLACEHOLDER,
+        |len: Option<usize>, need_base64: bool| {
+          let content: Cow<str> = if is_content_hash_sentinel(content_hash) {
+            content_hash.into() // already a sentinel (runtime chunk-filename ref) — don't re-wrap
+          } else if options.real_content_hash && !need_base64 {
+            content_hash_sentinel(content_hash, hash_len(content_hash, len)).into()
+          } else if need_base64 {
+            let s = base64::encode_to_string(content_hash);
+            s[..hash_len(&s, len)].to_string().into()
+          } else {
+            content_hash[..hash_len(content_hash, len)]
+              .to_string()
+              .into()
+          };
+          if let Some(asset_info) = asset_info.as_mut() {
+            asset_info.set_immutable(Some(true));
+            asset_info.set_content_hash(content.to_string());
+          }
+          content
+        },
+      )
     });
   }
   // chunk-level

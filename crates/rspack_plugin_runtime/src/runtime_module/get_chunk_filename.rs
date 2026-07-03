@@ -265,9 +265,20 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             &self.source_type,
             compilation.options.output.hash_digest_length,
           )
-          .map(|hash| match hash_len_map.get("[contenthash]") {
-            Some(hash_len) => hash[..*hash_len].to_string(),
-            None => hash.to_string(),
+          .map(|hash| {
+            if compilation.options.optimization.real_content_hash {
+              // sentinel for issue #8474 — matches the chunk's own filename
+              let len = hash_len_map
+                .get("[contenthash]")
+                .copied()
+                .unwrap_or(hash.len());
+              rspack_core::content_hash_sentinel(hash, len)
+            } else {
+              match hash_len_map.get("[contenthash]") {
+                Some(hash_len) => hash[..*hash_len].to_string(),
+                None => hash.to_string(),
+              }
+            }
           })
         },
         &chunks,
@@ -347,13 +358,20 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           .content_hash(&compilation.chunk_hashes_artifact)
           .and_then(|content_hash| content_hash.get(&self.source_type))
           .map(|i| {
-            let hash = unquoted_stringify(
-              chunk.id(),
-              i.rendered(compilation.options.output.hash_digest_length),
-            );
-            match hash_len_map.get("[contenthash]") {
-              Some(hash_len) => hash[..*hash_len].to_string(),
-              None => hash,
+            let digest = i.rendered(compilation.options.output.hash_digest_length);
+            if compilation.options.optimization.real_content_hash {
+              // sentinel (#8474) — matches the chunk's own filename
+              let len = hash_len_map
+                .get("[contenthash]")
+                .copied()
+                .unwrap_or(digest.len());
+              rspack_core::content_hash_sentinel(digest, len)
+            } else {
+              let hash = unquoted_stringify(chunk.id(), digest);
+              match hash_len_map.get("[contenthash]") {
+                Some(hash_len) => hash[..*hash_len].to_string(),
+                None => hash,
+              }
             }
           });
         let full_hash = match hash_len_map
