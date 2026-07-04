@@ -1,8 +1,8 @@
 use std::{future::pending, sync::Arc};
 
 use rspack_tasks::{
-  CompilerContext, block_on, fetch_new_dependency_id, spawn, spawn_blocking,
-  spawn_in_compiler_context, within_compiler_context,
+  CURRENT_COMPILER_CONTEXT, CompilerContext, block_on, fetch_new_dependency_id, spawn,
+  spawn_blocking, spawn_in_compiler_context, within_compiler_context,
 };
 
 #[test]
@@ -46,6 +46,22 @@ fn spawned_tasks_keep_compiler_context() {
   let value = block_on(within_compiler_context(compiler_context, async {
     spawn_in_compiler_context(async { fetch_new_dependency_id() })
       .await
+      .unwrap()
+  }));
+
+  assert_eq!(value, 7);
+}
+
+#[test]
+fn try_with_reads_current_compiler_context() {
+  assert!(CURRENT_COMPILER_CONTEXT.try_with(|_| ()).is_err());
+
+  let compiler_context = Arc::new(CompilerContext::new());
+  compiler_context.set_dependency_id(7);
+
+  let value = block_on(within_compiler_context(compiler_context, async {
+    CURRENT_COMPILER_CONTEXT
+      .try_with(|compiler_context| compiler_context.dependency_id())
       .unwrap()
   }));
 

@@ -54,6 +54,28 @@ impl CompilerContextLocal {
     CURRENT_CONTEXT.with(|current| current.borrow().clone().ok_or(TryGetCompilerContextError))
   }
 
+  pub fn with<F, R>(&self, f: F) -> R
+  where
+    F: FnOnce(&Arc<CompilerContext>) -> R,
+  {
+    self
+      .try_with(f)
+      .expect("CURRENT_COMPILER_CONTEXT is not set")
+  }
+
+  pub fn try_with<F, R>(&self, f: F) -> Result<R, TryGetCompilerContextError>
+  where
+    F: FnOnce(&Arc<CompilerContext>) -> R,
+  {
+    CURRENT_CONTEXT.with(|current| {
+      current
+        .borrow()
+        .as_ref()
+        .map(f)
+        .ok_or(TryGetCompilerContextError)
+    })
+  }
+
   pub fn scope<F>(
     &self,
     compiler_context: Arc<CompilerContext>,
@@ -492,7 +514,7 @@ fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
   mutex.lock().unwrap_or_else(|e| e.into_inner())
 }
 
-fn worker_loop(inner: Arc<RuntimeInner>) {
+fn worker_loop(inner: Arc<RuntimeInner>) -> ! {
   loop {
     inner.wait_for_task().run();
   }
@@ -543,8 +565,7 @@ impl TaskState {
         Self::IDLE => Some(Self::SCHEDULED),
         _ => unreachable!("invalid task state"),
       })
-      .map(|state| state == Self::IDLE)
-      .unwrap_or(false)
+      .is_ok_and(|state| state == Self::IDLE)
   }
 
   fn start_running(&self) {
@@ -561,8 +582,7 @@ impl TaskState {
         Self::COMPLETE => None,
         _ => panic!("finish_running called on invalid task state"),
       })
-      .map(|old_state| old_state == Self::NOTIFIED_WHILE_RUNNING)
-      .unwrap_or(false)
+      .is_ok_and(|old_state| old_state == Self::NOTIFIED_WHILE_RUNNING)
   }
 
   fn complete(&self) {
@@ -597,7 +617,7 @@ where
 {
   fn new(future: F) -> Arc<Self> {
     let state = TaskState::default();
-    let waker = Waker::from(Arc::new(TaskWakerPlaceholder));
+    let waker = Waker::noop().clone();
 
     let task = Arc::new(Self {
       state,
@@ -731,10 +751,4 @@ impl Wake for ThreadWaker {
   fn wake_by_ref(self: &Arc<Self>) {
     self.current_thread.unpark();
   }
-}
-
-struct TaskWakerPlaceholder;
-
-impl Wake for TaskWakerPlaceholder {
-  fn wake(self: Arc<Self>) {}
 }
