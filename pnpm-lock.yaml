@@ -49,8 +49,8 @@ importers:
         specifier: ^17.0.8
         version: 17.0.8
       prettier:
-        specifier: 3.8.4
-        version: 3.8.4
+        specifier: 3.9.4
+        version: 3.9.4
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
@@ -4564,10 +4564,6 @@ packages:
     resolution: {integrity: sha512-gIXjKqtFuWEgzFRJA9WCQeSJLZDjgJUOMCMzxtvFq/37KojM1BFGufqsCy0r4qSQmYLsZYMeyRqzIWOMup03sw==}
     engines: {node: '>=14'}
 
-  fs-extra@11.3.5:
-    resolution: {integrity: sha512-eKpRKAovdpZtR1WopLHxlBWvAgPny3c4gX1G5Jhwmmw4XJj0ifSD5qB5TOo8hmA0wlRKDAOAhEE1yVPgs6Fgcg==}
-    engines: {node: '>=14.14'}
-
   fs-extra@11.3.6:
     resolution: {integrity: sha512-w8ZNZr2mKIc7qeNaQ9AVPT1+iFaI+Avd4xudVOvdDJ8VytREi1Ft5Ih7hd9jjehod8vAM5GMsfQ/TpPf4EyoEA==}
     engines: {node: '>=14.14'}
@@ -5960,13 +5956,8 @@ packages:
     resolution: {integrity: sha512-UjtlqPAr5xggwXJwOuC/FjDFFrn/yoRCq4nXtAX5KwAlumYpBJGixpNQ7z/jZnfNaaxhGKbv06GZOY5L7lK2Vw==}
     hasBin: true
 
-  prettier@3.8.3:
-    resolution: {integrity: sha512-7igPTM53cGHMW8xWuVTydi2KO233VFiTNyF5hLJqpilHfmn8C8gPf+PS7dUT64YcXFbiMGZxS9pCSxL/Dxm/Jw==}
-    engines: {node: '>=14'}
-    hasBin: true
-
-  prettier@3.8.4:
-    resolution: {integrity: sha512-N2MylSdi48+5N/6S5j+maeHbUSIzzZ5uOcX5Hm4QpV8Dkb1HFjfAKTKX6yNPJQD9AhcT3ifHNB66tWTTJDi11Q==}
+  prettier@3.9.4:
+    resolution: {integrity: sha512-yWG/o/4oJfo036EKAfK6ACAoDOfHeRHx4tuxkfBZiauURiaSmYwlpOr5LQqKtIkRD2z1PLteme2WoxEnj4tHTg==}
     engines: {node: '>=14'}
     hasBin: true
 
@@ -9148,7 +9139,7 @@ snapshots:
       ajv: 8.18.0
       ajv-draft-04: 1.0.0(ajv@8.18.0)
       ajv-formats: 3.0.1
-      fs-extra: 11.3.5
+      fs-extra: 11.3.6
       import-lazy: 4.0.0
       jju: 1.4.0
       resolve: 1.22.12
@@ -10854,12 +10845,6 @@ snapshots:
       cross-spawn: 7.0.6
       signal-exit: 4.1.0
 
-  fs-extra@11.3.5:
-    dependencies:
-      graceful-fs: 4.2.11
-      jsonfile: 6.2.0
-      universalify: 2.0.1
-
   fs-extra@11.3.6:
     dependencies:
       graceful-fs: 4.2.11
@@ -12564,16 +12549,14 @@ snapshots:
     dependencies:
       '@vercel/ncc': 0.38.4
       cac: 7.0.0
-      prettier: 3.8.3
+      prettier: 3.9.4
       rollup: 4.60.4
       rollup-plugin-dts: 6.4.1(rollup@4.60.4)(typescript@6.0.3)
       terser: 5.48.0
     transitivePeerDependencies:
       - typescript
 
-  prettier@3.8.3: {}
-
-  prettier@3.8.4: {}
+  prettier@3.9.4: {}
 
   pretty-format@30.4.1:
     dependencies:
