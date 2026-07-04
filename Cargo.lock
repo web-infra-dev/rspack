@@ -5316,7 +5316,7 @@ dependencies = [
  "swc_core",
  "tokio",
  "tracing",
- "wasmparser",
+ "wasmparser 0.252.0",
 ]
 
 [[package]]
@@ -8062,7 +8062,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "724fccfd4f3c24b7e589d333fc0429c68042897a7e8a5f8694f31792471841e7"
 dependencies = [
  "leb128fmt",
- "wasmparser",
+ "wasmparser 0.236.1",
 ]
 
 [[package]]
@@ -8079,6 +8079,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "wasmparser"
+version = "0.252.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3eb099dcadcde5be9eef55e3a337128efd4e44b4c93122487e4d2e4e1c6627c"
+dependencies = [
+ "bitflags 2.11.1",
+]
+
+[[package]]
 name = "wasmprinter"
 version = "0.236.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8086,7 +8095,7 @@ checksum = "2df225df06a6df15b46e3f73ca066ff92c2e023670969f7d50ce7d5e695abbb1"
 dependencies = [
  "anyhow",
  "termcolor",
- "wasmparser",
+ "wasmparser 0.236.1",
 ]
 
 [[package]]
@@ -8118,7 +8127,7 @@ dependencies = [
  "serde_derive",
  "smallvec",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.236.1",
  "wasmtime-environ",
  "wasmtime-internal-asm-macros",
  "wasmtime-internal-component-macro",
@@ -8155,7 +8164,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "wasm-encoder",
- "wasmparser",
+ "wasmparser 0.236.1",
  "wasmprinter",
  "wasmtime-internal-component-util",
 ]
@@ -8211,7 +8220,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror 2.0.18",
- "wasmparser",
+ "wasmparser 0.236.1",
  "wasmtime-environ",
  "wasmtime-internal-math",
  "wasmtime-internal-versioned-export-macros",
@@ -8305,7 +8314,7 @@ dependencies = [
  "gimli",
  "object",
  "target-lexicon",
- "wasmparser",
+ "wasmparser 0.236.1",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "winch-codegen",
@@ -8429,7 +8438,7 @@ dependencies = [
  "smallvec",
  "target-lexicon",
  "thiserror 2.0.18",
- "wasmparser",
+ "wasmparser 0.236.1",
  "wasmtime-environ",
  "wasmtime-internal-cranelift",
  "wasmtime-internal-math",
@@ -8768,7 +8777,7 @@ dependencies = [
  "serde_derive",
  "serde_json",
  "unicode-xid",
- "wasmparser",
+ "wasmparser 0.236.1",
 ]
 
 [[package]]
