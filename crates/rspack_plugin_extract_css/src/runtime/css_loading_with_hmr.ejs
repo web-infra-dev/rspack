@@ -17,36 +17,56 @@ var applyHandler = function (options) {
 		}
 	}
 }
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList) {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) {
 	applyHandlers.push(applyHandler);
+	/**
+		`css` is the hot-update manifest's css namespace (aligned with webpack):
+		`css.c` lists the chunks whose CSS content actually changed and `css.r`
+		the chunks whose CSS disappeared. Its absence means this update carries
+		no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+		update (its full hash always changes) while its stylesheet rarely does.
+	 */
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = (css && css.c) || [];
 	var seen = {};
-	chunkIds.forEach(function (chunkId) {
+	cssRemovedChunkIds.forEach(function (chunkId) {
+		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
+		if (!href) return;
+		var oldTag = findStylesheet(href, <%- PUBLIC_PATH %> + href);
+		if (oldTag) oldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(function (chunkId) {
 		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
 		if (!href) return;
 		var fullhref = <%- PUBLIC_PATH %> + href;
 		if (seen[fullhref]) return;
 		seen[fullhref] = true;
 		var oldTag = findStylesheet(href, fullhref);
-		if (!oldTag) return;
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = createStylesheet(
 				chunkId,
+				oldTag
 
-				/**
-					If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
-					Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
-				 */
-				`${fullhref}?${Date.now()}`,
+					/**
+						If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
+						Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
+					 */
+					? `${fullhref}?${Date.now()}`
+
+					// The chunk just gained its first stylesheet; load it fresh.
+					: fullhref,
 				oldTag,
 				function () {
-					try {
-						if (cssTextKey(oldTag) === cssTextKey(tag)) {
-							if (tag.parentNode) tag.parentNode.removeChild(tag);
-							return resolve();
-						}
-					} catch (e) {}
+					if (oldTag) {
+						try {
+							if (cssTextKey(oldTag) === cssTextKey(tag)) {
+								if (tag.parentNode) tag.parentNode.removeChild(tag);
+								return resolve();
+							}
+						} catch (e) {}
+					}
 					tag.sheet.disabled = true;
-					oldTags.push(oldTag);
+					if (oldTag) oldTags.push(oldTag);
 					newTags.push(tag);
 					resolve();
 				},

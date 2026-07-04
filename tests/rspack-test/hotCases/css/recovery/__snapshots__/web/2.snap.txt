@@ -5,7 +5,7 @@
 
 ## Asset Files
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Manifest: main.LAST_HASH.hot-update.json, size: 49
 - Update: main.hot-update.js, size: 6038
 
 ## Manifest
@@ -13,7 +13,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":[],"m":[]}
+{"c":["main"],"r":[],"m":[],"css":{"c":["main"]}}
 ```
 
 

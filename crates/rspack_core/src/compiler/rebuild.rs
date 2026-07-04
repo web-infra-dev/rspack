@@ -131,6 +131,7 @@ pub struct CompilationRecords {
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
+  pub chunk_css_hashes: ChunkIdMap<RspackHashDigest>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -141,8 +142,22 @@ impl CompilationRecords {
       runtime_modules: Self::record_runtime_modules(compilation),
       chunks: Self::record_chunks(compilation),
       modules: Self::record_modules(compilation),
+      chunk_css_hashes: Self::record_chunk_css_hashes(compilation),
       hash: Self::record_hash(compilation),
     }
+  }
+
+  fn record_chunk_css_hashes(compilation: &Compilation) -> ChunkIdMap<RspackHashDigest> {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .values()
+      .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
+      .filter_map(|chunk| {
+        let css_hash = compilation.chunk_css_content_signature(&chunk.ukey())?;
+        Some((chunk.expect_id().clone(), css_hash))
+      })
+      .collect()
   }
 
   fn record_hash(compilation: &Compilation) -> Option<RspackHashDigest> {

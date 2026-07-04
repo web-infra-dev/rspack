@@ -20,11 +20,24 @@ var applyHandler = <%- basicFunction("options") %> {
 var cssTextKey = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
+	// `css` is the hot-update manifest's css namespace (aligned with webpack):
+	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
+	// the chunks whose CSS disappeared. Its absence means this update carries
+	// no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+	// update (its full hash always changes) while its stylesheet rarely does.
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = (css && css.c) || [];
 	var seen = {};
-	chunkIds.forEach(<%- basicFunction("chunkId") %> {
+	cssRemovedChunkIds.forEach(<%- basicFunction("chunkId") %> {
+		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
+		if (!filename) return;
+		var oldTag = loadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
+		if (oldTag) oldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		if (!filename) return;
 		var url = <%- PUBLIC_PATH %> + filename;
@@ -33,7 +46,6 @@ var cssTextKey = <%- basicFunction("link") %> {
 		}
 		seen[url] = true;
 		var oldTag = loadStylesheet(chunkId, url);
-		if (!oldTag) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
 				var link = loadStylesheet(
@@ -58,13 +70,13 @@ var cssTextKey = <%- basicFunction("link") %> {
 							reject(error);
 						} else {
 							try {
-								if (cssTextKey(oldTag) == cssTextKey(link)) {
+								if (oldTag && cssTextKey(oldTag) == cssTextKey(link)) {
 									if (link.parentNode) link.parentNode.removeChild(link);
 									return resolve();
 								}
 							} catch (e) {}
 							link.sheet.disabled = true;
-							oldTags.push(oldTag);
+							if (oldTag) oldTags.push(oldTag);
 							newTags.push(link);
 							resolve();
 						}

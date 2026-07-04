@@ -64,6 +64,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     runtimes: all_old_runtime,
     modules: old_all_modules,
     runtime_modules: old_runtime_modules,
+    chunk_css_hashes: old_chunk_css_hashes,
     hash: old_hash,
   } = records.as_ref();
 
@@ -177,9 +178,30 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = old_runtime.clone();
     }
 
+    // How this chunk's CSS content evolved across the rebuild. The runtime
+    // chunk is always in `c` (its full hash changes every rebuild) while its
+    // CSS is usually unchanged, so the runtime needs to know which chunks'
+    // stylesheets actually changed (`css.c`) or disappeared (`css.r`).
+    let old_css_hash = old_chunk_css_hashes.get(&chunk_id);
+    let new_css_hash =
+      current_chunk.and_then(|chunk| compilation.chunk_css_content_signature(&chunk.ukey()));
+    let css_changed = new_css_hash.is_some() && new_css_hash.as_ref() != old_css_hash;
+    let css_removed = new_css_hash.is_none() && old_css_hash.is_some();
+
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
+        if old_css_hash.is_some() {
+          info.css_removed_chunk_ids.insert(chunk_id.clone());
+        }
+      }
+    }
+
+    if css_removed && current_chunk.is_some() {
+      for runtime in new_runtime.iter() {
+        if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
+          info.css_removed_chunk_ids.insert(chunk_id.clone());
+        }
       }
     }
 
@@ -338,6 +360,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
+          if css_changed {
+            info.css_updated_chunk_ids.insert(chunk_id.clone());
+          }
         }
       });
     }
@@ -376,6 +401,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           .removed_chunk_ids
           .extend(content.removed_chunk_ids);
         old_content.removed_modules.extend(content.removed_modules);
+        old_content
+          .css_updated_chunk_ids
+          .extend(content.css_updated_chunk_ids);
+        old_content
+          .css_removed_chunk_ids
+          .extend(content.css_removed_chunk_ids);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -397,12 +428,28 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       m.into_iter().collect()
     };
 
-    let manifest_content = serde_json::json!({
+    let mut manifest_json = serde_json::json!({
       "c": c,
       "r": r,
       "m": m,
-    })
-    .to_string();
+    });
+    // The `css` namespace aligns with webpack's hot-update manifest (webpack
+    // ships `css.r` for chunks that lost their CSS). It is only present when
+    // some chunk's CSS actually changed (`css.c`) or disappeared (`css.r`), so
+    // its absence tells the runtime there is no CSS work at all this update.
+    let css_c: Vec<ChunkId> = content.css_updated_chunk_ids.into_iter().collect();
+    let css_r: Vec<ChunkId> = content.css_removed_chunk_ids.into_iter().collect();
+    if !css_c.is_empty() || !css_r.is_empty() {
+      let mut css = serde_json::Map::new();
+      if !css_c.is_empty() {
+        css.insert("c".to_string(), serde_json::json!(css_c));
+      }
+      if !css_r.is_empty() {
+        css.insert("r".to_string(), serde_json::json!(css_r));
+      }
+      manifest_json["css"] = serde_json::Value::Object(css);
+    }
+    let manifest_content = manifest_json.to_string();
 
     compilation.emit_asset(
       filename,
@@ -502,4 +549,6 @@ struct HotUpdateContent {
   updated_chunk_ids: ChunkIdSet,
   removed_chunk_ids: ChunkIdSet,
   removed_modules: HashSet<ModuleId>,
+  css_updated_chunk_ids: ChunkIdSet,
+  css_removed_chunk_ids: ChunkIdSet,
 }

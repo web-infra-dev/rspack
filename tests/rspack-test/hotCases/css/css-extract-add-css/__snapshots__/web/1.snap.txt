@@ -1,0 +1,279 @@
+# Case css-extract-add-css: Step 1
+
+## Changed Files
+- lazy.js
+
+## Asset Files
+- Bundle: bundle.js
+- Bundle: lazy.chunk.CURRENT_HASH.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 56
+- Update: lazy.LAST_HASH.hot-update.js, size: 1223
+- Update: main.LAST_HASH.hot-update.js, size: 5737
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["lazy","main"],"r":[],"m":[],"css":{"c":["lazy"]}}
+```
+
+
+## Update
+
+
+### lazy.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./lazy.css
+- ./lazy.js
+
+#### Changed Runtime Modules
+
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("lazy", {
+"./lazy.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
+/* import */ var _lazy_css__rspack_import_0 = __webpack_require__("./lazy.css");
+
+/* export default */ const __rspack_default_export = (2);
+
+
+},
+"./lazy.css"(module, __webpack_exports__, __webpack_require__) {
+__webpack_require__.r(__webpack_exports__);
+// extracted by css-extract-rspack-plugin
+
+    if(true) {
+      (function() {
+        var localsJsonString = undefined;
+        var cssReload = (__webpack_require__("../../../../../../../../packages/rspack/dist/cssExtractHmr.js")/* .cssReload */.cssReload)(module.id, {});
+        // only invalidate when locals change
+        if (
+          module.hot.data &&
+          module.hot.data.value &&
+          module.hot.data.value !== localsJsonString
+        ) {
+          module.hot.invalidate();
+        } else {
+          module.hot.accept();
+        }
+        module.hot.dispose(function(data) {
+          data.value = localsJsonString;
+          cssReload();
+        });
+      })();
+    }
+  
+
+},
+
+});
+```
+
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/css loading
+(() => {
+if (typeof document === "undefined") return;
+var createStylesheet = function (
+	chunkId, fullhref, oldTag, resolve, reject, fetchPriority
+) {
+	var linkTag = document.createElement("link");
+
+linkTag.rel = "stylesheet";
+
+linkTag.type = "text/css";
+
+if (__webpack_require__.nc) {
+  linkTag.nonce = __webpack_require__.nc;
+}
+linkTag.href = fullhref;
+
+
+
+	var onLinkComplete = function (event) {
+		// avoid mem leaks.
+		linkTag.onerror = linkTag.onload = null;
+		if (event.type === 'load') {
+			resolve();
+		} else {
+			var errorType = event && (event.type === 'load' ? 'missing' : event.type);
+			var realHref = event && event.target && event.target.href || fullhref;
+			var err = new Error("Loading CSS chunk " + chunkId + " failed.\\n(" + realHref + ")");
+			err.code = "CSS_CHUNK_LOAD_FAILED";
+			err.type = errorType;
+			err.request = realHref;
+			if (linkTag.parentNode) linkTag.parentNode.removeChild(linkTag)
+			reject(err);
+		}
+	}
+	linkTag.onerror = linkTag.onload = onLinkComplete;
+	if (oldTag) {
+            oldTag.parentNode.insertBefore(linkTag, oldTag.nextSibling);
+          } else {
+            document.head.appendChild(linkTag);
+          }
+	return linkTag;
+}
+var findStylesheet = function (href, fullhref) {
+	var existingLinkTags = document.getElementsByTagName("link");
+	for (var i = 0; i < existingLinkTags.length; i++) {
+		var tag = existingLinkTags[i];
+		var dataHref = tag.getAttribute("data-href") || tag.getAttribute("href");
+		if (dataHref) {
+			dataHref = dataHref.split('?')[0]
+		}
+		if (tag.rel === "stylesheet" && (dataHref === href || dataHref === fullhref)) return tag;
+	}
+
+	var existingStyleTags = document.getElementsByTagName("style");
+	for (var i = 0; i < existingStyleTags.length; i++) {
+		var tag = existingStyleTags[i];
+		var dataHref = tag.getAttribute("data-href");
+		if (dataHref === href || dataHref === fullhref) return tag;
+	}
+}
+
+var loadStylesheet = function (chunkId, fetchPriority) {
+	return new Promise(function (resolve, reject) {
+		var href = __webpack_require__.miniCssF(chunkId);
+		var fullhref = __webpack_require__.p + href;
+		if (findStylesheet(href, fullhref)) return resolve();
+		createStylesheet(chunkId, fullhref, null, resolve, reject, fetchPriority);
+	})
+}
+
+// object to store loaded CSS chunks
+var installedCssChunks = {
+	"main": 0,
+
+};
+
+__webpack_require__.f.miniCss = function (chunkId, promises, fetchPriority) {
+	var cssChunks = {
+"lazy": 1,
+
+};
+	if (installedCssChunks[chunkId]) promises.push(installedCssChunks[chunkId])
+	else if (installedCssChunks[chunkId] !== 0 && cssChunks[chunkId])
+		promises.push(
+			installedCssChunks[chunkId] = loadStylesheet(chunkId, fetchPriority).then(
+				function () {
+					installedCssChunks[chunkId] = 0;
+				},
+				function (e) {
+					delete installedCssChunks[chunkId];
+					throw e;
+				}
+			)
+		)
+}
+
+var oldTags = [];
+var newTags = [];
+var cssTextKey = function (link) {
+	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
+}
+var applyHandler = function (options) {
+	return {
+		dispose: function () {},
+		apply: function () {
+			for (var i = 0; i < newTags.length; i++) newTags[i].sheet.disabled = false;
+			for (var i = 0; i < oldTags.length; i++) {
+				var oldTag = oldTags[i];
+				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
+			}
+			oldTags.length = 0;
+			newTags.length = 0;
+		}
+	}
+}
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) {
+	applyHandlers.push(applyHandler);
+	/**
+		`css` is the hot-update manifest's css namespace (aligned with webpack):
+		`css.c` lists the chunks whose CSS content actually changed and `css.r`
+		the chunks whose CSS disappeared. Its absence means this update carries
+		no CSS work at all — notably the runtime chunk is in `chunkIds` on every
+		update (its full hash always changes) while its stylesheet rarely does.
+	 */
+	var cssRemovedChunkIds = (css && css.r) || [];
+	var cssChunkIds = (css && css.c) || [];
+	var seen = {};
+	cssRemovedChunkIds.forEach(function (chunkId) {
+		var href = __webpack_require__.miniCssF(chunkId);
+		if (!href) return;
+		var oldTag = findStylesheet(href, __webpack_require__.p + href);
+		if (oldTag) oldTags.push(oldTag);
+	});
+	cssChunkIds.forEach(function (chunkId) {
+		var href = __webpack_require__.miniCssF(chunkId);
+		if (!href) return;
+		var fullhref = __webpack_require__.p + href;
+		if (seen[fullhref]) return;
+		seen[fullhref] = true;
+		var oldTag = findStylesheet(href, fullhref);
+		promises.push(new Promise(function (resolve, reject) {
+			var tag = createStylesheet(
+				chunkId,
+				oldTag
+
+					/**
+						If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
+						Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
+					 */
+					? `${fullhref}?${Date.now()}`
+
+					// The chunk just gained its first stylesheet; load it fresh.
+					: fullhref,
+				oldTag,
+				function () {
+					if (oldTag) {
+						try {
+							if (cssTextKey(oldTag) === cssTextKey(tag)) {
+								if (tag.parentNode) tag.parentNode.removeChild(tag);
+								return resolve();
+							}
+						} catch (e) {}
+					}
+					tag.sheet.disabled = true;
+					if (oldTag) oldTags.push(oldTag);
+					newTags.push(tag);
+					resolve();
+				},
+				reject
+			);
+		}))
+	});
+}
+
+// no prefetch
+// no preload
+})();
+
+}
+);
+```

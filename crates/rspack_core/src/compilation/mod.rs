@@ -461,6 +461,41 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
+  /// A hash of a chunk's CSS content, derived only from its CSS modules'
+  /// code-generation hashes (the same inputs the stylesheet is rendered from),
+  /// independent of the chunk's full hash. Returns `None` when the chunk has
+  /// no CSS. Used by HMR to tell whether a chunk's CSS actually changed,
+  /// appeared or disappeared across a rebuild.
+  pub fn chunk_css_content_signature(&self, chunk_ukey: &ChunkUkey) -> Option<RspackHashDigest> {
+    use rspack_hash::RspackHash;
+    let module_graph = self.get_module_graph();
+    let chunk = self
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(chunk_ukey);
+    let chunk_graph = &self.build_chunk_graph_artifact.chunk_graph;
+    let mut css_modules =
+      chunk_graph.get_chunk_modules_by_source_type(chunk_ukey, SourceType::Css, module_graph);
+    // CssExtractRspackPlugin renders its stylesheets from a custom source type.
+    css_modules.extend(chunk_graph.get_chunk_modules_by_source_type(
+      chunk_ukey,
+      SourceType::Custom("css/mini-extract".into()),
+      module_graph,
+    ));
+    if css_modules.is_empty() {
+      return None;
+    }
+    css_modules.sort_unstable_by_key(|m| m.identifier());
+    let mut hasher = RspackHasher::from(&self.options.output);
+    for module in css_modules {
+      if let Some(digest) = ChunkGraph::get_module_hash(self, module.identifier(), chunk.runtime())
+      {
+        RspackHash::hash(digest, &mut hasher);
+      }
+    }
+    Some(hasher.digest(&self.options.output.hash_digest))
+  }
+
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_stolen() {
