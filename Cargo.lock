@@ -2665,7 +2665,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cf00fa025e680c9ac4fef886b4448d3cd6eaa6afa09946ff8fcb67f15c73f73c"
 dependencies = [
  "anyhow",
- "prost",
+ "prost 0.13.5",
  "xxhash-rust",
 ]
 
@@ -3346,6 +3346,15 @@ checksum = "2796faa41db3ec313a31f7624d9286acf277b52de526150b7e69f3debf891ee5"
 dependencies = [
  "bytes",
  "prost-derive",
+]
+
+[[package]]
+name = "prost"
+version = "0.14.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "528ac67416ff8646872a3c02cad9cc4ee5dc9f9540c9b10771855c95cb2e5ae1"
+dependencies = [
+ "bytes",
 ]
 
 [[package]]
@@ -5461,7 +5470,7 @@ version = "0.101.2"
 dependencies = [
  "bytes",
  "micromegas-perfetto",
- "prost",
+ "prost 0.14.4",
  "rspack-allocative",
  "rustc-hash",
  "tracing",

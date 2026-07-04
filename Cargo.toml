@@ -76,7 +76,7 @@ path-clean          = { version = "1.0.1", default-features = false }
 pathdiff            = { version = "0.2.3", default-features = false }
 pretty_assertions   = { version = "1.4.1", default-features = false, features = ["std"] }
 proc-macro2         = { version = "1.0.106", default-features = false }
-prost               = { version = "0.13", default-features = false }
+prost               = { version = "0.14.4", default-features = false }
 quote               = { version = "1.0.45", default-features = false }
 rayon               = { version = "1.12.0", default-features = false }
 regex               = { version = "1.12.4", default-features = false, features = ["perf"] }
