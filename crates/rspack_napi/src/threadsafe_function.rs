@@ -120,7 +120,7 @@ impl FromNapiValue for DynThreadsafeFunction {
 
 impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
   async fn resolve_error(&self, err: napi::Error) -> Error {
-    let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
+    let (tx, rx) = channel::<rspack_error::Error>();
     ERROR_RESOLVER
       .get()
       // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.
@@ -163,7 +163,7 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
 
 impl DynThreadsafeFunction {
   async fn resolve_error(&self, err: napi::Error) -> Error {
-    let (tx, rx) = tokio::sync::oneshot::channel::<rspack_error::Error>();
+    let (tx, rx) = channel::<rspack_error::Error>();
     ERROR_RESOLVER
       .get()
       // SAFETY: The error resolver is initialized in `FromNapiValue::from_napi_value` and it's the only way to create a tsfn.

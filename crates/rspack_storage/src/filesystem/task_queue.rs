@@ -1,12 +1,13 @@
 use std::sync::LazyLock;
 
 use futures::future::BoxFuture;
+use rspack_tasks::spawn_in_context;
 use tokio::sync::{mpsc, oneshot};
 
 /// TaskQueue manages background async tasks efficiently.
 ///
 /// Tasks are executed sequentially in the order they are added.
-/// Uses tokio's unbounded_channel which automatically suspends the receiver when idle.
+/// Uses an unbounded channel which automatically suspends the receiver when idle.
 pub struct TaskQueue {
   sender: LazyLock<mpsc::UnboundedSender<BoxFuture<'static, ()>>>,
 }
@@ -22,7 +23,7 @@ impl Default for TaskQueue {
     TaskQueue {
       sender: LazyLock::new(|| {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        tokio::spawn(async move {
+        spawn_in_context(async move {
           while let Some(future) = rx.recv().await {
             future.await
           }

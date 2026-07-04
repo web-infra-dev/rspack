@@ -7,6 +7,7 @@ mod version;
 
 use std::sync::{Arc, Mutex};
 
+use rspack_tasks::spawn_in_context;
 use rustc_hash::FxHashMap as HashMap;
 
 use self::{db::DB, meta::Meta, scope_fs::ScopeFileSystem, task_queue::TaskQueue};
@@ -19,7 +20,7 @@ type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 const STALE_DIR_NAME: &str = "_stale";
 
 fn spawn_cleanup_stale_versions(stale_fs: ScopeFileSystem) {
-  tokio::spawn(async move {
+  spawn_in_context(async move {
     stale_fs.ensure_exist().await?;
 
     let stale_versions = stale_fs

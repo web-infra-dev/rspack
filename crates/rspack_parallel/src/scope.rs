@@ -1,6 +1,6 @@
 use std::{cell::RefCell, future::Future, marker::PhantomData, pin::Pin};
 
-use tokio::task::{JoinError, JoinHandle};
+use rspack_tasks::{JoinError, JoinHandle};
 
 /// Scope Token
 pub struct Token<'scope, 'spawner, O> {

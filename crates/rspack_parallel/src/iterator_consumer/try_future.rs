@@ -1,7 +1,7 @@
 use std::{future::Future, sync::Arc};
 
-use rspack_tasks::spawn_in_context;
-use tokio::{sync::mpsc::unbounded_channel, task::JoinHandle};
+use rspack_tasks::{JoinHandle, spawn_in_context};
+use tokio::sync::mpsc::unbounded_channel;
 
 /// Like [`FutureConsumer`](super::future::FutureConsumer), but for fallible futures.
 ///

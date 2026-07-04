@@ -23,6 +23,7 @@ rspack_error = { workspace = true }
 rspack_fs    = { workspace = true }
 rspack_hook  = { workspace = true }
 rspack_paths = { workspace = true }
+rspack_tasks = { workspace = true }
 rspack_util  = { workspace = true }
 serde        = { workspace = true }
 serde_json   = { workspace = true }
