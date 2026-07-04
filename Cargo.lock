@@ -4142,6 +4142,7 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
+ "rspack_tasks",
  "rspack_util",
  "tokio",
  "tracing",

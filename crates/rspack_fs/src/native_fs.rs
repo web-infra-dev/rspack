@@ -1,3 +1,5 @@
+#[cfg(not(target_family = "wasm"))]
+use std::panic::resume_unwind;
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
@@ -6,6 +8,8 @@ use std::{
 
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(not(target_family = "wasm"))]
+use rspack_tasks::spawn_blocking;
 use tracing::instrument;
 
 use crate::{
@@ -32,6 +36,19 @@ impl NativeFileSystem {
 }
 
 #[cfg(not(target_family = "wasm"))]
+async fn blocking_fs<T, F>(f: F) -> Result<T>
+where
+  T: Send + 'static,
+  F: FnOnce() -> Result<T> + Send + 'static,
+{
+  match spawn_blocking(f).await {
+    Ok(result) => result,
+    Err(error) if error.is_panic() => resume_unwind(error.into_panic()),
+    Err(error) => Err(Error::Io(std::io::Error::other(error.to_string()))),
+  }
+}
+
+#[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl WritableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
@@ -48,36 +65,44 @@ impl WritableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
-    tokio::fs::remove_file(file).await.to_fs_result()
+    let file = file.to_path_buf();
+    blocking_fs(move || fs::remove_file(file).to_fs_result()).await
   }
   #[instrument(skip(self), level = "debug")]
   async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
     let dir = dir.to_path_buf();
-    tokio::fs::remove_dir_all(dir).await.to_fs_result()
+    blocking_fs(move || fs::remove_dir_all(dir).to_fs_result()).await
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
     let dir = dir.to_path_buf();
-    let mut reader = tokio::fs::read_dir(dir).await.to_fs_result()?;
-    let mut res = vec![];
-    while let Some(entry) = reader.next_entry().await.to_fs_result()? {
-      res.push(entry.file_name().to_string_lossy().to_string());
-    }
-    Ok(res)
+    blocking_fs(move || {
+      let mut res = vec![];
+      let reader = fs::read_dir(dir).to_fs_result()?;
+      for entry in reader {
+        let entry = entry.to_fs_result()?;
+        res.push(entry.file_name().to_string_lossy().to_string());
+      }
+      Ok(res)
+    })
+    .await
   }
   #[instrument(skip(self), level = "debug")]
   async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
-    tokio::fs::read(file).await.to_fs_result()
+    let file = file.to_path_buf();
+    blocking_fs(move || fs::read(file).to_fs_result()).await
   }
   #[instrument(skip(self), level = "debug")]
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
-    let metadata = tokio::fs::metadata(file).await.to_fs_result()?;
+    let file = file.to_path_buf();
+    let metadata = blocking_fs(move || fs::metadata(file).to_fs_result()).await?;
     FileMetadata::try_from(metadata)
   }
   #[instrument(skip(self), level = "debug")]
   async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
     if let Some(perm) = perm.into_std() {
-      return tokio::fs::set_permissions(path, perm).await.to_fs_result();
+      let path = path.to_path_buf();
+      return blocking_fs(move || fs::set_permissions(path, perm).to_fs_result()).await;
     }
     Ok(())
   }
@@ -266,7 +291,8 @@ impl ReadableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
-    let meta = tokio::fs::metadata(path).await.to_fs_result()?;
+    let path = path.to_path_buf();
+    let meta = blocking_fs(move || fs::metadata(path).to_fs_result()).await?;
     Ok(Some(FilePermissions::from_std(meta.permissions())))
   }
 }
