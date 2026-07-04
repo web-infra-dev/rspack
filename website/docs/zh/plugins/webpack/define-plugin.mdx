@@ -23,14 +23,7 @@ new rspack.DefinePlugin({
 ```ts
 type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive =
-  | null
-  | undefined
-  | RegExp
-  | Function
-  | string
-  | number
-  | boolean
-  | bigint;
+  null | undefined | RegExp | Function | string | number | boolean | bigint;
 type RecursiveArrayOrRecord<T> =
   | { [index: string]: RecursiveArrayOrRecord<T> }
   | Array<RecursiveArrayOrRecord<T>>

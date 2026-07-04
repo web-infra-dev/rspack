@@ -104,8 +104,7 @@ export function createMultiCompilerCase(
   testConfig: string,
 ) {
   let caseConfigList:
-    | TMultiCompilerCaseConfig
-    | TMultiCompilerCaseConfig[] = require(testConfig);
+    TMultiCompilerCaseConfig | TMultiCompilerCaseConfig[] = require(testConfig);
   if (!Array.isArray(caseConfigList)) {
     caseConfigList = [caseConfigList];
   }

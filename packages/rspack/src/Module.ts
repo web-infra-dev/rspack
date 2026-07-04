@@ -78,8 +78,7 @@ export class ContextModuleFactoryBeforeResolveData {
 }
 
 export type ContextModuleFactoryBeforeResolveResult =
-  | false
-  | ContextModuleFactoryBeforeResolveData;
+  false | ContextModuleFactoryBeforeResolveData;
 
 export class ContextModuleFactoryAfterResolveData {
   #inner: binding.JsContextModuleFactoryAfterResolveData;
@@ -163,8 +162,7 @@ export class ContextModuleFactoryAfterResolveData {
 }
 
 export type ContextModuleFactoryAfterResolveResult =
-  | false
-  | ContextModuleFactoryAfterResolveData;
+  false | ContextModuleFactoryAfterResolveData;
 
 Object.defineProperty(binding.Module.prototype, 'identifier', {
   enumerable: true,

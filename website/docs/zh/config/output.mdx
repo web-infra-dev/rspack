@@ -306,8 +306,7 @@ export default {
 
 ```ts
 type DevtoolFallbackModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **默认值：** `undefined`
@@ -322,8 +321,7 @@ type DevtoolFallbackModuleFilenameTemplate =
 
 ```ts
 type DevtoolModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **默认值：** `webpack://[namespace]/[resource-path]?[loaders]'`

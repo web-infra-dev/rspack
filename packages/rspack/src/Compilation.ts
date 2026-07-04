@@ -634,8 +634,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     filename: string,
     newSourceOrFunction: Source | ((source: Source) => Source),
     assetInfoUpdateOrFunction?:
-      | AssetInfo
-      | ((assetInfo: AssetInfo) => AssetInfo | undefined),
+      AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined),
   ) {
     let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
 
@@ -1134,8 +1133,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 // Based on this limitation, the AddEntryItemDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
 class AddEntryItemDispatcher {
   #inner:
-    | binding.JsCompilation['addInclude']
-    | binding.JsCompilation['addEntry'];
+    binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'];
   #running: boolean;
   #args: [
     string,
@@ -1175,8 +1173,7 @@ class AddEntryItemDispatcher {
 
   constructor(
     binding:
-      | binding.JsCompilation['addInclude']
-      | binding.JsCompilation['addEntry'],
+      binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'],
   ) {
     this.#inner = binding;
     this.#running = false;
