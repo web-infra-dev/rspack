@@ -11,6 +11,10 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
+
+[features]
+codspeed = []
+
 [lints]
 workspace = true
 

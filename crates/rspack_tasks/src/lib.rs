@@ -233,7 +233,6 @@ where
 
 pub fn ensure_runtime() {
   let _ = LazyLock::force(&RUNTIME);
-  let _ = LazyLock::force(&BLOCKING_POOL);
 }
 
 pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
@@ -594,7 +593,12 @@ fn runtime_threads() -> usize {
     1
   }
 
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(all(not(target_family = "wasm"), any(codspeed, feature = "codspeed")))]
+  {
+    1
+  }
+
+  #[cfg(all(not(target_family = "wasm"), not(any(codspeed, feature = "codspeed"))))]
   {
     thread::available_parallelism().map_or(4, |threads| threads.get())
   }
@@ -606,7 +610,12 @@ fn blocking_threads() -> usize {
     1
   }
 
-  #[cfg(not(target_family = "wasm"))]
+  #[cfg(all(not(target_family = "wasm"), any(codspeed, feature = "codspeed")))]
+  {
+    1
+  }
+
+  #[cfg(all(not(target_family = "wasm"), not(any(codspeed, feature = "codspeed"))))]
   {
     thread::available_parallelism()
       .map_or(4, |threads| threads.get().saturating_mul(2))
