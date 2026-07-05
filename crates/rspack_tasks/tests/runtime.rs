@@ -20,6 +20,23 @@ fn spawn_blocking_resolves_on_runtime() {
 }
 
 #[test]
+fn spawn_blocking_runs_many_tasks() {
+  let value = block_on(async {
+    let handles = (0..64)
+      .map(|index| spawn_blocking(move || index))
+      .collect::<Vec<_>>();
+
+    let mut sum = 0;
+    for handle in handles {
+      sum += handle.await.unwrap();
+    }
+    sum
+  });
+
+  assert_eq!(value, (0..64).sum());
+}
+
+#[test]
 fn join_handle_reports_panics() {
   let error = block_on(async { spawn(async { panic!("boom") }).await.unwrap_err() });
 

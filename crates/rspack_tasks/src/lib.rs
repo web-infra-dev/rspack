@@ -19,8 +19,10 @@ use std::{
 };
 
 type ReadyTask = Arc<dyn Runnable>;
+type BlockingTask = Box<dyn FnOnce() + Send + 'static>;
 
 static RUNTIME: LazyLock<Runtime> = LazyLock::new(Runtime::new);
+static BLOCKING_POOL: LazyLock<BlockingPool> = LazyLock::new(BlockingPool::new);
 
 thread_local! {
   static CURRENT_CONTEXT: RefCell<Option<Arc<CompilerContext>>> = const { RefCell::new(None) };
@@ -231,6 +233,7 @@ where
 
 pub fn ensure_runtime() {
   let _ = LazyLock::force(&RUNTIME);
+  let _ = LazyLock::force(&BLOCKING_POOL);
 }
 
 pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
@@ -253,17 +256,14 @@ where
     result: Mutex::new(None),
     waker: Mutex::new(None),
   });
-  let shared_for_thread = Arc::clone(&shared);
-  thread::Builder::new()
-    .name("rspack-blocking".to_string())
-    .spawn(move || {
-      let result = catch_unwind(AssertUnwindSafe(f));
-      *lock(&shared_for_thread.result) = Some(result);
-      if let Some(waker) = lock(&shared_for_thread.waker).take() {
-        waker.wake();
-      }
-    })
-    .expect("Create rspack blocking thread failed");
+  let shared_for_task = Arc::clone(&shared);
+  blocking_pool().schedule(Box::new(move || {
+    let result = catch_unwind(AssertUnwindSafe(f));
+    *lock(&shared_for_task.result) = Some(result);
+    if let Some(waker) = lock(&shared_for_task.waker).take() {
+      waker.wake();
+    }
+  }));
 
   spawn(BlockingFuture { shared })
 }
@@ -452,6 +452,15 @@ struct RuntimeInner {
   available: Condvar,
 }
 
+struct BlockingPool {
+  inner: Arc<BlockingPoolInner>,
+}
+
+struct BlockingPoolInner {
+  queue: Mutex<VecDeque<BlockingTask>>,
+  available: Condvar,
+}
+
 impl Runtime {
   fn new() -> Self {
     let inner = Arc::new(RuntimeInner {
@@ -520,8 +529,63 @@ fn worker_loop(inner: Arc<RuntimeInner>) -> ! {
   }
 }
 
+impl BlockingPool {
+  fn new() -> Self {
+    let inner = Arc::new(BlockingPoolInner {
+      queue: Mutex::new(VecDeque::new()),
+      available: Condvar::new(),
+    });
+
+    let threads = blocking_threads();
+    for index in 0..threads {
+      let inner = Arc::clone(&inner);
+      thread::Builder::new()
+        .name(format!("rspack-blocking-{index}"))
+        .spawn(move || blocking_worker_loop(inner))
+        .expect("Create rspack blocking worker thread failed");
+    }
+
+    Self { inner }
+  }
+
+  fn schedule(&self, task: BlockingTask) {
+    self.inner.schedule(task);
+  }
+}
+
+impl BlockingPoolInner {
+  fn schedule(&self, task: BlockingTask) {
+    lock(&self.queue).push_back(task);
+    self.available.notify_one();
+  }
+
+  fn wait_for_task(&self) -> BlockingTask {
+    let mut queue = lock(&self.queue);
+    loop {
+      if let Some(task) = queue.pop_front() {
+        return task;
+      }
+      queue = self
+        .available
+        .wait(queue)
+        .unwrap_or_else(|e| e.into_inner());
+    }
+  }
+}
+
+fn blocking_worker_loop(inner: Arc<BlockingPoolInner>) -> ! {
+  loop {
+    let task = inner.wait_for_task();
+    task();
+  }
+}
+
 fn runtime() -> &'static Runtime {
   &RUNTIME
+}
+
+fn blocking_pool() -> &'static BlockingPool {
+  &BLOCKING_POOL
 }
 
 fn runtime_threads() -> usize {
@@ -533,6 +597,20 @@ fn runtime_threads() -> usize {
   #[cfg(not(target_family = "wasm"))]
   {
     thread::available_parallelism().map_or(4, |threads| threads.get())
+  }
+}
+
+fn blocking_threads() -> usize {
+  #[cfg(target_family = "wasm")]
+  {
+    1
+  }
+
+  #[cfg(not(target_family = "wasm"))]
+  {
+    thread::available_parallelism()
+      .map_or(4, |threads| threads.get().saturating_mul(2))
+      .clamp(4, 32)
   }
 }
 
