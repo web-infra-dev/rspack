@@ -511,7 +511,7 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
               compilation,
             )
             .await?;
-            Ok((*runtime_module_identifier, source.clone()))
+            Ok((*runtime_module_identifier, source))
           },
         )
       })
