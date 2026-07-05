@@ -14,6 +14,13 @@ pub mod threejs;
 pub mod util;
 
 pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
+  // CodSpeed simulation instruments every instruction, making full bundle cases too large for
+  // the PR job timeout. Walltime and regular benchmark runs still exercise these cases.
+  #[cfg(codspeed)]
+  if rspack_benchmark::is_simulation_benchmark() {
+    return;
+  }
+
   let projects: Vec<(&'static str, CompilerBuilderGenerator)> = vec![
     ("basic-react", Arc::new(basic_react::compiler)),
     ("misc", Arc::new(misc::compiler)),
