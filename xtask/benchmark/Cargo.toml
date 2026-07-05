@@ -8,9 +8,10 @@ repository        = "https://github.com/web-infra-dev/rspack"
 version.workspace = true
 
 [dependencies]
-criterion = { workspace = true }
-rayon     = { workspace = true }
-tokio     = { workspace = true }
+criterion    = { workspace = true }
+rayon        = { workspace = true }
+rspack_tasks = { workspace = true }
+tokio        = { workspace = true }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 # Keep benchmark allocator features aligned with rspack_allocator.
@@ -36,7 +37,6 @@ rspack_plugin_javascript              = { workspace = true }
 rspack_plugin_split_chunks            = { workspace = true }
 rspack_regex                          = { workspace = true }
 rspack_sources                        = { workspace = true }
-rspack_tasks                          = { workspace = true }
 rustc-hash                            = { workspace = true }
 serde_json                            = { workspace = true }
 swc_experimental_allocator            = { workspace = true }

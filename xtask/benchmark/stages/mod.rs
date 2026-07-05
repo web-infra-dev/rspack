@@ -1,6 +1,5 @@
-use rspack_benchmark::Criterion;
+use rspack_benchmark::{Criterion, Runtime};
 use rspack_tasks::within_compiler_context_for_testing_sync;
-use tokio::runtime::Runtime;
 
 pub mod concatenate_module_code_generation;
 pub mod create_chunk_assets;

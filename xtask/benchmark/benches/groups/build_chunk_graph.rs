@@ -250,7 +250,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
 
 fn build_module_graph_case(
   c: &mut Criterion,
-  rt: &tokio::runtime::Runtime,
+  rt: &rspack_benchmark::Runtime,
   fs: Arc<MemoryFileSystem>,
   benchmark_id: &'static str,
   swc_loader: bool,
