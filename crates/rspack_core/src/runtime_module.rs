@@ -111,8 +111,8 @@ impl RuntimeModuleCommon {
     self.custom_source = Some(source);
   }
 
-  pub fn get_custom_source(&self) -> Option<String> {
-    self.custom_source.clone()
+  pub fn get_custom_source(&self) -> Option<&str> {
+    self.custom_source.as_deref()
   }
 
   pub fn get_source_map_kind(&self) -> &SourceMapKind {
@@ -225,7 +225,7 @@ pub trait RuntimeModule:
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     if let Some(custom_source) = self.get_custom_source() {
-      Ok(custom_source)
+      Ok(custom_source.to_owned())
     } else {
       self.generate(context).await
     }
@@ -246,7 +246,7 @@ pub trait NamedRuntimeModule {
 pub trait CustomSourceRuntimeModule {
   fn common(&self) -> &RuntimeModuleCommon;
   fn set_custom_source(&mut self, source: String);
-  fn get_custom_source(&self) -> Option<String>;
+  fn get_custom_source(&self) -> Option<&str>;
   fn get_constructor_name(&self) -> String;
 }
 

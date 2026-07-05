@@ -76,7 +76,7 @@ pub fn impl_runtime_module(
       fn set_custom_source(&mut self, source: String) -> () {
         self.common.set_custom_source(source);
       }
-      fn get_custom_source(&self) -> Option<String> {
+      fn get_custom_source(&self) -> Option<&str> {
         self.common.get_custom_source()
       }
       fn get_constructor_name(&self) -> String {
