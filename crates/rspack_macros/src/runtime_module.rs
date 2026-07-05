@@ -69,6 +69,10 @@ pub fn impl_runtime_module(
     }
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
+      fn common(&self) -> &::rspack_core::RuntimeModuleCommon {
+        &self.common
+      }
+
       fn set_custom_source(&mut self, source: String) -> () {
         self.common.set_custom_source(source);
       }

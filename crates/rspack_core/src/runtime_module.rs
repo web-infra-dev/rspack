@@ -244,6 +244,7 @@ pub trait NamedRuntimeModule {
 }
 
 pub trait CustomSourceRuntimeModule {
+  fn common(&self) -> &RuntimeModuleCommon;
   fn set_custom_source(&mut self, source: String);
   fn get_custom_source(&self) -> Option<String>;
   fn get_constructor_name(&self) -> String;

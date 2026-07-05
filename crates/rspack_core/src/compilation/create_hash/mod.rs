@@ -3,9 +3,7 @@ use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
-};
+use crate::{cache::Cache, compilation::pass::PassExt, logger::Logger};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
@@ -177,7 +175,13 @@ pub async fn create_hash(
         let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
         s.spawn(|(compilation, runtime_module_identifier)| async {
           let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-          let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+          let digest = crate::runtime_module_get_runtime_hash(
+            runtime_module.as_ref(),
+            runtime_module.common(),
+            compilation,
+            None,
+          )
+          .await?;
           Ok((*runtime_module_identifier, digest))
         });
       })
@@ -352,7 +356,13 @@ pub async fn create_hash(
           let s = unsafe { token.used((compilation_ref, runtime_module_identifier)) };
           s.spawn(|(compilation, runtime_module_identifier)| async {
             let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
-            let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+            let digest = crate::runtime_module_get_runtime_hash(
+              runtime_module.as_ref(),
+              runtime_module.common(),
+              compilation,
+              None,
+            )
+            .await?;
             Ok((*runtime_module_identifier, digest))
           });
         })
@@ -419,7 +429,13 @@ pub async fn create_hash(
     {
       let runtime_module = &compilation.runtime_modules[runtime_module_identifier];
       if runtime_module.full_hash() || runtime_module.dependent_hash() {
-        let digest = runtime_module.get_runtime_hash(compilation, None).await?;
+        let digest = crate::runtime_module_get_runtime_hash(
+          runtime_module.as_ref(),
+          runtime_module.common(),
+          compilation,
+          None,
+        )
+        .await?;
         compilation
           .runtime_modules_hash
           .insert(*runtime_module_identifier, digest);
@@ -489,19 +505,12 @@ pub async fn runtime_modules_code_generation(compilation: &mut Compilation) -> R
         let s = unsafe { token.used((compilation_ref, runtime_module_identifier, runtime_module)) };
         s.spawn(
           |(compilation, runtime_module_identifier, runtime_module)| async {
-            let mut runtime_template = compilation.runtime_template.create_module_code_template();
-            let mut code_generation_context = ModuleCodeGenerationContext {
+            let source = crate::runtime_module_get_generated_code(
+              runtime_module.as_ref(),
+              runtime_module.common(),
               compilation,
-              runtime: None,
-              concatenation_scope: None,
-              runtime_template: &mut runtime_template,
-            };
-            let result = runtime_module
-              .code_generation(&mut code_generation_context)
-              .await?;
-            let source = result
-              .get(&SourceType::Runtime)
-              .expect("should have source");
+            )
+            .await?;
             Ok((*runtime_module_identifier, source.clone()))
           },
         )
