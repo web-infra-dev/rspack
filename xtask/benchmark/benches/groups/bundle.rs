@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use criterion::Criterion;
+use criterion::{Criterion, SamplingMode};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use crate::groups::{
@@ -27,6 +27,9 @@ pub(crate) fn bundle_benchmark_case(c: &mut Criterion, target_id: &str) {
   // Codspeed can only handle to up to 500 threads by default
   let rt = rspack_benchmark::build_tokio_rt();
   let mut group = c.benchmark_group("bundle");
+  if rspack_benchmark::is_simulation_benchmark() {
+    group.sample_size(10).sampling_mode(SamplingMode::Flat);
+  }
 
   group.bench_function(format!("bundle@{id}"), |b| {
     b.iter_batched(

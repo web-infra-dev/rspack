@@ -50,6 +50,10 @@ impl BenchMode {
   }
 }
 
+pub fn is_simulation_benchmark() -> bool {
+  BenchMode::current() == BenchMode::Simulation
+}
+
 #[global_allocator]
 #[cfg(not(target_family = "wasm"))]
 static GLOBAL: NeverGrowInPlaceAllocator<mimalloc::MiMalloc> =
