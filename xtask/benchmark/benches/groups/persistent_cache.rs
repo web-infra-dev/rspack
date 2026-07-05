@@ -57,6 +57,13 @@ fn persistent_cache_benchmark_case<F>(
 ) where
   F: Fn(&PreparedCase),
 {
+  // CodSpeed simulation times out on these filesystem-heavy cache restore cases.
+  // Walltime and regular benchmark runs still exercise them.
+  #[cfg(codspeed)]
+  if rspack_benchmark::is_simulation_benchmark() {
+    return;
+  }
+
   let mut group = c.benchmark_group("persistent_cache");
   let rt = rspack_benchmark::build_tokio_rt();
   let pending_cleanup = RefCell::new(Vec::new());
