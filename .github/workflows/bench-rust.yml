@@ -94,6 +94,14 @@ jobs:
           TMPDIR: ${{ runner.temp }}/codspeed-valgrind-tmp
           CODSPEED_EXPERIMENTAL_FAIR_SCHED: true
           MIMALLOC_PURGE_DELAY: '-1'
+          # Pin glibc string-function selection to the SSE2 baseline. Simulation
+          # reports a pure instruction count, but glibc resolves memcpy/memmove/
+          # memset via CPU-feature ifunc dispatch, so the same binary yields a
+          # different instruction count on different runner CPUs (e.g. AVX512 vs
+          # AVX2). That environmental drift (~2%) shows up as phantom regressions
+          # on short, copy-heavy benches. Forcing one variant on every runner
+          # removes the cross-runner variance.
+          GLIBC_TUNABLES: glibc.cpu.hwcaps=-AVX512F,-AVX2,-AVX,-AVX_Fast_Unaligned_Load,-ERMS,-Prefer_ERMS,-SSE4_2,-SSSE3
         with:
           mode: simulation
           run: |
