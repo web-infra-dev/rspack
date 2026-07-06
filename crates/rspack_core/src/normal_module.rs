@@ -98,7 +98,7 @@ pub struct NormalModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
 
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   /// Context of this module
   context: Box<Context>,
   /// Request with loaders from config
@@ -138,7 +138,7 @@ pub struct NormalModule {
   code_generation_dependencies: Option<Vec<BoxModuleDependency>>,
   presentational_dependencies: Option<Vec<BoxDependencyTemplate>>,
 
-  state: ModuleState,
+  state: Box<ModuleState>,
   parsed: bool,
 
   source_map_kind: SourceMapKind,
@@ -195,7 +195,11 @@ impl NormalModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(ModuleIdentifier::from(id.as_ref()), module_type, layer),
+      meta: Box::new(ModuleMeta::new(
+        ModuleIdentifier::from(id.as_ref()),
+        module_type,
+        layer,
+      )),
       context: Box::new(context.unwrap_or_else(|| get_context(&resource_data))),
       request,
       user_request,
@@ -214,7 +218,7 @@ impl NormalModule {
       diagnostics: Default::default(),
       code_generation_dependencies: None,
       presentational_dependencies: None,
-      state: ModuleState::with_build_info(build_info),
+      state: Box::new(ModuleState::with_build_info(build_info)),
       parsed: false,
       source_map_kind: SourceMapKind::empty(),
     }

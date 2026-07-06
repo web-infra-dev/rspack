@@ -257,9 +257,9 @@ pub type ResolveContextModuleDependencies = Arc<
 pub struct ContextModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   options: ContextModuleOptions,
-  state: ModuleState,
+  state: Box<ModuleState>,
   #[debug(skip)]
   #[cacheable(with=Unsupported)]
   resolve_dependencies: ResolveContextModuleDependencies,
@@ -288,14 +288,14 @@ impl ContextModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      meta: ModuleMeta::new(identifier, ModuleType::JsAuto, layer),
+      meta: Box::new(ModuleMeta::new(identifier, ModuleType::JsAuto, layer)),
       options,
-      state: ModuleState::new(
+      state: Box::new(ModuleState::new(
         build_info,
         BuildMeta::default()
           .with_exports_type(BuildMetaExportsType::Default)
           .with_default_object(BuildMetaDefaultObject::RedirectWarn),
-      ),
+      )),
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies,
     }

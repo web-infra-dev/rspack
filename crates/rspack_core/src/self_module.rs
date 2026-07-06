@@ -20,29 +20,29 @@ use crate::{
 #[cacheable]
 #[derive(Debug)]
 pub struct SelfModule {
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   readable_identifier: String,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl SelfModule {
   pub fn new(module_identifier: ModuleIdentifier) -> Self {
     let identifier = format!("self {module_identifier}");
     Self {
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(identifier.as_str()),
         ModuleType::Fallback,
         None,
-      ),
+      )),
       readable_identifier: identifier,
       blocks: Default::default(),
       dependencies: Default::default(),
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
     }
   }

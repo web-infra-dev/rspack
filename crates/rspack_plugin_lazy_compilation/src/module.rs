@@ -47,8 +47,8 @@ fn has_closure_library(output: &OutputOptions) -> bool {
 #[cacheable]
 #[derive(Debug)]
 pub(crate) struct LazyCompilationProxyModule {
-  meta: ModuleMeta,
-  state: ModuleState,
+  meta: Box<ModuleMeta>,
+  state: Box<ModuleState>,
 
   readable_identifier: String,
   lib_ident: Option<String>,
@@ -103,7 +103,11 @@ impl LazyCompilationProxyModule {
     };
 
     Self {
-      meta: ModuleMeta::new(identifier, MODULE_TYPE, create_data.issuer_layer.clone()),
+      meta: Box::new(ModuleMeta::new(
+        identifier,
+        MODULE_TYPE,
+        create_data.issuer_layer.clone(),
+      )),
       state: Default::default(),
       readable_identifier,
       lib_ident,

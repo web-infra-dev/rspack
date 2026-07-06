@@ -436,12 +436,12 @@ fn resolve_external_type<'a>(
 pub struct ExternalModule {
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   pub request: ExternalRequest,
   pub external_type: ExternalType,
   /// Request intended by user (without loaders from config)
   user_request: String,
-  state: ModuleState,
+  state: Box<ModuleState>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
 }
@@ -476,7 +476,7 @@ impl ExternalModule {
     Self {
       dependencies: Vec::new(),
       blocks: Vec::new(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         Identifier::from({
           let resolved_type = resolve_external_type(external_type.as_str(), &dependency_meta);
           let request_str = simd_json::to_string(&request).expect("invalid json to_string");
@@ -498,15 +498,15 @@ impl ExternalModule {
         }),
         ModuleType::JsDynamic,
         None,
-      ),
+      )),
       request,
       external_type,
       user_request,
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         top_level_declarations: Some(FxHashSet::default()),
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
       place_in_initial,

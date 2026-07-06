@@ -23,9 +23,9 @@ pub struct DllModule {
   // TODO: it should be set to EntryDependency.loc
   name: String,
 
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
 
-  state: ModuleState,
+  state: Box<ModuleState>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
 
@@ -46,11 +46,11 @@ impl DllModule {
     } = dep.clone();
 
     Self {
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         format!("dll {name}").as_str().into(),
         ModuleType::JsDynamic,
         None,
-      ),
+      )),
       entries,
       context,
       name,

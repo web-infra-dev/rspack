@@ -29,10 +29,10 @@ pub struct RawModule {
   source_str: String,
   #[cacheable(with=AsOption<AsPreset>)]
   source: Option<BoxSource>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   readable_identifier: String,
   runtime_requirements: RuntimeGlobals,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 static RAW_MODULE_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
@@ -49,14 +49,14 @@ impl RawModule {
       dependencies: Default::default(),
       source_str,
       source: None,
-      meta: ModuleMeta::new(identifier, ModuleType::JsAuto, None),
+      meta: Box::new(ModuleMeta::new(identifier, ModuleType::JsAuto, None)),
       readable_identifier,
       runtime_requirements,
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         cacheable: true,
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
     }
   }

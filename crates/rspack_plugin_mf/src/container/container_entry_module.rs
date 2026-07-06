@@ -33,11 +33,11 @@ use crate::{
 pub struct ContainerEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   lib_ident: String,
   exposes: Vec<(String, ExposeOptions)>,
   share_scope: ShareScope,
-  state: ModuleState,
+  state: Box<ModuleState>,
   enhanced: bool,
   request: Option<String>,
   version: Option<String>,
@@ -56,7 +56,7 @@ impl ContainerEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(format!(
           "container entry ({}) {}",
           share_scope.key(),
@@ -64,18 +64,18 @@ impl ContainerEntryModule {
         )),
         ModuleType::JsDynamic,
         None,
-      ),
+      )),
       lib_ident,
       exposes,
       share_scope,
-      state: ModuleState::new(
+      state: Box::new(ModuleState::new(
         BuildInfo {
           strict: true,
           top_level_declarations: Some(FxHashSet::default()),
           ..Default::default()
         },
         BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
-      ),
+      )),
       enhanced,
       request: None,
       version: None,
@@ -90,22 +90,22 @@ impl ContainerEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(format!("share container entry {}@{}", &name, &version,)),
         ModuleType::ShareContainerShared,
         None,
-      ),
+      )),
       lib_ident,
       exposes: vec![],
       share_scope: ShareScope::Multiple(vec![]),
-      state: ModuleState::new(
+      state: Box::new(ModuleState::new(
         BuildInfo {
           strict: true,
           top_level_declarations: Some(FxHashSet::default()),
           ..Default::default()
         },
         BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
-      ),
+      )),
       enhanced: false,
       request: Some(request),
       version: Some(version),

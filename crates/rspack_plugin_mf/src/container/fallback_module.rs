@@ -24,11 +24,11 @@ use crate::utils::json_stringify;
 pub struct FallbackModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   readable_identifier: String,
   lib_ident: String,
   requests: Vec<String>,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl FallbackModule {
@@ -46,18 +46,18 @@ impl FallbackModule {
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(identifier.as_str()),
         ModuleType::Fallback,
         None,
-      ),
+      )),
       readable_identifier: identifier,
       lib_ident,
       requests,
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
     }
   }

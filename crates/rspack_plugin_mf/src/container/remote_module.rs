@@ -30,7 +30,7 @@ use crate::{
 pub struct RemoteModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   readable_identifier: String,
   lib_ident: String,
   request: String,
@@ -38,7 +38,7 @@ pub struct RemoteModule {
   pub internal_request: String,
   pub share_scope: ShareScope,
   pub remote_key: String,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl RemoteModule {
@@ -54,7 +54,7 @@ impl RemoteModule {
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(format!(
           "remote ({}) {} {}",
           share_scope.key(),
@@ -63,7 +63,7 @@ impl RemoteModule {
         )),
         ModuleType::Remote,
         None,
-      ),
+      )),
       readable_identifier,
       lib_ident,
       request,
@@ -71,10 +71,10 @@ impl RemoteModule {
       internal_request,
       share_scope,
       remote_key,
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
     }
   }

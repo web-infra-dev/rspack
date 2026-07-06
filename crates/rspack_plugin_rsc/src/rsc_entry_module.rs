@@ -35,7 +35,7 @@ use crate::{
 pub struct RscEntryModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   lib_ident: String,
   client_modules: Vec<ClientModuleImport>,
   root_client_modules: Vec<ClientModuleImport>,
@@ -46,7 +46,7 @@ pub struct RscEntryModule {
   name: Arc<str>,
   /// When true, client modules are loaded eagerly (not as code-split points).
   is_server_side_rendering: bool,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl RscEntryModule {
@@ -76,7 +76,7 @@ impl RscEntryModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(identifier, ModuleType::JsDynamic, layer),
+      meta: Box::new(ModuleMeta::new(identifier, ModuleType::JsDynamic, layer)),
       lib_ident,
       client_modules,
       root_client_modules,
@@ -84,14 +84,14 @@ impl RscEntryModule {
       css_imports_by_server_entry,
       name,
       is_server_side_rendering,
-      state: ModuleState::new(
+      state: Box::new(ModuleState::new(
         BuildInfo {
           strict: true,
           top_level_declarations: Some(FxHashSet::default()),
           ..Default::default()
         },
         BuildMeta::default().with_exports_type(BuildMetaExportsType::Namespace),
-      ),
+      )),
       source_map_kind: SourceMapKind::empty(),
     }
   }

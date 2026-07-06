@@ -28,12 +28,12 @@ pub struct ConsumeSharedModule {
   #[cacheable(with=Unsupported)]
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   lib_ident: String,
   readable_identifier: String,
   context: Context,
   options: ConsumeOptions,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl ConsumeSharedModule {
@@ -75,11 +75,11 @@ impl ConsumeSharedModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(identifier.as_ref()),
         ModuleType::ConsumeShared,
         None,
-      ),
+      )),
       lib_ident: format!(
         "webpack/sharing/consume/{}/{}{}",
         &scopes_key,

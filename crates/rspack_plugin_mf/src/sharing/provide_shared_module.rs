@@ -30,7 +30,7 @@ use crate::{ConsumeVersion, ShareScope};
 pub struct ProvideSharedModule {
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
-  meta: ModuleMeta,
+  meta: Box<ModuleMeta>,
   lib_ident: String,
   readable_identifier: String,
   name: String,
@@ -42,7 +42,7 @@ pub struct ProvideSharedModule {
   required_version: Option<ConsumeVersion>,
   strict_version: Option<bool>,
   tree_shaking_mode: Option<String>,
-  state: ModuleState,
+  state: Box<ModuleState>,
 }
 
 impl ProvideSharedModule {
@@ -66,11 +66,11 @@ impl ProvideSharedModule {
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
-      meta: ModuleMeta::new(
+      meta: Box::new(ModuleMeta::new(
         ModuleIdentifier::from(identifier.as_ref()),
         ModuleType::ProvideShared,
         None,
-      ),
+      )),
       lib_ident: format!("webpack/sharing/provide/{}/{}", &scopes_key, &name),
       readable_identifier: identifier,
       name,
@@ -82,10 +82,10 @@ impl ProvideSharedModule {
       required_version,
       strict_version,
       tree_shaking_mode,
-      state: ModuleState::with_build_info(BuildInfo {
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         strict: true,
         ..Default::default()
-      }),
+      })),
       source_map_kind: SourceMapKind::empty(),
     }
   }

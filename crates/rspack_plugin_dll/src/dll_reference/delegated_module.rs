@@ -33,8 +33,8 @@ pub struct DelegatedModule {
   delegate_data: DllManifestContentItem,
   dependencies: Vec<DependencyId>,
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
-  meta: ModuleMeta,
-  state: ModuleState,
+  meta: Box<ModuleMeta>,
+  state: Box<ModuleState>,
 }
 
 impl DelegatedModule {
@@ -58,7 +58,11 @@ impl DelegatedModule {
       user_request,
       original_request,
       delegate_data: data,
-      meta: ModuleMeta::new(identifier.as_str().into(), ModuleType::JsDynamic, None),
+      meta: Box::new(ModuleMeta::new(
+        identifier.as_str().into(),
+        ModuleType::JsDynamic,
+        None,
+      )),
       ..Default::default()
     }
   }

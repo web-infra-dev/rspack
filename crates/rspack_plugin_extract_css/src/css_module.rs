@@ -30,8 +30,8 @@ pub(crate) struct CssModule {
   pub(crate) css_layer: Option<String>,
   pub(crate) identifier_index: u32,
 
-  meta: ModuleMeta,
-  state: ModuleState,
+  meta: Box<ModuleMeta>,
+  state: Box<ModuleState>,
 
   blocks: Vec<AsyncDependenciesBlockIdentifier>,
   dependencies: Vec<DependencyId>,
@@ -63,8 +63,8 @@ impl CssModule {
       identifier_index: dep.identifier_index,
       blocks: vec![],
       dependencies: vec![],
-      meta: ModuleMeta::new(identifier__, *MODULE_TYPE, module_layer),
-      state: ModuleState::with_build_info(BuildInfo {
+      meta: Box::new(ModuleMeta::new(identifier__, *MODULE_TYPE, module_layer)),
+      state: Box::new(ModuleState::with_build_info(BuildInfo {
         cacheable: dep.cacheable,
         strict: true,
         file_dependencies: dep.file_dependencies,
@@ -72,7 +72,7 @@ impl CssModule {
         missing_dependencies: dep.missing_dependencies,
         build_dependencies: dep.build_dependencies,
         ..Default::default()
-      }),
+      })),
       source_map_kind: rspack_util::source_map::SourceMapKind::empty(),
     }
   }
