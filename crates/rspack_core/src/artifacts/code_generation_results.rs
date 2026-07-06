@@ -164,11 +164,19 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    let mut entries = self.inner.as_ref().iter().collect::<Vec<_>>();
-    entries.sort_unstable_by_key(|(source_type, _)| **source_type);
-    for (source_type, source) in entries {
-      source_type.hash(&mut hasher);
-      source.buffer().hash(&mut hasher);
+    let inner = self.inner.as_ref();
+    if inner.len() > 1 {
+      let mut entries = inner.iter().collect::<Vec<_>>();
+      entries.sort_unstable_by_key(|(source_type, _)| **source_type);
+      for (source_type, source) in entries {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
+    } else {
+      for (source_type, source) in inner {
+        source_type.hash(&mut hasher);
+        std::hash::Hash::hash(source, &mut hasher);
+      }
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
@@ -188,10 +196,17 @@ impl CodeGenerationResult {
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     runtime_hash.hash(&mut hasher);
-    let mut source_types = self.inner.as_ref().keys().collect::<Vec<_>>();
-    source_types.sort_unstable();
-    for source_type in source_types {
-      source_type.hash(&mut hasher);
+    let inner = self.inner.as_ref();
+    if inner.len() > 1 {
+      let mut source_types = inner.keys().collect::<Vec<_>>();
+      source_types.sort_unstable();
+      for source_type in source_types {
+        source_type.hash(&mut hasher);
+      }
+    } else {
+      for source_type in inner.keys() {
+        source_type.hash(&mut hasher);
+      }
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
@@ -427,17 +442,21 @@ mod tests {
   };
 
   use super::*;
+  use crate::{Context, contextify_source_map};
 
-  // Identical rendered JS; the source map differs only in the source path,
-  // simulating sandbox CI env with dynamically generated root paths on execution
+  // Identical rendered JS; the source map's source lives under a different
+  // sandbox root each build. After relativizing to the build root (as
+  // `NormalModule::create_source` does), the hash must be identical.
   fn js_with_sandbox_path(sandbox: &str) -> BoxSource {
+    let mut source_map = SourceMap::from_json(format!(
+      r#"{{"version":3,"sources":["{sandbox}/app/src/mod.ts"],"names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
+    ))
+    .unwrap();
+    contextify_source_map(&Context::from(format!("{sandbox}/app")), &mut source_map);
     SourceMapSource::new(SourceMapSourceOptions {
       value: "console.log(1);\n".to_string(),
       name: "mod.js".to_string(),
-      source_map: SourceMap::from_json(format!(
-        r#"{{"version":3,"sources":["{sandbox}/mod.ts"],"names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
-      ))
-      .unwrap(),
+      source_map,
       original_source: None,
       inner_source_map: None,
       remove_original_source: false,
