@@ -43,11 +43,9 @@ where
     let res = match AssertUnwindSafe(fut).catch_unwind().await {
       Ok(res) => res,
       Err(payload) => {
-        let error = rspack_napi::runtime::panic_to_napi_error(payload);
-        Err(napi::Error::new(
-          ErrorCode::Napi(error.status),
-          error.reason.clone(),
-        ))
+        let mut error = rspack_napi::runtime::panic_to_napi_error(payload);
+        let reason = std::mem::take(&mut error.reason);
+        Err(napi::Error::new(ErrorCode::Napi(error.status), reason))
       }
     };
     tsfn.call(res, ThreadsafeFunctionCallMode::NonBlocking);

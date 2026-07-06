@@ -59,6 +59,7 @@ impl TaskQueue {
 mod tests {
   use std::{sync::Arc, time::Duration};
 
+  use rspack_tasks::{block_on, sleep};
   use tokio::sync::{Mutex, oneshot};
 
   use super::TaskQueue;
@@ -66,9 +67,7 @@ mod tests {
   #[test]
   #[cfg_attr(miri, ignore)]
   fn test_add_task_to_queue() {
-    let rt = tokio::runtime::Runtime::new().unwrap();
-
-    rt.block_on(async {
+    block_on(async {
       let queue = TaskQueue::default();
       let (tx_0, rx_0) = oneshot::channel();
       let (tx_1, rx_1) = oneshot::channel();
@@ -78,21 +77,21 @@ mod tests {
 
       let inc_0 = inc.clone();
       queue.add_task(Box::pin(async move {
-        tokio::time::sleep(Duration::from_millis(30)).await;
+        sleep(Duration::from_millis(30)).await;
         let mut inc = inc_0.lock().await;
         *inc += 1;
         tx_0.send(*inc).unwrap();
       }));
       let inc_1 = inc.clone();
       queue.add_task(Box::pin(async move {
-        tokio::time::sleep(Duration::from_millis(20)).await;
+        sleep(Duration::from_millis(20)).await;
         let mut inc = inc_1.lock().await;
         *inc += 1;
         tx_1.send(*inc).unwrap();
       }));
       let inc_2 = inc.clone();
       queue.add_task(Box::pin(async move {
-        tokio::time::sleep(Duration::from_millis(10)).await;
+        sleep(Duration::from_millis(10)).await;
         let mut inc = inc_2.lock().await;
         *inc += 1;
         tx_2.send(*inc).unwrap();
