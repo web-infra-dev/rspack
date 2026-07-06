@@ -2,7 +2,7 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Either3, FromNapiValue, Object, ToNapiValue},
+  bindgen_prelude::{Either3, FromNapiValue, Object, ToNapiValue, TypeName, ValidateNapiValue},
   sys,
 };
 use napi_derive::napi;
@@ -39,7 +39,7 @@ impl Chunk {
       Ok((compilation, chunk))
     } else {
       Err(napi::Error::from_reason(format!(
-        "Unable to access chunk with id = {:?} now. The module have been removed on the Rust side.",
+        "Unable to access chunk with ukey = {:?} now. The chunk has been removed on the Rust side.",
         self.chunk_ukey
       )))
     }
@@ -282,18 +282,6 @@ pub struct ChunkWrapper {
 
 unsafe impl Send for ChunkWrapper {}
 
-impl FromNapiValue for ChunkWrapper {
-  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
-    let chunk: &Chunk = unsafe { FromNapiValue::from_napi_value(env, napi_val)? };
-    let compilation = unsafe { chunk.compilation.as_ref() };
-    Ok(Self {
-      chunk_ukey: chunk.chunk_ukey,
-      compilation_id: compilation.id(),
-      compilation: chunk.compilation,
-    })
-  }
-}
-
 impl ChunkWrapper {
   pub fn new(chunk_ukey: rspack_core::ChunkUkey, compilation: &Compilation) -> Self {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -310,6 +298,56 @@ impl ChunkWrapper {
       let mut refs_by_compilation_id = refs.borrow_mut();
       refs_by_compilation_id.remove(&compilation_id)
     });
+  }
+
+  pub fn as_ref(&self) -> napi::Result<(&'static Compilation, &'static rspack_core::Chunk)> {
+    let compilation = unsafe { self.compilation.as_ref() };
+    if let Some(chunk) = compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .get(&self.chunk_ukey)
+    {
+      Ok((compilation, chunk))
+    } else {
+      Err(napi::Error::from_reason(format!(
+        "Unable to access chunk with ukey = {:?} now. The chunk has been removed on the Rust side.",
+        self.chunk_ukey
+      )))
+    }
+  }
+}
+
+impl FromNapiValue for ChunkWrapper {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
+    unsafe {
+      let chunk: &Chunk = FromNapiValue::from_napi_value(env, napi_val)?;
+      let compilation = chunk.compilation.as_ref();
+
+      Ok(Self {
+        chunk_ukey: chunk.chunk_ukey,
+        compilation_id: compilation.id(),
+        compilation: chunk.compilation,
+      })
+    }
+  }
+}
+
+impl TypeName for ChunkWrapper {
+  fn type_name() -> &'static str {
+    "Chunk"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for ChunkWrapper {
+  unsafe fn validate(
+    env: sys::napi_env,
+    napi_val: sys::napi_value,
+  ) -> napi::Result<sys::napi_value> {
+    unsafe { <&Chunk as ValidateNapiValue>::validate(env, napi_val) }
   }
 }
 

@@ -1020,7 +1020,13 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: Chunk
+  chunk?: Chunk | JsPathDataChunkLike
+}
+
+export interface JsPathDataChunkLike {
+  id?: string | number
+  name?: string
+  hash?: string
 }
 
 export interface JsResolveData {
