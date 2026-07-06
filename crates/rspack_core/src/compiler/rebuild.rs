@@ -136,37 +136,30 @@ pub struct CompilationRecords {
 }
 
 impl CompilationRecords {
-  pub async fn record(compilation: &Compilation) -> Result<Self> {
-    Ok(Self {
+  pub fn record(compilation: &Compilation) -> Self {
+    Self {
       runtimes: Self::record_runtimes(compilation),
       runtime_modules: Self::record_runtime_modules(compilation),
       chunks: Self::record_chunks(compilation),
       modules: Self::record_modules(compilation),
-      chunk_css_hashes: Self::record_chunk_css_hashes(compilation).await?,
+      chunk_css_hashes: Self::record_chunk_css_hashes(compilation),
       hash: Self::record_hash(compilation),
-    })
+    }
   }
 
-  async fn record_chunk_css_hashes(
-    compilation: &Compilation,
-  ) -> Result<ChunkIdMap<RspackHashDigest>> {
-    let mut chunk_css_hashes = ChunkIdMap::default();
-    for chunk in compilation
+  fn record_chunk_css_hashes(compilation: &Compilation) -> ChunkIdMap<RspackHashDigest> {
+    compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
-    {
-      if chunk.kind() == ChunkKind::HotUpdate {
-        continue;
-      }
-      if let Some(css_hash) = compilation
-        .chunk_css_content_signature(&chunk.ukey())
-        .await?
-      {
-        chunk_css_hashes.insert(chunk.expect_id().clone(), css_hash);
-      }
-    }
-    Ok(chunk_css_hashes)
+      .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
+      .filter_map(|chunk| {
+        let css_hash = chunk
+          .css_content_hash(&compilation.chunk_hashes_artifact)?
+          .clone();
+        Some((chunk.expect_id().clone(), css_hash))
+      })
+      .collect()
   }
 
   fn record_hash(compilation: &Compilation) -> Option<RspackHashDigest> {

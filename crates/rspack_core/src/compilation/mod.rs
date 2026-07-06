@@ -461,50 +461,6 @@ impl Compilation {
     self.build_module_graph_artifact.get_module_graph()
   }
 
-  /// A hash of a chunk's CSS content, taken from the same `content_hash` hook
-  /// outputs the CSS assets are rendered and hashed from (ordered modules,
-  /// including css imports), but without the chunk-hash salt applied in
-  /// `process_chunk_hash` — so it only changes when the emitted stylesheet
-  /// actually changes. Returns `None` when the chunk has no CSS. Used by HMR
-  /// to tell whether a chunk's CSS changed, appeared or disappeared across a
-  /// rebuild.
-  pub async fn chunk_css_content_signature(
-    &self,
-    chunk_ukey: &ChunkUkey,
-  ) -> Result<Option<RspackHashDigest>> {
-    use rspack_hash::RspackHash;
-    // The source types the CSS renderers consume; `Custom("css/mini-extract")`
-    // is also the content-hash key CssExtractRspackPlugin emits under.
-    let mini_css_extract = SourceType::Custom("css/mini-extract".into());
-    let module_graph = self.get_module_graph();
-    let chunk_graph = &self.build_chunk_graph_artifact.chunk_graph;
-    if ![SourceType::Css, SourceType::CssImport, mini_css_extract]
-      .into_iter()
-      .any(|source_type| {
-        chunk_graph.has_chunk_module_by_source_type(chunk_ukey, source_type, module_graph)
-      })
-    {
-      return Ok(None);
-    }
-    let mut content_hashes: HashMap<SourceType, RspackHasher> = HashMap::default();
-    self
-      .plugin_driver
-      .compilation_hooks
-      .content_hash
-      .call(self, chunk_ukey, &mut content_hashes)
-      .await?;
-    let mut hasher = RspackHasher::from(&self.options.output);
-    for source_type in [SourceType::Css, mini_css_extract] {
-      if let Some(content_hasher) = content_hashes.remove(&source_type) {
-        RspackHash::hash(
-          &content_hasher.digest(&self.options.output.hash_digest),
-          &mut hasher,
-        );
-      }
-    }
-    Ok(Some(hasher.digest(&self.options.output.hash_digest)))
-  }
-
   // it will return None during make phase since mg is incomplete
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
     if self.build_module_graph_artifact.is_stolen() {

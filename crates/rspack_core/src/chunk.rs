@@ -28,11 +28,23 @@ pub type ChunkContentHash = HashMap<SourceType, RspackHashDigest>;
 pub struct ChunkHashesResult {
   hash: RspackHashDigest,
   content_hash: ChunkContentHash,
+  /// The CSS part of `content_hash` before the chunk-hash salt is applied, so
+  /// it only changes when the emitted stylesheet actually changes. `None` when
+  /// the chunk has no CSS. Used by HMR to compute the manifest `css` field.
+  css_content_hash: Option<RspackHashDigest>,
 }
 
 impl ChunkHashesResult {
-  pub fn new(hash: RspackHashDigest, content_hash: ChunkContentHash) -> Self {
-    Self { hash, content_hash }
+  pub fn new(
+    hash: RspackHashDigest,
+    content_hash: ChunkContentHash,
+    css_content_hash: Option<RspackHashDigest>,
+  ) -> Self {
+    Self {
+      hash,
+      content_hash,
+      css_content_hash,
+    }
   }
 
   pub fn hash(&self) -> &RspackHashDigest {
@@ -41,6 +53,10 @@ impl ChunkHashesResult {
 
   pub fn content_hash(&self) -> &ChunkContentHash {
     &self.content_hash
+  }
+
+  pub fn css_content_hash(&self) -> Option<&RspackHashDigest> {
+    self.css_content_hash.as_ref()
   }
 }
 
@@ -289,13 +305,26 @@ impl Chunk {
       .map(|hash| hash.rendered(len))
   }
 
+  pub fn css_content_hash<'a>(
+    &self,
+    chunk_hashes_results: &'a ChunkHashesArtifact,
+  ) -> Option<&'a RspackHashDigest> {
+    chunk_hashes_results
+      .get(&self.ukey)
+      .and_then(|result| result.css_content_hash())
+  }
+
   pub fn set_hashes(
     &self,
     chunk_hashes_results: &mut ChunkHashesArtifact,
     chunk_hash: RspackHashDigest,
     content_hash: ChunkContentHash,
+    css_content_hash: Option<RspackHashDigest>,
   ) -> bool {
-    chunk_hashes_results.set_hashes(self.ukey, ChunkHashesResult::new(chunk_hash, content_hash))
+    chunk_hashes_results.set_hashes(
+      self.ukey,
+      ChunkHashesResult::new(chunk_hash, content_hash, css_content_hash),
+    )
   }
 
   pub fn rendered(&self) -> bool {

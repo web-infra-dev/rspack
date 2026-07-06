@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7588
+- Update: main.LAST_HASH.hot-update.js, size: 7040
 
 ## Manifest
 
@@ -80,12 +80,6 @@ function handleCssComposes(exports, composes) {
 		exports[moduleId] = exports[moduleId] + " " + composedId
 	}
 }
-var loadCssChunkData = (target, chunkId) => {
-var moduleIds = [];
-if(target == __webpack_require__.m)
-installedChunks[chunkId] = 0;
-return moduleIds
-} 
 var loadingAttribute = "data-rspack-loading";
 var loadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
 	var link,
@@ -114,7 +108,6 @@ var loadStylesheet = (chunkId, url, done, hmr, fetchPriority) => {
 	if (!link) {
 		needAttach = true;
 		link = document.createElement("link");
-link.setAttribute("data-rspack-native-css", "true");
 if (__webpack_require__.nc) {
   link.setAttribute("nonce", __webpack_require__.nc);
 }
@@ -146,7 +139,6 @@ link.href = url;
 	hmr ? document.head.insertBefore(link, hmr) : needAttach && document.head.appendChild(link);
 	return link;
 };
-loadCssChunkData(__webpack_require__.m, 0, "main");
 __webpack_require__.f.css = (chunkId, promises, fetchPriority) => {
 	// css chunk loading
 	var installedChunkData = __webpack_require__.o(installedChunks, chunkId)
@@ -191,7 +183,7 @@ __webpack_require__.f.css = (chunkId, promises, fetchPriority) => {
 								error.request = realSrc;
 								installedChunkData[1](error);
 							} else {
-								loadCssChunkData(__webpack_require__.m, chunkId);
+								installedChunks[chunkId] = 0;
 								installedChunkData[0]();
 							}
 						}
@@ -210,22 +202,16 @@ var applyHandler = (options) => {
 	return {
 		dispose: () => { },
 		apply: () => {
-			var moduleIds = [];
-			newTags.forEach((info) => {
-				info[1].sheet.disabled = false;
+			newTags.forEach((newTag) => {
+				newTag.sheet.disabled = false;
 			});
 			while (oldTags.length) {
 				var oldTag = oldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
 			while (newTags.length) {
-				var info = newTags.pop();
-				var chunkModuleIds = loadCssChunkData(__webpack_require__.m, info[0]);
-				chunkModuleIds.forEach(function(id) {
-				    moduleIds.push(id)
-				});
+				newTags.pop();
 			}
-			return moduleIds;
 		}
 	};
 };
@@ -242,14 +228,21 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 	// update (its full hash always changes) while its stylesheet rarely does.
 	var cssRemovedChunkIds = (css && css.r) || [];
 	var cssChunkIds = (css && css.c) || [];
+	var seen = {};
 	cssRemovedChunkIds.forEach((chunkId) => {
-		var url = __webpack_require__.p + __webpack_require__.k(chunkId);
-		var oldTag = loadStylesheet(chunkId, url);
+		var filename = __webpack_require__.k(chunkId);
+		if (!filename) return;
+		var oldTag = loadStylesheet(chunkId, __webpack_require__.p + filename);
 		if (oldTag) oldTags.push(oldTag);
 	});
 	cssChunkIds.forEach((chunkId) => {
 		var filename = __webpack_require__.k(chunkId);
+		if (!filename) return;
 		var url = __webpack_require__.p + filename;
+		if (seen[url]) {
+			return;
+		}
+		seen[url] = true;
 		var oldTag = loadStylesheet(chunkId, url);
 		promises.push(
 			new Promise((resolve, reject) => {
@@ -280,14 +273,9 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 									return resolve();
 								}
 							} catch (e) {}
-							var factories = {};
-							loadCssChunkData(factories, link, chunkId);
-							Object.keys(factories).forEach(function(id) {
-							    (updatedModulesList.push(id));
-							});
 							link.sheet.disabled = true;
 							if (oldTag) oldTags.push(oldTag);
-							newTags.push([chunkId, link]);
+							newTags.push(link);
 							resolve();
 						}
 					},
