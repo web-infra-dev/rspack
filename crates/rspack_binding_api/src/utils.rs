@@ -35,7 +35,7 @@ where
         Ok(ctx.value)
       },
     )
-    .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason.clone()))?;
+    .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason))?;
 
   napi::bindgen_prelude::spawn(async move {
     let res = fut.await;

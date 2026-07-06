@@ -623,10 +623,10 @@ impl JsCompilation {
   ) -> Result<(), ErrorCode> {
     let compilation = self
       .as_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
     let exports_info_artifact = self
       .exports_info_artifact_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       f,
@@ -673,7 +673,7 @@ impl JsCompilation {
   ) -> Result<(), ErrorCode> {
     let compilation = self
       .as_ref()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
     let compiler_context = compilation.compiler_context.clone();
     callbackify(
       callback,
@@ -771,7 +771,7 @@ impl JsCompilation {
   ) -> napi::Result<(), ErrorCode> {
     let compilation = self
       .as_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
     within_compiler_context_sync(compilation.compiler_context.clone(), || {
       let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
@@ -821,7 +821,7 @@ impl JsCompilation {
           Ok((dependency, options))
         })
         .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
-        .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
         f,
@@ -875,7 +875,7 @@ impl JsCompilation {
   ) -> napi::Result<(), ErrorCode> {
     let compilation = self
       .as_mut()
-      .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+      .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
     let Some(mut compiler_reference) = COMPILER_REFERENCES.with(|ref_cell| {
       let references = ref_cell.borrow_mut();
@@ -925,7 +925,7 @@ impl JsCompilation {
           Ok((dependency, options))
         })
         .collect::<napi::Result<Vec<(BoxDependency, EntryOptions)>>>()
-        .map_err(|err| napi::Error::new(err.status.into(), err.reason.clone()))?;
+        .map_err(|err| napi::Error::new(err.status.into(), err.reason))?;
 
       callbackify(
         f,
