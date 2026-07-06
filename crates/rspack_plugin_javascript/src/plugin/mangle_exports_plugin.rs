@@ -95,10 +95,10 @@ struct MangleableExport<'a> {
 fn prepare_mangleable_exports<'a>(
   export_list: &'a [ExportInfoCache],
 ) -> PreparedMangleableExports<'a> {
-  let mut changes = vec![];
+  let mut changes = Vec::with_capacity(export_list.len());
   let mut nested_exports = vec![];
-  let mut used_names = FxHashSet::default();
-  let mut mangleable_exports = Vec::new();
+  let mut used_names = FxHashSet::with_capacity_and_hasher(export_list.len(), Default::default());
+  let mut mangleable_exports = Vec::with_capacity(export_list.len());
 
   for export_info in export_list {
     match &export_info.can_mangle {
@@ -147,8 +147,6 @@ async fn optimize_code_generation(
 
   let mg = build_module_graph_artifact.get_module_graph_mut();
 
-  let mut exports_info_cache = FxHashMap::default();
-
   let mut q = mg
     .modules()
     .map(|(mid, module)| {
@@ -159,6 +157,8 @@ async fn optimize_code_generation(
       (exports_info_artifact.get_exports_info(mid), is_namespace)
     })
     .collect_vec();
+
+  let mut exports_info_cache = FxHashMap::with_capacity_and_hasher(q.len(), Default::default());
 
   while !q.is_empty() {
     let items = std::mem::take(&mut q);
@@ -315,7 +315,8 @@ fn mangle_exports_info(
 
   if deterministic {
     let used_names_len = used_names.len();
-    let mut export_info_used_name = FxHashMap::default();
+    let mut export_info_used_name =
+      FxHashMap::with_capacity_and_hasher(mangleable_exports.len(), Default::default());
     assign_deterministic_ids(
       mangleable_exports,
       |e| e.name.as_str(),
