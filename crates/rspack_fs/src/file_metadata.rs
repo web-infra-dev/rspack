@@ -1,8 +1,12 @@
 use std::fs::{Metadata, Permissions};
+#[cfg(not(unix))]
+use std::time::UNIX_EPOCH;
 
 use cfg_if::cfg_if;
 
-use crate::{Error, IoResultToFsResultExt, Result};
+#[cfg(not(unix))]
+use crate::IoResultToFsResultExt;
+use crate::{Error, Result};
 
 #[derive(Debug, Clone)]
 pub struct FileMetadata {
@@ -16,38 +20,58 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
-  #[allow(unused_variables)]
-  fn get_ctime_ms(metadata: &Metadata) -> u64 {
-    #[cfg(unix)]
-    {
-      let ctime = std::os::unix::fs::MetadataExt::ctime(metadata);
-      let ctime_nsec = std::os::unix::fs::MetadataExt::ctime_nsec(metadata);
-      let ctime_ms = ctime * 1000 + ctime_nsec / 1_000_000;
-      return ctime_ms as u64;
-    }
-    // windows not support ctime
-    #[allow(unreachable_code)]
-    0u64
+  #[cfg(unix)]
+  #[inline]
+  fn unix_timestamp_ms(seconds: i64, nanoseconds: i64, field: &str) -> u64 {
+    let seconds = u64::try_from(seconds).unwrap_or_else(|_| panic!("{field} is before unix epoch"));
+    let nanoseconds =
+      u64::try_from(nanoseconds).expect("timestamp nanoseconds should not be negative");
+    seconds * 1000 + nanoseconds / 1_000_000
   }
-}
 
-impl TryFrom<Metadata> for FileMetadata {
-  type Error = Error;
+  #[cfg(unix)]
+  #[inline]
+  fn unix_ctime_ms(metadata: &Metadata) -> u64 {
+    use std::os::unix::fs::MetadataExt;
 
-  fn try_from(metadata: Metadata) -> Result<Self> {
-    let mtime_ms = metadata
-      .modified()
-      .to_fs_result()?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("mtime is before unix epoch")
-      .as_millis() as u64;
-    let atime_ms = metadata
-      .accessed()
-      .to_fs_result()?
-      .duration_since(std::time::UNIX_EPOCH)
-      .expect("atime is before unix epoch")
-      .as_millis() as u64;
-    let ctime_ms = Self::get_ctime_ms(&metadata);
+    let ctime_ms = metadata.ctime() * 1000 + metadata.ctime_nsec() / 1_000_000;
+    ctime_ms as u64
+  }
+
+  #[cfg(unix)]
+  #[inline]
+  fn from_metadata(metadata: Metadata) -> Self {
+    use std::os::unix::fs::MetadataExt;
+
+    let file_type = metadata.file_type();
+    Self {
+      is_directory: file_type.is_dir(),
+      is_file: file_type.is_file(),
+      is_symlink: file_type.is_symlink(),
+      size: metadata.len(),
+      mtime_ms: Self::unix_timestamp_ms(metadata.mtime(), metadata.mtime_nsec(), "mtime"),
+      ctime_ms: Self::unix_ctime_ms(&metadata),
+      atime_ms: Self::unix_timestamp_ms(metadata.atime(), metadata.atime_nsec(), "atime"),
+    }
+  }
+
+  #[cfg(not(unix))]
+  #[inline]
+  fn system_time_ms(time: std::io::Result<std::time::SystemTime>, field: &str) -> Result<u64> {
+    Ok(
+      time
+        .to_fs_result()?
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_else(|_| panic!("{field} is before unix epoch"))
+        .as_millis() as u64,
+    )
+  }
+
+  #[cfg(not(unix))]
+  #[inline]
+  fn from_metadata(metadata: Metadata) -> Result<Self> {
+    let mtime_ms = Self::system_time_ms(metadata.modified(), "mtime")?;
+    let atime_ms = Self::system_time_ms(metadata.accessed(), "atime")?;
 
     Ok(Self {
       is_directory: metadata.is_dir(),
@@ -55,9 +79,25 @@ impl TryFrom<Metadata> for FileMetadata {
       is_symlink: metadata.is_symlink(),
       size: metadata.len(),
       mtime_ms,
-      ctime_ms,
+      // windows not support ctime
+      ctime_ms: 0,
       atime_ms,
     })
+  }
+}
+
+impl TryFrom<Metadata> for FileMetadata {
+  type Error = Error;
+
+  fn try_from(metadata: Metadata) -> Result<Self> {
+    #[cfg(unix)]
+    {
+      Ok(Self::from_metadata(metadata))
+    }
+    #[cfg(not(unix))]
+    {
+      Self::from_metadata(metadata)
+    }
   }
 }
 
