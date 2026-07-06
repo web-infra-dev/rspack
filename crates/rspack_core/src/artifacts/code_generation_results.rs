@@ -164,9 +164,11 @@ impl CodeGenerationResult {
     hash_salt: &HashSalt,
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
-    for (source_type, source) in self.inner.as_ref() {
+    let mut entries = self.inner.as_ref().iter().collect::<Vec<_>>();
+    entries.sort_unstable_by_key(|(source_type, _)| **source_type);
+    for (source_type, source) in entries {
       source_type.hash(&mut hasher);
-      std::hash::Hash::hash(source, &mut hasher);
+      source.buffer().hash(&mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
@@ -186,7 +188,9 @@ impl CodeGenerationResult {
   ) {
     let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     runtime_hash.hash(&mut hasher);
-    for source_type in self.inner.as_ref().keys() {
+    let mut source_types = self.inner.as_ref().keys().collect::<Vec<_>>();
+    source_types.sort_unstable();
+    for source_type in source_types {
       source_type.hash(&mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
@@ -413,4 +417,59 @@ pub struct CodeGenerationJob {
   pub runtime: RuntimeSpec,
   pub runtimes: Vec<RuntimeSpec>,
   pub scope: Option<ConcatenationScope>,
+}
+
+#[cfg(test)]
+mod tests {
+  use rspack_hash::{HashDigest, HashFunction, HashSalt};
+  use rspack_sources::{
+    RawStringSource, SourceExt, SourceMap, SourceMapSource, SourceMapSourceOptions,
+  };
+
+  use super::*;
+
+  // Identical rendered JS; the source map differs only in the source path,
+  // simulating sandbox CI env with dynamically generated root paths on execution
+  fn js_with_sandbox_path(sandbox: &str) -> BoxSource {
+    SourceMapSource::new(SourceMapSourceOptions {
+      value: "console.log(1);\n".to_string(),
+      name: "mod.js".to_string(),
+      source_map: SourceMap::from_json(format!(
+        r#"{{"version":3,"sources":["{sandbox}/mod.ts"],"names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
+      ))
+      .unwrap(),
+      original_source: None,
+      inner_source_map: None,
+      remove_original_source: false,
+    })
+    .boxed()
+  }
+
+  fn codegen_hash(source: BoxSource) -> RspackHashDigest {
+    let mut result = CodeGenerationResult::default().with_javascript(source);
+    result.set_hash(&HashFunction::Xxhash64, &HashDigest::Hex, &HashSalt::None);
+    result.hash.expect("hash should be set")
+  }
+
+  #[test]
+  fn set_hash_is_deterministic_across_sandbox_paths() {
+    let a = codegen_hash(js_with_sandbox_path("/mnt/worker/work/0/exec"));
+    let b = codegen_hash(js_with_sandbox_path("/mnt/worker/work/3/exec"));
+    assert_eq!(
+      a.encoded(),
+      b.encoded(),
+      "codegen hash must not depend on sandbox paths embedded in source maps"
+    );
+  }
+
+  #[test]
+  fn set_hash_differs_for_different_code() {
+    let a = codegen_hash(RawStringSource::from("console.log(1);\n").boxed());
+    let b = codegen_hash(RawStringSource::from("console.log(2);\n").boxed());
+    assert_ne!(
+      a.encoded(),
+      b.encoded(),
+      "different rendered code must hash differently"
+    );
+  }
 }
