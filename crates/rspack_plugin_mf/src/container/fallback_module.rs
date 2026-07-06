@@ -134,25 +134,25 @@ impl Module for FallbackModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let mut dependencies: Vec<BoxDependency> = Vec::new();
     for request in &self.requests {
       dependencies.push(Box::new(FallbackItemDependency::new(request.clone())))
     }
 
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("FallbackModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -194,7 +194,7 @@ var handleError = function(e) {{
       require = runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
     );
     codegen = codegen.with_javascript(RawStringSource::from(code).boxed());
-    Ok(codegen)
+    Ok(Box::new(codegen))
   }
 
   async fn get_runtime_hash(

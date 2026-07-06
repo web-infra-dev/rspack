@@ -695,7 +695,7 @@ pub trait Module:
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult>;
+  ) -> Result<Box<BuildResult>>;
 
   fn factory_meta(&self) -> Option<&FactoryMeta>;
 
@@ -748,7 +748,7 @@ pub trait Module:
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult>;
+  ) -> Result<Box<CodeGenerationResult>>;
 
   /// Name matched against bundle-splitting conditions.
   fn name_for_condition(&self) -> Option<Box<str>> {
@@ -993,7 +993,7 @@ impl BoxModule {
     self,
     build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     self.0.build(build_context, compilation).await
   }
 }
@@ -1229,7 +1229,7 @@ mod test {
           self: Box<Self>,
           _build_context: BuildContext,
           _compilation: Option<&Compilation>,
-        ) -> Result<BuildResult> {
+        ) -> Result<Box<BuildResult>> {
           unreachable!()
         }
 
@@ -1244,7 +1244,7 @@ mod test {
         async fn code_generation(
           &self,
           _code_generation_context: &mut ModuleCodeGenerationContext,
-        ) -> Result<CodeGenerationResult> {
+        ) -> Result<Box<CodeGenerationResult>> {
           unreachable!()
         }
 

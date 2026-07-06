@@ -211,7 +211,7 @@ impl Cache for PersistentCache {
     }
 
     if let Some(artifact) = self.ctx.load_occasion(&self.make_occasion).await {
-      *compilation.build_module_graph_artifact = artifact;
+      compilation.build_module_graph_artifact = artifact.into();
       for (module, _) in compilation
         .build_module_graph_artifact
         .get_module_graph()
@@ -253,14 +253,16 @@ impl Cache for PersistentCache {
 
   async fn after_process_assets(&mut self, compilation: &Compilation) {
     if let Some(artifact) = &compilation.minimize_persistent_cache_artifact {
-      self.ctx.save_occasion(&self.minimize_occasion, artifact);
+      self
+        .ctx
+        .save_occasion(&self.minimize_occasion, artifact.as_ref());
     }
     if compilation.use_source_map_dev_tool_plugin_cache
       && let Some(artifact) = &compilation.source_map_dev_tool_plugin_cache_artifact
     {
       self
         .ctx
-        .save_occasion(&self.source_map_dev_tool_plugin_occasion, artifact);
+        .save_occasion(&self.source_map_dev_tool_plugin_occasion, artifact.as_ref());
     }
   }
 

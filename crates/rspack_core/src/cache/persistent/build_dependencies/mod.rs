@@ -101,21 +101,24 @@ impl BuildDeps {
   /// Validate build dependencies
   ///
   /// If any build dependencies have changed, this method will return an invalid result.
-  pub async fn validate(&mut self, storage: &dyn Storage) -> Result<BuildDepsValidationResult> {
+  pub async fn validate(
+    &mut self,
+    storage: &dyn Storage,
+  ) -> Result<Box<BuildDepsValidationResult>> {
     let (_, modified_files, removed_files, no_changed_files) = self
       .snapshot
       .calc_modified_paths(storage, SnapshotScope::BUILD)
       .await?;
 
     if !modified_files.is_empty() || !removed_files.is_empty() {
-      return Ok(BuildDepsValidationResult::Invalid {
+      return Ok(Box::new(BuildDepsValidationResult::Invalid {
         modified_files,
         removed_files,
-      });
+      }));
     }
     let tracked_files = no_changed_files.len();
     self.added = no_changed_files;
-    Ok(BuildDepsValidationResult::Valid { tracked_files })
+    Ok(Box::new(BuildDepsValidationResult::Valid { tracked_files }))
   }
 }
 
@@ -216,7 +219,7 @@ mod test {
       .await
       .expect("should validate success");
     assert!(matches!(
-      validate_result,
+      validate_result.as_ref(),
       BuildDepsValidationResult::Invalid { .. }
     ));
     storage.reset(scope);

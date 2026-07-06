@@ -168,22 +168,22 @@ impl Module for CssModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     self.build_info.hash = Some(self.compute_hash(&build_context.compiler_options));
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("ExtractCssModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    Ok(CodeGenerationResult::default())
+  ) -> Result<Box<CodeGenerationResult>> {
+    Ok(Box::new(CodeGenerationResult::default()))
   }
 
   async fn get_runtime_hash(

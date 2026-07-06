@@ -184,7 +184,7 @@ impl Module for ContainerEntryModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let mut blocks = vec![];
     let mut dependencies: Vec<BoxDependency> = vec![];
 
@@ -231,19 +231,19 @@ impl Module for ContainerEntryModule {
     // I need `name` for SharedContainer logic.
     // I will add `name` field to struct.
 
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("ContainerEntryModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -327,7 +327,7 @@ impl Module for ContainerEntryModule {
       code_generation_result =
         code_generation_result.with_javascript(RawStringSource::from(source).boxed());
       code_generation_result.add(SourceType::Expose, RawStringSource::from_static("").boxed());
-      return Ok(code_generation_result);
+      return Ok(Box::new(code_generation_result));
     }
 
     // Normal Container Logic
@@ -425,7 +425,7 @@ var init = function(shareScope, initScope) {{
           share_scope: self.share_scope.clone(),
         });
     }
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   async fn get_runtime_hash(

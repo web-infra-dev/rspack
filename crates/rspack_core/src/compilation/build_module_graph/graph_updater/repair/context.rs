@@ -29,15 +29,15 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub runtime_template: RuntimeTemplate,
 
-  pub artifact: BuildModuleGraphArtifact,
-  pub exports_info_artifact: ExportsInfoArtifact,
+  pub artifact: Box<BuildModuleGraphArtifact>,
+  pub exports_info_artifact: Box<ExportsInfoArtifact>,
 }
 
 impl TaskContext {
-  pub fn new(
+  pub fn new_boxed(
     compilation: &Compilation,
-    artifact: BuildModuleGraphArtifact,
-    exports_info_artifact: ExportsInfoArtifact,
+    artifact: Box<BuildModuleGraphArtifact>,
+    exports_info_artifact: Box<ExportsInfoArtifact>,
   ) -> Self {
     Self {
       compiler_id: compilation.compiler_id(),
@@ -94,11 +94,11 @@ impl TaskContext {
     compilation.dependency_templates = self.dependency_templates.clone();
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,
-      &mut self.artifact,
+      &mut *self.artifact,
     );
     std::mem::swap(
       &mut *compilation.exports_info_artifact,
-      &mut self.exports_info_artifact,
+      &mut *self.exports_info_artifact,
     );
     compilation
   }
@@ -106,11 +106,11 @@ impl TaskContext {
   pub fn recovery_from_temp_compilation(&mut self, mut compilation: Compilation) {
     std::mem::swap(
       &mut *compilation.build_module_graph_artifact,
-      &mut self.artifact,
+      &mut *self.artifact,
     );
     std::mem::swap(
       &mut *compilation.exports_info_artifact,
-      &mut self.exports_info_artifact,
+      &mut *self.exports_info_artifact,
     );
   }
 }

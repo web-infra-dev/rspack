@@ -95,7 +95,7 @@ impl Module for DelegatedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let dependencies = vec![
       Box::new(DelegatedSourceDependency::new(self.source_request.clone())),
       Box::new(StaticExportsDependency::new(
@@ -110,18 +110,18 @@ impl Module for DelegatedModule {
       )) as BoxDependency,
     ];
     self.build_meta = self.delegate_data.build_meta.clone();
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -181,7 +181,7 @@ impl Module for DelegatedModule {
 
     code_generation_result = code_generation_result.with_javascript(source);
 
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {

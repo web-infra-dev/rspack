@@ -46,10 +46,10 @@ impl CodeGenerateCacheArtifact {
     &self,
     job: &CodeGenerationJob,
     generator: G,
-  ) -> (Result<CodeGenerationResult>, bool)
+  ) -> (Result<Box<CodeGenerationResult>>, bool)
   where
     G: FnOnce() -> F,
-    F: Future<Output = Result<CodeGenerationResult>>,
+    F: Future<Output = Result<Box<CodeGenerationResult>>>,
   {
     let Some(storage) = &self.storage else {
       let res = generator().await;
@@ -63,11 +63,11 @@ impl CodeGenerateCacheArtifact {
       self.runtime_mode
     ));
     if let Some(value) = storage.get(&cache_key) {
-      (Ok(value), true)
+      (Ok(Box::new(value)), true)
     } else {
       match generator().await {
         Ok(res) => {
-          storage.set(cache_key, res.clone());
+          storage.set(cache_key, (*res).clone());
           (Ok(res), false)
         }
         Err(err) => (Err(err), false),

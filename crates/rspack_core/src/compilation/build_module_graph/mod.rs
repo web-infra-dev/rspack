@@ -10,7 +10,7 @@ use rspack_util::tracing_preset::TRACING_BENCH_TARGET;
 use tracing::instrument;
 
 pub use self::{
-  graph_updater::{UpdateParam, update_module_graph},
+  graph_updater::{BuildModuleGraphArtifacts, UpdateParam, update_module_graph},
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
   },
@@ -35,8 +35,8 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
     compilation.module_executor = Some(module_executor);
   }
 
-  let artifact = compilation.build_module_graph_artifact.steal();
-  let exports_info_artifact = compilation.exports_info_artifact.steal();
+  let artifact = Box::new(compilation.build_module_graph_artifact.steal());
+  let exports_info_artifact = Box::new(compilation.exports_info_artifact.steal());
   let (artifact, exports_info_artifact) =
     build_module_graph(compilation, artifact, exports_info_artifact).await?;
   compilation.build_module_graph_artifact = artifact.into();
@@ -53,9 +53,9 @@ pub async fn do_build_module_graph(compilation: &mut Compilation) -> Result<()> 
 /// it will use entries, modified_files, removed_files to update the module graph.
 pub async fn build_module_graph(
   compilation: &Compilation,
-  mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  mut artifact: Box<BuildModuleGraphArtifact>,
+  exports_info_artifact: Box<ExportsInfoArtifact>,
+) -> Result<BuildModuleGraphArtifacts> {
   let mut params = Vec::with_capacity(6);
 
   if !compilation.entries.is_empty() {
@@ -94,9 +94,9 @@ pub async fn build_module_graph(
 /// TODO after hooks support using artifact as a parameter, consider merging make and finish_make.
 pub async fn finish_build_module_graph(
   compilation: &Compilation,
-  artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  artifact: Box<BuildModuleGraphArtifact>,
+  exports_info_artifact: Box<ExportsInfoArtifact>,
+) -> Result<BuildModuleGraphArtifacts> {
   update_module_graph(
     compilation,
     artifact,

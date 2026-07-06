@@ -251,7 +251,7 @@ impl Module for RscEntryModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     if self.is_server_side_rendering {
       // Eager: no code-split points; use ImportEagerDependency (CSS filtering done at call site).
       let all_client_modules = self.all_client_modules();
@@ -269,12 +269,12 @@ impl Module for RscEntryModule {
         }
         dependencies.push(Box::new(dep));
       }
-      Ok(BuildResult {
+      Ok(Box::new(BuildResult {
         module: BoxModule::new(self),
         dependencies,
         blocks: vec![],
         optimization_bailouts: vec![],
-      })
+      }))
     } else {
       // Non-eager: code-split points; use AsyncDependenciesBlock + ClientReferenceDependency.
       let mut blocks = Vec::with_capacity(
@@ -374,12 +374,12 @@ impl Module for RscEntryModule {
         blocks.push(Box::new(block));
       }
 
-      Ok(BuildResult {
+      Ok(Box::new(BuildResult {
         module: BoxModule::new(self),
         dependencies,
         blocks,
         optimization_bailouts: vec![],
-      })
+      }))
     }
   }
 
@@ -390,11 +390,13 @@ impl Module for RscEntryModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let compilation = code_generation_context.compilation;
     let source = self.render_debug_comments(compilation);
 
-    Ok(CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()))
+    Ok(Box::new(
+      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+    ))
   }
 
   async fn get_runtime_hash(

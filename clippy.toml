@@ -1,6 +1,9 @@
 allow-dbg-in-tests    = true
 allow-unwrap-in-tests = true
 
+pass-by-value-size-limit = 256
+stack-size-threshold     = 65536
+
 disallowed-methods = [
   
   { path = "str::to_ascii_lowercase", reason = "To avoid memory allocation, use `cow_utils::CowUtils::cow_to_ascii_lowercase` instead." },

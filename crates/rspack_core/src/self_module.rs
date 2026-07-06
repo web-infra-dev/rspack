@@ -113,8 +113,8 @@ impl Module for SelfModule {
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
-    Ok(CodeGenerationResult::default())
+  ) -> Result<Box<CodeGenerationResult>> {
+    Ok(Box::new(CodeGenerationResult::default()))
   }
 
   async fn get_runtime_hash(
@@ -133,13 +133,13 @@ impl Module for SelfModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
+  ) -> Result<Box<BuildResult>> {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 }
 

@@ -236,7 +236,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
-  ) -> Result<TWithDiagnosticArray<ParseResult>> {
+  ) -> Result<TWithDiagnosticArray<Box<ParseResult>>> {
     let generator_options = css_generator_options(parse_context.module_generator_options);
     let parser_options = css_parser_options(parse_context.module_parser_options);
     let named_exports = parser_options

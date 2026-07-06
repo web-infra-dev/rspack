@@ -193,7 +193,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
-  ) -> Result<TWithDiagnosticArray<ParseResult>> {
+  ) -> Result<TWithDiagnosticArray<Box<ParseResult>>> {
     let ParseContext {
       source,
       module_type,
@@ -221,14 +221,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
       Ok(
-        ParseResult {
+        Box::new(ParseResult {
           source,
           dependencies: vec![],
           blocks: vec![],
           presentational_dependencies: vec![],
           code_generation_dependencies: vec![],
           side_effects_bailout: None,
-        }
+        })
         .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
           diagnostics,
           loaders,
@@ -353,14 +353,14 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     }
 
     Ok(
-      ParseResult {
+      Box::new(ParseResult {
         source,
         dependencies,
         blocks,
         presentational_dependencies,
         code_generation_dependencies: vec![],
         side_effects_bailout,
-      }
+      })
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         diagnostics,
         loaders,

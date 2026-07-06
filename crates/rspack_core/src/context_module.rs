@@ -1406,7 +1406,7 @@ impl Module for ContextModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let resolve_dependencies = &self.resolve_dependencies;
     let context_element_dependencies = resolve_dependencies(self.options.clone()).await?;
 
@@ -1497,19 +1497,19 @@ impl Module for ContextModule {
       self.build_info.context_dependencies = context_dependencies;
     }
 
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("ContextModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -1530,7 +1530,7 @@ impl Module for ContextModule {
       all_deps.extend(block.get_dependencies());
     }
 
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   async fn get_runtime_hash(

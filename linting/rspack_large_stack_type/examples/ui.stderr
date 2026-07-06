@@ -1,0 +1,26 @@
+error: `BuildResult` is a large Rspack type used by value
+  --> $DIR/ui.rs:5:33
+   |
+LL | fn bad_large_return() -> Result<BuildResult, ()> {
+   |                                 ^^^^^^^^^^^
+   |
+   = help: use `Box<BuildResult>` for ownership across function/async boundaries, or pass `&BuildResult` / `&mut BuildResult` when ownership is not needed
+   = note: `#[deny(rspack_large_stack_type)]` on by default
+
+error: `ParseResult` is a large Rspack type used by value
+  --> $DIR/ui.rs:9:33
+   |
+LL | fn bad_large_option() -> Option<ParseResult> {
+   |                                 ^^^^^^^^^^^
+   |
+   = help: use `Box<ParseResult>` for ownership across function/async boundaries, or pass `&ParseResult` / `&mut ParseResult` when ownership is not needed
+
+error: `CodeGenerationResult` is a large Rspack type used by value
+  --> $DIR/ui.rs:17:23
+   |
+LL | fn bad_large_param(_: CodeGenerationResult) {}
+   |                       ^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: use `Box<CodeGenerationResult>` for ownership across function/async boundaries, or pass `&CodeGenerationResult` / `&mut CodeGenerationResult` when ownership is not needed
+
+error: aborting due to 3 previous errors

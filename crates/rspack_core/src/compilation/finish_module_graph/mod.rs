@@ -21,8 +21,8 @@ pub async fn finish_module_graph_pass(compilation: &mut Compilation) -> Result<(
 pub async fn finish_build_module_graph_pass(compilation: &mut Compilation) -> Result<()> {
   compilation.in_finish_make.store(false, Ordering::Release);
   // clean up the entry deps
-  let make_artifact = compilation.build_module_graph_artifact.steal();
-  let exports_info_artifact = compilation.exports_info_artifact.steal();
+  let make_artifact = Box::new(compilation.build_module_graph_artifact.steal());
+  let exports_info_artifact = Box::new(compilation.exports_info_artifact.steal());
   let (make_artifact, exports_info_artifact) =
     finish_build_module_graph(compilation, make_artifact, exports_info_artifact).await?;
   compilation.build_module_graph_artifact = make_artifact.into();

@@ -435,7 +435,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: rspack_core::ParseContext<'a>,
-  ) -> Result<rspack_error::TWithDiagnosticArray<rspack_core::ParseResult>> {
+  ) -> Result<rspack_error::TWithDiagnosticArray<Box<rspack_core::ParseResult>>> {
     let ParseContext {
       source,
       build_meta,
@@ -476,7 +476,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }));
 
     Ok(
-      rspack_core::ParseResult {
+      Box::new(rspack_core::ParseResult {
         // different from webpack
         // Rspack: when set asset as entry, output a js chunk with default export
         // webpack: Assets do not have dependencies
@@ -486,7 +486,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
         presentational_dependencies: vec![],
         code_generation_dependencies: vec![],
         side_effects_bailout: None,
-      }
+      })
       .with_empty_diagnostic(),
     )
   }

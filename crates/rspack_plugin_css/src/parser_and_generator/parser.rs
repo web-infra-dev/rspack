@@ -255,7 +255,7 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
+  pub async fn parse(mut self) -> Result<TWithDiagnosticArray<Box<ParseResult>>> {
     let mode = self.mode();
     let deps_source_code = self.source_code.clone();
     let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
@@ -293,14 +293,14 @@ impl<'context> CssModuleParser<'context> {
     css_build_info.has_charset = self.has_charset;
 
     Ok(
-      ParseResult {
+      Box::new(ParseResult {
         dependencies: self.dependencies,
         blocks: vec![],
         presentational_dependencies: self.presentational_dependencies,
         code_generation_dependencies: self.code_generation_dependencies,
         source: self.source,
         side_effects_bailout: None,
-      }
+      })
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
         self.diagnostics,
         self.parse_context.loaders,

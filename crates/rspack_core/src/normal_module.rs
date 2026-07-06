@@ -40,6 +40,10 @@ use crate::{
   utils::{SourceSizeCache, SourceSizeCacheSerde},
 };
 
+fn unbox<T>(value: Box<T>) -> T {
+  *value
+}
+
 #[cacheable]
 #[derive(Debug, Clone)]
 pub enum ModuleIssuer {
@@ -385,7 +389,7 @@ impl Module for NormalModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     // so does webpack
     self.parsed = true;
 
@@ -469,12 +473,12 @@ impl Module for NormalModule {
 
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
-      return Ok(BuildResult {
+      return Ok(Box::new(BuildResult {
         module: BoxModule::new(self),
         dependencies: Vec::new(),
         blocks: Vec::new(),
         optimization_bailouts: vec![],
-      });
+      }));
     };
 
     build_context
@@ -536,25 +540,15 @@ impl Module for NormalModule {
       self.build_info.hash =
         Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
-      return Ok(BuildResult {
+      return Ok(Box::new(BuildResult {
         module: BoxModule::new(self),
         dependencies: vec![],
         blocks: vec![],
         optimization_bailouts: vec![],
-      });
+      }));
     }
 
-    let (
-      ParseResult {
-        source,
-        dependencies,
-        blocks,
-        presentational_dependencies,
-        code_generation_dependencies,
-        side_effects_bailout,
-      },
-      diagnostics,
-    ) = self
+    let (parse_result, diagnostics) = self
       .parser_and_generator
       .parse(ParseContext {
         source: source.clone(),
@@ -579,6 +573,14 @@ impl Module for NormalModule {
       })
       .await?
       .split_into_parts();
+    let ParseResult {
+      source,
+      dependencies,
+      blocks,
+      presentational_dependencies,
+      code_generation_dependencies,
+      side_effects_bailout,
+    } = unbox(parse_result);
     if diagnostics.iter().any(|d| d.is_error()) {
       self.build_meta = Default::default();
     }
@@ -604,19 +606,19 @@ impl Module for NormalModule {
     self.build_info.hash =
       Some(self.init_build_hash(&build_context.compiler_options.output, &self.build_meta));
 
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks,
       optimization_bailouts,
-    })
+    }))
   }
 
   // #[tracing::instrument("NormalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
@@ -641,7 +643,7 @@ impl Module for NormalModule {
         );
         code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
       }
-      return Ok(code_generation_result);
+      return Ok(Box::new(code_generation_result));
     }
     let Some(source) = &self.source else {
       return Err(error!(
@@ -684,7 +686,7 @@ impl Module for NormalModule {
       }
     }
     code_generation_result.concatenation_scope = std::mem::take(concatenation_scope);
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   async fn get_runtime_hash(

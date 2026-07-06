@@ -10,6 +10,8 @@ use self::{cutout::Cutout, repair::repair};
 use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact};
 
+pub type BuildModuleGraphArtifacts = (Box<BuildModuleGraphArtifact>, Box<ExportsInfoArtifact>);
+
 /// The param to update module graph
 #[derive(Debug, Clone)]
 pub enum UpdateParam {
@@ -31,10 +33,10 @@ pub enum UpdateParam {
 /// Update module graph through `UpdateParam`
 pub async fn update_module_graph(
   compilation: &Compilation,
-  mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  mut artifact: Box<BuildModuleGraphArtifact>,
+  exports_info_artifact: Box<ExportsInfoArtifact>,
   params: Vec<UpdateParam>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifacts> {
   let mut cutout = Cutout::default();
 
   let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
@@ -47,7 +49,7 @@ pub async fn update_module_graph(
     .call(compilation, &revoked_modules)
     .await?;
 
-  (artifact, exports_info_artifact) = repair(
+  let (mut artifact, exports_info_artifact) = repair(
     compilation,
     artifact,
     exports_info_artifact,

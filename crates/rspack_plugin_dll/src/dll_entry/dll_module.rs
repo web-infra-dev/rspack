@@ -81,7 +81,7 @@ impl Module for DllModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let dependencies = self
       .entries
       .clone()
@@ -90,18 +90,18 @@ impl Module for DllModule {
       .map(|dependency| Box::new(dependency) as Box<dyn Dependency>)
       .collect::<Vec<_>>();
 
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies,
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       runtime_template, ..
     } = code_generation_context;
@@ -115,7 +115,7 @@ impl Module for DllModule {
         runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
       ))));
 
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   fn need_build(&self, _value_cache_versions: &ValueCacheVersions) -> bool {

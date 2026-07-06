@@ -41,5 +41,5 @@ pub trait Occasion {
   fn recovery<'a>(
     &'a self,
     storage: &'a dyn Storage,
-  ) -> impl Future<Output = Result<Self::Artifact>> + Send + 'a;
+  ) -> impl Future<Output = Result<Box<Self::Artifact>>> + Send + 'a;
 }

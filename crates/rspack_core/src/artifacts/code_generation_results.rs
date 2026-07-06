@@ -224,7 +224,7 @@ impl CodeGenerationResults {
   pub fn insert(
     &mut self,
     module_identifier: ModuleIdentifier,
-    codegen_res: CodeGenerationResult,
+    codegen_res: Box<CodeGenerationResult>,
     runtimes: impl IntoIterator<Item = RuntimeSpec>,
   ) {
     let codegen_res_id = codegen_res.id;

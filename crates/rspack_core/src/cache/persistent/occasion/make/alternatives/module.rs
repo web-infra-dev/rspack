@@ -105,7 +105,7 @@ impl Module for TempModule {
   async fn code_generation(
     &self,
     _code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     unreachable!()
   }
 
@@ -121,13 +121,13 @@ impl Module for TempModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
+  ) -> Result<Box<BuildResult>> {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 }
 

@@ -46,7 +46,7 @@ fn create_execute_runtime_source(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_modules: &[Identifier],
-) -> Option<(Identifier, CodeGenerationResult)> {
+) -> Option<(Identifier, Box<CodeGenerationResult>)> {
   if compilation.options.experiments.runtime_mode != RuntimeMode::Rspack {
     return None;
   }
@@ -121,7 +121,9 @@ fn create_execute_runtime_source(
   (!source.is_empty()).then(|| {
     (
       Identifier::from("rspack/runtime/execute_module_runtime"),
-      CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+      Box::new(
+        CodeGenerationResult::default().with_javascript(RawStringSource::from(source).boxed()),
+      ),
     )
   })
 }
@@ -432,7 +434,8 @@ impl Task<ExecutorTaskContext> for ExecuteTask {
         runtime_module.identifier(),
         runtime_module_source.size() as f64,
       );
-      let result = CodeGenerationResult::default().with_javascript(runtime_module_source.clone());
+      let result =
+        Box::new(CodeGenerationResult::default().with_javascript(runtime_module_source.clone()));
 
       compilation.code_generation_results.insert(
         *runtime_id,

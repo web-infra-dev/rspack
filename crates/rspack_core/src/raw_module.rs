@@ -123,7 +123,7 @@ impl Module for RawModule {
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let mut cgr = CodeGenerationResult::default();
     code_generation_context
       .runtime_template
@@ -140,7 +140,7 @@ impl Module for RawModule {
         RawStringSource::from(self.source_str.clone()).boxed(),
       );
     };
-    Ok(cgr)
+    Ok(Box::new(cgr))
   }
 
   async fn get_runtime_hash(
@@ -172,13 +172,13 @@ impl Module for RawModule {
     self: Box<Self>,
     _build_context: BuildContext,
     _compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
-    Ok(BuildResult {
+  ) -> Result<Box<BuildResult>> {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 }
 

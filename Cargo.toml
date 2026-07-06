@@ -501,9 +501,10 @@ trivial_numeric_casts                  = "warn"
 unused_import_braces                   = "warn"
 unused_lifetimes                       = "warn"
 unused_macro_rules                     = "warn"
+large_assignments                      = "warn"
 
 [workspace.lints.rust.unexpected_cfgs]
-check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher"))']
+check-cfg = ['cfg(allocative)', 'cfg(codspeed)', 'cfg(dylint_lib, values("rspack_collection_hasher", "rspack_large_stack_type"))']
 level     = "warn"
 
 [workspace.lints.clippy]
@@ -531,7 +532,9 @@ index_refutable_slice        = "warn"
 inefficient_to_string        = "warn"
 invalid_upcast_comparisons   = "warn"
 iter_not_returning_iterator  = "warn"
+large_futures                = "warn"
 large_stack_arrays           = "warn"
+large_stack_frames           = "warn"
 large_types_passed_by_value  = "warn"
 macro_use_imports            = "warn"
 manual_ok_or                 = "warn"

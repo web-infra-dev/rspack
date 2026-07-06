@@ -40,7 +40,7 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
-  ) -> Result<TWithDiagnosticArray<ParseResult>> {
+  ) -> Result<TWithDiagnosticArray<Box<ParseResult>>> {
     parse_context.build_info.strict = true;
     parse_context.build_meta.set_has_top_level_await(true);
     parse_context
@@ -67,14 +67,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
       )));
 
       return Ok(
-        ParseResult {
+        Box::new(ParseResult {
           dependencies,
           blocks: vec![],
           presentational_dependencies: vec![],
           code_generation_dependencies: vec![],
           source,
           side_effects_bailout: None,
-        }
+        })
         .with_diagnostic(diagnostic),
       );
     }
@@ -126,14 +126,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
     )));
 
     Ok(
-      ParseResult {
+      Box::new(ParseResult {
         dependencies,
         blocks: vec![],
         presentational_dependencies: vec![],
         code_generation_dependencies: vec![],
         source,
         side_effects_bailout: None,
-      }
+      })
       .with_diagnostic(diagnostic),
     )
   }

@@ -222,8 +222,7 @@ mod napi_binding {
   }
 
   impl BindingCell<CodeGenerationResults> {
-    pub fn new(code_generation_results: CodeGenerationResults) -> Self {
-      let boxed = Box::new(code_generation_results);
+    pub fn new(boxed: Box<CodeGenerationResults>) -> Self {
       let ptr = boxed.as_ref() as *const CodeGenerationResults as *mut CodeGenerationResults;
       let heap = Arc::new(Heap {
         variant: HeapVariant::CodeGenerationResults(boxed),
@@ -233,15 +232,14 @@ mod napi_binding {
     }
   }
 
-  impl From<CodeGenerationResults> for BindingCell<CodeGenerationResults> {
-    fn from(code_generation_results: CodeGenerationResults) -> Self {
+  impl From<Box<CodeGenerationResults>> for BindingCell<CodeGenerationResults> {
+    fn from(code_generation_results: Box<CodeGenerationResults>) -> Self {
       Self::new(code_generation_results)
     }
   }
 
   impl BindingCell<CodeGenerationResult> {
-    pub fn new(code_generation_result: CodeGenerationResult) -> Self {
-      let boxed = Box::new(code_generation_result);
+    pub fn new(boxed: Box<CodeGenerationResult>) -> Self {
       let ptr = boxed.as_ref() as *const CodeGenerationResult as *mut CodeGenerationResult;
       let heap = Arc::new(Heap {
         variant: HeapVariant::CodeGenerationResult(boxed),
@@ -251,8 +249,8 @@ mod napi_binding {
     }
   }
 
-  impl From<CodeGenerationResult> for BindingCell<CodeGenerationResult> {
-    fn from(code_generation_result: CodeGenerationResult) -> Self {
+  impl From<Box<CodeGenerationResult>> for BindingCell<CodeGenerationResult> {
+    fn from(code_generation_result: Box<CodeGenerationResult>) -> Self {
       Self::new(code_generation_result)
     }
   }
@@ -336,6 +334,18 @@ mod napi_binding {
     fn clone(&self) -> Self {
       let val = self.as_ref().clone();
       val.into()
+    }
+  }
+
+  impl Clone for BindingCell<CodeGenerationResults> {
+    fn clone(&self) -> Self {
+      Box::new(self.as_ref().clone()).into()
+    }
+  }
+
+  impl Clone for BindingCell<CodeGenerationResult> {
+    fn clone(&self) -> Self {
+      Box::new(self.as_ref().clone()).into()
     }
   }
 

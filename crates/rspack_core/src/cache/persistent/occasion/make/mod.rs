@@ -85,7 +85,7 @@ impl Occasion for MakeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Make::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<BuildModuleGraphArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<Box<BuildModuleGraphArtifact>> {
     let (mg, module_to_lazy_make, entry_dependencies) =
       module_graph::recovery_module_graph(storage, &self.codec).await?;
 
@@ -123,7 +123,7 @@ impl Occasion for MakeOccasion {
       }
     }
 
-    Ok(BuildModuleGraphArtifact {
+    Ok(Box::new(BuildModuleGraphArtifact {
       // write all of field here to avoid forget to update occasion when add new fields
       // temporary data set to default
       affected_modules: Default::default(),
@@ -141,6 +141,6 @@ impl Occasion for MakeOccasion {
       context_dependencies: context_dep,
       missing_dependencies: missing_dep,
       build_dependencies: build_dep,
-    })
+    }))
   }
 }

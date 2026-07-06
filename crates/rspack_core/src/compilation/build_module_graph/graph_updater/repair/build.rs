@@ -71,7 +71,7 @@ impl Task<TaskContext> for BuildTask {
 
     result.map::<Vec<Box<dyn Task<TaskContext>>>, _>(|build_result| {
       vec![Box::new(BuildResultTask {
-        build_result: Box::new(build_result),
+        build_result,
         plugin_driver,
         forwarded_ids,
       })]

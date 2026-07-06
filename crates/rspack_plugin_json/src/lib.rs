@@ -52,7 +52,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: rspack_core::ParseContext<'a>,
-  ) -> Result<TWithDiagnosticArray<rspack_core::ParseResult>> {
+  ) -> Result<TWithDiagnosticArray<Box<rspack_core::ParseResult>>> {
     let rspack_core::ParseContext {
       source: box_source,
       build_info,
@@ -123,14 +123,14 @@ impl ParserAndGenerator for JsonParserAndGenerator {
       Ok(data) => data,
       Err(err) => {
         return Ok(
-          rspack_core::ParseResult {
+          Box::new(rspack_core::ParseResult {
             presentational_dependencies: vec![],
             dependencies: vec![],
             blocks: vec![],
             code_generation_dependencies: vec![],
             source: box_source,
             side_effects_bailout: None,
-          }
+          })
           .with_diagnostic(vec![
             Error::from(ModuleParseError::new(err, loaders)).into(),
           ]),
@@ -148,7 +148,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
     });
 
     Ok(
-      rspack_core::ParseResult {
+      Box::new(rspack_core::ParseResult {
         presentational_dependencies: vec![],
         dependencies: vec![Box::new(JsonExportsDependency::new(
           data,
@@ -158,7 +158,7 @@ impl ParserAndGenerator for JsonParserAndGenerator {
         code_generation_dependencies: vec![],
         source: box_source,
         side_effects_bailout: None,
-      }
+      })
       .with_diagnostic(vec![]),
     )
   }

@@ -1129,7 +1129,7 @@ impl Module for ExternalModule {
     mut self: Box<Self>,
     build_context: BuildContext,
     _: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     self.build_info.module = build_context.compiler_options.output.module;
     let resolved_external_type = self.resolve_external_type();
     let request = match &self.request {
@@ -1173,7 +1173,7 @@ impl Module for ExternalModule {
       _ => {}
     }
     self.build_meta.set_exports_type(exports_type);
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![Box::new(StaticExportsDependency::new(
         StaticExportsSpec::True,
@@ -1181,14 +1181,14 @@ impl Module for ExternalModule {
       ))],
       blocks: Vec::new(),
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("ExternalModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime,
@@ -1239,7 +1239,7 @@ impl Module for ExternalModule {
       }
     };
     cgr.concatenation_scope = std::mem::take(concatenation_scope);
-    Ok(cgr)
+    Ok(Box::new(cgr))
   }
 
   fn lib_ident(&self, _options: LibIdentOptions) -> Option<Cow<'_, str>> {

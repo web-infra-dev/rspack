@@ -1218,7 +1218,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       &file_to_chunk,
       &output_path,
       compilation_assets,
-      cache.as_mut(),
+      cache.as_deref_mut(),
       cache_counter.as_ref(),
     )
     .await?;

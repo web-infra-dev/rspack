@@ -64,6 +64,10 @@ type ExportsDefinitionArgs = Vec<(String, String)>;
 define_hook!(ConcatenatedModuleExportsDefinitions: SeriesBail(exports_definitions: &mut ExportsDefinitionArgs, is_entry_module: bool) -> bool);
 define_hook!(ConcatenatedModuleConcatenatedInfo: Series(compilation: &Compilation, module: ModuleIdentifier, runtime: Option<&RuntimeSpec>, info: &mut ConcatenatedModuleInfo, all_used_names: &mut HashSet<Atom>));
 
+fn unbox<T>(value: Box<T>) -> T {
+  *value
+}
+
 #[derive(Debug, Default)]
 pub struct ConcatenatedModuleHooks {
   pub exports_definitions: ConcatenatedModuleExportsDefinitionsHook,
@@ -892,7 +896,7 @@ impl Module for ConcatenatedModule {
     mut self: Box<Self>,
     _build_context: BuildContext,
     compilation: Option<&Compilation>,
-  ) -> Result<BuildResult> {
+  ) -> Result<Box<BuildResult>> {
     let compilation = compilation.expect("should pass compilation");
 
     let module_graph = compilation.get_module_graph();
@@ -969,19 +973,19 @@ impl Module for ConcatenatedModule {
         .extend(module_build_info.assets.as_ref().clone());
     }
     // return a dummy result is enough, since we don't build the ConcatenatedModule in make phase
-    Ok(BuildResult {
+    Ok(Box::new(BuildResult {
       module: BoxModule::new(self),
       dependencies: vec![],
       blocks: vec![],
       optimization_bailouts: vec![],
-    })
+    }))
   }
 
   // #[tracing::instrument("ConcatenatedModule::code_generation", skip_all, fields(identifier = ?self.identifier()))]
   async fn code_generation(
     &self,
     code_generation_context: &mut ModuleCodeGenerationContext,
-  ) -> Result<CodeGenerationResult> {
+  ) -> Result<Box<CodeGenerationResult>> {
     let ModuleCodeGenerationContext {
       compilation,
       runtime_template,
@@ -2031,7 +2035,7 @@ impl Module for ConcatenatedModule {
           exports_final_names_map,
         ));
     }
-    Ok(code_generation_result)
+    Ok(Box::new(code_generation_result))
   }
 
   async fn get_runtime_hash(
@@ -2573,7 +2577,7 @@ impl ConcatenatedModule {
         concatenation_scope: Some(concatenation_scope),
         runtime_template: &mut runtime_template,
       };
-      let codegen_res = module.code_generation(&mut code_generation_context).await?;
+      let codegen_res = unbox(module.code_generation(&mut code_generation_context).await?);
 
       let CodeGenerationResult {
         mut inner,

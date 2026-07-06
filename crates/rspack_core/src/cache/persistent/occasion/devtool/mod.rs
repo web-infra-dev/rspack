@@ -278,7 +278,10 @@ impl Occasion for SourceMapDevToolPluginOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::SourceMap::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<SourceMapDevToolPluginCacheArtifact> {
+  async fn recovery(
+    &self,
+    storage: &dyn Storage,
+  ) -> Result<Box<SourceMapDevToolPluginCacheArtifact>> {
     let items = storage.load(SCOPE).await?;
     let entries = items
       .into_par_iter()
@@ -312,10 +315,10 @@ impl Occasion for SourceMapDevToolPluginOccasion {
       "recovered {} source map persistent cache entries",
       entries.len()
     );
-    Ok(SourceMapDevToolPluginCacheArtifact {
+    Ok(Box::new(SourceMapDevToolPluginCacheArtifact {
       entries,
       pending_writes: Vec::new(),
       pending_removes: Vec::new(),
-    })
+    }))
   }
 }

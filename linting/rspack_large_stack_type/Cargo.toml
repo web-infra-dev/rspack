@@ -1,0 +1,22 @@
+[package]
+name = "rspack_large_stack_type"
+version = "0.1.0"
+authors = ["Rspack Teams"]
+description = "Rspack Dylint rule for boxing large artifact/result types"
+edition = "2021"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+clippy_utils = { git = "https://github.com/rust-lang/rust-clippy", rev = "c936595d17413c1f08e162e117e504fb4ed126e4" }
+dylint_linting = "4.1.2"
+
+[dev-dependencies]
+dylint_testing = "4.1.2"
+
+[workspace]
+
+[package.metadata.rust-analyzer]
+rustc_private = true

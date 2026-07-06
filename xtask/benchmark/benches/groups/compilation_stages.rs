@@ -1145,8 +1145,8 @@ async fn prepare_build_module_graph_phase(compiler: &mut Compiler) -> Result<()>
     .call(&mut compiler.compilation)
     .await?;
 
-  let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
-  let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
+  let make_artifact = Box::new(compiler.compilation.build_module_graph_artifact.steal());
+  let exports_info_artifact = Box::new(compiler.compilation.exports_info_artifact.steal());
   let (make_artifact, exports_info_artifact) =
     finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact).await?;
   compiler.compilation.build_module_graph_artifact = make_artifact.into();

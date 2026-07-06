@@ -71,28 +71,30 @@ impl CacheContext {
   pub async fn load_build_deps(&mut self, build_deps: &mut BuildDeps) {
     let start = self.logger().time("validate build dependencies");
     match build_deps.validate(&*self.storage).await {
-      Ok(BuildDepsValidationResult::Valid { tracked_files }) => {
-        self.invalid = false;
-        self.logger().info(format!(
-          "build dependencies are valid ({tracked_files} tracked)"
-        ));
-      }
-      Ok(BuildDepsValidationResult::Invalid {
-        modified_files,
-        removed_files,
-      }) => {
-        self.invalid = true;
-        self.load_failed = true;
-        let reason = format_path_changes(&modified_files, &removed_files);
-        self.logger().warn(format!(
-          "persistent cache invalidated because build dependencies changed:\n{reason}"
-        ));
-        if self.readonly {
-          self
-            .logger()
-            .warn("persistent cache is readonly, stale entries will not be rewritten");
+      Ok(result) => match result.as_ref() {
+        BuildDepsValidationResult::Valid { tracked_files } => {
+          self.invalid = false;
+          self.logger().info(format!(
+            "build dependencies are valid ({tracked_files} tracked)"
+          ));
         }
-      }
+        BuildDepsValidationResult::Invalid {
+          modified_files,
+          removed_files,
+        } => {
+          self.invalid = true;
+          self.load_failed = true;
+          let reason = format_path_changes(&modified_files, &removed_files);
+          self.logger().warn(format!(
+            "persistent cache invalidated because build dependencies changed:\n{reason}"
+          ));
+          if self.readonly {
+            self
+              .logger()
+              .warn("persistent cache is readonly, stale entries will not be rewritten");
+          }
+        }
+      },
       Err(err) => {
         self.load_failed = true;
         self
@@ -229,7 +231,7 @@ impl CacheContext {
   /// Returns `None` and resets the occasion's scope when the cache is
   /// invalid or recovery fails.
   #[tracing::instrument("Cache::Context::load_occasion", skip_all)]
-  pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<O::Artifact> {
+  pub async fn load_occasion<O: Occasion>(&mut self, occasion: &O) -> Option<Box<O::Artifact>> {
     if !self.load_failed {
       let start = self
         .logger()

@@ -137,7 +137,7 @@ impl Occasion for MinimizeOccasion {
   }
 
   #[tracing::instrument(name = "Cache::Occasion::Minimize::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<MinimizePersistentCacheArtifact> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<Box<MinimizePersistentCacheArtifact>> {
     let items = storage.load(SCOPE).await?;
     let mut entries = FxHashMap::default();
     entries.reserve(items.len());
@@ -170,9 +170,9 @@ impl Occasion for MinimizeOccasion {
       "recovered {} minimize persistent cache entries",
       entries.len()
     );
-    Ok(MinimizePersistentCacheArtifact {
+    Ok(Box::new(MinimizePersistentCacheArtifact {
       entries,
       dirty_keys: Vec::new(),
-    })
+    }))
   }
 }

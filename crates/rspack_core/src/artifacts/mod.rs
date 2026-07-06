@@ -73,7 +73,7 @@ impl<T: ArtifactExt> ArtifactExt for Box<T> {
 
 // Implementation for BindingCell<T> - used when "napi" feature is enabled
 #[cfg(feature = "napi")]
-impl<T: ArtifactExt + Into<crate::BindingCell<T>>> ArtifactExt for crate::BindingCell<T> {
+impl<T: ArtifactExt> ArtifactExt for crate::BindingCell<T> {
   const PASS: IncrementalPasses = T::PASS;
 
   fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {

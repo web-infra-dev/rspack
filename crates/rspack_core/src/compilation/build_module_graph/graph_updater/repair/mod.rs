@@ -9,7 +9,7 @@ use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use self::context::TaskContext;
-use super::BuildModuleGraphArtifact;
+use super::{BuildModuleGraphArtifact, BuildModuleGraphArtifacts};
 use crate::{
   BuildDependency, Compilation, ExportsInfoArtifact,
   utils::task_loop::{Task, run_task_loop},
@@ -17,10 +17,10 @@ use crate::{
 
 pub async fn repair(
   compilation: &Compilation,
-  mut artifact: BuildModuleGraphArtifact,
-  exports_info_artifact: ExportsInfoArtifact,
+  mut artifact: Box<BuildModuleGraphArtifact>,
+  exports_info_artifact: Box<ExportsInfoArtifact>,
   build_dependencies: HashSet<BuildDependency>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+) -> Result<BuildModuleGraphArtifacts> {
   let module_graph = artifact.get_module_graph_mut();
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
@@ -64,7 +64,7 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  let mut ctx = TaskContext::new_boxed(compilation, artifact, exports_info_artifact);
   run_task_loop(&mut ctx, init_tasks).await?;
   Ok((ctx.artifact, ctx.exports_info_artifact))
 }

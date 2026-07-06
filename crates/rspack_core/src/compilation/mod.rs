@@ -61,6 +61,10 @@ use smol_str::SmolStr;
 use tracing::instrument;
 use ustr::Ustr;
 
+fn unbox<T>(value: Box<T>) -> T {
+  *value
+}
+
 #[cfg(feature = "codspeed")]
 pub use self::{
   assign_runtime_ids::AssignRuntimeIdsPass, code_generation::CodeGenerationPass,
@@ -279,9 +283,9 @@ pub struct Compilation {
     StealCell<ProcessRuntimeRequirementsCacheArtifact>,
   pub imported_by_defer_modules_artifact: StealCell<ImportedByDeferModulesArtifact>,
 
-  pub minimize_persistent_cache_artifact: Option<MinimizePersistentCacheArtifact>,
+  pub minimize_persistent_cache_artifact: Option<Box<MinimizePersistentCacheArtifact>>,
   pub use_source_map_dev_tool_plugin_cache: bool,
-  pub source_map_dev_tool_plugin_cache_artifact: Option<SourceMapDevToolPluginCacheArtifact>,
+  pub source_map_dev_tool_plugin_cache_artifact: Option<Box<SourceMapDevToolPluginCacheArtifact>>,
 
   pub circular_modules: StealCell<CircularModulesInfo>,
   pub code_generated_modules: IdentifierSet,
@@ -395,7 +399,7 @@ impl Compilation {
       side_effects_optimize_artifact: StealCell::new(Default::default()),
       module_ids_artifact: StealCell::new(Default::default()),
       named_chunk_ids_artifact: StealCell::new(Default::default()),
-      code_generation_results: Default::default(),
+      code_generation_results: Box::<CodeGenerationResults>::default().into(),
       cgm_hash_artifact: StealCell::new(Default::default()),
       cgm_runtime_requirements_artifact: StealCell::new(Default::default()),
       cgc_runtime_requirements_artifact: StealCell::new(Default::default()),
@@ -683,8 +687,8 @@ impl Compilation {
       self.add_entry(entry, options).await?;
     }
 
-    let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
+    let make_artifact = Box::new(self.build_module_graph_artifact.steal());
+    let exports_info_artifact = Box::new(self.exports_info_artifact.steal());
     let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
@@ -737,8 +741,8 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
+    let make_artifact = Box::new(self.build_module_graph_artifact.steal());
+    let exports_info_artifact = Box::new(self.exports_info_artifact.steal());
     let (make_artifact, exports_info_artifact) = update_module_graph(
       self,
       make_artifact,
@@ -1058,7 +1062,7 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
-    let artifact = self.build_module_graph_artifact.steal();
+    let artifact = Box::new(self.build_module_graph_artifact.steal());
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
     self.module_graph_cache_artifact.unfreeze();
@@ -1066,11 +1070,11 @@ impl Compilation {
     let (artifact, updated_exports_info_artifact) = update_module_graph(
       self,
       artifact,
-      std::mem::take(exports_info_artifact),
+      Box::new(std::mem::take(exports_info_artifact)),
       vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
     )
     .await?;
-    *exports_info_artifact = updated_exports_info_artifact;
+    *exports_info_artifact = unbox(updated_exports_info_artifact);
     self.build_module_graph_artifact = artifact.into();
 
     let module_graph = self.get_module_graph();

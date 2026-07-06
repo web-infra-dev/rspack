@@ -163,11 +163,11 @@ pub async fn runtime_module_code_generation(
   module: &dyn RuntimeModule,
   common: &RuntimeModuleCommon,
   ctx: &mut ModuleCodeGenerationContext<'_>,
-) -> Result<CodeGenerationResult> {
+) -> Result<Box<CodeGenerationResult>> {
   let mut result = CodeGenerationResult::default();
   let source = runtime_module_get_generated_code(module, common, ctx.compilation).await?;
   result.add(SourceType::Runtime, source);
-  Ok(result)
+  Ok(Box::new(result))
 }
 
 pub async fn runtime_module_get_runtime_hash(

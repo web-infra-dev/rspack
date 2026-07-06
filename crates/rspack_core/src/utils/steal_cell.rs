@@ -23,6 +23,12 @@ impl<T> From<T> for StealCell<T> {
   }
 }
 
+impl<T> From<Box<T>> for StealCell<T> {
+  fn from(value: Box<T>) -> Self {
+    Self::new(*value)
+  }
+}
+
 impl<T> StealCell<T> {
   pub fn new(value: T) -> Self {
     Self(Some(value))

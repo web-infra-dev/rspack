@@ -47,7 +47,7 @@ impl ParserAndGenerator for RslibAssetParserAndGenerator {
   async fn parse<'a>(
     &mut self,
     parse_context: ParseContext<'a>,
-  ) -> Result<TWithDiagnosticArray<ParseResult>> {
+  ) -> Result<TWithDiagnosticArray<Box<ParseResult>>> {
     self.0.parse(parse_context).await
   }
 

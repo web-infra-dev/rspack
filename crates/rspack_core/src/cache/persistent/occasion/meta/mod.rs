@@ -55,9 +55,9 @@ impl Occasion for MetaOccasion {
   }
 
   #[tracing::instrument("Cache::Occasion::Meta::recovery", skip_all)]
-  async fn recovery(&self, storage: &dyn Storage) -> Result<()> {
+  async fn recovery(&self, storage: &dyn Storage) -> Result<Box<()>> {
     let Some((_, value)) = storage.load(SCOPE).await?.pop() else {
-      return Ok(());
+      return Ok(Box::new(()));
     };
 
     let meta: Meta = self.codec.decode(&value).expect("should decode success");
@@ -65,6 +65,6 @@ impl Occasion for MetaOccasion {
       panic!("The global dependency id generator is not 0 when the persistent cache is restored.");
     }
     set_current_dependency_id(meta.max_dependencies_id);
-    Ok(())
+    Ok(Box::new(()))
   }
 }
