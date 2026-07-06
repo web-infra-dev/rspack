@@ -1,7 +1,6 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
 use rspack_paths::{ArcPath, ArcPathDashSet};
-use rspack_tasks::spawn_in_context;
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{FsEvent, FsEventKind, PathManager};
@@ -41,7 +40,7 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let files_tx = tx.clone();
-      spawn_in_context(async move {
+      tokio::spawn(async move {
         _ = scan_path_missing(&files, &missing, &files_tx);
         _ = scan_path_events(
           &files,
@@ -59,7 +58,7 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
-      spawn_in_context(async move {
+      tokio::spawn(async move {
         _ = scan_path_missing(&directories, &missing, &dirs_tx);
         _ = scan_path_events(
           &directories,
@@ -77,7 +76,7 @@ impl Scanner {
         .iter()
         .map(|p| p.deref().clone())
         .collect::<Vec<_>>();
-      spawn_in_context(async move {
+      tokio::spawn(async move {
         _ = scan_path_events(
           &missing_added,
           |p| changed_since(p, start_time),

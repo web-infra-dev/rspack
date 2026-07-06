@@ -183,10 +183,8 @@ pub async fn run_task_loop<Ctx: 'static>(
 
 #[cfg(test)]
 mod test {
-  use std::time::Duration;
-
   use rspack_error::error;
-  use rspack_tasks::{block_on, sleep, within_compiler_context_for_testing};
+  use rspack_tasks::within_compiler_context_for_testing;
 
   use super::*;
 
@@ -232,7 +230,7 @@ mod test {
       TaskType::Background
     }
     async fn background_run(self: Box<Self>) -> TaskResult<Context> {
-      sleep(Duration::from_millis(10)).await;
+      tokio::time::sleep(std::time::Duration::from_millis(10)).await;
       if self.async_return_error {
         Err(error!("throw async error"))
       } else {
@@ -241,9 +239,9 @@ mod test {
     }
   }
 
-  #[test]
-  fn test_run_task_loop() {
-    block_on(within_compiler_context_for_testing(async {
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn test_run_task_loop() {
+    within_compiler_context_for_testing(async {
       let mut context = Context {
         call_sync_task_count: 0,
         max_sync_task_call: 4,
@@ -297,6 +295,7 @@ mod test {
         "should return async error"
       );
       assert_eq!(context.call_sync_task_count, 1);
-    }));
+    })
+    .await;
   }
 }

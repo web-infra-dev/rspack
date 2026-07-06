@@ -18,7 +18,6 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_devtool::{
   SourceMapDevToolModuleOptionsPlugin, SourceMapDevToolModuleOptionsPluginOptions,
 };
-use rspack_tasks::spawn_in_context;
 #[cfg(allocative)]
 use rspack_util::allocative;
 use rspack_util::{
@@ -311,7 +310,7 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
     }
   }
 
-  spawn_in_context(async move {
+  tokio::spawn(async move {
     match hooks
       .borrow()
       .chunk_graph
@@ -494,7 +493,7 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     Vec::new()
   };
 
-  spawn_in_context(async move {
+  tokio::spawn(async move {
     match hooks
       .borrow()
       .module_graph
@@ -540,7 +539,7 @@ async fn module_ids(
     module_ids,
   );
 
-  spawn_in_context(async move {
+  tokio::spawn(async move {
     match hooks
       .borrow()
       .module_ids
@@ -587,7 +586,7 @@ async fn after_code_generation(
     .map(|map| map.clone())
     .unwrap_or_default();
 
-  spawn_in_context(async move {
+  tokio::spawn(async move {
     match hooks
       .borrow()
       .module_sources
@@ -634,7 +633,7 @@ async fn after_process_assets(
     chunk_by_ukey,
   );
 
-  spawn_in_context(async move {
+  tokio::spawn(async move {
     match hooks
       .borrow()
       .assets

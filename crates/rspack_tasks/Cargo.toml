@@ -11,9 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-
-[features]
-codspeed = []
+tokio = { workspace = true, features = ["rt", "rt-multi-thread", "time"] }
 
 [lints]
 workspace = true

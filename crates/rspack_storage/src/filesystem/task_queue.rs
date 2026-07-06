@@ -1,13 +1,12 @@
 use std::sync::LazyLock;
 
 use futures::future::BoxFuture;
-use rspack_tasks::spawn_in_context;
 use tokio::sync::{mpsc, oneshot};
 
 /// TaskQueue manages background async tasks efficiently.
 ///
 /// Tasks are executed sequentially in the order they are added.
-/// Uses an unbounded channel which automatically suspends the receiver when idle.
+/// Uses tokio's unbounded_channel which automatically suspends the receiver when idle.
 pub struct TaskQueue {
   sender: LazyLock<mpsc::UnboundedSender<BoxFuture<'static, ()>>>,
 }
@@ -23,7 +22,7 @@ impl Default for TaskQueue {
     TaskQueue {
       sender: LazyLock::new(|| {
         let (tx, mut rx) = mpsc::unbounded_channel();
-        spawn_in_context(async move {
+        tokio::spawn(async move {
           while let Some(future) = rx.recv().await {
             future.await
           }
@@ -59,7 +58,6 @@ impl TaskQueue {
 mod tests {
   use std::{sync::Arc, time::Duration};
 
-  use rspack_tasks::{block_on, sleep};
   use tokio::sync::{Mutex, oneshot};
 
   use super::TaskQueue;
@@ -67,7 +65,9 @@ mod tests {
   #[test]
   #[cfg_attr(miri, ignore)]
   fn test_add_task_to_queue() {
-    block_on(async {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+
+    rt.block_on(async {
       let queue = TaskQueue::default();
       let (tx_0, rx_0) = oneshot::channel();
       let (tx_1, rx_1) = oneshot::channel();
@@ -77,21 +77,21 @@ mod tests {
 
       let inc_0 = inc.clone();
       queue.add_task(Box::pin(async move {
-        sleep(Duration::from_millis(30)).await;
+        tokio::time::sleep(Duration::from_millis(30)).await;
         let mut inc = inc_0.lock().await;
         *inc += 1;
         tx_0.send(*inc).unwrap();
       }));
       let inc_1 = inc.clone();
       queue.add_task(Box::pin(async move {
-        sleep(Duration::from_millis(20)).await;
+        tokio::time::sleep(Duration::from_millis(20)).await;
         let mut inc = inc_1.lock().await;
         *inc += 1;
         tx_1.send(*inc).unwrap();
       }));
       let inc_2 = inc.clone();
       queue.add_task(Box::pin(async move {
-        sleep(Duration::from_millis(10)).await;
+        tokio::time::sleep(Duration::from_millis(10)).await;
         let mut inc = inc_2.lock().await;
         *inc += 1;
         tx_2.send(*inc).unwrap();

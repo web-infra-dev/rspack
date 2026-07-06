@@ -4142,7 +4142,6 @@ dependencies = [
  "pnp",
  "rspack_error",
  "rspack_paths",
- "rspack_tasks",
  "rspack_util",
  "tokio",
  "tracing",
@@ -5093,10 +5092,10 @@ dependencies = [
  "rspack_plugin_devtool",
  "rspack_plugin_javascript",
  "rspack_plugin_json",
- "rspack_tasks",
  "rspack_util",
  "rustc-hash",
  "thread_local",
+ "tokio",
  "tracing",
 ]
 
@@ -5199,7 +5198,6 @@ dependencies = [
  "rspack_fs",
  "rspack_hook",
  "rspack_paths",
- "rspack_tasks",
  "rspack_util",
  "serde",
  "serde_json",
@@ -5397,7 +5395,6 @@ dependencies = [
  "rspack_fs",
  "rspack_parallel",
  "rspack_paths",
- "rspack_tasks",
  "rustc-hash",
  "tokio",
 ]
@@ -5427,6 +5424,9 @@ dependencies = [
 [[package]]
 name = "rspack_tasks"
 version = "0.101.2"
+dependencies = [
+ "tokio",
+]
 
 [[package]]
 name = "rspack_tools"
@@ -5516,7 +5516,6 @@ dependencies = [
  "rspack_error",
  "rspack_paths",
  "rspack_regex",
- "rspack_tasks",
  "rspack_util",
  "tempfile",
  "tokio",

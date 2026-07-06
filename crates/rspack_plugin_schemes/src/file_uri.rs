@@ -9,7 +9,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::AssertUtf8;
 #[cfg(all(not(target_family = "wasm"), not(feature = "codspeed")))]
-use rspack_tasks::spawn_blocking;
+use tokio::task::spawn_blocking;
 use url::Url;
 
 #[plugin]

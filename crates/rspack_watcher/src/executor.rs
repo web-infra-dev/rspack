@@ -3,7 +3,6 @@ use std::sync::{
   atomic::{AtomicBool, Ordering},
 };
 
-use rspack_tasks::{JoinHandle, sleep, spawn_in_context};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::sync::{
   Mutex,
@@ -43,8 +42,8 @@ pub struct Executor {
   paused: Arc<AtomicBool>,
   aggregate_running: Arc<AtomicBool>,
   start_waiting: bool,
-  execute_handle: Option<JoinHandle<()>>,
-  execute_aggregate_handle: Option<JoinHandle<()>>,
+  execute_handle: Option<tokio::task::JoinHandle<()>>,
+  execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
 }
 
 const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
@@ -163,7 +162,7 @@ impl Executor {
         let _ = exec_tx.send(ExecEvent::Close);
       };
 
-      spawn_in_context(future);
+      tokio::spawn(future);
       self.start_waiting = true;
     }
 
@@ -206,7 +205,7 @@ impl Executor {
 fn create_execute_task(
   event_handler: Box<dyn EventHandler + Send>,
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
-) -> JoinHandle<()> {
+) -> tokio::task::JoinHandle<()> {
   let future = async move {
     while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
@@ -234,7 +233,7 @@ fn create_execute_task(
       }
     }
   };
-  spawn_in_context(future)
+  tokio::spawn(future)
 }
 
 fn create_execute_aggregate_task(
@@ -243,7 +242,7 @@ fn create_execute_aggregate_task(
   files: ThreadSafety<FilesData>,
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
-) -> JoinHandle<()> {
+) -> tokio::task::JoinHandle<()> {
   let future = async move {
     loop {
       let aggregate_rx = {
@@ -259,7 +258,7 @@ fn create_execute_aggregate_task(
       if let ExecAggregateEvent::Execute = aggregate_rx {
         running.store(true, Ordering::Relaxed);
         // Wait for the aggregate timeout before executing the handler
-        sleep(std::time::Duration::from_millis(aggregate_timeout)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(aggregate_timeout)).await;
 
         // Get the files to process
         let files = {
@@ -278,5 +277,5 @@ fn create_execute_aggregate_task(
     }
   };
 
-  spawn_in_context(future)
+  tokio::spawn(future)
 }
