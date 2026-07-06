@@ -8,7 +8,7 @@ type PathData = {
   runtime?: string; // 关联 runtime，对应 [runtime]
   url?: string; // 路径信息，对应 [url]
   id?: string | number; // 产物的ID，对应 [id]
-  chunk?: JsChunkPathData; // 关联 chunk 信息，对应 [chunkhash]
+  chunk?: Chunk; // 关联 chunk 信息，对应 [chunkhash]
 };
 ```
 

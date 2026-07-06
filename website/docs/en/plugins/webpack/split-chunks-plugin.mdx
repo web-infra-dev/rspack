@@ -125,11 +125,7 @@ export default {
 
 ```ts
 type OptimizationSplitChunksChunks =
-  | 'initial'
-  | 'async'
-  | 'all'
-  | RegExp
-  | ((chunk: Chunk) => boolean);
+  'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
 ```
 
 - **Default:** `'async'`

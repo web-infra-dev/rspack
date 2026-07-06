@@ -161,6 +161,7 @@ async fn render_module_content(
           }
         });
         let path_data = PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_name_optional(chunk.name())
           .chunk_hash_optional(chunk.rendered_hash(

@@ -58,14 +58,7 @@ const normalizeValue = (
 
 type CodeValue = RecursiveArrayOrRecord<CodeValuePrimitive>;
 type CodeValuePrimitive =
-  | null
-  | undefined
-  | RegExp
-  | Function
-  | string
-  | number
-  | boolean
-  | bigint;
+  null | undefined | RegExp | Function | string | number | boolean | bigint;
 type NormalizedCodeValuePrimitive = null | string | number | boolean;
 type NormalizedCodeValue = RecursiveArrayOrRecord<NormalizedCodeValuePrimitive>;
 

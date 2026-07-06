@@ -2,7 +2,8 @@ use std::{cell::RefCell, ptr::NonNull};
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Either3, Object, ToNapiValue},
+  bindgen_prelude::{Either3, FromNapiValue, Object, ToNapiValue},
+  sys,
 };
 use napi_derive::napi;
 use rspack_core::{Compilation, CompilationId, chunk_graph_chunk::ChunkId};
@@ -280,6 +281,18 @@ pub struct ChunkWrapper {
 }
 
 unsafe impl Send for ChunkWrapper {}
+
+impl FromNapiValue for ChunkWrapper {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> napi::Result<Self> {
+    let chunk: &Chunk = unsafe { FromNapiValue::from_napi_value(env, napi_val)? };
+    let compilation = unsafe { chunk.compilation.as_ref() };
+    Ok(Self {
+      chunk_ukey: chunk.chunk_ukey,
+      compilation_id: compilation.id(),
+      compilation: chunk.compilation,
+    })
+  }
+}
 
 impl ChunkWrapper {
   pub fn new(chunk_ukey: rspack_core::ChunkUkey, compilation: &Compilation) -> Self {

@@ -572,15 +572,17 @@ impl SourceMapDevToolPlugin {
                 .await?;
 
               let chunk = file_to_chunk.get(asset_filename.as_ref());
-              let path_data = PathData::default()
-                .chunk_id_optional(chunk.and_then(|c| c.id().map(|id| id.as_str())))
-                .chunk_name_optional(chunk.and_then(|c| c.name()))
-                .chunk_hash_optional(chunk.and_then(|c| {
-                  c.rendered_hash(
+              let path_data = match chunk {
+                Some(chunk) => PathData::default()
+                  .chunk(chunk.ukey(), compilation)
+                  .chunk_id_optional(chunk.id().map(|id| id.as_str()))
+                  .chunk_name_optional(chunk.name())
+                  .chunk_hash_optional(chunk.rendered_hash(
                     &compilation.chunk_hashes_artifact,
                     compilation.options.output.hash_digest_length,
-                  )
-                }));
+                  )),
+                None => PathData::default(),
+              };
 
               let filename = Filename::from(plugin.namespace.clone());
               let namespace = compilation.get_path(&filename, path_data).await?;
@@ -1033,6 +1035,7 @@ impl SourceMapDevToolPlugin {
       let data = PathData::default().filename(&filename);
       let data = match chunk {
         Some(chunk) => data
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,

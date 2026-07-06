@@ -145,8 +145,7 @@ type HtmlRspackPluginOptions = {
   filename?: string | ((entry: string) => string);
   template?: string;
   templateContent?:
-    | string
-    | ((params: Record<string, any>) => string | Promise<string>);
+    string | ((params: Record<string, any>) => string | Promise<string>);
   templateParameters?:
     | Record<string, string>
     | boolean

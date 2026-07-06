@@ -86,6 +86,7 @@ async fn render(
     .get_path(
       &Filename::from(options.name),
       PathData::default()
+        .chunk(chunk.ukey(), compilation)
         .chunk_id_optional(chunk.id().map(|id| id.as_str()))
         .chunk_hash_optional(chunk.rendered_hash(
           &compilation.chunk_hashes_artifact,

@@ -260,17 +260,12 @@ export type ReadFileSync = {
   (
     path: PathOrFileDescriptor,
     options:
-      | (ObjectEncodingOptions & { flag?: string })
-      | BufferEncoding
-      | null,
+      (ObjectEncodingOptions & { flag?: string }) | BufferEncoding | null,
   ): string | Buffer;
 };
 
 export type EncodingOption =
-  | ObjectEncodingOptions
-  | BufferEncoding
-  | undefined
-  | null;
+  ObjectEncodingOptions | BufferEncoding | undefined | null;
 
 export type BufferEncodingOption = 'buffer' | { encoding: 'buffer' };
 
