@@ -472,4 +472,34 @@ mod tests {
       "different rendered code must hash differently"
     );
   }
+
+  // A module with multiple source types must hash identically regardless of
+  // the order the types were inserted (FxHashMap iteration order is not stable
+  // across builds).
+  #[test]
+  fn set_hash_is_stable_across_source_type_insertion_order() {
+    let hash_of = |order: &[SourceType]| {
+      let mut result = CodeGenerationResult::default();
+      for source_type in order {
+        result.add(
+          *source_type,
+          RawStringSource::from(format!("/* {source_type:?} */")).boxed(),
+        );
+      }
+      result.set_hash(&HashFunction::Xxhash64, &HashDigest::Hex, &HashSalt::None);
+      result.hash.expect("hash should be set")
+    };
+
+    // Three types are needed to expose the ordering: two entries land in
+    // insertion-order-independent hashbrown slots, but a third forces a probe
+    // collision whose resolution depends on insertion order.
+    let types = [SourceType::JavaScript, SourceType::Css, SourceType::CssUrl];
+    let forward = hash_of(&types);
+    let reversed = hash_of(&types.iter().rev().copied().collect::<Vec<_>>());
+    assert_eq!(
+      forward.encoded(),
+      reversed.encoded(),
+      "codegen hash must not depend on source-type insertion order"
+    );
+  }
 }
