@@ -1,25 +1,16 @@
 use std::{cell::RefCell, future::Future, marker::PhantomData, pin::Pin};
 
-use rspack_tasks::JoinError;
-#[cfg(not(feature = "codspeed"))]
-use rspack_tasks::JoinHandle;
-
-enum ScopedTask<'scope, O> {
-  #[cfg(feature = "codspeed")]
-  Future(Pin<Box<dyn Future<Output = O> + Send + 'scope>>),
-  #[cfg(not(feature = "codspeed"))]
-  Join(JoinHandle<O>, PhantomData<&'scope ()>),
-}
+use tokio::task::{JoinError, JoinHandle};
 
 /// Scope Token
 pub struct Token<'scope, 'spawner, O> {
-  list: &'spawner RefCell<Vec<ScopedTask<'scope, O>>>,
+  list: &'spawner RefCell<Vec<JoinHandle<O>>>,
   _phantom: PhantomData<&'scope mut &'scope ()>,
 }
 
 /// Scope Spawner
 pub struct Spawner<'scope, 'spawner, T, O> {
-  list: &'spawner RefCell<Vec<ScopedTask<'scope, O>>>,
+  list: &'spawner RefCell<Vec<JoinHandle<O>>>,
   used: T,
   _phantom: PhantomData<&'scope mut &'scope ()>,
 }
@@ -112,13 +103,8 @@ where
   let list = RefCell::into_inner(list);
   let mut output = Vec::with_capacity(list.len());
 
-  for task in list {
-    match task {
-      #[cfg(feature = "codspeed")]
-      ScopedTask::Future(future) => output.push(Ok(future.await)),
-      #[cfg(not(feature = "codspeed"))]
-      ScopedTask::Join(join_handle, _) => output.push(join_handle.await),
-    }
+  for j in list {
+    output.push(j.await);
   }
 
   guard.forget();
@@ -158,23 +144,14 @@ impl<'scope, T, O> Spawner<'scope, '_, T, O> {
     let fut = f(self.used);
     let fut: Pin<Box<dyn Future<Output = O> + Send + 'scope>> = Box::pin(fut);
 
-    #[cfg(feature = "codspeed")]
-    self.list.borrow_mut().push(ScopedTask::Future(fut));
+    // # Safety
+    //
+    // The safety guarantee here comes from `Token::used`.
+    // The user needs to ensure that the task will done within used reference lifetime.
+    let fut: Pin<Box<dyn Future<Output = O> + Send + 'static>> =
+      unsafe { std::mem::transmute(fut) };
 
-    #[cfg(not(feature = "codspeed"))]
-    {
-      // # Safety
-      //
-      // The safety guarantee here comes from `Token::used`.
-      // The user needs to ensure that the task will done within used reference lifetime.
-      let fut: Pin<Box<dyn Future<Output = O> + Send + 'static>> =
-        unsafe { std::mem::transmute(fut) };
-
-      let j = rspack_tasks::spawn_in_compiler_context(fut);
-      self
-        .list
-        .borrow_mut()
-        .push(ScopedTask::Join(j, PhantomData));
-    }
+    let j = rspack_tasks::spawn_in_compiler_context(fut);
+    self.list.borrow_mut().push(j);
   }
 }

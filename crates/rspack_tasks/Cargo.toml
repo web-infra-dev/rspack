@@ -11,8 +11,7 @@ repository.workspace    = true
 version.workspace       = true
 
 [dependencies]
-tokio = { workspace = true, features = ["rt", "rt-multi-thread", "time"] }
-
+tokio = { workspace = true }
 [lints]
 workspace = true
 

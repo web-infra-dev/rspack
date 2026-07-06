@@ -4,12 +4,11 @@
 use std::alloc::System;
 use std::{
   alloc::{GlobalAlloc, Layout},
-  future::Future,
   sync::Once,
 };
 
 pub use criterion::*;
-use tokio::runtime::{Builder, Runtime as TokioRuntime};
+use tokio::runtime::{Builder, Runtime};
 
 const ENV_BENCH_MODE: &str = "BENCH_MODE";
 const SIMULATION_BENCHMARK_BLOCKING_THREADS: usize = 8;
@@ -48,10 +47,6 @@ impl BenchMode {
       Self::Walltime => walltime_benchmark_thread_count(),
     }
   }
-}
-
-pub fn is_simulation_benchmark() -> bool {
-  BenchMode::current() == BenchMode::Simulation
 }
 
 #[global_allocator]
@@ -107,44 +102,13 @@ unsafe impl<A: GlobalAlloc> GlobalAlloc for NeverGrowInPlaceAllocator<A> {
   }
 }
 
-pub enum Runtime {
-  Tokio(TokioRuntime),
-  #[cfg(codspeed)]
-  RspackTasks,
-}
-
-pub enum RuntimeEnterGuard<'a> {
-  Tokio(tokio::runtime::EnterGuard<'a>),
-  Noop,
-}
-
-impl Runtime {
-  pub fn block_on<F: Future>(&self, future: F) -> F::Output {
-    match self {
-      Self::Tokio(runtime) => runtime.block_on(future),
-      #[cfg(codspeed)]
-      Self::RspackTasks => rspack_tasks::block_on(future),
-    }
-  }
-
-  pub fn enter(&self) -> RuntimeEnterGuard<'_> {
-    match self {
-      Self::Tokio(runtime) => RuntimeEnterGuard::Tokio(runtime.enter()),
-      #[cfg(codspeed)]
-      Self::RspackTasks => RuntimeEnterGuard::Noop,
-    }
-  }
-}
-
 fn build_multi_thread_tokio_rt(worker_threads: usize, blocking_threads: usize) -> Runtime {
   let mut builder = Builder::new_multi_thread();
-  Runtime::Tokio(
-    builder
-      .worker_threads(worker_threads)
-      .max_blocking_threads(blocking_threads)
-      .build()
-      .expect("should not fail to build tokio runtime"),
-  )
+  builder
+    .worker_threads(worker_threads)
+    .max_blocking_threads(blocking_threads)
+    .build()
+    .expect("should not fail to build tokio runtime")
 }
 
 fn walltime_benchmark_thread_count() -> usize {
@@ -175,7 +139,10 @@ pub fn build_tokio_rt() -> Runtime {
 
   #[cfg(codspeed)]
   {
-    Runtime::RspackTasks
+    return Builder::new_current_thread()
+      .max_blocking_threads(bench_mode.blocking_threads())
+      .build()
+      .expect("should not fail to build tokio runtime");
   }
 
   #[cfg(not(codspeed))]

@@ -1,5 +1,6 @@
-use rspack_benchmark::{Criterion, Runtime};
+use rspack_benchmark::Criterion;
 use rspack_tasks::within_compiler_context_for_testing_sync;
+use tokio::runtime::Runtime;
 
 pub mod concatenate_module_code_generation;
 pub mod create_chunk_assets;
@@ -22,13 +23,6 @@ pub mod split_chunks;
 pub(crate) type StageBenchmark = fn(&mut Criterion, &Runtime);
 
 pub(crate) fn run(c: &mut Criterion, benchmark: StageBenchmark) {
-  // CodSpeed simulation for this PR is dominated by runtime instrumentation noise on
-  // compilation-stage microbenchmarks. Walltime and regular benchmark runs still exercise them.
-  #[cfg(codspeed)]
-  if rspack_benchmark::is_simulation_benchmark() {
-    return;
-  }
-
   within_compiler_context_for_testing_sync(|| {
     let rt = rspack_benchmark::build_tokio_rt();
     let _guard = rt.enter();

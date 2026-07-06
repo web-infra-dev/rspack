@@ -4,16 +4,15 @@ use std::{
   ffi::c_void,
   future::Future,
   sync::{
-    Arc, LazyLock,
-    atomic::{AtomicPtr, AtomicU32, AtomicUsize, Ordering},
+    Arc,
+    atomic::{AtomicPtr, AtomicU32},
   },
-  time::Duration,
 };
 
-pub use tokio::task::{JoinError, JoinHandle, futures::TaskLocalFuture};
-use tokio::task_local;
-
-static RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(create_runtime);
+use tokio::{
+  task::{JoinHandle, futures::TaskLocalFuture},
+  task_local,
+};
 
 // don't overuse this and put everything here, it's mostly used for store isolated id generator
 #[derive(Debug)]
@@ -114,11 +113,11 @@ where
 {
   let compiler_context = CURRENT_COMPILER_CONTEXT.get();
 
-  spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
+  tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future))
 }
 
-/// Like [`spawn_in_compiler_context`], but falls back to a plain spawn when
-/// there is no active compiler context (e.g. in unit tests or utility code
+/// Like [`spawn_in_compiler_context`], but falls back to a plain [`tokio::spawn`]
+/// when there is no active compiler context (e.g. in unit tests or utility code
 /// that is not driven by a compiler).
 pub fn spawn_in_context<F>(future: F) -> JoinHandle<F::Output>
 where
@@ -126,76 +125,7 @@ where
   F::Output: Send + 'static,
 {
   match CURRENT_COMPILER_CONTEXT.try_get() {
-    Ok(compiler_context) => spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future)),
-    Err(_) => spawn(future),
-  }
-}
-
-pub fn ensure_runtime() {
-  let _ = runtime();
-}
-
-pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
-where
-  F: Future + Send + 'static,
-  F::Output: Send + 'static,
-{
-  runtime().spawn(future)
-}
-
-pub fn spawn_blocking<F, R>(f: F) -> JoinHandle<R>
-where
-  F: FnOnce() -> R + Send + 'static,
-  R: Send + 'static,
-{
-  runtime().spawn_blocking(f)
-}
-
-pub fn block_on<F: Future>(future: F) -> F::Output {
-  runtime().block_on(future)
-}
-
-pub fn sleep(duration: Duration) -> tokio::time::Sleep {
-  tokio::time::sleep(duration)
-}
-
-fn runtime() -> &'static tokio::runtime::Runtime {
-  &RUNTIME
-}
-
-fn create_runtime() -> tokio::runtime::Runtime {
-  let mut builder = tokio::runtime::Builder::new_multi_thread();
-  builder
-    .max_blocking_threads(blocking_threads())
-    .thread_name_fn(|| {
-      static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
-      let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);
-      format!("tokio-{id}")
-    })
-    .enable_all()
-    .build()
-    .expect("Create tokio runtime failed")
-}
-
-fn blocking_threads() -> usize {
-  const ENV_BLOCKING_THREADS: &str = "RSPACK_BLOCKING_THREADS";
-
-  std::env::var(ENV_BLOCKING_THREADS)
-    .ok()
-    .and_then(|v| v.parse::<usize>().ok())
-    .unwrap_or(default_blocking_threads())
-}
-
-fn default_blocking_threads() -> usize {
-  #[cfg(target_family = "wasm")]
-  {
-    1
-  }
-
-  #[cfg(not(target_family = "wasm"))]
-  {
-    // reduce default blocking threads on macOS cause macOS holds IORWLock on every file open
-    // reference from https://github.com/oven-sh/bun/pull/17577/files#diff-c9bc275f9466e5179bb80454b6445c7041d2a0fb79932dd5de7a5c3196bdbd75R144
-    4
+    Ok(compiler_context) => tokio::spawn(CURRENT_COMPILER_CONTEXT.scope(compiler_context, future)),
+    Err(_) => tokio::spawn(future),
   }
 }

@@ -9,7 +9,7 @@ use std::{
 
 use criterion::{BatchSize, black_box};
 use rspack::builder::Builder as _;
-use rspack_benchmark::{Criterion, Runtime};
+use rspack_benchmark::Criterion;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AssignRuntimeIdsPass, AsyncModulesArtifact, CacheOptions, ChunkByUkey, ChunkContentHash,
@@ -34,6 +34,7 @@ use rspack_plugin_split_chunks::{
   create_default_module_type_filter,
 };
 use rustc_hash::FxHashMap;
+use tokio::runtime::Runtime;
 
 use crate::groups::{
   build_chunk_graph::prepare_large_code_splitting_case, diagnostics::assert_no_compilation_errors,
