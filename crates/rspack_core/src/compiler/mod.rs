@@ -335,7 +335,9 @@ impl Compiler {
     );
 
     if should_record {
-      self.last_records = Some(Arc::new(CompilationRecords::record(&self.compilation)));
+      self.last_records = Some(Arc::new(
+        CompilationRecords::record(&self.compilation).await?,
+      ));
     }
 
     if matches!(

@@ -183,8 +183,14 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     // CSS is usually unchanged, so the runtime needs to know which chunks'
     // stylesheets actually changed (`css.c`) or disappeared (`css.r`).
     let old_css_hash = old_chunk_css_hashes.get(&chunk_id);
-    let new_css_hash =
-      current_chunk.and_then(|chunk| compilation.chunk_css_content_signature(&chunk.ukey()));
+    let new_css_hash = match current_chunk {
+      Some(chunk) => {
+        compilation
+          .chunk_css_content_signature(&chunk.ukey())
+          .await?
+      }
+      None => None,
+    };
     let css_changed = new_css_hash.is_some() && new_css_hash.as_ref() != old_css_hash;
     let css_removed = new_css_hash.is_none() && old_css_hash.is_some();
 

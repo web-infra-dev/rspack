@@ -1,12 +1,12 @@
-# Case import-order-change: Step 1
+# Case css-extract-reorder-css: Step 1
 
 ## Changed Files
-- change.js
+- app.js
 
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 49
-- Update: main.LAST_HASH.hot-update.js, size: 466
+- Update: main.LAST_HASH.hot-update.js, size: 615
 
 ## Manifest
 
@@ -23,7 +23,7 @@
 ### main.LAST_HASH.hot-update.js
 
 #### Changed Modules
-- ./change.js
+- ./app.js
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
@@ -32,12 +32,16 @@
 ```js
 "use strict";
 self["rspackHotUpdate"]("main", {
-"./change.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+"./app.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
+__webpack_require__.d(__webpack_exports__, {
+  "default": () => (__rspack_default_export)
+});
 /* import */ var _b_css__rspack_import_0 = __webpack_require__("./b.css");
 /* import */ var _a_css__rspack_import_1 = __webpack_require__("./a.css");
 
 
+/* export default */ const __rspack_default_export = (1);
 
 
 },
