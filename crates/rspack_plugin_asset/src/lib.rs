@@ -807,6 +807,10 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }
+
+  fn has_runtime_hash(&self) -> bool {
+    true
+  }
 }
 
 #[plugin_hook(CompilationRenderManifest for AssetPlugin)]

@@ -385,6 +385,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 fake_filename
                   .render(
                     PathData::default()
+                      .chunk(*chunk_ukey, compilation)
                       .chunk_name_optional(chunk.name())
                       .chunk_id_optional(chunk.id().map(|id| id.as_str())),
                     None,
@@ -394,6 +395,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
               )
             }),
             PathData::default()
+              .chunk(*chunk_ukey, compilation)
               .chunk_id_optional(chunk_id.as_deref())
               .chunk_hash_optional(chunk_hash.as_deref())
               .chunk_name_optional(chunk_name.as_deref())

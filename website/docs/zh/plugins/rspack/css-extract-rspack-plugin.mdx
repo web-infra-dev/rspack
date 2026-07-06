@@ -80,8 +80,7 @@ CssExtractRspackPlugin 插件的选项。
 interface PluginOptions {
   filename?: string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
   chunkFilename?:
-    | string
-    | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+    string | ((pathData: PathData, assetInfo?: AssetInfo) => string);
   ignoreOrder?: boolean;
   insert?: string | ((linkTag: HTMLLinkElement) => void);
   attributes?: Record<string, string>;

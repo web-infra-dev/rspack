@@ -781,8 +781,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImport, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -790,8 +789,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -799,8 +797,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.module, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 

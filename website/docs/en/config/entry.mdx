@@ -14,9 +14,7 @@ import PropertyType from '@components/PropertyType';
 
 ```ts
 type EntryStatic =
-  | string
-  | string[]
-  | Record<string, string | string[] | EntryDescription>;
+  string | string[] | Record<string, string | string[] | EntryDescription>;
 
 type Entry = EntryStatic | (() => EntryStatic | Promise<EntryStatic>);
 ```

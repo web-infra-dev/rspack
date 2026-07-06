@@ -163,6 +163,10 @@ pub trait ParserAndGenerator: Send + Sync + Debug + AsAny {
       &compilation.options.output.hash_digest,
     ))
   }
+
+  fn has_runtime_hash(&self) -> bool {
+    false
+  }
 }
 
 impl dyn ParserAndGenerator + '_ {

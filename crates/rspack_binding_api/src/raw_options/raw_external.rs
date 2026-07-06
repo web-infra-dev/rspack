@@ -190,7 +190,7 @@ impl RawExternalItemFnCtx {
           },
           None::<fn()>,
         )
-        .map_err(|e| napi::Error::from_reason(e.reason.clone()))
+        .map_err(|e| napi::Error::from_reason(e.reason))
       })?;
 
     Ok(f)

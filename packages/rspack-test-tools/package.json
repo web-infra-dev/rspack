@@ -44,7 +44,7 @@
     "chalk": "^4.1.2",
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
-    "fs-extra": "^11.3.5",
+    "fs-extra": "^11.3.6",
     "iconv-lite": "^0.7.2",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.4.1",
@@ -60,7 +60,7 @@
     "webpack-sources": "3.5.0"
   },
   "devDependencies": {
-    "@rslib/core": "^0.23.0",
+    "@rslib/core": "^0.23.2",
     "@rspack/core": "workspace:*",
     "@types/babel__generator": "7.27.0",
     "@types/babel__traverse": "7.28.0",

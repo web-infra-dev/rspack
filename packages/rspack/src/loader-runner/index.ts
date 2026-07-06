@@ -111,8 +111,7 @@ export class LoaderObject {
         );
       }
       this.options = compiler.__internal__ruleSet.references.get(ident) as
-        | LoaderObjectOptions
-        | undefined;
+        LoaderObjectOptions | undefined;
       if (this.options === undefined) {
         throw new Error('Invalid ident is provided by referenced loader');
       }
