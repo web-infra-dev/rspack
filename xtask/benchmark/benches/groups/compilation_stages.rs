@@ -48,32 +48,7 @@ const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
 const MODULE_ASSET_SEED_COUNT: usize = 256;
 
-fn skip_codspeed_simulation_benchmark(benchmark_id: &str) -> bool {
-  #[cfg(codspeed)]
-  {
-    rspack_benchmark::is_simulation_benchmark()
-      && matches!(
-        benchmark_id,
-        "rust@flag_dependency_exports"
-          | "rust@create_named_chunk_ids"
-          | "rust@create_chunk_hashes"
-          | "rust@runtime_requirements"
-          | "rust@create_module_assets"
-      )
-  }
-
-  #[cfg(not(codspeed))]
-  {
-    let _ = benchmark_id;
-    false
-  }
-}
-
 pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
-  if skip_codspeed_simulation_benchmark("rust@flag_dependency_exports") {
-    return;
-  }
-
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -401,10 +376,6 @@ pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
 }
 
 pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
-  if skip_codspeed_simulation_benchmark("rust@create_named_chunk_ids") {
-    return;
-  }
-
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "deterministic", "named");
@@ -561,10 +532,6 @@ pub(crate) fn create_module_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
 }
 
 pub(crate) fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
-  if skip_codspeed_simulation_benchmark("rust@create_chunk_hashes") {
-    return;
-  }
-
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -591,10 +558,6 @@ pub(crate) fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
 }
 
 pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
-  if skip_codspeed_simulation_benchmark("rust@runtime_requirements") {
-    return;
-  }
-
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
@@ -774,10 +737,6 @@ pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
 }
 
 pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
-  if skip_codspeed_simulation_benchmark("rust@create_module_assets") {
-    return;
-  }
-
   let fs = Arc::new(MemoryFileSystem::default());
   let random_table = load_random_table();
   let mut compiler = create_general_stage_compiler(fs.clone());
