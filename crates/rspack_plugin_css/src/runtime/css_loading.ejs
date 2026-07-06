@@ -9,7 +9,7 @@ function handleCssComposes(exports, composes) {
 	}
 }
 var loadingAttribute = "data-rspack-loading";
-var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
+var cssLoadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;

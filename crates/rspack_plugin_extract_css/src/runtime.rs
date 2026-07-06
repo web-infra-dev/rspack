@@ -142,6 +142,10 @@ impl RuntimeModule for CssLoadingRuntimeModule {
     RuntimeModuleStage::Attach
   }
 
+  fn should_isolate(&self, _runtime_mode: rspack_core::runtime_mode::RuntimeMode) -> bool {
+    true
+  }
+
   fn runtime_requirements(
     &self,
     compilation: &Compilation,

@@ -313,7 +313,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = {}{};
+      var moduleInstalledChunks = {}{};
       "#,
       match with_hmr {
         true => {
@@ -341,7 +341,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "installedChunks[chunkId] = 0;".to_string()
+        "moduleInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(
           &self.template(TemplateId::WithLoading),
@@ -352,7 +352,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
             "_match_fallback":    if matches!(has_js_matcher, BooleanMatcher::Condition(true)) {
               ""
             } else {
-              "else installedChunks[chunkId] = 0;\n"
+              "else moduleInstalledChunks[chunkId] = 0;\n"
             },
           })),
         )?
@@ -440,7 +440,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
     if with_external_install_chunk {
       source.push_str(&format!(
         r#"
-        {} = installChunk;
+        {} = moduleInstallChunk;
         "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::EXTERNAL_INSTALL_CHUNK)
       ));
@@ -452,7 +452,7 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
       source.push_str(&format!(
         r#"
         {}.j = function(chunkId) {{
-            return installedChunks[chunkId] === 0;
+            return moduleInstalledChunks[chunkId] === 0;
         }}
         "#,
         runtime_template.render_runtime_globals(&RuntimeGlobals::ON_CHUNKS_LOADED)

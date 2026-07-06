@@ -1,6 +1,6 @@
 <%- PRELOAD_CHUNK_HANDLERS %>.j = <%- basicFunction("chunkId") %> {
-  if ((!<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) || installedChunks[chunkId] === undefined) && <%- _js_matcher %>) {
-    installedChunks[chunkId] = null;
+  if ((!<%- HAS_OWN_PROPERTY %>(jsonpInstalledChunks, chunkId) || jsonpInstalledChunks[chunkId] === undefined) && <%- _js_matcher %>) {
+    jsonpInstalledChunks[chunkId] = null;
     <%- _link_preload %>
     document.head.appendChild(link);
   }

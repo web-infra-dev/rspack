@@ -1,6 +1,6 @@
 var currentUpdatedModulesList;
 var waitingUpdateResolves = {};
-function loadUpdateChunk(chunkId, updatedModulesList) {
+function jsonpLoadUpdateChunk(chunkId, updatedModulesList) {
 	currentUpdatedModulesList = updatedModulesList;
 	return new Promise(<%- basicFunction("resolve, reject") %> {
 		waitingUpdateResolves[chunkId] = resolve;

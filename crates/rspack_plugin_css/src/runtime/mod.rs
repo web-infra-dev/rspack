@@ -302,7 +302,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         // One entry initial chunk maybe is other entry dynamic chunk, so here
         // only render chunk without css. See packages/rspack/tests/runtimeCases/runtime/split-css-chunk test.
         source.push_str(&format!(
-          "var installedChunks = {};\n",
+          "var cssInstalledChunks = {};\n",
           &stringify_chunks(&initial_chunk_ids, 0)
         ));
 

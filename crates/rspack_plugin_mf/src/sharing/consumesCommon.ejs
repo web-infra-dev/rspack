@@ -519,4 +519,4 @@ var resolveHandler = function(data) {
 	if (fallback) return function() { return loadFallback.apply(null, args); }
 	return function() { return load.apply(null, args); }
 };
-var installedModules = {};
+var consumeSharedInstalledModules = {};

@@ -2,7 +2,7 @@ var currentUpdateChunks;
 var currentUpdate;
 var currentUpdateRemovedChunks;
 var currentUpdateRuntime;
-function applyHandler(options) {
+function <%- _apply_handler %>(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	currentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
@@ -209,7 +209,7 @@ function applyHandler(options) {
 	return {
 		dispose: function () {
 			currentUpdateRemovedChunks.forEach(function (chunkId) {
-				delete installedChunks[chunkId];
+				delete <%- _installed_chunks %>[chunkId];
 			});
 			currentUpdateRemovedChunks = undefined;
 
@@ -415,7 +415,7 @@ function applyHandler(options) {
 		currentUpdate = {};
 		currentUpdateRuntime = [];
 		currentUpdateRemovedChunks = [];
-		applyHandlers.push(applyHandler);
+		applyHandlers.push(<%- _apply_handler %>);
 	}
 	if (!<%- HAS_OWN_PROPERTY %>(currentUpdate, moduleId)) {
 		currentUpdate[moduleId] = <%- MODULE_FACTORIES %>[moduleId];
@@ -430,7 +430,7 @@ function applyHandler(options) {
 	applyHandlers,
 	updatedModulesList
 ) {
-	applyHandlers.push(applyHandler);
+	applyHandlers.push(<%- _apply_handler %>);
 	currentUpdateChunks = {};
 	currentUpdateRemovedChunks = removedChunks;
 	currentUpdate = removedModules.reduce(function (obj, key) {
@@ -440,10 +440,10 @@ function applyHandler(options) {
 	currentUpdateRuntime = [];
 	chunkIds.forEach(function (chunkId) {
 		if (
-			<%- HAS_OWN_PROPERTY %>(installedChunks, chunkId) &&
-			installedChunks[chunkId] !== undefined
+			<%- HAS_OWN_PROPERTY %>(<%- _installed_chunks %>, chunkId) &&
+			<%- _installed_chunks %>[chunkId] !== undefined
 		) {
-			promises.push(loadUpdateChunk(chunkId, updatedModulesList));
+			promises.push(<%- _load_update_chunk %>(chunkId, updatedModulesList));
 			currentUpdateChunks[chunkId] = true;
 		} else {
 			currentUpdateChunks[chunkId] = false;
@@ -456,7 +456,7 @@ function applyHandler(options) {
 				<%- HAS_OWN_PROPERTY %>(currentUpdateChunks, chunkId) &&
 				!currentUpdateChunks[chunkId]
 			) {
-				promises.push(loadUpdateChunk(chunkId));
+				promises.push(<%- _load_update_chunk %>(chunkId));
 				currentUpdateChunks[chunkId] = true;
 			}
 		};

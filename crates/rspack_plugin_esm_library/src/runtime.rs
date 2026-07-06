@@ -154,26 +154,26 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
     chunk_imports.sort_unstable();
 
     Ok(format!(
-      r#"var installedChunks = {{}};
-var chunkMap = {{
+      r#"var esmInstalledChunks = {{}};
+var esmChunkMap = {{
 {chunk_imports}
 }};
 {ensure_chunk_handlers}.j = function(chunkId, promises) {{
-	var installedChunkData = installedChunks[chunkId];
+	var installedChunkData = esmInstalledChunks[chunkId];
 	if(installedChunkData === 0) return;
 	if(installedChunkData) {{
 		promises.push(installedChunkData);
 		return;
 	}}
-	var loadChunk = chunkMap[chunkId];
+	var loadChunk = esmChunkMap[chunkId];
 	if(!loadChunk) return;
 	var promise = loadChunk().then(function() {{
-		installedChunks[chunkId] = 0;
+		esmInstalledChunks[chunkId] = 0;
 	}}, function(error) {{
-		delete installedChunks[chunkId];
+		delete esmInstalledChunks[chunkId];
 		throw error;
 	}});
-	installedChunks[chunkId] = promise;
+	esmInstalledChunks[chunkId] = promise;
 	promises.push(promise);
 }};
 "#,

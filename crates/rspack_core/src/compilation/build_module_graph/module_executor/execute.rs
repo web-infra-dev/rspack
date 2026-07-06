@@ -105,12 +105,13 @@ fn create_execute_runtime_source(
       &render_runtime_module_source(
         runtime_module.identifier(),
         runtime_module_source.clone(),
-        runtime_module.should_isolate(),
+        runtime_module.should_isolate(compilation.options.experiments.runtime_mode),
         compilation
           .options
           .output
           .environment
           .supports_arrow_function(),
+        false,
       )
       .source()
       .into_string_lossy(),
