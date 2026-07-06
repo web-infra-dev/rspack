@@ -357,11 +357,7 @@ fn get_source_for_module_external(
     "__rspack_external_{ident}{}",
     property_access(module_and_specifiers.iter(), 1)
   );
-  let remapping = if dependency_meta.phase.is_source() {
-    None
-  } else {
-    collect_module_external_remapping(exports_info_artifact, exports_info, runtime)
-  };
+  let remapping = collect_module_external_remapping(exports_info_artifact, exports_info, runtime);
   let create_namespace_object_name = format!("__rspack_create_module_external_namespace_{ident}");
   let wrap_namespace_getter_name = format!("__rspack_wrap_module_external_namespace_{ident}");
   let expression = if let Some(remapping) = remapping.as_ref() {
@@ -850,14 +846,13 @@ impl ExternalModule {
               }
               UsedExports::UsedNames(atoms) => {
                 if !safe_to_optimize || namespace_used_by_named_exports || force_namespace {
-                  let has_remapping = !self.dependency_meta.phase.is_source()
-                    && collect_module_external_remapping(
-                      &compilation.exports_info_artifact,
-                      exports_info,
-                      runtime,
-                    )
-                    .is_some();
-                  if has_remapping {
+                  if collect_module_external_remapping(
+                    &compilation.exports_info_artifact,
+                    exports_info,
+                    runtime,
+                  )
+                  .is_some()
+                  {
                     let (init, expression, module_external_fragments) =
                       get_source_for_module_external(
                         request,
