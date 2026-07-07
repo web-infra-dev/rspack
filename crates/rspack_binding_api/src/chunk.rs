@@ -2,7 +2,9 @@ use std::cell::RefCell;
 
 use napi::{
   Either, Env, JsString,
-  bindgen_prelude::{Array, Either3, FromNapiValue, Object, ToNapiValue},
+  bindgen_prelude::{
+    Array, Either3, FromNapiValue, Object, ToNapiValue, TypeName, ValidateNapiValue,
+  },
   sys,
 };
 use napi_derive::napi;
@@ -364,6 +366,25 @@ impl ChunkWrapper {
       let mut refs_by_compilation_id = refs.borrow_mut();
       refs_by_compilation_id.remove(&compilation_id)
     });
+  }
+}
+
+impl TypeName for ChunkWrapper {
+  fn type_name() -> &'static str {
+    "Chunk"
+  }
+
+  fn value_type() -> napi::ValueType {
+    napi::ValueType::Object
+  }
+}
+
+impl ValidateNapiValue for ChunkWrapper {
+  unsafe fn validate(
+    env: sys::napi_env,
+    napi_val: sys::napi_value,
+  ) -> napi::Result<sys::napi_value> {
+    unsafe { <&Chunk as ValidateNapiValue>::validate(env, napi_val) }
   }
 }
 
