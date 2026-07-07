@@ -104,13 +104,12 @@ impl DefineHookInput {
       lifetime_replacer.visit_pat_type_mut(arg);
     }
     exec_kind.replace_inferred_lifetimes(&mut lifetime_replacer);
-    let method_generics = lifetime_replacer
-      .replaced
-      .then(|| {
-        let lifetime = &lifetime_replacer.lifetime;
-        quote! { <#lifetime> }
-      })
-      .unwrap_or_default();
+    let method_generics = if lifetime_replacer.replaced {
+      let lifetime = &lifetime_replacer.lifetime;
+      quote! { <#lifetime> }
+    } else {
+      TokenStream::new()
+    };
 
     let is_async = exec_kind.is_async();
     let ret = exec_kind.return_type();
@@ -322,7 +321,7 @@ impl ExecKind {
         let data_arg = args
           .iter()
           .copied()
-          .find(|arg| arg.to_string() == "data")
+          .find(|arg| *arg == "data")
           .or_else(|| args.first().copied())
           .expect("waterfall hooks must have at least one argument");
         let tap_args = args.iter().map(|arg| {
