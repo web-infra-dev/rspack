@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::LazyLock};
+use std::sync::LazyLock;
 
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
@@ -10,8 +10,8 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::utils::get_output_dir;
 use crate::{
-  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  LinkPrefetchData, LinkPreloadData, RuntimePlugin, extract_runtime_globals_from_ejs,
+  get_chunk_runtime_requirements,
   runtime_module::{
     generate_javascript_hmr_runtime,
     utils::{get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks},
@@ -381,18 +381,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           })),
         )?;
 
-        let chunk_ukey = self.chunk().expect("The chunk should be attached");
         let res = hooks
           .borrow()
           .link_prefetch
-          .call(LinkPrefetchData {
-            code: link_prefetch_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
+          .call(
+            compilation,
+            LinkPrefetchData {
+              code: link_prefetch_code,
+              chunk,
             },
-          })
+          )
           .await?;
 
         let raw_source = runtime_template.render(
@@ -414,18 +412,16 @@ impl RuntimeModule for ModuleChunkLoadingRuntimeModule {
           })),
         )?;
 
-        let chunk_ukey = self.chunk().expect("The chunk should be attached");
         let res = hooks
           .borrow()
           .link_preload
-          .call(LinkPreloadData {
-            code: link_preload_code,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
+          .call(
+            compilation,
+            LinkPreloadData {
+              code: link_preload_code,
+              chunk,
             },
-          })
+          )
           .await?;
 
         let raw_source = runtime_template.render(

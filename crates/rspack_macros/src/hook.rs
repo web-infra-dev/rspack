@@ -1,11 +1,26 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::{
-  Error, Ident, LitStr, PatType, Result, Token, TypePath,
+  Error, Ident, Lifetime, LitStr, PatType, Result, Token, TypePath,
   parse::{Parse, ParseStream},
   punctuated::Punctuated,
   token::Comma,
+  visit_mut::VisitMut,
 };
+
+struct InferredLifetimeReplacer {
+  lifetime: Lifetime,
+  replaced: bool,
+}
+
+impl VisitMut for InferredLifetimeReplacer {
+  fn visit_lifetime_mut(&mut self, lifetime: &mut Lifetime) {
+    if lifetime.ident == "_" {
+      *lifetime = self.lifetime.clone();
+      self.replaced = true;
+    }
+  }
+}
 
 pub struct DefineHookInput {
   trait_name: Ident,
@@ -77,14 +92,30 @@ impl DefineHookInput {
   pub fn expand(self) -> Result<TokenStream> {
     let DefineHookInput {
       trait_name,
-      args,
-      exec_kind,
+      mut args,
+      mut exec_kind,
       tracing,
     } = self;
+    let mut lifetime_replacer = InferredLifetimeReplacer {
+      lifetime: Lifetime::new("'__rspack_hook", trait_name.span()),
+      replaced: false,
+    };
+    for arg in args.iter_mut() {
+      lifetime_replacer.visit_pat_type_mut(arg);
+    }
+    exec_kind.replace_inferred_lifetimes(&mut lifetime_replacer);
+    let method_generics = lifetime_replacer
+      .replaced
+      .then(|| {
+        let lifetime = &lifetime_replacer.lifetime;
+        quote! { <#lifetime> }
+      })
+      .unwrap_or_default();
+
     let is_async = exec_kind.is_async();
     let ret = exec_kind.return_type();
     let attr = is_async.then(|| quote! { #[::rspack_hook::__macro_helper::async_trait] });
-    let run_sig = quote! { fn run(&self, #args) -> #ret; };
+    let run_sig = quote! { fn run #method_generics (&self, #args) -> #ret; };
     let run_sig = if is_async {
       quote! { async #run_sig }
     } else {
@@ -121,13 +152,13 @@ impl DefineHookInput {
     };
     let call_fn = if is_async {
       quote! {
-        async fn call(&self, #args) -> #ret {
+        async fn call #method_generics (&self, #args) -> #ret {
           #call_body
         }
       }
     } else {
       quote! {
-        fn call(&self, #args) -> #ret {
+        fn call #method_generics (&self, #args) -> #ret {
           #call_body
         }
       }
@@ -227,6 +258,15 @@ impl ExecKind {
     }
   }
 
+  fn replace_inferred_lifetimes(&mut self, replacer: &mut InferredLifetimeReplacer) {
+    match self {
+      Self::SeriesBail { ret: Some(ret) } | Self::SeriesWaterfall { ret } => {
+        replacer.visit_type_path_mut(ret);
+      }
+      _ => {}
+    }
+  }
+
   fn additional_taps(&self) -> TokenStream {
     let call = if self.is_async() {
       quote! { additional_taps.extend(interceptor.call(self).await?); }
@@ -278,11 +318,25 @@ impl ExecKind {
         }
       }
       Self::SeriesWaterfall { .. } => {
+        let args = args.iter().copied().collect::<Vec<_>>();
+        let data_arg = args
+          .iter()
+          .copied()
+          .find(|arg| arg.to_string() == "data")
+          .or_else(|| args.first().copied())
+          .expect("waterfall hooks must have at least one argument");
+        let tap_args = args.iter().map(|arg| {
+          if arg == &data_arg {
+            quote! { data }
+          } else {
+            quote! { #arg }
+          }
+        });
         quote! {
           #additional_taps
-          let mut data = #args;
+          let mut data = #data_arg;
           for tap in all_taps {
-            data = tap.run(data).await?
+            data = tap.run(#(#tap_args),*).await?
           }
           Ok(data)
         }
