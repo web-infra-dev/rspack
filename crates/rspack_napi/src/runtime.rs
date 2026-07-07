@@ -1,38 +1,45 @@
 use std::{
   any::Any,
+  cell::RefCell,
   future::Future,
   sync::{
-    LazyLock,
+    LazyLock, RwLock,
     atomic::{AtomicUsize, Ordering},
   },
 };
 
 use napi::{
-  Env, Error, JsValue, Result, Status,
+  CleanupEnvHook, Env, Error, JsValue, Result, Status,
   bindgen_prelude::{PromiseRaw, ToNapiValue},
 };
-pub use tokio::task::{JoinError, JoinHandle};
 
-static RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(create_runtime);
+static RUNTIME: LazyLock<RwLock<Option<tokio::runtime::Runtime>>> =
+  LazyLock::new(|| RwLock::new(None));
+static ACTIVE_ENVS: AtomicUsize = AtomicUsize::new(0);
+
+thread_local! {
+  static RUNTIME_CLEANUP_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();
+}
 
 pub fn within_runtime_if_available<F: FnOnce() -> T, T>(f: F) -> T {
   f()
 }
 
-pub fn ensure_runtime() {
-  let _ = runtime();
+pub fn ensure_runtime(env: &Env) -> Result<()> {
+  start_runtime();
+  register_env_cleanup(env)
 }
 
-pub fn spawn<F>(future: F) -> JoinHandle<F::Output>
+pub fn spawn<F>(future: F)
 where
   F: Future + Send + 'static,
   F::Output: Send + 'static,
 {
-  runtime().spawn(future)
+  let _ = spawn_inner(future);
 }
 
 pub fn block_on<F: Future>(future: F) -> F::Output {
-  runtime().block_on(future)
+  with_runtime(|runtime| runtime.block_on(future))
 }
 
 pub fn promise_from_future<'env, T, F>(env: &'env Env, future: F) -> Result<PromiseRaw<'env, T>>
@@ -40,18 +47,20 @@ where
   T: 'static + Send + ToNapiValue,
   F: 'static + Send + Future<Output = Result<T>>,
 {
+  ensure_runtime(env)?;
+
   let (deferred, promise) = env.create_deferred()?;
   let promise = PromiseRaw::new(env.raw(), promise.raw());
   let deferred_for_panic = deferred.clone();
 
-  let handle = spawn(async move {
+  let handle = spawn_inner(async move {
     match future.await {
       Ok(value) => deferred.resolve(|_| Ok(value)),
       Err(error) => deferred.reject(error),
     }
   });
 
-  spawn(async move {
+  spawn_inner(async move {
     if let Err(error) = handle.await {
       deferred_for_panic.reject(join_error_to_napi_error(error));
     }
@@ -64,7 +73,7 @@ pub fn panic_to_napi_error(payload: Box<dyn Any + Send + 'static>) -> Error {
   Error::new(Status::GenericFailure, panic_message(payload))
 }
 
-fn join_error_to_napi_error(error: JoinError) -> Error {
+fn join_error_to_napi_error(error: tokio::task::JoinError) -> Error {
   if error.is_panic() {
     panic_to_napi_error(error.into_panic())
   } else {
@@ -82,8 +91,60 @@ fn panic_message(payload: Box<dyn Any + Send + 'static>) -> String {
   }
 }
 
-fn runtime() -> &'static tokio::runtime::Runtime {
-  &RUNTIME
+fn register_env_cleanup(env: &Env) -> Result<()> {
+  RUNTIME_CLEANUP_HOOK.with(|cleanup_hook| {
+    let mut cleanup_hook = cleanup_hook.borrow_mut();
+    if cleanup_hook.is_some() {
+      return Ok(());
+    }
+
+    ACTIVE_ENVS.fetch_add(1, Ordering::SeqCst);
+    match env.add_env_cleanup_hook((), |_| {
+      RUNTIME_CLEANUP_HOOK.with_borrow_mut(|cleanup_hook| *cleanup_hook = None);
+      if ACTIVE_ENVS.fetch_sub(1, Ordering::SeqCst) == 1 {
+        shutdown_runtime();
+      }
+    }) {
+      Ok(hook) => {
+        *cleanup_hook = Some(hook);
+        Ok(())
+      }
+      Err(error) => {
+        ACTIVE_ENVS.fetch_sub(1, Ordering::SeqCst);
+        Err(error)
+      }
+    }
+  })
+}
+
+fn spawn_inner<F>(future: F) -> tokio::task::JoinHandle<F::Output>
+where
+  F: Future + Send + 'static,
+  F::Output: Send + 'static,
+{
+  with_runtime(|runtime| runtime.spawn(future))
+}
+
+fn with_runtime<R>(f: impl FnOnce(&tokio::runtime::Runtime) -> R) -> R {
+  start_runtime();
+  let runtime = RUNTIME.read().expect("Read tokio runtime failed");
+  let runtime = runtime
+    .as_ref()
+    .expect("Access tokio runtime failed after initialization");
+  f(runtime)
+}
+
+fn start_runtime() {
+  let mut runtime = RUNTIME.write().expect("Write tokio runtime failed");
+  if runtime.is_none() {
+    *runtime = Some(create_runtime());
+  }
+}
+
+fn shutdown_runtime() {
+  if let Some(runtime) = RUNTIME.write().expect("Write tokio runtime failed").take() {
+    runtime.shutdown_background();
+  }
 }
 
 fn create_runtime() -> tokio::runtime::Runtime {

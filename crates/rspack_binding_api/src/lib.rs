@@ -575,7 +575,6 @@ napi::ctor::declarative::ctor! {
     }
 
     panic::install_panic_handler();
-    rspack_napi::runtime::ensure_runtime();
   }
 }
 
@@ -629,9 +628,9 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   #[cfg(target_family = "wasm")]
   {
     panic::install_panic_handler();
-    rspack_napi::runtime::ensure_runtime();
   }
 
+  rspack_napi::runtime::ensure_runtime(&env)?;
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
   build_info::export_symbols(exports, env)?;

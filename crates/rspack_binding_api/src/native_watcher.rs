@@ -1,9 +1,11 @@
 use std::{
   boxed::Box,
+  panic::AssertUnwindSafe,
   path::{Path, PathBuf},
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+use futures::FutureExt;
 use napi::bindgen_prelude::*;
 use napi_derive::*;
 use rspack_paths::ArcPath;
@@ -151,23 +153,35 @@ impl NativeWatcher {
   pub unsafe fn close<'env>(
     &mut self,
     env: &'env Env,
-    mut reference: Reference<NativeWatcher>,
+    reference: Reference<NativeWatcher>,
   ) -> napi::Result<PromiseRaw<'env, ()>> {
-    let native_watcher = unsafe {
-      std::mem::transmute::<&mut NativeWatcher, &'static mut NativeWatcher>(&mut *reference)
-    };
+    let (deferred, promise) = env.create_deferred()?;
+    let mut promise = PromiseRaw::new(env.raw(), promise.raw());
+    let shared_reference = reference.share_with(Env::from_raw(env.raw()), |native_watcher| {
+      rspack_napi::runtime::spawn(async move {
+        let result = AssertUnwindSafe(async {
+          native_watcher
+            .watcher
+            .close()
+            .await
+            .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+          native_watcher.closed = true;
+          Ok(())
+        })
+        .catch_unwind()
+        .await;
 
-    let mut promise = rspack_napi::runtime::promise_from_future(env, async move {
-      native_watcher
-        .watcher
-        .close()
-        .await
-        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
-      native_watcher.closed = true;
+        match result {
+          Ok(Ok(())) => deferred.resolve(|_| Ok(())),
+          Ok(Err(error)) => deferred.reject(error),
+          Err(payload) => deferred.reject(rspack_napi::runtime::panic_to_napi_error(payload)),
+        }
+      });
       Ok(())
     })?;
+
     promise.finally(|_env| {
-      drop(reference);
+      drop(shared_reference);
       Ok(())
     })
   }
