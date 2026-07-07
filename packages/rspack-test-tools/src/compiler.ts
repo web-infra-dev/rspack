@@ -198,6 +198,12 @@ export class TestCompilerManager implements ITestCompilerManager {
       });
     }
     this.compilerInstance!.watch(watchOptions, (error, newStats) => {
+      if (process.env.WATCH_DIAG) {
+        // [WATCH-DIAG] temporary: log every watch rebuild with its context dir
+        console.error(
+          `[WATCH-DIAG][build] ctx=${this.compilerInstance!.options.context} ts=${Date.now()} hash=${newStats?.hash}`,
+        );
+      }
       this.emitter.emit(ECompilerEvent.Build, error, newStats);
       if (__DEBUG__) {
         if (error) {
