@@ -35,7 +35,7 @@ where
   F: Future + Send + 'static,
   F::Output: Send + 'static,
 {
-  let _ = spawn_inner(future);
+  std::mem::drop(spawn_inner(future));
 }
 
 pub fn block_on<F: Future>(future: F) -> F::Output {
