@@ -15,7 +15,7 @@ use crate::{
   BoxModule, BuildContext, BuildInfo, BuildMeta, BuildResult, CodeGenerationResult, Compilation,
   ConnectionState, Context, DependenciesBlock, DependencyId, FactoryMeta, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleType,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType,
   dependencies_block::AsyncDependenciesBlockIdentifier, impl_module_meta_info,
   module_declared_side_effect_free, module_update_hash,
 };
@@ -130,15 +130,9 @@ impl Module for RawModule {
       .runtime_requirements_mut()
       .insert(self.runtime_requirements);
     if self.get_source_map_kind().enabled() {
-      let context = &code_generation_context.compilation.options.context;
-      let identifier = self.identifier.to_string();
-      let name = match identifier.split_once('|') {
-        Some((prefix, path)) => format!("{prefix}|{}", contextify(context, path)),
-        None => contextify(context, &identifier),
-      };
       cgr.add(
         SourceType::JavaScript,
-        OriginalSource::new(self.source_str.clone(), name).boxed(),
+        OriginalSource::new(self.source_str.clone(), self.identifier.to_string()).boxed(),
       );
     } else {
       cgr.add(

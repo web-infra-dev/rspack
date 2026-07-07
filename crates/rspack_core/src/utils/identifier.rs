@@ -1,11 +1,10 @@
 use std::borrow::Cow;
 
 use rspack_paths::Utf8Path;
-use rspack_sources::SourceMap;
 use rspack_util::identifier::push_absolute_to_request;
 use swc_core::ecma::utils::is_valid_prop_ident;
 
-use crate::{BoxLoader, Context};
+use crate::BoxLoader;
 
 pub fn to_module_export_name(name: &str) -> String {
   if is_valid_prop_ident(name) {
@@ -30,15 +29,6 @@ pub fn contextify(context: impl AsRef<Utf8Path>, request: &str) -> String {
 
   push_absolute_to_request(context, &request[last..], &mut result);
   result
-}
-
-pub fn contextify_source_map(context: &Context, source_map: &mut SourceMap) {
-  let sources = source_map
-    .sources()
-    .iter()
-    .map(|source| contextify(context, source))
-    .collect::<Vec<_>>();
-  source_map.set_sources(sources);
 }
 
 #[inline]
@@ -228,33 +218,5 @@ fn test_contextify_preserves_empty_segments_and_regex_segments() {
   assert_eq!(
     contextify("/workspace/app", "!!/regexp/!/workspace/app/src/index.js"),
     "!!/regexp/!./src/index.js"
-  );
-}
-
-#[test]
-fn test_contextify_source_map_is_build_root_relative() {
-  // The same logical build under two different sandbox roots must produce
-  // identical (context-relative) source-map sources.
-  let relativized = |root: &str| {
-    let mut map = SourceMap::new(
-      "AAAA",
-      vec![format!("{root}/app/src/index.ts").into()],
-      Vec::new(),
-      Vec::new(),
-    );
-    contextify_source_map(&Context::from(format!("{root}/app")), &mut map);
-    map
-      .sources()
-      .iter()
-      .map(|s| s.to_string())
-      .collect::<Vec<_>>()
-  };
-  assert_eq!(
-    relativized("/mnt/engflow/worker/work/0/exec"),
-    relativized("/mnt/engflow/worker/work/7/exec"),
-  );
-  assert_eq!(
-    relativized("/mnt/engflow/worker/work/0/exec"),
-    ["./src/index.ts"]
   );
 }

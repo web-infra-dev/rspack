@@ -442,21 +442,18 @@ mod tests {
   };
 
   use super::*;
-  use crate::{Context, contextify_source_map};
 
-  // Identical rendered JS; the source map's source lives under a different
-  // sandbox root each build. After relativizing to the build root (as
-  // `NormalModule::create_source` does), the hash must be identical.
+  // Identical rendered JS; the source map's `sources` live under a different
+  // sandbox root each build. Because the content hash excludes source-map
+  // `sources` (file paths), the codegen hash must be identical across sandboxes.
   fn js_with_sandbox_path(sandbox: &str) -> BoxSource {
-    let mut source_map = SourceMap::from_json(format!(
-      r#"{{"version":3,"sources":["{sandbox}/app/src/mod.ts"],"names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
-    ))
-    .unwrap();
-    contextify_source_map(&Context::from(format!("{sandbox}/app")), &mut source_map);
     SourceMapSource::new(SourceMapSourceOptions {
       value: "console.log(1);\n".to_string(),
       name: "mod.js".to_string(),
-      source_map,
+      source_map: SourceMap::from_json(format!(
+        r#"{{"version":3,"sources":["{sandbox}/app/src/mod.ts"],"names":[],"sourcesContent":["console.log(1)"],"mappings":"AAAA"}}"#
+      ))
+      .unwrap(),
       original_source: None,
       inner_source_map: None,
       remove_original_source: false,

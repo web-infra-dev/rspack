@@ -34,7 +34,6 @@ use crate::{
   ModuleLayer, ModuleType, OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult,
   ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions, RspackLoaderRunnerPlugin,
   RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, contextify,
-  contextify_source_map,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -411,7 +410,6 @@ impl Module for NormalModule {
     let compiler_id = build_context.compiler_id;
     let compilation_id = build_context.compilation_id;
     let compiler_options = build_context.compiler_options.clone();
-    let context = compiler_options.context.clone();
     let resolver_factory = build_context.resolver_factory.clone();
     let fs = build_context.fs.clone();
     let (mut loader_result, err) = run_loaders(
@@ -505,7 +503,6 @@ impl Module for NormalModule {
     let source = self.create_source(
       content,
       loader_result.source_map.map(|source_map| *source_map),
-      &context,
     )?;
 
     self.build_info.cacheable = loader_result.cacheable;
@@ -881,16 +878,14 @@ impl NormalModule {
     &self,
     content: Content,
     source_map: Option<SourceMap<'static>>,
-    context: &Context,
   ) -> Result<BoxSource> {
     if content.is_buffer() {
       return Ok(RawBufferSource::from(content.into_bytes()).boxed());
     }
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled()
-      && let Some(mut source_map) = source_map
+      && let Some(source_map) = source_map
     {
-      contextify_source_map(context, &mut source_map);
       let content = content.into_string_lossy();
       return Ok(
         SourceMapSource::new(WithoutOriginalOptions {
@@ -904,7 +899,7 @@ impl NormalModule {
     if source_map_kind.enabled()
       && let Content::String(content) = content
     {
-      return Ok(OriginalSource::new(content, contextify(context, self.request())).boxed());
+      return Ok(OriginalSource::new(content, self.request()).boxed());
     }
     Ok(RawStringSource::from(content.into_string_lossy()).boxed())
   }
