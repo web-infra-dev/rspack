@@ -62,7 +62,7 @@ pub trait Cache: Debug + Send + Sync {
 
   // MODULES_HASHES hooks
   async fn before_modules_hashes(&mut self, _compilation: &mut Compilation) {}
-  async fn after_modules_hashes(&self, _compilation: &Compilation) {}
+  async fn after_modules_hashes(&mut self, _compilation: &Compilation) {}
 
   // MODULES_CODEGEN hooks
   async fn before_modules_codegen(&mut self, _compilation: &mut Compilation) {}

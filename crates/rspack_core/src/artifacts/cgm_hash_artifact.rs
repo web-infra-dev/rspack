@@ -14,9 +14,25 @@ impl ArtifactExt for CgmHashArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::MODULES_HASHES;
 }
 
+impl FromIterator<(ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)> for CgmHashArtifact {
+  fn from_iter<T: IntoIterator<Item = (ModuleIdentifier, RuntimeSpecMap<RspackHashDigest>)>>(
+    iter: T,
+  ) -> Self {
+    Self {
+      module_to_hashes: IdentifierMap::from_iter(iter),
+    }
+  }
+}
+
 impl CgmHashArtifact {
   pub fn is_empty(&self) -> bool {
     self.module_to_hashes.is_empty()
+  }
+
+  pub fn iter(
+    &self,
+  ) -> impl Iterator<Item = (&ModuleIdentifier, &RuntimeSpecMap<RspackHashDigest>)> {
+    self.module_to_hashes.iter()
   }
 
   pub fn get_runtime_map(

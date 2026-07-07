@@ -2,6 +2,7 @@ pub mod devtool;
 pub mod make;
 pub mod meta;
 pub mod minimize;
+pub mod module_hashes;
 
 use std::future::Future;
 
@@ -11,6 +12,7 @@ pub use meta::MetaOccasion;
 pub use minimize::{
   CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCacheArtifact,
 };
+pub use module_hashes::ModuleHashesOccasion;
 use rspack_error::Result;
 
 use super::storage::Storage;
