@@ -5,13 +5,12 @@
 // `expect(WATCH_STEP).toEqual("0")` while WATCH_STEP is already "1" -> the
 // runner executes a stale (previous-step) bundle.
 //
-// Hypothesis: createWatchStepProcessor synchronizes step transitions with
-// `once(Build)` + a fixed 100ms sleep. Under event-loop pressure a Build event
-// that does NOT correspond to this step's copyDiff resolves the step's task, so
-// the runner runs a stale bundle. Iteration 1 (no pressure) showed a clean
-// ~1200ms single-Build path with STALE=false, so we now inject event-loop
-// freezes (the documented behavior of heavy sibling WASM tests) to recreate the
-// real contention.
+// Findings so far (instrumented CI runs): the harness step-sync is robust -
+// every case emits exactly 2 Build events (one per step), always with correct
+// content (STALE=false), even under event-loop freeze. So the leaked-Build
+// hypothesis is falsified. This iteration bumps sample volume (N) and uses a
+// NON-UNIFORM freeze to create differential timer misalignment instead of a
+// uniform time shift.
 //
 // Only runs under WASM; native jobs register nothing.
 if (process.env.WASM) {
@@ -20,22 +19,26 @@ if (process.env.WASM) {
 	const path = require("path");
 	const { createWatchCase } = require("@rspack/test-tools");
 
-	// Simulate the ~1s event-loop freezes that heavy sibling WASM tests cause.
+	// Non-uniform event-loop freezes: cycle through varied block durations so
+	// watchpack poll/aggregate timers and the step-sync setTimeout drift apart.
 	if (process.env.WATCH_REPRO_FREEZE !== "0") {
-		const blockMs = Number(process.env.WATCH_REPRO_FREEZE_MS || 400);
-		const gapMs = Number(process.env.WATCH_REPRO_FREEZE_GAP || 500);
-		const timer = setInterval(() => {
-			const end = Date.now() + blockMs;
+		const blocks = [150, 600, 350, 800, 250, 500];
+		let k = 0;
+		const tick = () => {
+			const end = Date.now() + blocks[k++ % blocks.length];
 			while (Date.now() < end) {}
-		}, blockMs + gapMs);
-		if (timer.unref) timer.unref();
+			const t = setTimeout(tick, 180);
+			if (t.unref) t.unref();
+		};
+		const t0 = setTimeout(tick, 180);
+		if (t0.unref) t0.unref();
 	}
 
 	const src = path.join(__dirname, "watchCases", "side-effects", "issue-7400");
-	const count = Number(process.env.WATCH_REPRO_N || 100);
+	const count = Number(process.env.WATCH_REPRO_N || 500);
 
 	for (let i = 0; i < count; i++) {
-		const name = `side-effects/issue-7400-repro-${String(i).padStart(3, "0")}`;
+		const name = `side-effects/issue-7400-repro-${String(i).padStart(4, "0")}`;
 		const dist = path.resolve(__dirname, "./js/watch-repro", name);
 		const temp = path.resolve(__dirname, "./js/temp-repro", name);
 		createWatchCase(name, src, dist, temp);
