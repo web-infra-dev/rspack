@@ -5346,9 +5346,9 @@ dependencies = [
 
 [[package]]
 name = "rspack_resolver"
-version = "0.9.3"
+version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4e6100e7101c2c83cb129f76a19c3d44753966cd03e29b52031d05af440aa7e7"
+checksum = "adde60ec77d32748df78a55b3ac103d98c1f08c038cc0b3df8020243bda46117"
 dependencies = [
  "arc-swap",
  "async-trait",
