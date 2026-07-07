@@ -1,7 +1,7 @@
 pub mod internal;
 pub mod rollback;
 
-use std::hash::BuildHasherDefault;
+use std::{cell::UnsafeCell, hash::BuildHasherDefault, sync::Arc};
 
 use internal::try_get_module_graph_module_mut_by_identifier;
 use rayon::prelude::*;
@@ -26,6 +26,42 @@ use crate::{
   BoxDependency, BoxModule, DependencyCondition, DependencyId, ExportsInfoArtifact,
   ModuleIdentifier,
 };
+
+#[derive(Clone)]
+pub(crate) struct SharedModule(Arc<UnsafeCell<BoxModule>>);
+
+impl SharedModule {
+  fn new(module: BoxModule) -> Self {
+    Self(Arc::new(UnsafeCell::new(module)))
+  }
+
+  #[inline]
+  fn as_module(&self) -> &BoxModule {
+    // SAFETY: The UnsafeCell only wraps module storage inside ModuleGraph. Shared
+    // immutable access matches the public ModuleGraph read APIs.
+    unsafe { &*self.0.get() }
+  }
+
+  #[inline]
+  #[allow(clippy::mut_from_ref)]
+  fn as_module_mut(&self) -> &mut BoxModule {
+    // SAFETY: Mutable module access is only exposed through ModuleGraph methods
+    // that require &mut ModuleGraph. Arc is used to make rollback value movement
+    // cheap; callers must keep module mutation serialized through ModuleGraph.
+    unsafe { &mut *self.0.get() }
+  }
+}
+
+impl std::fmt::Debug for SharedModule {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    self.as_module().fmt(f)
+  }
+}
+
+// SAFETY: Module implements Send + Sync, and ModuleGraph preserves exclusive
+// mutable access by requiring &mut ModuleGraph for mutation entry points.
+unsafe impl Send for SharedModule {}
+unsafe impl Sync for SharedModule {}
 
 // TODO Here request can be used Atom
 pub type ImportVarMap = HashMap<(Option<ModuleIdentifier>, bool), String /* import_var */>;
@@ -109,7 +145,7 @@ pub(crate) struct ModuleGraphData {
   /****** only modified during Make Phase */
   /// Module indexed by `ModuleIdentifier`.
   pub(crate) modules:
-    rollback::RollbackMap<ModuleIdentifier, BoxModule, BuildHasherDefault<IdentifierHasher>>,
+    rollback::RollbackMap<ModuleIdentifier, SharedModule, BuildHasherDefault<IdentifierHasher>>,
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<BoxDependency>,
@@ -191,14 +227,22 @@ impl ModuleGraph {
 
   #[inline]
   pub fn modules(&self) -> impl Iterator<Item = (&ModuleIdentifier, &BoxModule)> {
-    self.inner.modules.iter()
+    self
+      .inner
+      .modules
+      .iter()
+      .map(|(identifier, module)| (identifier, module.as_module()))
   }
 
   #[inline]
   pub fn modules_par(
     &self,
   ) -> impl rayon::prelude::ParallelIterator<Item = (&ModuleIdentifier, &BoxModule)> {
-    self.inner.modules.par_iter()
+    self
+      .inner
+      .modules
+      .par_iter()
+      .map(|(identifier, module)| (identifier, module.as_module()))
   }
 
   #[inline]
@@ -308,9 +352,9 @@ impl ModuleGraph {
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
       if let Some(m_id) = original_module_identifier
-        && let Some(module) = self.inner.modules.get_mut(&m_id)
+        && let Some(module) = self.inner.modules.get(&m_id)
       {
-        module.remove_dependency_id(*dep_id);
+        module.as_module_mut().remove_dependency_id(*dep_id);
       }
       if let Some(b_id) = parent_block
         && let Some(block) = self.inner.blocks.get_mut(&b_id)
@@ -547,7 +591,10 @@ impl ModuleGraph {
   }
 
   pub fn add_module(&mut self, module: BoxModule) {
-    self.inner.modules.insert(module.identifier(), module);
+    self
+      .inner
+      .modules
+      .insert(module.identifier(), SharedModule::new(module));
   }
 
   pub fn add_block(&mut self, block: Box<AsyncDependenciesBlock>) {
@@ -679,6 +726,7 @@ impl ModuleGraph {
     self
       .module_identifier_by_dependency_id(dep_id)
       .and_then(|module_id| self.inner.modules.get(module_id))
+      .map(SharedModule::as_module)
   }
 
   fn add_connection(
@@ -755,14 +803,22 @@ impl ModuleGraph {
 
   /// Uniquely identify a module by its identifier and return the aliased reference
   pub fn module_by_identifier(&self, identifier: &ModuleIdentifier) -> Option<&BoxModule> {
-    self.inner.modules.get(identifier)
+    self
+      .inner
+      .modules
+      .get(identifier)
+      .map(SharedModule::as_module)
   }
 
   pub fn module_by_identifier_mut(
     &mut self,
     identifier: &ModuleIdentifier,
   ) -> Option<&mut BoxModule> {
-    self.inner.modules.get_mut(identifier)
+    self
+      .inner
+      .modules
+      .get(identifier)
+      .map(SharedModule::as_module_mut)
   }
 
   /// Uniquely identify a module graph module by its module's identifier and return the aliased reference
