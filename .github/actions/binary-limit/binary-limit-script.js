@@ -175,7 +175,13 @@ async function fetchDataBySha(sha) {
   const dataUrl = `${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
   console.log('fetching', dataUrl, '...');
   const res = await fetch(dataUrl);
-  if (!res.ok) return null;
+  // 404 means the size data hasn't been published for this commit yet; any other
+  // failure is transient/unexpected and should surface its real cause instead of
+  // being reported as "data not generated".
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${dataUrl}: ${res.status} ${res.statusText}`);
+  }
   return res.json();
 }
 
