@@ -180,7 +180,9 @@ async function fetchDataBySha(sha) {
   // being reported as "data not generated".
   if (res.status === 404) return null;
   if (!res.ok) {
-    throw new Error(`Failed to fetch ${dataUrl}: ${res.status} ${res.statusText}`);
+    throw new Error(
+      `Failed to fetch ${dataUrl}: ${res.status} ${res.statusText}`,
+    );
   }
   return res.json();
 }
