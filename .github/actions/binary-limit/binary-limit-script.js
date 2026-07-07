@@ -10,10 +10,8 @@ module.exports = async function action({ github, context, limit }) {
   try {
     ({ baseCommit, baseSize } = await findBaseCommit(github, context));
   } catch (e) {
-    // Data should exist for this base commit but hasn't been generated yet.
-    // Still leave a comment (with a re-run link) before failing the job.
     if (e instanceof PendingBinaryDataError) {
-      await commentBestEffort(
+      await tryComment(
         github,
         context,
         pendingBinarySizeComment(context, e.baseCommit),
@@ -29,7 +27,7 @@ module.exports = async function action({ github, context, limit }) {
   console.log(`Base commit size: ${baseSize}`);
   console.log(`Head commit size: ${headSize}`);
 
-  await commentBestEffort(
+  await tryComment(
     github,
     context,
     compareBinarySize(headSize, baseSize, context, baseCommit),
@@ -46,8 +44,6 @@ module.exports = async function action({ github, context, limit }) {
 const PER_PAGE = 30;
 const MAX_PAGES = 4;
 
-// Thrown when a base commit triggered a linux binding build but its binary size
-// data has not been published yet, so a re-run is needed rather than a comparison.
 class PendingBinaryDataError extends Error {
   constructor(baseCommit) {
     super(
@@ -59,20 +55,11 @@ class PendingBinaryDataError extends Error {
   }
 }
 
-// The baseline is the base branch commit that the PR is merged onto at run time
-// (`pr.base.sha`), not the fork point. For `pull_request` events CI builds the
-// binding from the merge ref (PR head merged with the base tip), so the measured
-// head size already includes the base branch's latest state and the correct
-// baseline is that base commit. Walk main history from there toward the parent and:
-//
-//   - Skip doc-only commits: they don't trigger the ecosystem-benchmark build, so
-//     they never have binary size data. The build (and thus data) is produced only
-//     when a commit changes a non-doc file, mirroring that workflow's trigger
-//     `paths-ignore: ['**/*.md', 'website/**']`.
-//   - The first commit that DID trigger a build is decisive. If its size data is
-//     published, use it. If not, the data simply hasn't been generated yet, so fail
-//     loudly to force a re-run instead of silently comparing against an older
-//     baseline that would misattribute intermediate changes to this PR.
+// Baseline is `pr.base.sha` (the commit merged into the PR at run time), not the
+// fork point: PR CI builds from the merge ref, so head size already includes the
+// base tip. Walk main history skipping doc-only commits (they build no binding);
+// the first build-triggering commit is decisive — use its size data, or fail loudly
+// to force a re-run when it isn't published yet.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
   const pr = context.payload.pull_request;
@@ -114,9 +101,8 @@ async function findBaseCommit(github, context) {
   );
 }
 
-// A linux binding build (and thus binary size data) is produced only for a commit
-// that changes at least one non-doc file, mirroring the ecosystem-benchmark
-// workflow trigger `paths-ignore: ['**/*.md', 'website/**']`.
+// A binding is built (and size data produced) only for commits touching non-doc
+// files, mirroring ecosystem-benchmark's `paths-ignore: ['**/*.md', 'website/**']`.
 async function triggersBinaryBuild(github, owner, repo, sha) {
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -132,7 +118,7 @@ function isDocFile(filename) {
   return filename.endsWith('.md') || filename.startsWith('website/');
 }
 
-async function commentBestEffort(github, context, comment) {
+async function tryComment(github, context, comment) {
   try {
     await commentToPullRequest(github, context, comment);
   } catch (e) {
@@ -175,9 +161,7 @@ async function fetchDataBySha(sha) {
   const dataUrl = `${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
   console.log('fetching', dataUrl, '...');
   const res = await fetch(dataUrl);
-  // 404 means the size data hasn't been published for this commit yet; any other
-  // failure is transient/unexpected and should surface its real cause instead of
-  // being reported as "data not generated".
+  // 404 = data not published yet; other failures should surface their real cause.
   if (res.status === 404) return null;
   if (!res.ok) {
     throw new Error(
