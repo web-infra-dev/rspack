@@ -2,7 +2,7 @@ var currentUpdateChunks;
 var currentUpdate;
 var currentUpdateRemovedChunks;
 var currentUpdateRuntime;
-function <%- _apply_handler %>(options) {
+function hotApplyHandler(options) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	currentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
@@ -415,7 +415,7 @@ function <%- _apply_handler %>(options) {
 		currentUpdate = {};
 		currentUpdateRuntime = [];
 		currentUpdateRemovedChunks = [];
-		applyHandlers.push(<%- _apply_handler %>);
+		applyHandlers.push(hotApplyHandler);
 	}
 	if (!<%- HAS_OWN_PROPERTY %>(currentUpdate, moduleId)) {
 		currentUpdate[moduleId] = <%- MODULE_FACTORIES %>[moduleId];
@@ -430,7 +430,7 @@ function <%- _apply_handler %>(options) {
 	applyHandlers,
 	updatedModulesList
 ) {
-	applyHandlers.push(<%- _apply_handler %>);
+	applyHandlers.push(hotApplyHandler);
 	currentUpdateChunks = {};
 	currentUpdateRemovedChunks = removedChunks;
 	currentUpdate = removedModules.reduce(function (obj, key) {

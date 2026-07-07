@@ -251,14 +251,12 @@ pub fn generate_javascript_hmr_runtime(
   method: &str,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
-  let hmr_name_prefix = method;
   runtime_template.render(
     key,
     Some(serde_json::json!({
       "_loading_method": method,
-      "_installed_chunks": format!("{hmr_name_prefix}InstalledChunks"),
-      "_load_update_chunk": format!("{hmr_name_prefix}LoadUpdateChunk"),
-      "_apply_handler": format!("{hmr_name_prefix}ApplyHandler"),
+      "_installed_chunks": format!("{method}InstalledChunks"),
+      "_load_update_chunk": format!("{method}LoadUpdateChunk"),
       "_is_hot_test": is_hot_test(),
     })),
   )
