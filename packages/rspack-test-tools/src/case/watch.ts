@@ -287,8 +287,15 @@ export function createWatchStepProcessor(
   };
   processor.build = async (context: ITestContext) => {
     const compiler = context.getCompiler();
+    // [WATCH-DIAG] temporary instrumentation, guarded by WATCH_DIAG env
+    const DIAG = !!process.env.WATCH_DIAG;
+    const buildEvents: number[] = [];
+    const onBuild = () => buildEvents.push(Date.now());
+    if (DIAG) compiler.getEmitter().on(ECompilerEvent.Build, onBuild);
+    let resolveTs = 0;
     const task = new Promise((resolve, reject) => {
       compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
+        resolveTs = Date.now();
         if (e) return reject(e);
         resolve(stats);
       });
@@ -304,8 +311,27 @@ export function createWatchStepProcessor(
     // TODO: This is a workaround, we can remove it when notify support windows better.
     const timeout = nativeWatcher && process.platform === 'win32' ? 400 : 100;
     await new Promise((resolve) => setTimeout(resolve, timeout));
+    const copyTs = Date.now();
     copyDiff(path.join(context.getSource(), step), tempDir, false);
     await task;
+    if (DIAG) {
+      compiler.getEmitter().removeListener(ECompilerEvent.Build, onBuild);
+      let bundleStep = '?';
+      try {
+        const bundle = fs.readFileSync(
+          path.join(context.getDist(), 'bundle.js'),
+          'utf-8',
+        );
+        const m = bundle.match(/toEqual\("(\d)"\)/);
+        if (m) bundleStep = m[1];
+      } catch {}
+      console.error(
+        `[WATCH-DIAG] name=${name} step=${step} sleep=${timeout} ` +
+          `resolvedBeforeCopy=${resolveTs < copyTs} resolveRelCopy=${resolveTs - copyTs}ms ` +
+          `buildEventsRelCopy=[${buildEvents.map((t) => t - copyTs).join(',')}] ` +
+          `bundleStep=${bundleStep} STALE=${bundleStep !== '?' && bundleStep !== step}`,
+      );
+    }
   };
   return processor;
 }
