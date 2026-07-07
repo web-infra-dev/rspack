@@ -75,20 +75,23 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     Ok(format!(
-      r#"{ensure_chunk_handlers} = {{}};
-{ensure_chunk} = function(chunkId, fetchPriority) {{
+      r#"{ensure_chunk_handlers_definition} = {{}};
+{ensure_chunk_definition} = function(chunkId, fetchPriority) {{
 	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
 		{ensure_chunk_handlers}[key](chunkId, promises, fetchPriority);
 		return promises;
 	}}, []));
 }};
 "#,
-      ensure_chunk = context
+      ensure_chunk_definition = context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        .render_runtime_global_definition(&RuntimeGlobals::ENSURE_CHUNK),
       ensure_chunk_handlers = context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+      ensure_chunk_handlers_definition = context
+        .runtime_template
+        .render_runtime_global_definition(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     ))
   }
   fn runtime_requirements(

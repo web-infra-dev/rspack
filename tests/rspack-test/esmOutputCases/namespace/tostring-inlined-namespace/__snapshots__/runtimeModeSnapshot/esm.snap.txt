@@ -1,0 +1,69 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./foo.js
+var foo_namespaceObject = {};
+__rspack_context.N(foo_namespaceObject);
+__rspack_context.d(foo_namespaceObject, { 
+  bar: () => (bar) });
+
+
+// ./foo.js
+const bar = 42;
+
+// ./index.js
+
+
+/* export default */ const index = ({
+  tag: foo_namespaceObject[Symbol.toStringTag],
+  text: Object.prototype.toString.call(foo_namespaceObject),
+  bar: bar,
+});
+
+it("should preserve module toStringTag on local namespace objects", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.default).toEqual({
+    tag: "Module",
+    text: "[object Module]",
+    bar: 42,
+  });
+});
+
+export default index;
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```

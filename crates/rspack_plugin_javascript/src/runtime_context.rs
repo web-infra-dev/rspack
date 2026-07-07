@@ -2,8 +2,9 @@ use std::sync::LazyLock;
 
 use rspack_core::{
   ChunkCodeTemplate, ChunkKind, ChunkUkey, Compilation, RuntimeGlobals, RuntimeProxyMetadata,
-  RuntimeVariable, SourceType, property_access,
+  RuntimeVariable, SourceType, property_access, render_lexical_declarations,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  runtime_module_owned_define_fields,
 };
 use rspack_error::Result;
 
@@ -24,6 +25,35 @@ static LIVE_BINDING_CONTEXT_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(||
     | RuntimeGlobals::INITIALIZE_SHARING
     | RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE
 });
+
+fn filter_unused_module_runtime_bindings(
+  mut fields: RuntimeGlobals,
+  tree_runtime_requirements: RuntimeGlobals,
+  bootstrap_runtime_requirements: RuntimeGlobals,
+) -> RuntimeGlobals {
+  fields = fields.renderable_require_scope();
+
+  let use_require = bootstrap_runtime_requirements.intersects(
+    RuntimeGlobals::REQUIRE | RuntimeGlobals::INTERCEPT_MODULE_EXECUTION | RuntimeGlobals::MODULE,
+  );
+  let module_cache = tree_runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
+  let render_module_cache =
+    use_require || bootstrap_runtime_requirements.contains(RuntimeGlobals::MODULE_CACHE);
+  if !module_cache || !render_module_cache {
+    fields.remove(RuntimeGlobals::MODULE_CACHE);
+  }
+
+  let module_factories =
+    RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY;
+  let uses_module_factories = tree_runtime_requirements.intersects(module_factories);
+  let renders_module_factories =
+    bootstrap_runtime_requirements.intersects(module_factories | RuntimeGlobals::REQUIRE);
+  if !uses_module_factories || !renders_module_factories {
+    fields.remove(module_factories);
+  }
+
+  fields
+}
 
 pub fn render_runtime_context_declaration(runtime_template: &ChunkCodeTemplate) -> String {
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
@@ -113,9 +143,20 @@ pub async fn render_runtime_chunk_runtime_modules(
     }
   };
   let mut wrapped_sources = ConcatSource::default();
-  wrapped_sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_runtime_global)),
-  ));
+  let bootstrap_runtime_requirements = compilation
+    .cgc_runtime_requirements_artifact
+    .get(chunk_ukey)
+    .copied()
+    .unwrap_or_default();
+  let lexical_fields = filter_unused_module_runtime_bindings(
+    metadata.lexical_fields() | metadata.context_setter_fields(),
+    metadata.tree_runtime_requirements,
+    bootstrap_runtime_requirements,
+  );
+  wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
+    lexical_fields.difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_runtime_global),
+  )));
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -215,9 +256,11 @@ pub async fn render_chunk_runtime_modules(
       })
   };
   let render_runtime_global = |runtime_global: RuntimeGlobals| render_context_field(runtime_global);
-  sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_runtime_global)),
-  ));
+  sources.add(RawStringSource::from(render_lexical_declarations(
+    (metadata.lexical_fields() | metadata.context_setter_fields())
+      .difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_runtime_global),
+  )));
 
   for (runtime_module_source, generated_requirements, context_requirements, _) in
     runtime_module_sources
@@ -314,9 +357,11 @@ pub async fn render_hot_update_chunk_runtime_modules(
         }
       })
   };
-  sources.add(RawStringSource::from(
-    metadata.render_lexical_declarations(Some(&render_context_field)),
-  ));
+  sources.add(RawStringSource::from(render_lexical_declarations(
+    (metadata.lexical_fields() | metadata.context_setter_fields())
+      .difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
+    Some(&render_context_field),
+  )));
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -420,9 +465,6 @@ fn runtime_context_current_chunk_metadata(
     metadata
       .runtime_module_requirements
       .insert(module_runtime_requirements.dependencies);
-    metadata
-      .context_setter_fields
-      .insert(module_runtime_requirements.define);
     metadata
       .force_context_fields
       .insert(module_runtime_requirements.force_context);

@@ -23,6 +23,7 @@ use crate::{
   render_runtime_module_source,
   runtime_globals::{RuntimeVariable, runtime_variable_name},
   runtime_mode::RuntimeMode,
+  runtime_module_owned_define_fields,
   utils::{
     property_access,
     task_loop::{Task, TaskResult, TaskType},
@@ -54,7 +55,8 @@ fn create_execute_runtime_source(
   let metadata = compilation
     .runtime_proxy_metadata_artifact
     .get(chunk_ukey)?;
-  let lexical_fields = metadata.lexical_fields();
+  let module_owned_fields = runtime_module_owned_define_fields(compilation, chunk_ukey);
+  let lexical_fields = metadata.lexical_fields().difference(module_owned_fields);
   let context_fields = metadata.context_fields();
   let execute_fields = lexical_fields | context_fields;
   if execute_fields.is_empty() && runtime_modules.is_empty() {

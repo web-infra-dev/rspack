@@ -175,10 +175,11 @@ impl RuntimeTemplate {
     );
 
     let runtime_globals_cloned = runtime_globals.clone();
+    let runtime_mode_cloned = runtime_mode;
     dojang.functions.insert(
       "define".into(),
       FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
-        dojang_define(runtime_global, &runtime_globals_cloned)
+        dojang_define(runtime_global, &runtime_globals_cloned, runtime_mode_cloned)
       })),
     );
 
@@ -516,8 +517,18 @@ fn dojang_array_destructure(
   }
 }
 
-fn dojang_define(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+fn dojang_define(
+  runtime_global: Operand,
+  runtime_globals: &RuntimeGlobalsRenderMap,
+  runtime_mode: RuntimeMode,
+) -> Operand {
   // `define(...)` marks a runtime global assignment; the EJS extractor records it in `define`.
+  if runtime_mode == RuntimeMode::Rspack {
+    return Operand::Value(Value::from(format!(
+      "var {}",
+      to_cow(&runtime_global, runtime_globals)
+    )));
+  }
   Operand::Value(Value::from(
     to_cow(&runtime_global, runtime_globals).into_owned(),
   ))
@@ -1681,6 +1692,15 @@ impl<'a> RuntimeCodeTemplate<'a> {
         uses_runtime_context,
         uses_lexical_runtime_globals,
       },
+    }
+  }
+
+  pub fn render_runtime_global_definition(&self, runtime_globals: &RuntimeGlobals) -> String {
+    let runtime_global = self.inner.runtime_globals.render(runtime_globals);
+    if self.inner.uses_lexical_runtime_globals {
+      format!("var {runtime_global}")
+    } else {
+      runtime_global
     }
   }
 }

@@ -1,0 +1,168 @@
+```mjs title=hoisted.mjs
+import { once, EventEmitter } from "./node_events-node_events.mjs";
+
+// ./src/hoisted.js
+
+
+const EventEmitterHoisted = EventEmitter;
+const onceHoisted = once;
+
+export { EventEmitterHoisted, onceHoisted };
+
+```
+
+```mjs title=index.mjs
+import { __rspack_context } from "./runtime.mjs";
+import "./wrapped.mjs";
+import { EventEmitterHoisted, onceHoisted } from "./hoisted.mjs";
+
+// ./src/index.js
+const wrapped_0 = __rspack_context.r("./src/wrapped.js");
+
+
+
+it('should keep module external exports correct for hoisted named imports and wrapped remapping', async () => {
+  const events = await import(/* webpackIgnore: true */ 'node:events');
+
+  expect(EventEmitterHoisted).toBe(events.EventEmitter);
+  expect(onceHoisted).toBe(events.once);
+
+  expect(wrapped_0.a).toBe(events.EventEmitter);
+  expect(wrapped_0.b).toBe(events.once);
+
+  const hoisted = await import(/* webpackIgnore: true */ './hoisted.mjs');
+  const wrapped = await import(/* webpackIgnore: true */ './wrapped.mjs');
+
+  expect(hoisted.EventEmitterHoisted).toBe(events.EventEmitter);
+  expect(hoisted.onceHoisted).toBe(events.once);
+
+  expect(wrapped.EventEmitter).toBe(events.EventEmitter);
+  expect(wrapped.once).toBe(events.once);
+});
+
+export {};
+
+```
+
+```mjs title=node_events-node_events.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+import * as __rspack_external_node_events_3969b2b3 from "node:events";
+__rspack_context.m.add({
+"node:events?df85"
+/*!******************************!*\
+  !*** external "node:events" ***!
+  \******************************/
+(module, __unused_rspack_exports, __rspack_context) {
+var __rspack_create_module_external_namespace_node_events_3969b2b3 = (y) => {
+var x = {};
+__rspack_context.d(x, y);
+return x;
+};
+var __rspack_wrap_module_external_namespace_node_events_3969b2b3 = (x) => (() => (x));
+module.exports = __rspack_create_module_external_namespace_node_events_3969b2b3({["a"]: () => (__rspack_external_node_events_3969b2b3.EventEmitter), ["b"]: () => (__rspack_external_node_events_3969b2b3.once)});
+
+},
+});
+// node:events?41dc
+
+export { EventEmitter, once } from "node:events";
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+id: moduleId,
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/esm_module_decorator
+var esmModuleDecorator = (module) => {
+  module = Object.create(module);
+  if (!module.children) module.children = [];
+  Object.defineProperty(module, 'exports', {
+      enumerable: true,
+      set: () => {
+          throw new Error('ES Modules may not assign module.exports or exports.*, Use ESM export syntax, instead: ' + module.id);
+      }
+  });
+  return module;
+};;
+__rspack_context.hmd = esmModuleDecorator;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+export { __rspack_context };
+
+```
+
+```mjs title=wrapped.mjs
+import { __rspack_context } from "./runtime.mjs";
+import "./node_events-node_events.mjs";
+
+__rspack_context.m.add({
+"./src/wrapped.js"
+/*!************************!*\
+  !*** ./src/wrapped.js ***!
+  \************************/
+(module, __rspack_exports, __rspack_context) {
+/* import */ var node_events__rspack_import_0 = __rspack_context.r(/*! node:events */ "node:events?df85");
+/* module decorator */ module = __rspack_context.hmd(module);
+
+
+console.log.bind(module);
+
+__rspack_context.d(__rspack_exports, {
+  a: () => (/* reexport safe */ node_events__rspack_import_0.a),
+  b: () => (/* reexport safe */ node_events__rspack_import_0.b)
+});
+
+
+},
+});
+const wrapped = __rspack_context.r("./src/wrapped.js");
+var a = wrapped.a;
+var b = wrapped.b;
+
+export { a as EventEmitter, b as once };
+
+```

@@ -44,7 +44,9 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
+        "_runtime_handlers_define":  runtime_template.render_runtime_global_definition(&self.runtime_handlers),
         "_runtime_function": runtime_template.render_runtime_globals(&self.runtime_function),
+        "_runtime_function_define": runtime_template.render_runtime_global_definition(&self.runtime_function),
       })),
     )?;
 

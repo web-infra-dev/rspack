@@ -1,0 +1,62 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+__rspack_context.m.add({
+"./foo.js"
+/*!****************!*\
+  !*** ./foo.js ***!
+  \****************/
+(__unused_rspack_module, exports) {
+exports.p = 123
+
+
+},
+});
+// ./index.js
+const foo = __rspack_context.r("./foo.js");
+
+
+it('should import namespace', () => {
+	expect(foo.p).toBe(123);
+	expect(foo.p).toBe(123);
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+
+export { __rspack_context };
+
+```

@@ -1,0 +1,115 @@
+```mjs title=main.mjs
+import { resolve } from "node:path";
+import { parse } from "node:url";
+import { __rspack_context } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__rspack_context.m.add({
+"node:fs?435f"
+/*!****************************!*\
+  !*** external "node:path" ***!
+  \****************************/
+(module) {
+module.exports = __rspack_createRequire_require("node:path");
+
+},
+"node:url?b4ec"
+/*!***************************!*\
+  !*** external "node:url" ***!
+  \***************************/
+(module) {
+module.exports = __rspack_createRequire_require("node:url");
+
+},
+"./cjs-consumer.cjs"
+/*!**************************!*\
+  !*** ./cjs-consumer.cjs ***!
+  \**************************/
+(__unused_rspack_module, exports, __rspack_context) {
+// CJS require of "module" type external — should be downgraded to node-commonjs
+const nodePath = __rspack_context.r(/*! node:fs */ "node:fs?435f");
+exports.n = nodePath.resolve;
+
+// CJS require of "module-import" type external — should also be downgraded
+const nodeUrl = __rspack_context.r(/*! node:url */ "node:url?b4ec");
+exports.g = nodeUrl.parse;
+
+
+},
+});
+// node:fs?16c7
+
+// node:url?e0e4
+
+// ./index.js
+const cjs_consumer = __rspack_context.r("./cjs-consumer.cjs");
+var g = cjs_consumer.g;
+var n = cjs_consumer.n;
+
+
+
+
+it("should use aliased external request with correct external type", async () => {
+	const main = await import(/* webpackIgnore: true */ "./main.mjs");
+	const nodePath = await import(/* webpackIgnore: true */ "node:path");
+	const nodeUrl = await import(/* webpackIgnore: true */ "node:url");
+
+	// ESM import of "module" external — keeps module type, uses aliased request
+	expect(resolve).toBe(nodePath.resolve);
+	expect(main.resolve).toBe(nodePath.resolve);
+
+	// ESM import of "module-import" external — keeps module-import type
+	expect(parse).toBe(nodeUrl.parse);
+	expect(main.parse).toBe(nodeUrl.parse);
+
+	// CJS require of "module" external — downgraded to node-commonjs
+	expect(cjs_consumer.n).toBe(nodePath.resolve);
+	expect(main.cjsResolve).toBe(nodePath.resolve);
+
+	// CJS require of "module-import" external — downgraded to node-commonjs
+	expect(cjs_consumer.g).toBe(nodeUrl.parse);
+	expect(main.cjsParse).toBe(nodeUrl.parse);
+});
+
+
+
+export { g as cjsParse, n as cjsResolve, parse, resolve };
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+
+export { __rspack_context };
+
+```

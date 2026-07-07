@@ -139,7 +139,11 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       | Self::get_runtime_requirements_with_loading()
       | RuntimeGlobals::MODULE_CACHE;
     let mut weak = RuntimeGlobals::default();
-    let mut define = RuntimeGlobals::BASE_URI;
+    let mut define = RuntimeGlobals::default();
+    let mut force_context = RuntimeGlobals::default();
+    if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
+      force_context.insert(RuntimeGlobals::BASE_URI);
+    }
     if runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_hmr());
       weak.insert(JAVASCRIPT_HOT_MODULE_REPLACEMENT_RUNTIME_REQUIREMENTS.weak);
@@ -158,7 +162,7 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
       dependencies,
       weak,
       define,
-      ..Default::default()
+      force_context,
     }
   }
 

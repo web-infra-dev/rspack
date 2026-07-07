@@ -1,0 +1,433 @@
+```mjs title=a.mjs
+import { __rspack_context } from "./runtime-main.mjs";
+
+__rspack_context.m.add({
+"./modules-a/a.js"
+/*!************************!*\
+  !*** ./modules-a/a.js ***!
+  \************************/
+(__unused_rspack_module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
+/* export default */ const __rspack_default_export = ("a");
+
+__rspack_context.d(__rspack_exports, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=b.mjs
+import { __rspack_context } from "./runtime-other.mjs";
+
+__rspack_context.m.add({
+"./modules-b/b.js"
+/*!************************!*\
+  !*** ./modules-b/b.js ***!
+  \************************/
+(__unused_rspack_module, __rspack_exports, __rspack_context) {
+__rspack_context.N(__rspack_exports);
+/* export default */ const __rspack_default_export = ("b");
+
+__rspack_context.d(__rspack_exports, {
+}, {
+  "default": __rspack_default_export
+});
+
+
+},
+});
+export {};
+
+```
+
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime-main.mjs";
+
+__rspack_context.m.add({
+"./modules-a lazy ./modules-a/*.js"
+/*!***********************************************************************!*\
+  !*** ./modules-a|lazy|nonrecursive|./modules-a/*.js|namespace object ***!
+  \***********************************************************************/
+(module, __unused_rspack_exports, __rspack_context) {
+
+module.exports = {
+
+  "./modules-a/a.js": function() { return __rspack_context.e(/*! esm */ "a").then(__rspack_context.r.bind(__rspack_context.r, /*! ./modules-a/a.js */ "./modules-a/a.js")); }
+};
+
+
+},
+});
+// ./entry-a.js
+it("should load entry a glob", async () => {
+  const modules = __rspack_context.r(/*! ./modules-a/ */ "./modules-a lazy ./modules-a/*.js");
+
+  expect(Object.keys(modules)).toEqual(["./modules-a/a.js"]);
+
+  const value = await modules["./modules-a/a.js"]();
+  expect(value.default).toBe("a");
+});
+
+export {};
+
+```
+
+```mjs title=other.mjs
+import { __rspack_context } from "./runtime-other.mjs";
+
+__rspack_context.m.add({
+"./modules-b lazy ./modules-b/*.js"
+/*!***********************************************************************!*\
+  !*** ./modules-b|lazy|nonrecursive|./modules-b/*.js|namespace object ***!
+  \***********************************************************************/
+(module, __unused_rspack_exports, __rspack_context) {
+
+module.exports = {
+
+  "./modules-b/b.js": function() { return __rspack_context.e(/*! esm */ "b").then(__rspack_context.r.bind(__rspack_context.r, /*! ./modules-b/b.js */ "./modules-b/b.js")); }
+};
+
+
+},
+});
+// ./entry-b.js
+it("should load entry b glob", async () => {
+  const modules = __rspack_context.r(/*! ./modules-b/ */ "./modules-b lazy ./modules-b/*.js");
+
+  expect(Object.keys(modules)).toEqual(["./modules-b/b.js"]);
+
+  const value = await modules["./modules-b/b.js"]();
+  expect(value.default).toBe("b");
+});
+
+export {};
+
+```
+
+```mjs title=runtime-main.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/esm_ensure_chunk
+var ensureChunkHandlers = {};
+var ensureChunk = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
+		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+;
+__rspack_context.e = ensureChunk;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+// rspack/runtime/esm_chunk_loading
+var esmInstalledChunks = {};
+var esmChunkMap = {
+"a": function() { return import("./a.mjs"); }
+};
+ensureChunkHandlers.j = function(chunkId, promises) {
+	var installedChunkData = esmInstalledChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = esmChunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		esmInstalledChunks[chunkId] = 0;
+	}, function(error) {
+		delete esmInstalledChunks[chunkId];
+		throw error;
+	});
+	esmInstalledChunks[chunkId] = promise;
+	promises.push(promise);
+};
+;
+// rspack/runtime/module_chunk_loading
+// no BaseURI
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime-main": 0,};
+      var moduleInstallChunk = (data) => {
+    var __rspack_esm_ids = data.__rspack_esm_ids;
+    var moreModules = data.__rspack_modules;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    // add "modules" to the modules object,
+    // then flag all "ids" as loaded and fire callback
+    var moduleId, chunkId, i = 0;
+    for (moduleId in moreModules) {
+        if (hasOwnProperty(moreModules, moduleId)) {
+            __rspack_modules[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
+    for (; i < __rspack_esm_ids.length; i++) {
+        chunkId = __rspack_esm_ids[i];
+        if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
+            moduleInstalledChunks[chunkId][0]();
+        }
+        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+    }
+
+};
+
+        ensureChunkHandlers.j = function (chunkId, promises) {
+          // import() chunk loading for javascript
+var installedChunkData = hasOwnProperty(moduleInstalledChunks, chunkId) ? moduleInstalledChunks[chunkId] : undefined;
+if (installedChunkData !== 0) { // 0 means "already installed".'
+    // a Promise means "currently loading".
+    if (installedChunkData) {
+        promises.push(installedChunkData[1]);
+    } else {
+        if ("runtime-main" != chunkId) {
+            // setup Promise in chunk cache
+            var promise = import("./" + getChunkScriptFilename(chunkId)).then(moduleInstallChunk, (e) => {
+                if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = undefined;
+                throw e;
+            });
+            var promise = Promise.race([promise, new Promise((resolve) => {
+                installedChunkData = moduleInstalledChunks[chunkId] = [resolve];
+            })]);
+            promises.push(installedChunkData[1] = promise);
+        }
+        else moduleInstalledChunks[chunkId] = 0;
+
+    }
+}
+
+        }
+        // no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+;
+
+export { __rspack_context };
+
+```
+
+```mjs title=runtime-other.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/esm_ensure_chunk
+var ensureChunkHandlers = {};
+var ensureChunk = function(chunkId, fetchPriority) {
+	return Promise.all(Object.keys(ensureChunkHandlers).reduce(function(promises, key) {
+		ensureChunkHandlers[key](chunkId, promises, fetchPriority);
+		return promises;
+	}, []));
+};
+;
+__rspack_context.e = ensureChunk;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+// rspack/runtime/get javascript chunk filename
+// This function allow to reference chunks
+var getChunkScriptFilename = (chunkId) => {
+  // return url for filenames not based on template
+
+  // return url for filenames based on template
+  return "" + chunkId + ".mjs"
+};
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+// rspack/runtime/esm_chunk_loading
+var esmInstalledChunks = {};
+var esmChunkMap = {
+"b": function() { return import("./b.mjs"); }
+};
+ensureChunkHandlers.j = function(chunkId, promises) {
+	var installedChunkData = esmInstalledChunks[chunkId];
+	if(installedChunkData === 0) return;
+	if(installedChunkData) {
+		promises.push(installedChunkData);
+		return;
+	}
+	var loadChunk = esmChunkMap[chunkId];
+	if(!loadChunk) return;
+	var promise = loadChunk().then(function() {
+		esmInstalledChunks[chunkId] = 0;
+	}, function(error) {
+		delete esmInstalledChunks[chunkId];
+		throw error;
+	});
+	esmInstalledChunks[chunkId] = promise;
+	promises.push(promise);
+};
+;
+// rspack/runtime/module_chunk_loading
+// no BaseURI
+      // object to store loaded and loading chunks
+      // undefined = chunk not loaded, null = chunk preloaded/prefetched
+      // [resolve, Promise] = chunk loading, 0 = chunk loaded
+      var moduleInstalledChunks = {"runtime-other": 0,};
+      var moduleInstallChunk = (data) => {
+    var __rspack_esm_ids = data.__rspack_esm_ids;
+    var moreModules = data.__rspack_modules;
+    var __rspack_esm_runtime = data.__rspack_esm_runtime;
+    // add "modules" to the modules object,
+    // then flag all "ids" as loaded and fire callback
+    var moduleId, chunkId, i = 0;
+    for (moduleId in moreModules) {
+        if (hasOwnProperty(moreModules, moduleId)) {
+            __rspack_modules[moduleId] = moreModules[moduleId];
+        }
+    }
+    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
+    for (; i < __rspack_esm_ids.length; i++) {
+        chunkId = __rspack_esm_ids[i];
+        if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
+            moduleInstalledChunks[chunkId][0]();
+        }
+        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+    }
+
+};
+
+        ensureChunkHandlers.j = function (chunkId, promises) {
+          // import() chunk loading for javascript
+var installedChunkData = hasOwnProperty(moduleInstalledChunks, chunkId) ? moduleInstalledChunks[chunkId] : undefined;
+if (installedChunkData !== 0) { // 0 means "already installed".'
+    // a Promise means "currently loading".
+    if (installedChunkData) {
+        promises.push(installedChunkData[1]);
+    } else {
+        if ("runtime-other" != chunkId) {
+            // setup Promise in chunk cache
+            var promise = import("./" + getChunkScriptFilename(chunkId)).then(moduleInstallChunk, (e) => {
+                if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = undefined;
+                throw e;
+            });
+            var promise = Promise.race([promise, new Promise((resolve) => {
+                installedChunkData = moduleInstalledChunks[chunkId] = [resolve];
+            })]);
+            promises.push(installedChunkData[1] = promise);
+        }
+        else moduleInstalledChunks[chunkId] = 0;
+
+    }
+}
+
+        }
+        // no external install chunk
+// no on chunks loaded
+// no HMR
+// no HMR manifest
+;
+
+export { __rspack_context };
+
+```

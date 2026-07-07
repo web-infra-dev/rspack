@@ -1,0 +1,75 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+import * as __rspack_external_fs from "fs";
+
+// NAMESPACE OBJECT: ./reexport-external.js
+var reexport_external_namespaceObject = {};
+__rspack_context.N(reexport_external_namespaceObject);
+__rspack_context.d(reexport_external_namespaceObject, { 
+  marker: () => (marker),
+  readFile: () => (readFile) });
+var reexport_external_namespaceObject_starExports = __rspack_external_fs;
+Object.keys(reexport_external_namespaceObject_starExports).forEach(function(key) {
+  if (key !== "default" && key !== "__esModule") {
+    __rspack_context.d(reexport_external_namespaceObject, { [key]: function() { return reexport_external_namespaceObject_starExports[key]; } });
+  }
+});
+
+
+// fs
+
+// ./reexport-external.js
+
+
+const readFile = 42;
+const marker = "marker";
+
+// ./index.js
+
+
+it("should merge local exports with external star reexports inside exported namespace", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.fsNs.readFile).toBe(42);
+  expect(typeof mod.fsNs.readFileSync).toBe("function");
+  expect(mod.fsNs.marker).toBe("marker");
+});
+
+export { reexport_external_namespaceObject as fsNs };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```

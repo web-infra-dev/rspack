@@ -163,8 +163,9 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
     let mut dependencies = Self::get_runtime_requirements_basic() | RuntimeGlobals::MODULE_CACHE;
     let mut weak = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::default();
+    let mut force_context = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      define.insert(RuntimeGlobals::BASE_URI);
+      force_context.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
       dependencies.insert(Self::get_runtime_requirements_with_loading());
@@ -188,7 +189,7 @@ impl RuntimeModule for ReadFileChunkLoadingRuntimeModule {
       dependencies,
       weak,
       define,
-      ..Default::default()
+      force_context,
     }
   }
 

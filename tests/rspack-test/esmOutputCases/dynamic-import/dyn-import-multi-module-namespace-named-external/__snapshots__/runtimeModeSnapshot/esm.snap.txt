@@ -1,0 +1,88 @@
+```mjs title=main.mjs
+// ./index.js
+it("should avoid namespace and named binding collisions for duplicate externals", async () => {
+	const modA = await import("./shared.mjs").then(m => m.a_namespaceObject);
+	const modB = await import("./shared.mjs").then(m => m.b_namespaceObject);
+
+	expect(modA.resolve).toBeDefined();
+	expect(typeof modA.resolve.join).toBe("function");
+	expect(modA.resolve.resolve).toBe(modB.resolve);
+	expect(modB.marker).toBe("b");
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```
+
+```mjs title=shared.mjs
+import { __rspack_context } from "./runtime.mjs";
+import * as __rspack_external_path from "path";
+import { resolve } from "path";
+
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__rspack_context.N(a_namespaceObject);
+__rspack_context.d(a_namespaceObject, { 
+  resolve: () => (__rspack_external_path) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__rspack_context.N(b_namespaceObject);
+__rspack_context.d(b_namespaceObject, { 
+  marker: () => (marker),
+  resolve: () => (resolve) });
+
+
+// path?2d49
+
+// ./a.js
+
+
+
+
+// path?2b46
+
+// ./b.js
+
+
+const marker = "b";
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

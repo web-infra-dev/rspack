@@ -1,0 +1,40 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./bar.js
+var bar_namespaceObject = {};
+__rspack_context.N(bar_namespaceObject);
+
+
+// ./bar.js
+const x = 123;
+
+// ./index.js
+
+
+it("should render a missing property from a module with an invalid named re-export without capturing the namespace object", () => {
+  expect(bar_namespaceObject.foo).toBeUndefined();
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```

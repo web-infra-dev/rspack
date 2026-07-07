@@ -1,0 +1,90 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+__rspack_context.m.add({
+"./empty.cjs"
+/*!*******************!*\
+  !*** ./empty.cjs ***!
+  \*******************/
+() {
+
+
+
+},
+});
+// NAMESPACE OBJECT: ./empty.js
+var empty_namespaceObject = {};
+__rspack_context.N(empty_namespaceObject);
+
+
+// NAMESPACE OBJECT: ./empty.mjs
+var empty_namespaceObject_0 = {};
+__rspack_context.N(empty_namespaceObject_0);
+
+
+// ./empty.js
+
+
+// ./empty.mjs
+
+
+// ./index.js
+const empty = __rspack_context.r("./empty.cjs");
+
+
+
+
+it("should render missing namespace properties as undefined for empty modules", () => {
+  expect(empty_namespaceObject.nope).toBeUndefined();
+  expect(empty_namespaceObject_0.nope).toBeUndefined();
+  expect(empty.nope).toBeUndefined();
+});
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```

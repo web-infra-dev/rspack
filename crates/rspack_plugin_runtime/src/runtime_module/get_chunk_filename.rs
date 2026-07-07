@@ -414,7 +414,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     }
 
     let source = runtime_template.render(self.id(), Some(serde_json::json!({
-      "_global": self.global,
+      "_global": match self.source_type {
+        SourceType::JavaScript => runtime_template
+          .render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME),
+        SourceType::Css => {
+          runtime_template.render_runtime_global_definition(&RuntimeGlobals::GET_CHUNK_CSS_FILENAME)
+        }
+        _ => self.global.clone(),
+      },
       "_static_urls": static_urls
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))

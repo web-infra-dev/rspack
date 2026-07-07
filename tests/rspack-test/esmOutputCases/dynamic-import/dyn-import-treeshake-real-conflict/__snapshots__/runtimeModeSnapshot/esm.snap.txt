@@ -1,0 +1,82 @@
+```mjs title=main.mjs
+// ./index.js
+it('should keep namespace when both conflicting exports are used', async () => {
+	// Both modules export `value` and both are used — real conflict.
+	// Namespace objects are required to disambiguate.
+	const { value: aValue, foo } = await import("./shared.mjs").then(m => m.a_namespaceObject)
+	const { value: bValue, bar } = await import("./shared.mjs").then(m => m.b_namespaceObject)
+
+	expect(aValue).toBe(1)
+	expect(bValue).toBe(2)
+	expect(foo).toBe('a-foo')
+	expect(bar).toBe('b-bar')
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```
+
+```mjs title=shared.mjs
+import { __rspack_context } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./a.js
+var a_namespaceObject = {};
+__rspack_context.N(a_namespaceObject);
+__rspack_context.d(a_namespaceObject, { 
+  foo: () => (foo),
+  value: () => (value) });
+
+
+// NAMESPACE OBJECT: ./b.js
+var b_namespaceObject = {};
+__rspack_context.N(b_namespaceObject);
+__rspack_context.d(b_namespaceObject, { 
+  bar: () => (bar),
+  value: () => (b_value) });
+
+
+// ./a.js
+const value = 1;
+const foo = 'a-foo';
+
+// ./b.js
+const b_value = 2;
+const bar = 'b-bar';
+
+export { a_namespaceObject, b_namespaceObject };
+
+```

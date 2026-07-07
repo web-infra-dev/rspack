@@ -1,0 +1,67 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+// NAMESPACE OBJECT: ./util.js
+var util_namespaceObject = {};
+__rspack_context.N(util_namespaceObject);
+__rspack_context.d(util_namespaceObject, { 
+  foo: () => (foo) });
+
+
+// ./util.js
+const foo = { nullVal: null };
+
+// ./index.js
+
+
+const presentNull = foo?.nullVal?.x;
+const missingValue = util_namespaceObject.x;
+const missingChain = util_namespaceObject.x?.x;
+const namespaceChain = util_namespaceObject?.x?.x;
+
+it("should preserve optional chaining with namespace objects", async () => {
+  const mod = await import(/* webpackIgnore: true */ "./main.mjs");
+
+  expect(mod.presentNull).toBeUndefined();
+  expect(mod.missingValue).toBeUndefined();
+  expect(mod.missingChain).toBeUndefined();
+  expect(mod.namespaceChain).toBeUndefined();
+});
+
+export { missingChain, missingValue, namespaceChain, presentNull };
+
+```
+
+```mjs title=runtime.mjs
+// The require scope
+var __rspack_require = {};
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+
+var startupNoDefault;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+__rspack_context.d = definePropertyGetters;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+// rspack/runtime/make_namespace_object
+// define __esModule on exports
+var makeNamespaceObject = (exports) => {
+	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	}
+	Object.defineProperty(exports, '__esModule', { value: true });
+};;
+__rspack_context.N = makeNamespaceObject;
+
+export { __rspack_context };
+
+```

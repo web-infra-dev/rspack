@@ -1,0 +1,103 @@
+```mjs title=main.mjs
+import { __rspack_context } from "./runtime.mjs";
+
+__rspack_context.m.add({
+"./bar.cjs"
+/*!*****************!*\
+  !*** ./bar.cjs ***!
+  \*****************/
+(module) {
+module.exports = 'bar'
+globalThis.testValue = 'bar';
+
+
+},
+"./foo.cjs"
+/*!*****************!*\
+  !*** ./foo.cjs ***!
+  \*****************/
+(module) {
+module.exports = 'foo'
+globalThis.testValue = 'foo';
+
+},
+});
+// ./index.js
+const foo = __rspack_context.r("./foo.cjs");
+var foo_default = /*#__PURE__*/__rspack_context.n(foo);
+const bar = __rspack_context.r("./bar.cjs");
+var bar_default = /*#__PURE__*/__rspack_context.n(bar);
+
+
+
+// the order should be import order not access order
+it('should have correct order', () => {
+	expect((bar_default())).toBe('bar');
+	expect((foo_default())).toBe('foo');
+	expect(globalThis.testValue).toBe('bar')
+})
+
+export {};
+
+```
+
+```mjs title=runtime.mjs
+
+var __rspack_modules = {};
+// The module cache
+var __rspack_module_cache = {};
+// The require function
+function __rspack_require(moduleId) {
+// Check if module is in cache
+var cachedModule = __rspack_module_cache[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__rspack_module_cache[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__rspack_modules[moduleId](module, module.exports, __rspack_context);
+
+// Return the exports of the module
+return module.exports;
+}
+var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+// expose the modules object (__rspack_modules)
+__rspack_context.m = __rspack_modules;
+
+var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+// rspack/runtime/compat_get_default_export
+// getDefaultExport function for compatibility with non-ESM modules
+var compatGetDefaultExport = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	definePropertyGetters(getter, { a: getter });
+	return getter;
+};
+;
+__rspack_context.n = compatGetDefaultExport;
+// rspack/runtime/define_property_getters
+var definePropertyGetters = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};;
+// rspack/runtime/esm_register_module
+__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+;
+// rspack/runtime/has_own_property
+var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
+
+export { __rspack_context };
+
+```

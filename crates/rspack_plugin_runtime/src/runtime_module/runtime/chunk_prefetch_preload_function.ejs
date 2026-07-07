@@ -1,5 +1,5 @@
-<%- _runtime_handlers %> = {};
-<%- _runtime_function %> = <%- basicFunction("chunkId") %> {
+<%- _runtime_handlers_define %> = {};
+<%- _runtime_function_define %> = <%- basicFunction("chunkId") %> {
   Object.keys(<%- _runtime_handlers %>).map(<%- basicFunction("key") %> {
     <%- _runtime_handlers %>[key](chunkId);
   });

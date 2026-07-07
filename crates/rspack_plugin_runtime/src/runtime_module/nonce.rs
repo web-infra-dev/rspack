@@ -34,7 +34,7 @@ impl RuntimeModule for NonceRuntimeModule {
       "{} = undefined;",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::SCRIPT_NONCE)
+        .render_runtime_global_definition(&RuntimeGlobals::SCRIPT_NONCE)
     ))
   }
 }

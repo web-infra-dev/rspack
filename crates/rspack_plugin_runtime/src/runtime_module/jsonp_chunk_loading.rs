@@ -170,8 +170,9 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       | RuntimeGlobals::MODULE_CACHE;
     let mut weak = RuntimeGlobals::default();
     let mut define = RuntimeGlobals::default();
+    let mut force_context = RuntimeGlobals::default();
     if runtime_requirements.contains(RuntimeGlobals::BASE_URI) {
-      define.insert(RuntimeGlobals::BASE_URI);
+      force_context.insert(RuntimeGlobals::BASE_URI);
     }
     if runtime_requirements.contains(RuntimeGlobals::ON_CHUNKS_LOADED) {
       dependencies.insert(Self::get_runtime_requirements_with_on_chunk_load());
@@ -203,7 +204,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       dependencies,
       weak,
       define,
-      ..Default::default()
+      force_context,
     }
   }
 

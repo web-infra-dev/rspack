@@ -52,7 +52,7 @@ impl RuntimeModule for BaseUriRuntimeModule {
       "{} = {};\n",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::BASE_URI),
+        .render_runtime_global_definition(&RuntimeGlobals::BASE_URI),
       base_uri.as_ref()
     ))
   }
