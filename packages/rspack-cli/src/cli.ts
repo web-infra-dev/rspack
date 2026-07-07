@@ -284,11 +284,7 @@ export class RspackCLI {
       } else if (typeof item.stats === 'string') {
         item.stats = {
           preset: item.stats as
-            | 'normal'
-            | 'none'
-            | 'verbose'
-            | 'errors-only'
-            | 'errors-warnings',
+            'normal' | 'none' | 'verbose' | 'errors-only' | 'errors-warnings',
         };
       }
       return item;
@@ -401,10 +397,7 @@ export type RspackConfigAsyncFn = (
 ) => Promise<RspackOptions | MultiRspackOptions>;
 
 export type RspackConfigExport =
-  | RspackOptions
-  | MultiRspackOptions
-  | RspackConfigFn
-  | RspackConfigAsyncFn;
+  RspackOptions | MultiRspackOptions | RspackConfigFn | RspackConfigAsyncFn;
 
 /**
  * This function helps you to autocomplete configuration types.

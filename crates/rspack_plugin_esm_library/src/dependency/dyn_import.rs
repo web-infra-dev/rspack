@@ -203,17 +203,20 @@ pub struct DynamicImportDependencyTemplate {
   pub dyn_import_ns_map: Arc<AtomicRefCell<IdentifierMap<Atom>>>,
 }
 
-impl DependencyTemplate for DynamicImportDependencyTemplate {
-  fn render(
+impl DynamicImportDependencyTemplate {
+  /// Renders the dynamic-import promise expression for the resolved target.
+  ///
+  /// Returns `None` when the branch has already written the replacement into
+  /// `source` itself (a phase-aware external `import`/`module`, which manages
+  /// its own callee). Otherwise returns the promise expression, which the
+  /// caller finalizes with a single `source.replace` and the shared
+  /// source-phase unwrap.
+  fn render_import_expr(
     &self,
-    dep: &dyn rspack_core::DependencyCodeGeneration,
+    import_dep: &ImportDependency,
     source: &mut rspack_core::TemplateReplaceSource,
     code_generatable_context: &mut rspack_core::TemplateContext,
-  ) {
-    let import_dep = dep
-      .as_any()
-      .downcast_ref::<ImportDependency>()
-      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+  ) -> Option<String> {
     let dep = import_dep as &dyn Dependency;
     let dep_id = dep.id();
     let module_graph = code_generatable_context.compilation.get_module_graph();
@@ -223,36 +226,28 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       .request();
 
     let Some(ref_module) = module_graph.get_module_by_dependency_id(dep_id) else {
-      let missing_promise = code_generatable_context
-        .runtime_template
-        .missing_module_promise(request);
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        missing_promise,
-        None,
+      return Some(
+        code_generatable_context
+          .runtime_template
+          .missing_module_promise(request),
       );
-      return;
     };
 
     if let Some(external_module) = ref_module.as_external_module()
       && matches!(external_module.resolve_external_type(), "import" | "module")
     {
+      // `render_dyn_import_external_module` is phase-aware (it emits
+      // `import.source(...)` / `import.defer(...)` for the matching phase), so
+      // let it own the replacement and skip the shared unwrap.
       render_dyn_import_external_module(import_dep, external_module, source);
-      return;
+      return None;
     }
     if let Some(external_module) = ref_module.as_external_module() {
       let fake_type = get_fake_namespace_object_mode(code_generatable_context, dep_id);
       if let Some(external_import) =
         render_lazy_commonjs_external_import(code_generatable_context, external_module, fake_type)
       {
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          external_import,
-          None,
-        );
-        return;
+        return Some(external_import);
       }
     }
 
@@ -263,16 +258,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       Ok(c) => c,
       Err(e) => {
         tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import target");
-        let missing_promise = code_generatable_context
-          .runtime_template
-          .missing_module_promise(request);
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          missing_promise,
-          None,
+        return Some(
+          code_generatable_context
+            .runtime_template
+            .missing_module_promise(request),
         );
-        return;
       }
     };
 
@@ -285,16 +275,11 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
       Ok(c) => c,
       Err(e) => {
         tracing::warn!(error = %e, "failed to resolve module chunk for dynamic import source");
-        let missing_promise = code_generatable_context
-          .runtime_template
-          .missing_module_promise(request);
-        source.replace(
-          import_dep.range.start,
-          import_dep.range.end,
-          missing_promise,
-          None,
+        return Some(
+          code_generatable_context
+            .runtime_template
+            .missing_module_promise(request),
         );
-        return;
       }
     };
 
@@ -335,16 +320,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     let Some(concatenation_scope) = &mut code_generatable_context.concatenation_scope else {
       // if we are not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __rspack_require to fetch module
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!(
-          "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
-        ),
-        None,
-      );
-      return;
+      return Some(format!(
+        "{import_promise}{}",
+        then_expr(code_generatable_context, dep_id, request)
+      ));
     };
 
     let is_ref_module_concatenated =
@@ -353,17 +332,10 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     if !is_ref_module_concatenated {
       // if target is not in a concatenation scope, then all its children are not scope hoisted as well
       // we can safely use __rspack_require to fetch module
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!(
-          "{import_promise}{}",
-          then_expr(code_generatable_context, dep_id, request)
-        ),
-        None,
-      );
-
-      return;
+      return Some(format!(
+        "{import_promise}{}",
+        then_expr(code_generatable_context, dep_id, request)
+      ));
     }
 
     if already_in_chunk {
@@ -381,13 +353,7 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
           ..Default::default()
         },
       );
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!("Promise.resolve({ns_ref})"),
-        None,
-      );
-      return;
+      return Some(format!("Promise.resolve({ns_ref})"));
     }
 
     // Cross-chunk: check if the module needs namespace remapping (exports were renamed or namespace access)
@@ -399,20 +365,46 @@ impl DependencyTemplate for DynamicImportDependencyTemplate {
     if let Some(ns_name) = ns_name {
       // Module's exports were renamed in the chunk or accessed as namespace.
       // Use .then(m => m.<ns_name>) to get the correct module namespace.
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        format!("{import_promise}.then(m => m.{ns_name})"),
-        None,
-      );
+      Some(format!("{import_promise}.then(m => m.{ns_name})"))
     } else {
       // Module's exports are not renamed in the chunk — direct import works.
-      source.replace(
-        import_dep.range.start,
-        import_dep.range.end,
-        import_promise.into_owned(),
-        None,
+      Some(import_promise.into_owned())
+    }
+  }
+}
+
+impl DependencyTemplate for DynamicImportDependencyTemplate {
+  fn render(
+    &self,
+    dep: &dyn rspack_core::DependencyCodeGeneration,
+    source: &mut rspack_core::TemplateReplaceSource,
+    code_generatable_context: &mut rspack_core::TemplateContext,
+  ) {
+    let import_dep = dep
+      .as_any()
+      .downcast_ref::<ImportDependency>()
+      .expect("ImportDependencyTemplate can only be applied to ImportDependency");
+
+    let Some(mut content) = self.render_import_expr(import_dep, source, code_generatable_context)
+    else {
+      // The branch already wrote its replacement into `source`.
+      return;
+    };
+
+    // Source-phase imports (e.g. `import.source('./add.wasm')`) resolve to the
+    // module value itself — for WebAssembly that is a `WebAssembly.Module`,
+    // exposed as the namespace `default`. Unwrap it here so callers receive the
+    // value rather than the namespace object, matching the standard
+    // dynamic-import template (`ImportDependencyTemplate` in rspack_plugin_javascript).
+    if import_dep.get_phase().is_source() {
+      content = format!(
+        "{content}.then({})",
+        code_generatable_context
+          .runtime_template
+          .returning_function("m[\"default\"]", "m")
       );
     }
+
+    source.replace(import_dep.range.start, import_dep.range.end, content, None);
   }
 }

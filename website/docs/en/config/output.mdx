@@ -310,8 +310,7 @@ You **must not** specify an absolute path here. However, feel free to include fo
 
 ```ts
 type DevtoolFallbackModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **Default:** `undefined`
@@ -326,8 +325,7 @@ See [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulef
 
 ```ts
 type DevtoolModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **Default:** `webpack://[namespace]/[resource-path]?[loaders]'`

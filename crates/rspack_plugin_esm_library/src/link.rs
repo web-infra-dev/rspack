@@ -3053,6 +3053,13 @@ var {} = {{}};
       .expect("should have module");
     let exports_type =
       module.get_exports_type(mg, mg_cache, exports_info_artifact, strict_esm_module);
+    if Self::is_source_phase_external(mg, info_id)
+      && export_name
+        .first()
+        .is_some_and(|name| name.as_str() == "default")
+    {
+      export_name.remove(0);
+    }
     let info = &mut module_to_info_map[info_id];
 
     if export_name.is_empty() {
@@ -3435,6 +3442,12 @@ var {} = {{}};
         }
       }
     }
+  }
+
+  fn is_source_phase_external(mg: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
+    mg.module_by_identifier(module_id)
+      .and_then(|module| module.as_external_module())
+      .is_some_and(|external_module| external_module.get_import_phase().is_source())
   }
 }
 

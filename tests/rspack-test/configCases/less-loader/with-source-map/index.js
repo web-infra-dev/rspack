@@ -18,4 +18,9 @@ it("basic", () => {
 			"utf-8"
 		)
 	]);
+
+	const jsSourceMap = fs.readFileSync(__dirname + "/bundle0.js.map", "utf-8");
+	const jsMap = JSON.parse(jsSourceMap);
+	expect(jsMap.sources).not.toContain(source);
+	expect(jsMap.sources).toContain(source.replace("./index.less", "css ./index.less"));
 });

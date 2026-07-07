@@ -133,8 +133,7 @@ export function createMultiCompilerRunner(
   const compilerOptions = multiCompilerOptions[index];
   const logs = context.getValue(DEBUG_SCOPES.RunLogs) as string[] | undefined;
   const errors = context.getValue(DEBUG_SCOPES.RunErrors) as
-    | Error[]
-    | undefined;
+    Error[] | undefined;
   let runner;
   const runnerOptions = {
     runInNewContext: false,
