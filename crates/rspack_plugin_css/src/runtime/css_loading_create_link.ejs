@@ -3,7 +3,7 @@ if (<%- weak(SCRIPT_NONCE) %>) {
   link.setAttribute("nonce", <%- weak(SCRIPT_NONCE) %>);
 }
 <% if (_unique_name != "") { %>
-link.setAttribute("data-rspack", uniqueName + ":" + key);
+link.setAttribute("data-rspack", cssLoadingUniqueName + ":" + key);
 <% } %>
 <% if (_with_fetch_priority) { %>
 if (fetchPriority) {
