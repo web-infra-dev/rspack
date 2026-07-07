@@ -391,7 +391,7 @@ pub async fn render_runtime_modules(
   }
 }
 
-pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlobals);
+pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlobals, bool);
 
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
@@ -423,6 +423,7 @@ pub(crate) async fn render_runtime_module_sources(
                 ConcatSource::default().boxed(),
                 RuntimeGlobals::default(),
                 RuntimeGlobals::default(),
+                false,
               ));
             }
             let runtime_requirements = module.runtime_requirements(compilation);
@@ -470,6 +471,8 @@ pub(crate) async fn render_runtime_module_sources(
               }
             };
             let should_isolate = module.should_isolate(runtime_mode);
+            let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
+              && module.get_constructor_name() == "ExportRequireRuntimeModule";
             let sources = render_runtime_module_source(
               module.identifier(),
               source,
@@ -477,7 +480,12 @@ pub(crate) async fn render_runtime_module_sources(
               supports_arrow_function,
               matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
             );
-            Ok((sources, generated_requirements, context_requirements))
+            Ok((
+              sources,
+              generated_requirements,
+              context_requirements,
+              needs_top_level,
+            ))
           },
         );
       })
@@ -499,7 +507,7 @@ async fn render_webpack_runtime_modules(
     render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
   let mut sources = ConcatSource::default();
 
-  for (runtime_module_source, _, _) in runtime_module_sources {
+  for (runtime_module_source, _, _, _) in runtime_module_sources {
     sources.add(runtime_module_source);
   }
 
