@@ -161,6 +161,12 @@ jobs:
           Stop-Service wuauserv
           reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\wsl.exe" /v Debugger /t REG_SZ /d "block.exe" /f
           reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\CompatTelRunner.exe" /v Debugger /t REG_SZ /d "block.exe" /f
+          Write-Host "== Windows Defender status (post disable attempt) =="
+          try {
+            Get-MpComputerStatus -ErrorAction Stop | Select-Object RealTimeProtectionEnabled, IsTamperProtected, AntivirusEnabled | Format-List
+          } catch {
+            Write-Host "Get-MpComputerStatus failed: $($_.Exception.Message)"
+          }
 
       - name: Install Rust Toolchain
         uses: ./.github/actions/rustup
