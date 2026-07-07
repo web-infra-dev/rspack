@@ -1,0 +1,149 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./only-require.js
+
+
+const only_require_require = /* createRequire() */ undefined;
+
+const required = __webpack_require__(/*! ./dep.js */ "./dep.js");
+
+// ./with-resolve.js
+
+
+const with_resolve_require = __rspack_createRequire(import.meta.url);
+
+const resolved = with_resolve_require.resolve("path");
+
+// ./inline-resolve.js
+
+
+const inlineResolved = __rspack_createRequire(import.meta.url).resolve("path");
+
+// ./with-cache.js
+
+
+const with_cache_require = /* createRequire() */ undefined;
+
+const cacheType = typeof __webpack_require__.c;
+
+// ./with-unknown-member.js
+
+
+const with_unknown_member_require = __rspack_createRequire(import.meta.url);
+
+const unknownMember = with_unknown_member_require.foo;
+
+// ./with-resolve-paths.js
+
+
+const with_resolve_paths_require = __rspack_createRequire(import.meta.url);
+
+const resolvePaths = with_resolve_paths_require.resolve.paths("path");
+
+// ./mixed-parsed-and-preserved.js
+
+
+const mixed_parsed_and_preserved_require = __rspack_createRequire(import.meta.url);
+
+const mixedDisabledRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const mixedDisabledResolved = mixed_parsed_and_preserved_require.resolve("path");
+const mixedDisabledUnknownMember = mixed_parsed_and_preserved_require.a;
+
+// ./with-resolve-options.js
+
+
+const with_resolve_options_require = __rspack_createRequire(import.meta.url);
+
+const resolveWithOptions = with_resolve_options_require.resolve("path", { paths: [] });
+
+// ./with-value-escape.js
+
+
+const with_value_escape_require = __rspack_createRequire(import.meta.url);
+const escapedRequire = with_value_escape_require;
+
+const escapedRequireType = typeof escapedRequire;
+
+// ./index.js
+
+
+
+
+
+
+
+
+
+
+
+
+it("preserves only modules with runtime created-require usages when requireResolve is disabled", () => {
+	expect(required).toBe("dep");
+	expect(resolved).toBe("path");
+	expect(inlineResolved).toBe("path");
+	expect(resolvePaths).toBe(null);
+	expect(unknownMember).toBe(undefined);
+	expect(cacheType).toBe("object");
+	expect(mixedDisabledRequired).toBe("dep");
+	expect(mixedDisabledResolved).toBe("path");
+	expect(mixedDisabledUnknownMember).toBe(undefined);
+	expect(resolveWithOptions).toBe("path");
+	expect(escapedRequireType).toBe("function");
+});
+
+export { cacheType, escapedRequireType, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, unknownMember };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+// expose the module cache
+__webpack_require__.c = __webpack_module_cache__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```

@@ -1102,9 +1102,9 @@ fn tag_created_require_declarator(
     context,
     replace_argument,
   } = argument;
-  // When require.resolve is disabled and the argument is a bare `import.meta.url`
-  // (side-effect free), defer the createRequire rendering to `finish`: it is kept only
-  // if a `.resolve` use marks this declaration, otherwise it is cleared. Deferring means
+  // When the argument is a bare `import.meta.url` (side-effect free), defer the
+  // createRequire rendering to `finish`: it is kept only if an unhandled require use marks
+  // this declaration, otherwise it is cleared. Deferring means
   // the callee is not walked here (the caller skips `walk_create_require_callee`), so a
   // clear can replace the whole call without colliding with an import-specifier rewrite.
   // Only the single-argument `createRequire(import.meta.url)` form is deferred: a clear
@@ -1114,10 +1114,10 @@ fn tag_created_require_declarator(
   // `__rspack_createRequire` (Node's built-in), which would silently replace a user-configured
   // custom source — so custom sources fall through to the non-deferred path, which walks the
   // original callee and keeps the user's import.
-  let defer = !clear_call
-    && callee_span.is_some()
+  let defer = callee_span.is_some()
     && is_builtin_module_create_require(parser)
-    && matches!(parser.javascript_options.require_resolve, Some(false))
+    && (matches!(parser.javascript_options.require_resolve, Some(false))
+      || parser.compiler_options.output.module)
     && args.len() == 1
     && args[0]
       .expr
@@ -1134,14 +1134,14 @@ fn tag_created_require_declarator(
       decl_span: defer.then_some(call_span),
     }),
   );
-  if clear_call {
-    clear_create_require_call(parser, call_span);
-  } else if defer {
+  if defer {
     parser.created_require_references.add_pending(
       call_span,
       callee_span.expect("defer requires a callee span"),
       args[0].expr.span(),
     );
+  } else if clear_call {
+    clear_create_require_call(parser, call_span);
   } else if replace_argument {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       args[0].expr.span().into(),
@@ -1575,6 +1575,9 @@ impl CommonJsImportsParserPlugin {
       return Some(true);
     }
     if expr.args.len() != 1 || expr.args[0].spread.is_some() {
+      if current_created_require_decl_span(parser).is_some() {
+        mark_created_require_must_keep(parser);
+      }
       parser.walk_expr_or_spread(&expr.args);
       return Some(true);
     }
@@ -2102,10 +2105,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if matches!(parser.javascript_options.require_resolve, Some(false)) {
-        // require.resolve disabled: keep the real created require so a value-position use
-        // (`helper(r)`, `export { r }`, `return r`, ...) reads it directly instead of being
-        // rewritten to a context require.
+      if current_created_require_decl_span(parser).is_some() {
+        // A value-position use (`helper(r)`, `export { r }`, `return r`, ...) is not consumed by
+        // a specific require dependency, so keep the real created require.
         mark_created_require_must_keep(parser);
         return Some(true);
       }
@@ -2126,12 +2128,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if matches!(parser.javascript_options.require_resolve, Some(false))
+      if current_created_require_decl_span(parser).is_some()
         && members.first().is_some_and(|m| m.as_ref() != "cache")
       {
-        // require.resolve disabled: keep the real created require so member access
-        // (`r.main`, `r.resolve.paths`, ...) reads it directly instead of an unsupported
-        // `undefined`. `.cache` keeps its module-cache mapping (handled below).
+        // Unknown member access (`r.a`, `r.resolve.paths`, ...) is not consumed by a specific
+        // require dependency, so keep the real created require. `.cache` keeps its module-cache
+        // mapping (handled below).
         mark_created_require_must_keep(parser);
         return Some(true);
       }
@@ -2182,11 +2184,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       if members.len() == 1 && members[0].as_ref() == "resolve" {
         return self.process_created_require_resolve_call(parser, expr);
       }
-      if matches!(parser.javascript_options.require_resolve, Some(false))
+      if current_created_require_decl_span(parser).is_some()
         && members.first().is_some_and(|m| m.as_ref() != "cache")
       {
-        // require.resolve disabled: keep the real created require so a member CALL
-        // (`r.resolve.paths(x)`, `r.foo(x)`, ...) runs against it. Walk the args; leave the
+        // Unknown member calls (`r.resolve.paths(x)`, `r.foo(x)`, ...) are not consumed by a
+        // specific require dependency, so keep the real created require. Walk the args; leave the
         // call text as written.
         mark_created_require_must_keep(parser);
         parser.walk_expr_or_spread(&expr.args);
@@ -2235,9 +2237,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
   fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if matches!(parser.javascript_options.require_resolve, Some(false)) {
-        // require.resolve disabled: keep the real created require; leave the renamed
-        // reference as written so it reads the real object.
+      if current_created_require_decl_span(parser).is_some() {
+        // A renamed/bare created require reference is not consumed by a specific require
+        // dependency, so keep the real object.
         mark_created_require_must_keep(parser);
       } else if let Some(ident) = expr.as_ident() {
         let context = current_created_require_context(parser);
@@ -2491,11 +2493,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     // bundled `.cache` (e.g. `const paths = createRequire(import.meta.url).resolve.paths`):
     // keep the real created require. The built-in single-bare-`import.meta.url` form renders
     // via rspack's helper (consistent with the deferred variable form); a custom source or
-    // extra arguments keep the original call instead (the helper would drop them).
-    // requireResolve:false only; `.cache` falls through to the branch below.
+    // extra arguments keep the original call instead (the helper would drop them). `.cache`
+    // falls through to the branch below.
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && matches!(parser.javascript_options.require_resolve, Some(false))
+      && (matches!(parser.javascript_options.require_resolve, Some(false))
+        || parser.compiler_options.output.module)
       && members
         .first()
         .is_some_and(|member| member.as_ref() != "cache")
@@ -2569,11 +2572,17 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     // ...): keep the real created require, mirroring the kept variable form `const r =
     // createRequire(import.meta.url); r.resolve.paths(...)`. The built-in single-bare-
     // `import.meta.url` form renders via rspack's helper; a custom source or extra arguments
-    // keep the original call (the helper would drop them). requireResolve:false only; `.cache`
-    // and the require.resolve-enabled path fall through to the branches below.
+    // keep the original call (the helper would drop them). `.cache` and the require.resolve-enabled
+    // path fall through to the branches below.
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && matches!(parser.javascript_options.require_resolve, Some(false))
+      && (matches!(parser.javascript_options.require_resolve, Some(false))
+        || parser.compiler_options.output.module)
+      && !(members.len() == 1
+        && members[0].as_ref() == "resolve"
+        && !matches!(parser.javascript_options.require_resolve, Some(false))
+        && call_expr.args.len() == 1
+        && call_expr.args[0].spread.is_none())
       && members
         .first()
         .is_some_and(|member| member.as_ref() != "cache")
@@ -2746,11 +2755,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     // Demand-driven createRequire rendering: a deferred `const r = createRequire(import.meta.url)`
-    // (require.resolve disabled) is kept only if it was used for `.resolve`; the kept case is
-    // rendered via rspack's injected `__rspack_createRequire` helper (the literal `import.meta.url`
-    // then resolves relative to the runtime module), and warns for CommonJS output where
-    // `import.meta` is invalid. Otherwise the whole call is cleared to `undefined`, dropping the
-    // dead createRequire and its (un-walked, hence unused) `module` import.
+    // is kept only if a use site could not be consumed by the normal require parser path, such as
+    // `require.resolve(...)` with requireResolve disabled, an unknown member access, or a value
+    // escape. The kept case is rendered via rspack's injected `__rspack_createRequire` helper; the
+    // unkept case is cleared to `undefined`, dropping the dead createRequire and its un-walked
+    // `module` import.
     // A deferred created require whose value escapes via an export must be kept (an importer
     // may call `req.resolve(...)` on the exported value, so clearing it to `undefined` would
     // crash). Resolve each exported local binding to its declaration through the scope-aware

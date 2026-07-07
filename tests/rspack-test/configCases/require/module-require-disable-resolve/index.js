@@ -1,6 +1,6 @@
 // The runtime-resolution behaviour of a preserved createRequire().resolve (with
 // requireResolve disabled) is covered by the ESM case
-// esmOutputCases/create-require/import-meta-url-resolve-disabled, because the
+// esmOutputCases/create-require/multi-module-require-resolve-disabled, because the
 // preserved literal `import.meta.url` is only valid in ESM output. This CJS case
 // covers that non-statically-analyzable createRequire arguments still keep their
 // dependencies (dynamic import / new URL side effects) when resolve is disabled.

@@ -1,0 +1,113 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./only-require.js
+
+
+const only_require_require = /* createRequire() */ undefined;
+
+const required = __webpack_require__(/*! ./dep.js */ "./dep.js");
+
+// ./with-resolve.js
+
+
+const with_resolve_require = /* createRequire() */ undefined;
+
+const resolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
+
+// ./with-unknown-member.js
+
+
+const with_unknown_member_require = __rspack_createRequire(import.meta.url);
+
+const unknownMember = with_unknown_member_require.a;
+
+// ./mixed-parsed-and-preserved.js
+
+
+const mixed_parsed_and_preserved_require = __rspack_createRequire(import.meta.url);
+
+const mixedRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const mixedResolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
+const mixedUnknownMember = mixed_parsed_and_preserved_require.a;
+
+// ./with-value-escape.js
+
+
+const with_value_escape_require = __rspack_createRequire(import.meta.url);
+const escapedRequire = with_value_escape_require;
+
+const escapedRequireType = typeof escapedRequire;
+
+// ./index.js
+
+
+
+
+
+
+
+
+it("preserves created require only for unhandled usages across modules", () => {
+	expect(required).toBe("dep");
+	expect(resolved).toBe("./dep.js");
+	expect(unknownMember).toBe(undefined);
+	expect(mixedRequired).toBe("dep");
+	expect(mixedResolved).toBe("./dep.js");
+	expect(mixedUnknownMember).toBe(undefined);
+	expect(escapedRequireType).toBe("function");
+});
+
+export { escapedRequireType, mixedRequired, mixedResolved, mixedUnknownMember, required, resolved, unknownMember };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+
+export { __webpack_require__ };
+
+```
