@@ -1,6 +1,6 @@
 {
   "name": "@rspack/binding-linux-riscv64-musl",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "license": "MIT",
   "description": "Node binding for rspack",
   "main": "rspack.linux-riscv64-musl.node",

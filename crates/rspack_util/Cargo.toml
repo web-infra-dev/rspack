@@ -39,7 +39,7 @@ anyhow            = { workspace = true, optional = true }
 once_cell         = { workspace = true, optional = true }
 swc_plugin_runner = { workspace = true, optional = true }
 wasi-common       = { workspace = true, optional = true, features = ["sync", "wasmtime"] }
-wasmtime          = { workspace = true, optional = true, features = ["runtime", "cranelift"] }
+wasmtime          = { workspace = true, optional = true, features = ["runtime", "cranelift", "parallel-compilation"] }
 
 rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
