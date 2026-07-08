@@ -1,25 +1,27 @@
 use std::{
   collections::hash_map::Entry,
-  ops::{Deref, DerefMut},
-  sync::atomic::AtomicU32,
+  fmt::Debug,
+  sync::atomic::{AtomicU32, Ordering},
 };
 
-use anymap::CloneAny;
+use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
-  cacheable,
-  with::{AsPreset, AsVec},
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsInner, AsMap, AsOption, AsPreset, AsVec, Unsupported},
 };
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
+use rspack_util::{
+  atom::Atom,
+  ext::{AsAny, IntoAny},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
 use crate::{
   ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeKey, RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
-  incremental::IncrementalPasses,
+  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
 #[cacheable]
@@ -120,27 +122,109 @@ impl CodeGenerationExportsFinalNames {
   }
 }
 
+#[cacheable_dyn]
+pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {}
+
+clone_trait_object!(CodeGenerationDataItem);
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
-pub struct CodeGenerationData {
-  inner: anymap::Map<dyn CloneAny + Send + Sync>,
+pub struct CodeGenerationDataChunkInitFragments {
+  inner: ChunkInitFragments,
 }
 
-impl Deref for CodeGenerationData {
-  type Target = anymap::Map<dyn CloneAny + Send + Sync>;
-
-  fn deref(&self) -> &Self::Target {
+impl CodeGenerationDataChunkInitFragments {
+  pub fn inner(&self) -> &ChunkInitFragments {
     &self.inner
   }
-}
 
-impl DerefMut for CodeGenerationData {
-  fn deref_mut(&mut self) -> &mut Self::Target {
+  pub fn inner_mut(&mut self) -> &mut ChunkInitFragments {
     &mut self.inner
   }
 }
 
+impl From<ChunkInitFragments> for CodeGenerationDataChunkInitFragments {
+  fn from(inner: ChunkInitFragments) -> Self {
+    Self { inner }
+  }
+}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUrl {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationPublicPathAutoReplace {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for URLStaticMode {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataFilename {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationExportsFinalNames {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {}
+
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub struct CodeGenerationData {
+  inner: Vec<Box<dyn CodeGenerationDataItem>>,
+}
+
+impl CodeGenerationData {
+  pub fn insert<T: CodeGenerationDataItem + 'static>(&mut self, item: T) -> Option<T> {
+    if let Some(index) = self
+      .inner
+      .iter()
+      .position(|item| item.as_ref().as_any().is::<T>())
+    {
+      let old = std::mem::replace(&mut self.inner[index], Box::new(item));
+      old.into_any().downcast::<T>().ok().map(|item| *item)
+    } else {
+      self.inner.push(Box::new(item));
+      None
+    }
+  }
+
+  pub fn get<T: CodeGenerationDataItem + 'static>(&self) -> Option<&T> {
+    self
+      .inner
+      .iter()
+      .find_map(|item| item.as_ref().as_any().downcast_ref::<T>())
+  }
+
+  pub fn get_mut<T: CodeGenerationDataItem + 'static>(&mut self) -> Option<&mut T> {
+    self
+      .inner
+      .iter_mut()
+      .find_map(|item| item.as_mut().as_any_mut().downcast_mut::<T>())
+  }
+
+  pub fn contains<T: CodeGenerationDataItem + 'static>(&self) -> bool {
+    self.get::<T>().is_some()
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
+  #[cacheable(with=AsInner<AsMap<AsCacheable, AsPreset>>)]
   pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
@@ -148,6 +232,7 @@ pub struct CodeGenerationResult {
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
+  #[cacheable(with=AsOption<Unsupported>)]
   pub concatenation_scope: Option<ConcatenationScope>,
 }
 
@@ -208,6 +293,7 @@ impl CodeGenerationResult {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct CodeGenResultId(u32);
 
@@ -219,8 +305,10 @@ impl Default for CodeGenResultId {
 
 pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
+  #[cacheable(with=AsMap<AsCacheable, AsInner<AsCacheable>>)]
   module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }
@@ -418,23 +506,27 @@ impl CodeGenerationResults {
     (&self.map, &self.module_generation_result_map)
   }
 
-  pub(crate) fn insert_with_runtime_keys(
-    &mut self,
-    module_identifier: ModuleIdentifier,
-    codegen_res: CodeGenerationResult,
-    runtime_keys: impl IntoIterator<Item = RuntimeKey>,
-  ) {
-    let codegen_res_id = codegen_res.id;
-    self
+  pub(crate) fn sync_code_generation_result_id(&self) {
+    if let Some(next) = self
       .module_generation_result_map
-      .insert(codegen_res_id, BindingCell::from(codegen_res));
-
-    let mut spec_map = RuntimeSpecMap::default();
-    spec_map.mode = RuntimeMode::Map;
-    spec_map
-      .map
-      .extend(runtime_keys.into_iter().map(|key| (key, codegen_res_id)));
-    self.map.insert(module_identifier, spec_map);
+      .keys()
+      .map(|id| id.0)
+      .max()
+      .and_then(|id| id.checked_add(1))
+    {
+      let mut current = CODE_GEN_RESULT_ID.load(Ordering::Relaxed);
+      while current < next {
+        match CODE_GEN_RESULT_ID.compare_exchange_weak(
+          current,
+          next,
+          Ordering::Relaxed,
+          Ordering::Relaxed,
+        ) {
+          Ok(_) => break,
+          Err(value) => current = value,
+        }
+      }
+    }
   }
 }
 

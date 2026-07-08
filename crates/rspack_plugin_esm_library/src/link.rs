@@ -7,13 +7,13 @@ use std::{
 use rayon::{iter::Either, prelude::*};
 use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap};
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
-  ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
-  ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
-  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
+  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataChunkInitFragments, CodeGenerationPublicPathAutoReplace, Compilation,
+  ConcatenatedModuleIdent, ConditionalInitFragment, DependencyType, ExportInfo, ExportMode,
+  ExportProvided, ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT,
+  PathData, RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
+  UsedName, UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
   get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
   get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
@@ -75,7 +75,7 @@ enum ExternalImportBinding {
 
 impl EsmLibraryPlugin {
   fn module_external_fragment_content(
-    init_fragment: Box<dyn rspack_core::InitFragment<ChunkRenderContext>>,
+    init_fragment: Box<dyn rspack_core::InitFragment>,
   ) -> Option<String> {
     if !matches!(init_fragment.key(), InitFragmentKey::ModuleExternal(_)) {
       return None;
@@ -90,7 +90,7 @@ impl EsmLibraryPlugin {
     } else {
       init_fragment
         .clone()
-        .contents(&mut ChunkRenderContext {})
+        .contents(&mut rspack_core::ChunkRenderContext {})
         .ok()
         .map(|contents| contents.start)
     }
@@ -98,7 +98,7 @@ impl EsmLibraryPlugin {
 
   fn collect_module_external_fragments_in_render_order<'a>(
     init_fragment_groups: impl IntoIterator<Item = &'a ChunkInitFragments>,
-  ) -> Vec<Box<dyn rspack_core::InitFragment<ChunkRenderContext>>> {
+  ) -> Vec<Box<dyn rspack_core::InitFragment>> {
     let mut ordered_fragments = Vec::new();
 
     for init_fragments in init_fragment_groups {
@@ -1470,8 +1470,8 @@ var {} = {{}};
                 }
                 let mut chunk_init_fragments = codegen_res
                   .data
-                  .get::<ChunkInitFragments>()
-                  .cloned()
+                  .get::<CodeGenerationDataChunkInitFragments>()
+                  .map(|fragments| fragments.inner().clone())
                   .unwrap_or_default();
                 chunk_init_fragments.extend(codegen_res.chunk_init_fragments.clone());
                 Ok((
@@ -1612,8 +1612,8 @@ var {} = {{}};
                 concate_info.runtime_requirements = codegen_res.runtime_requirements;
                 concate_info.chunk_init_fragments = codegen_res
                   .data
-                  .get::<ChunkInitFragments>()
-                  .cloned()
+                  .get::<CodeGenerationDataChunkInitFragments>()
+                  .map(|fragments| fragments.inner().clone())
                   .unwrap_or_default();
                 concate_info
                   .chunk_init_fragments

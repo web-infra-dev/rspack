@@ -1,9 +1,10 @@
 use std::{collections::BTreeMap, sync::LazyLock};
 
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Chunk, ChunkGraph, Compilation, ModuleIdentifier, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
-  RuntimeTemplate, SourceType, impl_runtime_module,
+  Chunk, ChunkGraph, CodeGenerationDataItem, Compilation, ModuleIdentifier, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::json_stringify_str;
@@ -244,6 +245,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataConsumeShared {
   pub share_scope: ShareScope,
@@ -256,3 +258,6 @@ pub struct CodeGenerationDataConsumeShared {
   pub fallback: Option<String>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataConsumeShared {}

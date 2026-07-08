@@ -8,7 +8,10 @@ use std::{
 use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
-use rspack_cacheable::{cacheable, with::AsPreset};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsPreset, AsTuple2, AsVec},
+};
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
@@ -105,10 +108,7 @@ impl RspackHash for InitFragmentKey {
 }
 
 impl InitFragmentKey {
-  pub fn merge_fragments<C: InitFragmentRenderContext>(
-    &self,
-    fragments: Vec<Box<dyn InitFragment<C>>>,
-  ) -> Box<dyn InitFragment<C>> {
+  pub fn merge_fragments(&self, fragments: Vec<BoxInitFragment>) -> BoxInitFragment {
     match self {
       InitFragmentKey::ESMImport(_) => {
         let mut iter = fragments.into_iter();
@@ -205,7 +205,7 @@ impl InitFragmentKey {
   }
 }
 
-fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>> {
+fn first(fragments: Vec<BoxInitFragment>) -> BoxInitFragment {
   fragments
     .into_iter()
     .next()
@@ -217,9 +217,13 @@ pub trait InitFragmentRenderContext {
   fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
 }
 
-pub trait InitFragment<C>: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
+#[cacheable_dyn]
+pub trait InitFragment: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents>;
+  fn contents(
+    self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents>;
 
   fn stage(&self) -> InitFragmentStage;
 
@@ -232,15 +236,14 @@ pub trait InitFragment<C>: IntoAny + RspackHash + DynClone + Debug + Sync + Send
   }
 }
 
-clone_trait_object!(InitFragment<GenerateContext<'_>>);
-clone_trait_object!(InitFragment<ChunkRenderContext>);
+clone_trait_object!(InitFragment);
 
-pub trait InitFragmentExt<C> {
-  fn boxed(self) -> Box<dyn InitFragment<C>>;
+pub trait InitFragmentExt {
+  fn boxed(self) -> BoxInitFragment;
 }
 
-impl<C, T: InitFragment<C> + 'static> InitFragmentExt<C> for T {
-  fn boxed(self) -> Box<dyn InitFragment<C>> {
+impl<T: InitFragment + 'static> InitFragmentExt for T {
+  fn boxed(self) -> BoxInitFragment {
     Box::new(self)
   }
 }
@@ -284,10 +287,10 @@ impl Display for InitFragmentStage {
 }
 
 /// InitFragment.addToSource
-pub fn render_init_fragments<C: InitFragmentRenderContext>(
+pub fn render_init_fragments(
   source: BoxSource,
-  mut fragments: Vec<Box<dyn InitFragment<C>>>,
-  context: &mut C,
+  mut fragments: Vec<BoxInitFragment>,
+  context: &mut dyn InitFragmentRenderContext,
 ) -> Result<BoxSource> {
   // here use sort_by_key because need keep order equal stage fragments
   fragments.sort_by(|a, b| {
@@ -300,7 +303,7 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
 
   let mut keyed_fragments: IndexMap<
     InitFragmentKey,
-    Vec<Box<dyn InitFragment<C>>>,
+    Vec<BoxInitFragment>,
     BuildHasherDefault<FxHasher>,
   > = IndexMap::default();
   for fragment in fragments {
@@ -333,10 +336,10 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
   Ok(concat_source.boxed())
 }
 
-pub type BoxInitFragment<C> = Box<dyn InitFragment<C>>;
-pub type BoxModuleInitFragment<'a> = BoxInitFragment<GenerateContext<'a>>;
-pub type BoxChunkInitFragment = BoxInitFragment<ChunkRenderContext>;
-pub type ModuleInitFragments<'a> = Vec<BoxModuleInitFragment<'a>>;
+pub type BoxInitFragment = Box<dyn InitFragment>;
+pub type BoxModuleInitFragment = BoxInitFragment;
+pub type BoxChunkInitFragment = BoxInitFragment;
+pub type ModuleInitFragments = Vec<BoxModuleInitFragment>;
 pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 
 impl InitFragmentRenderContext for GenerateContext<'_> {
@@ -365,6 +368,7 @@ impl InitFragmentRenderContext for ChunkRenderContext {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct NormalInitFragment {
   content: String,
@@ -372,6 +376,7 @@ pub struct NormalInitFragment {
   position: i32,
   key: InitFragmentKey,
   end_content: Option<String>,
+  #[cacheable(with=AsVec<AsPreset>)]
   top_level_decl_symbols: Vec<Atom>,
 }
 
@@ -399,8 +404,12 @@ impl NormalInitFragment {
   }
 }
 
-impl<C> InitFragment<C> for NormalInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for NormalInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     Ok(InitFragmentContents {
       start: self.content,
       end: self.end_content,
@@ -424,10 +433,11 @@ impl<C> InitFragment<C> for NormalInitFragment {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum ESMExportBinding {
-  Getter(Atom),
-  Value(Atom),
+  Getter(#[cacheable(with=AsPreset)] Atom),
+  Value(#[cacheable(with=AsPreset)] Atom),
 }
 
 impl RspackHash for ESMExportBinding {
@@ -445,10 +455,12 @@ impl RspackHash for ESMExportBinding {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
+  #[cacheable(with=AsVec<AsTuple2<AsPreset>>)]
   export_map: Vec<(Atom, ESMExportBinding)>,
   is_circular_module: Option<bool>,
 }
@@ -467,8 +479,12 @@ impl ESMExportInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
-  fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ESMExportInitFragment {
+  fn contents(
+    mut self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     let runtime_template = context.runtime_template();
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
@@ -556,8 +572,10 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AwaitDependenciesInitFragment {
+  #[cacheable(with=AsVec)]
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
 }
 
@@ -581,8 +599,12 @@ impl RspackHash for AwaitDependenciesInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for AwaitDependenciesInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
         start: String::new(),
@@ -620,6 +642,7 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ConditionalInitFragment {
   content: String,
@@ -683,8 +706,12 @@ impl ConditionalInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ConditionalInitFragment {
+  fn contents(
+    self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     Ok(
       if matches!(self.runtime_condition, RuntimeCondition::Boolean(false))
         || self.content.is_empty()
@@ -736,6 +763,7 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
   )
 }
 
+#[cacheable]
 #[derive(Debug, Clone, rspack_hash::RspackHash)]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
@@ -807,8 +835,12 @@ impl ExternalModuleInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ExternalModuleInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     let mut named_imports = vec![];
 
     for (name, specifiers) in self.import_specifiers {
@@ -859,224 +891,5 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragmen
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
-  }
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(crate) enum CachedChunkInitFragment {
-  Normal {
-    content: String,
-    stage: InitFragmentStage,
-    position: i32,
-    key: InitFragmentKey,
-    end_content: Option<String>,
-    #[cacheable(with=rspack_cacheable::with::AsVec<AsPreset>)]
-    top_level_decl_symbols: Vec<Atom>,
-  },
-  EsmExport {
-    exports_argument: ExportsArgument,
-    export_map: Vec<CachedEsmExportBindingEntry>,
-    is_circular_module: Option<bool>,
-  },
-  AwaitDependencies {
-    promises: Vec<String>,
-  },
-  Conditional {
-    content: String,
-    stage: InitFragmentStage,
-    position: i32,
-    key: InitFragmentKey,
-    end_content: Option<String>,
-    runtime_condition: RuntimeCondition,
-  },
-  ExternalModule {
-    imported_module: String,
-    import_specifiers: Vec<CachedExternalImportSpecifier>,
-    default_import: Option<String>,
-    stage: InitFragmentStage,
-    position: i32,
-  },
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(crate) struct CachedEsmExportBindingEntry {
-  #[cacheable(with=AsPreset)]
-  name: Atom,
-  binding: CachedEsmExportBinding,
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(crate) enum CachedEsmExportBinding {
-  Getter(#[cacheable(with=AsPreset)] Atom),
-  Value(#[cacheable(with=AsPreset)] Atom),
-}
-
-#[cacheable]
-#[derive(Debug, Clone)]
-pub(crate) struct CachedExternalImportSpecifier {
-  name: String,
-  specifiers: Vec<String>,
-}
-
-impl CachedChunkInitFragment {
-  pub(crate) fn from_fragment(fragment: &BoxChunkInitFragment) -> Option<Self> {
-    if let Ok(fragment) = fragment.clone().into_any().downcast::<NormalInitFragment>() {
-      return Some(Self::Normal {
-        content: fragment.content,
-        stage: fragment.stage,
-        position: fragment.position,
-        key: fragment.key,
-        end_content: fragment.end_content,
-        top_level_decl_symbols: fragment.top_level_decl_symbols,
-      });
-    }
-
-    if let Ok(fragment) = fragment
-      .clone()
-      .into_any()
-      .downcast::<ESMExportInitFragment>()
-    {
-      return Some(Self::EsmExport {
-        exports_argument: fragment.exports_argument,
-        export_map: fragment
-          .export_map
-          .into_iter()
-          .map(|(name, binding)| CachedEsmExportBindingEntry {
-            name,
-            binding: match binding {
-              ESMExportBinding::Getter(value) => CachedEsmExportBinding::Getter(value),
-              ESMExportBinding::Value(value) => CachedEsmExportBinding::Value(value),
-            },
-          })
-          .collect(),
-        is_circular_module: fragment.is_circular_module,
-      });
-    }
-
-    if let Ok(fragment) = fragment
-      .clone()
-      .into_any()
-      .downcast::<AwaitDependenciesInitFragment>()
-    {
-      return Some(Self::AwaitDependencies {
-        promises: fragment.promises.into_iter().collect(),
-      });
-    }
-
-    if let Ok(fragment) = fragment
-      .clone()
-      .into_any()
-      .downcast::<ConditionalInitFragment>()
-    {
-      return Some(Self::Conditional {
-        content: fragment.content,
-        stage: fragment.stage,
-        position: fragment.position,
-        key: fragment.key,
-        end_content: fragment.end_content,
-        runtime_condition: fragment.runtime_condition,
-      });
-    }
-
-    if let Ok(fragment) = fragment
-      .clone()
-      .into_any()
-      .downcast::<ExternalModuleInitFragment>()
-    {
-      return Some(Self::ExternalModule {
-        imported_module: fragment.imported_module,
-        import_specifiers: fragment
-          .import_specifiers
-          .into_iter()
-          .map(|(name, specifiers)| CachedExternalImportSpecifier {
-            name,
-            specifiers: specifiers.into_iter().collect(),
-          })
-          .collect(),
-        default_import: fragment.default_import,
-        stage: fragment.stage,
-        position: fragment.position,
-      });
-    }
-
-    None
-  }
-
-  pub(crate) fn into_fragment(self) -> BoxChunkInitFragment {
-    match self {
-      Self::Normal {
-        content,
-        stage,
-        position,
-        key,
-        end_content,
-        top_level_decl_symbols,
-      } => Box::new(
-        NormalInitFragment::new(content, stage, position, key, end_content)
-          .with_top_level_decl_symbols(top_level_decl_symbols),
-      ),
-      Self::EsmExport {
-        exports_argument,
-        export_map,
-        is_circular_module,
-      } => Box::new(ESMExportInitFragment::new(
-        exports_argument,
-        export_map
-          .into_iter()
-          .map(|entry| {
-            (
-              entry.name,
-              match entry.binding {
-                CachedEsmExportBinding::Getter(value) => ESMExportBinding::Getter(value),
-                CachedEsmExportBinding::Value(value) => ESMExportBinding::Value(value),
-              },
-            )
-          })
-          .collect(),
-        is_circular_module,
-      )),
-      Self::AwaitDependencies { promises } => Box::new(AwaitDependenciesInitFragment::new(
-        promises.into_iter().collect(),
-      )),
-      Self::Conditional {
-        content,
-        stage,
-        position,
-        key,
-        end_content,
-        runtime_condition,
-      } => Box::new(ConditionalInitFragment::new(
-        content,
-        stage,
-        position,
-        key,
-        end_content,
-        runtime_condition,
-      )),
-      Self::ExternalModule {
-        imported_module,
-        import_specifiers,
-        default_import,
-        stage,
-        position,
-      } => Box::new(ExternalModuleInitFragment::new(
-        imported_module,
-        import_specifiers
-          .into_iter()
-          .flat_map(|item| {
-            item
-              .specifiers
-              .into_iter()
-              .map(move |specifier| (item.name.clone(), specifier))
-          })
-          .collect(),
-        default_import,
-        stage,
-        position,
-      )),
-    }
   }
 }

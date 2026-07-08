@@ -194,7 +194,7 @@ impl MockMethodDependencyTemplate {
 
   /// Add a placeholder init fragment that marks where hoisted code should be inserted
   fn add_placeholder_fragment(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
+    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>,
     flag: &str,
     hoist_id: &str,
     request: &str,
@@ -217,9 +217,7 @@ impl MockMethodDependencyTemplate {
   /// We achieve this by inserting a higher-priority fragment with the same key.
   /// Since ESMImport's merge logic returns the first fragment when its runtime_condition is true,
   /// our new fragment will take precedence and the original will be ignored.
-  fn hoist_rstest_core_import(
-    init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment<rspack_core::GenerateContext<'_>>>>,
-  ) {
+  fn hoist_rstest_core_import(init_fragments: &mut Vec<Box<dyn rspack_core::InitFragment>>) {
     let target_key =
       InitFragmentKey::ESMImport("ESM import external global \"@rstest/core\"".to_string());
 
@@ -229,7 +227,7 @@ impl MockMethodDependencyTemplate {
     };
 
     // Clone and downcast to get the content
-    let cloned: Box<dyn rspack_core::InitFragment<_>> = fragment.clone();
+    let cloned: Box<dyn rspack_core::InitFragment> = fragment.clone();
     let Ok(conditional_fragment) = cloned.into_any().downcast::<ConditionalInitFragment>() else {
       return;
     };

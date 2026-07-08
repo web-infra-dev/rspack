@@ -41,19 +41,20 @@ use swc_experimental_ecma_semantic::resolver::{Semantic, resolver};
 use crate::{
   AsyncDependenciesBlockIdentifier, BoxDependency, BoxDependencyTemplate, BoxModule,
   BoxModuleDependency, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
-  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments, ChunkRenderContext,
-  CodeGenerationDataTopLevelDeclarations, CodeGenerationExportsFinalNames,
-  CodeGenerationPublicPathAutoReplace, CodeGenerationResult, Compilation, ConcatenatedModuleIdent,
-  ConcatenationScope, ConditionalInitFragment, ConnectionState, Context, DEFAULT_EXPORT,
-  DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId, DependencyType, ExportInfo, ExportProvided,
-  ExportsArgument, ExportsInfoArtifact, ExportsType, FactoryMeta, ImportedByDeferModulesArtifact,
-  InitFragment, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
-  ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT,
-  ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, escape_identifier, fast_set,
-  filter_runtime, find_target, get_runtime_key, impl_source_map_config, merge_runtime_condition,
-  merge_runtime_condition_non_false, module_update_hash, property_access, property_name,
+  BuildMetaExportsType, BuildResult, ChunkGraph, ChunkInitFragments,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataTopLevelDeclarations,
+  CodeGenerationExportsFinalNames, CodeGenerationPublicPathAutoReplace, CodeGenerationResult,
+  Compilation, ConcatenatedModuleIdent, ConcatenationScope, ConditionalInitFragment,
+  ConnectionState, Context, DEFAULT_EXPORT, DEFAULT_EXPORT_ATOM, DependenciesBlock, DependencyId,
+  DependencyType, ExportInfo, ExportProvided, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  FactoryMeta, ImportedByDeferModulesArtifact, InitFragment, InitFragmentStage, LibIdentOptions,
+  Module, ModuleArgument, ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleIdentifier, ModuleLayer, ModuleStaticCache, ModuleType,
+  NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  escape_identifier, fast_set, filter_runtime, find_target, get_runtime_key,
+  impl_source_map_config, merge_runtime_condition, merge_runtime_condition_non_false,
+  module_update_hash, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type,
   reserved_names::RESERVED_NAMES_ATOM_SET,
   subtract_runtime_condition, to_identifier_with_escaped, to_normal_comment,
@@ -1625,7 +1626,7 @@ impl Module for ConcatenatedModule {
 
     let mut result: ConcatSource = ConcatSource::default();
     let mut should_add_esm_flag = false;
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext>>> = Vec::new();
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment>> = Vec::new();
 
     for ((source, attr), import_spec) in import_stmts {
       let content = render_imports(&source, attr.as_deref(), &import_spec);
@@ -2585,8 +2586,11 @@ impl ConcatenatedModule {
 
       runtime_requirements.extend(*runtime_template.runtime_requirements());
 
-      if let Some(fragments) = codegen_res.data.get::<ChunkInitFragments>() {
-        chunk_init_fragments.extend(fragments.iter().cloned());
+      if let Some(fragments) = codegen_res
+        .data
+        .get::<CodeGenerationDataChunkInitFragments>()
+      {
+        chunk_init_fragments.extend(fragments.inner().iter().cloned());
       }
 
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");

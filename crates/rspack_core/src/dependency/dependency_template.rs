@@ -7,34 +7,38 @@ use rspack_sources::ReplaceSource;
 use rspack_util::ext::AsAny;
 
 use crate::{
-  ChunkInitFragments, CodeGenerationData, Compilation, ConcatenationScope, DependencyType, Module,
-  ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
+  ChunkInitFragments, CodeGenerationData, CodeGenerationDataChunkInitFragments, Compilation,
+  ConcatenationScope, DependencyType, Module, ModuleCodeTemplate, ModuleInitFragments, RuntimeSpec,
 };
 
-pub struct TemplateContext<'a, 'b, 'c> {
+pub struct TemplateContext<'a, 'c> {
   pub compilation: &'a Compilation,
   pub module: &'a dyn Module,
-  pub init_fragments: &'a mut ModuleInitFragments<'b>,
+  pub init_fragments: &'a mut ModuleInitFragments,
   pub runtime: Option<&'a RuntimeSpec>,
   pub concatenation_scope: Option<&'c mut ConcatenationScope>,
   pub data: &'a mut CodeGenerationData,
   pub runtime_template: &'a mut ModuleCodeTemplate,
 }
 
-impl TemplateContext<'_, '_, '_> {
+impl TemplateContext<'_, '_> {
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
-    let data_fragments = self.data.get::<ChunkInitFragments>();
+    let data_fragments = self.data.get::<CodeGenerationDataChunkInitFragments>();
     if data_fragments.is_some() {
       self
         .data
-        .get_mut::<ChunkInitFragments>()
+        .get_mut::<CodeGenerationDataChunkInitFragments>()
         .expect("should have chunk_init_fragments")
+        .inner_mut()
     } else {
-      self.data.insert(ChunkInitFragments::default());
       self
         .data
-        .get_mut::<ChunkInitFragments>()
+        .insert(CodeGenerationDataChunkInitFragments::default());
+      self
+        .data
+        .get_mut::<CodeGenerationDataChunkInitFragments>()
         .expect("should have chunk_init_fragments")
+        .inner_mut()
     }
   }
 }

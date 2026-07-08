@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::{
   ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals,
-  RuntimeModuleGenerateContext, SourceType,
+  CodeGenerationDataChunkInitFragments, CodeGenerationPublicPathAutoReplace, Compilation, Module,
+  RuntimeGlobals, RuntimeModuleGenerateContext, SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -131,8 +131,11 @@ pub async fn render_module(
     return Ok(None);
   };
 
-  let mut module_chunk_init_fragments = match code_gen_result.data.get::<ChunkInitFragments>() {
-    Some(fragments) => fragments.clone(),
+  let mut module_chunk_init_fragments = match code_gen_result
+    .data
+    .get::<CodeGenerationDataChunkInitFragments>()
+  {
+    Some(fragments) => fragments.inner().clone(),
     None => ChunkInitFragments::default(),
   };
 

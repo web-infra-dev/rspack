@@ -144,7 +144,7 @@ impl EsmLibraryPlugin {
     let chunk_link_guard = self.links.borrow();
     let chunk_link = &chunk_link_guard[chunk_ukey];
 
-    let mut chunk_init_fragments: Vec<Box<dyn InitFragment<ChunkRenderContext> + 'static>> =
+    let mut chunk_init_fragments: Vec<Box<dyn InitFragment + 'static>> =
       chunk_link.init_fragments.clone();
 
     let mut replace_auto_public_path = false;
