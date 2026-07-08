@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use concat_string::concat_string;
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkCodeTemplate, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
@@ -907,7 +908,7 @@ var {} = {{}};
         replace_source.replace(
           start as u32,
           end as u32,
-          format!("{output_public_path}{filename}"),
+          concat_string!(output_public_path, filename),
           None,
         );
       }

@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use concat_string::concat_string;
 use rspack_core::{
   ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
   CompilationParams, CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
@@ -186,7 +187,7 @@ async fn render_module_content(
       replace_source.replace(
         start as u32,
         end as u32,
-        format!("{output_public_path}{filename}"),
+        concat_string!(output_public_path, filename),
         None,
       );
     }

@@ -1,6 +1,7 @@
 mod create_script_url_dependency;
 use std::sync::LazyLock;
 
+use concat_string::concat_string;
 pub use create_script_url_dependency::{
   CreateScriptUrlDependency, CreateScriptUrlDependencyTemplate,
 };
@@ -143,8 +144,11 @@ pub struct WorkerDependencyTemplate;
 
 pub static WORKER_STATIC_URL_PLACEHOLDER: &str = "RSPACK_AUTO_WORKER_STATIC_URL_PLACEHOLDER_";
 pub static WORKER_STATIC_URL_PLACEHOLDER_RE: LazyLock<Regex> = LazyLock::new(|| {
-  Regex::new(&format!(r#"{WORKER_STATIC_URL_PLACEHOLDER}(?<dep>\d+)"#))
-    .expect("should be valid regex")
+  Regex::new(&concat_string!(
+    WORKER_STATIC_URL_PLACEHOLDER,
+    r#"(?<dep>\d+)"#
+  ))
+  .expect("should be valid regex")
 });
 
 impl WorkerDependencyTemplate {
@@ -207,12 +211,13 @@ impl DependencyTemplate for WorkerDependencyTemplate {
         String::new()
       };
 
-      format!(
-        "{}, import.meta.url",
-        rspack_util::json_stringify_str(&format!(
-          "{public_path}{WORKER_STATIC_URL_PLACEHOLDER}{}",
-          dep.id.as_u32()
-        ))
+      concat_string!(
+        rspack_util::json_stringify_str(&concat_string!(
+          public_path,
+          WORKER_STATIC_URL_PLACEHOLDER,
+          dep.id.as_u32().to_string()
+        )),
+        ", import.meta.url"
       )
     } else {
       let worker_import_base_url = if !dep.public_path.is_empty() {
@@ -231,7 +236,7 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     };
 
     if dep.need_new_url {
-      worker_import_str = format!("new URL({worker_import_str})");
+      worker_import_str = concat_string!("new URL(", worker_import_str, ")");
     }
 
     source.replace(
