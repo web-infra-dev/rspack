@@ -6,18 +6,11 @@ const sourceFilename = path.resolve(
 );
 const sourceDirname = path.dirname(sourceFilename);
 const sourceUrl = pathToFileURL(sourceFilename).toString();
-const { env, url, webpack } = import.meta;
-const envType = typeof import.meta.env;
-
-if (!import.meta.env) {
-	import.meta.env = { RSPACK_TEST: "runtime" };
-}
+const { url, webpack } = import.meta;
 
 export default {
 	contextType: typeof import.meta.webpackContext,
 	dirname: import.meta.dirname,
-	envOptional: import.meta.env?.RSPACK_TEST,
-	envType,
 	filename: import.meta.filename,
 	globType: typeof import.meta.glob,
 	hotType: typeof import.meta.webpackHot,
@@ -26,7 +19,7 @@ export default {
 	sourceFilename,
 	sourceUrl,
 	url,
-	destructuredEnvType: typeof env,
+	urlOptional: import.meta.url?.length,
 	destructuredUrl: url,
 	destructuredWebpack: webpack,
 	webpack
