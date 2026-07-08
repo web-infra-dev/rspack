@@ -1,8 +1,4 @@
-use std::{
-  collections::hash_map::Entry,
-  fmt::Debug,
-  sync::atomic::{AtomicU32, Ordering},
-};
+use std::{collections::hash_map::Entry, fmt::Debug};
 
 use dyn_clone::{DynClone, clone_trait_object};
 use rspack_cacheable::{
@@ -12,6 +8,7 @@ use rspack_cacheable::{
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
+use rspack_tasks::fetch_new_code_generation_result_id;
 use rspack_util::{
   atom::Atom,
   ext::{AsAny, IntoAny},
@@ -299,11 +296,9 @@ pub struct CodeGenResultId(u32);
 
 impl Default for CodeGenResultId {
   fn default() -> Self {
-    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    Self(fetch_new_code_generation_result_id())
   }
 }
-
-pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
 
 #[cacheable]
 #[derive(Debug, Default, Clone)]
@@ -504,29 +499,6 @@ impl CodeGenerationResults {
     &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   ) {
     (&self.map, &self.module_generation_result_map)
-  }
-
-  pub(crate) fn sync_code_generation_result_id(&self) {
-    if let Some(next) = self
-      .module_generation_result_map
-      .keys()
-      .map(|id| id.0)
-      .max()
-      .and_then(|id| id.checked_add(1))
-    {
-      let mut current = CODE_GEN_RESULT_ID.load(Ordering::Relaxed);
-      while current < next {
-        match CODE_GEN_RESULT_ID.compare_exchange_weak(
-          current,
-          next,
-          Ordering::Relaxed,
-          Ordering::Relaxed,
-        ) {
-          Ok(_) => break,
-          Err(value) => current = value,
-        }
-      }
-    }
   }
 }
 

@@ -59,7 +59,6 @@ impl Occasion for ModulesCodegenOccasion {
     };
 
     let artifact = self.codec.decode::<CodeGenerationResults>(&value)?;
-    artifact.sync_code_generation_result_id();
     tracing::debug!("recovered modules codegen persistent cache artifact");
     Ok(artifact)
   }
