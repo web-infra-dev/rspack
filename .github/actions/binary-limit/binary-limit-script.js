@@ -56,19 +56,20 @@ class PendingBinaryDataError extends Error {
   }
 }
 
-// Baseline is `pr.base.sha` (the commit merged into the PR at run time), not the
-// fork point: PR CI builds from the merge ref, so head size already includes the
-// base tip. Walk main history skipping doc-only commits (they build no binding);
-// the first build-triggering commit is decisive. Use its size data, or — when it
-// isn't published yet (eco CI is slow) — fail loudly, attaching the nearest ancestor
-// that already has data as a non-authoritative reference for a rough number.
+// Baseline is the base commit actually merged into the PR to build the binding
+// (the merge commit's first parent), not the fork point: PR CI builds from the
+// merge ref, so head size already includes that base tip. Walk main history
+// skipping doc-only commits (they build no binding); the first build-triggering
+// commit is decisive. Use its size data, or — when it isn't published yet (eco CI
+// is slow) — fail loudly, attaching the nearest ancestor that already has data as
+// a non-authoritative reference for a rough number.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
   const pr = context.payload.pull_request;
   if (!pr) {
     throw new Error('binary-limit action requires pull_request context');
   }
-  const baseSha = pr.base.sha;
+  const baseSha = await resolveBaseSha(github, owner, repo, context, pr);
   console.log(`Base branch commit: ${baseSha}`);
 
   let pendingBase = null;
@@ -120,6 +121,25 @@ async function findBaseCommit(github, context) {
   throw new Error(
     `No base commit that triggered a linux binding build was found within ${MAX_PAGES} pages of commits from the base branch commit`,
   );
+}
+
+// For `pull_request` events `context.sha` is the ephemeral merge commit that CI
+// checks out (`refs/pull/N/merge`); its first parent is the base commit actually
+// merged in. `pr.base.sha` is only a stale snapshot of the base branch and drifts
+// behind once main advances, so prefer the merge parent and fall back to it only
+// when there is no merge commit (e.g. an unmergeable PR).
+async function resolveBaseSha(github, owner, repo, context, pr) {
+  const { data: mergeCommit } = await github.rest.repos.getCommit({
+    owner,
+    repo,
+    ref: context.sha,
+  });
+  const [base, head] = mergeCommit.parents ?? [];
+  if (mergeCommit.parents?.length === 2 && head?.sha === pr.head.sha) {
+    return base.sha;
+  }
+  console.log('context.sha is not a PR merge commit, using pr.base.sha');
+  return pr.base.sha;
 }
 
 // A binding is built (and size data produced) only for commits touching non-doc
