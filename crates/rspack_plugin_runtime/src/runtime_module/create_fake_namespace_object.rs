@@ -24,14 +24,14 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::MAKE_NAMESPACE_OBJECT | RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      write: { RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       CREATE_FAKE_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
@@ -51,7 +51,7 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
         })
       },
     );
-    let source = context.runtime_template.render(&self.id, params)?;
+    let source = context.runtime_template.render(self.id(), params)?;
 
     Ok(source)
   }

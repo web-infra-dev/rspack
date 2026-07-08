@@ -20,14 +20,14 @@ impl RuntimeModule for GlobalRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::GLOBAL },
+      define: { RuntimeGlobals::GLOBAL },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/global.ejs").to_string(),
     )]
   }
@@ -36,7 +36,7 @@ impl RuntimeModule for GlobalRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

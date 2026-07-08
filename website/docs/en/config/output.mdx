@@ -72,10 +72,10 @@ Used to inject the currently used Rspack information into the generated asset:
 - `bundler`: Used to specify the name of the packaging tool, defaults to `rspack`.
 - `force`: Whether to force the injection of Rspack information, which will be added to chunk as a runtime module, and defaults to `false`. An array can be used to select the items to be forced injected.
 
-By default, injection occurs when either `__rspack_version__` or `__rspack_unique_id__` is detected in the code, and only the corresponding runtime module is injected. Set `force` to `true` to always inject both:
+By default, injection occurs when either `import.meta.rspackVersion` or `import.meta.rspackUniqueId` is detected in the code, and only the corresponding runtime module is injected. Set `force` to `true` to always inject both:
 
-- [`__rspack_version__`](/api/runtime-api/module-variables#__rspack_version__): Inject version information.
-- [`__rspack_unique_id__`](/api/runtime-api/module-variables#__rspack_unique_id__): Inject the unique ID of the bundler.
+- [`import.meta.rspackVersion`](/api/runtime-api/module-variables#importmetarspackversion): Inject version information.
+- [`import.meta.rspackUniqueId`](/api/runtime-api/module-variables#importmetarspackuniqueid): Inject the unique ID of the bundler.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -310,8 +310,7 @@ You **must not** specify an absolute path here. However, feel free to include fo
 
 ```ts
 type DevtoolFallbackModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **Default:** `undefined`
@@ -326,8 +325,7 @@ See [`output.devtoolModuleFilenameTemplate`](/config/output#outputdevtoolmodulef
 
 ```ts
 type DevtoolModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 ```
 
 - **Default:** `webpack://[namespace]/[resource-path]?[loaders]'`
@@ -468,6 +466,8 @@ type Environment = {
   nodePrefixForCoreModules?: boolean;
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
   optionalChaining?: boolean;
+  /** The environment supports logical assignment ('a ||= b'). */
+  logicalAssignment?: boolean;
   /** The environment supports template literals. */
   templateLiteral?: boolean;
 };

@@ -3,7 +3,7 @@ var currentUpdate;
 var currentUpdateRemovedChunks;
 var currentUpdateRuntime;
 function applyHandler(options) {
-	if (<%- ENSURE_CHUNK_HANDLERS %>) delete <%- ENSURE_CHUNK_HANDLERS %>.<%- _loading_method %>Hmr;
+	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	currentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
@@ -449,8 +449,8 @@ function applyHandler(options) {
 			currentUpdateChunks[chunkId] = false;
 		}
 	});
-	if (<%- ENSURE_CHUNK_HANDLERS %>) {
-		<%- ENSURE_CHUNK_HANDLERS %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
+	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) {
+		<%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr = function (chunkId, promises) {
 			if (
 				currentUpdateChunks &&
 				<%- HAS_OWN_PROPERTY %>(currentUpdateChunks, chunkId) &&

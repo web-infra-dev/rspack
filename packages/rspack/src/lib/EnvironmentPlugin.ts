@@ -21,8 +21,7 @@ class EnvironmentPlugin {
 
   constructor(
     ...keys:
-      | string[]
-      | [Record<string, string | undefined | null> | string | string[]]
+      string[] | [Record<string, string | undefined | null> | string | string[]]
   ) {
     if (keys.length === 1 && Array.isArray(keys[0])) {
       this.keys = keys[0];

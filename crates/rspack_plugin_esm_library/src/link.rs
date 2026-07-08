@@ -650,7 +650,7 @@ impl EsmLibraryPlugin {
             .expect("should have box module");
           let module_readable_identifier =
             box_module.readable_identifier(&compilation.options.context);
-          let strict_esm_module = box_module.build_meta().strict_esm_module;
+          let strict_esm_module = box_module.build_meta().strict_esm_module();
 
           // scope hoisted module can only exist in only 1 chunk
           // so it's safe to use module_info.namespace_object_name, which is
@@ -810,7 +810,7 @@ impl EsmLibraryPlugin {
               .module_by_identifier(&target_module)
               .expect("should have target module")
               .build_meta()
-              .strict_esm_module;
+              .strict_esm_module();
 
             Self::get_binding(
               None,
@@ -1039,8 +1039,8 @@ var {} = {{}};
       let module = module_graph
         .module_by_identifier(id)
         .expect("should have module");
-      let exports_type = module.build_meta().exports_type;
-      let default_object = module.build_meta().default_object;
+      let exports_type = module.build_meta().exports_type();
+      let default_object = module.build_meta().default_object();
 
       let info = &mut concate_modules_map[id];
       let readable_identifier =
@@ -1405,6 +1405,7 @@ var {} = {{}};
         .get_path_with_info(
           &filename_template,
           PathData::default()
+            .chunk(chunk.ukey(), compilation)
             .chunk_hash_optional(chunk.rendered_hash(
               &compilation.chunk_hashes_artifact,
               compilation.options.output.hash_digest_length,
@@ -2016,7 +2017,7 @@ var {} = {{}};
       module_graph,
       &compilation.module_graph_cache_artifact,
       &compilation.exports_info_artifact,
-      module.build_meta().strict_esm_module,
+      module.build_meta().strict_esm_module(),
     );
 
     if matches!(exports_type, ExportsType::DefaultOnly) {
@@ -2050,7 +2051,7 @@ var {} = {{}};
           needed_namespace_objects,
           false,
           false,
-          module.build_meta().strict_esm_module,
+          module.build_meta().strict_esm_module(),
           None,
           &mut Default::default(),
           required,
@@ -2753,7 +2754,7 @@ var {} = {{}};
               needed_namespace_objects,
               options.call,
               !options.direct_import,
-              module.build_meta().strict_esm_module,
+              module.build_meta().strict_esm_module(),
               options.asi_safe,
               &mut Default::default(),
               required,
@@ -3052,6 +3053,13 @@ var {} = {{}};
       .expect("should have module");
     let exports_type =
       module.get_exports_type(mg, mg_cache, exports_info_artifact, strict_esm_module);
+    if Self::is_source_phase_external(mg, info_id)
+      && export_name
+        .first()
+        .is_some_and(|name| name.as_str() == "default")
+    {
+      export_name.remove(0);
+    }
     let info = &mut module_to_info_map[info_id];
 
     if export_name.is_empty() {
@@ -3366,7 +3374,7 @@ var {} = {{}};
                 needed_namespace_objects,
                 as_call,
                 call_context,
-                build_meta.strict_esm_module,
+                build_meta.strict_esm_module(),
                 asi_safe,
                 already_visited,
                 required,
@@ -3434,6 +3442,12 @@ var {} = {{}};
         }
       }
     }
+  }
+
+  fn is_source_phase_external(mg: &ModuleGraph, module_id: &ModuleIdentifier) -> bool {
+    mg.module_by_identifier(module_id)
+      .and_then(|module| module.as_external_module())
+      .is_some_and(|external_module| external_module.get_import_phase().is_source())
   }
 }
 

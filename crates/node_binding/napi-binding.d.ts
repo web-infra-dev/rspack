@@ -1020,13 +1020,13 @@ export interface JsPathData {
   runtime?: string
   url?: string
   id?: string
-  chunk?: JsPathDataChunkLike
+  chunk?: Chunk | JsPathDataChunkLike
 }
 
 export interface JsPathDataChunkLike {
+  id?: string | number
   name?: string
   hash?: string
-  id?: string
 }
 
 export interface JsResolveData {
@@ -2119,6 +2119,7 @@ export interface RawCopyRspackPluginOptions {
 }
 
 export interface RawCssAutoOrModuleParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2176,6 +2177,7 @@ export interface RawCssModuleGeneratorOptions {
 }
 
 export interface RawCssModuleParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2189,6 +2191,7 @@ export interface RawCssModuleParserOptions {
 }
 
 export interface RawCssParserOptions {
+  exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
   import?: boolean
@@ -2268,6 +2271,7 @@ export interface RawEnvironment {
   globalThis: boolean
   module: boolean
   optionalChaining: boolean
+  logicalAssignment: boolean
   templateLiteral: boolean
   dynamicImportInWorker: boolean
   importMetaDirnameAndFilename: boolean

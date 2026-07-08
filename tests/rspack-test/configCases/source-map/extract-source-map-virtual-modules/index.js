@@ -7,15 +7,19 @@ require("./lib/components/virtual-component");
 it("should extract source map from virtual modules", () => {
 	const fileData = fs.readFileSync(__filename + ".map").toString("utf-8");
 	const { sources } = JSON.parse(fileData);
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
 
 	// Should include main file and virtual modules without inline sourcemap
-	expect(sources).toContain("webpack:///./index.js");
-	expect(sources).toContain("webpack:///./virtual-module-without-sourcemap.js");
-	expect(sources).toContain("webpack:///./virtual-test.txt");
-	expect(sources).toContain("webpack:///./src/components/virtual-component.js");
+	expect(sources).toContain(sourceUrl("./index.js"));
+	expect(sources).toContain(sourceUrl("./virtual-module-without-sourcemap.js"));
+	expect(sources).toContain(sourceUrl("./virtual-test.txt"));
+	expect(sources).toContain(sourceUrl("./src/components/virtual-component.js"));
 
 	// Should not include virtual modules with inline sourcemap as they're filtered by extractSourceMap
-	expect(sources).not.toContain("webpack:///./virtual-module-with-sourcemap.js");
+	expect(sources).not.toContain(sourceUrl("./virtual-module-with-sourcemap.js"));
 });
 
 it("should handle virtual modules with extractSourceMap correctly", () => {

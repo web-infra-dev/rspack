@@ -141,6 +141,41 @@ export default {
 };
 ```
 
+### CSS export type
+
+内置 CSS 支持默认使用 `exportType: 'link'`。这会将 CSS 作为样式表产物输出，并通过内置 CSS loading runtime 加载。你可以设置 `module.parser.css.exportType`，或设置 `css/auto`、`css/global`、`css/module` 的 parser 选项，来改变 CSS 导出到 JavaScript 的方式。
+
+支持的取值：
+
+- `link`：将 CSS 作为样式表产物输出。
+- `text`：将生成后的 CSS 文本作为默认导出。
+- `css-style-sheet`：将 `CSSStyleSheet` 实例作为默认导出。
+- `style`：在运行时通过 `<style>` 标签将 CSS 注入到文档中。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/i,
+        type: 'css/auto',
+        parser: {
+          exportType: 'text',
+        },
+      },
+    ],
+  },
+};
+```
+
+```js title="index.js"
+import cssText from './style.css';
+
+console.log(cssText);
+```
+
+更多细节请参考 [module.parser["css/auto"].exportType](/config/module-parser#cssautoexporttype)。
+
 ### 使用 CssExtractRspackPlugin
 
 Rspack 支持使用 [css-loader](https://github.com/webpack/css-loader) 和 [CssExtractRspackPlugin](/plugins/rspack/css-extract-rspack-plugin)，用于生成独立的 CSS 文件。

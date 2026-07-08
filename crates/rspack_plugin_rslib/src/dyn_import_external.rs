@@ -90,7 +90,7 @@ pub fn cutout_star_re_export_externals(
       .module_by_identifier(&module_id)
       .expect("should have entry module");
 
-    if !module.build_meta().esm {
+    if !module.build_meta().esm() {
       continue;
     }
 

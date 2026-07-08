@@ -4,7 +4,7 @@ use cow_utils::CowUtils;
 use heck::{ToLowerCamelCase, ToSnakeCase};
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::RuntimeGlobals;
+use rspack_core::{Compilation, RuntimeGlobals};
 use rspack_plugin_runtime::{
   CreateLinkData, CreateScriptData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper,
 };
@@ -104,11 +104,11 @@ pub struct JsCreateLinkData {
   pub chunk: ChunkWrapper,
 }
 
-impl From<CreateLinkData> for JsCreateLinkData {
-  fn from(value: CreateLinkData) -> Self {
+impl JsCreateLinkData {
+  pub fn from_data(value: CreateLinkData<'_>, compilation: &Compilation) -> Self {
     Self {
       code: value.code,
-      chunk: value.chunk.into(),
+      chunk: ChunkWrapper::new(value.chunk.ukey(), compilation),
     }
   }
 }
@@ -120,11 +120,11 @@ pub struct JsLinkPreloadData {
   pub chunk: ChunkWrapper,
 }
 
-impl From<LinkPreloadData> for JsLinkPreloadData {
-  fn from(value: LinkPreloadData) -> Self {
+impl JsLinkPreloadData {
+  pub fn from_data(value: LinkPreloadData<'_>, compilation: &Compilation) -> Self {
     Self {
       code: value.code,
-      chunk: value.chunk.into(),
+      chunk: ChunkWrapper::new(value.chunk.ukey(), compilation),
     }
   }
 }
@@ -136,22 +136,19 @@ pub struct JsLinkPrefetchData {
   pub chunk: ChunkWrapper,
 }
 
-impl From<LinkPrefetchData> for JsLinkPrefetchData {
-  fn from(value: LinkPrefetchData) -> Self {
+impl JsLinkPrefetchData {
+  pub fn from_data(value: LinkPrefetchData<'_>, compilation: &Compilation) -> Self {
     Self {
       code: value.code,
-      chunk: value.chunk.into(),
+      chunk: ChunkWrapper::new(value.chunk.ukey(), compilation),
     }
   }
 }
 
 impl From<RuntimeModuleChunkWrapper> for ChunkWrapper {
   fn from(value: RuntimeModuleChunkWrapper) -> Self {
-    Self {
-      chunk_ukey: value.chunk_ukey,
-      compilation_id: value.compilation_id,
-      compilation: value.compilation,
-    }
+    let compilation = unsafe { value.compilation.as_ref() };
+    ChunkWrapper::new(value.chunk_ukey, compilation)
   }
 }
 

@@ -174,6 +174,22 @@ impl RuntimeTemplate {
       })),
     );
 
+    let runtime_globals_cloned = runtime_globals.clone();
+    dojang.functions.insert(
+      "define".into(),
+      FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
+        dojang_define(runtime_global, &runtime_globals_cloned)
+      })),
+    );
+
+    let runtime_globals_cloned = runtime_globals.clone();
+    dojang.functions.insert(
+      "weak".into(),
+      FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
+        dojang_weak(runtime_global, &runtime_globals_cloned)
+      })),
+    );
+
     Self {
       compiler_options,
       runtime_mode,
@@ -195,7 +211,10 @@ impl RuntimeTemplate {
   }
 
   pub fn runtime_module_prefix(&self) -> &'static str {
-    "webpack/runtime/"
+    match self.runtime_mode {
+      RuntimeMode::Webpack => "webpack/runtime/",
+      RuntimeMode::Rspack => "rspack/runtime/",
+    }
   }
 
   pub fn create_runtime_module_identifier(&self, name: &str) -> Identifier {
@@ -497,6 +516,20 @@ fn dojang_array_destructure(
   }
 }
 
+fn dojang_define(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+  // `define(...)` marks a runtime global assignment; the EJS extractor records it in `define`.
+  Operand::Value(Value::from(
+    to_cow(&runtime_global, runtime_globals).into_owned(),
+  ))
+}
+
+fn dojang_weak(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+  // `weak(...)` marks an optional runtime global read; the extractor records it in `weak`.
+  Operand::Value(Value::from(
+    to_cow(&runtime_global, runtime_globals).into_owned(),
+  ))
+}
+
 // information content of the comment
 #[derive(Default)]
 struct CommentOptions<'a> {
@@ -605,7 +638,7 @@ pub fn get_outgoing_async_modules(
     if !visited.insert(module_identifier) {
       return;
     }
-    if module.build_meta().has_top_level_await {
+    if module.build_meta().has_top_level_await() {
       set.insert(
         ChunkGraph::get_module_id(&compilation.module_ids_artifact, module_identifier)
           .expect("should have module_id")
@@ -1119,7 +1152,7 @@ impl ModuleCodeTemplate {
       &module.identifier(),
     );
 
-    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
       let async_deps = get_outgoing_async_modules(compilation, target_module.as_ref());
       let import_content = format!(
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
@@ -1176,7 +1209,7 @@ impl ModuleCodeTemplate {
 
     let target_module_identifier = target_module.identifier();
 
-    let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await;
+    let is_deferred = phase.is_defer() && !target_module.build_meta().has_top_level_await();
 
     let mut exclude_default_export_name = None;
     if default_interop {
@@ -1423,7 +1456,7 @@ impl ModuleCodeTemplate {
 
     let mut appending;
 
-    if phase.is_defer() && !target_module.build_meta().has_top_level_await {
+    if phase.is_defer() && !target_module.build_meta().has_top_level_await() {
       let mode = format!(
         "{} | 16",
         render_make_deferred_namespace_mode_from_exports_type(exports_type)

@@ -97,7 +97,7 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      write: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
+      define: { RuntimeGlobals::ENSURE_CHUNK | RuntimeGlobals::ENSURE_CHUNK_HANDLERS },
       ..Default::default()
     }
   }
@@ -120,7 +120,7 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    let chunk_ukey = self.chunk.expect("should have chunk");
+    let chunk_ukey = self.chunk().expect("should have chunk");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -194,7 +194,7 @@ var chunkMap = {{
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::REQUIRE_SCOPE | RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
-      write: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
+      define: RuntimeGlobals::ENSURE_CHUNK_HANDLERS,
       ..Default::default()
     }
   }

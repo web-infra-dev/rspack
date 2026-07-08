@@ -266,9 +266,7 @@ import { createFsFromVolume, Volume } from 'memfs';
 import { rspack } from '@rspack/core';
 
 const fs = createFsFromVolume(new Volume());
-const compiler = rspack({
-  /* options */
-});
+const compiler = rspack({/* options */});
 
 compiler.outputFileSystem = fs;
 compiler.run((err, stats) => {

@@ -11,8 +11,8 @@ use rspack_core::{
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
-use rspack_hash::{RspackHash, RspackHashDigest};
-use rspack_util::{ext::DynHash, json_stringify, json_stringify_str, source_map::SourceMapKind};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
+use rspack_util::{json_stringify, json_stringify_str, source_map::SourceMapKind};
 
 use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
@@ -256,8 +256,8 @@ impl Module for ConsumeSharedModule {
     compilation: &Compilation,
     runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
-    self.options.dyn_hash(&mut hasher);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
+    self.options.hash(&mut hasher);
     module_update_hash(self, &mut hasher, compilation, runtime);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

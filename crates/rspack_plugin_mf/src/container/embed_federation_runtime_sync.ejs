@@ -1,6 +1,6 @@
 var prevStartup = <%- STARTUP %>;
 var hasRun = false;
-<%- STARTUP %> = function () {
+<%- define(STARTUP) %> = function () {
 	if (!hasRun) {
 		hasRun = true;
 <%- _module_executions %>	}

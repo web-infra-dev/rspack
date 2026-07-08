@@ -1,10 +1,10 @@
-use std::{cmp::Ordering, fmt::Debug, hash::Hash};
+use std::{cmp::Ordering, fmt::Debug};
 
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_collections::IdentifierSet;
 use rspack_error::Diagnostic;
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use ustr::Ustr;
@@ -734,7 +734,7 @@ impl Chunk {
     self.groups.clear();
   }
 
-  pub fn update_hash(&self, hasher: &mut RspackHash, compilation: &Compilation) {
+  pub fn update_hash(&self, hasher: &mut RspackHasher, compilation: &Compilation) {
     self.id().hash(hasher);
     let runtime_modules = compilation
       .build_chunk_graph_artifact

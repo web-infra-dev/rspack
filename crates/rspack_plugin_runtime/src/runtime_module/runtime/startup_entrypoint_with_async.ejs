@@ -1,4 +1,4 @@
-<%- STARTUP_ENTRYPOINT %> = <%- basicFunction("result, chunkIds, fn") %> {
+<%- define(STARTUP_ENTRYPOINT) %> = <%- basicFunction("result, chunkIds, fn") %> {
   // arguments: chunkIds, moduleId are deprecated
   var moduleId = chunkIds;
   if (!fn) chunkIds = result, fn = <%- returningFunction("$$RUNTIME_GLOBAL_REQUIRE$$($$RUNTIME_GLOBAL_ENTRY_MODULE_ID$$ = moduleId)", "") %>

@@ -39,7 +39,6 @@ impl CommonJsRequireDependency {
     range_expr: Option<DependencyRange>,
     optional: bool,
     loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -48,7 +47,7 @@ impl CommonJsRequireDependency {
       range,
       range_expr,
       loc,
-      referenced_specifiers,
+      referenced_specifiers: None,
       branch_guard: None,
       context: None,
       resource_identifier: Default::default(),
@@ -63,7 +62,6 @@ impl CommonJsRequireDependency {
     optional: bool,
     context: Context,
     loc: Option<DependencyLocation>,
-    referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   ) -> Self {
     let resource_identifier = create_resource_identifier_for_contextual_commonjs_dependency(
       "cjs require",
@@ -74,18 +72,17 @@ impl CommonJsRequireDependency {
     Self {
       context: Some(context),
       resource_identifier,
-      ..Self::new(
-        request,
-        range,
-        range_expr,
-        optional,
-        loc,
-        referenced_specifiers,
-      )
+      ..Self::new(request, range, range_expr, optional, loc)
     }
   }
 
   pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
+    if referenced_specifiers.is_empty() {
+      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
+      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
+      // see test case `tests/rspack-test/configCases/cjs-tree-shaking/side-effects-free`
+      return;
+    }
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 

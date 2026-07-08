@@ -1,13 +1,12 @@
 use std::{
   collections::hash_map::Entry,
-  hash::Hash,
   ops::{Deref, DerefMut},
   sync::atomic::AtomicU32,
 };
 
 use anymap::CloneAny;
 use rspack_collections::IdentifierMap;
-use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest};
+use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
 use rspack_util::atom::Atom;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
@@ -164,10 +163,10 @@ impl CodeGenerationResult {
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
   ) {
-    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     for (source_type, source) in self.inner.as_ref() {
       source_type.hash(&mut hasher);
-      source.hash(&mut hasher);
+      std::hash::Hash::hash(source, &mut hasher);
     }
     self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
@@ -185,7 +184,7 @@ impl CodeGenerationResult {
     hash_digest: &HashDigest,
     hash_salt: &HashSalt,
   ) {
-    let mut hasher = RspackHash::with_salt(hash_function, hash_salt);
+    let mut hasher = RspackHasher::with_salt(hash_function, hash_salt);
     runtime_hash.hash(&mut hasher);
     for source_type in self.inner.as_ref().keys() {
       source_type.hash(&mut hasher);

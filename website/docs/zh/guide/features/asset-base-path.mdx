@@ -73,14 +73,14 @@ export default {
 
 ## 动态设置 publicPath
 
-在 JavaScript 代码中，你可以通过 Rspack 的 [`__webpack_public_path__`](/api/runtime-api/module-variables#__webpack_public_path__) 来动态设置 `publicPath`。
+在 JavaScript 代码中，你可以通过 Rspack 的 [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath) 来动态设置 `publicPath`。
 
-`__webpack_public_path__` 会覆盖 Rspack 配置中的 `output.publicPath`，但它只能对异步加载的资源生效，不会对 HTML 中通过 `<script src="...">` 加载的资源生效。
+`import.meta.rspackPublicPath` 会覆盖 Rspack 配置中的 `output.publicPath`，但它只能对异步加载的资源生效，不会对 HTML 中通过 `<script src="...">` 加载的资源生效。
 
 首先创建一个 `publicPath.js`：
 
 ```js title="publicPath.js"
-__webpack_public_path__ =
+import.meta.rspackPublicPath =
   location.hostname === 'foo.com'
     ? 'https://cdn1.com/assets/'
     : 'https://cdn2.com/assets/';

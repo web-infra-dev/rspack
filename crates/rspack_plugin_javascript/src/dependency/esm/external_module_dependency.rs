@@ -4,13 +4,14 @@ use rspack_core::{
   ExternalModuleInitFragment, InitFragmentExt, InitFragmentStage, RuntimeSpec, TemplateContext,
   TemplateReplaceSource,
 };
-use rspack_util::ext::DynHash;
+use rspack_hash::{RspackHash, RspackHasher};
 
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, RspackHash)]
 pub struct ExternalModuleDependency {
   module: String,
   import_specifier: Vec<(String, String)>,
+  #[rspack_hash(null_if_none)]
   default_import: Option<String>,
 }
 
@@ -36,13 +37,11 @@ impl DependencyCodeGeneration for ExternalModuleDependency {
 
   fn update_hash(
     &self,
-    hasher: &mut dyn std::hash::Hasher,
+    hasher: &mut RspackHasher,
     _compilation: &Compilation,
     _runtime: Option<&RuntimeSpec>,
   ) {
-    self.module.dyn_hash(hasher);
-    self.import_specifier.dyn_hash(hasher);
-    self.default_import.dyn_hash(hasher);
+    RspackHash::hash(self, hasher);
   }
 }
 

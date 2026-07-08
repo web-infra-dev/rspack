@@ -14,33 +14,8 @@ pub fn impl_runtime_module(
   if let syn::Fields::Named(ref mut fields) = input.fields {
     fields.named.push(
       syn::Field::parse_named
-        .parse2(quote! { pub id: ::rspack_collections::Identifier })
-        .expect("Failed to parse new field for id"),
-    );
-    fields.named.push(
-      syn::Field::parse_named
-        .parse2(quote! { pub chunk: Option<::rspack_core::ChunkUkey> })
-        .expect("Failed to parse new field for chunk"),
-    );
-    fields.named.push(
-      syn::Field::parse_named
-        .parse2(quote! { pub source_map_kind: ::rspack_util::source_map::SourceMapKind })
-        .expect("Failed to parse new field for source_map_kind"),
-    );
-    fields.named.push(
-      syn::Field::parse_named
-        .parse2(quote! {
-            pub custom_source: Option<String>
-        })
-        .expect("Failed to parse new field for custom_source"),
-    );
-    fields.named.push(
-      syn::Field::parse_named
-            .parse2(quote! {
-                #[cacheable(with=rspack_cacheable::with::Skip)]
-                pub cached_generated_code: std::sync::Arc<::tokio::sync::OnceCell<::rspack_core::rspack_sources::BoxSource>>
-            })
-        .expect("Failed to parse new field for cached_generated_code"),
+        .parse2(quote! { pub common: ::rspack_core::RuntimeModuleCommon })
+        .expect("Failed to parse new field for common"),
     );
   }
 
@@ -53,11 +28,7 @@ pub fn impl_runtime_module(
     #[allow(clippy::too_many_arguments)]
     fn with_default(runtime_template: &::rspack_core::RuntimeTemplate, #(#field_names: #field_tys,)*) -> Self {
       Self {
-        source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
-        custom_source: None,
-        cached_generated_code: Default::default(),
-        chunk: None,
-        id: runtime_template.create_runtime_module_identifier(stringify!(#name)),
+        common: ::rspack_core::RuntimeModuleCommon::with_default(runtime_template, stringify!(#name)),
         #(#field_names,)*
       }
     }
@@ -67,11 +38,7 @@ pub fn impl_runtime_module(
     #[allow(clippy::too_many_arguments)]
     fn with_name(runtime_template: &::rspack_core::RuntimeTemplate, name: &str, #(#field_names: #field_tys,)*) -> Self {
       Self {
-        source_map_kind: ::rspack_util::source_map::SourceMapKind::empty(),
-        custom_source: None,
-        cached_generated_code: Default::default(),
-        chunk: None,
-        id: runtime_template.create_custom_runtime_module_identifier(name),
+        common: ::rspack_core::RuntimeModuleCommon::with_name(runtime_template, name),
         #(#field_names,)*
       }
     }
@@ -85,43 +52,28 @@ pub fn impl_runtime_module(
 
       #with_name
 
+      pub fn id(&self) -> &::rspack_collections::Identifier {
+        self.common.id()
+      }
+
+      pub fn chunk(&self) -> Option<::rspack_core::ChunkUkey> {
+        self.common.chunk()
+      }
+
       async fn get_generated_code(
         &self,
         compilation: &::rspack_core::Compilation,
       ) -> ::rspack_error::Result<std::sync::Arc<dyn ::rspack_core::rspack_sources::Source>> {
-        let result: ::rspack_error::Result<&::rspack_core::rspack_sources::BoxSource> = self.cached_generated_code.get_or_try_init(|| async {
-          use ::rspack_util::source_map::ModuleSourceMapConfig;
-          use ::rspack_collections::Identifiable;
-          use ::rspack_core::rspack_sources::SourceExt;
-
-          let runtime_template = compilation.runtime_template.create_runtime_code_template();
-          let context = ::rspack_core::RuntimeModuleGenerateContext {
-            compilation,
-            runtime_template: &runtime_template,
-          };
-          let source_str = self.generate_with_custom(&context).await?;
-          let source_map_kind = self.get_source_map_kind();
-          Ok(if source_map_kind.enabled() {
-            ::rspack_core::rspack_sources::OriginalSource::new(
-              source_str,
-              self.identifier().as_str(),
-            )
-            .boxed()
-          } else {
-            ::rspack_core::rspack_sources::RawStringSource::from(source_str).boxed()
-          })
-        }).await;
-        let source = result?.clone();
-        Ok(source)
+        ::rspack_core::runtime_module_get_generated_code(self, &self.common, compilation).await
       }
     }
 
     impl #impl_generics ::rspack_core::CustomSourceRuntimeModule for #name #ty_generics #where_clause {
       fn set_custom_source(&mut self, source: String) -> () {
-        self.custom_source = Some(source);
+        self.common.set_custom_source(source);
       }
       fn get_custom_source(&self) -> Option<String> {
-        self.custom_source.clone()
+        self.common.get_custom_source()
       }
       fn get_constructor_name(&self) -> String {
         String::from(stringify!(#name))
@@ -130,13 +82,13 @@ pub fn impl_runtime_module(
 
     impl #impl_generics ::rspack_core::AttachableRuntimeModule for #name #ty_generics #where_clause {
       fn attach(&mut self, chunk: ::rspack_core::ChunkUkey) -> () {
-        self.chunk = Some(chunk);
+        self.common.attach(chunk);
       }
     }
 
     impl #impl_generics ::rspack_core::NamedRuntimeModule for #name #ty_generics #where_clause {
       fn name(&self) -> ::rspack_collections::Identifier {
-        self.id
+        *self.id()
       }
     }
 
@@ -185,10 +137,7 @@ pub fn impl_runtime_module(
         _source_type: Option<&::rspack_core::SourceType>,
         _compilation: Option<&::rspack_core::Compilation>,
       ) -> f64 {
-        self
-          .cached_generated_code
-          .get()
-          .map_or(0f64, |cached_generated_code| cached_generated_code.size() as f64)
+        self.common.size()
       }
 
       fn readable_identifier(&self, _context: &::rspack_core::Context) -> std::borrow::Cow<str> {
@@ -226,10 +175,7 @@ pub fn impl_runtime_module(
         &self,
         code_generation_context: &mut ::rspack_core::ModuleCodeGenerationContext,
       ) -> rspack_error::Result<::rspack_core::CodeGenerationResult> {
-        let mut result = ::rspack_core::CodeGenerationResult::default();
-        let source = self.get_generated_code(code_generation_context.compilation).await?;
-        result.add(::rspack_core::SourceType::Runtime, source);
-        Ok(result)
+        ::rspack_core::runtime_module_code_generation(self, &self.common, code_generation_context).await
       }
 
       async fn get_runtime_hash(
@@ -237,23 +183,7 @@ pub fn impl_runtime_module(
         compilation: &::rspack_core::Compilation,
         runtime: Option<&::rspack_core::RuntimeSpec>,
       ) -> rspack_error::Result<::rspack_hash::RspackHashDigest> {
-        use rspack_util::ext::DynHash;
-        use rspack_core::NamedRuntimeModule;
-        let mut hasher = rspack_hash::RspackHash::from(&compilation.options.output);
-        self.name().dyn_hash(&mut hasher);
-        self.stage().dyn_hash(&mut hasher);
-        if self.full_hash() || self.dependent_hash() {
-          use std::hash::Hash;
-          let runtime_template = compilation.runtime_template.create_runtime_code_template();
-          let context = ::rspack_core::RuntimeModuleGenerateContext {
-            compilation,
-            runtime_template: &runtime_template,
-          };
-          self.generate_with_custom(&context).await?.hash(&mut hasher);
-        } else {
-          self.get_generated_code(compilation).await?.dyn_hash(&mut hasher);
-        }
-        Ok(hasher.digest(&compilation.options.output.hash_digest))
+        ::rspack_core::runtime_module_get_runtime_hash(self, &self.common, compilation, runtime).await
       }
 
       async fn build(
@@ -284,11 +214,11 @@ pub fn impl_runtime_module(
 
     impl #impl_generics ::rspack_util::source_map::ModuleSourceMapConfig for #name #ty_generics #where_clause {
       fn get_source_map_kind(&self) -> &::rspack_util::source_map::SourceMapKind {
-        &self.source_map_kind
+        self.common.get_source_map_kind()
       }
 
       fn set_source_map_kind(&mut self, source_map_kind: ::rspack_util::source_map::SourceMapKind) {
-        self.source_map_kind = source_map_kind;
+        self.common.set_source_map_kind(source_map_kind);
       }
     }
   }

@@ -6,7 +6,7 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
 use serde::Serialize;
 
@@ -19,12 +19,8 @@ use crate::{
 static REMOTES_LOADING_TEMPLATE: &str = include_str!("./remotesLoading.ejs");
 static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      REMOTES_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
     force_context: RuntimeGlobals::CURRENT_REMOTE_GET_SCOPE,
-    ..Default::default()
+    ..extract_runtime_globals_from_ejs(REMOTES_LOADING_TEMPLATE)
   });
 
 #[impl_runtime_module]
@@ -59,7 +55,7 @@ impl RuntimeModule for RemoteRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), REMOTES_LOADING_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -69,7 +65,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <RemoteRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -140,7 +136,7 @@ impl RuntimeModule for RemoteRuntimeModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
       )
     } else {
-      runtime_template.render(self.id.as_str(), None)?
+      runtime_template.render(self.id().as_str(), None)?
     };
     Ok(format!(
       r#"

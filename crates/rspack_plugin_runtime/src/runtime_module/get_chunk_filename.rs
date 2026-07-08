@@ -34,8 +34,8 @@ pub struct GetChunkFilenameRuntimeModule {
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.debug_struct("GetChunkFilenameRuntimeModule")
-      .field("id", &self.id)
-      .field("chunk", &self.chunk)
+      .field("id", self.id())
+      .field("chunk", &self.chunk())
       .field("content_type", &self.content_type)
       .field("source_type", &self.source_type)
       .field("global", &self.global)
@@ -89,7 +89,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           RuntimeGlobals::default()
         }
       },
-      write: {
+      define: {
         match self.source_type {
           SourceType::JavaScript => RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME,
           SourceType::Css => RuntimeGlobals::GET_CHUNK_CSS_FILENAME,
@@ -102,7 +102,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_chunk_filename.ejs").to_string(),
     )]
   }
@@ -118,7 +118,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunks = self
-      .chunk
+      .chunk()
       .and_then(|chunk_ukey| {
         compilation
           .build_chunk_graph_artifact
@@ -385,6 +385,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                 fake_filename
                   .render(
                     PathData::default()
+                      .chunk(chunk.ukey(), compilation)
                       .chunk_name_optional(chunk.name())
                       .chunk_id_optional(chunk.id().map(|id| id.as_str())),
                     None,
@@ -412,7 +413,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       }
     }
 
-    let source = runtime_template.render(&self.id, Some(serde_json::json!({
+    let source = runtime_template.render(self.id(), Some(serde_json::json!({
       "_global": self.global,
       "_static_urls": static_urls
                         .iter()

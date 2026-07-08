@@ -17,7 +17,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   const dts = fs.readFileSync(
     path.resolve(
       __dirname,
-      "../../../../configCases/rslib/emit-isolated-dts/dist/types/index.d.ts",
+      "../src/dist/types/index.d.ts",
     ),
     "utf-8",
   );
@@ -36,7 +36,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   const typeOnlyDts = fs.readFileSync(
     path.resolve(
       __dirname,
-      "../../../../configCases/rslib/emit-isolated-dts/dist/types/types/foo.d.ts",
+      "../src/dist/types/types/foo.d.ts",
     ),
     "utf-8",
   );
@@ -47,7 +47,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   const aliasDts = fs.readFileSync(
     path.resolve(
       __dirname,
-      "../../../../configCases/rslib/emit-isolated-dts/dist/types/alias/foo.d.ts",
+      "../src/dist/types/alias/foo.d.ts",
     ),
     "utf-8",
   );
@@ -58,7 +58,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   const aliasMixedDts = fs.readFileSync(
     path.resolve(
       __dirname,
-      "../../../../configCases/rslib/emit-isolated-dts/dist/types/alias/mixed.d.ts",
+      "../src/dist/types/alias/mixed.d.ts",
     ),
     "utf-8",
   );
@@ -70,7 +70,7 @@ it("should emit declaration assets only through RslibPlugin", () => {
   const mtsDts = fs.readFileSync(
     path.resolve(
       __dirname,
-      "../../../../configCases/rslib/emit-isolated-dts/dist/types/module.d.mts",
+      "../src/dist/types/module.d.mts",
     ),
     "utf-8",
   );

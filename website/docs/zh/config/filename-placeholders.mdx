@@ -197,14 +197,7 @@ type PathData = {
   runtime?: string;
   url?: string;
   id?: string | number;
-  chunk?: Chunk | ChunkPathData;
+  chunk?: Chunk;
   contentHashType?: string;
-};
-
-type ChunkPathData = {
-  id?: string | number;
-  name?: string;
-  hash?: string;
-  contentHash?: Record<string, string>;
 };
 ```

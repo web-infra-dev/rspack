@@ -28,7 +28,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::RSC_MANIFEST },
+      define: { RuntimeGlobals::RSC_MANIFEST },
       ..Default::default()
     }
   }
@@ -46,7 +46,7 @@ impl RuntimeModule for RscManifestRuntimeModule {
     let server_compiler_id = compilation.compiler_id();
 
     let Some(entry_name) = self
-      .chunk
+      .chunk()
       .as_ref()
       .and_then(|chunk_ukey| {
         compilation

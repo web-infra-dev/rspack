@@ -328,7 +328,7 @@ export default {
 - **Type:** `string`
 - **Default:** `node_modules/.cache/rspack/<mode>` or `node_modules/.cache/rspack/<name>-<mode>`
 
-Use `directory` to configure the cache directory. The default directory is resolved from [`config.context`](/config/#context), [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and the multi-compiler index. In multi-compiler mode, later compilers append `-<index>` to avoid sharing the same directory.
+Use `directory` to configure the cache directory. The default directory is resolved from [`config.context`](/config/context), [`config.name`](/config/other-options#name), [`config.mode`](/config/mode#mode), and the multi-compiler index. In multi-compiler mode, later compilers append `-<index>` to avoid sharing the same directory.
 
 ```js title="rspack.config.mjs"
 export default {

@@ -16,8 +16,7 @@ export type LiteralUnion<T extends U, U> = T | (U & Record<never, never>);
 export type FilenameTemplate = string;
 
 export type Filename =
-  | FilenameTemplate
-  | ((pathData: PathData, assetInfo?: AssetInfo) => string);
+  FilenameTemplate | ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 //#region Name
 /** Name of the configuration. Used when loading multiple configurations. */
@@ -52,8 +51,7 @@ export type Falsy = false | '' | 0 | null | undefined;
 //#region Entry
 /** The publicPath of the resource referenced by this entry. */
 export type PublicPath =
-  | LiteralUnion<'auto', string>
-  | Exclude<Filename, string>;
+  LiteralUnion<'auto', string> | Exclude<Filename, string>;
 
 /** The baseURI of the resource referenced by this entry. */
 export type BaseUri = string;
@@ -292,8 +290,7 @@ export type EnabledLibraryTypes = string[];
 
 /** Whether delete all files in the output directory. */
 export type Clean =
-  | boolean
-  | { keep?: string | RegExp | ((path: string) => boolean) };
+  boolean | { keep?: string | RegExp | ((path: string) => boolean) };
 
 /** Output JavaScript files as module type. */
 export type OutputModule = boolean;
@@ -385,8 +382,7 @@ export interface ModuleFilenameTemplateContext {
 
 /** This option is only used when devtool uses an option that requires module names. */
 export type DevtoolModuleFilenameTemplate =
-  | string
-  | ((context: ModuleFilenameTemplateContext) => string);
+  string | ((context: ModuleFilenameTemplateContext) => string);
 
 /** A fallback is used when the template string or function above yields duplicates. */
 export type DevtoolFallbackModuleFilenameTemplate =
@@ -444,6 +440,9 @@ export type Environment = {
 
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
   optionalChaining?: boolean;
+
+  /** The environment supports logical assignment ('a ||= b'). */
+  logicalAssignment?: boolean;
 
   /** The environment supports template literals. */
   templateLiteral?: boolean;
@@ -1027,6 +1026,7 @@ export type AssetParserOptions = {
 
 export type CssParserNamedExports = boolean;
 export type CssParserUrl = boolean;
+export type CssParserExportType = 'link' | 'text' | 'css-style-sheet' | 'style';
 
 export type CssParserResolveImportContext = {
   url: string;
@@ -1037,11 +1037,19 @@ export type CssParserResolveImportContext = {
 };
 
 export type CssParserResolveImport =
-  | boolean
-  | ((context: CssParserResolveImportContext) => boolean);
+  boolean | ((context: CssParserResolveImportContext) => boolean);
 
 /** Options object for `css` modules. */
 export type CssParserOptions = {
+  /**
+   * Configure how CSS content is exported to JavaScript.
+   *
+   * The default value is `"link"`, which emits CSS as stylesheet output.
+   *
+   * @default "link"
+   */
+  exportType?: CssParserExportType;
+
   /**
    * Use ES modules named export for CSS exports.
    * @default true
@@ -1069,6 +1077,15 @@ export type CssParserOptions = {
 
 /** Options object for `css/global` modules. */
 export type CssModuleParserOptions = {
+  /**
+   * Configure how CSS content is exported to JavaScript.
+   *
+   * The default value is `"link"`, which emits CSS as stylesheet output.
+   *
+   * @default "link"
+   */
+  exportType?: CssParserExportType;
+
   /**
    * Use ES modules named export for CSS exports.
    * @default true
@@ -1361,8 +1378,7 @@ export type ParserOptionsByModuleTypeUnknown = {
 
 /** Configure all parsers' options in one place with module.parser. */
 export type ParserOptionsByModuleType =
-  | ParserOptionsByModuleTypeKnown
-  | ParserOptionsByModuleTypeUnknown;
+  ParserOptionsByModuleTypeKnown | ParserOptionsByModuleTypeUnknown;
 
 export type AssetGeneratorDataUrlOptions = {
   encoding?: false | 'base64';
@@ -1378,8 +1394,7 @@ export type AssetGeneratorDataUrlFunction = (
 ) => string;
 
 export type AssetGeneratorDataUrl =
-  | AssetGeneratorDataUrlOptions
-  | AssetGeneratorDataUrlFunction;
+  AssetGeneratorDataUrlOptions | AssetGeneratorDataUrlFunction;
 
 /** Options for asset inline modules. */
 export type AssetInlineGeneratorOptions = {
@@ -1438,11 +1453,7 @@ export type AssetGeneratorOptions = AssetInlineGeneratorOptions &
   AssetResourceGeneratorOptions;
 
 export type CssGeneratorExportsConvention =
-  | 'as-is'
-  | 'camel-case'
-  | 'camel-case-only'
-  | 'dashes'
-  | 'dashes-only';
+  'as-is' | 'camel-case' | 'camel-case-only' | 'dashes' | 'dashes-only';
 
 export type CssGeneratorExportsOnly = boolean;
 
@@ -1553,8 +1564,7 @@ export type GeneratorOptionsByModuleTypeUnknown = Record<
 
 /** Options for module.generator */
 export type GeneratorOptionsByModuleType =
-  | GeneratorOptionsByModuleTypeKnown
-  | GeneratorOptionsByModuleTypeUnknown;
+  GeneratorOptionsByModuleTypeKnown | GeneratorOptionsByModuleTypeUnknown;
 
 type NoParseOptionSingle = string | RegExp | ((request: string) => boolean);
 
@@ -2024,9 +2034,7 @@ export type MemoryCacheOptions = {
  * cache: false
  */
 export type CacheOptions =
-  | boolean
-  | MemoryCacheOptions
-  | PersistentCacheOptions;
+  boolean | MemoryCacheOptions | PersistentCacheOptions;
 //#endregion
 
 //#region Stats
@@ -2042,21 +2050,15 @@ export type StatsPresets =
   | 'summary';
 
 type AssetFilterItemTypes =
-  | RegExp
-  | string
-  | ((name: string, asset: any) => boolean);
+  RegExp | string | ((name: string, asset: any) => boolean);
 
 type AssetFilterTypes = boolean | AssetFilterItemTypes | AssetFilterItemTypes[];
 
 type ModuleFilterItemTypes =
-  | RegExp
-  | string
-  | ((name: string, module: any, type: any) => boolean);
+  RegExp | string | ((name: string, module: any, type: any) => boolean);
 
 type ModuleFilterTypes =
-  | boolean
-  | ModuleFilterItemTypes
-  | ModuleFilterItemTypes[];
+  boolean | ModuleFilterItemTypes | ModuleFilterItemTypes[];
 
 export type StatsColorOptions = {
   /**
@@ -2520,18 +2522,12 @@ export type OptimizationSplitChunksNameFunction = (
 ) => string | undefined;
 
 type OptimizationSplitChunksName =
-  | string
-  | false
-  | OptimizationSplitChunksNameFunction;
+  string | false | OptimizationSplitChunksNameFunction;
 
 type OptimizationSplitChunksSizes = number | Record<string, number>;
 
 type OptimizationSplitChunksChunks =
-  | 'initial'
-  | 'async'
-  | 'all'
-  | RegExp
-  | ((chunk: Chunk) => boolean);
+  'initial' | 'async' | 'all' | RegExp | ((chunk: Chunk) => boolean);
 
 type SharedOptimizationSplitChunksCacheGroup = {
   /**
@@ -2957,11 +2953,7 @@ export type Incremental = {
  * Presets for incremental
  */
 export type IncrementalPresets =
-  | boolean
-  | 'none'
-  | 'safe'
-  | 'advance'
-  | 'advance-silent';
+  boolean | 'none' | 'safe' | 'advance' | 'advance-silent';
 
 /**
  * Options for experiments.buildHttp

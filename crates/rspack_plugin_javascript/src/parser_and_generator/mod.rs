@@ -342,7 +342,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
 
     if compiler_options.optimization.side_effects.is_true() {
       let has_side_effects = side_effects_item.is_some();
-      build_meta.side_effect_free = Some(!has_side_effects);
+      build_meta.set_side_effect_free(!has_side_effects);
       if has_side_effects {
         build_info.deferred_pure_checks.clear();
       }
@@ -432,7 +432,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
     // Only ES modules are valid for optimization
-    if module.build_meta().exports_type != BuildMetaExportsType::Namespace {
+    if module.build_meta().exports_type() != BuildMetaExportsType::Namespace {
       return Some("Module is not an ECMAScript module".into());
     }
 

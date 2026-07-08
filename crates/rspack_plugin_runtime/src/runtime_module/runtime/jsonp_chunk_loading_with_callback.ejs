@@ -24,10 +24,10 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 		installedChunks[chunkId] = 0;
 	}
 	<% if (_with_on_chunk_load) { %>
-	return <%- ON_CHUNKS_LOADED %>(result);
+	return <%- weak(ON_CHUNKS_LOADED) %>(result);
 	<% } %>
 };
 
-var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+var chunkLoadingGlobal = <%- _chunk_loading_global_init_expr %>;
 chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));

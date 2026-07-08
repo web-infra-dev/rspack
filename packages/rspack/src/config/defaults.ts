@@ -765,6 +765,12 @@ const applyOutputDefaults = (
   );
   F(
     environment,
+    'logicalAssignment',
+    // No optimistic, because it is new syntax and older runtimes parse-fail on it.
+    () => tp && tp.logicalAssignment === true,
+  );
+  F(
+    environment,
     'nodePrefixForCoreModules',
     () => tp && optimistic(tp.nodePrefixForCoreModules),
   );
@@ -781,8 +787,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImport, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -790,8 +795,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.dynamicImportInWorker, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(
     environment,
@@ -799,8 +803,7 @@ const applyOutputDefaults = (
     () =>
       tp &&
       (conditionallyOptimistic(tp.module, output.module) as
-        | boolean
-        | undefined),
+        boolean | undefined),
   );
   F(environment, 'document', () => tp && optimistic(tp.document));
 

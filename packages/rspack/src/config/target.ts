@@ -99,6 +99,8 @@ export type EcmaTargetProperties = {
   module: boolean | null;
   /**  optional chaining is available */
   optionalChaining: boolean | null;
+  /**  logical assignment is available */
+  logicalAssignment: boolean | null;
   /**  template literal is available */
   templateLiteral: boolean | null;
   /**  async functions and await are available */
@@ -298,6 +300,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(4),
         templateLiteral: v(4),
         optionalChaining: v(14),
+        logicalAssignment: v(15),
         methodShorthand: v(4),
         arrowFunction: v(6),
         asyncFunction: v(7, 6),
@@ -372,6 +375,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(1, 1),
         templateLiteral: v(1, 1),
         optionalChaining: v(8),
+        logicalAssignment: v(10),
         methodShorthand: v(1, 1),
         arrowFunction: v(1, 1),
         asyncFunction: v(1, 7),
@@ -462,6 +466,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
+        logicalAssignment: v >= 2021,
         methodShorthand: v >= 2015,
         arrowFunction: v >= 2015,
         forOf: v >= 2015,

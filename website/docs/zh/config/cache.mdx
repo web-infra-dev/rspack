@@ -330,7 +330,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `node_modules/.cache/rspack/<mode>` 或 `node_modules/.cache/rspack/<name>-<mode>`
 
-通过 `directory` 设置缓存目录。默认目录会基于 [`config.context`](/config/#context)、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成。在 multi compiler 模式下，后续 compiler 会追加 `-<index>` 以避免共享同一个目录。
+通过 `directory` 设置缓存目录。默认目录会基于 [`config.context`](/config/context)、[`config.name`](/config/other-options#name)、[`config.mode`](/config/mode#mode) 和 multi compiler 的 index 生成。在 multi compiler 模式下，后续 compiler 会追加 `-<index>` 以避免共享同一个目录。
 
 ```js title="rspack.config.mjs"
 export default {

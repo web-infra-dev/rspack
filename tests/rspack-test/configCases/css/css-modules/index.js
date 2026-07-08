@@ -2,16 +2,16 @@ const prod = process.env.NODE_ENV === "production";
 
 it("should allow to create css modules", async () => {
   const { default: x } = await import("./use-style.js");
-	expect(x).toMatchSnapshot(prod ? "prod" : "dev");
+  expect(x).toMatchSnapshot(prod ? "prod" : "dev");
 
 	const fs = require("fs");
 	const path = require("path");
 	const cssOutputFilename = prod ? "142.bundle1.css" : "use-style_js.bundle0.css";
 
-	const cssContent = fs.readFileSync(
-		path.join(__dirname, cssOutputFilename),
-		"utf-8"
-	);
-	expect(cssContent).not.toContain(".my-app--");
-	expect(cssContent).toMatchSnapshot(prod ? "prod" : "dev");
+  const cssContent = fs.readFileSync(
+    path.join(__dirname, cssOutputFilename),
+    "utf-8"
+  );
+  expect(cssContent).not.toContain(".my-app--");
+  expect(cssContent).toMatchSnapshot(prod ? "prod" : "dev");
 });

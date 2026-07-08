@@ -20,14 +20,14 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::NODE_MODULE_DECORATOR },
+      define: { RuntimeGlobals::NODE_MODULE_DECORATOR },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/node_module_decorator.ejs").to_string(),
     )]
   }
@@ -36,7 +36,7 @@ impl RuntimeModule for NodeModuleDecoratorRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

@@ -90,8 +90,7 @@ export async function run(
     const runner = context.getRunner(bundle, env);
     if (__DEBUG__) {
       const runLogs = context.getValue(DEBUG_SCOPES.RunLogs) as
-        | string[]
-        | undefined;
+        string[] | undefined;
       runLogs?.push(
         `Start running entry: ${bundle} in ${runner.constructor.name}(${(runner as any).__key__})`,
       );

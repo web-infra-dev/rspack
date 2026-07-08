@@ -24,7 +24,7 @@ impl MakeOptimizedDeferredNamespaceObjectRuntimeModule {
 impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT_TEMPLATE.to_string(),
     )]
   }
@@ -38,7 +38,7 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     let has_async = get_chunk_runtime_requirements(compilation, &self.chunk_ukey)
       .contains(RuntimeGlobals::ASYNC_MODULE);
     let source = runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
         "_has_async": has_async,
@@ -62,7 +62,7 @@ impl RuntimeModule for MakeOptimizedDeferredNamespaceObjectRuntimeModule {
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies,
-      write: { RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT },
+      define: { RuntimeGlobals::MAKE_OPTIMIZED_DEFERRED_NAMESPACE_OBJECT },
       ..Default::default()
     }
   }

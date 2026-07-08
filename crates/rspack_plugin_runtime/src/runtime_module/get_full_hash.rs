@@ -20,14 +20,14 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::GET_FULL_HASH },
+      define: { RuntimeGlobals::GET_FULL_HASH },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/get_full_hash.ejs").to_string(),
     )]
   }
@@ -38,7 +38,7 @@ impl RuntimeModule for GetFullHashRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_hash": format!("\"{}\"", compilation.get_hash().unwrap_or("XXXX"))
       })),

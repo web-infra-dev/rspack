@@ -950,10 +950,7 @@ export default {
 
 ```ts
 type DevServerStatic =
-  | string
-  | boolean
-  | DevServerStaticItem
-  | (string | DevServerStaticItem)[];
+  string | boolean | DevServerStaticItem | (string | DevServerStaticItem)[];
 ```
 
 用于配置开发服务器如何提供额外的静态文件。这些文件直接从磁盘目录读取并返回，不会经过 Rspack 编译。

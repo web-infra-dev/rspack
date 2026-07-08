@@ -218,28 +218,25 @@ fn resolve_global_parser_options(
         },
       )
     }
-    ModuleType::CssGlobal => rspack_util::merge_from_optional_with(
-      parser_options.get("css").cloned(),
-      options,
-      |css_options, options| match (css_options, options) {
-        (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
-          ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(&a).merge_from(b))
-        }
-        _ => unreachable!(),
-      },
-    ),
-    ModuleType::CssAuto | ModuleType::CssModule => rspack_util::merge_from_optional_with(
-      parser_options.get("css").cloned(),
-      options,
-      |css_options, options| match (css_options, options) {
-        (ParserOptions::Css(a), ParserOptions::CssAutoOrModule(b)) => {
-          ParserOptions::CssAutoOrModule(
-            Into::<CssAutoOrModuleParserOptions>::into(&a).merge_from(b),
-          )
-        }
-        _ => unreachable!(),
-      },
-    ),
+    ModuleType::CssAuto | ModuleType::CssGlobal | ModuleType::CssModule => {
+      rspack_util::merge_from_optional_with(
+        parser_options.get("css").cloned(),
+        options,
+        |css_options, options| match (css_options, options) {
+          (ParserOptions::Css(a), ParserOptions::CssAutoOrModule(b)) => {
+            ParserOptions::CssAutoOrModule(
+              Into::<CssAutoOrModuleParserOptions>::into(&a).merge_from(b),
+            )
+          }
+          (ParserOptions::Css(a), ParserOptions::CssModule(b)) => ParserOptions::CssAutoOrModule(
+            Into::<CssModuleParserOptions>::into(&a)
+              .merge_from(b)
+              .into(),
+          ),
+          _ => unreachable!(),
+        },
+      )
+    }
     _ => options.cloned(),
   }
 }
@@ -308,15 +305,12 @@ fn normalize_css_parser_options(
     return parser;
   }
 
-  match (module_type, parser.as_ref()) {
-    (ModuleType::CssGlobal, Some(ParserOptions::Css(options))) => Some(ParserOptions::CssModule(
-      CssModuleParserOptions::from(options),
-    )),
-    (
-      ModuleType::Css | ModuleType::CssAuto | ModuleType::CssModule,
-      Some(ParserOptions::Css(options)),
-    ) => Some(ParserOptions::CssAutoOrModule(
+  match parser.as_ref() {
+    Some(ParserOptions::Css(options)) => Some(ParserOptions::CssAutoOrModule(
       CssAutoOrModuleParserOptions::from(options),
+    )),
+    Some(ParserOptions::CssModule(options)) => Some(ParserOptions::CssAutoOrModule(
+      CssAutoOrModuleParserOptions::from(options.clone()),
     )),
     _ => parser,
   }
@@ -585,34 +579,42 @@ mod tests {
   fn normalize_css_options_for_parser_and_generator_builder() {
     let options_cache = FxDashMap::default();
     let module_rules: [&ModuleRuleEffect; 0] = [];
-    let options = resolve_module_options(
-      &options_cache,
-      &module_rules,
-      &ModuleType::Css,
-      Some(&ParserOptions::Css(CssParserOptions {
-        named_exports: Some(true),
-        url: None,
-        r#import: None,
-        resolve_import: None,
-      })),
-      Some(&GeneratorOptions::Css(CssGeneratorOptions {
-        exports_only: Some(false),
-        es_module: Some(true),
-      })),
-    );
+    for module_type in [
+      ModuleType::Css,
+      ModuleType::CssAuto,
+      ModuleType::CssGlobal,
+      ModuleType::CssModule,
+    ] {
+      let options = resolve_module_options(
+        &options_cache,
+        &module_rules,
+        &module_type,
+        Some(&ParserOptions::Css(CssParserOptions {
+          export_type: None,
+          named_exports: Some(true),
+          url: None,
+          r#import: None,
+          resolve_import: None,
+        })),
+        Some(&GeneratorOptions::Css(CssGeneratorOptions {
+          exports_only: Some(false),
+          es_module: Some(true),
+        })),
+      );
 
-    let parser_options = options
-      .parser_options()
-      .and_then(ParserOptions::get_css_module)
-      .expect("css parser options should be normalized to CssModule");
-    let generator_options = options
-      .generator_options()
-      .and_then(GeneratorOptions::get_css_module)
-      .expect("css generator options should be normalized to CssModule");
+      let parser_options = options
+        .parser_options()
+        .and_then(ParserOptions::get_css_module)
+        .expect("css parser options should be normalized to CssAutoOrModule");
+      let generator_options = options
+        .generator_options()
+        .and_then(GeneratorOptions::get_css_module)
+        .expect("css generator options should be normalized to CssModule");
 
-    assert_eq!(parser_options.named_exports, Some(true));
-    assert_eq!(generator_options.exports_only, Some(false));
-    assert_eq!(generator_options.es_module, Some(true));
+      assert_eq!(parser_options.named_exports, Some(true));
+      assert_eq!(generator_options.exports_only, Some(false));
+      assert_eq!(generator_options.es_module, Some(true));
+    }
   }
 
   #[test]

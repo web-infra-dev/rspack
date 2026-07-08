@@ -1,9 +1,6 @@
 use std::{path::Path, sync::Arc};
 
-use napi::{
-  Either,
-  bindgen_prelude::{Function, block_on},
-};
+use napi::{Either, bindgen_prelude::Function};
 use napi_derive::napi;
 use rspack_core::Resolver;
 use serde::Serialize;
@@ -54,7 +51,7 @@ impl JsResolver {
   #[napi]
   pub fn resolve_sync(&self, path: String, request: String) -> napi::Result<Either<String, ()>> {
     #[allow(clippy::disallowed_methods)]
-    block_on(async {
+    rspack_napi::runtime::block_on(async {
       match self.resolver.resolve(Path::new(&path), &request).await {
         Ok(rspack_core::ResolveResult::Resource(resource)) => Ok(Either::A(resource.full_path())),
         Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),

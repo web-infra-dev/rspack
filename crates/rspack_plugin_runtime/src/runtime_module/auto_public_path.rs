@@ -23,7 +23,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
+    vec![(self.id().to_string(), AUTO_PUBLIC_PATH_TEMPLATE.to_string())]
   }
 
   async fn generate(
@@ -32,7 +32,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
-    let chunk = self.chunk.expect("The chunk should be attached");
+    let chunk = self.chunk().expect("The chunk should be attached");
     let chunk = compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
@@ -46,6 +46,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .get_path(
         &filename,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
@@ -61,7 +62,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       .await?;
     auto_public_path_template(
       runtime_template,
-      &self.id,
+      self.id(),
       &filename,
       &compilation.options.output,
     )
@@ -76,7 +77,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
       } else {
         RuntimeGlobals::GLOBAL
       },
-      write: { RuntimeGlobals::PUBLIC_PATH },
+      define: { RuntimeGlobals::PUBLIC_PATH },
       force_context: RuntimeGlobals::PUBLIC_PATH,
       ..Default::default()
     }

@@ -24,14 +24,14 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::DEFINE_PROPERTY_GETTERS,
-      write: { RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT },
+      define: { RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       COMPAT_GET_DEFAULT_EXPORT_TEMPLATE.to_string(),
     )]
   }
@@ -40,7 +40,7 @@ impl RuntimeModule for CompatGetDefaultExportRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

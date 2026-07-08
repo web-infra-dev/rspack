@@ -297,7 +297,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
     module_graph,
     module_graph_cache,
     exports_info_artifact,
-    parent_module.build_meta().strict_esm_module,
+    parent_module.build_meta().strict_esm_module(),
   );
   let additional_msg = || {
     if is_reexport {
@@ -468,7 +468,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       if !ids.is_empty()
         && ids[0] != "default"
         && matches!(
-          imported_module.build_meta().default_object,
+          imported_module.build_meta().default_object(),
           BuildMetaDefaultObject::RedirectWarn
         )
         // Ignore the JSON named exports warning: this doesn't follow the standards

@@ -5,7 +5,7 @@ use rspack_core::{
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::json_stringify_str;
 
 use super::consume_shared_plugin::ConsumeVersion;
@@ -18,29 +18,11 @@ static CONSUMES_COMMON_TEMPLATE: &str = include_str!("./consumesCommon.ejs");
 static CONSUMES_INITIAL_TEMPLATE: &str = include_str!("./consumesInitial.ejs");
 static CONSUMES_LOADING_TEMPLATE: &str = include_str!("./consumesLoading.ejs");
 static CONSUMES_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CONSUMES_COMMON_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_COMMON_TEMPLATE));
 static CONSUMES_INITIAL_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CONSUMES_INITIAL_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_INITIAL_TEMPLATE));
 static CONSUMES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
-  LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      CONSUMES_LOADING_TEMPLATE,
-      RuntimeGlobals::default(),
-    ),
-    ..Default::default()
-  });
+  LazyLock::new(|| extract_runtime_globals_from_ejs(CONSUMES_LOADING_TEMPLATE));
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -55,9 +37,9 @@ impl ConsumeSharedRuntimeModule {
 
   fn get_template_id(&self, template_id: TemplateId) -> String {
     match template_id {
-      TemplateId::Common => format!("{}_consumesCommon", self.id),
-      TemplateId::Initial => format!("{}_consumesInitial", self.id),
-      TemplateId::Loading => format!("{}_consumesLoading", self.id),
+      TemplateId::Common => format!("{}_consumesCommon", self.id()),
+      TemplateId::Initial => format!("{}_consumesInitial", self.id()),
+      TemplateId::Loading => format!("{}_consumesLoading", self.id()),
     }
   }
 }
@@ -112,7 +94,7 @@ impl RuntimeModule for ConsumeSharedRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ConsumeSharedRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact

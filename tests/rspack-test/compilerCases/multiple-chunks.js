@@ -5,6 +5,11 @@ module.exports = {
   options(context) {
     return {
       entry: "./chunks",
+      output: {
+        environment: {
+          logicalAssignment: true
+        }
+      }
     };
   },
 
@@ -27,6 +32,6 @@ module.exports = {
     expect(bundle).not.toMatch("fixtures");
     expect(chunk).not.toMatch("fixtures");
     expect(bundle).toMatch("rspackChunk");
-    expect(chunk).toMatch('self["rspackChunk"] || []).push');
+    expect(chunk).toMatch('(self["rspackChunk"] ||= []).push');
   }
 };

@@ -452,17 +452,15 @@ componentsContext.keys().forEach((fileName) => {
 
 The ESM equivalent of [`module.hot`](#modulehot). `import.meta.webpackHot` can be used in strict ESM modules (module type `javascript/esm`), while `module.hot` cannot.
 
-## Runtime
+### import.meta.rspackHash
 
-### \_\_webpack_hash\_\_
-
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
 
 It provides access to the hash of the compilation.
 
 <Columns>
 ```js title=Source
-__webpack_hash__
+import.meta.rspackHash;
 ```
 
 ```js title=Compiled
@@ -475,6 +473,157 @@ __webpack_require__.h = function () {
 ```
 
 </Columns>
+
+### import.meta.rspackPublicPath
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath).
+
+<Columns>
+```js title=Source
+import.meta.rspackPublicPath;
+```
+
+```js title=Compiled
+__webpack_require__.p;
+
+// output.publicPath !== "auto"
+__webpack_require__.p = 'output.publicPath';
+// output.publicPath === "auto"
+__webpack_require__.p = 'calculated from document/location';
+```
+
+</Columns>
+
+> See [Dynamically set publicPath](/guide/features/asset-base-path#dynamically-set-publicpath) for more information about the usage of `import.meta.rspackPublicPath`.
+
+### import.meta.rspackBaseUri
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Get or change base URI at runtime.
+
+<Columns>
+```js title=Source
+import.meta.rspackBaseUri;
+```
+
+```js title=Compiled
+__webpack_require__.b;
+
+// chunk loading
+__webpack_require__.b = document.baseURI || self.location.href;
+```
+
+</Columns>
+
+### import.meta.rspackNonce
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Rspack is capable of adding a nonce to all scripts that it loads. To activate this feature, set `import.meta.rspackNonce` in your entry script.
+
+<Columns>
+```js title=Source
+import.meta.rspackNonce = 'your_nonce_code';
+```
+
+```js title=Compiled
+__webpack_require__.nc = '2312312';
+
+// webpack/runtime/load_script
+if (__webpack_require__.nc) {
+  script.setAttribute('nonce', __webpack_require__.nc);
+}
+```
+
+</Columns>
+
+### import.meta.rspackShareScopes
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+This object is used as a shared scope in the remote container and is filled with the provided modules from a host.
+
+<Columns>
+```js title=Source
+import.meta.rspackShareScopes;
+```
+
+```js title=Compiled
+__webpack_require__.S;
+```
+
+</Columns>
+
+### import.meta.rspackInitSharing
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+This method is used to initialize modules of a shared scope in the host container.
+
+<Columns>
+```js title=Source
+import.meta.rspackInitSharing('default');
+```
+
+```js title=Compiled
+__webpack_require__.I('default');
+```
+
+</Columns>
+
+### import.meta.rspackVersion
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+Current Rspack version, default to version in `@rspack/core/package.json`, can be modified through `output.bundlerInfo.version`.
+
+<Columns>
+```js title=Source
+import.meta.rspackVersion;
+```
+
+```js title=Compiled
+__webpack_require__.rv();
+
+// webpack/runtime/rspack_version
+__webpack_require__.rv = () => '0.7.4';
+```
+
+</Columns>
+
+### import.meta.rspackUniqueId
+
+<ApiMeta specific={['Rspack']} addedVersion="2.1.2" />
+
+The ID of the current bundler, the value is `bundler={bundler}@{version}`:
+
+- `bundler`: Default to `"rspack"` and can be modified through [output.bundlerInfo.bundler](/config/output#outputbundlerinfo).
+- `version`: Default to version in `@rspack/core/package.json` and can be modified through [output.bundlerInfo.version](/config/output#outputbundlerinfo).
+
+<Columns>
+```js title=Source
+import.meta.rspackUniqueId;
+```
+
+```js title=Compiled
+__webpack_require__.ruid;
+
+// webpack/runtime/rspack_unique_id
+__webpack_require__.ruid = 'bundler=rspack@0.7.4';
+```
+
+</Columns>
+
+## Runtime
+
+### \_\_webpack_hash\_\_
+
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
+
+The CommonJS equivalent of [`import.meta.rspackHash`](#importmetarspackhash).
 
 ### \_\_webpack_runtime_id\_\_
 
@@ -498,70 +647,21 @@ __webpack_require__.j = '909';
 
 ### \_\_webpack_public_path\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Equals the configuration option's [`output.publicPath`](/config/output#outputpublicpath).
-
-<Columns>
-```js title=Source
-__webpack_public_path__
-```
-
-```js title=Compiled
-__webpack_require__.p;
-
-// output.publicPath !== "auto"
-__webpack_require__.p = 'output.publicPath';
-// output.publicPath === "auto"
-__webpack_require__.p = 'calculated from document/location';
-```
-
-</Columns>
-
-> See [Dynamically set publicPath](/guide/features/asset-base-path#dynamically-set-publicpath) for more information about the usage of `__webpack_public_path__`.
+The CommonJS equivalent of [`import.meta.rspackPublicPath`](#importmetarspackpublicpath).
 
 ### \_\_webpack_base_uri\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Get or change base URI at runtime.
-
-<Columns>
-```js title=Source
-__webpack_base_uri__
-```
-
-```js title=Compiled
-__webpack_require__.b;
-
-// chunk loading
-__webpack_require__.b = document.baseURI || self.location.href;
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackBaseUri`](#importmetarspackbaseuri).
 
 ### \_\_webpack_nonce\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-Rspack is capable of adding a nonce to all scripts that it loads.
-To activate this feature, set a `__webpack_nonce__` variable and include it in your entry script.
-
-<Columns>
-```js title=Source
-__webpack_nonce__ = 'your_nonce_code';
-```
-
-```js title=Compiled
-__webpack_require__.nc = '2312312';
-
-// webpack/runtime/load_script
-if (__webpack_require__.nc) {
-  script.setAttribute('nonce', __webpack_require__.nc);
-}
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackNonce`](#importmetarspacknonce).
 
 ## Modules
 
@@ -798,7 +898,7 @@ const publicPaths = ['a', 'b', 'c'];
 __webpack_chunk_load__ = async (id) => {
   let error;
   for (const path of publicPaths) {
-    __webpack_public_path__ = path;
+    import.meta.rspackPublicPath = path;
     try {
       return await originalLoad(id);
     } catch (e) {
@@ -849,15 +949,15 @@ __webpack_get_script_filename__ = (chunkId) => {
 
 ### \_\_webpack_share_scopes\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-This object is used as a shared scope in the remote container and is filled with the provided modules from a host
+The CommonJS equivalent of [`import.meta.rspackShareScopes`](#importmetarspacksharescopes).
 
 ### \_\_webpack_init_sharing\_\_
 
-<ApiMeta specific={['Rspack', 'Webpack']} />
+<ApiMeta specific={['Rspack', 'Webpack']} stability={Stability.Deprecated} />
 
-This method is used to initialize modules of a shared scope in the host container.
+The CommonJS equivalent of [`import.meta.rspackInitSharing`](#importmetarspackinitsharing).
 
 ## System.js
 
@@ -871,43 +971,16 @@ Context from System.js when `output.library.type="system"`
 
 ### \_\_rspack_version\_\_
 
-<ApiMeta specific={['Rspack']} />
-Current Rspack version, default to version in `@rspack/core/package.json`, can
-be modified through output.bundlerInfo.version.
+<ApiMeta specific={['Rspack']} stability={Stability.Deprecated} />
 
-<Columns>
-```js title=Source
-__rspack_version__
-```
-
-```js title=Compiled
-__webpack_require__.rv;
-
-// webpack/runtime/rspack_version
-__webpack_require__.rv = '0.7.4';
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackVersion`](#importmetarspackversion).
 
 ### \_\_rspack_unique_id\_\_
 
-<ApiMeta addedVersion="1.0.0" specific={['Rspack']} />
+<ApiMeta
+  addedVersion="1.0.0"
+  specific={['Rspack']}
+  stability={Stability.Deprecated}
+/>
 
-The ID of the current bundler, the value is `bundler={bundler}@{version}`:
-
-- `bundler`: Default to `"rspack"` and can be modified through [output.bundlerInfo.bundler](/config/output#outputbundlerinfo).
-- `version`: Default to version in `@rspack/core/package.json` and can be modified through [output.bundlerInfo.version](/config/output#outputbundlerinfo).
-
-<Columns>
-```js title=Source
-__rspack_unique_id__
-```
-
-```js title=Compiled
-__webpack_require__.ruid;
-
-// webpack/runtime/rspack_unique_id
-__webpack_require__.ruid = 'bundler=rspack@0.7.4';
-```
-
-</Columns>
+The CommonJS equivalent of [`import.meta.rspackUniqueId`](#importmetarspackuniqueid).

@@ -59,7 +59,7 @@ impl RuntimeModule for ExposeRuntimeModule {
     compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = runtime_require_scope_requirement(compilation);
-    if let Some(chunk_ukey) = self.chunk
+    if let Some(chunk_ukey) = self.chunk()
       && let Some(data) = self.find_expose_data(&chunk_ukey, compilation)
     {
       dependencies.insert(data.module_map_runtime_requirements);
@@ -80,7 +80,7 @@ impl RuntimeModule for ExposeRuntimeModule {
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ExposeRuntimeModule as RuntimeModule>::generate");
     let Some(data) = self.find_expose_data(&chunk_ukey, compilation) else {
       return Ok(String::new());

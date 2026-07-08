@@ -174,6 +174,7 @@ impl EsmLibraryPlugin {
       .get_path_with_info(
         &filename_template,
         PathData::default()
+          .chunk(chunk.ukey(), compilation)
           .chunk_hash_optional(chunk.rendered_hash(
             &compilation.chunk_hashes_artifact,
             compilation.options.output.hash_digest_length,

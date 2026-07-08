@@ -5,7 +5,7 @@ use rspack_core::{
   Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
   RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType, impl_runtime_module,
 };
-use rspack_plugin_runtime::extract_runtime_globals_dependencies_from_ejs;
+use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::{
   fx_hash::{FxLinkedHashMap, FxLinkedHashSet},
   json_stringify_str,
@@ -21,13 +21,8 @@ use crate::{
 static INITIALIZE_SHARING_TEMPLATE: &str = include_str!("./initializeSharing.ejs");
 static INITIALIZE_SHARING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequirements> =
   LazyLock::new(|| RuntimeModuleRuntimeRequirements {
-    dependencies: extract_runtime_globals_dependencies_from_ejs(
-      INITIALIZE_SHARING_TEMPLATE,
-      RuntimeGlobals::INITIALIZE_SHARING,
-    ),
-    write: RuntimeGlobals::INITIALIZE_SHARING,
     force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
-    ..Default::default()
+    ..extract_runtime_globals_from_ejs(INITIALIZE_SHARING_TEMPLATE)
   });
 
 #[impl_runtime_module]
@@ -53,14 +48,17 @@ impl RuntimeModule for ShareRuntimeModule {
         INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.dependencies
           | runtime_require_scope_requirement(compilation)
       },
-      write: RuntimeGlobals::INITIALIZE_SHARING,
+      define: INITIALIZE_SHARING_RUNTIME_REQUIREMENTS.define,
       force_context: RuntimeGlobals::INITIALIZE_SHARING | RuntimeGlobals::SHARE_SCOPE_MAP,
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![(self.id.to_string(), INITIALIZE_SHARING_TEMPLATE.to_string())]
+    vec![(
+      self.id().to_string(),
+      INITIALIZE_SHARING_TEMPLATE.to_string(),
+    )]
   }
 
   async fn generate(
@@ -70,7 +68,7 @@ impl RuntimeModule for ShareRuntimeModule {
     let compilation = context.compilation;
     let runtime_template = context.runtime_template;
     let chunk_ukey = self
-      .chunk
+      .chunk()
       .expect("should have chunk in <ShareRuntimeModule as RuntimeModule>::generate");
     let chunk = compilation
       .build_chunk_graph_artifact
@@ -161,7 +159,7 @@ impl RuntimeModule for ShareRuntimeModule {
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
       )
     } else {
-      runtime_template.render(self.id.as_str(), None)?
+      runtime_template.render(self.id().as_str(), None)?
     };
     Ok(format!(
       r#"

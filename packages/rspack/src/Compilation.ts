@@ -25,6 +25,7 @@ export type { AssetInfo } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { EntryOptions, EntryPlugin } from './builtin-plugin';
+import './Chunk';
 import type { Chunk } from './Chunk';
 import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
@@ -61,8 +62,6 @@ import { createFakeCompilationDependencies } from './util/fake';
 import type { InputFileSystem } from './util/fs';
 import type Hash from './util/hash';
 import { SourceAdapter } from './util/source';
-// patch Chunk
-import './Chunk';
 // patch Chunks
 import './Chunks';
 // patch ChunkGraph
@@ -79,13 +78,6 @@ export interface Asset {
   info: AssetInfo;
 }
 
-export type ChunkPathData = {
-  id?: string | number;
-  name?: string;
-  hash?: string;
-  contentHash?: Record<string, string>;
-};
-
 export type PathData = {
   filename?: string;
   hash?: string;
@@ -95,6 +87,13 @@ export type PathData = {
   id?: string | number;
   chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
+};
+
+export type ChunkPathData = {
+  id?: string | number;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string> | string;
 };
 
 function normalizePathData(data: PathData = {}): JsPathData {
@@ -110,12 +109,22 @@ function normalizePathData(data: PathData = {}): JsPathData {
     pathData.id = String(data.id);
   }
 
-  if (data.chunk) {
-    pathData.chunk = {
-      id: data.chunk.id !== undefined ? String(data.chunk.id) : undefined,
-      name: data.chunk.name,
-      hash: data.chunk.hash,
-    };
+  const chunk = data.chunk;
+  if (chunk) {
+    pathData.chunk = chunk;
+  }
+
+  if (chunk && pathData.contentHash === undefined) {
+    const contentHash = chunk.contentHash;
+    if (typeof contentHash === 'string') {
+      pathData.contentHash = contentHash;
+    } else if (
+      data.contentHashType &&
+      contentHash &&
+      typeof contentHash === 'object'
+    ) {
+      pathData.contentHash = contentHash[data.contentHashType];
+    }
   }
 
   return pathData;
@@ -647,8 +656,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     filename: string,
     newSourceOrFunction: Source | ((source: Source) => Source),
     assetInfoUpdateOrFunction?:
-      | AssetInfo
-      | ((assetInfo: AssetInfo) => AssetInfo | undefined),
+      AssetInfo | ((assetInfo: AssetInfo) => AssetInfo | undefined),
   ) {
     let compatNewSourceOrFunction: JsSource | ((source: JsSource) => JsSource);
 
@@ -769,33 +777,21 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
   getPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getPath(filename, pathData);
   }
 
   getPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getPathWithInfo(filename, pathData);
   }
 
   getAssetPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getAssetPath(filename, pathData);
   }
 
   getAssetPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getAssetPathWithInfo(filename, pathData);
   }
 
@@ -1147,8 +1143,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 // Based on this limitation, the AddEntryItemDispatcher class needs to properly coordinate and schedule the calls to ensure compliance with this execution rule.
 class AddEntryItemDispatcher {
   #inner:
-    | binding.JsCompilation['addInclude']
-    | binding.JsCompilation['addEntry'];
+    binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'];
   #running: boolean;
   #args: [
     string,
@@ -1188,8 +1183,7 @@ class AddEntryItemDispatcher {
 
   constructor(
     binding:
-      | binding.JsCompilation['addInclude']
-      | binding.JsCompilation['addEntry'],
+      binding.JsCompilation['addInclude'] | binding.JsCompilation['addEntry'],
   ) {
     this.#inner = binding;
     this.#running = false;

@@ -1227,13 +1227,11 @@ impl ModuleConcatenationPlugin {
       let mut candidates_visited = IdentifierSet::default();
       let mut candidates = VecDeque::new();
       let imports = {
-        let side_effects_state_artifact = compilation
-          .build_module_graph_artifact
-          .side_effects_state_artifact
-          .clone();
         let module_graph_artifacts = ModuleGraphArtifacts {
           mg_cache: module_graph_cache,
-          side_effects_state_artifact: &side_effects_state_artifact,
+          side_effects_state_artifact: &compilation
+            .build_module_graph_artifact
+            .side_effects_state_artifact,
           exports_info_artifact: &compilation.exports_info_artifact,
         };
 
@@ -1814,7 +1812,7 @@ fn add_concatenated_module(
       let source_types =
         chunk_graph.get_chunk_module_source_types(&chunk_ukey, module, module_graph);
 
-      if source_types.len() == 1 {
+      if source_types.len() == 1 && source_types.contains(&SourceType::JavaScript) {
         chunk_graph.disconnect_chunk_and_module(&chunk_ukey, *m);
       } else {
         let new_source_types = source_types

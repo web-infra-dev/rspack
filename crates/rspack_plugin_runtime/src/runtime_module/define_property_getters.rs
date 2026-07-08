@@ -23,14 +23,14 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: RuntimeGlobals::HAS_OWN_PROPERTY,
-      write: { RuntimeGlobals::DEFINE_PROPERTY_GETTERS },
+      define: { RuntimeGlobals::DEFINE_PROPERTY_GETTERS },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       DEFINE_PROPERTY_GETTERS_TEMPLATE.to_string(),
     )]
   }
@@ -51,7 +51,7 @@ impl RuntimeModule for DefinePropertyGettersRuntimeModule {
       "var descriptor = { enumerable: true };\n\t\t\t\tdescriptor[kind] = defs[key];\n\t\t\t\tObject.defineProperty(exports, key, descriptor);"
     };
     let source = context.runtime_template.render(
-      &self.id,
+      self.id(),
       Some(serde_json::json!({
         "_define_property_code": define_property_code,
       })),

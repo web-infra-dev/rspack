@@ -424,7 +424,10 @@ export class NodeRunner implements ITestRunner {
           currentModuleScope.__STATS_I__ = statsIndex;
         }
       }
-      if (file.content.includes('webpack/runtime/startup_chunk_dependencies')) {
+      if (
+        file.content.includes('webpack/runtime/startup_chunk_dependencies') ||
+        file.content.includes('rspack/runtime/startup_chunk_dependencies')
+      ) {
         currentModuleScope.__AFTER_CHUNK_LOADED__ = (next: () => void) => {
           let done;
           const task = new Promise((resolve) => (done = resolve));

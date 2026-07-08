@@ -46,6 +46,14 @@ impl ESMExportSpecifierDependency {
       id: DependencyId::new(),
     }
   }
+
+  pub fn name(&self) -> &Atom {
+    &self.name
+  }
+
+  pub fn value(&self) -> &Atom {
+    &self.value
+  }
 }
 
 #[cacheable_dyn]

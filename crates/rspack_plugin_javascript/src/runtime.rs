@@ -428,7 +428,7 @@ pub(crate) async fn render_runtime_module_sources(
             let runtime_requirements = module.runtime_requirements(compilation);
             let generated_requirements = runtime_requirements.lexical_requirements();
             let context_requirements =
-              runtime_requirements.write | runtime_requirements.force_context;
+              runtime_requirements.define | runtime_requirements.force_context;
             if reject_custom_runtime_modules
               && module.get_constructor_name() == "RuntimeModuleFromJs"
             {

@@ -1,0 +1,8 @@
+.module-text_css-class {
+	color: red;
+	background: white;
+}
+
+.module-text_css-another-class {
+	font-size: 16px;
+}

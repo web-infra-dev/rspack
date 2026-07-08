@@ -7,7 +7,7 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-use std::{borrow::Cow, hash::Hasher, sync::LazyLock};
+use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_core::{
@@ -15,7 +15,7 @@ use rspack_core::{
   incremental::Mutation,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt};
-use rspack_hash::{RspackHash, RspackHashDigest};
+use rspack_hash::{RspackHashDigest, RspackHasher};
 use rspack_util::identifier::make_paths_relative;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -120,7 +120,7 @@ fn get_size(module: &dyn Module, compilation: &Compilation) -> SplitChunkSizes {
 }
 
 fn hash_filename(filename: &str, options: &CompilerOptions) -> String {
-  let mut filename_hash = RspackHash::new(&options.output.hash_function);
+  let mut filename_hash = RspackHasher::new(&options.output.hash_function);
   filename_hash.write(filename.as_bytes());
   let hash_digest: RspackHashDigest = filename_hash.digest(&options.output.hash_digest);
   hash_digest.rendered(8).to_string()

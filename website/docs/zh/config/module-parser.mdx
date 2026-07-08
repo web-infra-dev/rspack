@@ -1076,6 +1076,34 @@ export default {
 };
 ```
 
+### ["css/auto"].exportType
+
+- **类型：** `'link' | 'text' | 'css-style-sheet' | 'style'`
+- **默认值：** `'link'`
+
+配置 CSS 内容如何导出到 JavaScript。
+
+默认情况下，`exportType` 为 `'link'`，会将 CSS 作为样式表产物输出，并通过内置 CSS loading runtime 加载。
+
+- `'link'`：将 CSS 作为样式表产物输出，并保留 CSS Modules 导出。
+- `'text'`：将生成后的 CSS 文本作为默认导出。
+- `'css-style-sheet'`：将 `CSSStyleSheet` 实例作为默认导出。
+- `'style'`：在运行时通过 `<style>` 标签将生成后的 CSS 注入到文档中。
+
+当使用 `exportType: 'text'` 或 `exportType: 'css-style-sheet'` 时，生成后的 CSS 会成为 JavaScript 模块的一部分，并且该模块不会额外输出独立 CSS 资源。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].namedExports
 
 - **类型：** `boolean`
@@ -1351,6 +1379,22 @@ export default {
 };
 ```
 
+### css.exportType
+
+和 [`module.parser["css/auto"].exportType`](#cssautoexporttype) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### css.namedExports
 
 和 [`module.parser["css/auto"].namedExports`](#cssautonamedexports) 一样。
@@ -1427,6 +1471,22 @@ export default {
     parser: {
       'css/global': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].exportType
+
+和 [`module.parser["css/auto"].exportType`](#cssautoexporttype) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        exportType: 'style',
       },
     },
   },
@@ -1605,6 +1665,22 @@ export default {
     parser: {
       'css/module': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].exportType
+
+和 [`module.parser["css/auto"].exportType`](#cssautoexporttype) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        exportType: 'css-style-sheet',
       },
     },
   },

@@ -885,6 +885,14 @@ mod tests {
   }
 
   #[test]
+  fn should_reject_source_map_with_garbage_header() {
+    let source_map = r#"{"version":3,"sources":["a.js"],"names":[],"mappings":"AAAA"}"#;
+
+    assert!(SourceMap::from_json(format!(")]}}'\n{source_map}")).is_err());
+    assert!(SourceMap::from_bytes(format!(")]}}'\r\n{source_map}").into_bytes()).is_err());
+  }
+
+  #[test]
   fn hash_available() {
     let mut state = twox_hash::XxHash64::default();
     RawStringSource::from("a").hash(&mut state);

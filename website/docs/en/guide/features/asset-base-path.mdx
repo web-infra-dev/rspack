@@ -73,14 +73,14 @@ With this configuration:
 
 ## Dynamically set publicPath
 
-You can set `publicPath` dynamically using `__webpack_public_path__` in your JavaScript code.
+You can set `publicPath` dynamically using [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath) in your JavaScript code.
 
-The `__webpack_public_path__` will override the `output.publicPath` in the Rspack config, but it will only take effect for dynamically loaded assets, not for assets loaded via `<script src="...">`.
+The `import.meta.rspackPublicPath` will override the `output.publicPath` in the Rspack config, but it will only take effect for dynamically loaded assets, not for assets loaded via `<script src="...">`.
 
 First create a `publicPath.js`:
 
 ```js title="publicPath.js"
-__webpack_public_path__ =
+import.meta.rspackPublicPath =
   location.hostname === 'foo.com'
     ? 'https://cdn1.com/assets/'
     : 'https://cdn2.com/assets/';

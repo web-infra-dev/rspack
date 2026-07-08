@@ -1076,6 +1076,34 @@ export default {
 };
 ```
 
+### ["css/auto"].exportType
+
+- **Type:** `'link' | 'text' | 'css-style-sheet' | 'style'`
+- **Default:** `'link'`
+
+Configure how CSS content is exported to JavaScript.
+
+By default, `exportType` is `'link'`, which emits CSS as stylesheet output and loads it with the built-in CSS loading runtime.
+
+- `'link'`: emit the CSS as stylesheet output and keep CSS module exports available.
+- `'text'`: export the generated CSS text as the default export.
+- `'css-style-sheet'`: export a `CSSStyleSheet` instance as the default export.
+- `'style'`: inject the generated CSS into the document through `<style>` tags at runtime.
+
+When using `exportType: 'text'` or `exportType: 'css-style-sheet'`, the generated CSS becomes part of the JavaScript module and no separate CSS asset is emitted for that module.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].namedExports
 
 - **Type:** `boolean`
@@ -1351,6 +1379,22 @@ export default {
 };
 ```
 
+### css.exportType
+
+Same as [`module.parser["css/auto"].exportType`](#cssautoexporttype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        exportType: 'text',
+      },
+    },
+  },
+};
+```
+
 ### css.namedExports
 
 Same as [`module.parser["css/auto"].namedExports`](#cssautonamedexports).
@@ -1427,6 +1471,22 @@ export default {
     parser: {
       'css/global': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].exportType
+
+Same as [`module.parser["css/auto"].exportType`](#cssautoexporttype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        exportType: 'style',
       },
     },
   },
@@ -1605,6 +1665,22 @@ export default {
     parser: {
       'css/module': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].exportType
+
+Same as [`module.parser["css/auto"].exportType`](#cssautoexporttype).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        exportType: 'css-style-sheet',
       },
     },
   },

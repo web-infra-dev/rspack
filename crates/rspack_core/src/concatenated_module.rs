@@ -2,7 +2,6 @@ use std::{
   borrow::Cow,
   collections::{BTreeMap, VecDeque},
   fmt::Debug,
-  hash::Hasher,
   mem,
   sync::{Arc, LazyLock},
 };
@@ -14,14 +13,13 @@ use rspack_collections::{
   Identifiable, Identifier, IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet,
 };
 use rspack_error::{Diagnosable, Diagnostic, Error, Result, ToStringResultToRspackResultExt};
-use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest};
+use rspack_hash::{HashDigest, HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_sources::{
   BoxSource, CachedSource, ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt,
 };
 use rspack_util::{
   SpanExt,
-  ext::DynHash,
   fx_hash::{FxIndexMap, FxIndexSet},
   itoa, json_stringify, json_stringify_str,
   source_map::SourceMapKind,
@@ -656,7 +654,7 @@ impl ConcatenatedModule {
 
   // TODO: caching https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L663-L664
   pub fn create(
-    root_module_ctxt: RootModuleContext,
+    mut root_module_ctxt: RootModuleContext,
     mut modules: Vec<ConcatenatedInnerModule>,
     hash_function: Option<HashFunction>,
     runtime: Option<RuntimeSpec>,
@@ -664,6 +662,32 @@ impl ConcatenatedModule {
   ) -> Self {
     modules.sort_unstable_by_key(|a| a.id);
     let id = Self::create_identifier(&root_module_ctxt, &modules, hash_function);
+    let module_graph = compilation.get_module_graph();
+    let concatenated_modules = modules
+      .iter()
+      .map(|module| module.id)
+      .collect::<IdentifierSet>();
+    root_module_ctxt.code_generation_dependencies = None;
+    for module in &modules {
+      let Some(dependencies) = module_graph
+        .module_by_identifier(&module.id)
+        .and_then(|module| module.get_code_generation_dependencies())
+      else {
+        continue;
+      };
+      for dependency in dependencies {
+        let references_concatenated_module = module_graph
+          .module_identifier_by_dependency_id(dependency.id())
+          .is_some_and(|module_id| concatenated_modules.contains(module_id));
+        if references_concatenated_module {
+          continue;
+        }
+        root_module_ctxt
+          .code_generation_dependencies
+          .get_or_insert_with(Vec::new)
+          .push(dependency.clone());
+      }
+    }
     Self::new(id.as_str().into(), root_module_ctxt, modules, runtime)
   }
 
@@ -676,7 +700,7 @@ impl ConcatenatedModule {
     for m in modules {
       identifiers.push(m.shorten_id.as_str());
     }
-    let mut hash = RspackHash::new(&hash_function.unwrap_or(HashFunction::MD4));
+    let mut hash = RspackHasher::new(&hash_function.unwrap_or(HashFunction::MD4));
     if let Some(id) = identifiers.first() {
       hash.write(id.as_bytes());
     }
@@ -1173,8 +1197,8 @@ impl Module for ConcatenatedModule {
         &compilation.module_static_cache,
         &context,
       );
-      let exports_type: BuildMetaExportsType = module.build_meta().exports_type;
-      let default_object: BuildMetaDefaultObject = module.build_meta().default_object;
+      let exports_type: BuildMetaExportsType = module.build_meta().exports_type();
+      let default_object: BuildMetaDefaultObject = module.build_meta().default_object();
       match info {
         // Handle concatenated type
         ModuleInfo::Concatenated(info) => {
@@ -1461,7 +1485,7 @@ impl Module for ConcatenatedModule {
               match_info.call,
               !match_info.direct_import,
               match_info.deferred_import,
-              build_meta.strict_esm_module,
+              build_meta.strict_esm_module(),
               match_info.asi_safe,
             ));
           }
@@ -1542,7 +1566,7 @@ impl Module for ConcatenatedModule {
     let root_module = module_graph
       .module_by_identifier(&root_module_id)
       .expect("should have box module");
-    let strict_esm_module = root_module.build_meta().strict_esm_module;
+    let strict_esm_module = root_module.build_meta().strict_esm_module();
 
     let exports_info = compilation
       .exports_info_artifact
@@ -1710,7 +1734,7 @@ impl Module for ConcatenatedModule {
         &compilation.module_static_cache,
         &context,
       );
-      let strict_esm_module = box_module.build_meta().strict_esm_module;
+      let strict_esm_module = box_module.build_meta().strict_esm_module();
       let name_space_name = module_info.namespace_object_name.clone();
 
       if let Some(ref _namespace_export_symbol) = module_info.namespace_export_symbol {
@@ -1813,7 +1837,7 @@ impl Module for ConcatenatedModule {
             module_graph,
             &compilation.module_graph_cache_artifact,
             &compilation.exports_info_artifact,
-            root_module.build_meta().strict_esm_module,
+            root_module.build_meta().strict_esm_module(),
           ),
           &module_id,
           // an async module will opt-out of the concat module optimization.
@@ -1847,7 +1871,7 @@ impl Module for ConcatenatedModule {
               module_graph,
               &compilation.module_graph_cache_artifact,
               &compilation.exports_info_artifact,
-              root_module.build_meta().strict_esm_module,
+              root_module.build_meta().strict_esm_module(),
             )),
           )));
         }
@@ -2015,7 +2039,7 @@ impl Module for ConcatenatedModule {
     compilation: &Compilation,
     generation_runtime: Option<&RuntimeSpec>,
   ) -> Result<RspackHashDigest> {
-    let mut hasher = RspackHash::from(&compilation.options.output);
+    let mut hasher = RspackHasher::from(&compilation.options.output);
     let runtime = if let Some(self_runtime) = &self.runtime
       && let Some(generation_runtime) = generation_runtime
     {
@@ -2071,7 +2095,7 @@ impl Module for ConcatenatedModule {
     .collect::<Result<Vec<_>>>()?;
 
     for hash in hashes {
-      (hash?).dyn_hash(&mut hasher);
+      (hash?).hash(&mut hasher);
     }
 
     module_update_hash(self, &mut hasher, compilation, generation_runtime);
@@ -2320,6 +2344,14 @@ impl ConcatenatedModule {
         ConcatenationEntryConcatenated { module: *module },
       ));
     } else {
+      if matches!(
+        mg.dependency_by_id(&import.connection.dependency_id)
+          .dependency_type(),
+        DependencyType::CssImport
+      ) {
+        return;
+      }
+
       let reduced_runtime_condition;
       let reduced_non_defer_access;
       if let Some(existing) = exists_entry.get_mut(module) {
@@ -2412,10 +2444,10 @@ impl ConcatenatedModule {
         .module_by_identifier(connection.module_identifier())
         .expect("should have module");
 
-      if ref_module
-        .source_types(mg)
-        .iter()
-        .all(|source_type| source_type == &SourceType::Css)
+      let ref_source_types = ref_module.source_types(mg);
+      if !ref_source_types.contains(&SourceType::JavaScript)
+        && (ref_source_types.contains(&SourceType::Css)
+          || ref_source_types.contains(&SourceType::CssImport))
       {
         return None;
       }
@@ -2815,7 +2847,7 @@ impl ConcatenatedModule {
     let exports_type =
       module.get_exports_type(mg, mg_cache, exports_info_artifact, strict_esm_module);
     let is_module_deferred = matches!(info, ModuleInfo::External(info) if info.deferred)
-      && !module.build_meta().has_top_level_await;
+      && !module.build_meta().has_top_level_await();
     let is_deferred = dep_deferred && is_module_deferred;
 
     if export_name.is_empty() {
@@ -3188,7 +3220,7 @@ impl ConcatenatedModule {
                 runtime,
                 as_call,
                 reexport.defer,
-                module.build_meta().strict_esm_module,
+                module.build_meta().strict_esm_module(),
                 asi_safe,
                 already_visited,
               );
@@ -3309,6 +3341,7 @@ pub fn is_esm_dep_like(dep: &BoxDependency) -> bool {
       | DependencyType::EsmExportImportedSpecifier
       | DependencyType::EsmImport
       | DependencyType::EsmExportImport
+      | DependencyType::CssImport
   )
 }
 

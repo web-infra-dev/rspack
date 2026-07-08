@@ -20,14 +20,14 @@ impl RuntimeModule for HasOwnPropertyRuntimeModule {
     _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     rspack_core::RuntimeModuleRuntimeRequirements {
-      write: { RuntimeGlobals::HAS_OWN_PROPERTY },
+      define: { RuntimeGlobals::HAS_OWN_PROPERTY },
       ..Default::default()
     }
   }
 
   fn template(&self) -> Vec<(String, String)> {
     vec![(
-      self.id.to_string(),
+      self.id().to_string(),
       include_str!("runtime/has_own_property.ejs").to_string(),
     )]
   }
@@ -36,7 +36,7 @@ impl RuntimeModule for HasOwnPropertyRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(&self.id, None)?;
+    let source = context.runtime_template.render(self.id(), None)?;
 
     Ok(source)
   }

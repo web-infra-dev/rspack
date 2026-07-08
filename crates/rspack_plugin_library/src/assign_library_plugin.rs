@@ -1,4 +1,4 @@
-use std::{hash::Hash, sync::LazyLock};
+use std::sync::LazyLock;
 
 use futures::future::join_all;
 use regex::Regex;
@@ -14,7 +14,7 @@ use rspack_core::{
   to_identifier,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error, error_bail};
-use rspack_hash::RspackHash;
+use rspack_hash::{RspackHash, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   JavascriptModulesChunkHash, JavascriptModulesEmbedInRuntimeBailout, JavascriptModulesRender,
@@ -156,6 +156,7 @@ impl AssignLibraryPlugin {
           .get_path(
             &Filename::from(v),
             PathData::default()
+              .chunk(chunk.ukey(), compilation)
               .chunk_id_optional(chunk.id().map(|id| id.as_str()))
               .chunk_hash_optional(chunk.rendered_hash(
                 &compilation.chunk_hashes_artifact,
@@ -356,7 +357,7 @@ async fn js_chunk_hash(
   &self,
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  hasher: &mut RspackHash,
+  hasher: &mut RspackHasher,
 ) -> Result<()> {
   let Some(options) = self.get_options_for_chunk(compilation, chunk_ukey)? else {
     return Ok(());

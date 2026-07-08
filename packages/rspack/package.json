@@ -1,6 +1,6 @@
 {
   "name": "@rspack/core",
-  "version": "2.1.1",
+  "version": "2.1.3",
   "webpackVersion": "5.75.0",
   "license": "MIT",
   "description": "Fast Rust-based bundler for the web with a modernized webpack API",
@@ -46,7 +46,7 @@
     "@ast-grep/napi": "^0.44.0",
     "@napi-rs/wasm-runtime": "1.1.6",
     "@rsbuild/plugin-node-polyfill": "^1.4.6",
-    "@rslib/core": "^0.23.0",
+    "@rslib/core": "^0.23.2",
     "@rspack/lite-tapable": "1.1.2",
     "@swc/types": "0.1.27",
     "@types/node": "^20.19.43",

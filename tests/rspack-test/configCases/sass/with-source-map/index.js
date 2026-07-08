@@ -10,7 +10,11 @@ it("basic", () => {
 	);
 	const map = JSON.parse(source);
 	const scss = fs.readFileSync(path.resolve(CONTEXT, "./index.scss"), "utf-8");
-	expect(map.sources).toEqual(["webpack:///./index.scss"]);
+	let sourceUrl = source => `webpack:///${source}`;
+	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
+		sourceUrl = source => `rspack:///${source}`;
+	}
+	expect(map.sources).toEqual([sourceUrl("./index.scss")]);
 	expect(map.sourcesContent).toEqual([scss]);
 	expect(map.file).toEqual("bundle0.css");
 });
