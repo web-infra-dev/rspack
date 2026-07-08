@@ -15,24 +15,27 @@
 // Only runs under WASM; native jobs register nothing.
 if (process.env.WASM) {
 	process.env.WATCH_DIAG = "1";
+	// Proof run: widen the fix's settle window so it survives the extreme freezer
+	// below (which inflates the gap between the stale transition rebuild and the
+	// real one). Under normal load the fix's default (2000ms) is enough.
+	process.env.WATCH_SETTLE_MS = process.env.WATCH_SETTLE_MS || "5000";
 
 	const path = require("path");
 	const { createWatchCase } = require("@rspack/test-tools");
 
-	// Non-uniform event-loop freezes: cycle through varied block durations so
-	// watchpack poll/aggregate timers and the step-sync setTimeout drift apart.
-	// Kept moderate (<= 300ms) so it models realistic concurrent-compile pressure
-	// rather than the extreme 800ms freezes used purely to reproduce the bug.
+	// Extreme non-uniform event-loop freezes to force the extra stale transition
+	// rebuild (build "B") to appear, so we can prove the fix keeps the later,
+	// correct build (build "C") -> builds>=2 with STALE=false.
 	if (process.env.WATCH_REPRO_FREEZE !== "0") {
-		const blocks = [150, 300, 200, 250];
+		const blocks = [150, 600, 350, 800, 250, 500];
 		let k = 0;
 		const tick = () => {
 			const end = Date.now() + blocks[k++ % blocks.length];
 			while (Date.now() < end) {}
-			const t = setTimeout(tick, 200);
+			const t = setTimeout(tick, 180);
 			if (t.unref) t.unref();
 		};
-		const t0 = setTimeout(tick, 200);
+		const t0 = setTimeout(tick, 180);
 		if (t0.unref) t0.unref();
 	}
 

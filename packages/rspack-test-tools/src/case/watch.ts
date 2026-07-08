@@ -292,7 +292,7 @@ export function createWatchStepProcessor(
 
     // The watcher aggregateTimeout (see `watch()`); the settle window must be
     // larger so a slow/extra rebuild cannot be mistaken for a settled result.
-    const settleWindow = 2000;
+    const settleWindow = Number(process.env.WATCH_SETTLE_MS) || 2000;
     // Native Watcher (notify) needs a moment to be ready to detect the change;
     // 400ms on windows, 100ms elsewhere.
     const readyTimeout =
