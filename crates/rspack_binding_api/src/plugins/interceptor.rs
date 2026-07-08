@@ -1949,10 +1949,14 @@ impl RuntimePluginCreateScript for RuntimePluginCreateScriptTap {
 
 #[async_trait]
 impl RuntimePluginCreateLink for RuntimePluginCreateLinkTap {
-  async fn run(&self, mut data: CreateLinkData) -> rspack_error::Result<CreateLinkData> {
+  async fn run<'a>(
+    &self,
+    compilation: &Compilation,
+    mut data: CreateLinkData<'a>,
+  ) -> rspack_error::Result<CreateLinkData<'a>> {
     if let Some(code) = self
       .function
-      .call_with_sync(JsCreateLinkData::from(data.clone()))
+      .call_with_sync(JsCreateLinkData::from_data(data.clone(), compilation))
       .await?
     {
       data.code = code;
@@ -1967,10 +1971,14 @@ impl RuntimePluginCreateLink for RuntimePluginCreateLinkTap {
 
 #[async_trait]
 impl RuntimePluginLinkPreload for RuntimePluginLinkPreloadTap {
-  async fn run(&self, mut data: LinkPreloadData) -> rspack_error::Result<LinkPreloadData> {
+  async fn run<'a>(
+    &self,
+    compilation: &Compilation,
+    mut data: LinkPreloadData<'a>,
+  ) -> rspack_error::Result<LinkPreloadData<'a>> {
     if let Some(code) = self
       .function
-      .call_with_sync(JsLinkPreloadData::from(data.clone()))
+      .call_with_sync(JsLinkPreloadData::from_data(data.clone(), compilation))
       .await?
     {
       data.code = code;
@@ -1985,10 +1993,14 @@ impl RuntimePluginLinkPreload for RuntimePluginLinkPreloadTap {
 
 #[async_trait]
 impl RuntimePluginLinkPrefetch for RuntimePluginLinkPrefetchTap {
-  async fn run(&self, mut data: LinkPrefetchData) -> rspack_error::Result<LinkPrefetchData> {
+  async fn run<'a>(
+    &self,
+    compilation: &Compilation,
+    mut data: LinkPrefetchData<'a>,
+  ) -> rspack_error::Result<LinkPrefetchData<'a>> {
     if let Some(code) = self
       .function
-      .call_with_sync(JsLinkPrefetchData::from(data.clone()))
+      .call_with_sync(JsLinkPrefetchData::from_data(data.clone(), compilation))
       .await?
     {
       data.code = code;

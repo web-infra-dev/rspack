@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use rspack_core::{ChunkUkey, Compilation, CompilationId};
+use rspack_core::{Chunk, ChunkUkey, Compilation, CompilationId};
 use rspack_hook::define_hook;
 #[cfg(allocative)]
 use rspack_util::allocative;
@@ -12,21 +12,21 @@ pub struct CreateScriptData {
 }
 
 #[derive(Debug, Clone)]
-pub struct CreateLinkData {
+pub struct CreateLinkData<'a> {
   pub code: String,
-  pub chunk: RuntimeModuleChunkWrapper,
+  pub chunk: &'a Chunk,
 }
 
 #[derive(Debug, Clone)]
-pub struct LinkPreloadData {
+pub struct LinkPreloadData<'a> {
   pub code: String,
-  pub chunk: RuntimeModuleChunkWrapper,
+  pub chunk: &'a Chunk,
 }
 
 #[derive(Debug, Clone)]
-pub struct LinkPrefetchData {
+pub struct LinkPrefetchData<'a> {
   pub code: String,
-  pub chunk: RuntimeModuleChunkWrapper,
+  pub chunk: &'a Chunk,
 }
 
 #[derive(Debug, Clone)]
@@ -39,9 +39,9 @@ pub struct RuntimeModuleChunkWrapper {
 unsafe impl Send for RuntimeModuleChunkWrapper {}
 
 define_hook!(RuntimePluginCreateScript: SeriesWaterfall(data: CreateScriptData) -> CreateScriptData);
-define_hook!(RuntimePluginCreateLink: SeriesWaterfall(data: CreateLinkData) -> CreateLinkData);
-define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(data: LinkPreloadData) -> LinkPreloadData);
-define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(data: LinkPrefetchData) -> LinkPrefetchData);
+define_hook!(RuntimePluginCreateLink: SeriesWaterfall(compilation: &Compilation, data: CreateLinkData<'_>) -> CreateLinkData<'_>);
+define_hook!(RuntimePluginLinkPreload: SeriesWaterfall(compilation: &Compilation, data: LinkPreloadData<'_>) -> LinkPreloadData<'_>);
+define_hook!(RuntimePluginLinkPrefetch: SeriesWaterfall(compilation: &Compilation, data: LinkPrefetchData<'_>) -> LinkPrefetchData<'_>);
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(allocative::Allocative))]

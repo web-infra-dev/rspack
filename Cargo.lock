@@ -4053,7 +4053,6 @@ dependencies = [
  "async-trait",
  "rspack_error",
  "rspack_macros",
- "rustc-hash",
  "tracing",
 ]
 
