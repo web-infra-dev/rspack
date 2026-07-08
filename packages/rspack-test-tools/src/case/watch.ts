@@ -88,7 +88,16 @@ export function createWatchInitialProcessor(
       const c = await compiler(context, name);
       c!.hooks.invalid.tap('WatchTestCasesTest', (filename, mtime) => {
         watchContext.currentTriggerFilename = filename;
+        watchState.lastInvalidTs = Date.now();
       });
+      // Track build completions so a step transition can wait for the watcher to
+      // become quiescent before applying the next change (see step build).
+      context
+        .getCompiler()
+        .getEmitter()
+        .on(ECompilerEvent.Build, () => {
+          watchState.lastBuildTs = Date.now();
+        });
     },
     build: async (context: ITestContext) => {
       const compiler = context.getCompiler();
@@ -287,35 +296,50 @@ export function createWatchStepProcessor(
   };
   processor.build = async (context: ITestContext) => {
     const compiler = context.getCompiler();
-    // [WATCH-DIAG] temporary instrumentation, guarded by WATCH_DIAG env
+    const emitter = compiler.getEmitter();
     const DIAG = !!process.env.WATCH_DIAG;
+
+    // Wait until the watcher is quiescent before applying this step's change.
+    //
+    // Under load the watcher can still have an extra in-flight rebuild from the
+    // previous step that carries stale content. If we armed `once(Build)` now it
+    // might capture that stale rebuild instead of the one our copyDiff triggers,
+    // making the runner execute a previous-step bundle. A rebuild is pending
+    // when an invalidation fired after the last completed build; wait it out so
+    // the next Build we capture is the one this step's copyDiff produces.
+    const settleDeadline = Date.now() + 10000;
+    while (Date.now() < settleDeadline) {
+      const pending =
+        (watchState.lastInvalidTs || 0) > (watchState.lastBuildTs || 0);
+      const idle = Date.now() - (watchState.lastBuildTs || 0) > 150;
+      if (!pending && idle) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+
+    // Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
+    // After tests, notify will cost many milliseconds to watch in windows OS when jest run concurrently.
+    // So we need to wait a while to ensure the watcher is ready.
+    // The timeout is set to 400ms for windows OS and 100ms for other OS.
+    // TODO: This is a workaround, we can remove it when notify support windows better.
+    const timeout = nativeWatcher && process.platform === 'win32' ? 400 : 100;
+    await new Promise((resolve) => setTimeout(resolve, timeout));
+
     const buildEvents: number[] = [];
     const onBuild = () => buildEvents.push(Date.now());
-    if (DIAG) compiler.getEmitter().on(ECompilerEvent.Build, onBuild);
+    if (DIAG) emitter.on(ECompilerEvent.Build, onBuild);
     let resolveTs = 0;
     const task = new Promise((resolve, reject) => {
-      compiler.getEmitter().once(ECompilerEvent.Build, (e, stats) => {
+      emitter.once(ECompilerEvent.Build, (e, stats) => {
         resolveTs = Date.now();
         if (e) return reject(e);
         resolve(stats);
       });
     });
-    // wait compiler to ready watch the files and diretories
-
-    // Native Watcher using [notify](https://github.com/notify-rs/notify) to watch files.
-    // After tests, notify will cost many milliseconds to watch in windows OS when jest run concurrently.
-    // So we need to wait a while to ensure the watcher is ready.
-    // If we don't wait, copyDiff will happen before the watcher is ready,
-    // which will cause the compiler not rebuild when the files change.
-    // The timeout is set to 400ms for windows OS and 100ms for other OS.
-    // TODO: This is a workaround, we can remove it when notify support windows better.
-    const timeout = nativeWatcher && process.platform === 'win32' ? 400 : 100;
-    await new Promise((resolve) => setTimeout(resolve, timeout));
     const copyTs = Date.now();
     copyDiff(path.join(context.getSource(), step), tempDir, false);
     await task;
     if (DIAG) {
-      compiler.getEmitter().removeListener(ECompilerEvent.Build, onBuild);
+      emitter.removeListener(ECompilerEvent.Build, onBuild);
       let bundleStep = '?';
       try {
         const bundle = fs.readFileSync(
@@ -326,8 +350,8 @@ export function createWatchStepProcessor(
         if (m) bundleStep = m[1];
       } catch {}
       console.error(
-        `[WATCH-DIAG] name=${name} step=${step} sleep=${timeout} ` +
-          `resolvedBeforeCopy=${resolveTs < copyTs} resolveRelCopy=${resolveTs - copyTs}ms ` +
+        `[WATCH-DIAG] name=${name} step=${step} ` +
+          `resolveRelCopy=${resolveTs - copyTs}ms ` +
           `buildEventsRelCopy=[${buildEvents.map((t) => t - copyTs).join(',')}] ` +
           `bundleStep=${bundleStep} STALE=${bundleStep !== '?' && bundleStep !== step}`,
       );
