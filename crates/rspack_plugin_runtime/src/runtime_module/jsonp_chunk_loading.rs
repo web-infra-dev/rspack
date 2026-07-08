@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ptr::NonNull, sync::LazyLock};
+use std::{borrow::Cow, sync::LazyLock};
 
 use rspack_core::{
   BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
@@ -9,8 +9,8 @@ use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 
 use super::generate_javascript_hmr_runtime;
 use crate::{
-  LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
+  LinkPrefetchData, LinkPreloadData, RuntimePlugin, extract_runtime_globals_from_ejs,
+  get_chunk_runtime_requirements,
   runtime_module::utils::{
     get_initial_chunk_ids, render_hmr_runtime_state_expression, stringify_chunks,
   },
@@ -364,18 +364,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk().expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_prefetch
-        .call(LinkPrefetchData {
-          code: link_prefetch_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPrefetchData {
+            code: link_prefetch_code,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let source_with_prefetch = runtime_template.render(
@@ -398,18 +396,16 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         })),
       )?;
 
-      let chunk_ukey = self.chunk().expect("The chunk should be attached");
       let res = hooks
         .borrow()
         .link_preload
-        .call(LinkPreloadData {
-          code: link_preload_code,
-          chunk: RuntimeModuleChunkWrapper {
-            chunk_ukey,
-            compilation_id: compilation.id(),
-            compilation: NonNull::from(compilation),
+        .call(
+          compilation,
+          LinkPreloadData {
+            code: link_preload_code,
+            chunk,
           },
-        })
+        )
         .await?;
 
       let source_with_preload = runtime_template.render(
@@ -454,14 +450,23 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
     }
 
     if with_callback || with_loading {
-      let chunk_loading_global_expr = format!(
-        r#"{}["{}"]"#,
-        &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
-      );
+      let global_object = &compilation.options.output.global_object;
+      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
+      let chunk_loading_global_init_expr = if compilation
+        .options
+        .output
+        .environment
+        .supports_logical_assignment()
+      {
+        format!("{chunk_loading_global_expr} ||= []")
+      } else {
+        format!("{chunk_loading_global_expr} = {chunk_loading_global_expr} || []")
+      };
       let source_with_callback = runtime_template.render(
         &self.template_id(TemplateId::WithCallback),
         Some(serde_json::json!({
-          "_chunk_loading_global_expr": &chunk_loading_global_expr,
+          "_chunk_loading_global_init_expr": &chunk_loading_global_init_expr,
           "_with_on_chunk_load": with_on_chunk_load,
         })),
       )?;

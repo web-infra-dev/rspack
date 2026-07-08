@@ -11,6 +11,6 @@ var installChunk = <%- basicFunction("data") %> {
     parentChunkLoadingFunction(data);
 };
 
-var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+var chunkLoadingGlobal = <%- _chunk_loading_global_init_expr %>;
 var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);
 chunkLoadingGlobal.push = installChunk;

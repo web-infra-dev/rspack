@@ -633,6 +633,7 @@ pub struct Environment {
   pub global_this: bool,
   pub module: bool,
   pub optional_chaining: bool,
+  pub logical_assignment: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
@@ -701,6 +702,10 @@ impl Environment {
 
   pub fn supports_optional_chaining(&self) -> bool {
     self.optional_chaining
+  }
+
+  pub fn supports_logical_assignment(&self) -> bool {
+    self.logical_assignment
   }
 
   pub fn supports_template_literal(&self) -> bool {

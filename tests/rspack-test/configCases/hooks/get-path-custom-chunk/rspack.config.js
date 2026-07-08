@@ -22,19 +22,89 @@ class Plugin {
         );
 
         expect(
-          compilation.getPath('[name]-[chunkhash]-[contenthash]', {
+          compilation.getPath('[name]-[chunkhash]', {
             chunk: mainChunk,
-            contentHashType: 'javascript',
           }),
-        ).toBe(`${mainChunk.name}-${mainChunk.renderedHash}-${contentHash}`);
+        ).toBe(`${mainChunk.name}-${mainChunk.renderedHash}`);
+
+        const rawChunkPathData = {
+          name: 'chunkname',
+          id: 'chunkid',
+          hash: 'chunkhash',
+          contentHash: {
+            javascript: 'contenthash',
+          },
+        };
 
         expect(
-          compilation.getPath('[name]', {
+          compilation.getPath('[id]-[name]-[chunkhash]-[contenthash]', {
+            chunk: rawChunkPathData,
+            contentHashType: 'javascript',
+          }),
+        ).toBe('chunkid-chunkname-chunkhash-contenthash');
+
+        expect(
+          compilation.getPath('[name]-[chunkhash]-[contenthash]', {
             chunk: {
-              name: 'main',
+              id: 'chunkid',
+              hash: 'chunkhash',
+              contentHash: {
+                javascript: 'contenthash',
+              },
+            },
+            contentHashType: 'javascript',
+          }),
+        ).toBe('chunkid-chunkhash-contenthash');
+
+        expect(
+          compilation.getPath('[name]-[chunkhash]-[contenthash]', {
+            chunk: {
+              id: 'chunkid',
+              hash: 'chunkhash',
+              contentHash: 'contenthash',
             },
           }),
-        ).toBe('[name]');
+        ).toBe('chunkid-chunkhash-contenthash');
+
+        expect(
+          compilation.getPath('[id]-[name]', {
+            chunk: {
+              id: 42,
+            },
+          }),
+        ).toBe('42-42');
+
+        expect(
+          compilation.getPath('[contenthash]', {
+            contentHash: 'asset-contenthash',
+            chunk: {
+              contentHash: 'chunk-contenthash',
+            },
+          }),
+        ).toBe('asset-contenthash');
+
+        expect(
+          compilation.getAssetPathWithInfo(
+            'static/css/[name].[contenthash].css',
+            {
+              chunk: {
+                name: 'style',
+                hash: 'chunkhash',
+                contentHash: 'contenthash',
+              },
+            },
+          ).path,
+        ).toBe('static/css/style.contenthash.css');
+
+        expect(
+          compilation.getAssetPathWithInfo(
+            'static/css/[name].[contenthash].css',
+            {
+              chunk: rawChunkPathData,
+              contentHashType: 'javascript',
+            },
+          ).path,
+        ).toBe('static/css/chunkname.contenthash.css');
       });
     });
     compiler.hooks.done.tap(pluginName, (stats) => {

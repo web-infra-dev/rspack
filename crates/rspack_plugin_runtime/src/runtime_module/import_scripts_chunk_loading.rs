@@ -241,13 +241,23 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     }
 
     if with_loading || with_callback {
+      let global_object = &compilation.options.output.global_object;
+      let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+      let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
+      let chunk_loading_global_init_expr = if compilation
+        .options
+        .output
+        .environment
+        .supports_logical_assignment()
+      {
+        format!("{chunk_loading_global_expr} ||= []")
+      } else {
+        format!("{chunk_loading_global_expr} = {chunk_loading_global_expr} || []")
+      };
       let render_source = runtime_template.render(
         &self.template_id(TemplateId::Raw),
         Some(serde_json::json!({
-          "_chunk_loading_global_expr": format!(
-            "{}[\"{}\"]",
-            &compilation.options.output.global_object, &compilation.options.output.chunk_loading_global
-          ),
+          "_chunk_loading_global_init_expr": chunk_loading_global_init_expr,
         })),
       )?;
 

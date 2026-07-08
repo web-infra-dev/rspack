@@ -441,6 +441,9 @@ export type Environment = {
   /** The environment supports optional chaining ('obj?.a' or 'obj?.()'). */
   optionalChaining?: boolean;
 
+  /** The environment supports logical assignment ('a ||= b'). */
+  logicalAssignment?: boolean;
+
   /** The environment supports template literals. */
   templateLiteral?: boolean;
 };

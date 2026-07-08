@@ -25,7 +25,8 @@ export type { AssetInfo } from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
 import type { Source } from 'webpack-sources';
 import type { EntryOptions, EntryPlugin } from './builtin-plugin';
-import { Chunk } from './Chunk';
+import './Chunk';
+import type { Chunk } from './Chunk';
 import type { ChunkGraph } from './ChunkGraph';
 import type { Compiler } from './Compiler';
 import type { ContextModuleFactory } from './ContextModuleFactory';
@@ -84,8 +85,15 @@ export type PathData = {
   runtime?: string;
   url?: string;
   id?: string | number;
-  chunk?: Chunk;
+  chunk?: Chunk | ChunkPathData;
   contentHashType?: string;
+};
+
+export type ChunkPathData = {
+  id?: string | number;
+  name?: string;
+  hash?: string;
+  contentHash?: Record<string, string> | string;
 };
 
 function normalizePathData(data: PathData = {}): JsPathData {
@@ -101,8 +109,22 @@ function normalizePathData(data: PathData = {}): JsPathData {
     pathData.id = String(data.id);
   }
 
-  if (data.chunk instanceof Chunk) {
-    pathData.chunk = data.chunk;
+  const chunk = data.chunk;
+  if (chunk) {
+    pathData.chunk = chunk;
+  }
+
+  if (chunk && pathData.contentHash === undefined) {
+    const contentHash = chunk.contentHash;
+    if (typeof contentHash === 'string') {
+      pathData.contentHash = contentHash;
+    } else if (
+      data.contentHashType &&
+      contentHash &&
+      typeof contentHash === 'object'
+    ) {
+      pathData.contentHash = contentHash[data.contentHashType];
+    }
   }
 
   return pathData;
@@ -755,33 +777,21 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
   getPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getPath(filename, pathData);
   }
 
   getPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getPathWithInfo(filename, pathData);
   }
 
   getAssetPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getAssetPath(filename, pathData);
   }
 
   getAssetPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    if (data.contentHashType && data.chunk?.contentHash) {
-      pathData.contentHash = data.chunk.contentHash[data.contentHashType];
-    }
     return this.#inner.getAssetPathWithInfo(filename, pathData);
   }
 

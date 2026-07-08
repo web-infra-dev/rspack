@@ -1,4 +1,6 @@
-use futures::Future;
+use std::panic::AssertUnwindSafe;
+
+use futures::{Future, FutureExt};
 use rspack_napi::napi::{
   Result, bindgen_prelude::*, threadsafe_function::ThreadsafeFunctionCallMode,
 };
@@ -37,8 +39,15 @@ where
     )
     .map_err(|err| napi::Error::new(ErrorCode::Napi(err.status), err.reason))?;
 
-  napi::bindgen_prelude::spawn(async move {
-    let res = fut.await;
+  rspack_napi::runtime::spawn(async move {
+    let res = match AssertUnwindSafe(fut).catch_unwind().await {
+      Ok(res) => res,
+      Err(payload) => {
+        let mut error = rspack_napi::runtime::panic_to_napi_error(payload);
+        let reason = std::mem::take(&mut error.reason);
+        Err(napi::Error::new(ErrorCode::Napi(error.status), reason))
+      }
+    };
     tsfn.call(res, ThreadsafeFunctionCallMode::NonBlocking);
   });
   Ok(())

@@ -28,6 +28,6 @@ var __rspack_jsonp = <%- basicFunction("parentChunkLoadingFunction, data") %> {
 	<% } %>
 };
 
-var chunkLoadingGlobal = <%- _chunk_loading_global_expr %> = <%- _chunk_loading_global_expr %> || [];
+var chunkLoadingGlobal = <%- _chunk_loading_global_init_expr %>;
 chunkLoadingGlobal.forEach(__rspack_jsonp.bind(null, 0));
 chunkLoadingGlobal.push = __rspack_jsonp.bind(null, chunkLoadingGlobal.push.bind(chunkLoadingGlobal));

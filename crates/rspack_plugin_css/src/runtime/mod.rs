@@ -1,4 +1,4 @@
-use std::{ptr::NonNull, sync::LazyLock};
+use std::sync::LazyLock;
 
 use rspack_core::{
   BooleanMatcher, ChunkGroupOrderKey, Compilation, CrossOriginLoading, RuntimeGlobals,
@@ -7,9 +7,8 @@ use rspack_core::{
   impl_runtime_module,
 };
 use rspack_plugin_runtime::{
-  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimeModuleChunkWrapper, RuntimePlugin,
-  chunk_has_css, extract_runtime_globals_from_ejs, get_chunk_runtime_requirements,
-  stringify_chunks,
+  CreateLinkData, LinkPrefetchData, LinkPreloadData, RuntimePlugin, chunk_has_css,
+  extract_runtime_globals_from_ejs, get_chunk_runtime_requirements, stringify_chunks,
 };
 use rspack_util::json_stringify;
 
@@ -322,14 +321,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
         let create_link = runtime_hooks
           .borrow()
           .create_link
-          .call(CreateLinkData {
-            code: create_link_raw,
-            chunk: RuntimeModuleChunkWrapper {
-              chunk_ukey,
-              compilation_id: compilation.id(),
-              compilation: NonNull::from(compilation),
+          .call(
+            compilation,
+            CreateLinkData {
+              code: create_link_raw,
+              chunk,
             },
-          })
+          )
           .await?;
 
         let chunk_load_timeout = compilation.options.output.chunk_load_timeout.to_string();
@@ -365,14 +363,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let link_prefetch = runtime_hooks
             .borrow()
             .link_prefetch
-            .call(LinkPrefetchData {
-              code: link_prefetch_raw,
-              chunk: RuntimeModuleChunkWrapper {
-                chunk_ukey,
-                compilation_id: compilation.id(),
-                compilation: NonNull::from(compilation),
+            .call(
+              compilation,
+              LinkPrefetchData {
+                code: link_prefetch_raw,
+                chunk,
               },
-            })
+            )
             .await?;
 
           let source_with_prefetch = context.runtime_template.render(
@@ -397,14 +394,13 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           let link_preload = runtime_hooks
             .borrow()
             .link_preload
-            .call(LinkPreloadData {
-              code: link_preload_raw,
-              chunk: RuntimeModuleChunkWrapper {
-                chunk_ukey,
-                compilation_id: compilation.id(),
-                compilation: NonNull::from(compilation),
+            .call(
+              compilation,
+              LinkPreloadData {
+                code: link_preload_raw,
+                chunk,
               },
-            })
+            )
             .await?;
 
           let source_with_preload = context.runtime_template.render(

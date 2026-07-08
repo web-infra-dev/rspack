@@ -6,6 +6,7 @@ export type {
   Asset,
   AssetInfo,
   Assets,
+  ChunkPathData,
   CompilationParams,
   LogEntry,
   PathData,

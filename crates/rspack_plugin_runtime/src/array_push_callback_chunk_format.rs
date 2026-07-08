@@ -85,6 +85,7 @@ async fn js_chunk_hash(
   output.global_object.hash(hasher);
   output.chunk_loading_global.hash(hasher);
   output.hot_update_global.hash(hasher);
+  output.environment.logical_assignment.hash(hasher);
 
   update_hash_for_entry_startup(
     hasher,
@@ -135,13 +136,22 @@ async fn render_chunk(
     source.add(RawStringSource::from_static(")"));
   } else {
     let chunk_loading_global = &compilation.options.output.chunk_loading_global;
+    let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
+
+    let chunk_loading_global_init = if compilation
+      .options
+      .output
+      .environment
+      .supports_logical_assignment()
+    {
+      format!("{chunk_loading_global_expr} ||= []")
+    } else {
+      format!("{chunk_loading_global_expr} = {chunk_loading_global_expr} || []")
+    };
 
     source.add(RawStringSource::from(format!(
-      r#"({}["{}"] = {}["{}"] || []).push([[{}], "#,
-      global_object,
-      chunk_loading_global,
-      global_object,
-      chunk_loading_global,
+      r#"({}).push([[{}], "#,
+      chunk_loading_global_init,
       rspack_util::json_stringify(chunk.expect_id()),
     )));
     source.add(render_source.source.clone());
