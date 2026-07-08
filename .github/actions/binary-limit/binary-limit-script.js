@@ -5,6 +5,11 @@ const fs = require('node:fs');
  * @param {Number} limit
  */
 module.exports = async function action({ github, context, limit }) {
+  const headSize = fs.statSync(
+    './crates/node_binding/rspack.linux-x64-gnu.node',
+  ).size;
+  console.log(`Head commit size: ${headSize}`);
+
   let baseCommit;
   let baseSize;
   try {
@@ -14,18 +19,13 @@ module.exports = async function action({ github, context, limit }) {
       await tryComment(
         github,
         context,
-        pendingBinarySizeComment(context, e.baseCommit),
+        pendingBinarySizeComment(context, headSize, e),
       );
     }
     throw e;
   }
 
-  const headSize = fs.statSync(
-    './crates/node_binding/rspack.linux-x64-gnu.node',
-  ).size;
-
   console.log(`Base commit size: ${baseSize}`);
-  console.log(`Head commit size: ${headSize}`);
 
   await tryComment(
     github,
@@ -45,21 +45,23 @@ const PER_PAGE = 30;
 const MAX_PAGES = 4;
 
 class PendingBinaryDataError extends Error {
-  constructor(baseCommit) {
+  constructor(baseCommit, fallback) {
     super(
       `Base commit ${baseCommit.sha} triggered a linux binding build but its ` +
         'binary size data has not been generated yet. Please re-run this workflow ' +
         'once the ecosystem-benchmark run for that commit has published its data.',
     );
     this.baseCommit = baseCommit;
+    this.fallback = fallback;
   }
 }
 
 // Baseline is `pr.base.sha` (the commit merged into the PR at run time), not the
 // fork point: PR CI builds from the merge ref, so head size already includes the
 // base tip. Walk main history skipping doc-only commits (they build no binding);
-// the first build-triggering commit is decisive — use its size data, or fail loudly
-// to force a re-run when it isn't published yet.
+// the first build-triggering commit is decisive. Use its size data, or — when it
+// isn't published yet (eco CI is slow) — fail loudly, attaching the nearest ancestor
+// that already has data as a non-authoritative reference for a rough number.
 async function findBaseCommit(github, context) {
   const { owner, repo } = context.repo;
   const pr = context.payload.pull_request;
@@ -68,6 +70,8 @@ async function findBaseCommit(github, context) {
   }
   const baseSha = pr.base.sha;
   console.log(`Base branch commit: ${baseSha}`);
+
+  let pendingBase = null;
 
   for (let page = 1; page <= MAX_PAGES; page++) {
     const { data: commits } = await github.rest.repos.listCommits({
@@ -79,6 +83,18 @@ async function findBaseCommit(github, context) {
     });
 
     for (const commit of commits) {
+      if (pendingBase) {
+        const data = await fetchDataBySha(commit.sha);
+        if (data?.size) {
+          console.log(`Fallback reference ${commit.sha}: ${data.size}`);
+          throw new PendingBinaryDataError(pendingBase, {
+            baseCommit: commit,
+            baseSize: data.size,
+          });
+        }
+        continue;
+      }
+
       if (!(await triggersBinaryBuild(github, owner, repo, commit.sha))) {
         console.log(`Commit ${commit.sha} is doc-only, skipping to parent`);
         continue;
@@ -90,10 +106,15 @@ async function findBaseCommit(github, context) {
         return { baseCommit: commit, baseSize: data.size };
       }
 
-      throw new PendingBinaryDataError(commit);
+      console.log(`Commit ${commit.sha} has no data yet, seeking a fallback`);
+      pendingBase = commit;
     }
 
     if (commits.length < PER_PAGE) break;
+  }
+
+  if (pendingBase) {
+    throw new PendingBinaryDataError(pendingBase, null);
   }
 
   throw new Error(
@@ -187,28 +208,47 @@ function comparingInfo(context, baseCommit) {
   return `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n`;
 }
 
-function pendingBinarySizeComment(context, baseCommit) {
-  return (
+function pendingBinarySizeComment(context, headSize, { baseCommit, fallback }) {
+  let body =
     comparingInfo(context, baseCommit) +
     '⏳ The base commit triggered a linux binding build, but its binary size data ' +
     'has not been generated yet, so the size comparison is skipped.\n\n' +
     `Please [re-run this workflow](${runUrl(context)}) once the ecosystem-benchmark ` +
-    'data for that commit is published.'
+    'data for that commit is published.';
+
+  if (fallback) {
+    body += `\n\n${referenceComparison(headSize, fallback)}`;
+  }
+
+  return body;
+}
+
+function referenceComparison(headSize, { baseCommit, baseSize }) {
+  const shortSha = baseCommit.sha.slice(0, 7);
+  return (
+    '> [!WARNING]\n' +
+    "> **Reference only — not the real baseline.** The base commit's data isn't " +
+    'ready yet, so this compares against the nearest earlier commit that has data ' +
+    `([\`${shortSha}\`](${baseCommit.html_url})) for a rough estimate:\n` +
+    '>\n' +
+    `> ${sizeDiffLine(headSize, baseSize)}`
   );
 }
 
 function compareBinarySize(headSize, baseSize, context, baseCommit) {
-  const info = comparingInfo(context, baseCommit);
+  return comparingInfo(context, baseCommit) + sizeDiffLine(headSize, baseSize);
+}
 
+function sizeDiffLine(headSize, baseSize) {
   const diff = headSize - baseSize;
   const percentage = (Math.abs(diff / baseSize) * 100).toFixed(2);
   if (diff > 0) {
-    return `${info}❌ Size increased by ${toHumanReadable(diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬆️${percentage}%)`;
+    return `❌ Size increased by ${toHumanReadable(diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬆️${percentage}%)`;
   }
   if (diff < 0) {
-    return `${info}🎉 Size decreased by ${toHumanReadable(-diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬇️${percentage}%)`;
+    return `🎉 Size decreased by ${toHumanReadable(-diff)} from ${toHumanReadable(baseSize)} to ${toHumanReadable(headSize)} (⬇️${percentage}%)`;
   }
-  return `${info}🙈 Size remains the same at ${toHumanReadable(headSize)}`;
+  return `🙈 Size remains the same at ${toHumanReadable(headSize)}`;
 }
 
 function toHumanReadable(size) {
