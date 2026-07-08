@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 56
 - Update: lazy.LAST_HASH.hot-update.js, size: 334
-- Update: main.LAST_HASH.hot-update.js, size: 7040
+- Update: main.LAST_HASH.hot-update.js, size: 6739
 
 ## Manifest
 
@@ -215,9 +215,6 @@ var applyHandler = (options) => {
 		}
 	};
 };
-var cssTextKey = (link) => {
-	return Array.from(link.sheet.cssRules, (r) => (r.cssText)).join();
-};
 __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) => {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
@@ -267,12 +264,6 @@ __webpack_require__.hmrC.css = (chunkIds, removedChunks, removedModules, promise
 							error.request = realSrc;
 							reject(error);
 						} else {
-							try {
-								if (oldTag && cssTextKey(oldTag) == cssTextKey(link)) {
-									if (link.parentNode) link.parentNode.removeChild(link);
-									return resolve();
-								}
-							} catch (e) {}
 							link.sheet.disabled = true;
 							if (oldTag) oldTags.push(oldTag);
 							newTags.push(link);

@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 143
-- Update: main.LAST_HASH.hot-update.js, size: 20683
+- Update: main.LAST_HASH.hot-update.js, size: 20354
 
 ## Manifest
 
@@ -124,9 +124,6 @@ var loadStylesheet = function (chunkId, fetchPriority) {
 // no chunk loading
 var oldTags = [];
 var newTags = [];
-var cssTextKey = function (link) {
-	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
-}
 var applyHandler = function (options) {
 	return {
 		dispose: function () {},
@@ -181,14 +178,6 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 					: fullhref,
 				oldTag,
 				function () {
-					if (oldTag) {
-						try {
-							if (cssTextKey(oldTag) === cssTextKey(tag)) {
-								if (tag.parentNode) tag.parentNode.removeChild(tag);
-								return resolve();
-							}
-						} catch (e) {}
-					}
 					tag.sheet.disabled = true;
 					if (oldTag) oldTags.push(oldTag);
 					newTags.push(tag);

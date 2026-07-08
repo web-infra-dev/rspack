@@ -17,9 +17,6 @@ var applyHandler = <%- basicFunction("options") %> {
 		}
 	};
 };
-var cssTextKey = <%- basicFunction("link") %> {
-	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
-};
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (typeof document === 'undefined') return;
 	applyHandlers.push(applyHandler);
@@ -69,12 +66,6 @@ var cssTextKey = <%- basicFunction("link") %> {
 							error.request = realSrc;
 							reject(error);
 						} else {
-							try {
-								if (oldTag && cssTextKey(oldTag) == cssTextKey(link)) {
-									if (link.parentNode) link.parentNode.removeChild(link);
-									return resolve();
-								}
-							} catch (e) {}
 							link.sheet.disabled = true;
 							if (oldTag) oldTags.push(oldTag);
 							newTags.push(link);

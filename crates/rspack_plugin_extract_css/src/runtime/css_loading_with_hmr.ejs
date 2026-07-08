@@ -1,8 +1,5 @@
 var oldTags = [];
 var newTags = [];
-var cssTextKey = function (link) {
-	return Array.from(link.sheet.cssRules, function (r) { return r.cssText; }).join();
-}
 var applyHandler = function (options) {
 	return {
 		dispose: function () {},
@@ -57,14 +54,6 @@ var applyHandler = function (options) {
 					: fullhref,
 				oldTag,
 				function () {
-					if (oldTag) {
-						try {
-							if (cssTextKey(oldTag) === cssTextKey(tag)) {
-								if (tag.parentNode) tag.parentNode.removeChild(tag);
-								return resolve();
-							}
-						} catch (e) {}
-					}
 					tag.sheet.disabled = true;
 					if (oldTag) oldTags.push(oldTag);
 					newTags.push(tag);
