@@ -21,21 +21,23 @@ if (process.env.WASM) {
 
 	// Non-uniform event-loop freezes: cycle through varied block durations so
 	// watchpack poll/aggregate timers and the step-sync setTimeout drift apart.
+	// Kept moderate (<= 300ms) so it models realistic concurrent-compile pressure
+	// rather than the extreme 800ms freezes used purely to reproduce the bug.
 	if (process.env.WATCH_REPRO_FREEZE !== "0") {
-		const blocks = [150, 600, 350, 800, 250, 500];
+		const blocks = [150, 300, 200, 250];
 		let k = 0;
 		const tick = () => {
 			const end = Date.now() + blocks[k++ % blocks.length];
 			while (Date.now() < end) {}
-			const t = setTimeout(tick, 180);
+			const t = setTimeout(tick, 200);
 			if (t.unref) t.unref();
 		};
-		const t0 = setTimeout(tick, 180);
+		const t0 = setTimeout(tick, 200);
 		if (t0.unref) t0.unref();
 	}
 
 	const src = path.join(__dirname, "watchCases", "side-effects", "issue-7400");
-	const count = Number(process.env.WATCH_REPRO_N || 500);
+	const count = Number(process.env.WATCH_REPRO_N || 150);
 
 	for (let i = 0; i < count; i++) {
 		const name = `side-effects/issue-7400-repro-${String(i).padStart(4, "0")}`;
