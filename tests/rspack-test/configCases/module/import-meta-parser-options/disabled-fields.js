@@ -7,11 +7,17 @@ const sourceFilename = path.resolve(
 const sourceDirname = path.dirname(sourceFilename);
 const sourceUrl = pathToFileURL(sourceFilename).toString();
 const { env, url, webpack } = import.meta;
+const envType = typeof import.meta.env;
+
+if (!import.meta.env) {
+	import.meta.env = { RSPACK_TEST: "runtime" };
+}
 
 export default {
 	contextType: typeof import.meta.webpackContext,
 	dirname: import.meta.dirname,
-	envType: typeof import.meta.env,
+	envOptional: import.meta.env?.RSPACK_TEST,
+	envType,
 	filename: import.meta.filename,
 	globType: typeof import.meta.glob,
 	hotType: typeof import.meta.webpackHot,
