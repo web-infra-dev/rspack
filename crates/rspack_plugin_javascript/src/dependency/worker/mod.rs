@@ -198,7 +198,8 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     let mut worker_import_str = if matches!(
       dep.url_mode,
       Some(JavascriptParserWorkerUrl::NewUrlRelative)
-    ) {
+    ) && compilation.options.output.module
+    {
       code_generatable_context.data.insert(URLStaticMode);
       let public_path = if !dep.public_path.is_empty() {
         dep.public_path.clone()

@@ -563,12 +563,14 @@ export default {
 
 `string[]` 写法等价于将相同的值配置到 `worker.alias`。
 不配置 `worker.url` 时，Rspack 会保留已有的 Worker URL 输出。
-当 `worker.url` 设置为 `'new-url-relative'` 时，Rspack 会为
-`new Worker(new URL(..., import.meta.url))` 输出静态的 `new URL()` 表达式：
+当 `worker.url` 设置为 `'new-url-relative'` 且启用 `output.module` 时，
+Rspack 会为 `new Worker(new URL(..., import.meta.url))` 输出静态的 `new URL()`
+表达式。对于非 ESM 输出，Rspack 会保留已有的运行时 Worker URL 输出：
 
 ```js title="rspack.config.mjs"
 export default {
   output: {
+    module: true,
     chunkFilename: '[name].bundle.js',
   },
   module: {
