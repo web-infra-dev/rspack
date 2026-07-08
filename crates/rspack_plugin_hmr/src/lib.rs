@@ -15,6 +15,7 @@ use rspack_core::{
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
+use rspack_hash::RspackHashDigest;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_css::parser_and_generator::CssParserAndGenerator;
 use rspack_plugin_javascript::{
@@ -178,16 +179,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = old_runtime.clone();
     }
 
-    // How this chunk's CSS content evolved across the rebuild. The runtime
-    // chunk is always in `c` (its full hash changes every rebuild) while its
-    // CSS is usually unchanged, so the runtime needs to know which chunks'
-    // stylesheets actually changed (`css.c`) or disappeared (`css.r`).
     let old_css_hash = old_chunk_css_hashes.get(&chunk_id);
-    let new_css_hash = current_chunk
-      .and_then(|chunk| chunk.css_content_hash(&compilation.chunk_hashes_artifact))
-      .cloned();
-    let css_changed = new_css_hash.is_some() && new_css_hash.as_ref() != old_css_hash;
-    let css_removed = new_css_hash.is_none() && old_css_hash.is_some();
+    let new_css_hash =
+      current_chunk.and_then(|chunk| chunk.css_content_hash(&compilation.chunk_hashes_artifact));
+    let css_update = CssUpdate::new(old_css_hash, new_css_hash);
 
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
@@ -198,7 +193,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
     }
 
-    if css_removed && current_chunk.is_some() {
+    if css_update == CssUpdate::Removed && current_chunk.is_some() {
       for runtime in new_runtime.iter() {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.css_removed_chunk_ids.insert(chunk_id.clone());
@@ -361,7 +356,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime.iter().for_each(|runtime| {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
           info.updated_chunk_ids.insert(chunk_id.clone());
-          if css_changed {
+          if css_update == CssUpdate::Changed {
             info.css_updated_chunk_ids.insert(chunk_id.clone());
           }
         }
@@ -434,21 +429,10 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       "r": r,
       "m": m,
     });
-    // The `css` namespace aligns with webpack's hot-update manifest (webpack
-    // ships `css.r` for chunks that lost their CSS). It is only present when
-    // some chunk's CSS actually changed (`css.c`) or disappeared (`css.r`), so
-    // its absence tells the runtime there is no CSS work at all this update.
-    let css_c: Vec<ChunkId> = content.css_updated_chunk_ids.into_iter().collect();
-    let css_r: Vec<ChunkId> = content.css_removed_chunk_ids.into_iter().collect();
-    if !css_c.is_empty() || !css_r.is_empty() {
-      let mut css = serde_json::Map::new();
-      if !css_c.is_empty() {
-        css.insert("c".to_string(), serde_json::json!(css_c));
-      }
-      if !css_r.is_empty() {
-        css.insert("r".to_string(), serde_json::json!(css_r));
-      }
-      manifest_json["css"] = serde_json::Value::Object(css);
+    if let Some(css) =
+      css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
+    {
+      manifest_json["css"] = css;
     }
     let manifest_content = manifest_json.to_string();
 
@@ -552,4 +536,37 @@ struct HotUpdateContent {
   removed_modules: HashSet<ModuleId>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum CssUpdate {
+  Changed,
+  Removed,
+  Unchanged,
+}
+
+impl CssUpdate {
+  fn new(old: Option<&RspackHashDigest>, new: Option<&RspackHashDigest>) -> Self {
+    match (old, new) {
+      (old, Some(new)) if old != Some(new) => Self::Changed,
+      (Some(_), None) => Self::Removed,
+      _ => Self::Unchanged,
+    }
+  }
+}
+
+fn css_manifest_json(updated: ChunkIdSet, removed: ChunkIdSet) -> Option<serde_json::Value> {
+  if updated.is_empty() && removed.is_empty() {
+    return None;
+  }
+  let mut css = serde_json::Map::new();
+  if !updated.is_empty() {
+    let c: Vec<ChunkId> = updated.into_iter().collect();
+    css.insert("c".to_string(), serde_json::json!(c));
+  }
+  if !removed.is_empty() {
+    let r: Vec<ChunkId> = removed.into_iter().collect();
+    css.insert("r".to_string(), serde_json::json!(r));
+  }
+  Some(serde_json::Value::Object(css))
 }
