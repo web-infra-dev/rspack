@@ -1678,9 +1678,14 @@ CompilerOptions {
                             reexport_exports_presence: None,
                             type_reexports_presence: None,
                             worker: Some(
-                                [
-                                    "...",
-                                ],
+                                JavascriptParserWorkerOptions {
+                                    alias: Some(
+                                        [
+                                            "...",
+                                        ],
+                                    ),
+                                    url: None,
+                                },
                             ),
                             override_strict: None,
                             import_meta: Some(
