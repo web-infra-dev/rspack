@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 42
-- Update: main.LAST_HASH.hot-update.js, size: 15375
+- Update: main.LAST_HASH.hot-update.js, size: 15545
 
 ## Manifest
 
@@ -49,20 +49,20 @@ __webpack_require__.h = () => ("CURRENT_HASH")
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = __webpack_require__.hmrS_jsonp = __webpack_require__.hmrS_jsonp || {"main": 0,};
-      var currentUpdatedModulesList;
-var waitingUpdateResolves = {};
-function loadUpdateChunk(chunkId, updatedModulesList) {
-	currentUpdatedModulesList = updatedModulesList;
+      var jsonpInstalledChunks = __webpack_require__.hmrS_jsonp = __webpack_require__.hmrS_jsonp || {"main": 0,};
+      var hotCurrentUpdatedModulesList;
+var hotWaitingUpdateResolves = {};
+function jsonpLoadUpdateChunk(chunkId, updatedModulesList) {
+	hotCurrentUpdatedModulesList = updatedModulesList;
 	return new Promise((resolve, reject) => {
-		waitingUpdateResolves[chunkId] = resolve;
+		hotWaitingUpdateResolves[chunkId] = resolve;
 		// start update chunk loading
 		var url = __webpack_require__.p + __webpack_require__.hu(chunkId);
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
 		var loadingEnded = (event) => {
-			if (waitingUpdateResolves[chunkId]) {
-				waitingUpdateResolves[chunkId] = undefined;
+			if (hotWaitingUpdateResolves[chunkId]) {
+				hotWaitingUpdateResolves[chunkId] = undefined;
 				var errorType =
 					event && (event.type === 'load' ? 'missing' : event.type);
 				var realSrc = event && event.target && event.target.src;
@@ -87,23 +87,23 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 self["rspackHotUpdate"] = (chunkId, moreModules, runtime) => {
 	for (var moduleId in moreModules) {
 		if (__webpack_require__.o(moreModules, moduleId)) {
-			currentUpdate[moduleId] = moreModules[moduleId];
-			if (currentUpdatedModulesList) currentUpdatedModulesList.push(moduleId);
+			hotCurrentUpdate[moduleId] = moreModules[moduleId];
+			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
 		}
 	}
-	if (runtime) currentUpdateRuntime.push(runtime);
-	if (waitingUpdateResolves[chunkId]) {
-		waitingUpdateResolves[chunkId]();
-		waitingUpdateResolves[chunkId] = undefined;
+	if (runtime) hotCurrentUpdateRuntime.push(runtime);
+	if (hotWaitingUpdateResolves[chunkId]) {
+		hotWaitingUpdateResolves[chunkId]();
+		hotWaitingUpdateResolves[chunkId] = undefined;
 	}
 };
-var currentUpdateChunks;
-var currentUpdate;
-var currentUpdateRemovedChunks;
-var currentUpdateRuntime;
-function applyHandler(options) {
+var hotCurrentUpdateChunks;
+var hotCurrentUpdate;
+var hotCurrentUpdateRemovedChunks;
+var hotCurrentUpdateRuntime;
+function hotApplyHandler(options) {
 	if (__webpack_require__.f) delete __webpack_require__.f.jsonpHmr;
-	currentUpdateChunks = undefined;
+	hotCurrentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
 		var outdatedModules = [updateModuleId];
 		var outdatedDependencies = {};
@@ -200,9 +200,9 @@ function applyHandler(options) {
 		throw Error("RuntimeError: factory is undefined(" + module.id + ")");
 	};
 
-	for (var moduleId in currentUpdate) {
-		if (__webpack_require__.o(currentUpdate, moduleId)) {
-			var newModuleFactory = currentUpdate[moduleId];
+	for (var moduleId in hotCurrentUpdate) {
+		if (__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+			var newModuleFactory = hotCurrentUpdate[moduleId];
 			var result = newModuleFactory ? getAffectedModuleEffects(moduleId) : {
 				type: "disposed",
 				moduleId: moduleId
@@ -276,7 +276,7 @@ function applyHandler(options) {
 			}
 		}
 	}
-	currentUpdate = undefined;
+	hotCurrentUpdate = undefined;
 
 	var outdatedSelfAcceptedModules = [];
 	for (var j = 0; j < outdatedModules.length; j++) {
@@ -307,10 +307,10 @@ function applyHandler(options) {
 	var moduleOutdatedDependencies;
 	return {
 		dispose: function () {
-			currentUpdateRemovedChunks.forEach(function (chunkId) {
-				delete installedChunks[chunkId];
+			hotCurrentUpdateRemovedChunks.forEach(function (chunkId) {
+				delete jsonpInstalledChunks[chunkId];
 			});
-			currentUpdateRemovedChunks = undefined;
+			hotCurrentUpdateRemovedChunks = undefined;
 
 			var idx;
 			var queue = outdatedModules.slice();
@@ -378,9 +378,9 @@ function applyHandler(options) {
 			}
 
 			// run new runtime modules
-			for (var i = 0; i < currentUpdateRuntime.length; i++) {
+			for (var i = 0; i < hotCurrentUpdateRuntime.length; i++) {
 				
-				currentUpdateRuntime[i](new Proxy(__webpack_require__, {
+				hotCurrentUpdateRuntime[i](new Proxy(__webpack_require__, {
 					set(target, prop, value, receiver) {
 						if (self.__HMR_UPDATED_RUNTIME__) {
 							self.__HMR_UPDATED_RUNTIME__.javascript.updatedRuntime.push(`__webpack_require__.${prop}`);
@@ -508,14 +508,14 @@ function applyHandler(options) {
 }
 
 __webpack_require__.hmrI.jsonp = function (moduleId, applyHandlers) {
-	if (!currentUpdate) {
-		currentUpdate = {};
-		currentUpdateRuntime = [];
-		currentUpdateRemovedChunks = [];
-		applyHandlers.push(applyHandler);
+	if (!hotCurrentUpdate) {
+		hotCurrentUpdate = {};
+		hotCurrentUpdateRuntime = [];
+		hotCurrentUpdateRemovedChunks = [];
+		applyHandlers.push(hotApplyHandler);
 	}
-	if (!__webpack_require__.o(currentUpdate, moduleId)) {
-		currentUpdate[moduleId] = __webpack_require__.m[moduleId];
+	if (!__webpack_require__.o(hotCurrentUpdate, moduleId)) {
+		hotCurrentUpdate[moduleId] = __webpack_require__.m[moduleId];
 	}
 };
 
@@ -527,34 +527,34 @@ __webpack_require__.hmrC.jsonp = function (
 	applyHandlers,
 	updatedModulesList
 ) {
-	applyHandlers.push(applyHandler);
-	currentUpdateChunks = {};
-	currentUpdateRemovedChunks = removedChunks;
-	currentUpdate = removedModules.reduce(function (obj, key) {
+	applyHandlers.push(hotApplyHandler);
+	hotCurrentUpdateChunks = {};
+	hotCurrentUpdateRemovedChunks = removedChunks;
+	hotCurrentUpdate = removedModules.reduce(function (obj, key) {
 		obj[key] = false;
 		return obj;
 	}, {});
-	currentUpdateRuntime = [];
+	hotCurrentUpdateRuntime = [];
 	chunkIds.forEach(function (chunkId) {
 		if (
-			__webpack_require__.o(installedChunks, chunkId) &&
-			installedChunks[chunkId] !== undefined
+			__webpack_require__.o(jsonpInstalledChunks, chunkId) &&
+			jsonpInstalledChunks[chunkId] !== undefined
 		) {
-			promises.push(loadUpdateChunk(chunkId, updatedModulesList));
-			currentUpdateChunks[chunkId] = true;
+			promises.push(jsonpLoadUpdateChunk(chunkId, updatedModulesList));
+			hotCurrentUpdateChunks[chunkId] = true;
 		} else {
-			currentUpdateChunks[chunkId] = false;
+			hotCurrentUpdateChunks[chunkId] = false;
 		}
 	});
 	if (__webpack_require__.f) {
 		__webpack_require__.f.jsonpHmr = function (chunkId, promises) {
 			if (
-				currentUpdateChunks &&
-				__webpack_require__.o(currentUpdateChunks, chunkId) &&
-				!currentUpdateChunks[chunkId]
+				hotCurrentUpdateChunks &&
+				__webpack_require__.o(hotCurrentUpdateChunks, chunkId) &&
+				!hotCurrentUpdateChunks[chunkId]
 			) {
-				promises.push(loadUpdateChunk(chunkId));
-				currentUpdateChunks[chunkId] = true;
+				promises.push(jsonpLoadUpdateChunk(chunkId));
+				hotCurrentUpdateChunks[chunkId] = true;
 			}
 		};
 	}

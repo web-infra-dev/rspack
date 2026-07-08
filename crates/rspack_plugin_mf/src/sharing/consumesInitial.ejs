@@ -1,7 +1,7 @@
 <%- REQUIRE_SCOPE %>.consumesLoadingData.initialConsumes.forEach(function(id) {
   <%- MODULE_FACTORIES %>[id] = function(module) {
     // Handle case when module is used sync
-    installedModules[id] = 0;
+    consumeSharedInstalledModules[id] = 0;
     delete <%- MODULE_CACHE %>[id];
     var factory = resolveHandler(<%- REQUIRE_SCOPE %>.consumesLoadingData.moduleIdToConsumeDataMapping[id])();
     if (typeof factory !== "function")

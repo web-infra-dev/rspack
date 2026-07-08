@@ -1,5 +1,5 @@
 var currentModuleData = {};
-var installedModules = <%- MODULE_CACHE %>;
+var hmrInstalledModules = <%- MODULE_CACHE %>;
 
 // module and require creation
 var currentChildModule;
@@ -33,12 +33,12 @@ var queuedInvalidatedModules;
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
 
 function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
-	var me = installedModules[moduleId];
+	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
 		if (me.hot.active) {
-			if (installedModules[request]) {
-				var parents = installedModules[request].parents;
+			if (hmrInstalledModules[request]) {
+				var parents = hmrInstalledModules[request].parents;
 				if (parents.indexOf(moduleId) === -1) {
 					parents.push(moduleId);
 				}

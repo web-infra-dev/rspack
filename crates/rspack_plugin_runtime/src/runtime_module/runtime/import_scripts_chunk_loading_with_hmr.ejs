@@ -1,13 +1,13 @@
-function loadUpdateChunk(chunkId, updatedModulesList) {
+function importScriptsLoadUpdateChunk(chunkId, updatedModulesList) {
   var success = false;
   <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("_, moreModules, runtime") %> {
       for (var moduleId in moreModules) {
           if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-              currentUpdate[moduleId] = moreModules[moduleId];
+              hotCurrentUpdate[moduleId] = moreModules[moduleId];
               if (updatedModulesList) updatedModulesList.push(moduleId);
           }
       }
-      if (runtime) currentUpdateRuntime.push(runtime);
+      if (runtime) hotCurrentUpdateRuntime.push(runtime);
       success = true;
   };
   // start update chunk loading

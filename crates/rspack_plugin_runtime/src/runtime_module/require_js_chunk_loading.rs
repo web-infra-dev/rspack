@@ -277,14 +277,14 @@ impl RuntimeModule for RequireChunkLoadingRuntimeModule {
     if with_hmr {
       let state_expression = render_hmr_runtime_state_expression(runtime_template, "require");
       source.push_str(&format!(
-        "var installedChunks = {} = {} || {};\n",
+        "var requireInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
-        "var installedChunks = {};\n",
+        "var requireInstalledChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
       ));
     }

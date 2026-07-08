@@ -1,25 +1,25 @@
-var oldTags = [];
-var newTags = [];
-var applyHandler = <%- basicFunction("options") %> {
+var cssOldTags = [];
+var cssNewTags = [];
+var cssApplyHandler = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
-			newTags.forEach(<%- basicFunction("newTag") %> {
+			cssNewTags.forEach(<%- basicFunction("newTag") %> {
 				newTag.sheet.disabled = false;
 			});
-			while (oldTags.length) {
-				var oldTag = oldTags.pop();
+			while (cssOldTags.length) {
+				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			while (newTags.length) {
-				newTags.pop();
+			while (cssNewTags.length) {
+				cssNewTags.pop();
 			}
 		}
 	};
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css") %> {
 	if (typeof document === 'undefined') return;
-	applyHandlers.push(applyHandler);
+	applyHandlers.push(cssApplyHandler);
 	// `css` is the hot-update manifest's css namespace (aligned with webpack):
 	// `css.c` lists the chunks whose CSS content actually changed and `css.r`
 	// the chunks whose CSS disappeared. Its absence means this update carries
@@ -31,8 +31,8 @@ var applyHandler = <%- basicFunction("options") %> {
 	cssRemovedChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
 		if (!filename) return;
-		var oldTag = loadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
-		if (oldTag) oldTags.push(oldTag);
+		var oldTag = cssLoadStylesheet(chunkId, <%- PUBLIC_PATH %> + filename);
+		if (oldTag) cssOldTags.push(oldTag);
 	});
 	cssChunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
@@ -42,10 +42,10 @@ var applyHandler = <%- basicFunction("options") %> {
 			return;
 		}
 		seen[url] = true;
-		var oldTag = loadStylesheet(chunkId, url);
+		var oldTag = cssLoadStylesheet(chunkId, url);
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
-				var link = loadStylesheet(
+				var link = cssLoadStylesheet(
 					chunkId,
 					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
 					<%- basicFunction("event") %> {
@@ -67,8 +67,8 @@ var applyHandler = <%- basicFunction("options") %> {
 							reject(error);
 						} else {
 							link.sheet.disabled = true;
-							if (oldTag) oldTags.push(oldTag);
-							newTags.push(link);
+							if (oldTag) cssOldTags.push(oldTag);
+							cssNewTags.push(link);
 							resolve();
 						}
 					},

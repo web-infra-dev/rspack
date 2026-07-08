@@ -1,6 +1,6 @@
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  impl_runtime_module,
+  impl_runtime_module, runtime_mode::RuntimeMode,
 };
 
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
@@ -42,7 +42,7 @@ export {{ {export_temp_name} as {export_name} }};
     ))
   }
 
-  fn should_isolate(&self) -> bool {
+  fn should_isolate(&self, _runtime_mode: RuntimeMode) -> bool {
     false
   }
 }

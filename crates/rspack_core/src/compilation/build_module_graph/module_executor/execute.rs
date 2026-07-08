@@ -101,16 +101,19 @@ fn create_execute_runtime_source(
       .get(runtime_id, None)
       .get(&SourceType::JavaScript)
       .expect("runtime module should have runtime source");
+    let should_isolate =
+      runtime_module.should_isolate(compilation.options.experiments.runtime_mode);
     source.push_str(
       &render_runtime_module_source(
         runtime_module.identifier(),
         runtime_module_source.clone(),
-        runtime_module.should_isolate(),
+        should_isolate,
         compilation
           .options
           .output
           .environment
           .supports_arrow_function(),
+        !should_isolate,
       )
       .source()
       .into_string_lossy(),

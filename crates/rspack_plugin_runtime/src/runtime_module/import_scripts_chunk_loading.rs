@@ -228,14 +228,14 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
     if with_hmr {
       let state_expression = render_hmr_runtime_state_expression(runtime_template, "importScripts");
       source.push_str(&format!(
-        "var installedChunks = {} = {} || {};\n",
+        "var importScriptsInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
         &stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
-        "var installedChunks = {};\n",
+        "var importScriptsInstalledChunks = {};\n",
         &stringify_chunks(&initial_chunks, 1)
       ));
     }

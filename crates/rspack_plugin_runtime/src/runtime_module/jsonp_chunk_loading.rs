@@ -312,7 +312,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, reject, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = {}{};
+      var jsonpInstalledChunks = {}{};
       "#,
       match with_hmr {
         true => {
@@ -326,7 +326,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
 
     if with_loading {
       let body = if matches!(has_js_matcher, BooleanMatcher::Condition(false)) {
-        "installedChunks[chunkId] = 0;".to_string()
+        "jsonpInstalledChunks[chunkId] = 0;".to_string()
       } else {
         runtime_template.render(
           &self.template_id(TemplateId::Raw),

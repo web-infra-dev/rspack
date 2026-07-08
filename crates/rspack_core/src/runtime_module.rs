@@ -16,6 +16,7 @@ use tokio::sync::OnceCell;
 use crate::{
   ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
+  runtime_mode::RuntimeMode,
 };
 
 pub struct RuntimeModuleGenerateContext<'a> {
@@ -210,8 +211,8 @@ pub trait RuntimeModule:
     false
   }
   // if wrap iife
-  fn should_isolate(&self) -> bool {
-    true
+  fn should_isolate(&self, runtime_mode: RuntimeMode) -> bool {
+    matches!(runtime_mode, RuntimeMode::Webpack)
   }
   fn template(&self) -> Vec<(String, String)> {
     vec![]

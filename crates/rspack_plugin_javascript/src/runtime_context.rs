@@ -44,7 +44,7 @@ pub async fn render_runtime_chunk_runtime_modules(
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true, true).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -86,11 +86,7 @@ pub async fn render_runtime_chunk_runtime_modules(
     hmr_state_keys.push(key);
   }
 
-  let isolate = has_modules && !compilation.options.output.module;
-  if isolate {
-    sources.add(RawStringSource::from("(function() {\n".to_string()));
-  }
-
+  let isolate = has_modules;
   let render_runtime_global = |runtime_global: RuntimeGlobals| {
     if runtime_global == RuntimeGlobals::REQUIRE {
       Some(runtime_template.render_runtime_variable(&RuntimeVariable::Require))
@@ -116,7 +112,8 @@ pub async fn render_runtime_chunk_runtime_modules(
       None
     }
   };
-  sources.add(RawStringSource::from(
+  let mut wrapped_sources = ConcatSource::default();
+  wrapped_sources.add(RawStringSource::from(
     metadata.render_lexical_declarations(Some(&render_runtime_global)),
   ));
   if metadata
@@ -124,13 +121,17 @@ pub async fn render_runtime_chunk_runtime_modules(
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
   {
     for key in &hmr_state_keys {
-      sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
+      wrapped_sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
     }
   }
-  for (runtime_module_source, generated_requirements, context_requirements) in
+  for (runtime_module_source, generated_requirements, context_requirements, needs_top_level) in
     runtime_module_sources
   {
-    sources.add(runtime_module_source);
+    if isolate && needs_top_level {
+      sources.add(runtime_module_source);
+    } else {
+      wrapped_sources.add(runtime_module_source);
+    }
     let mut context_fields = metadata.context_fields().intersection(context_requirements);
     if is_hmr_runtime {
       context_fields.insert(generated_requirements.renderable_require_scope());
@@ -150,7 +151,7 @@ pub async fn render_runtime_chunk_runtime_modules(
       if setters.contains(runtime_global)
         && (is_hmr_runtime || LIVE_BINDING_CONTEXT_GLOBALS.contains(runtime_global))
       {
-        sources.add(RawStringSource::from(format!(
+        wrapped_sources.add(RawStringSource::from(format!(
           "Object.defineProperty({}, {}, {{ configurable: true, get: function() {{ return {}; }}, set: function(value) {{ {} = value; }} }});\n",
           runtime_context,
           rspack_util::json_stringify(key),
@@ -158,7 +159,7 @@ pub async fn render_runtime_chunk_runtime_modules(
           lexical_name
         )));
       } else {
-        sources.add(RawStringSource::from(format!(
+        wrapped_sources.add(RawStringSource::from(format!(
           "{}{} = {};\n",
           runtime_context,
           property_access([key], 0),
@@ -168,7 +169,11 @@ pub async fn render_runtime_chunk_runtime_modules(
     }
   }
   if isolate {
+    sources.add(RawStringSource::from("(function() {\n".to_string()));
+    sources.add(wrapped_sources);
     sources.add(RawStringSource::from("\n}).call(this);\n".to_string()));
+  } else {
+    sources.add(wrapped_sources);
   }
 
   Ok(sources.boxed())
@@ -180,7 +185,7 @@ pub async fn render_chunk_runtime_modules(
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true, true).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -214,7 +219,7 @@ pub async fn render_chunk_runtime_modules(
     metadata.render_lexical_declarations(Some(&render_runtime_global)),
   ));
 
-  for (runtime_module_source, generated_requirements, context_requirements) in
+  for (runtime_module_source, generated_requirements, context_requirements, _) in
     runtime_module_sources
   {
     sources.add(runtime_module_source);
@@ -264,7 +269,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true, false).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -328,7 +333,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
     "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
   )));
 
-  for (runtime_module_source, generated_requirements, _) in runtime_module_sources {
+  for (runtime_module_source, generated_requirements, _, _) in runtime_module_sources {
     sources.add(runtime_module_source);
     let mut context_fields = metadata
       .context_fields()

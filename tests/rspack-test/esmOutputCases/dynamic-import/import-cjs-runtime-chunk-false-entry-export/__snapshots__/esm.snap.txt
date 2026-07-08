@@ -133,8 +133,8 @@ __webpack_require__.r = (exports) => {
       // object to store loaded and loading chunks
       // undefined = chunk not loaded, null = chunk preloaded/prefetched
       // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var installedChunks = {"index_js": 0,"main": 0,};
-      var installChunk = (data) => {
+      var moduleInstalledChunks = {"index_js": 0,"main": 0,};
+      var moduleInstallChunk = (data) => {
     var __rspack_esm_ids = data.__rspack_esm_ids;
     var moreModules = data.__webpack_modules__;
     var __rspack_esm_runtime = data.__rspack_esm_runtime;
@@ -149,16 +149,16 @@ __webpack_require__.r = (exports) => {
     if (__rspack_esm_runtime) __rspack_esm_runtime(__webpack_require__);
     for (; i < __rspack_esm_ids.length; i++) {
         chunkId = __rspack_esm_ids[i];
-        if (__webpack_require__.o(installedChunks, chunkId) && installedChunks[chunkId]) {
-            installedChunks[chunkId][0]();
+        if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
+            moduleInstalledChunks[chunkId][0]();
         }
-        installedChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
     }
     
 };
 // no chunk on demand loading
 
-        __webpack_require__.C = installChunk;
+        __webpack_require__.C = moduleInstallChunk;
         // no on chunks loaded
 // no HMR
 // no HMR manifest
