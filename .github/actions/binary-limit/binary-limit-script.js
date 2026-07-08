@@ -85,7 +85,7 @@ async function findBaseCommit(github, context) {
 
     for (const commit of commits) {
       if (pendingBase) {
-        const data = await fetchDataBySha(commit.sha);
+        const data = await fetchDataBySha(github, commit.sha);
         if (data?.size) {
           console.log(`Fallback reference ${commit.sha}: ${data.size}`);
           throw new PendingBinaryDataError(pendingBase, {
@@ -101,7 +101,7 @@ async function findBaseCommit(github, context) {
         continue;
       }
 
-      const data = await fetchDataBySha(commit.sha);
+      const data = await fetchDataBySha(github, commit.sha);
       if (data?.size) {
         console.log(`Commit ${commit.sha} has binary size: ${data.size}`);
         return { baseCommit: commit, baseSize: data.size };
@@ -198,24 +198,38 @@ async function commentToPullRequest(github, context, comment) {
   });
 }
 
-async function fetchDataBySha(sha) {
-  const dataUrl = `${DATA_URL_BASE}/commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
-  console.log('fetching', dataUrl, '...');
-  const res = await fetch(dataUrl);
-  // 404 = data not published yet; other failures should surface their real cause.
-  if (res.status === 404) return null;
-  if (!res.ok) {
-    throw new Error(
-      `Failed to fetch ${dataUrl}: ${res.status} ${res.statusText}`,
-    );
+// Read via the authenticated Contents API rather than raw.githubusercontent.com:
+// the CDN rate-limits anonymous requests per shared runner IP and 429s almost
+// immediately, while the API uses the workflow token (5000 req/h) with octokit's
+// built-in retry/throttling.
+async function fetchDataBySha(github, sha) {
+  const path = `commits/${sha.slice(0, 2)}/${sha.slice(2)}/rspack-build.json`;
+  console.log(
+    'fetching',
+    `${DATA_REPO.owner}/${DATA_REPO.repo}:${path}`,
+    '...',
+  );
+  try {
+    const { data } = await github.rest.repos.getContent({
+      ...DATA_REPO,
+      ref: DATA_REF,
+      path,
+    });
+    return JSON.parse(Buffer.from(data.content, data.encoding).toString());
+  } catch (e) {
+    // 404 = data not published yet; other failures should surface their real cause.
+    if (e.status === 404) return null;
+    throw e;
   }
-  return res.json();
 }
 
 const SIZE_LIMIT_HEADING = '## 📦 Binary Size-limit';
 
-const DATA_URL_BASE =
-  'https://raw.githubusercontent.com/web-infra-dev/rspack-ecosystem-benchmark/data';
+const DATA_REPO = {
+  owner: 'web-infra-dev',
+  repo: 'rspack-ecosystem-benchmark',
+};
+const DATA_REF = 'data';
 
 function runUrl(context) {
   return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
