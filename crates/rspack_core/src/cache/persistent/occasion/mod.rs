@@ -3,6 +3,7 @@ pub mod make;
 pub mod meta;
 pub mod minimize;
 pub mod module_hashes;
+pub mod modules_codegen;
 
 use std::future::Future;
 
@@ -13,6 +14,7 @@ pub use minimize::{
   CachedExtractedComments, CachedMinimizeEntry, MinimizeOccasion, MinimizePersistentCacheArtifact,
 };
 pub use module_hashes::ModuleHashesOccasion;
+pub use modules_codegen::ModulesCodegenOccasion;
 use rspack_error::Result;
 
 use super::storage::Storage;

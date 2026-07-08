@@ -150,7 +150,7 @@ impl Cache for MixedCache {
     self.persistent.before_modules_codegen(compilation).await;
   }
 
-  async fn after_modules_codegen(&self, compilation: &Compilation) {
+  async fn after_modules_codegen(&mut self, compilation: &Compilation) {
     self.persistent.after_modules_codegen(compilation).await;
   }
 

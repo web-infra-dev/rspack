@@ -5,6 +5,10 @@ use std::{
 };
 
 use anymap::CloneAny;
+use rspack_cacheable::{
+  cacheable,
+  with::{AsPreset, AsVec},
+};
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
@@ -14,9 +18,11 @@ use serde::Serialize;
 
 use crate::{
   ArtifactExt, AssetInfo, BindingCell, ChunkInitFragments, ConcatenationScope, ModuleIdentifier,
-  RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
+  RuntimeGlobals, RuntimeKey, RuntimeMode, RuntimeSpec, RuntimeSpecMap, SourceType,
+  incremental::IncrementalPasses,
 };
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataUrl {
   inner: String,
@@ -33,12 +39,15 @@ impl CodeGenerationDataUrl {
 }
 
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct URLStaticMode;
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
@@ -62,6 +71,7 @@ impl CodeGenerationDataFilename {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataAssetInfo {
   inner: AssetInfo,
@@ -77,8 +87,10 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
+  #[cacheable(with=AsVec<AsPreset>)]
   inner: FxHashSet<Atom>,
 }
 
@@ -92,6 +104,7 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationExportsFinalNames {
   inner: HashMap<String, String>,
@@ -403,6 +416,25 @@ impl CodeGenerationResults {
     &HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   ) {
     (&self.map, &self.module_generation_result_map)
+  }
+
+  pub(crate) fn insert_with_runtime_keys(
+    &mut self,
+    module_identifier: ModuleIdentifier,
+    codegen_res: CodeGenerationResult,
+    runtime_keys: impl IntoIterator<Item = RuntimeKey>,
+  ) {
+    let codegen_res_id = codegen_res.id;
+    self
+      .module_generation_result_map
+      .insert(codegen_res_id, BindingCell::from(codegen_res));
+
+    let mut spec_map = RuntimeSpecMap::default();
+    spec_map.mode = RuntimeMode::Map;
+    spec_map
+      .map
+      .extend(runtime_keys.into_iter().map(|key| (key, codegen_res_id)));
+    self.map.insert(module_identifier, spec_map);
   }
 }
 
