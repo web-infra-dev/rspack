@@ -288,28 +288,24 @@ export function createWatchStepProcessor(
   processor.build = async (context: ITestContext) => {
     const compiler = context.getCompiler();
     const emitter = compiler.getEmitter();
-    const DIAG = !!process.env.WATCH_DIAG;
 
-    // The watcher aggregateTimeout (see `watch()`); the settle window must be
-    // larger so a slow/extra rebuild cannot be mistaken for a settled result.
-    const settleWindow = Number(process.env.WATCH_SETTLE_MS) || 2000;
     // Native Watcher (notify) needs a moment to be ready to detect the change;
     // 400ms on windows, 100ms elsewhere.
     const readyTimeout =
       nativeWatcher && process.platform === 'win32' ? 400 : 100;
+    // Must exceed the watcher aggregateTimeout (see `watch()`) so a slow or extra
+    // rebuild cannot be mistaken for a settled result.
+    const settleWindow = 2000;
 
-    const buildEvents: number[] = [];
-    const copyState = { ts: 0 };
-
-    // Capture the LAST build this step settles on, not merely the first one.
+    // Resolve on the LAST build this step settles on, not merely the first one.
     //
-    // Under load the watcher can emit an extra transition rebuild that still
-    // carries the previous step's content; taking the first Build would run that
-    // stale bundle. We instead keep the latest build and only resolve once no new
-    // build has arrived for `settleWindow` (> aggregateTimeout), so the final
-    // build always reflects the current sources. The listener is armed before
-    // copyDiff so a rebuild the step legitimately relies on that is already
-    // pending (e.g. a metadata touch from the previous step) is not missed.
+    // Under load the watcher can emit an extra rebuild during the step transition
+    // that still carries the previous step's content; capturing the first Build
+    // would run that stale bundle. We instead keep waiting until no new build has
+    // arrived for `settleWindow`, so the build the runner observes always reflects
+    // the current sources. The listener is armed before copyDiff so a rebuild the
+    // step legitimately relies on that is already pending (e.g. a metadata touch
+    // from the previous step) is still captured.
     await new Promise<void>((resolve, reject) => {
       let settleTimer: ReturnType<typeof setTimeout> | undefined;
       let finished = false;
@@ -326,34 +322,15 @@ export function createWatchStepProcessor(
       const onBuild = (e: Error | null) => {
         if (finished) return;
         if (e) return finish(() => reject(e));
-        if (DIAG) buildEvents.push(Date.now());
         settle();
       };
       emitter.on(ECompilerEvent.Build, onBuild);
 
       (async () => {
         await new Promise((r) => setTimeout(r, readyTimeout));
-        copyState.ts = Date.now();
         copyDiff(path.join(context.getSource(), step), tempDir, false);
       })();
     });
-
-    if (DIAG) {
-      let bundleStep = '?';
-      try {
-        const bundle = fs.readFileSync(
-          path.join(context.getDist(), 'bundle.js'),
-          'utf-8',
-        );
-        const m = bundle.match(/toEqual\("(\d)"\)/);
-        if (m) bundleStep = m[1];
-      } catch {}
-      console.error(
-        `[WATCH-DIAG] name=${name} step=${step} builds=${buildEvents.length} ` +
-          `buildEventsRelCopy=[${buildEvents.map((t) => t - copyState.ts).join(',')}] ` +
-          `bundleStep=${bundleStep} STALE=${bundleStep !== '?' && bundleStep !== step}`,
-      );
-    }
   };
   return processor;
 }
