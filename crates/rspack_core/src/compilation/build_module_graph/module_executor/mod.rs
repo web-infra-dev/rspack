@@ -5,7 +5,7 @@ mod execute;
 mod module_tracker;
 mod overwrite;
 
-use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet};
+use rspack_collections::{Identifier, IdentifierDashMap, IdentifierDashSet, IdentifierSet};
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::{
@@ -45,6 +45,7 @@ pub struct ModuleExecutor {
   module_assets: IdentifierDashMap<HashMap<String, CompilationAsset>>,
   code_generated_modules: IdentifierDashSet,
   pub executed_runtime_modules: IdentifierDashMap<ExecutedRuntimeModule>,
+  force_build_modules: IdentifierSet,
 }
 
 impl Default for ModuleExecutor {
@@ -58,16 +59,46 @@ impl Default for ModuleExecutor {
       module_assets: Default::default(),
       code_generated_modules: Default::default(),
       executed_runtime_modules: Default::default(),
+      force_build_modules: Default::default(),
     }
   }
 }
 
 impl ModuleExecutor {
+  pub fn is_active(&self) -> bool {
+    self.event_sender.is_some()
+  }
+
+  pub fn force_rebuild_imports_from_origins(&mut self, origins: &IdentifierSet) {
+    if origins.is_empty() {
+      return;
+    }
+    let Some(make_artifact) = self.make_artifact.try_read() else {
+      return;
+    };
+    let module_graph = make_artifact.get_module_graph();
+    self.force_build_modules.extend(
+      self
+        .entries
+        .iter()
+        .filter(|(meta, _)| origins.contains(&meta.origin_module_identifier))
+        .filter_map(|(_, dep_id)| {
+          module_graph
+            .module_identifier_by_dependency_id(dep_id)
+            .copied()
+        }),
+    );
+  }
+
   pub async fn before_build_module_graph(&mut self, compilation: &Compilation) -> Result<()> {
     let mut make_artifact = self.make_artifact.steal();
     let mut exports_info_artifact = self.exports_info_artifact.steal();
     let mut params = Vec::with_capacity(5);
     params.push(UpdateParam::CheckNeedBuild);
+    let force_build_modules = std::mem::take(&mut self.force_build_modules);
+    if !force_build_modules.is_empty() {
+      params.push(UpdateParam::ForceBuildModules(force_build_modules));
+    }
     if !compilation.modified_files.is_empty() {
       params.push(UpdateParam::ModifiedFiles(
         compilation.modified_files.clone(),

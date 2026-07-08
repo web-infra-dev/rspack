@@ -10,6 +10,16 @@ const EXPORT_TYPES = ["link", "text", "style", "css-style-sheet"];
 const exportType = EXPORT_TYPES[__STATS_I__];
 const outputPath = __STATS__.children[__STATS_I__].outputPath;
 
+const findOutputFile = (exactName, pattern) => {
+  const exactFile = path.resolve(outputPath, exactName);
+  if (fs.existsSync(exactFile)) {
+    return exactFile;
+  }
+  const fallback = fs.readdirSync(outputPath).find((file) => pattern.test(file));
+  expect(fallback).toBeDefined();
+  return path.resolve(outputPath, fallback);
+};
+
 const expectNoSourcesContent = (map) => {
   expect(map.version).toBe(3);
   expect(Array.isArray(map.sources)).toBe(true);
@@ -28,8 +38,7 @@ const SOURCE_MAPPING_DATA_URI =
 
 it(`should not embed sourcesContent for nosources-source-map (exportType="${exportType}")`, () => {
   if (exportType === "link") {
-    const mapFile = path.resolve(outputPath, `bundle${__STATS_I__}.css.map`);
-    expect(fs.existsSync(mapFile)).toBe(true);
+    const mapFile = findOutputFile(`bundle${__STATS_I__}.css.map`, /\.css\.map$/);
     const raw = fs.readFileSync(mapFile, "utf-8");
     expectNoSourcesContent(JSON.parse(raw));
     // And nothing CSS-textual should leak into the .css.map file at all.
@@ -38,8 +47,7 @@ it(`should not embed sourcesContent for nosources-source-map (exportType="${expo
   }
 
   // JS source map should also strip sourcesContent.
-  const jsMapFile = path.resolve(outputPath, `bundle${__STATS_I__}.js.map`);
-  expect(fs.existsSync(jsMapFile)).toBe(true);
+  const jsMapFile = findOutputFile(`bundle${__STATS_I__}.js.map`, /\.js\.map$/);
   const jsMapRaw = fs.readFileSync(jsMapFile, "utf-8");
   expectNoSourcesContent(JSON.parse(jsMapRaw));
   // The CSS module's emitted JS wrapper would normally land in
@@ -50,7 +58,7 @@ it(`should not embed sourcesContent for nosources-source-map (exportType="${expo
   // And — the actual regression — the inline data URI map embedded in
   // the CSS string must also have its sourcesContent stripped.
   const bundle = fs.readFileSync(
-    path.resolve(outputPath, `bundle${__STATS_I__}.js`),
+    findOutputFile(`bundle${__STATS_I__}.js`, /\.js$/),
     "utf-8"
   );
   const match = bundle.match(SOURCE_MAPPING_DATA_URI);

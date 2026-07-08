@@ -45,9 +45,10 @@ impl CssModule {
     let mut identifier_index_buffer = itoa::Buffer::new();
     let identifier_index_str = identifier_index_buffer.format(dep.identifier_index);
     let identifier__ = format!(
-      "css|{}|{}|{}|{}|{}}}",
+      "css|{}|{}|{}|{}|{}|{}}}",
       dep.identifier,
       identifier_index_str,
+      dep.content_hash,
       dep.css_layer.as_deref().unwrap_or_default(),
       dep.supports.as_deref().unwrap_or_default(),
       dep.media.as_deref().unwrap_or_default(),

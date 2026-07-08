@@ -5,6 +5,7 @@ use std::{
 
 pub use lightningcss::targets::Browsers;
 use lightningcss::{
+  error::{Error as LightningCssError, ParserError, SelectorError},
   printer::PrinterOptions,
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
@@ -19,7 +20,7 @@ use rspack_core::{
     SourceMapSourceOptions,
   },
 };
-use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Error, Label, Result, ToStringResultToRspackResultExt};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_util::asset_condition::{AssetConditions, AssetConditionsObject, match_object};
@@ -27,6 +28,50 @@ use thread_local::ThreadLocal;
 
 static CSS_ASSET_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"\.css(\?.*)?$").expect("Invalid RegExp"));
+
+fn byte_offset_from_line_column(input: &str, line: u32, column: u32) -> usize {
+  let mut offset = 0;
+  for _ in 0..line {
+    if let Some(line_len) = input[offset..].find('\n') {
+      offset += line_len + 1;
+    } else {
+      return input.len();
+    }
+  }
+  offset
+    + (column as usize)
+      .saturating_sub(1)
+      .min(input.len().saturating_sub(offset))
+}
+
+fn should_ignore_warning(warning: &LightningCssError<ParserError>) -> bool {
+  matches!(
+    warning.kind,
+    ParserError::SelectorError(
+      SelectorError::UnsupportedPseudoClass(_) | SelectorError::UnsupportedPseudoElement(_)
+    )
+  )
+}
+
+fn warning_to_diagnostic(
+  filename: &str,
+  input: &str,
+  warning: &LightningCssError<ParserError>,
+) -> Diagnostic {
+  let mut error = Error::warning(format!("LightningCSS minimize warning: {warning}"));
+  if let Some(loc) = &warning.loc {
+    let start = byte_offset_from_line_column(input, loc.line, loc.column);
+    error.src = Some(input.to_string());
+    error.labels = Some(vec![Label {
+      name: None,
+      offset: start,
+      len: 0,
+    }]);
+  }
+  let mut diagnostic = Diagnostic::from(MinifyError(error));
+  diagnostic.file = Some(filename.into());
+  diagnostic
+}
 
 #[derive(Debug, rspack_hash::RspackHash)]
 pub struct PluginOptions {
@@ -188,27 +233,13 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
               unused_symbols,
             })
             .to_rspack_result()?;
-          // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
-          // enable when we have a better way to handle it. let warnings = warnings.read().expect("should lock");
-          // all_warnings.write().expect("should lock").extend(
-          //   warnings.iter().map(|e| {
-          //     if let Some(loc) = &e.loc {
-          //       let rope = ropey::Rope::from_str(&input);
-          //       let start = rope.line_to_byte(loc.line as usize) + loc.column as usize - 1;
-          //       let end = start;
-          //       Diagnostic::from(Box::new(Error::from_file(
-          //         input.clone(),
-          //         start,
-          //         end,
-          //         "LightningCSS minimize warning".to_string(),
-          //         e.to_string(),
-          //       )
-          //       .with_severity(Severity::Warning)))
-          //     } else {
-          //       Diagnostic::warn("LightningCSS minimize warning".to_string(), e.to_string())
-          //     }
-          //   }),
-          // );
+          let warnings = warnings.read().expect("should lock");
+          all_warnings
+            .write()
+            .expect("should lock")
+            .extend(warnings.iter().filter(|warning| !should_ignore_warning(warning)).map(
+              |warning| warning_to_diagnostic(filename, &input, warning),
+            ));
           stylesheet
             .to_css(PrinterOptions {
               minify: true,

@@ -6,6 +6,7 @@ use rspack_core::{
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
   SideEffectsStateArtifact,
 };
+use rspack_hash::{HashDigest, HashFunction, RspackHasher};
 use rspack_paths::ArcPathSet;
 
 #[cacheable]
@@ -20,6 +21,7 @@ pub struct CssDependency {
   pub(crate) supports: Option<String>,
   pub(crate) source_map: Option<String>,
   pub(crate) css_layer: Option<String>,
+  pub(crate) content_hash: String,
 
   // One module can be split apart by using `@import` in the middle of one module
   pub(crate) identifier_index: u32,
@@ -54,7 +56,17 @@ impl CssDependency {
     missing_dependencies: ArcPathSet,
     build_dependencies: ArcPathSet,
   ) -> Self {
-    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
+    let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    hasher.write(content.as_bytes());
+    if let Some(source_map) = &source_map {
+      hasher.write(source_map.as_bytes());
+    }
+    let content_hash = hasher.digest(&HashDigest::Hex).encoded()[..16].to_string();
+    let resource_identifier = format!(
+      "css-module-{}-{}-{}",
+      &identifier, identifier_index, &content_hash
+    )
+    .into();
     Self {
       id: DependencyId::new(),
       identifier,
@@ -66,6 +78,7 @@ impl CssDependency {
       supports,
       source_map,
       identifier_index,
+      content_hash,
       range,
       resource_identifier,
       cacheable,

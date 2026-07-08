@@ -1,0 +1,317 @@
+.class {
+	color: red;
+}
+
+
+
+
+
+
+
+
+
+
+/** Resolved **/
+
+
+
+
+
+/** Resolved **/
+
+.class {
+	color: red;
+	background: /* webpackIgnore: true */ url(7bc91c245a8a10a4.png),  url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background:/* webpackIgnore: true */url(7bc91c245a8a10a4.png),  url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: true */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background:
+		/* webpackIgnore: true */
+		url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png);
+}
+
+
+.class {
+	color: red;
+	background:
+		url(7bc91c245a8a10a4.png),
+			/* webpackIgnore: true */
+		url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: 	/* webpackIgnore: true */ url(7bc91c245a8a10a4.png), /* webpackIgnore: false */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: false */ url(7bc91c245a8a10a4.png), /* webpackIgnore: true */ url(7bc91c245a8a10a4.png), /* webpackIgnore: false */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: /* webpackIgnore: false */ url(7bc91c245a8a10a4.png), /* webpackIgnore: true */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: /* webpackIgnore: true */ /* webpackIgnore: false */ url(7bc91c245a8a10a4.png), url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: true */ /* webpackIgnore: false */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: false */ /* webpackIgnore: true */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background:
+		url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png),
+		/* webpackIgnore: true */ url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png),
+		/* webpackIgnore: true */ url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png),
+		url(7bc91c245a8a10a4.png),
+		/* webpackIgnore: true */
+		url(7bc91c245a8a10a4.png);
+}
+
+@font-face {
+	font-family: "Roboto";
+	src: /* webpackIgnore: true */ url(f557936c73c9397c.eot);
+	src:
+		/* webpackIgnore: true */
+		url(f557936c73c9397c.eot) format("embedded-opentype"),
+		url(54c342c4438803e9.woff2) format("woff"),
+		url(7bf0eb9fd6f09097.woff) format("woff"),
+		url(92f800fe704a483a.ttf) format("truetype"),
+		url(4f1f6e16de59f139.svg) format("svg");
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Roboto";
+	src: /* webpackIgnore: true */ url(f557936c73c9397c.eot);
+	src:
+		url(f557936c73c9397c.eot) format("embedded-opentype"),
+		url(54c342c4438803e9.woff2) format("woff"),
+		/* webpackIgnore: true */
+		url(7bf0eb9fd6f09097.woff)
+		format("woff"),
+		url(92f800fe704a483a.ttf) format("truetype"),
+		url(4f1f6e16de59f139.svg) format("svg");
+	font-weight: 400;
+	font-style: normal;
+}
+
+@font-face {
+	font-family: "Roboto";
+	src: url(f557936c73c9397c.eot);
+	src:
+		url(f557936c73c9397c.eot) format("embedded-opentype"),
+		/* webpackIgnore: true */
+		url(54c342c4438803e9.woff2) format("woff"),
+		url(7bf0eb9fd6f09097.woff) format("woff"),
+		/* webpackIgnore: true */
+		url(92f800fe704a483a.ttf) format("truetype"),
+		url(4f1f6e16de59f139.svg) format("svg");
+	font-weight: 400;
+	font-style: normal;
+}
+
+.class {
+	background-image: image-set(
+		/*webpackIgnore:  true*/
+
+
+		url(7bc91c245a8a10a4.png) 2x,
+		url(7bc91c245a8a10a4.png) 3x,
+		url(7bc91c245a8a10a4.png) 4x
+	);
+}
+
+.class {
+	background-image:
+		image-set(
+			/*webpackIgnore:  false*/
+			url(7bc91c245a8a10a4.png) 2x,
+			/*webpackIgnore:  true*/
+			url(7bc91c245a8a10a4.png) 3x,
+			url(7bc91c245a8a10a4.png) 4x,
+			/*webpackIgnore:  false */
+			/*webpackIgnore:  true */
+			url(7bc91c245a8a10a4.png) 5x
+		),/*webpackIgnore:  true*/url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image:
+		image-set(
+			/*webpackIgnore:  false*/
+			url(7bc91c245a8a10a4.png) 2x,
+			/*webpackIgnore:  true*/
+			url(7bc91c245a8a10a4.png) 3x,
+			url(7bc91c245a8a10a4.png) 4x,
+			/*webpackIgnore:  false */
+			/*webpackIgnore:  true */
+			url(7bc91c245a8a10a4.png) 5x
+		),
+		/*webpackIgnore:  false*/
+		url(7bc91c245a8a10a4.png),
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image:
+		image-set(
+			/*webpackIgnore:  false*/
+			url(7bc91c245a8a10a4.png) 2x,
+			/*webpackIgnore:  true*/
+			url(7bc91c245a8a10a4.png) 3x,
+			url(7bc91c245a8a10a4.png) 4x,
+			/*webpackIgnore:  false */
+			/*webpackIgnore:  true */
+			url(7bc91c245a8a10a4.png) 5x
+		),
+		url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image: image-set(
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 2x,
+		url(7bc91c245a8a10a4.png) 3x,
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 5x
+	);
+}
+
+.class {
+	background-image: image-set(
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 2x,
+		url(7bc91c245a8a10a4.png) 3x,
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 5x
+	);
+}
+
+.class {
+	background-image: image-set(
+		/*webpackIgnore:  false*/
+		url(7bc91c245a8a10a4.png) 2x,
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 3x,
+		/*webpackIgnore:  false*/
+		url(7bc91c245a8a10a4.png) 4x,
+
+
+		/*webpackIgnore:  true*/
+
+
+		url(7bc91c245a8a10a4.png) 5x
+	);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: true */url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png), /* webpackIgnore: true */ url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	color: red;
+	background: url(7bc91c245a8a10a4.png)/* webpackIgnore: true */, url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image:
+		image-set(
+			url(7bc91c245a8a10a4.png) 2x  /*webpackIgnore:  true*/,
+			url(7bc91c245a8a10a4.png) /*webpackIgnore:  true*/ 3x,
+			url(7bc91c245a8a10a4.png) 4x /*webpackIgnore:  true*/,
+			/*webpackIgnore:  true*/url(7bc91c245a8a10a4.png) 5x,
+			/*webpackIgnore:  true*/ url(7bc91c245a8a10a4.png) 6x,
+			/*webpackIgnore:  true*/
+			url(7bc91c245a8a10a4.png) 7x,
+			url(7bc91c245a8a10a4.png) 8x
+		),
+		/*webpackIgnore:  false*/
+		url(7bc91c245a8a10a4.png),
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png);
+}
+
+@font-face {
+	font-family: "anticon";
+	src: url(//at.alicdn.com/t/font_1434092639_4910953.eot?#iefix) format("embedded-opentype"),
+	/* this comment is required */
+	url(//at.alicdn.com/t/font_1434092639_4910953.woff) format("woff");
+}
+
+.class {
+	background-image: image-set(
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 2x,
+		url(7bc91c245a8a10a4.png) 3x,
+		/*webpackIgnore:  true*/
+		url(7bc91c245a8a10a4.png) 4x
+	);
+}
+
+.class {
+	background-image: /* webpackIgnore:  1 */ url(7bc91c245a8a10a4.png);
+	background-image: /* webpackIgnore:  1 */ url(7bc91c245a8a10a4.png);
+	background-image: image-set(/* webpackIgnore:  1 */ url(7bc91c245a8a10a4.png) 2x)
+}
+
+.class {
+	background-image /*webpackIgnore:  true*/ : url(7bc91c245a8a10a4.png);
+	/*webpackIgnore:  true*/ background-image: url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image:/*webpackIgnore:  true*/
+
+
+
+
+
+
+
+
+
+
+		url(7bc91c245a8a10a4.png);
+}
+
+.class {
+	background-image: /***webpackIgnore:  true***/ url(7bc91c245a8a10a4.png);
+	background-image: /***webpackIgnore:  true***/ url(7bc91c245a8a10a4.png);
+	background-image: image-set(/***webpackIgnore:  true***/ url(7bc91c245a8a10a4.png) 2x)
+}

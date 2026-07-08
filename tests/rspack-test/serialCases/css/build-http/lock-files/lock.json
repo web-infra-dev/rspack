@@ -1,6 +1,19 @@
 {
-  "https://github.com/webpack/webpack/blob/main/test/configCases/css/url/img1x.png?raw=true": "no-cache",
-  "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css": { "integrity": "sha512-/myPbDE4wFl8iP0bC1CXR+X+TOscaPV9+NbYoBGSQC+isfd0aenGk15EijukV04CW61CXR+c22ZgG0dp7ldntw==", "contentType": "text/plain; charset=utf-8" },
-  "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png": { "integrity": "sha512-bHqIPBYwzPsVLYcTDqJzwgvIaxLjmezufiCVXAMI0Naelf3eWVdydMA40hXbSuB0dZCGjCepuGaI7Ze8kLM+Ew==", "contentType": "image/png" },
-  "version": 1
+  "version": 1,
+  "entries": {
+    "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css": {
+      "resolved": "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/import/print.css",
+      "integrity": "sha512-/myPbDE4wFl8iP0bC1CXR+X+TOscaPV9+NbYoBGSQC+isfd0aenGk15EijukV04CW61CXR+c22ZgG0dp7ldntw==",
+      "content_type": "text/plain; charset=utf-8",
+      "valid_until": 1783416820853,
+      "etag": "W/\"8d02dc02e792a98d02e2363cd62150c170a59ecb397ff4e77a27700fc9075c6c\""
+    },
+    "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png": {
+      "resolved": "https://raw.githubusercontent.com/webpack/webpack/refs/heads/main/test/configCases/css/url/img.png",
+      "integrity": "sha512-bHqIPBYwzPsVLYcTDqJzwgvIaxLjmezufiCVXAMI0Naelf3eWVdydMA40hXbSuB0dZCGjCepuGaI7Ze8kLM+Ew==",
+      "content_type": "image/png",
+      "valid_until": 1783416820854,
+      "etag": "W/\"b490339dc4c5d30539a23b23c3b63b2f41a931933e0e31ffa122a78e435f50ee\""
+    }
+  }
 }

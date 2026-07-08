@@ -1058,6 +1058,17 @@ impl Compilation {
     exports_info_artifact: &mut ExportsInfoArtifact,
     f: impl Fn(Vec<&BoxModule>) -> T,
   ) -> Result<T> {
+    let mut should_stop_module_executor = false;
+    if let Some(module_executor) = &mut self.module_executor
+      && !module_executor.is_active()
+    {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.force_rebuild_imports_from_origins(&module_identifiers);
+      module_executor.before_build_module_graph(self).await?;
+      self.module_executor = Some(module_executor);
+      should_stop_module_executor = true;
+    }
+
     let artifact = self.build_module_graph_artifact.steal();
 
     // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
@@ -1072,6 +1083,12 @@ impl Compilation {
     .await?;
     *exports_info_artifact = updated_exports_info_artifact;
     self.build_module_graph_artifact = artifact.into();
+
+    if should_stop_module_executor && let Some(module_executor) = &mut self.module_executor {
+      let mut module_executor = std::mem::take(module_executor);
+      module_executor.after_build_module_graph(self).await?;
+      self.module_executor = Some(module_executor);
+    }
 
     let module_graph = self.get_module_graph();
     Ok(f(module_identifiers

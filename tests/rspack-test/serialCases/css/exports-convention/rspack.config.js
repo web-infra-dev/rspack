@@ -40,12 +40,6 @@ const common = {
               exportsConvention: 'dashes-only',
             },
           },
-          {
-            resourceQuery: /\?upper$/,
-            generator: {
-              exportsConvention: (name) => name.toUpperCase(),
-            },
-          },
         ],
       },
       {

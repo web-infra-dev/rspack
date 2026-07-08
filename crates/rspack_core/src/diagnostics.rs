@@ -145,6 +145,7 @@ pub struct MinifyError(pub Error);
 impl From<MinifyError> for Error {
   fn from(value: MinifyError) -> Error {
     let mut error = rspack_error::error!("Chunk minification failed:");
+    error.severity = value.0.severity;
     error.code = if value.0.is_warn() {
       Some("ChunkMinificationWarning".into())
     } else {

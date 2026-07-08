@@ -1,0 +1,143 @@
+# Case export-type-concatenation: Step 1
+
+## Changed Files
+- link-a-dep.module.css
+- link-b.module.css
+- sheet-a-dep.css
+- sheet-b.css
+- style-a-dep.css
+- style-a.css
+- text-a-dep.css
+- text-b.css
+
+## Asset Files
+- Bundle: bundle.js
+- Manifest: main.LAST_HASH.hot-update.json, size: 28
+- Update: main.LAST_HASH.hot-update.js, size: 3399
+
+## Manifest
+
+### main.LAST_HASH.hot-update.json
+
+```json
+{"c":["main"],"r":[],"m":[]}
+```
+
+
+## Update
+
+
+### main.LAST_HASH.hot-update.js
+
+#### Changed Modules
+- ./lib.js
+- ./link-b.module.css
+
+#### Changed Runtime Modules
+- webpack/runtime/get_full_hash
+
+#### Changed Content
+```js
+"use strict";
+self["rspackHotUpdate"]("main", {
+"./lib.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
+// ESM COMPAT FLAG
+__webpack_require__.r(__webpack_exports__);
+
+// EXPORTS
+__webpack_require__.d(__webpack_exports__, {
+  linkAClass: () => (/* reexport */ link_a_class),
+  linkBClass: () => (/* reexport */ link_b_class),
+  sheetA: () => (/* reexport */ sheet_a_default),
+  sheetB: () => (/* reexport */ sheet_b_default),
+  styleB: () => (/* reexport */ style_b),
+  textA: () => (/* reexport */ text_a_default),
+  textB: () => (/* reexport */ text_b_default)
+});
+
+;// CONCATENATED MODULE: ./text-a-dep.css
+__webpack_require__.r(exports);
+var _default = ".text-a-dep_css-text-a-dep-updated {\n\tfont-size: 14px;\n}\n";
+var text_a_dep_updated = "text-a-dep_css-text-a-dep-updated";
+
+;// CONCATENATED MODULE: ./text-a.css
+__webpack_require__.r(exports);
+var text_a_default = ".text-a-dep_css-text-a-dep-updated {\n\tfont-size: 14px;\n}\n\n\n.text-a_css-text-a {\n\tcolor: red;\n}\n";
+var text_a = "text-a_css-text-a";
+
+;// CONCATENATED MODULE: ./text-b.css
+__webpack_require__.r(exports);
+var text_b_default = ".text-b_css-text-b-updated {\n\tcolor: cyan;\n}\n";
+var text_b_updated = "text-b_css-text-b-updated";
+
+;// CONCATENATED MODULE: ./sheet-a-dep.css
+__webpack_require__.r(exports);
+var sheet_a_dep_default = __webpack_require__.css(".sheet-a-dep_css-sheet-a-dep-updated {\n\tfont-weight: normal;\n}\n");
+var sheet_a_dep_updated = "sheet-a-dep_css-sheet-a-dep-updated";
+
+;// CONCATENATED MODULE: ./sheet-a.css
+__webpack_require__.r(exports);
+var sheet_a_default = __webpack_require__.css(".sheet-a-dep_css-sheet-a-dep-updated {\n\tfont-weight: normal;\n}\n\n\n.sheet-a_css-sheet-a {\n\tcolor: green;\n}\n");
+var sheet_a = "sheet-a_css-sheet-a";
+
+;// CONCATENATED MODULE: ./sheet-b.css
+__webpack_require__.r(exports);
+var sheet_b_default = __webpack_require__.css(".sheet-b_css-sheet-b-updated {\n\tcolor: violet;\n}\n");
+var sheet_b_updated = "sheet-b_css-sheet-b-updated";
+
+;// CONCATENATED MODULE: ./link-a.module.css
+__webpack_require__.r(exports);
+var link_a_class = "link-a_module_css-link-a-class";
+
+;// CONCATENATED MODULE: ./link-b.module.css
+__webpack_require__.r(exports);
+var link_b_class = "link-b_module_css-link-b-class";
+
+;// CONCATENATED MODULE: ./style-a.css
+__webpack_require__.is("./style-a.css", ".style-a_css-style-a {\n\tcolor: red;\n}\n");
+__webpack_require__.r(exports);
+var style_a = "style-a_css-style-a";
+
+;// CONCATENATED MODULE: ./style-b.module.css
+__webpack_require__.is("./style-b.module.css", ".style-b_module_css-style-b {\n\tcolor: blue;\n}\n");
+__webpack_require__.r(exports);
+var style_b = "style-b_module_css-style-b";
+
+;// CONCATENATED MODULE: ./lib.js
+
+
+
+
+
+
+
+
+
+
+},
+"./link-b.module.css"(module, __unused_rspack_exports, __webpack_require__) {
+var exports = {
+  "link-b-class": "link-b_module_css-link-b-class",
+};
+// only invalidate when locals change
+var stringified_exports = JSON.stringify(exports);
+if (module.hot.data && module.hot.data.exports && module.hot.data.exports != stringified_exports) {
+  module.hot.invalidate();
+} else {
+  module.hot.accept();
+}
+module.hot.dispose(function(data) { data.exports = stringified_exports; });
+__webpack_require__.r(module.exports = exports);
+
+
+},
+
+},function(__webpack_require__) {
+// webpack/runtime/get_full_hash
+(() => {
+__webpack_require__.h = () => ("CURRENT_HASH")
+})();
+
+}
+);
+```

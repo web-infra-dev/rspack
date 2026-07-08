@@ -1,0 +1,20 @@
+Array [
+  body {
+	background: black;
+}
+
+
+
+div {
+	background: url(7bc91c245a8a10a4.png)
+},
+  body {
+	background: black;
+}
+
+
+
+div {
+	background: url(7bc91c245a8a10a4.png)
+},
+]

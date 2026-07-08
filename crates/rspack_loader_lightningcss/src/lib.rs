@@ -8,6 +8,7 @@ use cow_utils::CowUtils;
 use derive_more::Debug;
 pub use lightningcss;
 use lightningcss::{
+  error::{ParserError, SelectorError},
   printer::{PrinterOptions, PseudoClasses},
   stylesheet::{MinifyOptions, ParserFlags, ParserOptions, StyleSheet},
   targets::{Features, Targets},
@@ -21,7 +22,7 @@ use rspack_core::{
     SourceMapSourceOptions, encode_mappings,
   },
 };
-use rspack_error::{Result, ToStringResultToRspackResultExt};
+use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
 use rspack_loader_runner::Identifier;
 use tokio::sync::Mutex;
 
@@ -99,31 +100,25 @@ impl LightningCssLoader {
       flags: parser_flags,
     };
     let stylesheet = StyleSheet::parse(&content_str, option.clone()).to_rspack_result()?;
-    // FIXME: Disable the warnings for now, cause it cause too much positive-negative warnings,
-    // enable when we have a better way to handle it.
-
-    // if let Some(warnings) = warnings {
-    //   #[allow(clippy::unwrap_used)]
-    //   let warnings = warnings.read().unwrap();
-    //   for warning in warnings.iter() {
-    //     if matches!(
-    //       warning.kind,
-    //       lightningcss::error::ParserError::SelectorError(
-    //         lightningcss::error::SelectorError::UnsupportedPseudoClass(_)
-    //       ) | lightningcss::error::ParserError::SelectorError(
-    //         lightningcss::error::SelectorError::UnsupportedPseudoElement(_)
-    //       )
-    //     ) {
-    //       // ignore parsing errors on pseudo class from lightningcss-loader
-    //       // to allow pseudo class in CSS modules and Vue.
-    //       continue;
-    //     }
-    //     loader_context.emit_diagnostic(Diagnostic::warn(
-    //       "builtin:lightningcss-loader".to_string(),
-    //       format!("LightningCSS parse warning: {}", warning),
-    //     ));
-    //   }
-    // }
+    if let Some(warnings) = warnings {
+      #[allow(clippy::unwrap_used)]
+      let warnings = warnings.read().unwrap();
+      for warning in warnings.iter() {
+        if matches!(
+          warning.kind,
+          ParserError::SelectorError(
+            SelectorError::UnsupportedPseudoClass(_) | SelectorError::UnsupportedPseudoElement(_)
+          )
+        ) {
+          // Keep CSS modules and framework pseudo selectors usable.
+          continue;
+        }
+        loader_context.emit_diagnostic(Diagnostic::warn(
+          "builtin:lightningcss-loader".to_string(),
+          format!("LightningCSS parse warning: {warning}"),
+        ));
+      }
+    }
 
     let mut stylesheet = to_static(
       stylesheet,
