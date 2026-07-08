@@ -11,20 +11,18 @@ it("should treat an empty importMeta object like preserve-unknown", () => {
 
 it("should preserve disabled import.meta fields for runtime evaluation", () => {
 	expect(disabledFields.url).not.toBe(disabledFields.sourceUrl);
+	expect(disabledFields.urlOptional).toBe(disabledFields.url.length);
 	expect(disabledFields.webpack).toBeUndefined();
 	expect(disabledFields.main).toBeUndefined();
-	expect(disabledFields.envType).toBe("undefined");
-	expect(disabledFields.envOptional).toBe("runtime");
 	expect(disabledFields.contextType).toBe("undefined");
 	expect(disabledFields.globType).toBe("undefined");
 	expect(disabledFields.hotType).toBe("undefined");
 	expect(disabledFields.destructuredUrl).toBe(disabledFields.url);
 	expect(disabledFields.destructuredWebpack).toBeUndefined();
-	expect(disabledFields.destructuredEnvType).toBe("undefined");
 
 	const source = fs.readFileSync(__filename, "utf-8");
 	const importMeta = ["import", "meta"].join(".");
-	expect(source).toContain(`${importMeta}.env`);
+	expect(source).toContain(`${importMeta}.url`);
 	expect(source).toContain(`${importMeta}.webpackContext`);
 	expect(source).toContain(`${importMeta}.glob`);
 	expect(source).toContain(`${importMeta}.webpackHot`);
