@@ -14,6 +14,7 @@ const { UNKNOWN_PROPERTY, url, webpack } = import.meta;
 export default {
 	sourceUrl,
 	unknown: UNKNOWN_PROPERTY,
+	unknownOptional: import.meta.UNKNOWN_PROPERTY?.length,
 	url,
 	webpack
 };
