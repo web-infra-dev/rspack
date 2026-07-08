@@ -3,6 +3,7 @@ use std::sync::{Arc, LazyLock};
 use itertools::Itertools;
 use rspack_core::{
   AsyncDependenciesBlock, ConstDependency, DependencyRange, EntryOptions, GroupOptions,
+  JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
 };
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::SpanExt;
@@ -79,6 +80,7 @@ fn add_dependencies(
   parsed_path: ParsedNewWorkerPath,
   parsed_options: Option<ParsedNewWorkerOptions>,
   need_new_url: bool,
+  url_mode: Option<JavascriptParserWorkerUrl>,
 ) {
   let output_options = &parser.compiler_options.output;
   let mut hasher = RspackHasher::from(output_options);
@@ -98,6 +100,7 @@ fn add_dependencies(
     span.into(),
     parsed_path.range.into(),
     need_new_url,
+    url_mode,
   ));
   let range = DependencyRange::from(span);
   let loc = parser.to_dependency_location(range);
@@ -243,6 +246,7 @@ struct WorkerPluginInner {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkerPlugin {
   inner: Arc<WorkerPluginInner>,
+  url_mode: Option<JavascriptParserWorkerUrl>,
 }
 
 const WORKER_SPECIFIER_TAG: &str = "_identifier__worker_specifier_tag__";
@@ -329,10 +333,13 @@ impl WorkerPluginInner {
 }
 
 impl WorkerPlugin {
-  pub fn new(syntax_list: &[String]) -> Self {
+  pub fn new(options: &JavascriptParserWorkerOptions) -> Self {
+    let default_syntax = ["...".to_string()];
+    let syntax_list = options.alias.as_deref().unwrap_or(&default_syntax);
     if syntax_list.len() == 1 && syntax_list[0] == "..." {
       return Self {
         inner: DEFAULT_WORKER_PLUGIN.clone(),
+        url_mode: options.url,
       };
     }
 
@@ -346,6 +353,7 @@ impl WorkerPlugin {
     }
     Self {
       inner: Arc::new(inner),
+      url_mode: options.url,
     }
   }
 }
@@ -421,6 +429,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
             parsed_path,
             parsed_options,
             need_new_url,
+            self.url_mode,
           );
           if let Some(callee) = call_expr.callee.as_expr() {
             parser.walk_expression(callee);
@@ -461,6 +470,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_path,
               parsed_options,
               need_new_url,
+              self.url_mode,
             );
             if let Some(callee) = call_expr.callee.as_expr() {
               parser.walk_expression(callee);
@@ -486,6 +496,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_path,
           parsed_options,
           need_new_url,
+          self.url_mode,
         );
         if let Some(callee) = call_expr.callee.as_expr() {
           parser.walk_expression(callee);
@@ -527,6 +538,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
               parsed_path,
               parsed_options,
               need_new_url,
+              self.url_mode,
             );
             parser.walk_expression(&new_expr.callee);
             if let Some(args) = &new_expr.args
@@ -554,6 +566,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for WorkerPlugin {
           parsed_path,
           parsed_options,
           need_new_url,
+          self.url_mode,
         );
         parser.walk_expression(&new_expr.callee);
         if let Some(args) = &new_expr.args
@@ -610,14 +623,20 @@ fn test_default_worker_syntax_matches_explicit_syntax() {
     .collect::<Vec<_>>();
 
   assert_eq!(
-    WorkerPlugin::new(&["...".to_string()]),
-    WorkerPlugin::new(&explicit_syntax)
+    WorkerPlugin::new(&JavascriptParserWorkerOptions::new(
+      vec!["...".to_string()],
+      None
+    )),
+    WorkerPlugin::new(&JavascriptParserWorkerOptions::new(explicit_syntax, None))
   );
 }
 
 #[test]
 fn test_default_worker_syntax_reuses_shared_inner() {
-  let worker_plugin = WorkerPlugin::new(&["...".to_string()]);
+  let worker_plugin = WorkerPlugin::new(&JavascriptParserWorkerOptions::new(
+    vec!["...".to_string()],
+    None,
+  ));
 
   assert!(Arc::ptr_eq(&worker_plugin.inner, &DEFAULT_WORKER_PLUGIN));
 }

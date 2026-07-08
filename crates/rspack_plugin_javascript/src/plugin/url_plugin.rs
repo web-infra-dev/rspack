@@ -3,15 +3,18 @@ use std::sync::Arc;
 use rspack_core::{
   ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
   CompilationParams, CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
-  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, Plugin, URLStaticMode,
-  rspack_sources::ReplaceSource,
+  NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
+  SourceType, URLStaticMode, get_js_chunk_filename_template, rspack_sources::ReplaceSource,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
   JavascriptModulesRenderModuleContent, JsPlugin, RenderSource,
-  dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
+  dependency::{
+    URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE, WORKER_STATIC_URL_PLACEHOLDER,
+    WORKER_STATIC_URL_PLACEHOLDER_RE, WorkerDependency,
+  },
   parser_and_generator::JavaScriptParserAndGenerator,
 };
 
@@ -101,6 +104,89 @@ async fn render_module_content(
         start as u32,
         end as u32,
         filename.filename().to_string(),
+        None,
+      );
+    }
+
+    let worker_replacements = WORKER_STATIC_URL_PLACEHOLDER_RE
+      .find_iter(&content)
+      .map(|cap| (cap.start(), cap.end()));
+
+    for (start, end) in worker_replacements {
+      let dep_id = &content[start + WORKER_STATIC_URL_PLACEHOLDER.len()..end];
+      let dep_id: DependencyId = dep_id
+        .parse::<u32>()
+        .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
+        .into();
+
+      let (worker_public_path, worker_chunk_ukey) = {
+        let module_graph = compilation.get_module_graph();
+        let worker_dep = module_graph
+          .dependency_by_id(&dep_id)
+          .downcast_ref::<WorkerDependency>()
+          .expect("should be WorkerDependency");
+        let worker_chunk_ukey = module_graph
+          .get_parent_block(&dep_id)
+          .and_then(|block| {
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_block_chunk_group(
+                block,
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              )
+          })
+          .map(|entrypoint| entrypoint.get_entrypoint_chunk())
+          .expect("failed to get worker chunk");
+
+        (worker_dep.public_path().to_string(), worker_chunk_ukey)
+      };
+
+      let worker_chunk = compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&worker_chunk_ukey);
+      let filename_template = get_js_chunk_filename_template(
+        worker_chunk,
+        &compilation.options.output,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+      );
+      let filename = compilation
+        .get_path(
+          &filename_template,
+          PathData::default()
+            .chunk(worker_chunk_ukey, compilation)
+            .chunk_hash_optional(worker_chunk.rendered_hash(
+              &compilation.chunk_hashes_artifact,
+              compilation.options.output.hash_digest_length,
+            ))
+            .chunk_id_optional(worker_chunk.id().map(|id| id.as_str()))
+            .chunk_name_optional(worker_chunk.name_for_filename_template())
+            .content_hash_optional(worker_chunk.rendered_content_hash_by_source_type(
+              &compilation.chunk_hashes_artifact,
+              &SourceType::JavaScript,
+              compilation.options.output.hash_digest_length,
+            ))
+            .runtime(worker_chunk.runtime().as_str()),
+        )
+        .await?;
+
+      let output_public_path = if !worker_public_path.is_empty()
+        || matches!(&compilation.options.output.public_path, PublicPath::Auto)
+      {
+        String::new()
+      } else if let PublicPath::Filename(public_path) = &compilation.options.output.public_path {
+        PublicPath::ensure_ends_with_slash(
+          PublicPath::render_filename(compilation, public_path).await,
+        )
+      } else {
+        String::new()
+      };
+
+      replace_source.replace(
+        start as u32,
+        end as u32,
+        format!("{output_public_path}{filename}"),
         None,
       );
     }

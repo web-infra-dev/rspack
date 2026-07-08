@@ -623,12 +623,7 @@ function getRawJavascriptParserOptions(
       parser.reexportExportsPresence === false
         ? 'false'
         : parser.reexportExportsPresence,
-    worker:
-      typeof parser.worker === 'boolean'
-        ? parser.worker
-          ? ['...']
-          : []
-        : parser.worker,
+    worker: getRawJavascriptParserWorkerOptions(parser.worker),
     overrideStrict: parser.overrideStrict,
     requireAsExpression: parser.requireAsExpression,
     requireAlias: parser.requireAlias,
@@ -645,6 +640,18 @@ function getRawJavascriptParserOptions(
     importMetaResolve: parser.importMetaResolve,
     pureFunctions: parser.pureFunctions,
   };
+}
+
+function getRawJavascriptParserWorkerOptions(
+  worker: JavascriptParserOptions['worker'],
+): RawJavascriptParserOptions['worker'] {
+  if (typeof worker === 'boolean') {
+    return worker;
+  }
+  if (Array.isArray(worker)) {
+    return { alias: worker };
+  }
+  return worker;
 }
 
 function getRawAssetParserOptions(
