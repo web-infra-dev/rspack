@@ -1,4 +1,4 @@
-# Domain Docs
+# Domain docs
 
 This repo uses a single-context domain docs layout.
 
