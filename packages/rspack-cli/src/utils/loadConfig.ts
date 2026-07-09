@@ -32,7 +32,9 @@ const loadConfigByPath = async (
 
   if (!isRspackConfig(content)) {
     throw new Error(
-      `The config must be an object or an array, get ${String(content)}`,
+      `[rspack-cli:loadConfig] The config at "${configPath}" must be an object or an array, got ${String(
+        content,
+      )}`,
     );
   }
 
