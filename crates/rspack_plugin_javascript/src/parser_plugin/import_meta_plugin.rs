@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use itertools::Itertools;
 use rspack_core::{
   ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
@@ -193,7 +194,7 @@ impl ImportMetaBuiltinProperty {
     let type_of = self.evaluate_typeof(plugin, parser)?;
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       unary_expr.span().into(),
-      format!("'{type_of}'").into(),
+      concat_string!("'", type_of, "'").into(),
     )));
     Some(true)
   }
@@ -210,22 +211,27 @@ impl ImportMetaBuiltinProperty {
 
     let property = self.property_name();
     match self.property {
-      ImportMetaKnownProperties::URL => Some(format!(
-        r#"{property}: "{}""#,
-        plugin.import_meta_url(parser)
+      ImportMetaKnownProperties::URL => Some(concat_string!(
+        property,
+        ": \"",
+        plugin.import_meta_url(parser),
+        "\""
       )),
       ImportMetaKnownProperties::WEBPACK => {
-        Some(format!("{property}: {}", plugin.import_meta_version()))
+        Some(concat_string!(property, ": ", plugin.import_meta_version()))
       }
-      ImportMetaKnownProperties::MAIN => {
-        Some(format!("{property}: {}", plugin.import_meta_main(parser)))
-      }
+      ImportMetaKnownProperties::MAIN => Some(concat_string!(
+        property,
+        ": ",
+        plugin.import_meta_main(parser)
+      )),
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
         get_import_meta_member_replacement(parser, self.property)
-          .map(|value| format!("{property}: {value}"))
+          .map(|value| concat_string!(property, ": ", value))
       }
-      ImportMetaKnownProperties::RSPACK_RSC => Some(format!(
-        "{property}: {}",
+      ImportMetaKnownProperties::RSPACK_RSC => Some(concat_string!(
+        property,
+        ": ",
         plugin.process_rspack_rsc_destructuring(parser, span)
       )),
       ImportMetaKnownProperties::RESOLVE => None,
@@ -244,7 +250,7 @@ impl ImportMetaBuiltinProperty {
     }
 
     let replacement = match self.property {
-      ImportMetaKnownProperties::URL => format!("'{}'", plugin.import_meta_url(parser)),
+      ImportMetaKnownProperties::URL => concat_string!("'", plugin.import_meta_url(parser), "'"),
       ImportMetaKnownProperties::WEBPACK => plugin.import_meta_version(),
       ImportMetaKnownProperties::MAIN => plugin.import_meta_main(parser),
       ImportMetaKnownProperties::FILENAME | ImportMetaKnownProperties::DIRNAME => {
@@ -298,7 +304,7 @@ impl ImportMetaPlugin {
     match &self.0 {
       ImportMeta::PreserveUnknown => true,
       ImportMeta::Granular(_) => property.is_none_or(|property| {
-        let name = format!("{}.{property}", expr_name::IMPORT_META);
+        let name = concat_string!(expr_name::IMPORT_META, ".", property);
         Self::known_property_from_name(&name)
           .is_none_or(|property| !self.known_property_enabled(property))
       }),
@@ -329,23 +335,27 @@ impl ImportMetaPlugin {
     parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
       RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::ENTRY_MODULE_ID | RuntimeGlobals::MODULE,
     )));
-    format!(
-      "({}[{}] === {})",
+    concat_string!(
+      "(",
       parser.parser_runtime_requirements.module_cache,
+      "[",
       parser.parser_runtime_requirements.entry_module_id,
+      "] === ",
       parser
         .parser_runtime_requirements
-        .module_argument(&parser.build_info.module_argument)
+        .module_argument(&parser.build_info.module_argument),
+      ")"
     )
   }
 
   fn import_meta_unknown_property(&self, members: &Vec<String>) -> String {
     if self.preserve_property(members.first().map(|property| property.as_str())) {
-      format!("import.meta{}", property_access(members, 0))
+      concat_string!("import.meta", property_access(members, 0))
     } else {
-      format!(
-        r#"/* unsupported import.meta.{} */ undefined{}"#,
+      concat_string!(
+        "/* unsupported import.meta.",
         members.join("."),
+        " */ undefined",
         property_access(members, 1)
       )
     }
@@ -636,9 +646,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             if let Some(rendered) = property.render_destructuring(self, parser, span) {
               content.push(rendered);
             } else {
-              content.push(format!(
-                r#"[{}]: {}"#,
+              content.push(concat_string!(
+                "[",
                 rspack_util::json_stringify_str(&prop.id),
+                "]: ",
                 self.import_meta_unknown_property(&vec![prop.id.to_string()])
               ));
             }
@@ -648,23 +659,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
             {
               content.push(property);
             } else {
-              content.push(format!(
-                r#"[{}]: {}"#,
+              content.push(concat_string!(
+                "[",
                 rspack_util::json_stringify_str(&prop.id),
+                "]: ",
                 self.import_meta_unknown_property(&vec![prop.id.to_string()])
               ));
             }
           } else {
-            content.push(format!(
-              r#"[{}]: {}"#,
+            content.push(concat_string!(
+              "[",
               rspack_util::json_stringify_str(&prop.id),
+              "]: ",
               self.import_meta_unknown_property(&vec![prop.id.to_string()])
             ));
           }
         }
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           span.into(),
-          format!("({{{}}})", content.join(",")).into(),
+          concat_string!("({", content.join(","), "})").into(),
         )));
         Some(true)
       } else {

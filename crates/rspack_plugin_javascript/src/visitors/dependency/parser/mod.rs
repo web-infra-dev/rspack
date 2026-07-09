@@ -486,7 +486,9 @@ impl<'parser> JavascriptParser<'parser> {
         },
       ));
       if import_meta.is_enabled() {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(
+          import_meta.clone(),
+        )));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }

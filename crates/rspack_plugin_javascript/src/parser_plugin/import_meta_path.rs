@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use rspack_core::{
   CachedConstDependency, CachedConstDependencyPlace, DependencyRange, ImportMetaKnownProperties,
   NodeDirnameOption, NodeFilenameOption, NodeOption, parse_resource,
@@ -45,15 +46,21 @@ fn warning_code(property: ImportMetaKnownProperties) -> &'static str {
 
 fn warning_message(property: ImportMetaKnownProperties) -> String {
   match property {
-    ImportMetaKnownProperties::FILENAME => format!(
-      "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
-      yellow(&"import.meta.filename"),
-      cyan(&"node.__filename")
+    ImportMetaKnownProperties::FILENAME => concat_string!(
+      "\"",
+      yellow(&"import.meta.filename").to_string(),
+      "\" is used and has been mocked. ",
+      "Remove it from your code, or set `",
+      cyan(&"node.__filename").to_string(),
+      "` to disable this warning."
     ),
-    ImportMetaKnownProperties::DIRNAME => format!(
-      "\"{}\" is used and has been mocked. Remove it from your code, or set `{}` to disable this warning.",
-      yellow(&"import.meta.dirname"),
-      cyan(&"node.__dirname")
+    ImportMetaKnownProperties::DIRNAME => concat_string!(
+      "\"",
+      yellow(&"import.meta.dirname").to_string(),
+      "\" is used and has been mocked. ",
+      "Remove it from your code, or set `",
+      cyan(&"node.__dirname").to_string(),
+      "` to disable this warning."
     ),
     _ => unreachable!("only import.meta.dirname and import.meta.filename are supported"),
   }

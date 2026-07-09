@@ -1,3 +1,4 @@
+use concat_string::concat_string;
 use rspack_core::{
   ConstDependency, ImportMetaKnownProperties, ModuleArgument, RuntimeGlobals,
   RuntimeRequirementsDependency, property_access,
@@ -367,14 +368,18 @@ pub(crate) fn import_meta_runtime_api_assign(
     let property = api.property_name();
     let content = if full_assignment {
       if simple_assignment {
-        format!("({{}}).{property}")
+        concat_string!("({}).", property)
       } else {
         parser.add_presentational_dependency(Box::new(RuntimeRequirementsDependency::add_only(
           api.runtime_global,
         )));
-        format!(
-          "({{ {property}: {} }}).{property}",
+        concat_string!(
+          "({ ",
+          property,
+          ": ",
           render_import_meta_runtime_api(parser, api)?,
+          " }).",
+          property
         )
       }
     } else {

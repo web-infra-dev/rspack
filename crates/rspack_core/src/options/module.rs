@@ -530,8 +530,11 @@ pub struct JavascriptParserOptions {
 }
 
 impl JavascriptParserOptions {
-  pub fn import_meta(&self) -> ImportMeta {
-    self.import_meta.clone().unwrap_or(ImportMeta::Enabled)
+  pub fn import_meta(&self) -> &ImportMeta {
+    self
+      .import_meta
+      .as_ref()
+      .expect("javascript parser import_meta should be normalized by defaults")
   }
 
   pub fn create_require_option(&self) -> Option<&str> {
