@@ -1,70 +1,63 @@
-# Compilation Passes Architecture
+# Compilation passes
 
-This document describes the modular architecture of the compilation process in rspack.
+Read this before changing compilation flow, pass ordering, incremental
+artifacts, or pass-local cache behavior.
 
-## Overview
+## Source of truth
 
-The compilation process is organized into independent modules, each responsible for a specific phase or pass. This modular design improves code maintainability, testability, and allows for better separation of concerns.
+`Compilation::run_passes` in
+`crates/rspack_core/src/compilation/run_passes.rs` defines the pass order.
+Individual pass modules live under `crates/rspack_core/src/compilation/`.
 
-## Module Structure
+## Composite phases
 
-```
-compilation/
-├── mod.rs                        # Main Compilation struct which exposes the public API
-├── run_passes.rs                 # Pass driver invoked from Compiler that runs make + seal passes
-├── make/                         # make_hook_pass: make hook + cache.before_build_module_graph
-├── build_module_graph/           # build_module_graph_pass: module graph construction
-├── finish_make/                  # finish_make_pass: finish_make hook
-├── finish_module_graph/          # finish_module_graph_pass: finalize module graph + cache
-├── finish_modules/               # finish_modules_pass: finish_modules hook, diagnostics, checkpoint
-├── seal/                         # seal_pass: seal hook
-├── optimize_dependencies/        # optimizeDependencies hook + side effects artifact
-├── build_chunk_graph/            # Chunk graph construction (code splitting cache + pass wrapper)
-├── optimize_modules/             # optimizeModules + afterOptimizeModules hooks
-├── optimize_chunks/              # optimizeChunks hook
-├── optimize_tree/                # optimizeTree hook
-├── optimize_chunk_modules/       # optimizeChunkModules hook
-├── module_ids/                   # Module ID assignment + diagnostics
-├── chunk_ids/                    # Chunk ID assignment + diagnostics
-├── assign_runtime_ids/           # Runtime ID assignment for runtime chunks
-├── optimize_code_generation/     # optimizeCodeGeneration hook
-├── create_module_hashes/         # Module hash computation (incremental aware)
-├── code_generation/              # Module codegen + afterCodeGeneration hook
-├── runtime_requirements/         # Module/chunk/tree runtime requirements + runtime modules
-├── create_hash/                  # Chunk hashing, runtime module hashes, full hash + runtime module codegen
-├── create_module_assets/         # Emit module-declared assets and mark chunk auxiliary files
-├── create_chunk_assets/          # Render manifests and emit chunk assets
-├── process_assets/               # processAssets + afterProcessAssets hooks
-└── after_seal/                   # afterSeal hook
-```
+`BuildModuleGraphPhasePass` is a composite phase implemented in
+`crates/rspack_core/src/compilation/build_module_graph/pass.rs`. It runs:
 
-## Pass Entry
+1. `make_hook_pass`
+2. `build_module_graph_pass`
+3. `finish_make_pass`
+4. `finish_module_graph_pass`
 
-- `Compiler::compile` builds `CompilationParams`, fires `thisCompilation` then `compilation` compiler hooks (binding safety for JS), and delegates to `Compilation::run_passes`.
-- `Compilation::run_passes` performs the make and seal stages using the order below.
+`FinishModulesPhasePass` is implemented in
+`crates/rspack_core/src/compilation/finish_modules/mod.rs`.
 
-## Pass Order (Compilation::run_passes)
+## Current pass order
 
-`run_passes` orchestrates the full pipeline (make + seal) in this order:
+`Compilation::run_passes` currently runs:
 
-1. `make_hook_pass`: `make` hook + cache.before_build_module_graph
-2. `build_module_graph_pass`: build module graph
-3. `finish_make_pass`: `finish_make` hook
-4. `finish_module_graph_pass`: `finish_build_module_graph` + cache.after_build_module_graph
-5. `finish_modules_pass`: `finish_modules` hook, collect diagnostics, incremental checkpoint
-6. Freeze module static cache in production
-7. `seal_pass`: `seal` hook
-8. `optimize_dependencies_pass`
-9. `build_chunk_graph_pass` → `optimize_modules_pass` → `optimize_chunks_pass`
-10. `optimize_tree_pass` → `optimize_chunk_modules_pass`
-11. `module_ids_pass` → `chunk_ids_pass` → `assign_runtime_ids`
-12. `optimize_code_generation_pass`
-13. `create_module_hashes_pass`
-14. `code_generation_pass`
-15. `runtime_requirements_pass`
-16. `create_hash_pass` (also runs runtime module code generation)
-17. `create_module_assets_pass`
-18. `create_chunk_assets_pass`
-19. `process_assets_pass`
-20. `after_seal_pass`
-21. Unfreeze module static cache in production
+1. `BuildModuleGraphPhasePass`
+2. `FinishModulesPhasePass`
+3. `SealPass`
+4. `OptimizeDependenciesPass`
+5. `BuildChunkGraphPass`
+6. `OptimizeModulesPass`
+7. `OptimizeChunksPass`
+8. `OptimizeTreePass`
+9. `OptimizeChunkModulesPass`
+10. `ModuleIdsPass`
+11. `ChunkIdsPass`
+12. `AssignRuntimeIdsPass`
+13. `OptimizeCodeGenerationPass`
+14. `CreateModuleHashesPass`
+15. `CodeGenerationPass`
+16. `RuntimeRequirementsPass`
+17. `CreateHashPass`
+18. `CreateModuleAssetsPass`
+19. `CreateChunkAssetsPass`
+20. `ProcessAssetsPass`
+21. `AfterProcessAssetsPass`
+22. `AfterSealPass`
+
+`module_static_cache.enable_new_cache()` runs before the loop and
+`module_static_cache.disable_cache()` runs after all passes complete.
+
+## Change rules
+
+- Moving work between passes can change incremental recovery semantics. Check
+  `.agents/ARTIFACTS.md`.
+- Adding a pass may require a new `IncrementalPasses` flag if recovered state is
+  tied to the pass.
+- Cache callbacks around graph-related phases live in the pass implementations,
+  not only in `run_passes.rs`.
+- Keep pass names and documentation aligned with `PassExt::name()`.

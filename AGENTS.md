@@ -138,16 +138,17 @@ Before running tests after code changes:
 
 ## AI-Friendly Documentation
 
-This project includes comprehensive documentation designed for AI assistants and large language models. All AI-friendly documentation is located in the `.agents/` directory:
+This project includes focused engineering notes designed for AI assistants and large language models. General domain language lives in `CONTEXT.md`; implementation-specific agent notes live in `.agents/`.
 
-- **[Architecture Guide](.agents/ARCHITECTURE.md)** - High-level architecture overview, core components, compilation pipeline, and system design
-- **[API Design](.agents/API_DESIGN.md)** - API design principles, patterns, versioning strategy, and compatibility guidelines
-- **[Code Style](.agents/CODE_STYLE.md)** - Coding standards and conventions for Rust and TypeScript/JavaScript
-- **[Common Patterns](.agents/COMMON_PATTERNS.md)** - Common code patterns, templates, and best practices for plugin/loader development
-- **[Glossary](.agents/GLOSSARY.md)** - Comprehensive glossary of terms and concepts used throughout the codebase
-- **[Skills](.agents/SKILLS.md)** - Required skills and knowledge areas for contributing to Rspack
+- **[Architecture Map](.agents/ARCHITECTURE.md)** - Repository map and first files to read before changing major areas
+- **[API Design Constraints](.agents/API_DESIGN.md)** - Hard constraints for public API, webpack compatibility, diagnostics, and semver
+- **[Code Style Facts](.agents/CODE_STYLE.md)** - Formatting, linting, and style facts derived from repo configuration
+- **[Common Pattern Map](.agents/COMMON_PATTERNS.md)** - Pointers to real plugin, loader, pass, cache, API, and test patterns
+- **[Compilation Passes](.agents/PASSES.md)** - Current compilation pass order and change rules
+- **[Incremental Artifacts](.agents/ARTIFACTS.md)** - Artifact recovery semantics and current artifact-to-pass bindings
+- **[Transient Cache](.agents/TRANSIENT_CACHE.md)** - Rules for single-compilation cache state
 
-These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
+These documents are intended to be authoritative implementation context. If they conflict with code or checked-in configuration, prefer the code/configuration and update the note.
 
 ## Agent skills
 

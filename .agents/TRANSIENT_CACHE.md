@@ -1,10 +1,29 @@
-# Transient Cache
+# Transient cache
 
-`transient_cache` stores cache data that is **only valid within a single compilation lifecycle**.
+Read this before adding cache state to a compilation.
 
-Difference from `artifact`:
+`transient_cache` stores data that is valid only within one compilation
+lifecycle.
 
-- `artifact` is designed to be **reused across compilations**, and participates in incremental recovery and persistent caching.
-- `transient_cache` is designed to **not be reused across compilations**. It is re-initialized each compilation, and should only accelerate the current build. It must not be part of incremental recovery or persistent cache flows.
+## Difference from artifacts
 
-Use `transient_cache` when the cache must not affect or depend on future compilation state (avoid cross-compilation contamination or when strict isolation is required).
+- An artifact can be recovered across compilations and may participate in
+  incremental or persistent cache flows.
+- `transient_cache` is re-initialized for each compilation and must not affect or
+  depend on future compilation state.
+
+## Use transient cache when
+
+- The cached value only accelerates repeated work inside the current
+  compilation.
+- Reusing the value in a later compilation would risk stale state.
+- The cache is derived from mutable compilation state that is not part of
+  incremental recovery.
+
+## Do not use transient cache when
+
+- The data needs to survive rebuilds.
+- The data is required to restore incremental state.
+- The data should participate in persistent cache behavior.
+
+Use an artifact instead when data must be recoverable across compilations.
