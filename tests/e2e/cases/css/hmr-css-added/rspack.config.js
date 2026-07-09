@@ -7,17 +7,12 @@ module.exports = {
   entry: {
     main: './src/index.js',
   },
-  devServer: {
-    hot: true,
-  },
   plugins: [
     new rspack.HtmlRspackPlugin({
       template: './src/index.html',
       inject: 'body',
     }),
-    new rspack.CssExtractRspackPlugin({
-      filename: '[name].css',
-    }),
+    new rspack.CssExtractRspackPlugin(),
   ],
   module: {
     rules: [
@@ -27,8 +22,5 @@ module.exports = {
         use: [rspack.CssExtractRspackPlugin.loader, 'css-loader'],
       },
     ],
-  },
-  experiments: {
-    css: false,
   },
 };

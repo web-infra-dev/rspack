@@ -7,13 +7,6 @@ module.exports = {
   entry: {
     main: './src/index.js',
   },
-  output: {
-    cssFilename: '[name].css',
-    cssChunkFilename: '[name].css',
-  },
-  devServer: {
-    hot: true,
-  },
   plugins: [
     new rspack.HtmlRspackPlugin({
       template: './src/index.html',
@@ -27,8 +20,5 @@ module.exports = {
         type: 'css',
       },
     ],
-  },
-  experiments: {
-    css: true,
   },
 };
