@@ -365,7 +365,7 @@ macro_rules! define_import_meta_known_properties {
     }
 
     impl ImportMetaKnownProperties {
-      pub fn enabled_from_properties(properties: &rustc_hash::FxHashMap<String, bool>) -> Self {
+      pub fn enabled_from_properties(properties: &HashMap<String, bool>) -> Self {
         let mut enabled_properties = Self::all();
         define_import_meta_known_properties! {
           @disable (enabled_properties) (properties) $($properties)*
