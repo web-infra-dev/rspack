@@ -273,10 +273,17 @@ impl Compiler {
     );
     let is_hot = self.cache.before_compile(&mut self.compilation).await;
     if is_hot {
-      self.compilation.incremental = Incremental::new_hot(IncrementalOptions {
-        silent: self.options.incremental.silent,
-        passes: IncrementalPasses::BUILD_MODULE_GRAPH | IncrementalPasses::MODULES_HASHES,
-      });
+      let passes = self
+        .options
+        .incremental
+        .passes
+        .intersection(IncrementalPasses::BUILD_MODULE_GRAPH | IncrementalPasses::MODULES_HASHES);
+      if !passes.is_empty() {
+        self.compilation.incremental = Incremental::new_hot(IncrementalOptions {
+          silent: self.options.incremental.silent,
+          passes,
+        });
+      }
     }
 
     self.compile().await?;
