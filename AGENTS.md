@@ -157,7 +157,7 @@ Issues are tracked in GitHub Issues for `web-infra-dev/rspack`; external contrib
 
 ### Triage labels
 
-Use the repo's existing triage labels: `pending triage`, `need more info`, `codex`, `PR welcome`, and `not planned`. See `docs/agents/triage-labels.md`.
+Use the repo's existing triage labels: `pending triage`, `need more info`, `ready-for-agent`, `ready-for-human`, and `not planned`. See `docs/agents/triage-labels.md`.
 
 ### Domain docs
 
