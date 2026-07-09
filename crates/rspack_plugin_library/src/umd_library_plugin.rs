@@ -167,7 +167,7 @@ async fn render(
       )
     };
     format!(
-      r#"function webpackLoadOptionalExternalModuleAmd({wrapper_arguments}) {{
+      r#"function __rspack_load_optional_external_module_amd({wrapper_arguments}) {{
       return factory({factory_arguments});
     }}"#
     )
@@ -280,7 +280,7 @@ async fn render(
 
   let mut source = ConcatSource::default();
   source.add(RawStringSource::from(
-    "(function webpackUniversalModuleDefinition(root, factory) {\n",
+    "(function __rspack_universal_module_definition(root, factory) {\n",
   ));
   let commonjs2_externals = {
     let side_effects_state_artifact = &compilation
@@ -425,7 +425,7 @@ fn externals_require_array(
           side_effects_state_artifact,
           exports_info_artifact,
         ) {
-          expr = format!("(function webpackLoadOptionalExternalModule() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
+          expr = format!("(function __rspack_load_optional_external_module() {{ try {{ return {expr}; }} catch(e) {{}} }}())");
         }
         Ok(expr)
       })

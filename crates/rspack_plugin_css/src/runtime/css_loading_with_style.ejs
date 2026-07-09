@@ -1,7 +1,7 @@
-var dataWebpackPrefix = <%- _data_webpack_prefix %>;
+var dataRspackPrefix = <%- _data_rspack_prefix %>;
 
-function getDataWebpackId(identifier) {
-	return dataWebpackPrefix + identifier;
+function getDataRspackId(identifier) {
+	return dataRspackPrefix + identifier;
 }
 
 function applyStyle(styleElement, css) {
@@ -18,7 +18,7 @@ function findStyleElement(identifier) {
 	var elements = document.getElementsByTagName("style");
 	for (var i = 0; i < elements.length; i++) {
 		var el = elements[i];
-		if (el.getAttribute("data-rspack") == getDataWebpackId(identifier)) {
+		if (el.getAttribute("data-rspack") == getDataRspackId(identifier)) {
 			return el;
 		}
 	}

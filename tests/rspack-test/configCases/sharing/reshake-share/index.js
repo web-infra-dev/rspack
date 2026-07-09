@@ -56,7 +56,7 @@ it("correct handle share dep while secondary tree shaking", async () => {
     const uiLibShareContainerModule = eval("require")(uiLibShareContainerPath).secondary_tree_shaking_share_t_ui_lib_100;
 		await uiLibShareContainerModule.init({},{
 		installInitialConsumes: async ({webpackRequire})=>{
-			webpackRequire.m['webpack/sharing/consume/default/ui-lib-dep'] = (m)=>{
+			webpackRequire.m['rspack/sharing/consume/default/ui-lib-dep'] = (m)=>{
 				m.exports = {
 					Message: 'Message',
 				}

@@ -4,6 +4,7 @@ use rspack_core::{
 };
 
 pub static EXPORT_REQUIRE_RUNTIME_MODULE_ID: &str = "export_webpack_require";
+pub static EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID: &str = "export_require";
 
 #[impl_runtime_module]
 #[derive(Debug)]
@@ -11,7 +12,12 @@ pub struct ExportRequireRuntimeModule {}
 
 impl ExportRequireRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    Self::with_name(runtime_template, EXPORT_REQUIRE_RUNTIME_MODULE_ID)
+    let name = if runtime_template.runtime_module_prefix() == "rspack/runtime/" {
+      EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID
+    } else {
+      EXPORT_REQUIRE_RUNTIME_MODULE_ID
+    };
+    Self::with_name(runtime_template, name)
   }
 }
 

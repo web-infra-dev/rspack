@@ -1,7 +1,7 @@
 var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 	var hasRun = false;
 	var result;
-	return function __webpack_require__mfStartupBase() {
+	return function __rspack_require_mfStartupBase() {
 		if (hasRun) return result;
 		hasRun = true;
 		result = (function () {
@@ -13,7 +13,7 @@ var mfStartupBase = <%- REQUIRE %>.mfStartupBase = (function () {
 var mfAsyncStartup = <%- REQUIRE %>.mfAsyncStartup = (function () {
 	var hasRun = false;
 	var result;
-	return function __webpack_require__mfAsyncStartup() {
+	return function __rspack_require_mfAsyncStartup() {
 		if (hasRun) return result;
 		hasRun = true;
 		var base = mfStartupBase && mfStartupBase();
