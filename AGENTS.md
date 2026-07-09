@@ -149,6 +149,20 @@ This project includes comprehensive documentation designed for AI assistants and
 
 These documents provide detailed context about the project structure, coding standards, common patterns, and domain-specific knowledge to help AI assistants better understand and contribute to the codebase.
 
+## Agent skills
+
+### Issue tracker
+
+Issues are tracked in GitHub Issues for `web-infra-dev/rspack`; external contributor PRs are also treated as a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Use the default triage label vocabulary, except `needs-info` maps to `needs more info`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+This repo uses a single-context domain docs layout. See `docs/agents/domain.md`.
+
 ## Resources
 
 - [Project Architecture](website/docs/en/contribute/development/project.md)
