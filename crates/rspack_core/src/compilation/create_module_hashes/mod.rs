@@ -45,7 +45,10 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     for revoked_module in revoked_modules {
       compilation.cgm_hash_artifact.remove(&revoked_module);
     }
-    let mut modules = mutations.get_affected_modules_with_chunk_graph(compilation);
+    let mut modules = mutations
+      .get_affected_modules_with_chunk_graph(compilation)
+      .as_ref()
+      .clone();
 
     // check if module runtime changes
     let mg = compilation.get_module_graph();

@@ -48,7 +48,7 @@ export function createHotProcessor(
     },
     config: async (context: ITestContext) => {
       const compiler = context.getCompiler();
-      let options = defaultOptions(context, target);
+      let options = defaultOptions(context, target, incremental);
       options = await config(
         context,
         name,
@@ -56,9 +56,6 @@ export function createHotProcessor(
         options,
       );
       overrideOptions(context, options, target, updatePlugin);
-      if (incremental) {
-        options.incremental ??= 'advance-silent';
-      }
       mergeRspackOptions(options, rspackOptions);
       applyRuntimeModeTestDefines(options);
       compiler.setOptions(options);
@@ -154,7 +151,11 @@ function mergeRspackOptions(options: RspackOptions, override?: RspackOptions) {
   }
 }
 
-function defaultOptions(context: ITestContext, target: TTarget) {
+function defaultOptions(
+  context: ITestContext,
+  target: TTarget,
+  incremental: boolean,
+) {
   const options = {
     context: context.getSource(),
     mode: 'development',
@@ -182,8 +183,8 @@ function defaultOptions(context: ITestContext, target: TTarget) {
       moduleIds: 'named',
     },
     target,
-    // test incremental: "safe" here, we test default incremental in Incremental-*.test.js
-    incremental: 'safe',
+    // Incremental-* suites exercise all supported passes; regular hot suites use the safe preset.
+    incremental: incremental ? 'advance-silent' : 'safe',
   } as RspackOptions;
 
   options.plugins ??= [];

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -101,7 +103,7 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
         .remove(removed_chunk);
     }
     let affected_chunks = mutations.get_affected_chunks_with_chunk_graph(compilation);
-    for affected_chunk in &affected_chunks {
+    for affected_chunk in affected_chunks.iter() {
       compilation
         .cgc_runtime_requirements_artifact
         .remove(affected_chunk);
@@ -127,17 +129,19 @@ async fn runtime_requirements_pass_impl(compilation: &mut Compilation) -> Result
     ));
     affected_chunks
   } else {
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .keys()
-      .copied()
-      .collect()
+    Arc::new(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .keys()
+        .copied()
+        .collect(),
+    )
   };
   process_chunks_runtime_requirements(
     compilation,
-    process_runtime_requirements_chunks,
-    runtime_chunks,
+    &process_runtime_requirements_chunks,
+    &runtime_chunks,
     plugin_driver.clone(),
   )
   .await?;
@@ -302,8 +306,8 @@ pub async fn process_modules_runtime_requirements(
 #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
 pub async fn process_chunks_runtime_requirements(
   compilation: &mut Compilation,
-  chunks: FxHashSet<ChunkUkey>,
-  entries: FxHashSet<ChunkUkey>,
+  chunks: &FxHashSet<ChunkUkey>,
+  entries: &FxHashSet<ChunkUkey>,
   plugin_driver: SharedPluginDriver,
 ) -> Result<()> {
   let logger = compilation.get_logger("rspack.Compilation");
@@ -407,7 +411,7 @@ pub async fn process_chunks_runtime_requirements(
 
   let start = logger.time("runtime requirements.entries");
   let mut hook_exposed_requirements_by_entry = FxHashMap::default();
-  for &entry_ukey in &entries {
+  for &entry_ukey in entries {
     let mut all_runtime_requirements = RuntimeGlobals::default();
     let mut runtime_modules_to_add: Vec<(ChunkUkey, Box<dyn RuntimeModule>)> = Vec::new();
 
@@ -500,7 +504,7 @@ pub async fn process_chunks_runtime_requirements(
   // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
   // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
   let mut runtime_modules = mem::take(&mut compilation.runtime_modules);
-  for entry_ukey in &entries {
+  for entry_ukey in entries {
     let runtime_module_ids: Vec<_> = compilation
       .build_chunk_graph_artifact
       .chunk_graph

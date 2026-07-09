@@ -5,9 +5,7 @@ DEBUG LOG from rspack.persistentCache
 <i> meta persistent cache recovery succeeded
 <t> read meta from persistent cache: xx ms
 <t> read snapshot from persistent cache: xx ms
-<i> snapshot restored with detected changed dependencies:
-<i> removed paths (1):
-<i>   - <TEST_ROOT>/js/temp/cacheCases-cacheCases/make/refactorize_dep/data1.js
+<i> snapshot restored with no changed dependencies
 <i> make persistent cache recovery succeeded
 <t> read make from persistent cache: xx ms
 <t> write make to persistent cache: xx ms

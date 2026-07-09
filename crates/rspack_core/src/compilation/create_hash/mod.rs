@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
@@ -121,12 +123,14 @@ pub async fn create_hash(
     ));
     chunks
   } else {
-    compilation
-      .build_chunk_graph_artifact
-      .chunk_by_ukey
-      .keys()
-      .copied()
-      .collect()
+    Arc::new(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .keys()
+        .copied()
+        .collect(),
+    )
   };
 
   let mut compilation_hasher = RspackHasher::from(&compilation.options.output);

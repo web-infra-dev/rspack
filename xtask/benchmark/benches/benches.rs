@@ -32,6 +32,7 @@ criterion_main!(
   cases::bundle_threejs_production_sourcemap::case,
   stages::flag_dependency_exports::stage,
   stages::flag_dependency_usage::stage,
+  stages::incremental_affected_modules_cache::stage,
   stages::create_module_ids::stage,
   stages::create_named_module_ids::stage,
   stages::split_chunks::stage,

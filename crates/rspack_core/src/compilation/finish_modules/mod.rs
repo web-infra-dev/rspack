@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use rspack_error::Result;
 
@@ -177,21 +179,25 @@ fn collect_dependencies_diagnostics(
         (modules, true)
       } else {
         (
-          build_module_graph_artifact
-            .get_module_graph()
-            .modules_keys()
-            .copied()
-            .collect(),
+          Arc::new(
+            build_module_graph_artifact
+              .get_module_graph()
+              .modules_keys()
+              .copied()
+              .collect(),
+          ),
           true,
         )
       }
     } else {
       (
-        build_module_graph_artifact
-          .get_module_graph()
-          .modules_keys()
-          .copied()
-          .collect(),
+        Arc::new(
+          build_module_graph_artifact
+            .get_module_graph()
+            .modules_keys()
+            .copied()
+            .collect(),
+        ),
         false,
       )
     }

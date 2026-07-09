@@ -60,11 +60,27 @@ impl Occasion for MetaOccasion {
       return Ok(());
     };
 
-    let meta: Meta = self.codec.decode(&value).expect("should decode success");
+    let meta: Meta = self.codec.decode(&value)?;
     if get_current_dependency_id() != 0 {
       panic!("The global dependency id generator is not 0 when the persistent cache is restored.");
     }
     set_current_dependency_id(meta.max_dependencies_id);
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::cache::persistent::storage::{MemoryStorage, Storage};
+
+  #[tokio::test]
+  async fn should_return_error_for_corrupted_meta() {
+    let codec = Arc::new(CacheCodec::new(None));
+    let occasion = MetaOccasion::new(codec);
+    let mut storage = MemoryStorage::default();
+    storage.set(SCOPE, b"default".to_vec(), b"corrupted".to_vec());
+
+    assert!(occasion.recovery(&storage).await.is_err());
   }
 }

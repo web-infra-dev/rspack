@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 use either::Either;
 use once_cell::sync::OnceCell;
@@ -14,9 +14,42 @@ use crate::{
 pub struct Mutations {
   inner: Vec<Mutation>,
 
-  affected_modules_with_module_graph: OnceCell<IdentifierSet>,
-  affected_modules_with_chunk_graph: OnceCell<IdentifierSet>,
-  affected_chunks_with_chunk_graph: OnceCell<FxHashSet<ChunkUkey>>,
+  affected_modules_with_module_graph: OnceCell<Arc<IdentifierSet>>,
+  affected_modules_with_chunk_graph: OnceCell<Arc<IdentifierSet>>,
+  affected_chunks_with_chunk_graph: OnceCell<Arc<FxHashSet<ChunkUkey>>>,
+}
+
+#[derive(Debug, Default)]
+struct AffectedCacheInvalidation {
+  modules_with_module_graph: bool,
+  modules_with_chunk_graph: bool,
+  chunks_with_chunk_graph: bool,
+}
+
+impl AffectedCacheInvalidation {
+  fn include(&mut self, mutation: &Mutation) {
+    match mutation {
+      Mutation::ModuleAdd { .. }
+      | Mutation::ModuleUpdate { .. }
+      | Mutation::DependencyUpdate { .. } => {
+        self.modules_with_module_graph = true;
+        self.modules_with_chunk_graph = true;
+      }
+      Mutation::ModuleSetAsync { .. } | Mutation::ModuleSetId { .. } => {
+        self.modules_with_chunk_graph = true;
+      }
+      Mutation::ChunkAdd { .. } | Mutation::ChunkRemove { .. } | Mutation::ChunkSetId { .. } => {
+        self.modules_with_chunk_graph = true;
+        self.chunks_with_chunk_graph = true;
+      }
+      Mutation::ModuleSetHashes { .. }
+      | Mutation::ChunkSplit { .. }
+      | Mutation::ChunksIntegrate { .. } => {
+        self.chunks_with_chunk_graph = true;
+      }
+      Mutation::ModuleRemove { .. } | Mutation::ChunkSetHashes { .. } => {}
+    }
+  }
 }
 
 impl fmt::Display for Mutations {
@@ -72,7 +105,10 @@ impl fmt::Display for Mutation {
 
 impl Mutations {
   pub fn add(&mut self, mutation: Mutation) {
+    let mut invalidation = AffectedCacheInvalidation::default();
+    invalidation.include(&mutation);
     self.inner.push(mutation);
+    self.invalidate_affected_caches(invalidation);
   }
 
   pub fn len(&self) -> usize {
@@ -81,6 +117,18 @@ impl Mutations {
 
   pub fn is_empty(&self) -> bool {
     self.inner.is_empty()
+  }
+
+  fn invalidate_affected_caches(&mut self, invalidation: AffectedCacheInvalidation) {
+    if invalidation.modules_with_module_graph {
+      self.affected_modules_with_module_graph.take();
+    }
+    if invalidation.modules_with_chunk_graph {
+      self.affected_modules_with_chunk_graph.take();
+    }
+    if invalidation.chunks_with_chunk_graph {
+      self.affected_chunks_with_chunk_graph.take();
+    }
   }
 }
 
@@ -115,7 +163,12 @@ impl IntoIterator for Mutations {
 
 impl Extend<Mutation> for Mutations {
   fn extend<T: IntoIterator<Item = Mutation>>(&mut self, iter: T) {
-    self.inner.extend(iter);
+    let mut invalidation = AffectedCacheInvalidation::default();
+    for mutation in iter {
+      invalidation.include(&mutation);
+      self.inner.push(mutation);
+    }
+    self.invalidate_affected_caches(invalidation);
   }
 }
 
@@ -123,7 +176,7 @@ impl Mutations {
   pub fn get_affected_modules_with_module_graph(
     &self,
     module_graph: &ModuleGraph,
-  ) -> IdentifierSet {
+  ) -> Arc<IdentifierSet> {
     self
       .affected_modules_with_module_graph
       .get_or_init(|| {
@@ -144,17 +197,27 @@ impl Mutations {
             _ => {}
           }
         }
-        compute_affected_modules_with_module_graph(module_graph, built_modules, built_dependencies)
+        Arc::new(compute_affected_modules_with_module_graph(
+          module_graph,
+          built_modules,
+          built_dependencies,
+        ))
       })
       .clone()
   }
 
-  pub fn get_affected_modules_with_chunk_graph(&self, compilation: &Compilation) -> IdentifierSet {
+  pub fn get_affected_modules_with_chunk_graph(
+    &self,
+    compilation: &Compilation,
+  ) -> Arc<IdentifierSet> {
     self
       .affected_modules_with_chunk_graph
       .get_or_init(|| {
         let mg = compilation.get_module_graph();
-        let mut modules = self.get_affected_modules_with_module_graph(mg);
+        let mut modules = self
+          .get_affected_modules_with_module_graph(mg)
+          .as_ref()
+          .clone();
         let mut chunks = FxHashSet::default();
         for mutation in self.iter() {
           match mutation {
@@ -202,7 +265,7 @@ impl Mutations {
             .chunk_graph
             .get_chunk_modules_identifier(chunk)
         }));
-        modules
+        Arc::new(modules)
       })
       .clone()
   }
@@ -210,11 +273,11 @@ impl Mutations {
   pub fn get_affected_chunks_with_chunk_graph(
     &self,
     compilation: &Compilation,
-  ) -> FxHashSet<ChunkUkey> {
+  ) -> Arc<FxHashSet<ChunkUkey>> {
     self
       .affected_chunks_with_chunk_graph
       .get_or_init(|| {
-        self.iter().fold(FxHashSet::default(), |mut acc, mutation| {
+        Arc::new(self.iter().fold(FxHashSet::default(), |mut acc, mutation| {
           match mutation {
             Mutation::ModuleSetHashes { module } => {
               acc.extend(
@@ -243,7 +306,7 @@ impl Mutations {
             _ => {}
           };
           acc
-        })
+        }))
       })
       .clone()
   }
@@ -355,4 +418,99 @@ fn compute_affected_modules_with_module_graph(
     transitive_affected_modules.extend(new_transitive_affected_modules);
   }
   all_affected_modules
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::ModuleGraphModule;
+
+  fn seed_affected_caches(mutations: &mut Mutations) {
+    mutations.affected_modules_with_module_graph.take();
+    mutations.affected_modules_with_chunk_graph.take();
+    mutations.affected_chunks_with_chunk_graph.take();
+    mutations
+      .affected_modules_with_module_graph
+      .set(Arc::new(IdentifierSet::default()))
+      .expect("module graph cache should be empty");
+    mutations
+      .affected_modules_with_chunk_graph
+      .set(Arc::new(IdentifierSet::default()))
+      .expect("chunk graph module cache should be empty");
+    mutations
+      .affected_chunks_with_chunk_graph
+      .set(Arc::new(FxHashSet::default()))
+      .expect("chunk graph chunk cache should be empty");
+  }
+
+  #[test]
+  fn should_invalidate_only_affected_caches_when_adding_mutations() {
+    let mut mutations = Mutations::default();
+    seed_affected_caches(&mut mutations);
+
+    mutations.add(Mutation::ModuleUpdate {
+      module: ModuleIdentifier::from("updated"),
+    });
+    assert!(mutations.affected_modules_with_module_graph.get().is_none());
+    assert!(mutations.affected_modules_with_chunk_graph.get().is_none());
+    assert!(mutations.affected_chunks_with_chunk_graph.get().is_some());
+
+    seed_affected_caches(&mut mutations);
+    mutations.add(Mutation::ChunkSetId {
+      chunk: ChunkUkey::new(),
+    });
+    assert!(mutations.affected_modules_with_module_graph.get().is_some());
+    assert!(mutations.affected_modules_with_chunk_graph.get().is_none());
+    assert!(mutations.affected_chunks_with_chunk_graph.get().is_none());
+
+    seed_affected_caches(&mut mutations);
+    mutations.add(Mutation::ChunkSetHashes {
+      chunk: ChunkUkey::new(),
+    });
+    assert!(mutations.affected_modules_with_module_graph.get().is_some());
+    assert!(mutations.affected_modules_with_chunk_graph.get().is_some());
+    assert!(mutations.affected_chunks_with_chunk_graph.get().is_some());
+  }
+
+  #[test]
+  fn should_invalidate_affected_caches_when_extending_mutations() {
+    let mut mutations = Mutations::default();
+    seed_affected_caches(&mut mutations);
+
+    mutations.extend([
+      Mutation::ModuleSetAsync {
+        module: ModuleIdentifier::from("async"),
+      },
+      Mutation::ModuleSetHashes {
+        module: ModuleIdentifier::from("hashed"),
+      },
+    ]);
+
+    assert!(mutations.affected_modules_with_module_graph.get().is_some());
+    assert!(mutations.affected_modules_with_chunk_graph.get().is_none());
+    assert!(mutations.affected_chunks_with_chunk_graph.get().is_none());
+  }
+
+  #[test]
+  fn should_refresh_and_share_affected_modules_after_relevant_mutation() {
+    let module = ModuleIdentifier::from("updated");
+    let mut module_graph = ModuleGraph::default();
+    module_graph.add_module_graph_module(ModuleGraphModule::new(module));
+    let mut mutations = Mutations::default();
+
+    let initial = mutations.get_affected_modules_with_module_graph(&module_graph);
+    assert!(initial.is_empty());
+
+    mutations.add(Mutation::ModuleUpdate { module });
+    let updated = mutations.get_affected_modules_with_module_graph(&module_graph);
+    assert!(updated.contains(&module));
+    let shared = mutations.get_affected_modules_with_module_graph(&module_graph);
+    assert!(Arc::ptr_eq(&updated, &shared));
+
+    mutations.add(Mutation::ChunkSetHashes {
+      chunk: ChunkUkey::new(),
+    });
+    let after_irrelevant_mutation = mutations.get_affected_modules_with_module_graph(&module_graph);
+    assert!(Arc::ptr_eq(&updated, &after_irrelevant_mutation));
+  }
 }

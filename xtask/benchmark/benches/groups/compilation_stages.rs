@@ -21,7 +21,7 @@ use rspack_core::{
   SourceType, UsedExportsOption, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   cache::Cache,
-  incremental::IncrementalOptions,
+  incremental::{IncrementalOptions, Mutation, Mutations},
   pass::PassExt,
   rspack_sources::{RawStringSource, SourceExt},
 };
@@ -48,6 +48,92 @@ const SPLIT_CHUNKS_SHARED_MODULES: usize = 192;
 const SPLIT_CHUNKS_WINDOW: usize = 20;
 const SPLIT_CHUNKS_COMMON_MODULES: usize = 16;
 const MODULE_ASSET_SEED_COUNT: usize = 256;
+
+pub(crate) fn incremental_affected_modules_cache_benchmark(c: &mut Criterion, rt: &Runtime) {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let random_table = load_random_table();
+  let mut compiler = create_general_stage_compiler(fs.clone());
+
+  rt.block_on(async {
+    fs.create_dir_all("/src".into())
+      .await
+      .expect("should not fail to create dir");
+    prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
+    prepare_build_module_graph_phase(&mut compiler)
+      .await
+      .unwrap();
+  });
+
+  assert_no_compilation_errors(
+    &compiler.compilation,
+    "incremental affected modules cache setup",
+  );
+  let module_graph = compiler.compilation.get_module_graph();
+  let module_ids = module_graph.modules_keys().copied().collect::<Vec<_>>();
+  let make_warm_mutations = || {
+    let mut mutations = Mutations::default();
+    mutations.extend(
+      module_ids
+        .iter()
+        .copied()
+        .map(|module| Mutation::ModuleUpdate { module }),
+    );
+    let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
+    assert_eq!(affected_modules.len(), module_graph.modules_len());
+    drop(affected_modules);
+    mutations
+  };
+  let mutations = make_warm_mutations();
+  let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
+  assert_eq!(affected_modules.len(), module_graph.modules_len());
+  drop(affected_modules);
+
+  c.bench_function("rust@incremental_affected_modules_cached_shared", |b| {
+    b.iter(|| {
+      black_box(mutations.get_affected_modules_with_module_graph(module_graph));
+    });
+  });
+  c.bench_function("rust@incremental_affected_modules_cached_owned", |b| {
+    b.iter(|| {
+      black_box(
+        mutations
+          .get_affected_modules_with_module_graph(module_graph)
+          .as_ref()
+          .clone(),
+      );
+    });
+  });
+  c.bench_function(
+    "rust@incremental_affected_modules_cached_irrelevant_mutation",
+    |b| {
+      b.iter_batched(
+        make_warm_mutations,
+        |mut mutations| {
+          mutations.add(Mutation::ChunkSetHashes {
+            chunk: ChunkUkey::new(),
+          });
+          black_box(mutations.get_affected_modules_with_module_graph(module_graph));
+        },
+        BatchSize::PerIteration,
+      );
+    },
+  );
+  c.bench_function(
+    "rust@incremental_affected_modules_cache_invalidated_miss",
+    |b| {
+      b.iter_batched(
+        make_warm_mutations,
+        |mut mutations| {
+          mutations.add(Mutation::ModuleUpdate {
+            module: module_ids[0],
+          });
+          black_box(mutations.get_affected_modules_with_module_graph(module_graph));
+        },
+        BatchSize::PerIteration,
+      );
+    },
+  );
+}
 
 pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let fs = Arc::new(MemoryFileSystem::default());

@@ -15,6 +15,7 @@ pub mod create_named_chunk_ids;
 pub mod create_named_module_ids;
 pub mod flag_dependency_exports;
 pub mod flag_dependency_usage;
+pub mod incremental_affected_modules_cache;
 pub mod mangle_exports;
 pub mod real_content_hash;
 pub mod runtime_requirements;
