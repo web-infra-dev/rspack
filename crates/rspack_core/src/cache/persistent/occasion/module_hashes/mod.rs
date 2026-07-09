@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use rspack_cacheable::cacheable;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_hash::RspackHashDigest;
@@ -10,72 +9,9 @@ use super::{
   super::{codec::CacheCodec, storage::Storage},
   Occasion,
 };
-use crate::{
-  CgmHashArtifact, ModuleIdentifier, RayonConsumer, RuntimeKey, RuntimeMode, RuntimeSpec,
-  RuntimeSpecMap,
-};
+use crate::{CgmHashArtifact, ModuleIdentifier, RayonConsumer, RuntimeSpecMap};
 
 pub const SCOPE: &str = "occasion_module_hashes";
-
-const MODE_EMPTY: u8 = 0;
-const MODE_SINGLE_ENTRY: u8 = 1;
-const MODE_MAP: u8 = 2;
-
-#[cacheable]
-struct Entry {
-  mode: u8,
-  single_runtime: Option<RuntimeSpec>,
-  single_value: Option<RspackHashDigest>,
-  map: Vec<(RuntimeKey, RspackHashDigest)>,
-}
-
-impl Entry {
-  fn from_runtime_map(runtime_map: &RuntimeSpecMap<RspackHashDigest>) -> Self {
-    match runtime_map.mode {
-      RuntimeMode::Empty => Self {
-        mode: MODE_EMPTY,
-        single_runtime: None,
-        single_value: None,
-        map: Vec::new(),
-      },
-      RuntimeMode::SingleEntry => Self {
-        mode: MODE_SINGLE_ENTRY,
-        single_runtime: runtime_map.single_runtime.clone(),
-        single_value: runtime_map.single_value.clone(),
-        map: Vec::new(),
-      },
-      RuntimeMode::Map => Self {
-        mode: MODE_MAP,
-        single_runtime: None,
-        single_value: None,
-        map: runtime_map
-          .map
-          .iter()
-          .map(|(runtime, hash)| (runtime.clone(), hash.clone()))
-          .collect(),
-      },
-    }
-  }
-
-  fn into_runtime_map(self) -> Option<RuntimeSpecMap<RspackHashDigest>> {
-    match self.mode {
-      MODE_EMPTY => Some(RuntimeSpecMap::new()),
-      MODE_SINGLE_ENTRY => Some(RuntimeSpecMap {
-        mode: RuntimeMode::SingleEntry,
-        map: Default::default(),
-        single_runtime: Some(self.single_runtime?),
-        single_value: Some(self.single_value?),
-      }),
-      MODE_MAP => Some(RuntimeSpecMap {
-        mode: RuntimeMode::Map,
-        map: self.map.into_iter().collect(),
-        single_runtime: None,
-        single_value: None,
-      }),
-      _ => None,
-    }
-  }
-}
 
 #[derive(Debug)]
 pub struct ModuleHashesOccasion {
@@ -108,16 +44,15 @@ impl Occasion for ModuleHashesOccasion {
     artifact
       .iter()
       .par_bridge()
-      .filter_map(|(module, runtime_map)| {
-        let entry = Entry::from_runtime_map(runtime_map);
-        match self.codec.encode(&entry) {
+      .filter_map(
+        |(module, runtime_map)| match self.codec.encode(runtime_map) {
           Ok(bytes) => Some((module.as_bytes().to_vec(), bytes)),
           Err(err) => {
             tracing::warn!("module hashes persistent cache encode failed: {:?}", err);
             None
           }
-        }
-      })
+        },
+      )
       .consume(|(module, bytes)| {
         storage.set(SCOPE, module, bytes);
         saved_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -145,16 +80,15 @@ impl Occasion for ModuleHashesOccasion {
             return None;
           }
         };
-        let entry = match self.codec.decode::<Entry>(&value) {
-          Ok(entry) => entry,
+        let runtime_map = match self
+          .codec
+          .decode::<RuntimeSpecMap<RspackHashDigest>>(&value)
+        {
+          Ok(runtime_map) => runtime_map,
           Err(err) => {
             tracing::warn!("module hashes persistent cache decode failed: {:?}", err);
             return None;
           }
-        };
-        let Some(runtime_map) = entry.into_runtime_map() else {
-          tracing::warn!("module hashes persistent cache entry has invalid runtime mode");
-          return None;
         };
         Some((module, runtime_map))
       })
