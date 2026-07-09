@@ -326,65 +326,6 @@ ensureChunkHandlers.j = function(chunkId, promises) {
 	promises.push(promise);
 };
 ;
-// rspack/runtime/module_chunk_loading
-// no BaseURI
-      // object to store loaded and loading chunks
-      // undefined = chunk not loaded, null = chunk preloaded/prefetched
-      // [resolve, Promise] = chunk loading, 0 = chunk loaded
-      var moduleInstalledChunks = {"runtime": 0,};
-      var moduleInstallChunk = (data) => {
-    var __rspack_esm_ids = data.__rspack_esm_ids;
-    var moreModules = data.__rspack_modules;
-    var __rspack_esm_runtime = data.__rspack_esm_runtime;
-    // add "modules" to the modules object,
-    // then flag all "ids" as loaded and fire callback
-    var moduleId, chunkId, i = 0;
-    for (moduleId in moreModules) {
-        if (hasOwnProperty(moreModules, moduleId)) {
-            moduleFactories[moduleId] = moreModules[moduleId];
-        }
-    }
-    if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
-    for (; i < __rspack_esm_ids.length; i++) {
-        chunkId = __rspack_esm_ids[i];
-        if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
-            moduleInstalledChunks[chunkId][0]();
-        }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
-    }
-
-};
-
-        ensureChunkHandlers.j = function (chunkId, promises) {
-          // import() chunk loading for javascript
-var installedChunkData = hasOwnProperty(moduleInstalledChunks, chunkId) ? moduleInstalledChunks[chunkId] : undefined;
-if (installedChunkData !== 0) { // 0 means "already installed".'
-    // a Promise means "currently loading".
-    if (installedChunkData) {
-        promises.push(installedChunkData[1]);
-    } else {
-        if ("runtime" != chunkId) {
-            // setup Promise in chunk cache
-            var promise = import("./" + getChunkScriptFilename(chunkId)).then(moduleInstallChunk, (e) => {
-                if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = undefined;
-                throw e;
-            });
-            var promise = Promise.race([promise, new Promise((resolve) => {
-                installedChunkData = moduleInstalledChunks[chunkId] = [resolve];
-            })]);
-            promises.push(installedChunkData[1] = promise);
-        }
-        else moduleInstalledChunks[chunkId] = 0;
-
-    }
-}
-
-        }
-        // no external install chunk
-// no on chunks loaded
-// no HMR
-// no HMR manifest
-;
 
 export { __rspack_context };
 
