@@ -341,7 +341,7 @@ pub struct RawJavascriptParserOptions {
   pub pure_functions: Option<Vec<String>>,
 }
 
-pub type RawImportMetaOptions = Arc<HashMap<String, bool>>;
+pub type RawImportMetaOptions = HashMap<String, bool>;
 
 #[napi(object)]
 #[derive(Debug)]

@@ -1,9 +1,9 @@
 use concat_string::concat_string;
 use itertools::Itertools;
 use rspack_core::{
-  ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
-  DependencyRange, ImportMeta, ImportMetaKnownProperties, RscMeta, RscModuleType, RuntimeGlobals,
-  RuntimeRequirementsDependency, property_access,
+  ArcComputed, ConstDependency, ContextDependency, ContextMode, ContextOptions, DependencyCategory,
+  DependencyRange, ImportMeta, ImportMetaKnownProperties, ResolvedModuleOptions, RscMeta,
+  RscModuleType, RuntimeGlobals, RuntimeRequirementsDependency, property_access,
 };
 use rspack_error::{Error, Severity};
 use rspack_util::SpanExt;
@@ -287,7 +287,7 @@ impl ImportMetaBuiltinProperty {
   }
 }
 
-pub struct ImportMetaPlugin(pub(crate) ImportMeta);
+pub struct ImportMetaPlugin(pub(crate) ArcComputed<ResolvedModuleOptions, ImportMeta>);
 
 impl ImportMetaPlugin {
   fn known_property_from_name(name: &str) -> Option<ImportMetaKnownProperties> {
@@ -301,7 +301,7 @@ impl ImportMetaPlugin {
   }
 
   fn preserve_property(&self, property: Option<&str>) -> bool {
-    match &self.0 {
+    match self.0.as_ref() {
       ImportMeta::PreserveUnknown => true,
       ImportMeta::Granular(_) => property.is_none_or(|property| {
         let name = concat_string!(expr_name::IMPORT_META, ".", property);
@@ -796,7 +796,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
     match root_info {
       ExportedVariableInfo::Name(root) => {
         if root == expr_name::IMPORT_META {
-          if matches!(self.0, ImportMeta::PreserveUnknown) {
+          if matches!(self.0.as_ref(), ImportMeta::PreserveUnknown) {
             return Some(true);
           }
           let members = parser

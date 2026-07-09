@@ -437,11 +437,11 @@ impl JavascriptParserWorkerOptions {
 #[derive(Debug, Clone)]
 pub struct ImportMetaOptions {
   enabled_known_properties: ImportMetaKnownProperties,
-  properties: Arc<HashMap<String, bool>>,
+  properties: HashMap<String, bool>,
 }
 
 impl ImportMetaOptions {
-  pub fn new(properties: Arc<HashMap<String, bool>>) -> Self {
+  pub fn new(properties: HashMap<String, bool>) -> Self {
     let enabled_known_properties = ImportMetaKnownProperties::enabled_from_properties(&properties);
 
     Self {
