@@ -1,8 +1,8 @@
 import { test, expect } from '@/fixtures';
 
-const COLOR_BLUE = 'rgb(0, 0, 255)';
-const COLOR_GREEN = 'rgb(0, 128, 0)';
-const COLOR_NATIVE = 'rgb(255, 0, 0)';
+const COLOR_EXTRACT = 'rgb(255, 0, 0)';
+const COLOR_EXTRACT_UPDATED = 'rgb(128, 0, 128)';
+const COLOR_NATIVE = 'rgb(0, 128, 0)';
 
 test('extract-only css update does not disturb the native css runtime', async ({
   page,
@@ -10,7 +10,8 @@ test('extract-only css update does not disturb the native css runtime', async ({
 }) => {
   const root = page.locator('#root');
   await expect(root).toHaveText('feature loaded');
-  await expect(root).toHaveCSS('color', COLOR_BLUE);
+  // the entry chunk carries both css kinds: extracted (#root) and native (body)
+  await expect(root).toHaveCSS('color', COLOR_EXTRACT);
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     COLOR_NATIVE,
@@ -29,16 +30,16 @@ test('extract-only css update does not disturb the native css runtime', async ({
 
   // only the extracted stylesheet changes, the native one is untouched
   fileAction.updateFile('src/blue.css', (content) =>
-    content.replace('blue', 'green'),
+    content.replace('red', 'purple'),
   );
 
-  await expect(root).toHaveCSS('color', COLOR_GREEN);
+  await expect(root).toHaveCSS('color', COLOR_EXTRACT_UPDATED);
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
     COLOR_NATIVE,
   );
   await expect(page.locator('#root[data-e2e-initial]')).toHaveCount(1);
-  // the native css runtime must not synthesize a hot-update request
-  // (its urls carry the `hmr` query) for a chunk without native css
+  // the native css runtime must not re-fetch its stylesheet
+  // (its hot-update urls carry the `hmr` query) for an extract-only change
   expect(cssRequests.filter((url) => url.includes('hmr='))).toEqual([]);
 });
