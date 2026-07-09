@@ -22,9 +22,10 @@ use rspack_cacheable::{
 };
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxDependencyTemplate, BuildInfo, BuildMeta,
-  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
-  ModuleType, ParseMeta, ResourceData, SideEffectsBailoutItemWithSpan,
+  CompilerOptions, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
+  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
+  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResourceData,
+  SideEffectsBailoutItemWithSpan,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -476,14 +477,12 @@ impl<'parser> JavascriptParser<'parser> {
     if module_type.is_js_auto() || module_type.is_js_esm() {
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
       plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
-      let import_meta = javascript_options
-        .import_meta
-        .clone()
-        .unwrap_or(ImportMeta::Enabled);
+      let import_meta = javascript_options.import_meta();
       plugins.push(Box::new(
         parser_plugin::ImportMetaContextDependencyParserPlugin {
-          webpack_context: import_meta.is_webpack_context_enabled(),
-          glob: import_meta.is_glob_enabled(),
+          webpack_context: import_meta
+            .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_CONTEXT),
+          glob: import_meta.is_known_property_enabled(ImportMetaKnownProperties::GLOB),
         },
       ));
       if import_meta.is_enabled() {

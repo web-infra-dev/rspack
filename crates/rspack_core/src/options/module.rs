@@ -492,18 +492,6 @@ impl ImportMeta {
       Self::Granular(options) => options.is_known_property_enabled(property),
     }
   }
-
-  pub fn is_webpack_context_enabled(&self) -> bool {
-    self.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_CONTEXT)
-  }
-
-  pub fn is_glob_enabled(&self) -> bool {
-    self.is_known_property_enabled(ImportMetaKnownProperties::GLOB)
-  }
-
-  pub fn is_webpack_hot_enabled(&self) -> bool {
-    self.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-  }
 }
 
 #[cacheable]
@@ -542,6 +530,10 @@ pub struct JavascriptParserOptions {
 }
 
 impl JavascriptParserOptions {
+  pub fn import_meta(&self) -> ImportMeta {
+    self.import_meta.clone().unwrap_or(ImportMeta::Enabled)
+  }
+
   pub fn create_require_option(&self) -> Option<&str> {
     match self.create_require.as_ref()? {
       JavascriptParserCreateRequire::Disabled => None,

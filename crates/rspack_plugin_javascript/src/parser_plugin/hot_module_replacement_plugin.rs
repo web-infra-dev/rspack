@@ -1,4 +1,4 @@
-use rspack_core::{BoxDependency, DependencyRange};
+use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
@@ -15,14 +15,6 @@ use crate::{
 };
 
 type CreateDependency = fn(Atom, DependencyRange) -> BoxDependency;
-
-fn import_meta_webpack_hot_enabled(parser: &JavascriptParser) -> bool {
-  parser
-    .javascript_options
-    .import_meta
-    .as_ref()
-    .is_none_or(|import_meta| import_meta.is_webpack_hot_enabled())
-}
 
 fn extract_deps(
   parser: &mut JavascriptParser,
@@ -219,7 +211,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
-    if for_name == expr_name::IMPORT_META_HOT && import_meta_webpack_hot_enabled(parser) {
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       Some(eval::evaluate_to_identifier(
         expr_name::IMPORT_META_HOT.into(),
         expr_name::IMPORT_META.into(),
@@ -238,7 +235,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if for_name == expr_name::IMPORT_META_HOT && import_meta_webpack_hot_enabled(parser) {
+    if for_name == expr_name::IMPORT_META_HOT
+      && parser
+        .javascript_options
+        .import_meta()
+        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -252,7 +254,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if !import_meta_webpack_hot_enabled(parser) {
+    if !parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
+    {
       return None;
     }
 
