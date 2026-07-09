@@ -540,7 +540,9 @@ impl ObjectFinalize for JsCompiler {
       references.remove(&compiler_id);
     });
 
+    self.cleanup_last_compilation(&self.compiler.compilation);
     ModuleObject::cleanup_by_compiler_id(&compiler_id);
+
     if !self.unsafe_fast_drop {
       unsafe {
         ManuallyDrop::drop(&mut self.compiler);
