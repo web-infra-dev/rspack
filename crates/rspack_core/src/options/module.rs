@@ -437,20 +437,20 @@ impl JavascriptParserWorkerOptions {
 #[derive(Debug, Clone)]
 pub struct ImportMetaOptions {
   enabled_known_properties: ImportMetaKnownProperties,
-  properties: rustc_hash::FxHashMap<String, bool>,
+  properties: Arc<HashMap<String, bool>>,
 }
 
 impl ImportMetaOptions {
-  pub fn new(properties: rustc_hash::FxHashMap<String, bool>) -> Self {
+  pub fn new(properties: Arc<HashMap<String, bool>>) -> Self {
+    let enabled_known_properties = ImportMetaKnownProperties::enabled_from_properties(&properties);
+
     Self {
-      enabled_known_properties: Self::enabled_known_properties(&properties),
+      enabled_known_properties,
       properties,
     }
   }
 
-  fn enabled_known_properties(
-    properties: &rustc_hash::FxHashMap<String, bool>,
-  ) -> ImportMetaKnownProperties {
+  fn enabled_known_properties(properties: &HashMap<String, bool>) -> ImportMetaKnownProperties {
     ImportMetaKnownProperties::enabled_from_properties(properties)
   }
 

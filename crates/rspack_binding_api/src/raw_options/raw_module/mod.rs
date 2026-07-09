@@ -341,7 +341,7 @@ pub struct RawJavascriptParserOptions {
   pub pure_functions: Option<Vec<String>>,
 }
 
-pub type RawImportMetaOptions = rustc_hash::FxHashMap<String, bool>;
+pub type RawImportMetaOptions = Arc<HashMap<String, bool>>;
 
 #[napi(object)]
 #[derive(Debug)]
