@@ -3,7 +3,10 @@ const path = require("path");
 const getHashPrefix = (value, local) => value.slice(0, -`-${local}`.length);
 const getSnapshotPath = name => {
   const suffix = typeof document === "undefined" ? "-node" : "";
-  return path.join(__SNAPSHOT__, name.replace(/\.txt$/, `${suffix}.txt`));
+  const snapshotDir = globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK
+    ? path.join(__SNAPSHOT__, "runtimeModeSnapshot")
+    : __SNAPSHOT__;
+  return path.join(snapshotDir, name.replace(/\.txt$/, `${suffix}.txt`));
 };
 
 it("should have correct local ident for css export locals", async () => {

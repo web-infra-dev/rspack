@@ -24,6 +24,32 @@ pub struct RuntimeModuleGenerateContext<'a> {
   pub runtime_template: &'a RuntimeCodeTemplate<'a>,
 }
 
+pub fn runtime_module_owned_define_fields(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+) -> RuntimeGlobals {
+  compilation
+    .build_chunk_graph_artifact
+    .chunk_graph
+    .get_chunk_runtime_modules_iterable(chunk_ukey)
+    .fold(RuntimeGlobals::default(), |fields, runtime_module_id| {
+      let runtime_module = compilation
+        .runtime_modules
+        .get(runtime_module_id)
+        .expect("should have runtime module");
+      if runtime_module.get_custom_source().is_some()
+        || runtime_module.get_constructor_name() == "RuntimeModuleFromJs"
+      {
+        return fields;
+      }
+      let runtime_requirements = runtime_module.runtime_requirements(compilation);
+      let define_fields = runtime_requirements
+        .define
+        .difference(RuntimeGlobals::STARTUP | runtime_requirements.force_context);
+      fields | define_fields
+    })
+}
+
 #[derive(Debug, Default, Clone, Copy)]
 pub struct RuntimeModuleRuntimeRequirements {
   pub dependencies: RuntimeGlobals,

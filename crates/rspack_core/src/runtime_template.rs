@@ -175,10 +175,11 @@ impl RuntimeTemplate {
     );
 
     let runtime_globals_cloned = runtime_globals.clone();
+    let runtime_mode_cloned = runtime_mode;
     dojang.functions.insert(
       "define".into(),
       FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
-        dojang_define(runtime_global, &runtime_globals_cloned)
+        dojang_define(runtime_global, &runtime_globals_cloned, runtime_mode_cloned)
       })),
     );
 
@@ -335,8 +336,6 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalRenderMode) -> Runtim
           runtime_variable_name(&RuntimeVariable::Context).to_string()
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
           rspack_runtime_variable_name(&RuntimeVariable::Require).to_string()
-        } else if runtime_globals == RuntimeGlobals::MODULE_FACTORIES {
-          rspack_runtime_variable_name(&RuntimeVariable::Modules).to_string()
         } else if runtime_globals == RuntimeGlobals::EXPORTS {
           rspack_runtime_variable_name(&RuntimeVariable::Exports).to_string()
         } else if runtime_globals == RuntimeGlobals::MODULE {
@@ -516,8 +515,18 @@ fn dojang_array_destructure(
   }
 }
 
-fn dojang_define(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
+fn dojang_define(
+  runtime_global: Operand,
+  runtime_globals: &RuntimeGlobalsRenderMap,
+  runtime_mode: RuntimeMode,
+) -> Operand {
   // `define(...)` marks a runtime global assignment; the EJS extractor records it in `define`.
+  if runtime_mode == RuntimeMode::Rspack {
+    return Operand::Value(Value::from(format!(
+      "var {}",
+      to_cow(&runtime_global, runtime_globals)
+    )));
+  }
   Operand::Value(Value::from(
     to_cow(&runtime_global, runtime_globals).into_owned(),
   ))
@@ -1681,6 +1690,15 @@ impl<'a> RuntimeCodeTemplate<'a> {
         uses_runtime_context,
         uses_lexical_runtime_globals,
       },
+    }
+  }
+
+  pub fn render_runtime_global_definition(&self, runtime_globals: &RuntimeGlobals) -> String {
+    let runtime_global = self.inner.runtime_globals.render(runtime_globals);
+    if self.inner.uses_lexical_runtime_globals {
+      format!("var {runtime_global}")
+    } else {
+      runtime_global
     }
   }
 }

@@ -37,7 +37,7 @@ impl RuntimeModule for PublicPathRuntimeModule {
       "{} = \"{}\";",
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::PUBLIC_PATH),
+        .render_runtime_global_definition(&RuntimeGlobals::PUBLIC_PATH),
       &PublicPath::render_filename(compilation, &self.public_path).await,
     ))
   }

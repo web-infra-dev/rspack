@@ -39,7 +39,7 @@ impl RuntimeModule for ChunkNameRuntimeModule {
         "{} = {};",
         context
           .runtime_template
-          .render_runtime_globals(&RuntimeGlobals::CHUNK_NAME),
+          .render_runtime_global_definition(&RuntimeGlobals::CHUNK_NAME),
         chunk
           .name()
           .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)

@@ -154,7 +154,9 @@ impl RuntimeModule for ShareRuntimeModule {
       .join(", ");
     let initialize_sharing_impl = if self.enhanced {
       format!(
-        "{initialize_sharing} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
+        "{initialize_sharing_define} = {initialize_sharing} || function() {{ throw new Error(\"should have {initialize_sharing}\") }}",
+        initialize_sharing_define =
+          runtime_template.render_runtime_global_definition(&RuntimeGlobals::INITIALIZE_SHARING),
         initialize_sharing =
           runtime_template.render_runtime_globals(&RuntimeGlobals::INITIALIZE_SHARING)
       )

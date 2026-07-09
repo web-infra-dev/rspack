@@ -244,7 +244,8 @@ fn get_async_wasm_loading(
       }});
 "#
   );
-  let instantiate_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::INSTANTIATE_WASM);
+  let instantiate_wasm =
+    runtime_template.render_runtime_global_definition(&RuntimeGlobals::INSTANTIATE_WASM);
 
   if supports_streaming {
     format!(
@@ -304,7 +305,8 @@ fn get_async_wasm_compile(
       }});
 "#
   );
-  let compile_wasm = runtime_template.render_runtime_globals(&RuntimeGlobals::COMPILE_WASM);
+  let compile_wasm =
+    runtime_template.render_runtime_global_definition(&RuntimeGlobals::COMPILE_WASM);
 
   if supports_streaming {
     format!(
