@@ -29,9 +29,8 @@ export { foo, foo_namespaceObject as ns };
 ```mjs title=runtime.mjs
 // The require scope
 var __rspack_require = {};
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+var __rspack_context = {};
 
-var startupNoDefault;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {

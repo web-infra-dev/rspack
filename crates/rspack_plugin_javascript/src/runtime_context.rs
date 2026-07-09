@@ -43,13 +43,17 @@ fn filter_unused_module_runtime_bindings(
     fields.remove(RuntimeGlobals::MODULE_CACHE);
   }
 
-  let module_factories =
-    RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY;
-  let uses_module_factories = tree_runtime_requirements.intersects(module_factories);
-  let renders_module_factories =
-    bootstrap_runtime_requirements.intersects(module_factories | RuntimeGlobals::REQUIRE);
+  let uses_module_factories = tree_runtime_requirements
+    .intersects(RuntimeGlobals::MODULE_FACTORIES | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY);
+  let renders_module_factories = bootstrap_runtime_requirements.intersects(
+    RuntimeGlobals::MODULE_FACTORIES
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
+      | RuntimeGlobals::REQUIRE,
+  );
   if !uses_module_factories || !renders_module_factories {
-    fields.remove(module_factories);
+    fields.remove(RuntimeGlobals::MODULE_FACTORIES);
+  } else if tree_runtime_requirements.contains(RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY) {
+    fields.insert(RuntimeGlobals::MODULE_FACTORIES);
   }
 
   fields
@@ -120,13 +124,8 @@ pub async fn render_runtime_chunk_runtime_modules(
   let render_runtime_global = |runtime_global: RuntimeGlobals| {
     if runtime_global == RuntimeGlobals::REQUIRE {
       Some(runtime_template.render_runtime_variable(&RuntimeVariable::Require))
-    } else if runtime_global == RuntimeGlobals::MODULE_FACTORIES
-      || runtime_global == RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY
-    {
-      let modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
-      Some(format!(
-        "typeof {modules} !== \"undefined\" ? {modules} : {{}}"
-      ))
+    } else if runtime_global == RuntimeGlobals::MODULE_FACTORIES {
+      Some(runtime_template.render_runtime_variable(&RuntimeVariable::Modules))
     } else if runtime_global == RuntimeGlobals::MODULE_CACHE {
       let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
       Some(format!(

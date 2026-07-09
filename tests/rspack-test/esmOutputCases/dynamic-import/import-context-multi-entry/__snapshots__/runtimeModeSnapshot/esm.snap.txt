@@ -132,12 +132,12 @@ __rspack_modules[moduleId](module, module.exports, __rspack_context);
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
-if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
 // expose the modules object (__rspack_modules)
 __rspack_context.m = __rspack_modules;
 
-var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+var moduleFactories=__rspack_modules;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -162,7 +162,7 @@ var ensureChunk = function(chunkId, fetchPriority) {
 ;
 __rspack_context.e = ensureChunk;
 // rspack/runtime/esm_register_module
-__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
@@ -222,7 +222,7 @@ ensureChunkHandlers.j = function(chunkId, promises) {
     var moduleId, chunkId, i = 0;
     for (moduleId in moreModules) {
         if (hasOwnProperty(moreModules, moduleId)) {
-            __rspack_modules[moduleId] = moreModules[moduleId];
+            moduleFactories[moduleId] = moreModules[moduleId];
         }
     }
     if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);
@@ -293,12 +293,12 @@ __rspack_modules[moduleId](module, module.exports, __rspack_context);
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
-if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
 // expose the modules object (__rspack_modules)
 __rspack_context.m = __rspack_modules;
 
-var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+var moduleFactories=__rspack_modules;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -323,7 +323,7 @@ var ensureChunk = function(chunkId, fetchPriority) {
 ;
 __rspack_context.e = ensureChunk;
 // rspack/runtime/esm_register_module
-__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
@@ -383,7 +383,7 @@ ensureChunkHandlers.j = function(chunkId, promises) {
     var moduleId, chunkId, i = 0;
     for (moduleId in moreModules) {
         if (hasOwnProperty(moreModules, moduleId)) {
-            __rspack_modules[moduleId] = moreModules[moduleId];
+            moduleFactories[moduleId] = moreModules[moduleId];
         }
     }
     if (__rspack_esm_runtime) __rspack_esm_runtime(__rspack_context);

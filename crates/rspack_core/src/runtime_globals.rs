@@ -330,7 +330,11 @@ pub static REQUIRE_SCOPE_GLOBALS: LazyLock<RuntimeGlobals> = LazyLock::new(|| {
       | RuntimeGlobals::EXPORTS
       | RuntimeGlobals::THIS_AS_EXPORTS
       | RuntimeGlobals::HAS_CSS_MODULES
-      | RuntimeGlobals::HAS_FETCH_PRIORITY,
+      | RuntimeGlobals::HAS_FETCH_PRIORITY
+      | RuntimeGlobals::STARTUP_NO_DEFAULT
+      | RuntimeGlobals::STARTUP_CHUNK_DEPENDENCIES
+      | RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES
+      | RuntimeGlobals::MODULE_FACTORIES_ADD_ONLY,
   );
   runtime_globals
 });

@@ -38,9 +38,8 @@ export {};
 ```mjs title=runtime.mjs
 // The require scope
 var __rspack_require = {};
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+var __rspack_context = {};
 
-var startupNoDefault;
 // rspack/runtime/compat_get_default_export
 // getDefaultExport function for compatibility with non-ESM modules
 var compatGetDefaultExport = (module) => {

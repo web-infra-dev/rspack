@@ -336,8 +336,6 @@ fn runtime_globals_to_render_map(render_mode: RuntimeGlobalRenderMode) -> Runtim
           runtime_variable_name(&RuntimeVariable::Context).to_string()
         } else if runtime_globals == RuntimeGlobals::REQUIRE {
           rspack_runtime_variable_name(&RuntimeVariable::Require).to_string()
-        } else if runtime_globals == RuntimeGlobals::MODULE_FACTORIES {
-          rspack_runtime_variable_name(&RuntimeVariable::Modules).to_string()
         } else if runtime_globals == RuntimeGlobals::EXPORTS {
           rspack_runtime_variable_name(&RuntimeVariable::Exports).to_string()
         } else if runtime_globals == RuntimeGlobals::MODULE {

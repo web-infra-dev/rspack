@@ -46,9 +46,8 @@ export { external_path_namespaceObject as pathNs, joinFn, readFile, readFileSync
 ```mjs title=runtime.mjs
 // The require scope
 var __rspack_require = {};
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+var __rspack_context = {};
 
-var startupNoDefault;
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
 var leafPrototypes;

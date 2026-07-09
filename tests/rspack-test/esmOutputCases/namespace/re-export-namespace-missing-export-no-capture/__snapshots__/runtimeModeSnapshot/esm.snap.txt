@@ -23,9 +23,8 @@ export {};
 ```mjs title=runtime.mjs
 // The require scope
 var __rspack_require = {};
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
+var __rspack_context = {};
 
-var startupNoDefault;
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

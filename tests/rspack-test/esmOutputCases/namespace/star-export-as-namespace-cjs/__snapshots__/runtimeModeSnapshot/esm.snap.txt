@@ -55,12 +55,12 @@ __rspack_modules[moduleId](module, module.exports, __rspack_context);
 // Return the exports of the module
 return module.exports;
 }
-var __rspack_context = typeof __rspack_context !== "undefined" ? __rspack_context : {};
-if (!__rspack_context.r && typeof __rspack_require !== "undefined") __rspack_context.r = __rspack_require;
+var __rspack_context = {};
+__rspack_context.r = __rspack_require;
 // expose the modules object (__rspack_modules)
 __rspack_context.m = __rspack_modules;
 
-var moduleFactories=typeof __rspack_modules !== "undefined" ? __rspack_modules : {}, startupNoDefault;
+var moduleFactories=__rspack_modules;
 // rspack/runtime/create_fake_namespace_object
 var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
 var leafPrototypes;
@@ -102,7 +102,7 @@ var definePropertyGetters = (exports, getters, values) => {
 	define(values, "value");
 };;
 // rspack/runtime/esm_register_module
-__rspack_context.m.add = function registerModules(modules) { Object.assign(__rspack_modules, modules) }
+moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));

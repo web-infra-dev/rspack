@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, impl_runtime_module, property_access,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
@@ -12,23 +12,6 @@ pub(crate) struct EsmRegisterModuleRuntimeModule {}
 impl EsmRegisterModuleRuntimeModule {
   pub(crate) fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template)
-  }
-  pub(crate) fn runtime_id(runtime_template: &RuntimeCodeTemplate) -> String {
-    if runtime_template.uses_runtime_context() {
-      let modules_key = RuntimeGlobals::MODULE_FACTORIES
-        .property_name()
-        .expect("module factories should have a property name");
-      return format!(
-        "{}{}.add",
-        runtime_template.render_runtime_variable(&RuntimeVariable::Context),
-        property_access([modules_key], 0)
-      );
-    }
-
-    format!(
-      "{}.add",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    )
   }
 }
 
@@ -48,12 +31,18 @@ impl RuntimeModule for EsmRegisterModuleRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = function registerModules(modules) {{ Object.assign({}, modules) }}\n",
-      Self::runtime_id(context.runtime_template),
+    let module_factories = context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
+    let register_modules = if context.runtime_template.uses_runtime_context() {
+      module_factories.clone()
+    } else {
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    };
+    Ok(format!(
+      "{register_modules}.add = function registerModules(modules) {{ Object.assign({module_factories}, modules) }}\n"
     ))
   }
 }

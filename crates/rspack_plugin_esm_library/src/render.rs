@@ -23,7 +23,6 @@ use rspack_util::{
 use crate::{
   chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
-  runtime::EsmRegisterModuleRuntimeModule,
 };
 
 /// Returns `true` when the module produces only CSS output (native CSS via
@@ -226,12 +225,13 @@ impl EsmLibraryPlugin {
       }
 
       if !decl_inner.source().is_empty() {
-        // __rspack_require.add({ "./src/main.js"(require, exports) { ... } })
+        let register_modules = if runtime_template.uses_runtime_context() {
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+        } else {
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        };
         decl_source.add(RawStringSource::from(format!(
-          "{}({{\n",
-          EsmRegisterModuleRuntimeModule::runtime_id(
-            &compilation.runtime_template.create_runtime_code_template()
-          )
+          "{register_modules}.add({{\n"
         )));
         decl_source.add(decl_inner);
         decl_source.add(RawStringSource::from_static("});\n"));
@@ -902,12 +902,12 @@ var {} = {{}};
     {
       let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
       source.add(RawStringSource::from(format!(
-        "var {runtime_context} = typeof {runtime_context} !== \"undefined\" ? {runtime_context} : {{}};\n"
+        "var {runtime_context} = {{}};\n"
       )));
       if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
         let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
         source.add(RawStringSource::from(format!(
-          "if (!{runtime_context}.r && typeof {require} !== \"undefined\") {runtime_context}.r = {require};\n"
+          "{runtime_context}.r = {require};\n"
         )));
       }
     }
