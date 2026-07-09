@@ -28,6 +28,7 @@ const loadConfigByPath = async (
     path: configPath,
     loader: options.configLoader,
     configParams,
+    fresh: true,
   });
 
   if (!isRspackConfig(content)) {

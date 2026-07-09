@@ -307,7 +307,6 @@ export class RspackCLI {
 
     const { loadedConfig, configPath } = config;
 
-    // Handle extends property if the loaded config is not a function
     const { config: extendedConfig, pathMap } = await loadExtendedConfig(
       loadedConfig,
       configPath,
