@@ -275,7 +275,7 @@ impl Compiler {
     if is_hot {
       self.compilation.incremental = Incremental::new_hot(IncrementalOptions {
         silent: self.options.incremental.silent,
-        passes: IncrementalPasses::BUILD_MODULE_GRAPH,
+        passes: IncrementalPasses::BUILD_MODULE_GRAPH | IncrementalPasses::MODULES_HASHES,
       });
     }
 

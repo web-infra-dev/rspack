@@ -1,4 +1,4 @@
-const PLUGIN_NAME = 'rspack.persistentCache';
+const PLUGIN_NAME = 'rspack.incremental.modulesHashes';
 
 let updateIndex = 0;
 
@@ -22,38 +22,33 @@ module.exports = {
           const s = stats.toJson({
             all: false,
             logging: 'verbose',
+            loggingDebug: /^rspack\.incremental\.modulesHashes$/,
           });
 
           const logEntries = s.logging[PLUGIN_NAME]?.entries ?? [];
-          const cacheLogEntry = logEntries.find(
+          const affectedModulesLogEntry = logEntries.find(
             (e) =>
-              e.type === 'cache' &&
+              e.type === 'log' &&
               e.message &&
-              e.message.startsWith('module hashes persistent cache:'),
+              e.message.includes('modules are affected'),
           );
-
-          expect(cacheLogEntry).toBeTruthy();
-
-          const match = cacheLogEntry.message.match(
-            /module hashes persistent cache: [\d.]+% \((\d+)\/(\d+)\)/,
-          );
-          expect(match).toBeTruthy();
-
-          const hits = parseInt(match[1], 10);
-          const total = parseInt(match[2], 10);
-          const misses = total - hits;
 
           if (updateIndex === 0) {
-            // Cold build, cache is empty.
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
+            expect(affectedModulesLogEntry).toBeUndefined();
           }
           if (updateIndex === 1) {
-            // Cold restart with the same source content.
-            // JS modules recovered from the make cache are rebuilt in this path,
-            // so module hashes are still recorded as cache misses for now.
-            expect(hits).toBe(0);
-            expect(misses).toBe(2);
+            expect(affectedModulesLogEntry).toBeTruthy();
+
+            const match = affectedModulesLogEntry.message.match(
+              /(\d+) modules are affected, (\d+) in total/,
+            );
+            expect(match).toBeTruthy();
+
+            const affectedModules = parseInt(match[1], 10);
+            const totalModules = parseInt(match[2], 10);
+
+            expect(affectedModules).toBe(2);
+            expect(totalModules).toBe(2);
           }
 
           updateIndex++;

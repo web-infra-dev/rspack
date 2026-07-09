@@ -291,15 +291,6 @@ impl CacheCount {
   pub fn miss(&self) {
     self.total.fetch_add(1, Ordering::Relaxed);
   }
-
-  pub fn hit_many(&self, count: u32) {
-    self.total.fetch_add(count, Ordering::Relaxed);
-    self.hit.fetch_add(count, Ordering::Relaxed);
-  }
-
-  pub fn miss_many(&self, count: u32) {
-    self.total.fetch_add(count, Ordering::Relaxed);
-  }
 }
 
 pub type CompilationLogging = Arc<DashMap<String, Vec<LogType>, BuildHasherDefault<FxHasher>>>;

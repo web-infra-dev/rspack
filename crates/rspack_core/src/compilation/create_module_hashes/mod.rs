@@ -65,7 +65,6 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
       .copied()
       .collect()
   };
-  log_module_hashes_persistent_cache(compilation, &create_module_hashes_modules);
   create_module_hashes(compilation, create_module_hashes_modules).await
 }
 
@@ -122,26 +121,6 @@ fn add_modules_with_changed_runtimes(compilation: &Compilation, modules: &mut Id
       }
     }
   }
-}
-
-fn log_module_hashes_persistent_cache(compilation: &Compilation, modules: &IdentifierSet) {
-  if compilation.is_rebuild || !matches!(&compilation.options.cache, CacheOptions::Persistent(_)) {
-    return;
-  }
-
-  let mg = compilation.get_module_graph();
-  let total_count = mg.modules_len();
-  let miss_count = modules
-    .iter()
-    .filter(|module| mg.module_by_identifier(module).is_some())
-    .count();
-  let hit_count = total_count - miss_count;
-
-  let logger = compilation.get_logger("rspack.persistentCache");
-  let counter = logger.cache("module hashes persistent cache");
-  counter.hit_many(u32::try_from(hit_count).unwrap_or(u32::MAX));
-  counter.miss_many(u32::try_from(miss_count).unwrap_or(u32::MAX));
-  logger.cache_end(counter);
 }
 
 #[instrument("Compilation:create_module_hashes", skip_all)]

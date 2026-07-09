@@ -1,6 +1,6 @@
 import value from "./value";
 
-it("should hit module hashes persistent cache on cold restart", async () => {
+it("should log module hashes affected modules after persistent cache recovery", async () => {
   expect(value).toBe(42);
 
   if (COMPILER_INDEX === 0) {
