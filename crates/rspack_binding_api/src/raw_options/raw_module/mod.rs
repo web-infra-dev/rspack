@@ -30,7 +30,7 @@ use rspack_core::{
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
-use rustc_hash::{FxHashMap, FxHashMap as HashMap};
+use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
@@ -341,7 +341,7 @@ pub struct RawJavascriptParserOptions {
   pub pure_functions: Option<Vec<String>>,
 }
 
-pub type RawImportMetaOptions = FxHashMap<String, bool>;
+pub type RawImportMetaOptions = rustc_hash::FxHashMap<String, bool>;
 
 #[napi(object)]
 #[derive(Debug)]

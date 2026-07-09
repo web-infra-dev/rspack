@@ -14,7 +14,7 @@ use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
-use rustc_hash::{FxHashMap, FxHashMap as HashMap};
+use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
@@ -365,7 +365,7 @@ macro_rules! define_import_meta_known_properties {
     }
 
     impl ImportMetaKnownProperties {
-      pub fn enabled_from_properties(properties: &FxHashMap<String, bool>) -> Self {
+      pub fn enabled_from_properties(properties: &rustc_hash::FxHashMap<String, bool>) -> Self {
         let mut enabled_properties = Self::all();
         define_import_meta_known_properties! {
           @disable (enabled_properties) (properties) $($properties)*
@@ -437,18 +437,20 @@ impl JavascriptParserWorkerOptions {
 #[derive(Debug, Clone)]
 pub struct ImportMetaOptions {
   enabled_known_properties: ImportMetaKnownProperties,
-  properties: FxHashMap<String, bool>,
+  properties: rustc_hash::FxHashMap<String, bool>,
 }
 
 impl ImportMetaOptions {
-  pub fn new(properties: FxHashMap<String, bool>) -> Self {
+  pub fn new(properties: rustc_hash::FxHashMap<String, bool>) -> Self {
     Self {
       enabled_known_properties: Self::enabled_known_properties(&properties),
       properties,
     }
   }
 
-  fn enabled_known_properties(properties: &FxHashMap<String, bool>) -> ImportMetaKnownProperties {
+  fn enabled_known_properties(
+    properties: &rustc_hash::FxHashMap<String, bool>,
+  ) -> ImportMetaKnownProperties {
     ImportMetaKnownProperties::enabled_from_properties(properties)
   }
 
