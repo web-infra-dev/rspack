@@ -179,24 +179,39 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       new_runtime = old_runtime.clone();
     }
 
-    let old_css_hash = old_chunk_css_hashes.get(&chunk_id);
-    let new_css_hash =
-      current_chunk.and_then(|chunk| chunk.css_content_hash(&compilation.chunk_hashes_artifact));
-    let css_update = CssUpdate::new(old_css_hash, new_css_hash);
+    let old_css_hashes = old_chunk_css_hashes.get(&chunk_id);
+    let new_css_hashes =
+      current_chunk.and_then(|chunk| chunk.css_hashes(&compilation.chunk_hashes_artifact));
+    let css_update = CssUpdate::new(
+      old_css_hashes.and_then(|hashes| hashes.css.as_ref()),
+      new_css_hashes.and_then(|hashes| hashes.css.as_ref()),
+    );
+    let mini_css_update = CssUpdate::new(
+      old_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
+      new_css_hashes.and_then(|hashes| hashes.mini_css.as_ref()),
+    );
 
     for removed in removed_from_runtime.iter() {
       if let Some(info) = hot_update_main_content_by_runtime.get_mut(removed) {
         info.removed_chunk_ids.insert(chunk_id.clone());
-        if old_css_hash.is_some() {
+        if old_css_hashes.is_some_and(|hashes| hashes.css.is_some()) {
           info.css_removed_chunk_ids.insert(chunk_id.clone());
+        }
+        if old_css_hashes.is_some_and(|hashes| hashes.mini_css.is_some()) {
+          info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
         }
       }
     }
 
-    if css_update == CssUpdate::Removed && current_chunk.is_some() {
+    if current_chunk.is_some() {
       for runtime in new_runtime.iter() {
         if let Some(info) = hot_update_main_content_by_runtime.get_mut(runtime) {
-          info.css_removed_chunk_ids.insert(chunk_id.clone());
+          if css_update == CssUpdate::Removed {
+            info.css_removed_chunk_ids.insert(chunk_id.clone());
+          }
+          if mini_css_update == CssUpdate::Removed {
+            info.mini_css_removed_chunk_ids.insert(chunk_id.clone());
+          }
         }
       }
     }
@@ -359,6 +374,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           if css_update == CssUpdate::Changed {
             info.css_updated_chunk_ids.insert(chunk_id.clone());
           }
+          if mini_css_update == CssUpdate::Changed {
+            info.mini_css_updated_chunk_ids.insert(chunk_id.clone());
+          }
         }
       });
     }
@@ -403,6 +421,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         old_content
           .css_removed_chunk_ids
           .extend(content.css_removed_chunk_ids);
+        old_content
+          .mini_css_updated_chunk_ids
+          .extend(content.mini_css_updated_chunk_ids);
+        old_content
+          .mini_css_removed_chunk_ids
+          .extend(content.mini_css_removed_chunk_ids);
         compilation.push_diagnostic(Diagnostic::warn(
           "HotModuleReplacementPlugin".to_string(),
           r#"The configured output.hotUpdateMainFilename doesn't lead to unique filenames per runtime and HMR update differs between runtimes.
@@ -433,6 +457,12 @@ To fix this, make sure to include [runtime] in the output.hotUpdateMainFilename 
       css_manifest_json(content.css_updated_chunk_ids, content.css_removed_chunk_ids)
     {
       manifest_json["css"] = css;
+    }
+    if let Some(mini_css) = css_manifest_json(
+      content.mini_css_updated_chunk_ids,
+      content.mini_css_removed_chunk_ids,
+    ) {
+      manifest_json["miniCss"] = mini_css;
     }
     let manifest_content = manifest_json.to_string();
 
@@ -536,6 +566,8 @@ struct HotUpdateContent {
   removed_modules: HashSet<ModuleId>,
   css_updated_chunk_ids: ChunkIdSet,
   css_removed_chunk_ids: ChunkIdSet,
+  mini_css_updated_chunk_ids: ChunkIdSet,
+  mini_css_removed_chunk_ids: ChunkIdSet,
 }
 
 #[derive(Clone, Copy, PartialEq)]

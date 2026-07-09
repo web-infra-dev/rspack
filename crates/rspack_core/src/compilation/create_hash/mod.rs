@@ -4,13 +4,14 @@ use rustc_hash::FxHashSet;
 
 use super::*;
 use crate::{
-  ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt, logger::Logger,
+  ChunkCssHashes, ModuleCodeGenerationContext, cache::Cache, compilation::pass::PassExt,
+  logger::Logger,
 };
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
   pub content_hash: ChunkContentHash,
-  pub css_content_hash: Option<RspackHashDigest>,
+  pub css_hashes: ChunkCssHashes,
 }
 
 pub struct CreateHashPass;
@@ -146,7 +147,7 @@ pub async fn create_hash(
         &mut compilation.chunk_hashes_artifact,
         chunk_hash_result.hash,
         chunk_hash_result.content_hash,
-        chunk_hash_result.css_content_hash,
+        chunk_hash_result.css_hashes,
       );
       if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write()
       {
@@ -396,7 +397,7 @@ pub async fn create_hash(
       &mut compilation.chunk_hashes_artifact,
       chunk_hash_result.hash,
       chunk_hash_result.content_hash,
-      chunk_hash_result.css_content_hash,
+      chunk_hash_result.css_hashes,
     );
     if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkSetHashes {
@@ -485,16 +486,17 @@ pub async fn create_hash(
         })
         .collect()
     };
-    // The css content hash is intentionally not re-salted with the full hash:
-    // it must stay stable when only the full hash changes.
-    let css_content_hash = chunk
-      .css_content_hash(&compilation.chunk_hashes_artifact)
-      .cloned();
+    // The css content hashes are intentionally not re-salted with the full
+    // hash: they must stay stable when only the full hash changes.
+    let css_hashes = chunk
+      .css_hashes(&compilation.chunk_hashes_artifact)
+      .cloned()
+      .unwrap_or_default();
     let chunk_hashes_changed = chunk.set_hashes(
       &mut compilation.chunk_hashes_artifact,
       new_chunk_hash,
       new_content_hash,
-      css_content_hash,
+      css_hashes,
     );
     if chunk_hashes_changed && let Some(mut mutations) = compilation.incremental.mutations_write() {
       mutations.add(Mutation::ChunkSetHashes { chunk: chunk_ukey });
@@ -579,7 +581,7 @@ async fn process_chunk_hash(
     .call(compilation, &chunk_ukey, &mut content_hashes)
     .await?;
 
-  let css_content_hash = chunk_css_content_hash(compilation, &content_hashes, empty_css_digest);
+  let css_hashes = chunk_css_hashes(compilation, &content_hashes, empty_css_digest);
 
   let content_hashes = content_hashes
     .into_iter()
@@ -592,42 +594,34 @@ async fn process_chunk_hash(
   Ok(ChunkHashResult {
     hash: chunk_hash,
     content_hash: content_hashes,
-    css_content_hash,
+    css_hashes,
   })
 }
 
-/// The chunk's CSS content hash, digested from the css-related `content_hash`
-/// hook entries before the chunk-hash salt is applied, i.e. derived from
-/// exactly the ordered module lists the CSS assets are rendered and hashed
-/// from. Returns `None` when the chunk has no CSS. Deliberately O(1) per
-/// chunk: emptiness is detected from the hook entries themselves — the
+/// The chunk's CSS content hashes, digested from the css-related
+/// `content_hash` hook entries before the chunk-hash salt is applied, i.e.
+/// derived from exactly the ordered module lists the CSS assets are rendered
+/// and hashed from. The native css and CssExtractRspackPlugin hashes are kept
+/// apart because each feeds its own HMR runtime. Deliberately O(1) per chunk:
+/// emptiness is detected from the hook entries themselves — the
 /// CssExtractRspackPlugin entry is only inserted when the chunk has extracted
 /// css, while the native css plugin inserts a `SourceType::Css` entry for
 /// every chunk, so an entry whose digest equals the empty digest means "no
 /// css" (the hook writes nothing for css-less chunks).
-fn chunk_css_content_hash(
+fn chunk_css_hashes(
   compilation: &Compilation,
   content_hashes: &HashMap<SourceType, RspackHasher>,
   empty_css_digest: &RspackHashDigest,
-) -> Option<RspackHashDigest> {
-  use rspack_hash::RspackHash;
+) -> ChunkCssHashes {
   let output = &compilation.options.output;
   let digest_of = |source_type: SourceType| {
     content_hashes
       .get(&source_type)
       .map(|hasher| hasher.clone().digest(&output.hash_digest))
   };
-  let css = digest_of(SourceType::Css).filter(|digest| digest != empty_css_digest);
-  // Also the content-hash key CssExtractRspackPlugin emits under.
-  let mini_extract_css = digest_of(SourceType::Custom("css/mini-extract".into()));
-  match (css, mini_extract_css) {
-    (None, None) => None,
-    (Some(digest), None) | (None, Some(digest)) => Some(digest),
-    (Some(css), Some(mini_extract)) => {
-      let mut hasher = RspackHasher::from(output);
-      RspackHash::hash(&css, &mut hasher);
-      RspackHash::hash(&mini_extract, &mut hasher);
-      Some(hasher.digest(&output.hash_digest))
-    }
+  ChunkCssHashes {
+    css: digest_of(SourceType::Css).filter(|digest| digest != empty_css_digest),
+    // The content-hash key CssExtractRspackPlugin emits under.
+    mini_css: digest_of(SourceType::Custom("css/mini-extract".into())),
   }
 }

@@ -5,15 +5,15 @@
 
 ## Asset Files
 - Bundle: bundle.js
-- Manifest: main.LAST_HASH.hot-update.json, size: 143
-- Update: main.LAST_HASH.hot-update.js, size: 20734
+- Manifest: main.LAST_HASH.hot-update.json, size: 147
+- Update: main.LAST_HASH.hot-update.js, size: 20915
 
 ## Manifest
 
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["main"],"r":["lazy"],"m":["../../../../../../../../packages/rspack/dist/cssExtractHmr.js","./lazy.css","./lazy.js"],"css":{"r":["lazy"]}}
+{"c":["main"],"r":["lazy"],"m":["../../../../../../../../packages/rspack/dist/cssExtractHmr.js","./lazy.css","./lazy.js"],"miniCss":{"r":["lazy"]}}
 ```
 
 
@@ -138,17 +138,20 @@ var extractCssApplyHandler = function (options) {
 		}
 	}
 }
-__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) {
+__webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
-		`css` is the hot-update manifest's css namespace (aligned with webpack):
-		`css.c` lists the chunks whose CSS content actually changed and `css.r`
-		the chunks whose CSS disappeared. Its absence means this update carries
-		no CSS work at all — notably the runtime chunk is in `chunkIds` on every
-		update (its full hash always changes) while its stylesheet rarely does.
+		`miniCss` is the hot-update manifest's namespace for extracted CSS:
+		`miniCss.c` lists the chunks whose extracted CSS content actually changed
+		and `miniCss.r` the chunks whose extracted CSS disappeared. It is kept
+		apart from the native css runtime's `css` namespace so neither runtime
+		reacts to the other's stylesheets. Its absence means this update carries
+		no extracted CSS work at all — notably the runtime chunk is in `chunkIds`
+		on every update (its full hash always changes) while its stylesheet
+		rarely does.
 	 */
-	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = (css && css.c) || [];
+	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
+	var cssChunkIds = (miniCss && miniCss.c) || [];
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = __webpack_require__.miniCssF(chunkId);

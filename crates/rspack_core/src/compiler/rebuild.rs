@@ -8,7 +8,7 @@ use rspack_tasks::within_compiler_context;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
+  ChunkCssHashes, ChunkGraph, ChunkKind, Compilation, Compiler, RuntimeSpec,
   chunk_graph_chunk::ChunkIdMap,
   chunk_graph_module::{ModuleIdMap, ModuleIdSet},
   compilation::build_module_graph::ModuleExecutor,
@@ -131,7 +131,7 @@ pub struct CompilationRecords {
   pub runtime_modules: IdentifierMap<RspackHashDigest>,
   pub chunks: ChunkIdMap<(RuntimeSpec, ModuleIdSet)>,
   pub modules: ModuleIdMap<ChunkIdMap<RspackHashDigest>>,
-  pub chunk_css_hashes: ChunkIdMap<RspackHashDigest>,
+  pub chunk_css_hashes: ChunkIdMap<ChunkCssHashes>,
   pub hash: Option<RspackHashDigest>,
 }
 
@@ -147,17 +147,18 @@ impl CompilationRecords {
     }
   }
 
-  fn record_chunk_css_hashes(compilation: &Compilation) -> ChunkIdMap<RspackHashDigest> {
+  fn record_chunk_css_hashes(compilation: &Compilation) -> ChunkIdMap<ChunkCssHashes> {
     compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
       .values()
       .filter(|chunk| chunk.kind() != ChunkKind::HotUpdate)
       .filter_map(|chunk| {
-        let css_hash = chunk
-          .css_content_hash(&compilation.chunk_hashes_artifact)?
-          .clone();
-        Some((chunk.expect_id().clone(), css_hash))
+        let css_hashes = chunk.css_hashes(&compilation.chunk_hashes_artifact)?;
+        if css_hashes.is_empty() {
+          return None;
+        }
+        Some((chunk.expect_id().clone(), css_hashes.clone()))
       })
       .collect()
   }

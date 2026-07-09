@@ -14,17 +14,20 @@ var extractCssApplyHandler = function (options) {
 		}
 	}
 }
-<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css) {
+<%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.miniCss = function (chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList, css, miniCss) {
 	applyHandlers.push(extractCssApplyHandler);
 	/**
-		`css` is the hot-update manifest's css namespace (aligned with webpack):
-		`css.c` lists the chunks whose CSS content actually changed and `css.r`
-		the chunks whose CSS disappeared. Its absence means this update carries
-		no CSS work at all — notably the runtime chunk is in `chunkIds` on every
-		update (its full hash always changes) while its stylesheet rarely does.
+		`miniCss` is the hot-update manifest's namespace for extracted CSS:
+		`miniCss.c` lists the chunks whose extracted CSS content actually changed
+		and `miniCss.r` the chunks whose extracted CSS disappeared. It is kept
+		apart from the native css runtime's `css` namespace so neither runtime
+		reacts to the other's stylesheets. Its absence means this update carries
+		no extracted CSS work at all — notably the runtime chunk is in `chunkIds`
+		on every update (its full hash always changes) while its stylesheet
+		rarely does.
 	 */
-	var cssRemovedChunkIds = (css && css.r) || [];
-	var cssChunkIds = (css && css.c) || [];
+	var cssRemovedChunkIds = (miniCss && miniCss.r) || [];
+	var cssChunkIds = (miniCss && miniCss.c) || [];
 	var seen = {};
 	cssRemovedChunkIds.forEach(function (chunkId) {
 		var href = <%- REQUIRE_SCOPE %>.miniCssF(chunkId);
