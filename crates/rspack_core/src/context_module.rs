@@ -496,7 +496,7 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
-      function webpackEmptyAsyncContext(req) {{
+      function __rspack_empty_async_context(req) {{
         // Here Promise.resolve().then() is used instead of new Promise() to prevent
         // uncaught exception popping up in devtools
         return Promise.resolve().then(function() {{
@@ -505,10 +505,10 @@ impl ContextModule {
           throw e;
         }});
       }}
-      webpackEmptyAsyncContext.keys = {keys};
-      webpackEmptyAsyncContext.resolve = webpackEmptyAsyncContext;
-      webpackEmptyAsyncContext.id = {id};
-      {module}.exports = webpackEmptyAsyncContext;
+      __rspack_empty_async_context.keys = {keys};
+      __rspack_empty_async_context.resolve = __rspack_empty_async_context;
+      __rspack_empty_async_context.id = {id};
+      {module}.exports = __rspack_empty_async_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
@@ -522,15 +522,15 @@ impl ContextModule {
     runtime_template: &mut ModuleCodeTemplate,
   ) -> String {
     formatdoc! {r#"
-      function webpackEmptyContext(req) {{
+      function __rspack_empty_context(req) {{
         var e = new Error("Cannot find module '" + req + "'");
         e.code = 'MODULE_NOT_FOUND';
         throw e;
       }}
-      webpackEmptyContext.keys = {keys};
-      webpackEmptyContext.resolve = webpackEmptyContext;
-      webpackEmptyContext.id = {id};
-      {module}.exports = webpackEmptyContext;
+      __rspack_empty_context.keys = {keys};
+      __rspack_empty_context.resolve = __rspack_empty_context;
+      __rspack_empty_context.id = {id};
+      {module}.exports = __rspack_empty_context;
       "#,
       module = runtime_template.render_module_argument(ModuleArgument::Module),
       keys = runtime_template.returning_function("[]", ""),
@@ -1267,10 +1267,11 @@ impl ContextModule {
   fn get_source(&self, source_string: String, compilation: &Compilation) -> BoxSource {
     let source_map_kind = self.get_source_map_kind();
     if source_map_kind.enabled() {
+      let source_protocol = compilation.options.experiments.runtime_mode.to_string();
       OriginalSource::new(
         source_string,
         format!(
-          "webpack://{}",
+          "{source_protocol}://{}",
           make_paths_relative(&compilation.options.context, self.identifier.as_str(),)
         ),
       )
