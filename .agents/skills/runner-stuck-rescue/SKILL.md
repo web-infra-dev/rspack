@@ -127,7 +127,7 @@ to pick up the new label.
 gh run cancel $run_id
 gh run watch $run_id --exit-status || true     # block until the cancel settles (non-zero on cancelled is expected)
 gh run rerun $run_id                           # re-run the whole (now-cancelled) run with the new label
-gh run watch $run_id                           # follow; report result per CLAUDE.md rule 13
+gh run watch $run_id                           # follow; report the final result (conclusion + URL) back to the requester
 ```
 
 `gh run rerun --failed` is leaner (skips jobs that already succeeded) but relies on
