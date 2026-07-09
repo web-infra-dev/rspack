@@ -335,7 +335,14 @@ impl Module {
       return Err(self.compiler_garbage_collected_error());
     };
 
-    f(&this.compiler.compilation)
+    let Some(compiler) = this.compiler.as_ref() else {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to access module with id = {} now. The Compiler has been closed.",
+        self.identifier
+      )));
+    };
+
+    f(&compiler.compilation)
   }
 
   pub(crate) fn with_ref<R>(

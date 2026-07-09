@@ -22,18 +22,21 @@ export type {
 } from './stats/statsFactoryUtils';
 
 export class Stats {
-  #inner: binding.JsStats;
-  #compilation: Compilation;
+  #inner?: binding.JsStats;
+  #compilation?: Compilation;
   #innerMap: WeakMap<Compilation, binding.JsStats>;
 
   constructor(compilation: Compilation) {
-    this.#inner = compilation.__internal_getInner().getStats();
+    const inner = compilation.__internal_getInner().getStats();
+    this.#inner = inner;
     this.#compilation = compilation;
-    this.#innerMap = new WeakMap([[this.compilation, this.#inner]]);
+    this.#innerMap = new WeakMap([[compilation, inner]]);
+    compilation.__internal__registerStats(this);
   }
 
   // use correct JsStats for child compilation
   #getInnerByCompilation(compilation: Compilation): binding.JsStats {
+    this.compilation;
     if (this.#innerMap.has(compilation)) {
       return this.#innerMap.get(compilation)!;
     }
@@ -43,7 +46,7 @@ export class Stats {
   }
 
   get compilation() {
-    if (this.#compilation.__internal__shutdown) {
+    if (!this.#compilation || this.#compilation.__internal__shutdown) {
       throw new Error(
         'Unable to access `Stats` after the compiler was shutdown',
       );
@@ -64,20 +67,33 @@ export class Stats {
   }
 
   hasErrors(): boolean {
+    const compilation = this.compilation;
     return (
-      this.#compilation.errors.length > 0 ||
-      this.#compilation.children.some((child) => child.getStats().hasErrors())
+      compilation.errors.length > 0 ||
+      compilation.children.some((child) => child.getStats().hasErrors())
     );
   }
 
   hasWarnings(): boolean {
-    const warnings = this.#compilation.hooks.processWarnings.call(
-      this.#compilation.warnings,
+    const compilation = this.compilation;
+    const warnings = compilation.hooks.processWarnings.call(
+      compilation.warnings,
     );
     return (
       warnings.length > 0 ||
-      this.#compilation.children.some((child) => child.getStats().hasWarnings())
+      compilation.children.some((child) => child.getStats().hasWarnings())
     );
+  }
+
+  /**
+   * @internal
+   */
+  __internal__cleanup() {
+    if (this.#inner) {
+      this.#inner = undefined;
+    }
+    this.#innerMap = new WeakMap();
+    this.#compilation = undefined;
   }
 
   toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {

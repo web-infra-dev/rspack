@@ -42,7 +42,14 @@ impl Chunk {
       )));
     };
 
-    f(&this.compiler.compilation)
+    let Some(compiler) = this.compiler.as_ref() else {
+      return Err(napi::Error::from_reason(format!(
+        "Unable to access chunk with id = {:?} now. The Compiler has been closed.",
+        self.chunk_ukey
+      )));
+    };
+
+    f(&compiler.compilation)
   }
 
   fn with_ref<R>(

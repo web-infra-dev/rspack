@@ -167,10 +167,11 @@ fn cleanup_revoked_modules(ctx: CallContext) -> Result<()> {
 struct JsCompiler {
   // whether to skip drop compiler in finalize
   unsafe_fast_drop: bool,
+  compiler_id: CompilerId,
   compiler_scoped_tsfn_manager: CompilerScopedTsFnManager,
   js_hooks_plugin: JsHooksAdapterPlugin,
   // call drop manually to avoid unnecessary drop overhead in cli build
-  compiler: ManuallyDrop<Compiler>,
+  compiler: Option<ManuallyDrop<Compiler>>,
   state: CompilerState,
   include_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
   entry_dependencies_map: FxHashMap<String, FxHashMap<EntryOptions, BoxDependency>>,
@@ -340,9 +341,13 @@ impl JsCompiler {
         platform,
       );
 
+      let compiler = Compiler::from(rspack);
+      let compiler_id = compiler.id();
+
       Ok(Self {
         compiler_scoped_tsfn_manager,
-        compiler: ManuallyDrop::new(Compiler::from(rspack)),
+        compiler_id,
+        compiler: Some(ManuallyDrop::new(compiler)),
         state: CompilerState::init(),
         js_hooks_plugin,
         include_dependencies_map: Default::default(),
@@ -429,12 +434,16 @@ impl JsCompiler {
     env: &'env Env,
     mut reference: Reference<JsCompiler>,
   ) -> Result<PromiseRaw<'env, ()>> {
+    let Some(compiler) = reference.compiler.as_ref() else {
+      drop(reference);
+      return rspack_napi::runtime::promise_from_future(env, async { Ok(()) });
+    };
+
     // SAFETY:
     // The `Reference<JsCompiler>` prevents the JsCompiler from being garbage collected
     // until `promise.finally()` runs, ensuring the Compiler remains valid throughout the
     // async operation. This allows us to safely extend the lifetime to 'static.
-    let compiler =
-      unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(&reference.compiler) };
+    let compiler = unsafe { std::mem::transmute::<&Compiler, &'static Compiler>(compiler) };
 
     let wait_idle = self.state.wait_idle();
     let spawn_future_result = rspack_napi::runtime::promise_from_future(env, async move {
@@ -461,6 +470,11 @@ impl JsCompiler {
     })
   }
 
+  #[napi(js_name = "__internal__drop")]
+  pub fn internal_drop(&mut self) {
+    self.drop_compiler();
+  }
+
   #[napi]
   pub fn get_virtual_file_store(&self) -> Option<JsVirtualFileStore> {
     self
@@ -471,7 +485,7 @@ impl JsCompiler {
 
   #[napi]
   pub fn get_compiler_id(&self) -> External<CompilerId> {
-    External::new(self.compiler.id())
+    External::new(self.compiler_id)
   }
 }
 
@@ -495,20 +509,22 @@ impl JsCompiler {
     if self.state.running() {
       return Err(concurrent_compiler_error());
     }
+    let Some(compiler) = reference.compiler.as_mut() else {
+      return Err(closed_compiler_error());
+    };
+    let compiler_context = self.compiler_context.clone();
 
     let compiler_state_guard = self.state.enter();
 
     // SAFETY:
     // We ensure the lifetime of JsCompiler by holding a Reference<JsCompiler> until the JS callback function completes.
     // Therefore, we can safely transmute the lifetime of Compiler to 'static here.
-    let compiler = unsafe {
-      std::mem::transmute::<&mut Compiler, &'static mut Compiler>(&mut reference.compiler)
-    };
+    let compiler = unsafe { std::mem::transmute::<&mut Compiler, &'static mut Compiler>(compiler) };
 
     let weak_reference = reference.downgrade();
     COMPILER_REFERENCES.with(|ref_cell| {
       let mut references = ref_cell.borrow_mut();
-      references.insert(compiler.id(), weak_reference);
+      references.insert(self.compiler_id, weak_reference);
     });
 
     let guard = RunGuard {
@@ -517,7 +533,7 @@ impl JsCompiler {
     };
 
     self.cleanup_last_compilation(&compiler.compilation);
-    within_compiler_context_sync(self.compiler_context.clone(), || f(compiler, guard))
+    within_compiler_context_sync(compiler_context, || f(compiler, guard))
   }
 
   fn cleanup_last_compilation(&self, compilation: &Compilation) {
@@ -529,23 +545,37 @@ impl JsCompiler {
     DependencyWrapper::cleanup_last_compilation(compilation_id);
     AsyncDependenciesBlockWrapper::cleanup_last_compilation(compilation_id);
   }
+
+  fn drop_compiler(&mut self) {
+    self.compiler_scoped_tsfn_manager.release();
+
+    let Some(mut compiler) = self.compiler.take() else {
+      return;
+    };
+
+    self.cleanup_last_compilation(&compiler.compilation);
+
+    COMPILER_REFERENCES.with(|ref_cell| {
+      let mut references = ref_cell.borrow_mut();
+      references.remove(&self.compiler_id);
+    });
+
+    ModuleObject::cleanup_by_compiler_id(&self.compiler_id);
+    self.include_dependencies_map.clear();
+    self.entry_dependencies_map.clear();
+    self.virtual_file_store = None;
+
+    if !self.unsafe_fast_drop {
+      unsafe {
+        ManuallyDrop::drop(&mut compiler);
+      }
+    }
+  }
 }
 
 impl ObjectFinalize for JsCompiler {
   fn finalize(mut self, _env: Env) -> Result<()> {
-    let compiler_id = self.compiler.id();
-
-    COMPILER_REFERENCES.with(|ref_cell| {
-      let mut references = ref_cell.borrow_mut();
-      references.remove(&compiler_id);
-    });
-
-    ModuleObject::cleanup_by_compiler_id(&compiler_id);
-    if !self.unsafe_fast_drop {
-      unsafe {
-        ManuallyDrop::drop(&mut self.compiler);
-      }
-    }
+    self.drop_compiler();
     Ok(())
   }
 }
@@ -554,6 +584,13 @@ fn concurrent_compiler_error() -> Error<ErrorCode> {
   Error::new(
     ErrorCode::Napi(Status::GenericFailure),
     "ConcurrentCompilationError: You ran rspack twice. Each instance only supports a single concurrent compilation at a time.",
+  )
+}
+
+fn closed_compiler_error() -> Error<ErrorCode> {
+  Error::new(
+    ErrorCode::Napi(Status::GenericFailure),
+    "Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.",
   )
 }
 

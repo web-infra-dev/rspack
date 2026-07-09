@@ -135,11 +135,16 @@ export type CompilerHooks = {
 
 export const GET_COMPILER_ID = Symbol('getCompilerId');
 
+const CLOSED_COMPILER_ERROR_MESSAGE =
+  'Rspack compiler has already been closed by `compiler.close()`. Do not call Rspack compiler APIs after close; create a new compiler instead.';
+
 class Compiler {
   #instance?: binding.JsCompiler;
   #initial: boolean;
+  #closed: boolean;
 
   #compilation?: Compilation;
+  #compilations = new Set<WeakRef<Compilation>>();
   #bindingCompilationMap = new WeakMap<binding.JsCompilation, Compilation>();
   #compilationParams?: CompilationParams;
 
@@ -212,6 +217,7 @@ class Compiler {
 
   constructor(context: string, options: RspackOptionsNormalized) {
     this.#initial = true;
+    this.#closed = false;
 
     this.#builtinPlugins = [];
 
@@ -825,14 +831,45 @@ class Compiler {
     this.hooks.shutdown.callAsync((err) => {
       if (err) return callback(err);
       this.cache.shutdown(() => {
-        const closePromise = this.#instance?.close();
-        if (closePromise) {
-          closePromise.then(() => callback(), callback);
-        } else {
+        const instance = this.#instance;
+        const onClosed = () => {
+          try {
+            this.#cleanupNativeReferences(instance);
+          } catch (error) {
+            return callback(error as Error);
+          }
           callback();
+        };
+        const closePromise = instance?.close();
+        if (closePromise) {
+          closePromise.then(onClosed, callback);
+        } else {
+          onClosed();
         }
       });
     });
+  }
+
+  #cleanupNativeReferences(instance?: binding.JsCompiler) {
+    try {
+      try {
+        for (const compilationRef of this.#compilations) {
+          compilationRef.deref()?.__internal__cleanupNativeReferences();
+        }
+      } finally {
+        instance?.__internal__drop();
+      }
+    } finally {
+      this.#closed = true;
+      this.#instance = undefined;
+      this.#compilation = undefined;
+      this.#compilations.clear();
+      this.#bindingCompilationMap = new WeakMap();
+      this.#compilationParams = undefined;
+      this.#rawOptions = undefined;
+      this.#registers = undefined;
+      this.#moduleExecutionResultsMap.clear();
+    }
   }
 
   #build(callback: (error: Error | null) => void) {
@@ -889,6 +926,7 @@ class Compiler {
     if (!compilation) {
       compilation = new Compilation(this, native);
       compilation.name = this.name;
+      this.#compilations.add(new WeakRef(compilation));
       this.#bindingCompilationMap.set(native, compilation);
     }
 
@@ -932,6 +970,10 @@ class Compiler {
   #getInstance(
     callback: (error: Error | null, instance?: binding.JsCompiler) => void,
   ): void {
+    if (this.#closed) {
+      return callback(new Error(CLOSED_COMPILER_ERROR_MESSAGE));
+    }
+
     const error = checkVersion();
     if (error) {
       return callback(error);

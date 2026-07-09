@@ -342,6 +342,7 @@ export declare class JsCompiler {
   /** Rebuild with the given option passed to the constructor */
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
+  __internal__drop(): void
   getVirtualFileStore(): VirtualFileStore | null
   getCompilerId(): ExternalObject<CompilerId>
 }

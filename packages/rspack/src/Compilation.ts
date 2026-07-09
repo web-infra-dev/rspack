@@ -240,6 +240,7 @@ export const checkCompilation = (compilation: Compilation) => {
 export class Compilation {
   #inner: JsCompilation;
   #shutdown: boolean;
+  #stats = new Set<Stats>();
   #errors?: RspackError[];
   #warnings?: RspackError[];
   #chunks?: ReadonlySet<Chunk>;
@@ -468,11 +469,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get hash(): Readonly<string | null> {
-    return this.#inner.hash;
+    return this.#getInner().hash;
   }
 
   get fullHash(): Readonly<string | null> {
-    return this.#inner.hash;
+    return this.#getInner().hash;
   }
 
   /**
@@ -487,7 +488,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    */
   get entrypoints(): ReadonlyMap<string, Entrypoint> {
     const entrypoints = new Map<string, Entrypoint>();
-    const rawEntryPoints = this.#inner.entrypoints;
+    const rawEntryPoints = this.#getInner().entrypoints;
     for (let i = 0; i < rawEntryPoints.length; i++) {
       const entrypoint = rawEntryPoints[i];
       entrypoints.set(entrypoint.name!, entrypoint);
@@ -496,7 +497,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   get chunkGroups(): readonly ChunkGroup[] {
-    return this.#inner.chunkGroups;
+    return this.#getInner().chunkGroups;
   }
 
   /**
@@ -507,28 +508,28 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   get namedChunkGroups() {
     return createReadonlyMap<ChunkGroup>({
       keys: (): ReturnType<string[]['values']> => {
-        const names = this.#inner.getNamedChunkGroupKeys();
+        const names = this.#getInner().getNamedChunkGroupKeys();
         return names[Symbol.iterator]();
       },
       get: (property: unknown) => {
         if (typeof property === 'string') {
-          return this.#inner.getNamedChunkGroup(property);
+          return this.#getInner().getNamedChunkGroup(property);
         }
       },
     });
   }
 
   get modules(): ReadonlySet<Module> {
-    return new Set(this.#inner.modules);
+    return new Set(this.#getInner().modules);
   }
 
   get builtModules(): ReadonlySet<Module> {
-    return new Set(this.#inner.builtModules);
+    return new Set(this.#getInner().builtModules);
   }
 
   get chunks(): ReadonlySet<Chunk> {
     if (!this.#chunks) {
-      this.#chunks = this.#inner.chunks;
+      this.#chunks = this.#getInner().chunks;
     }
     return this.#chunks;
   }
@@ -541,23 +542,23 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   get namedChunks() {
     return createReadonlyMap<Chunk>({
       keys: (): ReturnType<string[]['values']> => {
-        const names = this.#inner.getNamedChunkKeys();
+        const names = this.#getInner().getNamedChunkKeys();
         return names[Symbol.iterator]();
       },
       get: (property: unknown) => {
         if (typeof property === 'string') {
-          return this.#inner.getNamedChunk(property);
+          return this.#getInner().getNamedChunk(property);
         }
       },
     });
   }
 
   get entries(): Map<string, EntryData> {
-    return new Entries(this.#inner.entries);
+    return new Entries(this.#getInner().entries);
   }
 
   get codeGenerationResults(): binding.CodeGenerationResults {
-    return this.#inner.codeGenerationResults;
+    return this.#getInner().codeGenerationResults;
   }
 
   #createCachedAssets() {
@@ -670,7 +671,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       compatNewSourceOrFunction = SourceAdapter.toBinding(newSourceOrFunction);
     }
 
-    this.#inner.updateAsset(
+    this.#getInner().updateAsset(
       filename,
       compatNewSourceOrFunction,
       assetInfoUpdateOrFunction,
@@ -685,28 +686,32 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @param assetInfo - extra asset information
    */
   emitAsset(filename: string, source: Source, assetInfo?: AssetInfo) {
-    this.#inner.emitAsset(filename, SourceAdapter.toBinding(source), assetInfo);
+    this.#getInner().emitAsset(
+      filename,
+      SourceAdapter.toBinding(source),
+      assetInfo,
+    );
   }
 
   deleteAsset(filename: string) {
-    this.#inner.deleteAsset(filename);
+    this.#getInner().deleteAsset(filename);
   }
 
   renameAsset(filename: string, newFilename: string) {
-    this.#inner.renameAsset(filename, newFilename);
+    this.#getInner().renameAsset(filename, newFilename);
   }
 
   /**
    * Get an array of Asset
    */
   getAssets(): readonly Asset[] {
-    const assets = this.#inner.getAssets();
+    const assets = this.#getInner().getAssets();
 
     return assets.map((asset) => this.#createAsset(asset));
   }
 
   getAsset(name: string): Readonly<Asset> | void {
-    const asset = this.#inner.getAsset(name);
+    const asset = this.#getInner().getAsset(name);
     if (!asset) {
       return;
     }
@@ -726,7 +731,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__pushRspackDiagnostic(diagnostic: binding.JsRspackDiagnostic) {
-    this.#inner.pushDiagnostic(diagnostic);
+    this.#getInner().pushDiagnostic(diagnostic);
   }
 
   /**
@@ -735,7 +740,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__pushDiagnostic(diagnostic: ExternalObject<'Diagnostic'>) {
-    this.#inner.pushNativeDiagnostic(diagnostic);
+    this.#getInner().pushNativeDiagnostic(diagnostic);
   }
 
   /**
@@ -744,55 +749,55 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__pushDiagnostics(diagnostics: ExternalObject<'Diagnostic[]'>) {
-    this.#inner.pushNativeDiagnostics(diagnostics);
+    this.#getInner().pushNativeDiagnostics(diagnostics);
   }
 
   get errors(): RspackError[] {
     if (!this.#errors) {
-      this.#errors = createDiagnosticArray(this.#inner.errors);
+      this.#errors = createDiagnosticArray(this.#getInner().errors);
     }
     return this.#errors;
   }
 
   set errors(errors: RspackError[]) {
     if (!this.#errors) {
-      this.#errors = createDiagnosticArray(this.#inner.errors);
+      this.#errors = createDiagnosticArray(this.#getInner().errors);
     }
     this.#errors.splice(0, this.#errors.length, ...errors);
   }
 
   get warnings(): RspackError[] {
     if (!this.#warnings) {
-      this.#warnings = createDiagnosticArray(this.#inner.warnings);
+      this.#warnings = createDiagnosticArray(this.#getInner().warnings);
     }
     return this.#warnings;
   }
 
   set warnings(warnings: RspackError[]) {
     if (!this.#warnings) {
-      this.#warnings = createDiagnosticArray(this.#inner.warnings);
+      this.#warnings = createDiagnosticArray(this.#getInner().warnings);
     }
     this.#warnings.splice(0, this.#warnings.length, ...warnings);
   }
 
   getPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    return this.#inner.getPath(filename, pathData);
+    return this.#getInner().getPath(filename, pathData);
   }
 
   getPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    return this.#inner.getPathWithInfo(filename, pathData);
+    return this.#getInner().getPathWithInfo(filename, pathData);
   }
 
   getAssetPath(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPath(filename, pathData);
+    return this.#getInner().getAssetPath(filename, pathData);
   }
 
   getAssetPathWithInfo(filename: string, data: PathData = {}) {
     const pathData = normalizePathData(data);
-    return this.#inner.getAssetPathWithInfo(filename, pathData);
+    return this.#getInner().getAssetPathWithInfo(filename, pathData);
   }
 
   getLogger(name: string | (() => string)) {
@@ -908,47 +913,47 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   fileDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().fileDependencies,
-    (d) => this.#inner.addFileDependencies(d),
+    () => this.#getInner().dependencies().fileDependencies,
+    (d) => this.#getInner().addFileDependencies(d),
   );
 
   get __internal__addedFileDependencies() {
-    return this.#inner.dependencies().addedFileDependencies;
+    return this.#getInner().dependencies().addedFileDependencies;
   }
 
   get __internal__removedFileDependencies() {
-    return this.#inner.dependencies().removedFileDependencies;
+    return this.#getInner().dependencies().removedFileDependencies;
   }
 
   get __internal__addedContextDependencies() {
-    return this.#inner.dependencies().addedContextDependencies;
+    return this.#getInner().dependencies().addedContextDependencies;
   }
 
   get __internal__removedContextDependencies() {
-    return this.#inner.dependencies().removedContextDependencies;
+    return this.#getInner().dependencies().removedContextDependencies;
   }
 
   get __internal__addedMissingDependencies() {
-    return this.#inner.dependencies().addedMissingDependencies;
+    return this.#getInner().dependencies().addedMissingDependencies;
   }
 
   get __internal__removedMissingDependencies() {
-    return this.#inner.dependencies().removedMissingDependencies;
+    return this.#getInner().dependencies().removedMissingDependencies;
   }
 
   contextDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().contextDependencies,
-    (d) => this.#inner.addContextDependencies(d),
+    () => this.#getInner().dependencies().contextDependencies,
+    (d) => this.#getInner().addContextDependencies(d),
   );
 
   missingDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().missingDependencies,
-    (d) => this.#inner.addMissingDependencies(d),
+    () => this.#getInner().dependencies().missingDependencies,
+    (d) => this.#getInner().addMissingDependencies(d),
   );
 
   buildDependencies = createFakeCompilationDependencies(
-    () => this.#inner.dependencies().buildDependencies,
-    (d) => this.#inner.addBuildDependencies(d),
+    () => this.#getInner().dependencies().buildDependencies,
+    (d) => this.#getInner().addBuildDependencies(d),
   );
 
   getStats() {
@@ -973,7 +978,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
   #rebuildModuleTask = new AsyncTask<string, Module>(
     (moduleIdentifiers, doneWork) => {
-      this.#inner.rebuildModule(
+      this.#getInner().rebuildModule(
         moduleIdentifiers,
         (err: Error | null, modules: Module[]) => {
           /*
@@ -1001,7 +1006,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
   addRuntimeModule(chunk: Chunk, runtimeModule: RuntimeModule) {
     runtimeModule.attach(this, chunk, this.chunkGraph);
-    this.#inner.addRuntimeModule(
+    this.#getInner().addRuntimeModule(
       chunk,
       RuntimeModule.__to_binding(runtimeModule),
     );
@@ -1030,11 +1035,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   }
 
   getWarnings(): WebpackError[] {
-    return this.hooks.processWarnings.call(this.#inner.getWarnings());
+    return this.hooks.processWarnings.call(this.#getInner().getWarnings());
   }
 
   getErrors(): WebpackError[] {
-    return this.#inner.getErrors();
+    return this.#getInner().getErrors();
   }
 
   /**
@@ -1045,7 +1050,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__getAssetSource(filename: string): Source | void {
-    const rawSource = this.#inner.getAssetSource(filename);
+    const rawSource = this.#getInner().getAssetSource(filename);
     if (!rawSource) {
       return;
     }
@@ -1060,7 +1065,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__setAssetSource(filename: string, source: Source) {
-    this.#inner.setAssetSource(filename, SourceAdapter.toBinding(source));
+    this.#getInner().setAssetSource(filename, SourceAdapter.toBinding(source));
   }
 
   /**
@@ -1071,7 +1076,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__deleteAssetSource(filename: string) {
-    this.#inner.deleteAssetSource(filename);
+    this.#getInner().deleteAssetSource(filename);
   }
 
   /**
@@ -1082,7 +1087,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__getAssetFilenames(): string[] {
-    return this.#inner.getAssetFilenames();
+    return this.#getInner().getAssetFilenames();
   }
 
   /**
@@ -1093,7 +1098,16 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal__hasAsset(name: string): boolean {
-    return this.#inner.hasAsset(name);
+    return this.#getInner().hasAsset(name);
+  }
+
+  #getInner() {
+    if (this.#shutdown) {
+      throw new Error(
+        'Unable to access `Compilation` after the compiler was shutdown',
+      );
+    }
+    return this.#inner;
   }
 
   /**
@@ -1102,7 +1116,7 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
    * @internal
    */
   __internal_getInner() {
-    return this.#inner;
+    return this.#getInner();
   }
 
   get __internal__shutdown() {
@@ -1111,6 +1125,36 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
 
   set __internal__shutdown(shutdown) {
     this.#shutdown = shutdown;
+  }
+
+  /**
+   * @internal
+   */
+  __internal__registerStats(stats: Stats) {
+    if (!this.#shutdown) {
+      this.#stats.add(stats);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  __internal__cleanupNativeReferences() {
+    if (this.#shutdown) {
+      return;
+    }
+
+    this.#shutdown = true;
+    for (const child of this.children) {
+      child.__internal__cleanupNativeReferences();
+    }
+    for (const stats of this.#stats) {
+      stats.__internal__cleanup();
+    }
+    this.#stats.clear();
+    this.#chunks = undefined;
+    this.#errors = undefined;
+    this.#warnings = undefined;
   }
 
   seal() {}

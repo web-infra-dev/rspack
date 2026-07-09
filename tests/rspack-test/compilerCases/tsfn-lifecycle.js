@@ -80,6 +80,20 @@ module.exports = [
     },
   },
   {
+    description:
+      "should drop native references held by the compiler when close finishes",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "close-drops-native-references.cjs",
+        ),
+      );
+    },
+  },
+  {
     description: "should report a clear error when APIs are called after close",
     async build() {
       await runChild(
