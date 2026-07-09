@@ -13,18 +13,18 @@ const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 
 export type LoadedRspackConfig = RspackOptions | MultiRspackOptions;
 
-type RspackConfigParams = [Record<string, any>, CommonOptions];
+type ConfigParams = [
+  Record<string, unknown> | string[] | undefined,
+  CommonOptions,
+];
 
 const loadConfigByPath = async (
   configPath: string,
   options: CommonOptions,
 ): Promise<LoadedRspackConfig> => {
-  const configParams = [options.env, options] as RspackConfigParams;
+  const configParams: ConfigParams = [options.env, options];
 
-  const { content } = await baseLoadConfig<
-    LoadedRspackConfig,
-    RspackConfigParams
-  >({
+  const { content } = await baseLoadConfig<LoadedRspackConfig, ConfigParams>({
     path: configPath,
     loader: options.configLoader,
     configParams,
