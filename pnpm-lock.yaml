@@ -356,6 +356,9 @@ importers:
       '@rspack/test-tools':
         specifier: workspace:*
         version: link:../rspack-test-tools
+      '@rstackjs/load-config':
+        specifier: ^0.1.1
+        version: 0.1.1(jiti@2.7.0)
       cac:
         specifier: ^7.0.0
         version: 7.0.0
@@ -2929,6 +2932,14 @@ packages:
       '@rspress/core': '>=2.0.0'
     peerDependenciesMeta:
       '@rspress/core':
+        optional: true
+
+  '@rstackjs/load-config@0.1.1':
+    resolution: {integrity: sha512-YYtqGoM5DrrmZLGaYSUAC66qhhfjAfwXVvBScGJIfPXGa878rK0SJeO6b44W2pYfikm8yefzyV0OeedWO/PKkw==}
+    peerDependencies:
+      jiti: ^2.0.0
+    peerDependenciesMeta:
+      jiti:
         optional: true
 
   '@rstest/core@0.10.6':
@@ -9123,6 +9134,10 @@ snapshots:
   '@rstack-dev/doc-ui@1.14.5(@rspress/core@2.0.16)':
     optionalDependencies:
       '@rspress/core': 2.0.16(@module-federation/runtime-tools@2.6.0)(@rspack/core@2.1.2)(@types/mdast@4.0.4)(@types/react@19.2.17)(core-js@3.49.0)(micromark-util-types@2.0.2)(micromark@4.0.2)
+
+  '@rstackjs/load-config@0.1.1(jiti@2.7.0)':
+    optionalDependencies:
+      jiti: 2.7.0
 
   '@rstest/core@0.10.6(@module-federation/runtime-tools@2.6.0)(core-js@3.49.0)(jsdom@26.1.0)':
     dependencies:

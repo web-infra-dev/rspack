@@ -45,6 +45,7 @@ minimumReleaseAgeExclude:
   - 'rsbuild-plugin-*'
   - '@swc/*'
   - 'heading-case'
+  - '@rstackjs/load-config'
 
 patchedDependencies:
   webpack-sources@3.5.0: patches/webpack-sources@3.5.0.patch

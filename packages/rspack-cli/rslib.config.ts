@@ -12,6 +12,16 @@ export default defineConfig({
       },
     },
   ],
+  output: {
+    externals: [
+      ({ request }, callback) => {
+        if (request === 'jiti') {
+          return callback(undefined, '../compiled/jiti/index.js');
+        }
+        return callback();
+      },
+    ],
+  },
   source: {
     tsconfigPath: './tsconfig.build.json',
     define: {
