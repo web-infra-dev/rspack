@@ -108,6 +108,14 @@ _Avoid_: File, emitted file
 Metadata attached to an asset, such as size, related assets, or output hints.
 _Avoid_: Asset metadata, file metadata
 
+**Source**:
+The content representation behind an asset, used when generated output needs to be read, transformed, or emitted.
+_Avoid_: Asset content, file content
+
+**Filename template**:
+A template for deriving output names from compilation data such as chunk name, content hash, or extension.
+_Avoid_: Output pattern, file name pattern
+
 ### Extension model
 
 **Plugin**:
@@ -164,6 +172,22 @@ _Avoid_: Module concatenation
 The disk-backed cache that preserves reusable compilation work across process runs.
 _Avoid_: Disk cache, build cache
 
+**Module Federation**:
+A webpack-compatible feature for sharing modules between independently built applications at runtime.
+_Avoid_: MF, federated modules
+
+**Lazy loading**:
+Loading code only when it is needed, commonly through dynamic import and async chunks.
+_Avoid_: On-demand loading
+
+**Prefetching**:
+Hinting that a resource may be needed later so the browser can fetch it during idle time.
+_Avoid_: Early loading
+
+**Preloading**:
+Hinting that a resource is needed soon and should be fetched with higher priority.
+_Avoid_: Eager loading
+
 ### Development behavior
 
 **Hot Module Replacement**:
@@ -177,3 +201,11 @@ _Avoid_: File watching, watch build
 **Dev server**:
 The development server that serves generated output and coordinates development features such as Hot Module Replacement.
 _Avoid_: Local server, development server
+
+**Development mode**:
+The build mode optimized for fast feedback and debugging.
+_Avoid_: Dev mode
+
+**Production mode**:
+The build mode optimized for deployable output, including smaller bundles and production-oriented optimizations.
+_Avoid_: Prod mode
