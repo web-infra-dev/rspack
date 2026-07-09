@@ -1190,11 +1190,6 @@ export type ImportMetaParserOptions = {
   dirname?: boolean;
 
   /**
-   * Enable/disable evaluating import.meta.env.
-   */
-  env?: boolean;
-
-  /**
    * Enable/disable evaluating import.meta.filename.
    */
   filename?: boolean;
