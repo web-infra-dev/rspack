@@ -225,7 +225,6 @@ pub struct CodeGenerationResult {
   pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
-  pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
@@ -263,7 +262,6 @@ impl CodeGenerationResult {
       source_type.hash(&mut hasher);
       std::hash::Hash::hash(source, &mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
@@ -284,7 +282,6 @@ impl CodeGenerationResult {
     for source_type in self.inner.as_ref().keys() {
       source_type.hash(&mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }

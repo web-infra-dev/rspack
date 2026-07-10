@@ -203,7 +203,7 @@ impl EsmLibraryPlugin {
           .expect("should have module");
 
         let hooks = hooks.read().await;
-        let Some((module_source, init_frags, init_frags2)) = render_module(
+        let Some((module_source, init_fragments)) = render_module(
           compilation,
           chunk_ukey,
           module.as_ref(),
@@ -219,8 +219,7 @@ impl EsmLibraryPlugin {
         };
         drop(hooks);
 
-        chunk_init_fragments.extend(init_frags);
-        chunk_init_fragments.extend(init_frags2);
+        chunk_init_fragments.extend(init_fragments);
         decl_inner.add(module_source.clone());
       }
 

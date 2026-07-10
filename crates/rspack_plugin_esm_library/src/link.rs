@@ -1468,12 +1468,11 @@ var {} = {{}};
                     .runtime_requirements
                     .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::MODULE_FACTORIES);
                 }
-                let mut chunk_init_fragments = codegen_res
+                let chunk_init_fragments = codegen_res
                   .data
                   .get::<CodeGenerationDataChunkInitFragments>()
                   .map(|fragments| fragments.inner().clone())
                   .unwrap_or_default();
-                chunk_init_fragments.extend(codegen_res.chunk_init_fragments.clone());
                 Ok((
                   ModuleInfo::External(external_module_info),
                   if chunk_init_fragments.is_empty() {
@@ -1615,9 +1614,6 @@ var {} = {{}};
                   .get::<CodeGenerationDataChunkInitFragments>()
                   .map(|fragments| fragments.inner().clone())
                   .unwrap_or_default();
-                concate_info
-                  .chunk_init_fragments
-                  .extend(codegen_res.chunk_init_fragments.clone());
                 concate_info
                   .chunk_init_fragments
                   .extend(chunk_init_fragments);

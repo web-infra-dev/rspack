@@ -23,23 +23,16 @@ pub struct TemplateContext<'a, 'c> {
 
 impl TemplateContext<'_, '_> {
   pub fn chunk_init_fragments(&mut self) -> &mut ChunkInitFragments {
-    let data_fragments = self.data.get::<CodeGenerationDataChunkInitFragments>();
-    if data_fragments.is_some() {
-      self
-        .data
-        .get_mut::<CodeGenerationDataChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
-        .inner_mut()
-    } else {
+    if !self.data.contains::<CodeGenerationDataChunkInitFragments>() {
       self
         .data
         .insert(CodeGenerationDataChunkInitFragments::default());
-      self
-        .data
-        .get_mut::<CodeGenerationDataChunkInitFragments>()
-        .expect("should have chunk_init_fragments")
-        .inner_mut()
     }
+    self
+      .data
+      .get_mut::<CodeGenerationDataChunkInitFragments>()
+      .expect("chunk init fragments should exist")
+      .inner_mut()
   }
 }
 

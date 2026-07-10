@@ -2004,7 +2004,13 @@ impl Module for ConcatenatedModule {
 
     let mut code_generation_result = CodeGenerationResult::default();
     code_generation_result.add(SourceType::JavaScript, CachedSource::new(result).boxed());
-    code_generation_result.chunk_init_fragments = chunk_init_fragments;
+    if !chunk_init_fragments.is_empty() {
+      code_generation_result
+        .data
+        .insert(CodeGenerationDataChunkInitFragments::from(
+          chunk_init_fragments,
+        ));
+    }
 
     if public_path_auto_replace {
       code_generation_result
@@ -2578,20 +2584,17 @@ impl ConcatenatedModule {
 
       let CodeGenerationResult {
         mut inner,
-        mut chunk_init_fragments,
+        mut data,
         mut runtime_requirements,
         concatenation_scope,
         ..
       } = codegen_res;
 
       runtime_requirements.extend(*runtime_template.runtime_requirements());
-
-      if let Some(fragments) = codegen_res
-        .data
-        .get::<CodeGenerationDataChunkInitFragments>()
-      {
-        chunk_init_fragments.extend(fragments.inner().iter().cloned());
-      }
+      let chunk_init_fragments = data
+        .get_mut::<CodeGenerationDataChunkInitFragments>()
+        .map(|fragments| mem::take(fragments.inner_mut()))
+        .unwrap_or_default();
 
       let concatenation_scope = concatenation_scope.expect("should have concatenation_scope");
       let source = inner
@@ -2690,13 +2693,12 @@ impl ConcatenatedModule {
       module_info.internal_source = Some(source);
       module_info.source = Some(result_source);
       module_info.chunk_init_fragments = chunk_init_fragments;
-      if let Some(CodeGenerationPublicPathAutoReplace(true)) = codegen_res
-        .data
-        .get::<CodeGenerationPublicPathAutoReplace>(
-      ) {
+      if let Some(CodeGenerationPublicPathAutoReplace(true)) =
+        data.get::<CodeGenerationPublicPathAutoReplace>()
+      {
         module_info.public_path_auto_replacement = Some(true);
       }
-      if codegen_res.data.contains::<URLStaticMode>() {
+      if data.contains::<URLStaticMode>() {
         module_info.static_url_replacement = true;
       }
       Ok(ModuleInfo::Concatenated(Box::new(module_info)))
