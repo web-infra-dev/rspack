@@ -8,16 +8,13 @@ pub use create_script_url_dependency::{
 use regex::Regex;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, CodeGenerationPublicPathAutoReplace, Compilation, Dependency,
-  DependencyCategory, DependencyCodeGeneration, DependencyId, DependencyRange, DependencyTemplate,
-  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ExtendedReferencedExport,
-  FactorizeInfo, JavascriptParserWorkerUrl, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, PublicPath, RuntimeGlobals, RuntimeSpec, TemplateContext,
-  TemplateReplaceSource, URLStaticMode,
+  AsContextDependency, Compilation, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
+  ExportsInfoArtifact, ExtendedReferencedExport, FactorizeInfo, JavascriptParserWorkerUrl,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, RuntimeGlobals, RuntimeSpec,
+  TemplateContext, TemplateReplaceSource, URLStaticMode,
 };
 use rspack_hash::{RspackHash, RspackHasher};
-
-use crate::runtime::AUTO_PUBLIC_PATH_PLACEHOLDER;
 
 #[cacheable]
 #[derive(Debug, Clone)]
@@ -201,20 +198,8 @@ impl DependencyTemplate for WorkerDependencyTemplate {
     ) && compilation.options.output.module
     {
       code_generatable_context.data.insert(URLStaticMode);
-      let public_path = if !dep.public_path.is_empty() {
-        dep.public_path.clone()
-      } else if matches!(&compilation.options.output.public_path, PublicPath::Auto) {
-        code_generatable_context
-          .data
-          .insert(CodeGenerationPublicPathAutoReplace(true));
-        AUTO_PUBLIC_PATH_PLACEHOLDER.to_string()
-      } else {
-        String::new()
-      };
-
       concat_string!(
         rspack_util::json_stringify_str(&concat_string!(
-          public_path,
           WORKER_STATIC_URL_PLACEHOLDER,
           dep.id.as_u32().to_string()
         )),
