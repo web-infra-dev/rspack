@@ -631,53 +631,51 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
         .cloned();
 
       if let Some(referenced_properties_in_destructuring) = destructuring_assignment_properties {
-        let mut content = vec![];
-        for prop in referenced_properties_in_destructuring.iter() {
+        let mut content = String::from("({");
+        for (index, prop) in referenced_properties_in_destructuring.iter().enumerate() {
+          if index > 0 {
+            content.push(',');
+          }
           let res = parser
             .plugin_drive
             .clone()
             .import_meta_property_in_destructuring(parser, prop);
 
           if let Some(property) = res {
-            content.push(property);
+            content.push_str(&property);
             continue;
           }
           if let Some(property) = ImportMetaBuiltinProperty::from_property(prop.id.as_ref()) {
             if let Some(rendered) = property.render_destructuring(self, parser, span) {
-              content.push(rendered);
+              content.push_str(&rendered);
             } else {
-              content.push(concat_string!(
-                "[",
-                rspack_util::json_stringify_str(&prop.id),
-                "]: ",
-                self.import_meta_unknown_property(&vec![prop.id.to_string()])
-              ));
+              content.push('[');
+              content.push_str(&rspack_util::json_stringify_str(&prop.id));
+              content.push_str("]: ");
+              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
             }
           } else if let Some(api) = import_meta_runtime_api_from_property(prop.id.as_ref()) {
             if self.runtime_api_enabled(api)
               && let Some(property) = render_import_meta_runtime_api_destructuring(parser, api)
             {
-              content.push(property);
+              content.push_str(&property);
             } else {
-              content.push(concat_string!(
-                "[",
-                rspack_util::json_stringify_str(&prop.id),
-                "]: ",
-                self.import_meta_unknown_property(&vec![prop.id.to_string()])
-              ));
+              content.push('[');
+              content.push_str(&rspack_util::json_stringify_str(&prop.id));
+              content.push_str("]: ");
+              content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
             }
           } else {
-            content.push(concat_string!(
-              "[",
-              rspack_util::json_stringify_str(&prop.id),
-              "]: ",
-              self.import_meta_unknown_property(&vec![prop.id.to_string()])
-            ));
+            content.push('[');
+            content.push_str(&rspack_util::json_stringify_str(&prop.id));
+            content.push_str("]: ");
+            content.push_str(&self.import_meta_unknown_property(&vec![prop.id.to_string()]));
           }
         }
+        content.push_str("})");
         parser.add_presentational_dependency(Box::new(ConstDependency::new(
           span.into(),
-          concat_string!("({", content.join(","), "})").into(),
+          content.into(),
         )));
         Some(true)
       } else {
