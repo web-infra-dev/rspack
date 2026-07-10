@@ -2,7 +2,7 @@ import { test, expect } from '@/fixtures';
 
 const COLOR_EXTRACT = 'rgb(255, 0, 0)';
 const COLOR_EXTRACT_UPDATED = 'rgb(128, 0, 128)';
-const COLOR_NATIVE = 'rgb(0, 128, 0)';
+const COLOR_NATIVE = 'rgb(0, 0, 255)';
 
 test('extract-only css update does not disturb the native css runtime', async ({
   page,
@@ -10,7 +10,7 @@ test('extract-only css update does not disturb the native css runtime', async ({
 }) => {
   const root = page.locator('#root');
   await expect(root).toHaveText('feature loaded');
-  // the entry chunk carries both css kinds: extracted (#root) and native (body)
+  // extracted css (#root) lives in the entry, native css (body) in the async chunk
   await expect(root).toHaveCSS('color', COLOR_EXTRACT);
   await expect(page.locator('body')).toHaveCSS(
     'background-color',
