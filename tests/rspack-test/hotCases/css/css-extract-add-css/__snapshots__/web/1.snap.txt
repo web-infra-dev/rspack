@@ -8,7 +8,7 @@
 - Bundle: lazy.chunk.CURRENT_HASH.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 60
 - Update: lazy.LAST_HASH.hot-update.js, size: 1223
-- Update: main.LAST_HASH.hot-update.js, size: 5809
+- Update: main.LAST_HASH.hot-update.js, size: 5711
 
 ## Manifest
 
@@ -239,16 +239,15 @@ __webpack_require__.hmrC.miniCss = function (chunkIds, removedChunks, removedMod
 		promises.push(new Promise(function (resolve, reject) {
 			var tag = extractCssCreateStylesheet(
 				chunkId,
-				oldTag
 
-					/**
-						If dynamically add link tag through dom API and there is already a loaded style link, browsers sometimes treats the new link tag as the same link, and won't fetch the new style.
-						Use query to avoid browser cache the link tag, force to re-fetch new style, this is the same strategy as updateCss API, this can happen during lazy compilation
-					 */
-					? `${fullhref}?${Date.now()}`
-
-					// The chunk just gained its first stylesheet; load it fresh.
-					: fullhref,
+				/**
+					Use a query to bypass the browser cache: with an existing link the
+					browser may treat the new tag as the same resource and skip fetching
+					(this can happen during lazy compilation, same strategy as the
+					updateCss API), and even without a current link the stable filename
+					may still be cached from before the stylesheet was removed.
+				 */
+				`${fullhref}?${Date.now()}`,
 				oldTag,
 				function () {
 					tag.sheet.disabled = true;
