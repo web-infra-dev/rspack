@@ -23,7 +23,6 @@ module.exports = {
         parser: {
           importMeta: {
             dirname: false,
-            env: false,
             filename: false,
             main: false,
             url: false,
