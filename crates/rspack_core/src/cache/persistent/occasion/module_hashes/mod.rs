@@ -44,17 +44,27 @@ impl Occasion for ModuleHashesOccasion {
     artifact
       .iter()
       .par_bridge()
-      .filter_map(
-        |(module, runtime_map)| match self.codec.encode(runtime_map) {
-          Ok(bytes) => Some((module.as_bytes().to_vec(), bytes)),
+      .filter_map(|(module, runtime_map)| {
+        let key = match self.codec.encode(module) {
+          Ok(bytes) => bytes,
+          Err(err) => {
+            tracing::warn!(
+              "module hashes persistent cache key encode failed: {:?}",
+              err
+            );
+            return None;
+          }
+        };
+        match self.codec.encode(runtime_map) {
+          Ok(bytes) => Some((key, bytes)),
           Err(err) => {
             tracing::warn!("module hashes persistent cache encode failed: {:?}", err);
             None
           }
-        },
-      )
-      .consume(|(module, bytes)| {
-        storage.set(SCOPE, module, bytes);
+        }
+      })
+      .consume(|(key, bytes)| {
+        storage.set(SCOPE, key, bytes);
         saved_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
       });
 
@@ -70,7 +80,7 @@ impl Occasion for ModuleHashesOccasion {
     let entries = items
       .into_par_iter()
       .map(|(key, value)| {
-        let module = std::str::from_utf8(&key).map_err(|err| {
+        let module = self.codec.decode::<ModuleIdentifier>(&key).map_err(|err| {
           rspack_error::error!("module hashes persistent cache key decode failed: {err}")
         })?;
         let runtime_map = self
@@ -79,7 +89,7 @@ impl Occasion for ModuleHashesOccasion {
           .map_err(|err| {
             rspack_error::error!("module hashes persistent cache decode failed: {err}")
           })?;
-        Ok((ModuleIdentifier::from(module), runtime_map))
+        Ok((module, runtime_map))
       })
       .collect::<Result<IdentifierMap<RuntimeSpecMap<RspackHashDigest>>>>()?;
 
