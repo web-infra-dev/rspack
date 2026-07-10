@@ -4,7 +4,8 @@ use rspack_cacheable::cacheable;
 use rspack_error::Result;
 use rspack_tasks::{
   get_current_code_generation_result_id, get_current_dependency_id,
-  set_current_code_generation_result_id, set_current_dependency_id,
+  get_current_init_fragment_key_unique_id, set_current_code_generation_result_id,
+  set_current_dependency_id, set_current_init_fragment_key_unique_id,
 };
 
 use super::{
@@ -19,6 +20,7 @@ pub const SCOPE: &str = "meta";
 struct Meta {
   pub max_dependencies_id: u32,
   pub max_code_generation_result_id: u32,
+  pub max_init_fragment_key_unique_id: u32,
 }
 
 /// Meta Occasion is used to save compiler state.
@@ -51,6 +53,7 @@ impl Occasion for MetaOccasion {
     let meta = Meta {
       max_dependencies_id: get_current_dependency_id(),
       max_code_generation_result_id: get_current_code_generation_result_id(),
+      max_init_fragment_key_unique_id: get_current_init_fragment_key_unique_id(),
     };
     storage.set(
       SCOPE,
@@ -74,8 +77,54 @@ impl Occasion for MetaOccasion {
         "The global code generation result id generator is not 0 when the persistent cache is restored."
       );
     }
+    if get_current_init_fragment_key_unique_id() != 0 {
+      panic!(
+        "The global init fragment key unique id generator is not 0 when the persistent cache is restored."
+      );
+    }
     set_current_dependency_id(meta.max_dependencies_id);
     set_current_code_generation_result_id(meta.max_code_generation_result_id);
+    set_current_init_fragment_key_unique_id(meta.max_init_fragment_key_unique_id);
     Ok(())
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use std::sync::Arc;
+
+  use rspack_tasks::{
+    CompilerContext, get_current_code_generation_result_id, get_current_dependency_id,
+    get_current_init_fragment_key_unique_id, set_current_code_generation_result_id,
+    set_current_dependency_id, set_current_init_fragment_key_unique_id, within_compiler_context,
+  };
+
+  use super::{MetaOccasion, Occasion};
+  use crate::{InitFragmentKey, cache::persistent::storage::MemoryStorage};
+
+  #[tokio::test]
+  async fn should_restore_compiler_id_generators() {
+    let occasion = MetaOccasion::new(Arc::new(super::CacheCodec::new(None)));
+    let mut storage = MemoryStorage::default();
+
+    within_compiler_context(Arc::new(CompilerContext::new()), async {
+      set_current_dependency_id(7);
+      set_current_code_generation_result_id(11);
+      set_current_init_fragment_key_unique_id(13);
+      occasion.save(&mut storage, &());
+    })
+    .await;
+
+    within_compiler_context(Arc::new(CompilerContext::new()), async {
+      occasion
+        .recovery(&storage)
+        .await
+        .expect("should recover meta");
+      assert_eq!(get_current_dependency_id(), 7);
+      assert_eq!(get_current_code_generation_result_id(), 11);
+      assert_eq!(get_current_init_fragment_key_unique_id(), 13);
+      assert_eq!(InitFragmentKey::unique(), InitFragmentKey::Unique(13));
+    })
+    .await;
   }
 }

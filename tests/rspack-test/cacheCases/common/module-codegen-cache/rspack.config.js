@@ -59,6 +59,15 @@ module.exports = {
             expect(modulesCodegenAffectedLogEntry).toBeUndefined();
           }
 
+          if (updateIndex === 1) {
+            expect(modulesCodegenAffectedLogEntry).toBeTruthy();
+            const modulesCodegen = parseAffectedLogEntry(
+              modulesCodegenAffectedLogEntry,
+            );
+            expect(modulesCodegen.affected).toBe(0);
+            expect(modulesCodegen.total).toBeGreaterThan(0);
+          }
+
           if (updateIndex === 2) {
             expect(modulesCodegenAffectedLogEntry).toBeTruthy();
             const modulesHashesAffectedLogEntry = getAffectedLogEntry(
@@ -69,6 +78,7 @@ module.exports = {
             const modulesCodegen = parseAffectedLogEntry(
               modulesCodegenAffectedLogEntry,
             );
+            expect(modulesCodegen.affected).toBeGreaterThan(0);
             expect(modulesCodegen.total).toBeGreaterThan(0);
             if (modulesCodegen.affected >= modulesCodegen.total) {
               throw new Error(

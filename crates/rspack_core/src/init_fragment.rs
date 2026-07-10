@@ -2,7 +2,6 @@ use std::{
   collections::{BTreeMap, BTreeSet},
   fmt::{Debug, Display, Formatter},
   hash::BuildHasherDefault,
-  sync::atomic::AtomicU32,
 };
 
 use dyn_clone::{DynClone, clone_trait_object};
@@ -15,6 +14,7 @@ use rspack_cacheable::{
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
+use rspack_tasks::fetch_new_init_fragment_key_unique_id;
 use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 use swc_core::ecma::atoms::Atom;
@@ -23,8 +23,6 @@ use crate::{
   ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
   merge_runtime, property_name,
 };
-
-static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
 
 pub struct InitFragmentContents {
   pub start: String,
@@ -51,9 +49,7 @@ pub enum InitFragmentKey {
 
 impl InitFragmentKey {
   pub fn unique() -> Self {
-    Self::Unique(
-      NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-    )
+    Self::Unique(fetch_new_init_fragment_key_unique_id())
   }
 }
 

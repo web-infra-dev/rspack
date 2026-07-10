@@ -19,6 +19,7 @@ use tokio::{
 pub struct CompilerContext {
   dependenc_id_generator: AtomicU32,
   code_generation_result_id_generator: AtomicU32,
+  init_fragment_key_unique_id_generator: AtomicU32,
   exports_info_artifact_ptr: AtomicPtr<c_void>,
 }
 
@@ -32,6 +33,7 @@ impl CompilerContext {
     Self {
       dependenc_id_generator: AtomicU32::new(0),
       code_generation_result_id_generator: AtomicU32::new(0),
+      init_fragment_key_unique_id_generator: AtomicU32::new(0),
       exports_info_artifact_ptr: AtomicPtr::new(std::ptr::null_mut()),
     }
   }
@@ -63,6 +65,21 @@ impl CompilerContext {
   pub fn set_code_generation_result_id(&self, id: u32) {
     self
       .code_generation_result_id_generator
+      .store(id, std::sync::atomic::Ordering::SeqCst);
+  }
+  pub fn fetch_new_init_fragment_key_unique_id(&self) -> u32 {
+    self
+      .init_fragment_key_unique_id_generator
+      .fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+  }
+  pub fn init_fragment_key_unique_id(&self) -> u32 {
+    self
+      .init_fragment_key_unique_id_generator
+      .load(std::sync::atomic::Ordering::SeqCst)
+  }
+  pub fn set_init_fragment_key_unique_id(&self, id: u32) {
+    self
+      .init_fragment_key_unique_id_generator
       .store(id, std::sync::atomic::Ordering::SeqCst);
   }
 
@@ -102,6 +119,19 @@ pub fn set_current_code_generation_result_id(id: u32) {
   CURRENT_COMPILER_CONTEXT
     .get()
     .set_code_generation_result_id(id);
+}
+pub fn fetch_new_init_fragment_key_unique_id() -> u32 {
+  CURRENT_COMPILER_CONTEXT
+    .get()
+    .fetch_new_init_fragment_key_unique_id()
+}
+pub fn get_current_init_fragment_key_unique_id() -> u32 {
+  CURRENT_COMPILER_CONTEXT.get().init_fragment_key_unique_id()
+}
+pub fn set_current_init_fragment_key_unique_id(id: u32) {
+  CURRENT_COMPILER_CONTEXT
+    .get()
+    .set_init_fragment_key_unique_id(id);
 }
 
 pub fn within_compiler_context<F>(

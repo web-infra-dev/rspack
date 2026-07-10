@@ -30,7 +30,10 @@ use self::{
   storage::{StorageOptions, Version, create_storage},
 };
 use super::Cache;
-use crate::{Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger};
+use crate::{
+  Compilation, CompilationLogger, CompilationLogging, CompilerOptions, Logger,
+  incremental::IncrementalPasses,
+};
 
 const LOGGER_NAME: &str = "rspack.persistentCache";
 
@@ -253,7 +256,11 @@ impl Cache for PersistentCache {
   }
 
   async fn before_modules_codegen(&mut self, compilation: &mut Compilation) {
-    if compilation.is_rebuild {
+    if compilation.is_rebuild
+      || !compilation
+        .incremental
+        .passes_enabled(IncrementalPasses::MODULES_CODEGEN)
+    {
       return;
     }
 
@@ -263,6 +270,13 @@ impl Cache for PersistentCache {
   }
 
   async fn after_modules_codegen(&mut self, compilation: &Compilation) {
+    if !compilation
+      .incremental
+      .passes_enabled(IncrementalPasses::MODULES_CODEGEN)
+    {
+      return;
+    }
+
     self.ctx.save_occasion(
       &self.modules_codegen_occasion,
       &compilation.code_generation_results,
