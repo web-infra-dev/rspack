@@ -11,9 +11,6 @@ module.exports = {
       },
     ],
   },
-  experiments: {
-    css: false,
-  },
   plugins: [
     new rspack.CssExtractRspackPlugin({
       filename: '[name].css',
