@@ -62,7 +62,7 @@
     "@rstest/core": "^0.10.6",
     "@taplo/cli": "^0.7.0",
     "@types/node": "^20.19.43",
-    "@typescript/native-preview": "7.0.0-dev.20260702.3",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "check-dependency-version-consistency": "^6.0.0",
     "commander": "14.0.3",
     "cross-env": "^10.1.0",
@@ -70,7 +70,7 @@
     "husky": "^9.1.7",
     "is-ci": "4.1.0",
     "lint-staged": "^17.0.8",
-    "prettier": "3.9.4",
+    "prettier": "3.9.5",
     "typescript": "^6.0.3",
     "zx": "8.8.5"
   },

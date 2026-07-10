@@ -45,7 +45,7 @@
     "cross-env": "^10.1.0",
     "filenamify": "4.3.0",
     "fs-extra": "^11.3.6",
-    "iconv-lite": "^0.7.2",
+    "iconv-lite": "^0.7.3",
     "javascript-stringify": "^2.1.0",
     "jest-diff": "^30.4.1",
     "jsdom": "^26.1.0",
