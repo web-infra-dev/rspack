@@ -37,6 +37,8 @@ use super::{
 };
 use crate::connection_active_inline_value_for_esm_export_imported_specifier;
 
+const DYNAMIC_REEXPORT_RUNTIME_THRESHOLD: usize = 16;
+
 // Create __rspack_context.d(__rspack_exports, {}).
 // case1: `import { a } from 'a'; export { a }`
 // case2: `export { a } from 'a';`
@@ -504,7 +506,6 @@ impl ESMExportImportedSpecifierDependency {
   pub fn add_export_fragments(&self, ctxt: &mut TemplateContext, mode: ExportMode) {
     let module = ctxt.module;
     let runtime = ctxt.runtime;
-    let runtime_template = &mut *ctxt.runtime_template;
     let compilation = ctxt.compilation;
     let mg = &compilation.get_module_graph();
     let mg_cache = &compilation.module_graph_cache_artifact;
@@ -761,54 +762,65 @@ impl ESMExportImportedSpecifierDependency {
           ignored.extend(hidden);
         }
 
-        let environment = compilation.options.output.environment;
-        let supports_arrow_function = environment.supports_arrow_function();
-        let supports_const = environment.supports_const();
-
-        let mut content = format!(
-          r"
-/* reexport */ var __rspack_reexport = {{}};
-/* reexport */ for( {} __rspack_import_key in {import_var}) ",
-          if supports_const { "const" } else { "var" }
-        );
-
-        if ignored.len() > 1 {
-          content += &format!(
-            "if({}.indexOf(__rspack_import_key) < 0) ",
-            json_stringify(&ignored)
-          );
-        } else if let Some(item) = ignored.iter().next() {
-          content += &format!(
-            "if(__rspack_import_key !== {}) ",
-            rspack_util::json_stringify_str(item)
-          );
-        }
-        content += "__rspack_reexport[__rspack_import_key] =";
-
-        // Arrow getters capture the loop variable by reference.
-        // They are only correct when the loop binding is block-scoped (const/let), not var.
-        if supports_arrow_function && supports_const {
-          content += &format!("() => {import_var}[__rspack_import_key]");
-        } else {
-          content +=
-            &format!("function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)");
-        }
-
+        let use_runtime =
+          self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
         let module = mg
           .module_by_identifier(&module.identifier())
           .expect("should have module graph module");
         let exports_name = module.get_exports_argument();
         let is_async =
           ModuleGraph::is_async(&compilation.async_modules_artifact, &module.identifier());
-        ctxt.init_fragments.push(
-          NormalInitFragment::new(
-            format!(
-              r#"{content}
+        let content = if use_runtime {
+          let reexport = ctxt
+            .runtime_template
+            .render_runtime_globals(&RuntimeGlobals::REEXPORT);
+          let exports = ctxt.runtime_template.render_exports_argument(exports_name);
+          let ignored = render_dynamic_reexport_excluded(&ignored);
+          format!("/* reexport */ {reexport}({exports}, {import_var}, {ignored});\n")
+        } else {
+          let environment = compilation.options.output.environment;
+          let supports_arrow_function = environment.supports_arrow_function();
+          let supports_const = environment.supports_const();
+          let mut content = format!(
+            r"
+/* reexport */ var __rspack_reexport = {{}};
+/* reexport */ for( {} __rspack_import_key in {import_var}) ",
+            if supports_const { "const" } else { "var" }
+          );
+
+          if ignored.len() > 1 {
+            content += &format!(
+              "if({}.indexOf(__rspack_import_key) < 0) ",
+              json_stringify(&ignored)
+            );
+          } else if let Some(item) = ignored.iter().next() {
+            content += &format!(
+              "if(__rspack_import_key !== {}) ",
+              rspack_util::json_stringify_str(item)
+            );
+          }
+          content += "__rspack_reexport[__rspack_import_key] =";
+          if supports_arrow_function && supports_const {
+            content += &format!("() => {import_var}[__rspack_import_key]");
+          } else {
+            content += &format!(
+              "function(key) {{ return {import_var}[key]; }}.bind(0, __rspack_import_key)"
+            );
+          }
+          content += &format!(
+            r#"
 /* reexport */ {}({}, __rspack_reexport);
 "#,
-              runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
-              runtime_template.render_exports_argument(exports_name),
-            ),
+            ctxt
+              .runtime_template
+              .render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS),
+            ctxt.runtime_template.render_exports_argument(exports_name),
+          );
+          content
+        };
+        ctxt.init_fragments.push(
+          NormalInitFragment::new(
+            content,
             if is_async {
               InitFragmentStage::StageAsyncESMImports
             } else {
@@ -822,6 +834,39 @@ impl ESMExportImportedSpecifierDependency {
         );
       }
     }
+  }
+
+  fn has_repeated_dynamic_reexports(
+    &self,
+    module_graph: &ModuleGraph,
+    runtime: Option<&RuntimeSpec>,
+    module_graph_cache: &ModuleGraphCacheArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> bool {
+    let Some((_, dependencies)) = self.all_star_exports(module_graph) else {
+      return false;
+    };
+    dependencies
+      .iter()
+      .filter_map(|dependency_id| {
+        module_graph
+          .dependency_by_id(dependency_id)
+          .downcast_ref::<Self>()
+      })
+      .filter(|dependency| {
+        matches!(
+          dependency.get_mode(
+            module_graph,
+            runtime,
+            module_graph_cache,
+            exports_info_artifact,
+          ),
+          ExportMode::DynamicReexport(_)
+        )
+      })
+      .take(DYNAMIC_REEXPORT_RUNTIME_THRESHOLD)
+      .count()
+      >= DYNAMIC_REEXPORT_RUNTIME_THRESHOLD
   }
 
   fn get_reexport_deferred_namespace_object_fragments(
@@ -1699,6 +1744,19 @@ fn render_used_name(used: Option<&UsedName>) -> String {
     None => "/* unused export */ undefined".to_string(),
     Some(UsedName::Normal(value_key)) if value_key.len() == 1 => value_key[0].to_string(),
     _ => unreachable!("export should only have one name"),
+  }
+}
+
+fn render_dynamic_reexport_excluded(values: &HashSet<Atom>) -> String {
+  match values.len() {
+    0 => "0".to_string(),
+    1 => rspack_util::json_stringify_str(
+      values
+        .iter()
+        .next()
+        .expect("single excluded reexport should exist"),
+    ),
+    _ => json_stringify(values),
   }
 }
 

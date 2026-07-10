@@ -32,8 +32,9 @@ use crate::{
     LoadScriptRuntimeModule, MakeDeferredNamespaceObjectRuntimeModule,
     MakeNamespaceObjectRuntimeModule, MakeOptimizedDeferredNamespaceObjectRuntimeModule,
     NodeModuleDecoratorRuntimeModule, NonceRuntimeModule, OnChunkLoadedRuntimeModule,
-    PublicPathRuntimeModule, RelativeUrlRuntimeModule, RuntimeIdRuntimeModule,
-    SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css, is_enabled_for_chunk,
+    PublicPathRuntimeModule, ReexportRuntimeModule, RelativeUrlRuntimeModule,
+    RuntimeIdRuntimeModule, SystemContextRuntimeModule, ToBinaryRuntimeModule, chunk_has_css,
+    is_enabled_for_chunk,
   },
 };
 
@@ -369,6 +370,12 @@ async fn runtime_requirements_in_tree(
         runtime_modules_to_add.push((
           *chunk_ukey,
           DefinePropertyGettersRuntimeModule::new(&compilation.runtime_template).boxed(),
+        ));
+      }
+      RuntimeGlobals::REEXPORT => {
+        runtime_modules_to_add.push((
+          *chunk_ukey,
+          ReexportRuntimeModule::new(&compilation.runtime_template).boxed(),
         ));
       }
       RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => {

@@ -311,6 +311,9 @@ define_runtime_globals! {
 
   // react server component
   const RSC_MANIFEST;
+
+  // reexport
+  const REEXPORT;
 }
 
 impl Default for RuntimeGlobals {
@@ -408,6 +411,7 @@ pub fn runtime_globals_property_name(runtime_globals: &RuntimeGlobals) -> Option
     RuntimeGlobals::CREATE_SCRIPT => "ts",
     RuntimeGlobals::GET_TRUSTED_TYPES_POLICY => "tt",
     RuntimeGlobals::DEFINE_PROPERTY_GETTERS => "d",
+    RuntimeGlobals::REEXPORT => "re",
     RuntimeGlobals::ENTRY_MODULE_ID => "s",
     RuntimeGlobals::STARTUP_NO_DEFAULT => "x (no default handler)",
     RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES => "f (include entries)",
