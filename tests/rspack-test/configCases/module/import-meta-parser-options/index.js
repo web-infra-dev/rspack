@@ -7,11 +7,13 @@ it("should treat an empty importMeta object like preserve-unknown", () => {
 	expect(emptyOptions.webpack).toBe(5);
 	expect(emptyOptions.unknown).toBe("runtime");
 	expect(emptyOptions.unknownOptional).toBe("runtime".length);
+	expect(emptyOptions.missingOptional).toBeUndefined();
 });
 
 it("should preserve disabled import.meta fields for runtime evaluation", () => {
 	expect(disabledFields.url).not.toBe(disabledFields.sourceUrl);
 	expect(disabledFields.urlOptional).toBe(disabledFields.url.length);
+	expect(disabledFields.webpackOptional).toBeUndefined();
 	expect(disabledFields.webpack).toBeUndefined();
 	expect(disabledFields.main).toBeUndefined();
 	expect(disabledFields.contextType).toBe("undefined");

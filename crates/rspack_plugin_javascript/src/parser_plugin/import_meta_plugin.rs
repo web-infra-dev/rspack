@@ -808,15 +808,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaPlugin {
 
           let dep = if let Some(members) = members {
             if self.preserve_property(members.members.first().map(|property| property.as_str())) {
-              ConstDependency::new(
-                expr.span().into(),
-                self
-                  .import_meta_unknown_property(
-                    &members.members.iter().map(|x| x.to_string()).collect_vec(),
-                  )
-                  .into(),
-              )
-            } else if members.members.get(1).is_some()
+              return Some(true);
+            }
+            if members.members.get(1).is_some()
               && members
                 .members_optionals
                 .get(1)

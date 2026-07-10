@@ -20,6 +20,7 @@ export default {
 	sourceUrl,
 	url,
 	urlOptional: import.meta.url?.length,
+	webpackOptional: import.meta.webpack?.x,
 	destructuredUrl: url,
 	destructuredWebpack: webpack,
 	webpack
