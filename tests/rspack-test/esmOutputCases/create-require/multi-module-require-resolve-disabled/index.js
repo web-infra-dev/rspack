@@ -11,11 +11,20 @@ import {
 } from "./mixed-parsed-and-preserved.js";
 import { resolveWithOptions } from "./with-resolve-options.js";
 import { escapedRequireType } from "./with-value-escape.js";
+import { sequenceResolved } from "./with-sequence-callee.js";
+import {
+	extraArgEffects,
+	extraArgRequired,
+	inlineExtraArgResolved
+} from "./with-extra-create-require-args.js";
 
 export {
 	cacheType,
 	escapedRequireType,
+	extraArgEffects,
+	extraArgRequired,
 	inlineResolved,
+	inlineExtraArgResolved,
 	mixedDisabledRequired,
 	mixedDisabledResolved,
 	mixedDisabledUnknownMember,
@@ -23,6 +32,7 @@ export {
 	resolved,
 	resolvePaths,
 	resolveWithOptions,
+	sequenceResolved,
 	unknownMember
 };
 
@@ -38,4 +48,8 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(mixedDisabledUnknownMember).toBe(undefined);
 	expect(resolveWithOptions).toBe("path");
 	expect(escapedRequireType).toBe("function");
+	expect(sequenceResolved).toBe("path");
+	expect(extraArgRequired).toBe("dep");
+	expect(inlineExtraArgResolved).toBe("path");
+	expect(extraArgEffects).toEqual([true, true]);
 });

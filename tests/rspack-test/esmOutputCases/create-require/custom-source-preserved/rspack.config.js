@@ -2,8 +2,7 @@ module.exports = {
   module: {
     parser: {
       javascript: {
-        commonjsMagicComments: true,
-        createRequire: true,
+        createRequire: 'makeRequire from ./shim.js',
       },
     },
   },

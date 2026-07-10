@@ -609,6 +609,7 @@ impl JavascriptParser<'_> {
       .as_ident()
       .map(|ident| Atom::from(ident.sym.as_str()));
     if let Some(name) = &updated_ident {
+      self.mark_created_require_must_keep(name);
       self.clear_create_require_tag(name);
     }
     self.walk_expression(&expr.arg);
@@ -651,6 +652,15 @@ impl JavascriptParser<'_> {
     }
   }
 
+  fn mark_created_require_must_keep(&mut self, name: &Atom) {
+    if let Some(decl_span) = self
+      .get_tag_data::<CreatedRequireTagData>(name, CREATED_REQUIRE_IDENTIFIER_TAG)
+      .and_then(|data| data.decl_span)
+    {
+      self.created_require_references.mark_must_keep(decl_span);
+    }
+  }
+
   fn has_create_require_tag(&mut self, name: &Atom, include_create_require_fn: bool) -> bool {
     let Some(variable_info) = self.get_variable_info(name) else {
       return false;
@@ -676,7 +686,9 @@ impl JavascriptParser<'_> {
   fn clear_created_require_tags_in_pattern(&mut self, pat: &Pat) {
     match pat {
       Pat::Ident(ident) => {
-        self.clear_create_require_tag(&Atom::from(ident.id.sym.as_str()));
+        let name = Atom::from(ident.id.sym.as_str());
+        self.mark_created_require_must_keep(&name);
+        self.clear_create_require_tag(&name);
       }
       Pat::Array(array) => array
         .elems
@@ -689,7 +701,9 @@ impl JavascriptParser<'_> {
           match prop {
             ObjectPatProp::KeyValue(kv) => self.clear_created_require_tags_in_pattern(&kv.value),
             ObjectPatProp::Assign(assign) => {
-              self.clear_create_require_tag(&Atom::from(assign.key.id.sym.as_str()));
+              let name = Atom::from(assign.key.id.sym.as_str());
+              self.mark_created_require_must_keep(&name);
+              self.clear_create_require_tag(&name);
             }
             ObjectPatProp::Rest(rest) => self.clear_created_require_tags_in_pattern(&rest.arg),
           }
@@ -711,16 +725,11 @@ impl JavascriptParser<'_> {
     if matches!(expr.op, AssignOp::OrAssign | AssignOp::NullishAssign)
       && self.has_create_require_tag(&ident_name, true)
     {
-      // A logical assignment reads the created require's value — its truthiness / nullishness
-      // decides whether the RHS runs — so a deferred declaration must be kept. Clearing it to
+      // A logical assignment reads the created require's value; its truthiness / nullishness
+      // decides whether the RHS runs, so a deferred declaration must be kept. Clearing it to
       // `undefined` would flip which branch evaluates (e.g. `r ||= sideEffect()` would run the
       // side effect that the truthy created require otherwise skips).
-      if let Some(decl_span) = self
-        .get_tag_data::<CreatedRequireTagData>(&ident_name, CREATED_REQUIRE_IDENTIFIER_TAG)
-        .and_then(|data| data.decl_span)
-      {
-        self.created_require_references.mark_must_keep(decl_span);
-      }
+      self.mark_created_require_must_keep(&ident_name);
       return Some(true);
     }
     if expr.op != AssignOp::Assign {
@@ -728,10 +737,11 @@ impl JavascriptParser<'_> {
     }
     if let Some(variable) = expr.right.as_ident().and_then(|rhs| {
       let rhs_name = Atom::from(rhs.sym.as_str());
-      self
-        .has_create_require_tag(&rhs_name, false)
-        .then(|| self.get_variable_info(&rhs_name).map(|info| info.id()))
-        .flatten()
+      if !self.has_create_require_tag(&rhs_name, false) {
+        return None;
+      }
+      self.mark_created_require_must_keep(&rhs_name);
+      self.get_variable_info(&rhs_name).map(|info| info.id())
     }) {
       self.set_variable(
         ident_name.clone(),
@@ -744,12 +754,14 @@ impl JavascriptParser<'_> {
         .get_tag_data::<CreatedRequireTagData>(&rename_identifier, CREATED_REQUIRE_IDENTIFIER_TAG)
         .map(|data| (data.context.clone(), data.decl_span))
     {
+      self.mark_created_require_must_keep(&rename_identifier);
       self.tag_variable(
         ident_name.clone(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
           context,
           side_effects: String::new(),
+          pre_walk: false,
           decl_span,
         }),
       );
@@ -778,12 +790,14 @@ impl JavascriptParser<'_> {
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
       .map(|data| (data.context.clone(), data.decl_span))
     {
+      self.mark_created_require_must_keep(target);
       self.tag_variable(
         binding,
         CREATED_REQUIRE_IDENTIFIER_TAG,
         Some(CreatedRequireTagData {
           context,
           side_effects: String::new(),
+          pre_walk: false,
           decl_span,
         }),
       );

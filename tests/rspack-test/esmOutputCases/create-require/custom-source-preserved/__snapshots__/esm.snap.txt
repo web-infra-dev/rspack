@@ -1,0 +1,20 @@
+```mjs title=main.mjs
+// ./shim.js
+function makeRequire() {
+	return { a: "custom" };
+}
+
+// ./index.js
+
+
+const index_require = makeRequire(import.meta.url);
+
+const customMember = index_require.a;
+
+it("keeps an unhandled created require from a custom source", () => {
+	expect(customMember).toBe("custom");
+});
+
+export { customMember };
+
+```

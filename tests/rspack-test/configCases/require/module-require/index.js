@@ -609,7 +609,7 @@ it("should add warning on using as expression", () => {
 	expect(typeof a).toBe("function");
 });
 
-it("should add warning on using require.main", () => {
+it("should preserve unhandled created require members", () => {
 	let _require = _createRequire(new URL("./foo/c.js", import.meta.url));
 	expect(_require.main).toBe(undefined);
 	expect(_require?.main).toBe(undefined);
@@ -621,7 +621,7 @@ it("should add warning on using require.main", () => {
 		).main
 	).toBe(undefined);
 	expect(unsupportedMemberExtraEffects).toEqual(["unsupported-member-extra"]);
-	expect(_createRequire(import.meta.url).resolve).toBe(undefined);
+	expect(typeof _createRequire(import.meta.url).resolve).toBe("function");
 });
 
 it("should import Node.js module", () => {

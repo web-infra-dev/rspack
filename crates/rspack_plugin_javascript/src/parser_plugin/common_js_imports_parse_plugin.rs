@@ -3,7 +3,7 @@ use std::path::Path;
 
 use rspack_core::{
   ConstDependency, Context, ContextDependency, ContextMode, ContextModulePattern, ContextOptions,
-  DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
+  Dependency, DependencyCategory, DependencyRange, DependencyType, ModuleType, ReferencedSpecifier,
   RuntimeGlobals, RuntimeRequirementsDependency,
 };
 use rspack_error::{Diagnostic, Severity};
@@ -16,16 +16,18 @@ use swc_experimental_ecma_ast::{
 use url::Url;
 
 use super::{
-  JavascriptParserPlugin,
+  InnerGraphParserPlugin, JavascriptParserPlugin,
   esm_import_dependency_parser_plugin::{ESM_SPECIFIER_TAG, ESMSpecifierData},
   get_url_request,
+  inner_graph::state::InnerGraphUsageOperation,
   url_plugin::is_meta_url,
 };
 use crate::{
   dependency::{
     CommonJsFullRequireDependency, CommonJsRequireContextDependency, CommonJsRequireDependency,
-    RequireHeaderDependency, RequireResolveContextDependency, RequireResolveDependency,
-    RequireResolveHeaderDependency, local_module_dependency::LocalModuleDependency,
+    ESMImportSpecifierDependency, RequireHeaderDependency, RequireResolveContextDependency,
+    RequireResolveDependency, RequireResolveHeaderDependency,
+    local_module_dependency::LocalModuleDependency,
   },
   magic_comment::try_extract_magic_comment,
   utils::eval::{self, BasicEvaluatedExpression},
@@ -45,10 +47,13 @@ pub const CREATED_REQUIRE_IDENTIFIER_TAG: &str = "createRequire()";
 pub struct CreatedRequireTagData {
   pub(crate) context: Context,
   pub(crate) side_effects: String,
+  // Before the declarator itself is walked, references must stay verbatim; parsing them as
+  // require calls would incorrectly bypass temporal-dead-zone / pre-initialization behavior.
+  pub(crate) pre_walk: bool,
   // Key of the deferred-argument entry for this created require (the
-  // `createRequire(import.meta.url)` call span). Set only when require.resolve parsing
-  // is disabled and the argument is a bare `import.meta.url`; a `.resolve` use looks it
-  // up to keep the literal argument. See `CreatedRequireReferencesState` and `finish`.
+  // `createRequire(import.meta.url)` call span). Set only for a deferrable bare
+  // `import.meta.url` declaration; unhandled uses look it up to keep the literal argument.
+  // See `CreatedRequireReferencesState` and `finish`.
   pub(crate) decl_span: Option<Span>,
 }
 
@@ -58,20 +63,19 @@ struct CreateRequireArgument {
   replace_argument: bool,
 }
 
-// Tracks `const r = createRequire(import.meta.url)` declarations whose rendering is
-// deferred to `finish()`. When require.resolve parsing is disabled the created require
-// only needs to exist at runtime if it is used as a real require object — `.resolve(...)`,
-// any other member (`r.main`, `r.resolve.paths(...)`, ...), or as a bare value (`helper(r)`,
-// `export { r }`, ...). A plain invoke `r("./x")` is bundled and `r.cache` maps to the
-// module cache, so those alone do not keep it. In `finish` a kept declaration is rendered
-// via rspack's injected `__rspack_createRequire` helper (the literal `import.meta.url` then
-// resolves relative to the runtime module); otherwise the whole call is cleared to
-// `undefined`, dropping the dead createRequire and its `module` import.
+// Tracks deferrable `const r = createRequire(import.meta.url)` declarations whose rendering is
+// decided in `finish()`. The created require only needs to exist at runtime if it is used as a
+// real require object: disabled `.resolve(...)`, any other member (`r.main`,
+// `r.resolve.paths(...)`, ...), or as a bare value (`helper(r)`, `export { r }`, ...). A plain
+// invoke `r("./x")` is bundled and `r.cache` maps to the module cache, so those alone do not keep
+// it. In `finish` a kept declaration adds the original `createRequire` callee's ESM import
+// dependency so the normal dependency/linker path renders it; otherwise the whole call is cleared
+// to `undefined`, dropping the dead createRequire use.
 //
 // The createRequire callee is intentionally NOT walked at parse time for these
 // declarations: walking it emits an import-specifier replacement that would collide with
-// a later whole-call clear (`…createRequire/* createRequire() */ undefined`). Instead the
-// callee span is recorded and, only for the kept case, rewritten to `__rspack_createRequire`.
+// a later whole-call clear (`...createRequire/* createRequire() */ undefined`). Instead the
+// callee dependency is recorded and, only for the kept case, added in `finish`.
 #[derive(Debug, Default)]
 pub struct CreatedRequireReferencesState {
   pending: rustc_hash::FxHashMap<Span, PendingCreatedRequire>,
@@ -84,20 +88,54 @@ pub struct CreatedRequireReferencesState {
 }
 
 #[derive(Debug)]
-pub(crate) struct PendingCreatedRequire {
-  pub(crate) must_keep: bool,
-  pub(crate) callee_span: Span,
-  pub(crate) arg_span: Span,
+struct PendingCreatedRequire {
+  must_keep: bool,
+  callee_dependency: Option<CreateRequireCalleeDependency>,
+  arg_span: Span,
+  arg_value: String,
+}
+
+#[derive(Debug)]
+struct CreateRequireCalleeDependency {
+  settings: ESMSpecifierData,
+  range: DependencyRange,
+  ids: Vec<Atom>,
+  asi_safe: bool,
+  call: bool,
+  direct_import: bool,
+  ns_access: bool,
+  namespace_object_as_context: bool,
+}
+
+#[derive(Debug, Default)]
+struct CreateRequireCalleeInfo {
+  can_defer: bool,
+  preserve: bool,
+  dependency: Option<CreateRequireCalleeDependency>,
 }
 
 impl CreatedRequireReferencesState {
-  pub(crate) fn add_pending(&mut self, call_span: Span, callee_span: Span, arg_span: Span) {
+  fn add_pending(
+    &mut self,
+    call_span: Span,
+    callee_dependency: Option<CreateRequireCalleeDependency>,
+    arg_span: Span,
+    arg_value: String,
+  ) {
+    // The binding is registered during the block pre-walk so a closure appearing before its
+    // declaration can already mark it. Preserve that decision when the regular declarator walk
+    // refreshes the dependency data.
+    let must_keep = self
+      .pending
+      .get(&call_span)
+      .is_some_and(|pending| pending.must_keep);
     self.pending.insert(
       call_span,
       PendingCreatedRequire {
-        must_keep: false,
-        callee_span,
+        must_keep,
+        callee_dependency,
         arg_span,
+        arg_value,
       },
     );
   }
@@ -108,8 +146,16 @@ impl CreatedRequireReferencesState {
     }
   }
 
-  pub(crate) fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire)> {
-    std::mem::take(&mut self.pending).into_iter().collect()
+  fn discard_pending(&mut self, call_span: Span) {
+    self.pending.remove(&call_span);
+  }
+
+  fn take_pending(&mut self) -> Vec<(Span, PendingCreatedRequire)> {
+    let mut pending = std::mem::take(&mut self.pending)
+      .into_iter()
+      .collect::<Vec<_>>();
+    pending.sort_unstable_by_key(|(span, _)| span.real_lo());
+    pending
   }
 
   // Records a local binding exposed by an export specifier (resolved in `finish`).
@@ -118,17 +164,10 @@ impl CreatedRequireReferencesState {
   }
 
   // Drains the recorded exported local binding names (resolved to declarations in `finish`).
-  pub(crate) fn take_exported_locals(&mut self) -> rustc_hash::FxHashSet<Atom> {
+  fn take_exported_locals(&mut self) -> rustc_hash::FxHashSet<Atom> {
     std::mem::take(&mut self.exported_locals)
   }
 }
-
-// rspack's injected createRequire helper (see `need_create_require` / the APIPlugin).
-const RSPACK_CREATE_REQUIRE: &str = "__rspack_createRequire";
-
-const PRESERVED_IMPORT_META_IN_CJS_WARNING: &str = "createRequire(import.meta.url) is preserved verbatim because require.resolve \
-   parsing is disabled, but `import.meta` is not available in CommonJS output. \
-   Use ESM output (output.module: true) or enable require.resolve parsing.";
 
 #[derive(Debug, Default)]
 pub struct RequireReferencesState {
@@ -269,6 +308,35 @@ fn should_handle_create_require_call(
 fn is_evaluated_create_require(parser: &mut JavascriptParser, expr: &Expr) -> bool {
   let evaluated = parser.evaluate_expression(expr);
   evaluated.is_identifier() && evaluated.identifier() == CREATE_REQUIRE_EVALUATED_TAG
+}
+
+// Returns the expression that owns the createRequire import dependency. Besides a direct
+// callee, support the canonical detached-call form emitted by transpilers:
+// `(0, createRequire)(import.meta.url)`. Restrict the sequence prefix to the literal `0` so
+// clearing the whole call can never discard side effects or references that need walking.
+fn get_create_require_callee<'a>(
+  parser: &mut JavascriptParser,
+  expr: &'a Expr<'a>,
+) -> Option<&'a Expr<'a>> {
+  if is_evaluated_create_require(parser, expr) || is_create_require_namespace_member(parser, expr) {
+    return Some(expr);
+  }
+
+  let callee = get_detached_create_require_callee(expr)?;
+  (is_evaluated_create_require(parser, callee)
+    || is_create_require_namespace_member(parser, callee))
+  .then_some(callee)
+}
+
+fn get_detached_create_require_callee<'a>(expr: &'a Expr<'a>) -> Option<&'a Expr<'a>> {
+  let Expr::Seq(sequence) = expr else {
+    return None;
+  };
+  (sequence.exprs.len() == 2
+    && sequence.exprs[0]
+      .as_lit()
+      .is_some_and(|lit| matches!(lit, Lit::Num(number) if number.value == 0.0)))
+  .then(|| &sequence.exprs[1])
 }
 
 #[cold]
@@ -625,7 +693,7 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
   // create-require import-meta-url-resolve-disabled test). The deferrable single-argument
   // form is rendered in `finish`, so this only governs the NON-deferred shapes: in ESM the
   // multi-argument `createRequire(import.meta.url, sideEffect())` keeps its literal arg
-  // (valid in ESM), while in CommonJS it must still be replaced — a literal `import.meta`
+  // (valid in ESM), while in CommonJS it must still be replaced; a literal `import.meta`
   // there is a syntax error. Any other shape (e.g. `new URL(import.meta.url)`) is likewise
   // not deferred and keeps the normal replacement.
   if matches!(parser.javascript_options.require_resolve, Some(false))
@@ -660,17 +728,6 @@ fn should_replace_create_require_argument(parser: &mut JavascriptParser, arg: &E
   } else {
     true
   }
-}
-
-#[inline(never)]
-fn should_clear_create_require_call(parser: &mut JavascriptParser, args: &[ExprOrSpread]) -> bool {
-  args.len() == 1
-    && !matches!(parser.javascript_options.require_resolve, Some(false))
-    && args[0].spread.is_none()
-    && args[0]
-      .expr
-      .as_member()
-      .is_some_and(|member| is_meta_url(parser, member))
 }
 
 #[inline(never)]
@@ -766,9 +823,8 @@ fn walk_create_require_argument_side_effects(parser: &mut JavascriptParser, arg:
 
 // Applies `output.importMetaName` to a preserved bare `import.meta.url` createRequire
 // argument. The non-deferred preserve paths keep the argument verbatim and never walk its
-// `import.meta`, so the configured name has to be applied here — exactly as the deferred
-// `keep_created_require_via_rspack_helper` does. No-op unless the name is customized and the
-// argument is a bare `import.meta.url`.
+// `import.meta`, so the configured name has to be applied here. No-op unless the name is
+// customized and the argument is a bare `import.meta.url`.
 fn apply_import_meta_name_to_preserved_arg(parser: &mut JavascriptParser, arg: &Expr) {
   if !arg
     .as_member()
@@ -786,11 +842,9 @@ fn apply_import_meta_name_to_preserved_arg(parser: &mut JavascriptParser, arg: &
   }
 }
 
-// Preserves a non-deferred createRequire argument verbatim: warns for CommonJS output (where
-// a literal `import.meta` is invalid), applies `output.importMetaName`, and walks any
-// `new URL(...)` side effects.
+// Preserves a non-deferred createRequire argument verbatim: applies `output.importMetaName`
+// and walks any `new URL(...)` side effects.
 fn preserve_create_require_argument(parser: &mut JavascriptParser, arg: &Expr) {
-  warn_if_preserved_import_meta_in_cjs(parser, arg);
   apply_import_meta_name_to_preserved_arg(parser, arg);
   walk_create_require_argument_side_effects(parser, arg);
 }
@@ -867,15 +921,6 @@ fn create_require_url_arg_side_effects(parser: &mut JavascriptParser, arg: &Expr
 }
 
 #[inline(never)]
-fn create_require_unsupported_member_replacement(side_effects: &str) -> Box<str> {
-  if side_effects.is_empty() {
-    "undefined".into()
-  } else {
-    side_effects_with_suffix(side_effects, "undefined)")
-  }
-}
-
-#[inline(never)]
 fn wrap_span_with_side_effects(parser: &mut JavascriptParser, span: Span, side_effects: &str) {
   if side_effects.is_empty() {
     return;
@@ -943,6 +988,7 @@ fn evaluate_created_require<'a>(
     Some(CreatedRequireTagData {
       context: argument.context,
       side_effects,
+      pre_walk: false,
       decl_span: None,
     }),
   );
@@ -991,6 +1037,12 @@ fn evaluate_create_require_call_expression<'a>(
 
 #[inline(never)]
 fn current_created_require_side_effects(parser: &mut JavascriptParser) -> String {
+  current_created_require_data(parser)
+    .map(|data| data.side_effects)
+    .unwrap_or_default()
+}
+
+fn current_created_require_data(parser: &JavascriptParser) -> Option<CreatedRequireTagData> {
   parser
     .current_tag_info
     .and_then(|tag_info| {
@@ -1001,8 +1053,6 @@ fn current_created_require_side_effects(parser: &mut JavascriptParser) -> String
         .clone()
     })
     .map(CreatedRequireTagData::downcast)
-    .map(|data| data.side_effects)
-    .unwrap_or_default()
 }
 
 #[inline(never)]
@@ -1025,65 +1075,161 @@ fn add_create_require_warning(parser: &mut JavascriptParser, message: &str, span
   parser.add_warning(error.into());
 }
 
-// When require.resolve is disabled the createRequire argument is kept verbatim
-// (see `should_replace_create_require_argument`). A literal `import.meta.url` is
-// only valid in ESM output, so warn when that preserved argument lands in a
-// CommonJS bundle where `import.meta` cannot be parsed at runtime.
-#[cold]
-#[inline(never)]
-fn warn_if_preserved_import_meta_in_cjs(parser: &mut JavascriptParser, arg: &Expr) {
-  if !matches!(parser.javascript_options.require_resolve, Some(false))
-    || parser.compiler_options.output.module
+fn create_require_callee_dependency(
+  parser: &mut JavascriptParser,
+  callee: &Expr,
+  call_span: Span,
+  call: bool,
+) -> Option<CreateRequireCalleeDependency> {
+  let asi_safe = !parser.is_asi_position(call_span.real_lo());
+
+  if let Some(ident) = callee.as_ident()
+    && let Some(settings) =
+      parser.get_tag_data::<ESMSpecifierData>(&Atom::from(ident.sym.as_str()), ESM_SPECIFIER_TAG)
   {
-    return;
+    let ids = settings.ids.clone().into_vec();
+    return Some(CreateRequireCalleeDependency {
+      settings: settings.clone(),
+      range: ident.span.into(),
+      ids,
+      asi_safe,
+      call,
+      direct_import: true,
+      ns_access: false,
+      namespace_object_as_context: false,
+    });
   }
-  if arg
-    .as_member()
-    .is_some_and(|member| is_meta_url(parser, member))
+
+  let member_expr = callee.as_member()?;
+  let namespace = member_expr.obj.as_ident()?;
+  let settings = parser
+    .get_tag_data::<ESMSpecifierData>(&Atom::from(namespace.sym.as_str()), ESM_SPECIFIER_TAG)?
+    .clone();
+  let source = settings.source.clone();
+  let module_object_import = is_create_require_module_object_import(&settings);
+  let member = static_member_name(member_expr)?;
+  if !module_object_import
+    || create_require_import_specifier(parser, &source).is_none_or(|specifier| member != specifier)
   {
-    add_create_require_warning(parser, PRESERVED_IMPORT_META_IN_CJS_WARNING, arg.span());
+    return None;
   }
+
+  let mut ids = settings.ids.clone();
+  ids.push(member);
+  let ids = ids.into_vec();
+  let ns_access = settings.namespace_import && !ids.is_empty();
+  Some(CreateRequireCalleeDependency {
+    settings,
+    range: callee.span().into(),
+    ns_access,
+    ids,
+    asi_safe,
+    call,
+    direct_import: false,
+    namespace_object_as_context: parser
+      .javascript_options
+      .strict_this_context_on_imports
+      .unwrap_or(false)
+      && call,
+  })
 }
 
-// Render a preserved `createRequire(import.meta.url)` (require.resolve disabled) via
-// rspack's injected `__rspack_createRequire` helper by rewriting just the callee span,
-// so the literal `import.meta.url` argument resolves relative to the runtime module. The
-// user's `createRequire` import is left un-walked (and thus dropped). `import.meta.url` is
-// only valid in ESM output, so warn for CommonJS.
-#[inline(never)]
-fn keep_created_require_via_rspack_helper(
+fn can_defer_create_require_callee(
+  callee: &Expr,
+  callee_dependency: &Option<CreateRequireCalleeDependency>,
+) -> bool {
+  callee_dependency.is_some() || callee.as_ident().is_some()
+}
+
+fn is_local_create_require_callee_alias(
+  callee: &Expr,
+  callee_dependency: &Option<CreateRequireCalleeDependency>,
+) -> bool {
+  let Some(ident) = callee.as_ident() else {
+    return false;
+  };
+  callee_dependency
+    .as_ref()
+    .is_none_or(|dependency| dependency.settings.name.as_ref() != ident.sym.as_str())
+}
+
+fn add_create_require_callee_dependency(
   parser: &mut JavascriptParser,
-  callee_span: Span,
-  arg_span: Span,
+  callee_dependency: CreateRequireCalleeDependency,
 ) {
-  parser.build_info.need_create_require = true;
-  parser.add_presentational_dependency(Box::new(ConstDependency::new(
-    callee_span.into(),
-    RSPACK_CREATE_REQUIRE.into(),
-  )));
-  // The argument's `import.meta` is not walked for the deferred call, so apply
-  // `output.importMetaName` here when it is customized (matches the injected helper).
-  let import_meta_name = &parser.compiler_options.output.import_meta_name;
-  if import_meta_name != expr_name::IMPORT_META {
+  let CreateRequireCalleeDependency {
+    settings,
+    range,
+    ids,
+    asi_safe,
+    call,
+    direct_import,
+    ns_access,
+    namespace_object_as_context,
+  } = callee_dependency;
+  let mut dep = ESMImportSpecifierDependency::new(
+    settings.source,
+    settings.name,
+    settings.source_order,
+    false,
+    asi_safe,
+    range,
+    ids,
+    call,
+    direct_import,
+    ns_access,
+    ESMImportSpecifierDependency::create_export_presence_mode(parser.javascript_options),
+    None,
+    settings.phase,
+    settings.attributes,
+    parser.to_dependency_location(range),
+  );
+  dep.namespace_object_as_context = namespace_object_as_context;
+  let dep_id = *dep.id();
+  let dep_idx = parser.next_dependency_idx();
+  parser.add_dependency(Box::new(dep));
+
+  if let Some(in_guard) = parser.dependencies_in_branch_guard.as_mut() {
+    in_guard.insert(range, dep_id);
+  }
+
+  InnerGraphParserPlugin::on_usage(
+    parser,
+    InnerGraphUsageOperation::ESMImportSpecifier(dep_idx),
+  );
+}
+
+// Keep a `createRequire(import.meta.url)` by adding the original callee dependency only after
+// we know the declaration is required at runtime. ESM output keeps the literal runtime URL;
+// CommonJS output uses the already evaluated path because `import.meta` is invalid there.
+#[inline(never)]
+fn keep_created_require_call(
+  parser: &mut JavascriptParser,
+  callee_dependency: Option<CreateRequireCalleeDependency>,
+  arg_span: Span,
+  arg_value: &str,
+) {
+  if let Some(callee_dependency) = callee_dependency {
+    add_create_require_callee_dependency(parser, callee_dependency);
+  }
+  if parser.compiler_options.output.module {
+    // The argument's `import.meta` is not walked for the deferred call, so apply
+    // `output.importMetaName` here when it is customized.
+    let import_meta_name = &parser.compiler_options.output.import_meta_name;
+    if import_meta_name == expr_name::IMPORT_META {
+      return;
+    }
     let renamed = format!("{import_meta_name}.url");
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       arg_span.into(),
       renamed.into(),
     )));
+  } else {
+    parser.add_presentational_dependency(Box::new(ConstDependency::new(
+      arg_span.into(),
+      json_stringify_str(arg_value).into(),
+    )));
   }
-  if !parser.compiler_options.output.module {
-    add_create_require_warning(parser, PRESERVED_IMPORT_META_IN_CJS_WARNING, arg_span);
-  }
-}
-
-#[cold]
-#[inline(never)]
-fn add_unsupported_create_require_member_warning(parser: &mut JavascriptParser, span: Span) {
-  add_create_require_warning(
-    parser,
-    "The accessed createRequire() member is not supported by Rspack.",
-    span,
-  );
 }
 
 #[cold]
@@ -1092,9 +1238,8 @@ fn tag_created_require_declarator(
   parser: &mut JavascriptParser,
   binding: &Ident,
   call_span: Span,
-  clear_call: bool,
   args: &[ExprOrSpread],
-  callee_span: Option<Span>,
+  callee: CreateRequireCalleeInfo,
   argument: CreateRequireArgument,
 ) -> bool {
   let CreateRequireArgument {
@@ -1110,38 +1255,21 @@ fn tag_created_require_declarator(
   // Only the single-argument `createRequire(import.meta.url)` form is deferred: a clear
   // replaces the whole call, so extra arguments like `createRequire(import.meta.url,
   // sideEffect())` must keep their literal (side-effect-preserving) form instead.
-  // Only the built-in `module` source is deferred: the kept form is rendered via rspack's
-  // `__rspack_createRequire` (Node's built-in), which would silently replace a user-configured
-  // custom source — so custom sources fall through to the non-deferred path, which walks the
-  // original callee and keeps the user's import.
-  let defer = callee_span.is_some()
-    && is_builtin_module_create_require(parser)
-    && (matches!(parser.javascript_options.require_resolve, Some(false))
-      || parser.compiler_options.output.module)
-    && args.len() == 1
-    && args[0]
-      .expr
-      .as_member()
-      .is_some_and(|m| is_meta_url(parser, m));
-  let binding_name = Atom::from(binding.sym.as_str());
-  parser.define_variable(binding_name.clone());
-  parser.tag_variable(
-    binding_name,
-    CREATED_REQUIRE_IDENTIFIER_TAG,
-    Some(CreatedRequireTagData {
-      context,
-      side_effects: String::new(),
-      decl_span: defer.then_some(call_span),
-    }),
-  );
+  let defer = should_defer_created_require_declarator(parser, args, callee.can_defer);
+  tag_created_require_binding(parser, binding, context, defer.then_some(call_span), false);
   if defer {
     parser.created_require_references.add_pending(
       call_span,
-      callee_span.expect("defer requires a callee span"),
+      callee.dependency,
       args[0].expr.span(),
+      value,
     );
-  } else if clear_call {
-    clear_create_require_call(parser, call_span);
+    // A local createRequire callee alias has no stable pre-walk dataflow: it may be reassigned
+    // before this call. Keep the created require conservatively while its normal require uses are
+    // still parsed independently.
+    if callee.preserve {
+      parser.created_require_references.mark_must_keep(call_span);
+    }
   } else if replace_argument {
     parser.add_presentational_dependency(Box::new(ConstDependency::new(
       args[0].expr.span().into(),
@@ -1152,6 +1280,97 @@ fn tag_created_require_declarator(
   }
   parser.walk_expr_or_spread(&args[1..]);
   defer
+}
+
+fn should_defer_created_require_declarator(
+  parser: &mut JavascriptParser,
+  args: &[ExprOrSpread],
+  defer_callee: bool,
+) -> bool {
+  defer_callee
+    && args.len() == 1
+    && args[0]
+      .expr
+      .as_member()
+      .is_some_and(|member| is_meta_url(parser, member))
+}
+
+fn tag_created_require_binding(
+  parser: &mut JavascriptParser,
+  binding: &Ident,
+  context: Context,
+  decl_span: Option<Span>,
+  pre_walk: bool,
+) {
+  let binding_name = Atom::from(binding.sym.as_str());
+  parser.define_variable(binding_name.clone());
+  parser.tag_variable(
+    binding_name,
+    CREATED_REQUIRE_IDENTIFIER_TAG,
+    Some(CreatedRequireTagData {
+      context,
+      side_effects: String::new(),
+      pre_walk,
+      decl_span,
+    }),
+  );
+}
+
+// Establishes created-require bindings during block pre-walk. An early reference only marks the
+// declaration as kept and stays verbatim; the regular declarator walk replaces this pre-walk tag
+// with the normal state before later references are handed to the require parser. Rendering still
+// remains deferred to `finish`.
+fn pre_tag_created_require_declarator(parser: &mut JavascriptParser, declarator: &VarDeclarator) {
+  let Some(init) = declarator.init.as_ref() else {
+    return;
+  };
+  let Some(binding) = declarator.name.as_ident() else {
+    return;
+  };
+
+  if let Some(call) = init.as_call()
+    && let Some(callee) = call.callee.as_expr()
+    && let Some(dependency_callee) = get_create_require_callee(parser, callee)
+    && let Some(argument) = parse_create_require_argument(parser, call, false)
+  {
+    let callee_dependency = create_require_callee_dependency(
+      parser,
+      dependency_callee,
+      call.span,
+      callee.span() == dependency_callee.span(),
+    );
+    let defer_callee = can_defer_create_require_callee(dependency_callee, &callee_dependency);
+    let defer = should_defer_created_require_declarator(parser, &call.args, defer_callee);
+    let CreateRequireArgument {
+      value,
+      context,
+      replace_argument: _,
+    } = argument;
+    tag_created_require_binding(
+      parser,
+      &binding.id,
+      context,
+      defer.then_some(call.span),
+      true,
+    );
+    if defer {
+      parser.created_require_references.add_pending(
+        call.span,
+        callee_dependency,
+        call.args[0].expr.span(),
+        value,
+      );
+    }
+    return;
+  }
+
+  if let Some(new_expr) = init.as_new()
+    && (is_evaluated_create_require(parser, &new_expr.callee)
+      || is_create_require_namespace_member(parser, &new_expr.callee))
+    && let Some(argument) = parse_create_require_new_argument(parser, new_expr, false)
+  {
+    tag_created_require_binding(parser, &binding.id, argument.context, None, true);
+  }
 }
 
 fn clear_create_require_tag(parser: &mut JavascriptParser, name: &Atom) {
@@ -1190,55 +1409,17 @@ fn require_cache_range(member_expr: &MemberExpr, member_ranges: &[Span], members
 }
 
 #[inline(never)]
-fn handle_created_require_member(
-  parser: &mut JavascriptParser,
-  member_span: Span,
-  cache_range: Span,
-  members: &[Atom],
-  unsupported_replacement: Box<str>,
-) {
-  if members
-    .first()
-    .is_some_and(|member| member.as_ref() == "cache")
-  {
-    add_require_cache_dependency(parser, cache_range.into());
-  } else {
-    add_unsupported_create_require_member_warning(parser, member_span);
-    parser.add_presentational_dependency(Box::new(ConstDependency::new(
-      member_span.into(),
-      unsupported_replacement,
-    )));
-  }
-}
-
-#[inline(never)]
 fn current_created_require_context(parser: &JavascriptParser) -> Option<Context> {
-  parser
-    .current_tag_info
-    .and_then(|tag_info| {
-      parser
-        .definitions_db
-        .expect_get_tag_info(tag_info)
-        .data
-        .clone()
-    })
-    .map(CreatedRequireTagData::downcast)
-    .map(|data| data.context)
+  current_created_require_data(parser).map(|data| data.context)
 }
 
 #[inline(never)]
 fn current_created_require_decl_span(parser: &JavascriptParser) -> Option<Span> {
-  parser
-    .current_tag_info
-    .and_then(|tag_info| {
-      parser
-        .definitions_db
-        .expect_get_tag_info(tag_info)
-        .data
-        .clone()
-    })
-    .map(CreatedRequireTagData::downcast)
-    .and_then(|data| data.decl_span)
+  current_created_require_data(parser).and_then(|data| data.decl_span)
+}
+
+fn is_pre_walk_created_require(parser: &JavascriptParser) -> bool {
+  current_created_require_data(parser).is_some_and(|data| data.pre_walk)
 }
 
 // The created require currently being visited is used as a real require object (resolve,
@@ -1250,36 +1431,22 @@ fn mark_created_require_must_keep(parser: &mut JavascriptParser) {
   }
 }
 
-#[cold]
-#[inline(never)]
-// Whether the configured createRequire source is the built-in `module`/`node:module`, for
-// which rspack's injected `__rspack_createRequire` helper is a faithful substitute. A custom
-// source (e.g. `"makeRequire from ./shim.js"`) must keep the user's original callee instead.
-fn is_builtin_module_create_require(parser: &JavascriptParser) -> bool {
-  parser
-    .javascript_options
-    .create_require_option()
-    .and_then(|option| option.split_once(" from "))
-    .is_some_and(|(_specifier, module)| module == "module")
-}
-
 // Preserves a createRequire call verbatim: walks its callee so the user's import (built-in
 // `module` OR a custom source) stays live and correctly rewritten, bakes or preserves its
 // first argument (honoring requireResolve / importMetaName), and walks any extra arguments.
-// Used to keep an inline createRequire whose member access can't be rendered via the built-in
-// `__rspack_createRequire` helper — a custom source, or extra arguments the helper would drop.
+// Used when an inline createRequire shape cannot use the deferred dependency path.
 fn preserve_create_require_call(parser: &mut JavascriptParser, call_expr: &CallExpr) {
   walk_create_require_callee(parser, call_expr);
   let Some(first) = call_expr.args.first() else {
     return;
   };
-  // A spread first argument can't be handled positionally — walk the whole list.
+  // A spread first argument can't be handled positionally, so walk the whole list.
   if first.spread.is_some() {
     parser.walk_expr_or_spread(&call_expr.args);
     return;
   }
-  // Handle the first argument exactly like the single-argument path — bake it to a build-time
-  // path, or preserve a bare `import.meta.url` verbatim (honoring importMetaName) — so a
+  // Handle the first argument exactly like the single-argument path: bake it to a build-time
+  // path, or preserve a bare `import.meta.url` verbatim (honoring importMetaName), so a
   // multi-argument call does not let `ImportMetaPlugin` rewrite `import.meta.url` to a
   // source-relative file URL (which would break relative runtime `.resolve()` calls).
   let arg = &first.expr;
@@ -1309,13 +1476,36 @@ fn preserve_create_require_call(parser: &mut JavascriptParser, call_expr: &CallE
   parser.walk_expr_or_spread(&call_expr.args[1..]);
 }
 
-fn walk_unsupported_create_require_resolve(
-  parser: &mut JavascriptParser,
-  inner_call_expr: &CallExpr,
-  call_expr: &CallExpr,
-) {
-  preserve_create_require_call(parser, inner_call_expr);
-  parser.walk_expr_or_spread(&call_expr.args);
+fn keep_inline_create_require_call(parser: &mut JavascriptParser, call_expr: &CallExpr) {
+  if let Some(callee) = call_expr.callee.as_expr()
+    && let Some(dependency_callee) = get_create_require_callee(parser, callee)
+    && call_expr.args.len() == 1
+    && call_expr.args[0].spread.is_none()
+    && call_expr.args[0]
+      .expr
+      .as_member()
+      .is_some_and(|member| is_meta_url(parser, member))
+    && let Some(arg_value) = evaluate_create_require_argument(parser, &call_expr.args[0].expr)
+  {
+    let callee_dependency = create_require_callee_dependency(
+      parser,
+      dependency_callee,
+      call_expr.span,
+      callee.span() == dependency_callee.span(),
+    );
+    if !can_defer_create_require_callee(dependency_callee, &callee_dependency) {
+      preserve_create_require_call(parser, call_expr);
+      return;
+    }
+    keep_created_require_call(
+      parser,
+      callee_dependency,
+      call_expr.args[0].expr.span(),
+      &arg_value,
+    );
+  } else {
+    preserve_create_require_call(parser, call_expr);
+  }
 }
 
 fn tag_commonjs_require_referenced(
@@ -1495,6 +1685,22 @@ impl CommonJsImportsParserPlugin {
       .unwrap_or_default()
   }
 
+  fn has_ignore_comment_for_call(parser: &mut JavascriptParser, call_expr: &CallExpr) -> bool {
+    call_expr.args.len() == 1
+      && call_expr.args[0].spread.is_none()
+      && Self::has_ignore_comment(parser, call_expr.span, call_expr.args[0].expr.span())
+  }
+
+  fn should_parse_created_require_resolve(
+    parser: &mut JavascriptParser,
+    call_expr: &CallExpr,
+  ) -> bool {
+    !matches!(parser.javascript_options.require_resolve, Some(false))
+      && call_expr.args.len() == 1
+      && call_expr.args[0].spread.is_none()
+      && !Self::has_ignore_comment_for_call(parser, call_expr)
+  }
+
   fn should_process_resolve(parser: &mut JavascriptParser, call_expr: &CallExpr) -> bool {
     let Callee::Expr(expr) = &call_expr.callee else {
       return false;
@@ -1565,19 +1771,10 @@ impl CommonJsImportsParserPlugin {
     parser: &mut JavascriptParser,
     expr: &CallExpr,
   ) -> Option<bool> {
-    if matches!(parser.javascript_options.require_resolve, Some(false)) {
-      // Any `.resolve(...)` use — including the 2-arg `require.resolve(request, options)`
-      // form — means this created require is needed at runtime, so keep its declaration and
-      // preserve the call as written. Checked before the single-argument guard so
-      // multi-argument resolves are not dropped.
+    if !Self::should_parse_created_require_resolve(parser, expr) {
+      // A disabled, ignored, or otherwise unsupported `.resolve(...)` use needs the real
+      // created require at runtime, so keep its declaration and preserve the call as written.
       mark_created_require_must_keep(parser);
-      parser.walk_expr_or_spread(&expr.args);
-      return Some(true);
-    }
-    if expr.args.len() != 1 || expr.args[0].spread.is_some() {
-      if current_created_require_decl_span(parser).is_some() {
-        mark_created_require_must_keep(parser);
-      }
       parser.walk_expr_or_spread(&expr.args);
       return Some(true);
     }
@@ -1949,6 +2146,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     declarator: &VarDeclarator,
     declaration: VariableDeclaration<'_>,
   ) -> Option<bool> {
+    if parser.javascript_options.is_create_require_enabled() {
+      pre_tag_created_require_declarator(parser, declarator);
+    }
+
     if !should_parse_commonjs_require(parser) {
       return None;
     }
@@ -1986,6 +2187,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         .map(|data| (data.context.clone(), data.decl_span))
       && let Some(binding) = declarator.name.as_ident()
     {
+      if let Some(decl_span) = decl_span {
+        // Copying the function value is itself an unhandled value escape. Keep the source
+        // declaration even if the alias is referenced from a function body that was walked
+        // before this declarator.
+        parser.created_require_references.mark_must_keep(decl_span);
+      }
       let name = Atom::from(binding.id.sym.as_str());
       parser.define_variable(name.clone());
       parser.tag_variable(
@@ -1996,6 +2203,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         Some(CreatedRequireTagData {
           context,
           side_effects: String::new(),
+          pre_walk: false,
           decl_span,
         }),
       );
@@ -2021,23 +2229,31 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
     if let Some(call) = init.as_call()
       && let Some(callee) = call.callee.as_expr()
-      && (is_evaluated_create_require(parser, callee)
-        || is_create_require_namespace_member(parser, callee))
+      && let Some(dependency_callee) = get_create_require_callee(parser, callee)
       && let Some(argument) = parse_create_require_argument(parser, call, false)
     {
-      let clear_call = should_clear_create_require_call(parser, &call.args);
+      let callee_dependency = create_require_callee_dependency(
+        parser,
+        dependency_callee,
+        call.span,
+        callee.span() == dependency_callee.span(),
+      );
+      let callee = CreateRequireCalleeInfo {
+        can_defer: can_defer_create_require_callee(dependency_callee, &callee_dependency),
+        preserve: is_local_create_require_callee_alias(dependency_callee, &callee_dependency),
+        dependency: callee_dependency,
+      };
       let deferred = tag_created_require_declarator(
         parser,
         &binding.id,
         call.span,
-        clear_call,
         &call.args,
-        Some(callee.span()),
+        callee,
         argument,
       );
-      // A deferred declaration must not walk the callee here: its rendering (keep via
-      // `__rspack_createRequire`, or clear) is decided in `finish`.
-      if !clear_call && !deferred {
+      // A deferred declaration must not walk the callee here: keep vs clear is decided in
+      // `finish`, and the callee dependency is added only for the kept case.
+      if !deferred {
         walk_create_require_callee(parser, call);
       }
       return Some(true);
@@ -2049,18 +2265,34 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && let Some(argument) = parse_create_require_new_argument(parser, init, false)
       && let Some(args) = init.args.as_deref()
     {
-      tag_created_require_declarator(parser, &binding.id, init.span, false, args, None, argument);
+      tag_created_require_declarator(
+        parser,
+        &binding.id,
+        init.span,
+        args,
+        CreateRequireCalleeInfo::default(),
+        argument,
+      );
       parser.walk_expression(&init.callee);
       return Some(true);
     }
 
-    if parser
+    if let Some(data) = parser
       .get_tag_data::<CreatedRequireTagData>(
         &Atom::from(binding.id.sym.as_str()),
         CREATED_REQUIRE_IDENTIFIER_TAG,
       )
-      .is_some()
+      .cloned()
     {
+      // The block pre-walk can temporarily resolve a callee to an outer createRequire import
+      // before a later lexical declaration establishes a same-name shadow. If the regular walk
+      // did not match either createRequire branch above, discard that stale pending decision and
+      // leave the initializer verbatim.
+      if data.pre_walk
+        && let Some(decl_span) = data.decl_span
+      {
+        parser.created_require_references.discard_pending(decl_span);
+      }
       parser.define_variable(Atom::from(binding.id.sym.as_str()));
       parser.walk_expression(init);
       return Some(true);
@@ -2105,14 +2337,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if current_created_require_decl_span(parser).is_some() {
-        // A value-position use (`helper(r)`, `export { r }`, `return r`, ...) is not consumed by
-        // a specific require dependency, so keep the real created require.
-        mark_created_require_must_keep(parser);
-        return Some(true);
-      }
-      let context = current_created_require_context(parser);
-      return self.require_as_expression_handler(parser, ident, context);
+      // A value-position use (`helper(r)`, `export { r }`, `return r`, ...) is not consumed by
+      // a specific require dependency, so keep the real created require. For a non-deferred
+      // declaration the call is already present and marking is a no-op.
+      mark_created_require_must_keep(parser);
+      return Some(true);
     }
 
     None
@@ -2121,29 +2350,30 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   fn member_chain(
     &self,
     parser: &mut JavascriptParser<'p>,
-    _expr: &MemberExpr,
+    expr: &MemberExpr,
     for_name: &str,
     members: &[Atom],
     members_optionals: &[bool],
     member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if current_created_require_decl_span(parser).is_some()
-        && members.first().is_some_and(|m| m.as_ref() != "cache")
-      {
-        // Unknown member access (`r.a`, `r.resolve.paths`, ...) is not consumed by a specific
-        // require dependency, so keep the real created require. `.cache` keeps its module-cache
-        // mapping (handled below).
+      if is_pre_walk_created_require(parser) {
         mark_created_require_must_keep(parser);
         return Some(true);
       }
-      handle_created_require_member(
-        parser,
-        _expr.span(),
-        require_cache_range(_expr, member_ranges, members),
-        members,
-        "undefined".into(),
-      );
+      if members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
+      {
+        add_require_cache_dependency(
+          parser,
+          require_cache_range(expr, member_ranges, members).into(),
+        );
+      } else {
+        // Unknown member access (`r.a`, `r.resolve.paths`, ...) is not consumed by a specific
+        // require dependency, so keep the real created require.
+        mark_created_require_must_keep(parser);
+      }
       return Some(true);
     }
 
@@ -2172,8 +2402,22 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     _member_ranges: &[Span],
   ) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      if is_pre_walk_created_require(parser) {
+        mark_created_require_must_keep(parser);
+        parser.walk_expr_or_spread(&expr.args);
+        return Some(true);
+      }
       let ids = get_non_optional_part(members, members_optionals);
       if members.is_empty() {
+        if Self::has_ignore_comment_for_call(parser, expr) {
+          if let Some(inner_call) = expr.callee.as_expr().and_then(|callee| callee.as_call()) {
+            keep_inline_create_require_call(parser, inner_call);
+          } else {
+            mark_created_require_must_keep(parser);
+          }
+          parser.walk_expr_or_spread(&expr.args);
+          return Some(true);
+        }
         wrap_created_require_with_side_effects(parser, expr.span());
         return self.require_handler(
           parser,
@@ -2184,9 +2428,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       if members.len() == 1 && members[0].as_ref() == "resolve" {
         return self.process_created_require_resolve_call(parser, expr);
       }
-      if current_created_require_decl_span(parser).is_some()
-        && members.first().is_some_and(|m| m.as_ref() != "cache")
-      {
+      if members.first().is_some_and(|m| m.as_ref() != "cache") {
         // Unknown member calls (`r.resolve.paths(x)`, `r.foo(x)`, ...) are not consumed by a
         // specific require dependency, so keep the real created require. Walk the args; leave the
         // call text as written.
@@ -2237,14 +2479,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
   fn rename(&self, parser: &mut JavascriptParser<'p>, expr: &Expr, for_name: &str) -> Option<bool> {
     if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
-      if current_created_require_decl_span(parser).is_some() {
-        // A renamed/bare created require reference is not consumed by a specific require
-        // dependency, so keep the real object.
-        mark_created_require_must_keep(parser);
-      } else if let Some(ident) = expr.as_ident() {
-        let context = current_created_require_context(parser);
-        self.require_as_expression_handler(parser, ident, context)?;
-      }
+      // A renamed/bare created require reference is not consumed by a specific require
+      // dependency, so keep the real object.
+      mark_created_require_must_keep(parser);
       parser.walk_expression(expr);
       Some(false)
     } else if for_name == expr_name::REQUIRE && should_parse_commonjs_require(parser) {
@@ -2277,14 +2514,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
         || for_name == expr_name::REQUIRE_RESOLVE
         || for_name == expr_name::REQUIRE_RESOLVE_WEAK))
       || should_handle_create_require_specifier(parser, for_name)
-      || for_name == CREATED_REQUIRE_IDENTIFIER_TAG)
-      .then(|| {
-        eval::evaluate_to_string(
-          "function".to_string(),
-          expr.span.real_lo(),
-          expr.span.real_hi(),
-        )
-      })
+      || (for_name == CREATED_REQUIRE_IDENTIFIER_TAG && !is_pre_walk_created_require(parser)))
+    .then(|| {
+      eval::evaluate_to_string(
+        "function".to_string(),
+        expr.span.real_lo(),
+        expr.span.real_hi(),
+      )
+    })
   }
 
   fn evaluate_identifier(
@@ -2380,6 +2617,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     expr: &UnaryExpr,
     for_name: &str,
   ) -> Option<bool> {
+    if for_name == CREATED_REQUIRE_IDENTIFIER_TAG && is_pre_walk_created_require(parser) {
+      mark_created_require_must_keep(parser);
+      return Some(true);
+    }
     // same as webpack/tagRequireExpression
     if (should_parse_commonjs_require(parser)
       && (for_name == expr_name::REQUIRE
@@ -2409,22 +2650,10 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       self.require_handler(parser, CallOrNewExpr::Call(call_expr), None)
     } else if should_handle_create_require_call(parser, for_name, call_expr.callee.as_expr()) {
-      if let Some(argument) = parse_create_require_argument(parser, call_expr, true) {
-        let clear_call = should_clear_create_require_call(parser, &call_expr.args);
-        if clear_call {
-          clear_create_require_call(parser, call_expr.span);
-        } else if argument.replace_argument {
-          parser.add_presentational_dependency(Box::new(ConstDependency::new(
-            call_expr.args[0].expr.span().into(),
-            json_stringify_str(&argument.value).into(),
-          )));
-        } else {
-          preserve_create_require_argument(parser, &call_expr.args[0].expr);
-        }
-        if !clear_call {
-          walk_create_require_callee(parser, call_expr);
-        }
-        walk_create_require_ignored_args(parser, call_expr);
+      if parse_create_require_argument(parser, call_expr, true).is_some() {
+        // Declarators and immediately consumed member/call chains have dedicated hooks. A
+        // createRequire call that reaches this generic hook is itself used as a value.
+        keep_inline_create_require_call(parser, call_expr);
         Some(true)
       } else {
         None
@@ -2446,6 +2675,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       self.process_resolve(parser, call_expr, true, None);
       Some(true)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      if is_pre_walk_created_require(parser) {
+        mark_created_require_must_keep(parser);
+        parser.walk_expr_or_spread(&call_expr.args);
+        return Some(true);
+      }
       wrap_created_require_with_side_effects(parser, call_expr.span());
       self.require_handler(
         parser,
@@ -2468,6 +2702,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     {
       self.require_handler(parser, CallOrNewExpr::New(new_expr), None)
     } else if for_name == CREATED_REQUIRE_IDENTIFIER_TAG {
+      if is_pre_walk_created_require(parser) {
+        mark_created_require_must_keep(parser);
+        if let Some(args) = &new_expr.args {
+          parser.walk_expr_or_spread(args);
+        }
+        return Some(true);
+      }
       wrap_created_require_with_side_effects(parser, new_expr.span);
       self.require_handler(
         parser,
@@ -2491,57 +2732,32 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
   ) -> Option<bool> {
     // Inline `createRequire(import.meta.url)` accessed as a member VALUE other than the
     // bundled `.cache` (e.g. `const paths = createRequire(import.meta.url).resolve.paths`):
-    // keep the real created require. The built-in single-bare-`import.meta.url` form renders
-    // via rspack's helper (consistent with the deferred variable form); a custom source or
-    // extra arguments keep the original call instead (the helper would drop them). `.cache`
-    // falls through to the branch below.
+    // keep the real created require. A deferrable single-bare-`import.meta.url` form adds the
+    // original callee dependency; other shapes keep the whole original call. `.cache` falls
+    // through to the branch below.
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && (matches!(parser.javascript_options.require_resolve, Some(false))
-        || parser.compiler_options.output.module)
       && members
         .first()
         .is_some_and(|member| member.as_ref() != "cache")
     {
-      if is_builtin_module_create_require(parser)
-        && let Some(callee) = call_expr.callee.as_expr()
-        && call_expr.args.len() == 1
-        && call_expr.args[0].spread.is_none()
-        && call_expr.args[0]
-          .expr
-          .as_member()
-          .is_some_and(|member| is_meta_url(parser, member))
-      {
-        keep_created_require_via_rspack_helper(
-          parser,
-          callee.span(),
-          call_expr.args[0].expr.span(),
-        );
-      } else {
-        preserve_create_require_call(parser, call_expr);
-      }
+      keep_inline_create_require_call(parser, call_expr);
       return Some(true);
     }
 
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
+      && members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
       && let Some(argument) = parse_create_require_argument(parser, call_expr, false)
     {
       let side_effects = create_require_args_side_effects(parser, &call_expr.args, &argument);
-      let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
-      handle_created_require_member(
+      add_require_cache_dependency(
         parser,
-        member_expr.span(),
-        require_cache_range(member_expr, member_ranges, members),
-        members,
-        unsupported_replacement,
+        require_cache_range(member_expr, member_ranges, members).into(),
       );
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
-        wrap_span_with_side_effects(parser, member_expr.span(), &side_effects);
-      }
+      wrap_span_with_side_effects(parser, member_expr.span(), &side_effects);
       walk_create_require_ignored_args(parser, call_expr);
       return Some(true);
     }
@@ -2567,44 +2783,24 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     member_ranges: &[Span],
     for_name: &str,
   ) -> Option<bool> {
+    let should_parse_resolve = members.len() == 1
+      && members[0].as_ref() == "resolve"
+      && Self::should_parse_created_require_resolve(parser, call_expr);
     // Inline `createRequire(import.meta.url)` accessed via a member chain other than the
     // bundled `.cache` (`.resolve(...)`, `.resolve.paths(...)`, an unsupported member call,
     // ...): keep the real created require, mirroring the kept variable form `const r =
-    // createRequire(import.meta.url); r.resolve.paths(...)`. The built-in single-bare-
-    // `import.meta.url` form renders via rspack's helper; a custom source or extra arguments
-    // keep the original call (the helper would drop them). `.cache` and the require.resolve-enabled
-    // path fall through to the branches below.
+    // createRequire(import.meta.url); r.resolve.paths(...)`. A deferrable single-bare-
+    // `import.meta.url` form adds the original callee dependency; other shapes keep the original
+    // call. `.cache` and the require.resolve-enabled path fall through to the branches below.
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
-      && (matches!(parser.javascript_options.require_resolve, Some(false))
-        || parser.compiler_options.output.module)
-      && !(members.len() == 1
-        && members[0].as_ref() == "resolve"
-        && !matches!(parser.javascript_options.require_resolve, Some(false))
-        && call_expr.args.len() == 1
-        && call_expr.args[0].spread.is_none())
+      && !should_parse_resolve
       && members
         .first()
         .is_some_and(|member| member.as_ref() != "cache")
     {
-      if is_builtin_module_create_require(parser)
-        && let Some(callee) = inner_call_expr.callee.as_expr()
-        && inner_call_expr.args.len() == 1
-        && inner_call_expr.args[0].spread.is_none()
-        && inner_call_expr.args[0]
-          .expr
-          .as_member()
-          .is_some_and(|member| is_meta_url(parser, member))
-      {
-        keep_created_require_via_rspack_helper(
-          parser,
-          callee.span(),
-          inner_call_expr.args[0].expr.span(),
-        );
-        parser.walk_expr_or_spread(&call_expr.args);
-      } else {
-        walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
-      }
+      keep_inline_create_require_call(parser, inner_call_expr);
+      parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
     }
 
@@ -2613,12 +2809,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
       && members.len() == 1
       && members[0].as_ref() == "resolve"
     {
-      // requireResolve:false `.resolve(...)` is kept by the branch above; here require.resolve
-      // parsing is enabled, so resolve to a module id.
-      if call_expr.args.len() != 1 || call_expr.args[0].spread.is_some() {
-        walk_unsupported_create_require_resolve(parser, inner_call_expr, call_expr);
-        return Some(true);
-      }
+      // Disabled, ignored, and unsupported resolve calls are kept by the branch above.
       let argument = parse_create_require_argument(parser, inner_call_expr, false)?;
       let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
       wrap_span_with_side_effects(parser, call_expr.span(), &side_effects);
@@ -2630,28 +2821,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
 
     if callee_members.is_empty()
       && should_handle_create_require_specifier(parser, for_name)
+      && members
+        .first()
+        .is_some_and(|member| member.as_ref() == "cache")
       && let Some(argument) = parse_create_require_argument(parser, inner_call_expr, false)
     {
       let side_effects = create_require_args_side_effects(parser, &inner_call_expr.args, &argument);
-      let unsupported_replacement = create_require_unsupported_member_replacement(&side_effects);
       let member_span = call_expr.callee.span();
-      handle_created_require_member(
+      add_require_cache_dependency(
         parser,
-        member_span,
         require_cache_range(
           call_expr.callee.as_expr()?.as_member()?,
           member_ranges,
           members,
-        ),
-        members,
-        unsupported_replacement,
+        )
+        .into(),
       );
-      if members
-        .first()
-        .is_some_and(|member| member.as_ref() == "cache")
-      {
-        wrap_span_with_side_effects(parser, member_span, &side_effects);
-      }
+      wrap_span_with_side_effects(parser, member_span, &side_effects);
       walk_create_require_ignored_args(parser, inner_call_expr);
       parser.walk_expr_or_spread(&call_expr.args);
       return Some(true);
@@ -2757,9 +2943,8 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     // Demand-driven createRequire rendering: a deferred `const r = createRequire(import.meta.url)`
     // is kept only if a use site could not be consumed by the normal require parser path, such as
     // `require.resolve(...)` with requireResolve disabled, an unknown member access, or a value
-    // escape. The kept case is rendered via rspack's injected `__rspack_createRequire` helper; the
-    // unkept case is cleared to `undefined`, dropping the dead createRequire and its un-walked
-    // `module` import.
+    // escape. The kept case adds the original createRequire callee dependency so it renders the
+    // call; the unkept case is cleared to `undefined`, dropping the dead createRequire use.
     // A deferred created require whose value escapes via an export must be kept (an importer
     // may call `req.resolve(...)` on the exported value, so clearing it to `undefined` would
     // crash). Resolve each exported local binding to its declaration through the scope-aware
@@ -2778,8 +2963,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
     }
 
     for (call_span, pending) in parser.created_require_references.take_pending() {
-      if pending.must_keep {
-        keep_created_require_via_rspack_helper(parser, pending.callee_span, pending.arg_span);
+      let PendingCreatedRequire {
+        must_keep,
+        callee_dependency,
+        arg_span,
+        arg_value,
+      } = pending;
+      if must_keep {
+        keep_created_require_call(parser, callee_dependency, arg_span, &arg_value);
       } else {
         clear_create_require_call(parser, call_span);
       }

@@ -1,0 +1,124 @@
+```mjs title=main.mjs
+import { __webpack_require__ } from "./runtime.mjs";
+
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+__webpack_require__.add({
+"./dep.js"
+/*!****************!*\
+  !*** ./dep.js ***!
+  \****************/
+(module) {
+module.exports = "dep";
+
+
+},
+});
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+
+var external_node_module_default = /*#__PURE__*/__webpack_require__.n(external_node_module_namespaceObject);// ./index.js
+
+
+
+const index_rspack_createRequire = "local-createRequire";
+const index_rspack_createRequire_require = "local-require";
+const index_external_node_module_namespaceObject = "local-node-module";
+const index_external_node_module_default = "local-node-module-default";
+const strippedRequire = /* createRequire() */ undefined;
+const namedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const namespaceRequire = external_node_module_namespaceObject.createRequire(import.meta.url);
+const defaultRequire = external_node_module_default().createRequire(import.meta.url);
+
+const helperCollision = {
+	required: __webpack_require__(/*! ./dep.js */ "./dep.js"),
+	resolved: namedRequire.resolve("path"),
+	namespaceResolved: namespaceRequire.resolve("path"),
+	defaultResolved: defaultRequire.resolve("path"),
+	sourceCreateRequire: index_rspack_createRequire,
+	sourceCreateRequireRequire: index_rspack_createRequire_require,
+	sourceExternalNodeModule: index_external_node_module_namespaceObject,
+	sourceExternalNodeModuleDefault: index_external_node_module_default
+};
+
+it("deconflicts preserved createRequire calls with helper symbols", () => {
+	expect(helperCollision).toEqual({
+		required: "dep",
+		resolved: "path",
+		namespaceResolved: "path",
+		defaultResolved: "path",
+		sourceCreateRequire: "local-createRequire",
+		sourceCreateRequireRequire: "local-require",
+		sourceExternalNodeModule: "local-node-module",
+		sourceExternalNodeModuleDefault: "local-node-module-default"
+	});
+});
+
+export { helperCollision };
+
+```
+
+```mjs title=runtime.mjs
+
+var __webpack_modules__ = {};
+// The module cache
+var __webpack_module_cache__ = {};
+// The require function
+function __webpack_require__(moduleId) {
+// Check if module is in cache
+var cachedModule = __webpack_module_cache__[moduleId];
+if (cachedModule !== undefined) {
+return cachedModule.exports;
+}
+// Create a new module (and put it into the cache)
+var module = (__webpack_module_cache__[moduleId] = {
+exports: {}
+});
+// Execute the module function
+__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+
+// Return the exports of the module
+return module.exports;
+}
+// expose the modules object (__webpack_modules__)
+__webpack_require__.m = __webpack_modules__;
+
+// webpack/runtime/compat_get_default_export
+(() => {
+// getDefaultExport function for compatibility with non-ESM modules
+__webpack_require__.n = (module) => {
+	var getter = module && module.__esModule ?
+		() => (module['default']) :
+		() => (module);
+	__webpack_require__.d(getter, { a: getter });
+	return getter;
+};
+
+})();
+// webpack/runtime/define_property_getters
+(() => {
+__webpack_require__.d = (exports, getters, values) => {
+	var define = (defs, kind) => {
+		for(var key in defs) {
+			if(__webpack_require__.o(defs, key) && !__webpack_require__.o(exports, key)) {
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+			}
+		}
+	};
+	define(getters, "get");
+	define(values, "value");
+};
+})();
+// webpack/runtime/esm_register_module
+(() => {
+__webpack_require__.add = function registerModules(modules) { Object.assign(__webpack_require__.m, modules) }
+
+})();
+// webpack/runtime/has_own_property
+(() => {
+__webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+})();
+
+export { __webpack_require__ };
+
+```

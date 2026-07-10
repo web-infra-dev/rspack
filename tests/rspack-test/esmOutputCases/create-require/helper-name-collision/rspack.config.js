@@ -2,8 +2,8 @@ module.exports = {
   module: {
     parser: {
       javascript: {
-        commonjsMagicComments: true,
-        createRequire: true,
+        createRequire: 'createRequire from node:module',
+        requireResolve: false,
       },
     },
   },

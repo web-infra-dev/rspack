@@ -1,6 +1,7 @@
 ```mjs title=main.mjs
 import { __webpack_require__ } from "./runtime.mjs";
 
+import * as __rspack_external_path from "path";
 import { createRequire as __rspack_createRequire } from "node:module";
 const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
 __webpack_require__.add({
@@ -10,6 +11,16 @@ __webpack_require__.add({
   \****************/
 (module) {
 module.exports = "dep";
+
+
+},
+"path"
+/*!***********************!*\
+  !*** external "path" ***!
+  \***********************/
+(module) {
+
+module.exports = __rspack_external_path;
 
 
 },
@@ -33,14 +44,14 @@ const resolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
 // ./with-unknown-member.js
 
 
-const with_unknown_member_require = __rspack_createRequire(import.meta.url);
+const with_unknown_member_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const unknownMember = with_unknown_member_require.a;
 
 // ./mixed-parsed-and-preserved.js
 
 
-const mixed_parsed_and_preserved_require = __rspack_createRequire(import.meta.url);
+const mixed_parsed_and_preserved_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const mixedRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
 const mixedResolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
@@ -49,12 +60,160 @@ const mixedUnknownMember = mixed_parsed_and_preserved_require.a;
 // ./with-value-escape.js
 
 
-const with_value_escape_require = __rspack_createRequire(import.meta.url);
+const with_value_escape_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 const escapedRequire = with_value_escape_require;
 
 const escapedRequireType = typeof escapedRequire;
 
+// ./with-non-dominating-mutation.js
+
+
+const updatedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+function updateLater() {
+	updatedRequire++;
+}
+
+const iteratedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+function iterateLater() {
+	for (iteratedRequire of []) {
+	}
+}
+
+const mutationUnknowns = [
+	typeof updateLater,
+	typeof iterateLater,
+	updatedRequire.a,
+	iteratedRequire.a
+];
+
+// ./with-inline-value-escape.js
+
+
+function identity(value) {
+	return value;
+}
+
+const inlineEscapedRequireType = typeof identity(
+	(0,external_node_module_namespaceObject.createRequire)(import.meta.url)
+);
+
+// ./with-non-deferred-value-escape.js
+
+
+function with_non_deferred_value_escape_identity(value) {
+	return value;
+}
+
+const with_non_deferred_value_escape_require = external_node_module_namespaceObject.createRequire("<TEST_ROOT>/esmOutputCases/create-require/multi-module-default/with-non-deferred-value-escape.js");
+
+const nonDeferredEscapedRequireType = typeof with_non_deferred_value_escape_identity(with_non_deferred_value_escape_require);
+const nonDeferredUnknownMember = with_non_deferred_value_escape_require.a;
+
+// ./with-conditional-callee.js
+
+
+const with_conditional_callee_require = ( true ? external_node_module_namespaceObject.createRequire : 0)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-conditional-callee.js");
+
+const conditionalUnknownMember = with_conditional_callee_require.a;
+
+// ./with-use-before-declaration.js
+
+
+function readUnknownMember() {
+	return with_use_before_declaration_require.a;
+}
+
+function loadBuiltin() {
+	return typeof (__webpack_require__(/*! path */ "path")/* .join */.join);
+}
+
+let assignedRequire;
+function readAssignedUnknownMember() {
+	return assignedRequire.a;
+}
+
+const with_use_before_declaration_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const assignmentSourceRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+assignedRequire = assignmentSourceRequire;
+
+const createRequireAlias = external_node_module_namespaceObject.createRequire;
+function readAliasedCalleeUnknownMember() {
+	return aliasedCalleeRequire.a;
+}
+const aliasedCalleeRequire = createRequireAlias(import.meta.url);
+const handledAliasedCalleeRequire = (0, createRequireAlias)(import.meta.url);
+
+const beforeAliasedCalleeUnknownMember =
+	readAliasedCalleeUnknownMember();
+const handledAliasedCalleeRequired =
+	__webpack_require__(/*! ./dep.js */ "./dep.js");
+const beforeAssignmentUnknownMember = readAssignedUnknownMember();
+const beforeDeclarationBuiltinJoinType = loadBuiltin();
+const beforeDeclarationUnknownMember = readUnknownMember();
+const shadowedCalleeThrows = (() => {
+	try {
+		const staleRequire = createRequire('<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-use-before-declaration.js');
+		const createRequire = () => () => undefined;
+		return false;
+	} catch {
+		return true;
+	}
+})();
+const preInitializationThrows = [
+	(() => {
+		try {
+			lexicalRequire("path");
+			const lexicalRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+			return false;
+		} catch {
+			return true;
+		}
+	})(),
+	(() => {
+		try {
+			hoistedRequire("path");
+			var hoistedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+			return false;
+		} catch {
+			return true;
+		}
+	})(),
+	(() => {
+		try {
+			localCreateRequire('<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-default/with-use-before-declaration.js');
+			const localCreateRequire = external_node_module_namespaceObject.createRequire;
+			return false;
+		} catch {
+			return true;
+		}
+	})()
+];
+
+// ./with-ignored-uses.js
+
+
+const with_ignored_uses_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const ignoredRequired = with_ignored_uses_require(/* webpackIgnore: true */ "path");
+const ignoredRequiredJoinType = typeof ignoredRequired.join;
+const ignoredResolved = with_ignored_uses_require.resolve(
+	/* webpackIgnore: true */ "path"
+);
+const inlineIgnoredResolved = (0,external_node_module_namespaceObject.createRequire)(import.meta.url).resolve(
+	/* webpackIgnore: true */ "path"
+);
+const inlineIgnoredRequired = (0,external_node_module_namespaceObject.createRequire)(import.meta.url)(
+	/* webpackIgnore: true */ "path"
+);
+const inlineIgnoredRequiredJoinType = typeof inlineIgnoredRequired.join;
+
 // ./index.js
+
+
+
+
+
+
 
 
 
@@ -71,9 +230,30 @@ it("preserves created require only for unhandled usages across modules", () => {
 	expect(mixedResolved).toBe("./dep.js");
 	expect(mixedUnknownMember).toBe(undefined);
 	expect(escapedRequireType).toBe("function");
+	expect(inlineEscapedRequireType).toBe("function");
+	expect(nonDeferredEscapedRequireType).toBe("function");
+	expect(nonDeferredUnknownMember).toBe(undefined);
+	expect(conditionalUnknownMember).toBe(undefined);
+	expect(beforeAliasedCalleeUnknownMember).toBe(undefined);
+	expect(beforeAssignmentUnknownMember).toBe(undefined);
+	expect(beforeDeclarationBuiltinJoinType).toBe("function");
+	expect(beforeDeclarationUnknownMember).toBe(undefined);
+	expect(handledAliasedCalleeRequired).toBe("dep");
+	expect(preInitializationThrows).toEqual([true, true, true]);
+	expect(shadowedCalleeThrows).toBe(true);
+	expect(ignoredRequiredJoinType).toBe("function");
+	expect(ignoredResolved).toBe("path");
+	expect(inlineIgnoredRequiredJoinType).toBe("function");
+	expect(inlineIgnoredResolved).toBe("path");
+	expect(mutationUnknowns).toEqual([
+		"function",
+		"function",
+		undefined,
+		undefined
+	]);
 });
 
-export { escapedRequireType, mixedRequired, mixedResolved, mixedUnknownMember, required, resolved, unknownMember };
+export { beforeAliasedCalleeUnknownMember, beforeAssignmentUnknownMember, beforeDeclarationBuiltinJoinType, beforeDeclarationUnknownMember, conditionalUnknownMember, escapedRequireType, handledAliasedCalleeRequired, ignoredRequiredJoinType, ignoredResolved, inlineEscapedRequireType, inlineIgnoredRequiredJoinType, inlineIgnoredResolved, mixedRequired, mixedResolved, mixedUnknownMember, mutationUnknowns, nonDeferredEscapedRequireType, nonDeferredUnknownMember, preInitializationThrows, required, resolved, shadowedCalleeThrows, unknownMember };
 
 ```
 

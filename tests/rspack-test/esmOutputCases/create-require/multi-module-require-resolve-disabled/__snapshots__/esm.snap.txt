@@ -26,14 +26,14 @@ const required = __webpack_require__(/*! ./dep.js */ "./dep.js");
 // ./with-resolve.js
 
 
-const with_resolve_require = __rspack_createRequire(import.meta.url);
+const with_resolve_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const resolved = with_resolve_require.resolve("path");
 
 // ./inline-resolve.js
 
 
-const inlineResolved = __rspack_createRequire(import.meta.url).resolve("path");
+const inlineResolved = (0,external_node_module_namespaceObject.createRequire)(import.meta.url).resolve("path");
 
 // ./with-cache.js
 
@@ -45,21 +45,21 @@ const cacheType = typeof __webpack_require__.c;
 // ./with-unknown-member.js
 
 
-const with_unknown_member_require = __rspack_createRequire(import.meta.url);
+const with_unknown_member_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const unknownMember = with_unknown_member_require.foo;
 
 // ./with-resolve-paths.js
 
 
-const with_resolve_paths_require = __rspack_createRequire(import.meta.url);
+const with_resolve_paths_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const resolvePaths = with_resolve_paths_require.resolve.paths("path");
 
 // ./mixed-parsed-and-preserved.js
 
 
-const mixed_parsed_and_preserved_require = __rspack_createRequire(import.meta.url);
+const mixed_parsed_and_preserved_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const mixedDisabledRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
 const mixedDisabledResolved = mixed_parsed_and_preserved_require.resolve("path");
@@ -68,19 +68,42 @@ const mixedDisabledUnknownMember = mixed_parsed_and_preserved_require.a;
 // ./with-resolve-options.js
 
 
-const with_resolve_options_require = __rspack_createRequire(import.meta.url);
+const with_resolve_options_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 
 const resolveWithOptions = with_resolve_options_require.resolve("path", { paths: [] });
 
 // ./with-value-escape.js
 
 
-const with_value_escape_require = __rspack_createRequire(import.meta.url);
+const with_value_escape_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
 const escapedRequire = with_value_escape_require;
 
 const escapedRequireType = typeof escapedRequire;
 
+// ./with-sequence-callee.js
+
+
+const with_sequence_callee_require = (0, external_node_module_namespaceObject.createRequire)(import.meta.url);
+
+const sequenceResolved = with_sequence_callee_require.resolve("path");
+
+// ./with-extra-create-require-args.js
+
+
+let variableExtraArgRan = false;
+const with_extra_create_require_args_require = external_node_module_namespaceObject.createRequire(import.meta.url, (variableExtraArgRan = true));
+
+let inlineExtraArgRan = false;
+const extraArgRequired = __webpack_require__(/*! ./dep.js */ "./dep.js");
+const inlineExtraArgResolved = external_node_module_namespaceObject.createRequire(
+	import.meta.url,
+	(inlineExtraArgRan = true)
+).resolve("path");
+const extraArgEffects = [variableExtraArgRan, inlineExtraArgRan];
+
 // ./index.js
+
+
 
 
 
@@ -105,9 +128,13 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(mixedDisabledUnknownMember).toBe(undefined);
 	expect(resolveWithOptions).toBe("path");
 	expect(escapedRequireType).toBe("function");
+	expect(sequenceResolved).toBe("path");
+	expect(extraArgRequired).toBe("dep");
+	expect(inlineExtraArgResolved).toBe("path");
+	expect(extraArgEffects).toEqual([true, true]);
 });
 
-export { cacheType, escapedRequireType, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, unknownMember };
+export { cacheType, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
 
 ```
 

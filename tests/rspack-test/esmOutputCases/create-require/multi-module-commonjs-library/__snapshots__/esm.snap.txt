@@ -69,15 +69,18 @@ var __webpack_exports__ = {};
 "use strict";
 
 /*!******************************!*\
-  !*** ./index.js + 3 modules ***!
+  !*** ./index.js + 5 modules ***!
   \******************************/
 // ESM COMPAT FLAG
 __webpack_require__.r(__webpack_exports__);
 
 // EXPORTS
 __webpack_require__.d(__webpack_exports__, {
+  escapedRequire: () => (/* reexport */ with_value_escape_require),
+  inlineUnknownMember: () => (/* reexport */ inlineUnknownMember),
   required: () => (/* reexport */ required),
-  resolved: () => (/* reexport */ resolved)
+  resolved: () => (/* reexport */ resolved),
+  unknownMember: () => (/* reexport */ unknownMember)
 });
 
 ;// CONCATENATED MODULE: external "node:module"
@@ -96,15 +99,36 @@ const with_resolve_require = /* createRequire() */ undefined;
 
 const resolved = /*require.resolve*/(/*! ./dep.js */ "./dep.js");
 
+;// CONCATENATED MODULE: ./with-unknown-member.js
+
+
+const with_unknown_member_require = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-unknown-member.js");
+
+const unknownMember = with_unknown_member_require.a;
+const inlineUnknownMember = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-unknown-member.js").a;
+
+;// CONCATENATED MODULE: ./with-value-escape.js
+
+
+const with_value_escape_require = (0,external_node_module_namespaceObject.createRequire)("<ROOT>/tests/rspack-test/esmOutputCases/create-require/multi-module-commonjs-library/with-value-escape.js");
+
+
+
 ;// CONCATENATED MODULE: ./index.js
 
 
 
 
 
-it("strips created require declarations in commonjs library output", () => {
+
+
+it("strips handled uses and preserves runtime created requires in CommonJS output", () => {
 	expect(required).toBe("dep");
 	expect(resolved).toBe("./dep.js");
+	expect(unknownMember).toBe(undefined);
+	expect(inlineUnknownMember).toBe(undefined);
+	expect(typeof with_value_escape_require).toBe("function");
+	expect(with_value_escape_require.resolve("path")).toBe("path");
 });
 
 })();

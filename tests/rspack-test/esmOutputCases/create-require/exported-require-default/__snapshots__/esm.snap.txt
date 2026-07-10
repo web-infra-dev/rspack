@@ -1,0 +1,41 @@
+```mjs title=main.mjs
+import { createRequire as __rspack_createRequire } from "node:module";
+const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
+// node:module
+const external_node_module_namespaceObject = __rspack_createRequire_require("node:module");
+// ./created-require.js
+
+
+const created_require_require = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const directRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const createRequireAlias = external_node_module_namespaceObject.createRequire;
+const aliasedCalleeRequire = createRequireAlias(import.meta.url);
+const copiedRequire = created_require_require;
+let assignedRequire;
+assignedRequire = created_require_require;
+
+/* export default */ const created_require = (created_require_require);
+
+
+// ./index.js
+
+
+
+
+it("keeps an exported created require with default requireResolve in ESM output", () => {
+	for (const require of [
+		aliasedCalleeRequire,
+		assignedRequire,
+		copiedRequire,
+		created_require,
+		directRequire,
+		created_require_require
+	]) {
+		expect(typeof require).toBe("function");
+		expect(require.resolve("path")).toBe("path");
+	}
+});
+
+export { aliasedCalleeRequire, assignedRequire, copiedRequire, created_require as defaultRequire, created_require_require as exportedRequire, directRequire };
+
+```
