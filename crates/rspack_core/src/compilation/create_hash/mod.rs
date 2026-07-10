@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use async_trait::async_trait;
 use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
@@ -613,6 +615,9 @@ fn chunk_css_hashes(
   content_hashes: &HashMap<SourceType, RspackHasher>,
   empty_css_digest: &RspackHashDigest,
 ) -> ChunkCssHashes {
+  // The content-hash key CssExtractRspackPlugin emits under.
+  static MINI_EXTRACT_CSS: LazyLock<SourceType> =
+    LazyLock::new(|| SourceType::Custom("css/mini-extract".into()));
   let output = &compilation.options.output;
   let digest_of = |source_type: SourceType| {
     content_hashes
@@ -621,7 +626,6 @@ fn chunk_css_hashes(
   };
   ChunkCssHashes {
     css: digest_of(SourceType::Css).filter(|digest| digest != empty_css_digest),
-    // The content-hash key CssExtractRspackPlugin emits under.
-    mini_css: digest_of(SourceType::Custom("css/mini-extract".into())),
+    mini_css: digest_of(*MINI_EXTRACT_CSS),
   }
 }
