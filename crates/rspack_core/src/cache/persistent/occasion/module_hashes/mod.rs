@@ -69,30 +69,19 @@ impl Occasion for ModuleHashesOccasion {
     let items = storage.load(SCOPE).await?;
     let entries = items
       .into_par_iter()
-      .filter_map(|(key, value)| {
-        let module = match std::str::from_utf8(&key) {
-          Ok(module) => ModuleIdentifier::from(module),
-          Err(err) => {
-            tracing::warn!(
-              "module hashes persistent cache key decode failed: {:?}",
-              err
-            );
-            return None;
-          }
-        };
-        let runtime_map = match self
+      .map(|(key, value)| {
+        let module = std::str::from_utf8(&key).map_err(|err| {
+          rspack_error::error!("module hashes persistent cache key decode failed: {err}")
+        })?;
+        let runtime_map = self
           .codec
           .decode::<RuntimeSpecMap<RspackHashDigest>>(&value)
-        {
-          Ok(runtime_map) => runtime_map,
-          Err(err) => {
-            tracing::warn!("module hashes persistent cache decode failed: {:?}", err);
-            return None;
-          }
-        };
-        Some((module, runtime_map))
+          .map_err(|err| {
+            rspack_error::error!("module hashes persistent cache decode failed: {err}")
+          })?;
+        Ok((ModuleIdentifier::from(module), runtime_map))
       })
-      .collect::<IdentifierMap<RuntimeSpecMap<RspackHashDigest>>>();
+      .collect::<Result<IdentifierMap<RuntimeSpecMap<RspackHashDigest>>>>()?;
 
     tracing::debug!(
       "recovered {} module hashes persistent cache entries",
