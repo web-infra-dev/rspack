@@ -131,8 +131,15 @@ module.exports = [{
         if (err) return reject(err);
         builds++;
         if (builds === 1) {
-          compiler[invalidation] = true;
-          watching.watcher._onChange(path.join(compiler.context, "c.js"));
+          setImmediate(() => {
+            const nativeWatcher = compiler.watchFileSystem.watcher;
+            if (!nativeWatcher) {
+              reject(new Error("Native watcher was not initialized"));
+              return;
+            }
+            compiler[invalidation] = true;
+            nativeWatcher._onChange(path.join(compiler.context, "c.js"));
+          });
           return;
         }
         expect(cycles).toEqual([false, false]);
