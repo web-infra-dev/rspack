@@ -252,6 +252,11 @@ export class Watching {
 
   /** @internal Resume an invalidation already recorded by MultiCompiler. */
   resumeFromMultiCompiler() {
+    if (!this.#invalidReported) {
+      this.#invalidReported = true;
+      this.compiler.hooks.invalid.call(null, Date.now());
+    }
+    this.onChange();
     this.#invalidate();
   }
 
