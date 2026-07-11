@@ -48,7 +48,7 @@ minimumReleaseAgeExclude:
   - '@rstackjs/load-config'
 
 patchedDependencies:
-  webpack-sources@3.5.0: patches/webpack-sources@3.5.0.patch
+  webpack-sources@3.5.1: patches/webpack-sources@3.5.1.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true
