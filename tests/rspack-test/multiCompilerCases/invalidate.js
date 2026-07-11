@@ -5,6 +5,7 @@ const path = require("path");
 module.exports = [
   (() => {
     const events = [];
+    const lazyCompilationCycles = [];
     let state = 0;
     return {
       description: "should respect dependencies when using invalidate",
@@ -26,6 +27,7 @@ module.exports = [
         };
       },
       compiler(context, compiler) {
+        const lazyCompilationCurrent = Symbol.for("rspack.lazyCompilationCurrent");
         compiler.compilers.forEach(c => {
           c.hooks.invalid.tap("test", () => {
             events.push(`${c.name} invalid`);
@@ -35,6 +37,11 @@ module.exports = [
           });
           c.hooks.done.tap("test", () => {
             events.push(`${c.name} done`);
+          });
+          c.hooks.thisCompilation.tap("test", () => {
+            if (c.name === "a") {
+              lazyCompilationCycles.push(c[lazyCompilationCurrent] === true);
+            }
           });
         });
 
@@ -61,6 +68,8 @@ module.exports = [
 			`);
             events.length = 0;
 
+            const lazyCompilationInvalidation = Symbol.for("rspack.lazyCompilationInvalidation");
+            compiler.compilers[0][lazyCompilationInvalidation] = true;
             watching.invalidate(err => {
               try {
                 if (err) return reject(err);
@@ -75,6 +84,7 @@ module.exports = [
 					  a done,
 					]
 				`);
+                expect(lazyCompilationCycles).toEqual([false, true]);
                 events.length = 0;
                 expect(state).toBe(1);
                 setTimeout(() => {
@@ -85,6 +95,7 @@ module.exports = [
                 reject(e);
               }
             });
+            compiler.compilers[0][lazyCompilationInvalidation] = false;
           });
         });
       }

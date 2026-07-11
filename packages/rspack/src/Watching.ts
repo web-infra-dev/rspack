@@ -250,6 +250,11 @@ export class Watching {
     this.#invalidate();
   }
 
+  /** @internal Resume an invalidation already recorded by MultiCompiler. */
+  resumeFromMultiCompiler() {
+    this.#invalidate();
+  }
+
   /**
    * @internal This is not a public API yet, still unstable, might change in the future
    */
