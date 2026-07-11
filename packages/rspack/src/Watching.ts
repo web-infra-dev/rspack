@@ -338,11 +338,6 @@ export class Watching {
       PropertyKey,
       unknown
     >;
-    compilerState[LAZY_COMPILATION_CURRENT] =
-      compilerState[LAZY_COMPILATION_PENDING] === true &&
-      compilerState[LAZY_COMPILATION_NORMAL_PENDING] !== true;
-    compilerState[LAZY_COMPILATION_PENDING] = false;
-    compilerState[LAZY_COMPILATION_NORMAL_PENDING] = false;
 
     this.#initial = false;
     if (this.startTime === undefined) this.startTime = Date.now();
@@ -368,10 +363,19 @@ export class Watching {
     } else if (this.pausedWatcher) {
       const { changes, removals, fileTimeInfoEntries, contextTimeInfoEntries } =
         this.pausedWatcher.getInfo();
+      if (changes.size > 0 || removals.size > 0) {
+        compilerState[LAZY_COMPILATION_NORMAL_PENDING] = true;
+      }
       this.#mergeWithCollected(changes, removals);
       this.compiler.fileTimestamps = fileTimeInfoEntries;
       this.compiler.contextTimestamps = contextTimeInfoEntries;
     }
+
+    compilerState[LAZY_COMPILATION_CURRENT] =
+      compilerState[LAZY_COMPILATION_PENDING] === true &&
+      compilerState[LAZY_COMPILATION_NORMAL_PENDING] !== true;
+    compilerState[LAZY_COMPILATION_PENDING] = false;
+    compilerState[LAZY_COMPILATION_NORMAL_PENDING] = false;
 
     this.compiler.modifiedFiles = this.#collectedChangedFiles;
     this.compiler.removedFiles = this.#collectedRemovedFiles;

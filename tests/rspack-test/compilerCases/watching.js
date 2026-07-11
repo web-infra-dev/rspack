@@ -1,4 +1,5 @@
 const { createFsFromVolume, Volume } = require("memfs");
+const path = require("path");
 const { start } = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
@@ -87,7 +88,17 @@ module.exports = [{
           return;
         }
         if (builds === 5) {
-          expect(cycles).toEqual([false, true, false, true, true]);
+          const getInfo = watching.watcher.getInfo;
+          watching.watcher.getInfo = () => ({
+            ...getInfo(),
+            changes: new Set([path.join(compiler.context, "c.js")]),
+          });
+          compiler[invalidation] = true;
+          watching.invalidate();
+          return;
+        }
+        if (builds === 6) {
+          expect(cycles).toEqual([false, true, false, true, true, false]);
           watching.close(resolve);
         }
       });
