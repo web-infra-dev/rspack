@@ -230,10 +230,14 @@ export class Watching {
     }
   }
 
-  invalidate(callback?: Callback<Error, void>) {
-    if (callback) {
-      this.callbacks.push(callback);
+  #notifyInvalid() {
+    if (!this.#invalidReported) {
+      this.#invalidReported = true;
+      this.compiler.hooks.invalid.call(null, Date.now());
     }
+  }
+
+  #recordInvalidation() {
     const compilerState = this.compiler as unknown as Record<
       PropertyKey,
       unknown
@@ -246,23 +250,24 @@ export class Watching {
         : LAZY_COMPILATION_NORMAL_PENDING
     ] = true;
     try {
-      if (!this.#invalidReported) {
-        this.#invalidReported = true;
-        this.compiler.hooks.invalid.call(null, Date.now());
-      }
+      this.#notifyInvalid();
     } finally {
       compilerState[LAZY_COMPILATION_INVALIDATION] = false;
     }
     this.onChange();
+  }
+
+  invalidate(callback?: Callback<Error, void>) {
+    if (callback) {
+      this.callbacks.push(callback);
+    }
+    this.#recordInvalidation();
     this.#invalidate();
   }
 
   /** @internal Resume an invalidation already recorded by MultiCompiler. */
   resumeFromMultiCompiler() {
-    if (!this.#invalidReported) {
-      this.#invalidReported = true;
-      this.compiler.hooks.invalid.call(null, Date.now());
-    }
+    this.#notifyInvalid();
     this.onChange();
     this.#invalidate();
   }
@@ -278,26 +283,7 @@ export class Watching {
     if (callback) {
       this.callbacks.push(callback);
     }
-    const compilerState = this.compiler as unknown as Record<
-      PropertyKey,
-      unknown
-    >;
-    const isLazyCompilationInvalidation =
-      compilerState[LAZY_COMPILATION_INVALIDATION] === true;
-    compilerState[
-      isLazyCompilationInvalidation
-        ? LAZY_COMPILATION_PENDING
-        : LAZY_COMPILATION_NORMAL_PENDING
-    ] = true;
-    try {
-      if (!this.#invalidReported) {
-        this.#invalidReported = true;
-        this.compiler.hooks.invalid.call(null, Date.now());
-      }
-    } finally {
-      compilerState[LAZY_COMPILATION_INVALIDATION] = false;
-    }
-    this.onChange();
+    this.#recordInvalidation();
     this.#invalidate(undefined, undefined, changedFiles, removedFiles);
   }
 
