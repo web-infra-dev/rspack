@@ -285,8 +285,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           &chunk_has_css,
         );
 
-      let with_css_hmr = with_css_modules && with_hmr;
-      let with_link_runtime = with_css_hmr || with_loading || with_prefetch || with_preload;
+      let with_link_runtime = with_hmr || with_loading || with_prefetch || with_preload;
 
       if !with_link_runtime && !with_inject_style && !with_style_sheet {
         return Ok(String::new());
@@ -414,7 +413,7 @@ impl RuntimeModule for CssLoadingRuntimeModule {
           source.push_str(&source_with_preload);
         }
 
-        if with_css_hmr {
+        if with_hmr {
           let source_with_hmr = context.runtime_template.render(
             &self.template_id(TemplateId::WithHmr),
             Some(serde_json::json!({
