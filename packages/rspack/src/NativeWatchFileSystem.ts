@@ -93,6 +93,19 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
     return this.#watcher;
   }
 
+  #purge(changes: Iterable<string>, removals: Iterable<string>): void {
+    const fs = this.#inputFileSystem;
+    if (!fs.purge) {
+      return;
+    }
+    for (const item of changes) {
+      fs.purge(item);
+    }
+    for (const item of removals) {
+      fs.purge(item);
+    }
+  }
+
   watch(
     files: Iterable<string> & {
       added?: Iterable<string>;
@@ -169,15 +182,7 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
         const changedFiles = result.changedFiles;
         const removedFiles = result.removedFiles;
-        if (this.#inputFileSystem?.purge) {
-          const fs = this.#inputFileSystem;
-          for (const item of changedFiles) {
-            fs.purge?.(item);
-          }
-          for (const item of removedFiles) {
-            fs.purge?.(item);
-          }
-        }
+        this.#purge(changedFiles, removedFiles);
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
@@ -229,7 +234,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         nativeWatcher.pause();
       },
 
-      getInfo() {
+      getInfo: () => {
+        this.#purge(pendingChanges, pendingRemovals);
         return {
           changes: new Set(pendingChanges),
           removals: new Set(pendingRemovals),
