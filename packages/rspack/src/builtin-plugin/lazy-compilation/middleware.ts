@@ -271,15 +271,20 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     if (moduleActivated.length && compiler.watching) {
-      const lazyCompilerState = lazyCompiler as unknown as Record<
-        PropertyKey,
-        unknown
-      >;
-      lazyCompilerState[LAZY_COMPILATION_INVALIDATION] = true;
+      const invalidatedCompilers =
+        compiler instanceof MultiCompiler ? compiler.compilers : [lazyCompiler];
+      const compilerStates = invalidatedCompilers.map(
+        (compiler) => compiler as unknown as Record<PropertyKey, unknown>,
+      );
+      for (const compilerState of compilerStates) {
+        compilerState[LAZY_COMPILATION_INVALIDATION] = true;
+      }
       try {
         compiler.watching.invalidate();
       } finally {
-        lazyCompilerState[LAZY_COMPILATION_INVALIDATION] = false;
+        for (const compilerState of compilerStates) {
+          compilerState[LAZY_COMPILATION_INVALIDATION] = false;
+        }
       }
     }
 
