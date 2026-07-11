@@ -56,6 +56,10 @@ struct TaskLoop<Ctx> {
   main_task_queue: VecDeque<Box<dyn Task<Ctx>>>,
   /// The count of the running background tasks which run immediately in tokio thread workers when they are returned
   background_task_count: u32,
+  /// Background tasks waiting for a concurrency slot.
+  background_task_queue: VecDeque<Box<dyn Task<Ctx>>>,
+  /// Maximum number of background tasks running at once.
+  background_task_concurrency: usize,
   /// Mark whether the task loop has been returned.
   /// The async task should not call `tx.send` after this mark to true
   is_expected_shutdown: Arc<AtomicBool>,
@@ -66,12 +70,14 @@ struct TaskLoop<Ctx> {
 }
 
 impl<Ctx: 'static> TaskLoop<Ctx> {
-  fn new(init_main_tasks: Vec<Box<dyn Task<Ctx>>>) -> Self {
+  fn new(init_main_tasks: Vec<Box<dyn Task<Ctx>>>, background_task_concurrency: usize) -> Self {
     let (tx, rx) = mpsc::unbounded_channel::<TaskResult<Ctx>>();
     Self {
       main_task_queue: VecDeque::from(init_main_tasks),
       is_expected_shutdown: Arc::new(AtomicBool::new(false)),
       background_task_count: 0,
+      background_task_queue: VecDeque::new(),
+      background_task_concurrency: background_task_concurrency.max(1),
       task_result_sender: tx,
       task_result_receiver: rx,
     }
@@ -92,6 +98,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
       while let Ok(res) = self.task_result_receiver.try_recv() {
         self.background_task_count -= 1;
         self.handle_task_result(res, false)?;
+        self.spawn_queued_background_tasks();
       }
 
       let task = self.main_task_queue.pop_front();
@@ -110,6 +117,7 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
           .expect("should recv success");
         self.background_task_count -= 1;
         self.handle_task_result(res, false)?;
+        self.spawn_queued_background_tasks();
         continue;
       }
 
@@ -155,6 +163,11 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
   }
 
   fn spawn_background(&mut self, task: Box<dyn Task<Ctx>>) {
+    if self.background_task_count as usize >= self.background_task_concurrency {
+      self.background_task_queue.push_back(task);
+      return;
+    }
+
     let tx = self.task_result_sender.clone();
     let is_expected_shutdown = self.is_expected_shutdown.clone();
     self.background_task_count += 1;
@@ -168,6 +181,21 @@ impl<Ctx: 'static> TaskLoop<Ctx> {
       .in_current_span(),
     ));
   }
+
+  fn spawn_queued_background_tasks(&mut self) {
+    while (self.background_task_count as usize) < self.background_task_concurrency {
+      let Some(task) = self.background_task_queue.pop_front() else {
+        break;
+      };
+      self.spawn_background(task);
+    }
+  }
+}
+
+fn default_background_task_concurrency() -> usize {
+  std::thread::available_parallelism()
+    .map_or(1, usize::from)
+    .saturating_mul(2)
 }
 
 pub async fn run_task_loop<Ctx: 'static>(
@@ -177,12 +205,14 @@ pub async fn run_task_loop<Ctx: 'static>(
   let (background_tasks, main_tasks) = init_tasks
     .into_iter()
     .partition(|task| matches!(task.get_task_type(), TaskType::Background));
-  let mut task_loop = TaskLoop::new(main_tasks);
+  let mut task_loop = TaskLoop::new(main_tasks, default_background_task_concurrency());
   task_loop.run_task_loop(ctx, background_tasks).await
 }
 
 #[cfg(test)]
 mod test {
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
   use rspack_error::error;
   use rspack_tasks::within_compiler_context_for_testing;
 
@@ -223,6 +253,27 @@ mod test {
   #[derive(Debug)]
   struct AsyncTask {
     async_return_error: bool,
+  }
+
+  #[derive(Debug)]
+  struct ConcurrencyTrackingTask {
+    running: Arc<AtomicUsize>,
+    max_running: Arc<AtomicUsize>,
+  }
+
+  #[async_trait::async_trait]
+  impl Task<Context> for ConcurrencyTrackingTask {
+    fn get_task_type(&self) -> TaskType {
+      TaskType::Background
+    }
+
+    async fn background_run(self: Box<Self>) -> TaskResult<Context> {
+      let running = self.running.fetch_add(1, Ordering::SeqCst) + 1;
+      self.max_running.fetch_max(running, Ordering::SeqCst);
+      tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+      self.running.fetch_sub(1, Ordering::SeqCst);
+      Ok(vec![])
+    }
   }
   #[async_trait::async_trait]
   impl Task<Context> for AsyncTask {
@@ -295,6 +346,31 @@ mod test {
         "should return async error"
       );
       assert_eq!(context.call_sync_task_count, 1);
+    })
+    .await;
+  }
+
+  #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+  async fn limits_background_task_concurrency() {
+    within_compiler_context_for_testing(async {
+      let running = Arc::new(AtomicUsize::new(0));
+      let max_running = Arc::new(AtomicUsize::new(0));
+      let tasks = (0..8)
+        .map(|_| {
+          Box::new(ConcurrencyTrackingTask {
+            running: running.clone(),
+            max_running: max_running.clone(),
+          }) as Box<dyn Task<Context>>
+        })
+        .collect();
+      let mut task_loop = TaskLoop::new(vec![], 2);
+
+      task_loop
+        .run_task_loop(&mut Context::default(), tasks)
+        .await
+        .expect("task loop should succeed");
+
+      assert_eq!(max_running.load(Ordering::SeqCst), 2);
     })
     .await;
   }
