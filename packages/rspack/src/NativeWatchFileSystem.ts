@@ -186,6 +186,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
         // TODO: add fileTimeInfoEntries and contextTimeInfoEntries
         const changes = new Set(changedFiles);
         const removals = new Set(removedFiles);
+        pendingChanges.clear();
+        pendingRemovals.clear();
         // Mirror watchpack's public `aggregated` event (the batched summary
         // delivered after the aggregate timeout) on both the standard
         // `on`/`once` API and the watchpack-compatible `.watcher` shim. Emitted
