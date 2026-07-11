@@ -153,6 +153,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       this.#inner?.triggerEvent(kind, path),
     );
     this.#watcher = watcher;
+    const pendingChanges = new Set<string>();
+    const pendingRemovals = new Set<string>();
 
     nativeWatcher.watch(
       this.formatWatchDependencies(files),
@@ -191,6 +193,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
       (event) => {
         if (event.kind === 'change') {
+          pendingRemovals.delete(event.path);
+          pendingChanges.add(event.path);
           // The native watcher reports paths without an mtime, so events are
           // stamped with their arrival time.
           const mtime = Date.now();
@@ -198,6 +202,8 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
           this.#events.emit('change', event.path, mtime);
           watcher.emit('change', event.path, mtime);
         } else {
+          pendingChanges.delete(event.path);
+          pendingRemovals.add(event.path);
           this.#events.emit('remove', event.path);
           watcher.emit('remove', event.path);
         }
@@ -224,11 +230,9 @@ export default class NativeWatchFileSystem implements WatchFileSystem {
       },
 
       getInfo() {
-        // This is a placeholder implementation.
-        // TODO: The actual implementation should return the current state of the watcher.
         return {
-          changes: new Set(),
-          removals: new Set(),
+          changes: new Set(pendingChanges),
+          removals: new Set(pendingRemovals),
           fileTimeInfoEntries: new Map(),
           contextTimeInfoEntries: new Map(),
         };
