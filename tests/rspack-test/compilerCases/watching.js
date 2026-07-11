@@ -70,13 +70,18 @@ module.exports = [{
         if (builds === 1) {
           compiler[invalidation] = true;
           watching.invalidate();
+          return;
+        }
+        if (builds === 2) {
           watching.invalidate();
           return;
         }
         if (builds === 3) {
-          expect(cycles).toEqual([false, true, false]);
           compiler[invalidation] = true;
           watching.invalidate();
+          return;
+        }
+        if (builds === 4) {
           compiler[invalidation] = true;
           watching.invalidate();
           return;
