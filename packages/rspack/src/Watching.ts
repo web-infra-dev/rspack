@@ -140,6 +140,13 @@ export class Watching {
           this.compiler.removedFiles = undefined;
           return this.handler(err);
         }
+        if ((changedFiles?.size ?? 0) > 0 || (removedFiles?.size ?? 0) > 0) {
+          const compilerState = this.compiler as unknown as Record<
+            PropertyKey,
+            unknown
+          >;
+          compilerState[LAZY_COMPILATION_NORMAL_PENDING] = true;
+        }
         this.#invalidate(
           fileTimeInfoEntries,
           contextTimeInfoEntries,

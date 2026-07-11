@@ -1012,7 +1012,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
           array.every(({ chunkGroup }) => {
             if (chunkGroup.chunks.length !== 1) return false;
             return (
-              chunkGroup.assets.length === 1 &&
+              (chunkGroup.assets?.length ?? 0) === 1 &&
               (!chunkGroupAuxiliary ||
                 (chunkGroup.auxiliaryAssets?.length ?? 0) === 0)
             );
