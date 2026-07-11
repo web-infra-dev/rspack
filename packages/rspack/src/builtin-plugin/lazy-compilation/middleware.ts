@@ -9,6 +9,9 @@ import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 const require = createRequire(import.meta.url);
 
 export const LAZY_COMPILATION_PREFIX = '/_rspack/lazy/trigger';
+const LAZY_COMPILATION_INVALIDATION = Symbol.for(
+  'rspack.lazyCompilationInvalidation',
+);
 
 const getDefaultClient = (compiler: Compiler): string =>
   require.resolve(
@@ -72,7 +75,12 @@ export const lazyCompilationMiddleware = (
 
       middlewareByCompiler.set(
         options.prefix,
-        lazyCompilationMiddlewareInternal(c, activeModules, options.prefix),
+        lazyCompilationMiddlewareInternal(
+          c,
+          compiler,
+          activeModules,
+          options.prefix,
+        ),
       );
 
       applyPlugin(c, options, activeModules);
@@ -105,6 +113,7 @@ export const lazyCompilationMiddleware = (
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
+    compiler,
     compiler,
     activeModules,
     lazyCompilationPrefix,
@@ -225,11 +234,12 @@ function readModuleIdsFromBody(
 }
 
 const lazyCompilationMiddlewareInternal = (
+  lazyCompiler: Compiler,
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
-  const logger = compiler.getInfrastructureLogger('LazyCompilation');
+  const logger = lazyCompiler.getInfrastructureLogger('LazyCompilation');
 
   return async (
     req: IncomingMessage,
@@ -261,7 +271,16 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     if (moduleActivated.length && compiler.watching) {
-      compiler.watching.invalidate();
+      const lazyCompilerState = lazyCompiler as unknown as Record<
+        PropertyKey,
+        unknown
+      >;
+      lazyCompilerState[LAZY_COMPILATION_INVALIDATION] = true;
+      try {
+        compiler.watching.invalidate();
+      } finally {
+        lazyCompilerState[LAZY_COMPILATION_INVALIDATION] = false;
+      }
     }
 
     res.writeHead(200);

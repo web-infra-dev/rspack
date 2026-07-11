@@ -16,6 +16,15 @@ import type { FileSystemInfoEntry, Watcher } from './util/fs';
 
 type PendingWatchDelta = { added: Set<string>; removed: Set<string> };
 
+const LAZY_COMPILATION_INVALIDATION = Symbol.for(
+  'rspack.lazyCompilationInvalidation',
+);
+const LAZY_COMPILATION_PENDING = Symbol.for('rspack.lazyCompilationPending');
+const LAZY_COMPILATION_NORMAL_PENDING = Symbol.for(
+  'rspack.lazyCompilationNormalPending',
+);
+const LAZY_COMPILATION_CURRENT = Symbol.for('rspack.lazyCompilationCurrent');
+
 // Merge an incremental `(added, removed)` delta into an accumulator, cancelling
 // a path that is added then removed (or vice-versa) across calls.
 function foldWatchDelta(
@@ -218,9 +227,24 @@ export class Watching {
     if (callback) {
       this.callbacks.push(callback);
     }
-    if (!this.#invalidReported) {
-      this.#invalidReported = true;
-      this.compiler.hooks.invalid.call(null, Date.now());
+    const compilerState = this.compiler as unknown as Record<
+      PropertyKey,
+      unknown
+    >;
+    const isLazyCompilationInvalidation =
+      compilerState[LAZY_COMPILATION_INVALIDATION] === true;
+    compilerState[
+      isLazyCompilationInvalidation
+        ? LAZY_COMPILATION_PENDING
+        : LAZY_COMPILATION_NORMAL_PENDING
+    ] = true;
+    try {
+      if (!this.#invalidReported) {
+        this.#invalidReported = true;
+        this.compiler.hooks.invalid.call(null, Date.now());
+      }
+    } finally {
+      compilerState[LAZY_COMPILATION_INVALIDATION] = false;
     }
     this.onChange();
     this.#invalidate();
@@ -237,9 +261,24 @@ export class Watching {
     if (callback) {
       this.callbacks.push(callback);
     }
-    if (!this.#invalidReported) {
-      this.#invalidReported = true;
-      this.compiler.hooks.invalid.call(null, Date.now());
+    const compilerState = this.compiler as unknown as Record<
+      PropertyKey,
+      unknown
+    >;
+    const isLazyCompilationInvalidation =
+      compilerState[LAZY_COMPILATION_INVALIDATION] === true;
+    compilerState[
+      isLazyCompilationInvalidation
+        ? LAZY_COMPILATION_PENDING
+        : LAZY_COMPILATION_NORMAL_PENDING
+    ] = true;
+    try {
+      if (!this.#invalidReported) {
+        this.#invalidReported = true;
+        this.compiler.hooks.invalid.call(null, Date.now());
+      }
+    } finally {
+      compilerState[LAZY_COMPILATION_INVALIDATION] = false;
     }
     this.onChange();
     this.#invalidate(undefined, undefined, changedFiles, removedFiles);
@@ -278,6 +317,16 @@ export class Watching {
     changedFiles?: ReadonlySet<string>,
     removedFiles?: ReadonlySet<string>,
   ) {
+    const compilerState = this.compiler as unknown as Record<
+      PropertyKey,
+      unknown
+    >;
+    compilerState[LAZY_COMPILATION_CURRENT] =
+      compilerState[LAZY_COMPILATION_PENDING] === true &&
+      compilerState[LAZY_COMPILATION_NORMAL_PENDING] !== true;
+    compilerState[LAZY_COMPILATION_PENDING] = false;
+    compilerState[LAZY_COMPILATION_NORMAL_PENDING] = false;
+
     this.#initial = false;
     if (this.startTime === undefined) this.startTime = Date.now();
     this.running = true;
