@@ -188,6 +188,29 @@ const preInitializationThrows = [
 		}
 	})()
 ];
+const preInitializationAliasThrows = [
+	(() => {
+		try {
+			var declaratorAlias = declaratorRequire,
+				declaratorRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+			declaratorAlias("./declarator-alias-must-not-be-bundled.js");
+			return false;
+		} catch {
+			return true;
+		}
+	})(),
+	(() => {
+		try {
+			var assignmentAlias;
+			assignmentAlias = assignmentRequire;
+			var assignmentRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+			assignmentAlias("./assignment-alias-must-not-be-bundled.js");
+			return false;
+		} catch {
+			return true;
+		}
+	})()
+];
 
 // ./with-ignored-uses.js
 
@@ -239,6 +262,7 @@ it("preserves created require only for unhandled usages across modules", () => {
 	expect(beforeDeclarationBuiltinJoinType).toBe("function");
 	expect(beforeDeclarationUnknownMember).toBe(undefined);
 	expect(handledAliasedCalleeRequired).toBe("dep");
+	expect(preInitializationAliasThrows).toEqual([true, true]);
 	expect(preInitializationThrows).toEqual([true, true, true]);
 	expect(shadowedCalleeThrows).toBe(true);
 	expect(ignoredRequiredJoinType).toBe("function");
@@ -253,7 +277,7 @@ it("preserves created require only for unhandled usages across modules", () => {
 	]);
 });
 
-export { beforeAliasedCalleeUnknownMember, beforeAssignmentUnknownMember, beforeDeclarationBuiltinJoinType, beforeDeclarationUnknownMember, conditionalUnknownMember, escapedRequireType, handledAliasedCalleeRequired, ignoredRequiredJoinType, ignoredResolved, inlineEscapedRequireType, inlineIgnoredRequiredJoinType, inlineIgnoredResolved, mixedRequired, mixedResolved, mixedUnknownMember, mutationUnknowns, nonDeferredEscapedRequireType, nonDeferredUnknownMember, preInitializationThrows, required, resolved, shadowedCalleeThrows, unknownMember };
+export { beforeAliasedCalleeUnknownMember, beforeAssignmentUnknownMember, beforeDeclarationBuiltinJoinType, beforeDeclarationUnknownMember, conditionalUnknownMember, escapedRequireType, handledAliasedCalleeRequired, ignoredRequiredJoinType, ignoredResolved, inlineEscapedRequireType, inlineIgnoredRequiredJoinType, inlineIgnoredResolved, mixedRequired, mixedResolved, mixedUnknownMember, mutationUnknowns, nonDeferredEscapedRequireType, nonDeferredUnknownMember, preInitializationAliasThrows, preInitializationThrows, required, resolved, shadowedCalleeThrows, unknownMember };
 
 ```
 

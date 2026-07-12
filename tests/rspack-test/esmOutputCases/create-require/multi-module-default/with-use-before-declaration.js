@@ -69,3 +69,26 @@ export const preInitializationThrows = [
 		}
 	})()
 ];
+export const preInitializationAliasThrows = [
+	(() => {
+		try {
+			var declaratorAlias = declaratorRequire,
+				declaratorRequire = createRequire(import.meta.url);
+			declaratorAlias("./declarator-alias-must-not-be-bundled.js");
+			return false;
+		} catch {
+			return true;
+		}
+	})(),
+	(() => {
+		try {
+			var assignmentAlias;
+			assignmentAlias = assignmentRequire;
+			var assignmentRequire = createRequire(import.meta.url);
+			assignmentAlias("./assignment-alias-must-not-be-bundled.js");
+			return false;
+		} catch {
+			return true;
+		}
+	})()
+];

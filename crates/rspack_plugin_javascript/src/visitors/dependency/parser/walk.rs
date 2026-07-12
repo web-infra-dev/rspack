@@ -737,7 +737,11 @@ impl JavascriptParser<'_> {
     }
     if let Some(variable) = expr.right.as_ident().and_then(|rhs| {
       let rhs_name = Atom::from(rhs.sym.as_str());
-      if !self.has_create_require_tag(&rhs_name, false) {
+      if self
+        .get_tag_data::<CreatedRequireTagData>(&rhs_name, CREATED_REQUIRE_IDENTIFIER_TAG)
+        .is_some_and(|data| data.pre_walk)
+        || !self.has_create_require_tag(&rhs_name, false)
+      {
         return None;
       }
       self.mark_created_require_must_keep(&rhs_name);
@@ -752,6 +756,7 @@ impl JavascriptParser<'_> {
     if let Some(rename_identifier) = self.get_rename_identifier(&expr.right)
       && let Some((context, decl_span)) = self
         .get_tag_data::<CreatedRequireTagData>(&rename_identifier, CREATED_REQUIRE_IDENTIFIER_TAG)
+        .filter(|data| !data.pre_walk)
         .map(|data| (data.context.clone(), data.decl_span))
     {
       self.mark_created_require_must_keep(&rename_identifier);
@@ -788,6 +793,7 @@ impl JavascriptParser<'_> {
   fn copy_create_require_assignment_result(&mut self, binding: Atom, target: &Atom) {
     if let Some((context, decl_span)) = self
       .get_tag_data::<CreatedRequireTagData>(target, CREATED_REQUIRE_IDENTIFIER_TAG)
+      .filter(|data| !data.pre_walk)
       .map(|data| (data.context.clone(), data.decl_span))
     {
       self.mark_created_require_must_keep(target);

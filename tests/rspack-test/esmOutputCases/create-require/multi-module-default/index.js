@@ -20,6 +20,7 @@ import {
 	beforeDeclarationBuiltinJoinType,
 	beforeDeclarationUnknownMember,
 	handledAliasedCalleeRequired,
+	preInitializationAliasThrows,
 	preInitializationThrows,
 	shadowedCalleeThrows
 } from "./with-use-before-declaration.js";
@@ -49,6 +50,7 @@ export {
 	mutationUnknowns,
 	nonDeferredEscapedRequireType,
 	nonDeferredUnknownMember,
+	preInitializationAliasThrows,
 	preInitializationThrows,
 	required,
 	resolved,
@@ -73,6 +75,7 @@ it("preserves created require only for unhandled usages across modules", () => {
 	expect(beforeDeclarationBuiltinJoinType).toBe("function");
 	expect(beforeDeclarationUnknownMember).toBe(undefined);
 	expect(handledAliasedCalleeRequired).toBe("dep");
+	expect(preInitializationAliasThrows).toEqual([true, true]);
 	expect(preInitializationThrows).toEqual([true, true, true]);
 	expect(shadowedCalleeThrows).toBe(true);
 	expect(ignoredRequiredJoinType).toBe("function");

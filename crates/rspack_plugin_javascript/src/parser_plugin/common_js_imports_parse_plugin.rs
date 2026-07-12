@@ -2184,6 +2184,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for CommonJsImportsParserPlugin {
           &Atom::from(init.sym.as_str()),
           CREATED_REQUIRE_IDENTIFIER_TAG,
         )
+        .filter(|data| !data.pre_walk)
         .map(|data| (data.context.clone(), data.decl_span))
       && let Some(binding) = declarator.name.as_ident()
     {
