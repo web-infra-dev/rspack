@@ -11,12 +11,12 @@ use rspack_core::{
   ChunkUkey, CodeGenerationPublicPathAutoReplace, Compilation, ConcatenatedModuleIdent,
   ConditionalInitFragment, DependencyType, ExportInfo, ExportMode, ExportProvided,
   ExportsInfoArtifact, ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, PathData,
-  RuntimeGlobals, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName,
-  UsedNameItem, collect_ident, escape_name_atom_ref, find_new_name, find_target,
-  get_cached_readable_identifier, get_js_chunk_filename_template, get_module_directives,
-  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, split_readable_identifier, to_normal_comment,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem,
+  collect_ident, escape_name_atom_ref, find_new_name, find_target, get_cached_readable_identifier,
+  get_module_directives, get_module_hashbang, property_access, property_name,
+  reserved_names::RESERVED_NAMES_ATOM_SET, rspack_sources::ReplaceSource,
+  split_readable_identifier, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Result};
 use rspack_plugin_javascript::{
@@ -621,25 +621,25 @@ impl EsmLibraryPlugin {
     let mut namespace_object_sources: IdentifierMap<String> = IdentifierMap::default();
     let mut namespace_re_export_star_cache = IdentifierMap::default();
     for (ukey, mut needed_namespace_objects) in needed_namespace_objects_by_ukey {
-      let mut visited = FxHashSet::default();
-
       let chunk_link = link.get_mut_unwrap(&ukey);
 
       // webpack require iterate the needed_namespace_objects and mutate `needed_namespace_objects`
       // at the same time, https://github.com/webpack/webpack/blob/1f99ad6367f2b8a6ef17cce0e058f7a67fb7db18/lib/optimize/ConcatenatedModule.js#L1514
-      // Which is impossible in rust, using a fixed point algorithm  to reach the same goal.
+      // Process the insertion-ordered set as a worklist. Newly discovered namespace objects are
+      // handled in the next round without cloning all previously visited modules.
+      let mut next_namespace_object = 0;
       loop {
-        let mut changed = false;
+        let round_end = needed_namespace_objects.len();
+        if next_namespace_object == round_end {
+          break;
+        }
 
-        // using the previous round snapshot `needed_namespace_objects` to iterate, and modify the
-        // original `needed_namespace_objects` during the iteration,
-        // if there is no new id inserted into `needed_namespace_objects`, break the outer loop
-        for module_info_id in needed_namespace_objects.clone().iter() {
-          if visited.contains(module_info_id) {
-            continue;
-          }
-          visited.insert(*module_info_id);
-          changed = true;
+        for index in next_namespace_object..round_end {
+          let module_info_id = needed_namespace_objects
+            .get_index(index)
+            .copied()
+            .expect("index is within the current worklist");
+          let module_info_id = &module_info_id;
 
           let module_info = concate_modules_map[module_info_id].as_concatenated();
           let mut runtime_template = compilation.runtime_template.create_module_code_template();
@@ -903,9 +903,7 @@ var {} = {{}};
             .runtime_requirements
             .insert(*runtime_template.runtime_requirements());
         }
-        if !changed {
-          break;
-        }
+        next_namespace_object = round_end;
       }
     }
 
@@ -1377,54 +1375,6 @@ var {} = {{}};
     external_module_init_fragments: &mut IdentifierMap<ChunkInitFragments>,
   ) -> Result<()> {
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
-    let mut outputs = FxHashMap::<ChunkUkey, String>::default();
-    let module_keys: Vec<ModuleIdentifier> = orig_concate_modules_map.keys().copied().collect();
-    for m in &module_keys {
-      if compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_chunks(*m)
-        .is_empty()
-      {
-        // orphan module
-        continue;
-      }
-
-      let chunk_ukey = Self::get_module_chunk(*m, compilation)?;
-      let chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&chunk_ukey);
-      let filename_template = get_js_chunk_filename_template(
-        chunk,
-        &compilation.options.output,
-        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      );
-
-      let output_path = compilation
-        .get_path_with_info(
-          &filename_template,
-          PathData::default()
-            .chunk(chunk.ukey(), compilation)
-            .chunk_hash_optional(chunk.rendered_hash(
-              &compilation.chunk_hashes_artifact,
-              compilation.options.output.hash_digest_length,
-            ))
-            .chunk_id_optional(chunk.id().map(|id| id.as_str()))
-            .chunk_name_optional(chunk.name_for_filename_template())
-            .content_hash_optional(chunk.rendered_content_hash_by_source_type(
-              &compilation.chunk_hashes_artifact,
-              &SourceType::JavaScript,
-              compilation.options.output.hash_digest_length,
-            ))
-            .runtime(chunk.runtime().as_str()),
-          &mut Default::default(),
-        )
-        .await
-        .expect("should have output path");
-      outputs.insert(chunk_ukey, output_path);
-    }
-
     let concate_modules_map = std::mem::take(orig_concate_modules_map);
     let map = rspack_parallel::scope::<_, _>(|token| {
       for (m, info) in concate_modules_map {
@@ -2649,9 +2599,9 @@ var {} = {{}};
       // foo; // access foo
       // foo; // access foo again, but no require call
       // ```
-      for m in chunk_link.hoisted_modules.clone() {
+      for m in &chunk_link.hoisted_modules {
         let module = module_graph
-          .module_by_identifier(&m)
+          .module_by_identifier(m)
           .expect("should have module");
 
         // make sure all side-effect modules are rendered
@@ -2718,7 +2668,7 @@ var {} = {{}};
 
             Self::add_require(
               ref_module,
-              Some(m),
+              Some(*m),
               /*
               do not specify the symbol now, if it really needs to be used, it will be
               modified later by get_binding
@@ -2730,7 +2680,7 @@ var {} = {{}};
           }
         }
 
-        let codegen_res = compilation.code_generation_results.get(&m, None);
+        let codegen_res = compilation.code_generation_results.get(m, None);
         let concatenation_scope = codegen_res
           .concatenation_scope
           .as_ref()
@@ -2744,7 +2694,7 @@ var {} = {{}};
             }
 
             let Some(binding) = Self::get_binding(
-              Some(m),
+              Some(*m),
               module_graph,
               &compilation.module_graph_cache_artifact,
               &compilation.exports_info_artifact,
