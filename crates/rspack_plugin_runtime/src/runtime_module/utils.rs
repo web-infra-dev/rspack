@@ -1,7 +1,7 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModuleCodeTemplate,
   SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
@@ -63,7 +63,7 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
 }
 
 pub fn render_hmr_runtime_state_expression(
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeModuleCodeTemplate<'_>,
   key: &str,
 ) -> String {
   let state_prefix = if runtime_template.uses_lexical_runtime_globals() {
@@ -249,7 +249,7 @@ fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String 
 pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
-  runtime_template: &RuntimeCodeTemplate,
+  runtime_template: &RuntimeModuleCodeTemplate,
 ) -> Result<String> {
   runtime_template.render(
     key,

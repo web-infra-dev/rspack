@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  BooleanMatcher, Chunk, Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleCodeTemplate,
   RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeModuleStage,
   RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
@@ -76,7 +76,7 @@ impl RequireChunkLoadingRuntimeModule {
     chunk: &Chunk,
     compilation: &Compilation,
     root_output_dir: &str,
-    runtime_template: &RuntimeCodeTemplate<'_>,
+    runtime_template: &RuntimeModuleCodeTemplate<'_>,
   ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

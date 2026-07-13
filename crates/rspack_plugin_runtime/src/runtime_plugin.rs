@@ -249,7 +249,9 @@ async fn runtime_requirements_in_tree(
         }
       }
       RuntimeGlobals::GET_CHUNK_SCRIPT_FILENAME => {
-        let runtime_template = compilation.runtime_template.create_runtime_code_template();
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(
@@ -273,7 +275,9 @@ async fn runtime_requirements_in_tree(
         ));
       }
       RuntimeGlobals::GET_CHUNK_CSS_FILENAME => {
-        let runtime_template = compilation.runtime_template.create_runtime_code_template();
+        let runtime_template = compilation
+          .runtime_template
+          .create_runtime_module_code_template();
         runtime_modules_to_add.push((
           *chunk_ukey,
           GetChunkFilenameRuntimeModule::new(

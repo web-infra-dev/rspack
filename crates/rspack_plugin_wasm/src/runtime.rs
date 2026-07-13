@@ -1,6 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_core::{
-  Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
+  Compilation, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleCodeTemplate,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
   get_filename_without_hash_length, impl_runtime_module,
 };
@@ -216,7 +216,7 @@ fn get_async_wasm_loading(
   generate_before_load_binary_code: &str,
   generate_before_instantiate_streaming: &str,
   supports_streaming: bool,
-  runtime_template: &RuntimeCodeTemplate,
+  runtime_template: &RuntimeModuleCodeTemplate,
 ) -> String {
   let fallback_code = r#"
           .then(function(x) { return x.arrayBuffer();})
@@ -277,7 +277,7 @@ fn get_async_wasm_compile(
   generate_before_load_binary_code: &str,
   generate_before_compile_streaming: &str,
   supports_streaming: bool,
-  runtime_template: &RuntimeCodeTemplate,
+  runtime_template: &RuntimeModuleCodeTemplate,
 ) -> String {
   let fallback_code = format!(
     r#"

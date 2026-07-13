@@ -1481,7 +1481,9 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let runtime_template = compilation.runtime_template.create_runtime_code_template();
+    let runtime_template = compilation
+      .runtime_template
+      .create_runtime_module_code_template();
     let context = RuntimeModuleGenerateContext {
       compilation,
       runtime_template: &runtime_template,

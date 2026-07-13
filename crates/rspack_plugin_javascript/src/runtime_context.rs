@@ -77,8 +77,7 @@ pub async fn render_runtime_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -224,8 +223,7 @@ pub async fn render_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -310,8 +308,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());

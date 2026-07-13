@@ -81,7 +81,7 @@ mod utils {
   use std::fmt;
 
   use rspack_core::{
-    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+    Compilation, ModuleCodeTemplate, RuntimeGlobals, RuntimeModuleCodeTemplate, RuntimeVariable,
     runtime_mode::RuntimeMode,
   };
   use serde::Serialize;
@@ -90,7 +90,7 @@ mod utils {
     simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
   }
 
-  pub fn runtime_require_scope_name(runtime_template: &RuntimeCodeTemplate<'_>) -> String {
+  pub fn runtime_require_scope_name(runtime_template: &RuntimeModuleCodeTemplate<'_>) -> String {
     if runtime_template.uses_runtime_context() {
       runtime_template.render_runtime_variable(&RuntimeVariable::Context)
     } else {

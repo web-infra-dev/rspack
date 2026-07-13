@@ -5,8 +5,6 @@ use heck::ToLowerCamelCase;
 use rspack_hash::{RspackHash, RspackHasher};
 use rustc_hash::FxHashMap;
 
-use crate::{CompilerOptions, runtime_mode::RuntimeMode};
-
 #[rspack_cacheable::cacheable]
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 pub struct RuntimeGlobals(u128);
@@ -496,16 +494,6 @@ pub enum RuntimeVariable {
   Module,
   Exports,
   StartupExec,
-}
-
-pub fn runtime_variable_to_string(
-  runtime_variable: &RuntimeVariable,
-  compiler_options: &CompilerOptions,
-) -> String {
-  match compiler_options.experiments.runtime_mode {
-    RuntimeMode::Webpack => runtime_variable_name(runtime_variable).to_string(),
-    RuntimeMode::Rspack => rspack_runtime_variable_name(runtime_variable).to_string(),
-  }
 }
 
 pub fn rspack_runtime_variable_name(runtime_variable: &RuntimeVariable) -> &'static str {

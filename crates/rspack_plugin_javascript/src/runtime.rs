@@ -387,7 +387,7 @@ pub async fn render_runtime_modules(
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await
   } else {
-    render_webpack_runtime_modules(compilation, chunk_ukey, runtime_template).await
+    render_webpack_runtime_modules(compilation, chunk_ukey).await
   }
 }
 
@@ -396,7 +396,6 @@ pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlo
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
   reject_custom_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
   let runtime_mode = compilation.options.experiments.runtime_mode;
@@ -415,9 +414,9 @@ pub(crate) async fn render_runtime_module_sources(
         )
       })
       .for_each(|(source, module)| {
-        let s = unsafe { token.used((compilation, source, module, runtime_template)) };
+        let s = unsafe { token.used((compilation, source, module)) };
         s.spawn(
-          move |(compilation, source, module, runtime_template)| async move {
+          move |(compilation, source, module)| async move {
             if source.size() == 0 {
               return Ok((
                 ConcatSource::default().boxed(),
@@ -443,11 +442,7 @@ pub(crate) async fn render_runtime_module_sources(
               .output
               .environment
               .supports_arrow_function();
-            let source = if !(module.full_hash()
-              || module.dependent_hash()
-              || (runtime_template.uses_runtime_context()
-                && !runtime_template.uses_lexical_runtime_globals()))
-            {
+            let source = if !(module.full_hash() || module.dependent_hash()) {
               if let Some(custom_source) = module.get_custom_source() {
                 RawStringSource::from(custom_source).boxed()
               } else {
@@ -457,7 +452,7 @@ pub(crate) async fn render_runtime_module_sources(
               if let Some(custom_source) = module.get_custom_source() {
                 RawStringSource::from(custom_source).boxed()
               } else {
-                let runtime_template = compilation.runtime_template.create_runtime_code_template();
+                let runtime_template = compilation.runtime_template.create_runtime_module_code_template();
                 let context = RuntimeModuleGenerateContext {
                   compilation,
                   runtime_template: &runtime_template,
@@ -501,10 +496,9 @@ pub(crate) async fn render_runtime_module_sources(
 async fn render_webpack_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, false).await?;
   let mut sources = ConcatSource::default();
 
   for (runtime_module_source, _, _, _) in runtime_module_sources {

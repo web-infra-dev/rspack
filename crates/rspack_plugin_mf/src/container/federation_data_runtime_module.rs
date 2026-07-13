@@ -6,7 +6,7 @@
 
 use async_trait::async_trait;
 use rspack_core::{
-  BooleanMatcher, Chunk, Compilation, PathData, RuntimeCodeTemplate, RuntimeModule,
+  BooleanMatcher, Chunk, Compilation, PathData, RuntimeModule, RuntimeModuleCodeTemplate,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
   compile_boolean_matcher, get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
@@ -52,7 +52,7 @@ impl RuntimeModule for FederationDataRuntimeModule {
 
 pub async fn federation_runtime_template(
   chunk: &Chunk,
-  runtime_template: &RuntimeCodeTemplate<'_>,
+  runtime_template: &RuntimeModuleCodeTemplate<'_>,
   compilation: &Compilation,
 ) -> String {
   let federation_global = format!(
