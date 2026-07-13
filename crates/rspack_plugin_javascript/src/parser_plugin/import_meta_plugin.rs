@@ -386,13 +386,11 @@ impl ImportMetaPlugin {
     if let Some(api) = import_meta_runtime_api_from_name(name) {
       return Some(api.property);
     }
-    if matches!(
-      name,
-      expr_name::IMPORT_META_HOT | expr_name::IMPORT_META_HOT_ALIAS
-    ) {
-      return Some(ImportMetaKnownProperties::WEBPACK_HOT);
+    match name {
+      expr_name::IMPORT_META_HOT => Some(ImportMetaKnownProperties::WEBPACK_HOT),
+      expr_name::IMPORT_META_HOT_ALIAS => Some(ImportMetaKnownProperties::HOT),
+      _ => None,
     }
-    None
   }
 
   fn preserve_property(&self, parser: &JavascriptParser, property: Option<&str>) -> bool {

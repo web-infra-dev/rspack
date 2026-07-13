@@ -1205,6 +1205,11 @@ export type ImportMetaParserOptions = {
   glob?: boolean;
 
   /**
+   * Enable/disable evaluating import.meta.hot.
+   */
+  hot?: boolean;
+
+  /**
    * Enable/disable evaluating import.meta.main.
    */
   main?: boolean;

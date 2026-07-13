@@ -395,6 +395,7 @@ define_import_meta_known_properties! {
   const ENV = "env";
   const FILENAME = "filename";
   const GLOB = "glob";
+  const HOT = "hot";
   const MAIN = "main";
   const RESOLVE = "resolve";
   const RSPACK_BASE_URI = "rspackBaseUri";
@@ -1932,5 +1933,23 @@ mod tests {
     options.assign_rule_ids().expect("should reassign rule ids");
 
     assert_eq!(options.rules[0].effect.id, 0);
+  }
+
+  #[test]
+  fn import_meta_hot_options_are_independent() {
+    let hot_disabled = ImportMetaOptions::new(HashMap::from_iter([("hot".to_string(), false)]));
+    assert!(!hot_disabled.is_known_property_enabled(ImportMetaKnownProperties::HOT));
+    assert!(
+      hot_disabled.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT),
+      "disabling import.meta.hot should not disable import.meta.webpackHot"
+    );
+
+    let webpack_hot_disabled =
+      ImportMetaOptions::new(HashMap::from_iter([("webpackHot".to_string(), false)]));
+    assert!(webpack_hot_disabled.is_known_property_enabled(ImportMetaKnownProperties::HOT));
+    assert!(
+      !webpack_hot_disabled.is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT),
+      "disabling import.meta.webpackHot should not disable import.meta.hot"
+    );
   }
 }
