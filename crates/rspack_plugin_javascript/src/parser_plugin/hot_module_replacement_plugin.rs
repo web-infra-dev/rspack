@@ -1,6 +1,4 @@
-use rspack_core::{
-  BoxDependency, ConstDependency, DependencyRange, ImportMetaKnownProperties,
-};
+use rspack_core::{BoxDependency, ConstDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
 use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span, UnaryExpr};
