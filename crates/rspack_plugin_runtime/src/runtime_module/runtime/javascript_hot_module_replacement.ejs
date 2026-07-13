@@ -2,7 +2,7 @@ var hotCurrentUpdateChunks;
 var hotCurrentUpdate;
 var hotCurrentUpdateRemovedChunks;
 var hotCurrentUpdateRuntime;
-function hotApplyHandler(options) {
+function hotApplyHandler(options, moduleFactoryTransaction) {
 	if (<%- weak(ENSURE_CHUNK_HANDLERS) %>) delete <%- weak(ENSURE_CHUNK_HANDLERS) %>.<%- _loading_method %>Hmr;
 	hotCurrentUpdateChunks = undefined;
 	function getAffectedModuleEffects(updateModuleId) {
@@ -269,7 +269,35 @@ function hotApplyHandler(options) {
 			// insert new code
 			for (var updateModuleId in appliedUpdate) {
 				if (<%- HAS_OWN_PROPERTY %>(appliedUpdate, updateModuleId)) {
-					<%- MODULE_FACTORIES %>[updateModuleId] = appliedUpdate[updateModuleId];
+					var newModuleFactory = appliedUpdate[updateModuleId];
+					var preservedModuleFactories =
+						moduleFactoryTransaction &&
+						moduleFactoryTransaction.javascriptModuleFactories;
+					var hasPreservedModuleFactory =
+						preservedModuleFactories &&
+						<%- HAS_OWN_PROPERTY %>(preservedModuleFactories, updateModuleId);
+					// Keep removed factories usable until the outer apply transaction settles.
+					if (
+						moduleFactoryTransaction &&
+						(newModuleFactory === warnUnexpectedRequire || hasPreservedModuleFactory)
+					) {
+						if (!preservedModuleFactories) {
+							preservedModuleFactories = Object.create(null);
+							moduleFactoryTransaction.javascriptModuleFactories =
+								preservedModuleFactories;
+							moduleFactoryTransaction.finalizers.push(function () {
+								for (var moduleId in preservedModuleFactories) {
+									if (<%- HAS_OWN_PROPERTY %>(preservedModuleFactories, moduleId)) {
+										<%- MODULE_FACTORIES %>[moduleId] =
+											preservedModuleFactories[moduleId];
+									}
+								}
+							});
+						}
+						preservedModuleFactories[updateModuleId] = newModuleFactory;
+					} else {
+						<%- MODULE_FACTORIES %>[updateModuleId] = newModuleFactory;
+					}
 					<% if (_is_hot_test) { %>
 					if (self.__HMR_UPDATED_RUNTIME__) {
 						self.__HMR_UPDATED_RUNTIME__.javascript.updatedModules.push(updateModuleId);
