@@ -1,7 +1,7 @@
-use rspack_core::{BoxDependency, ConstDependency, DependencyRange, ImportMetaKnownProperties};
+use rspack_core::{BoxDependency, DependencyRange, ImportMetaKnownProperties};
 use rspack_util::SpanExt;
 use swc_atoms::Atom;
-use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span, UnaryExpr};
+use swc_experimental_ecma_ast::{CallExpr, GetSpan, MemberExpr, Span};
 
 use crate::{
   dependency::{
@@ -35,16 +35,6 @@ fn is_import_meta_hot_decline(for_name: &str) -> bool {
     for_name,
     expr_name::IMPORT_META_HOT_DECLINE | expr_name::IMPORT_META_HOT_ALIAS_DECLINE
   )
-}
-
-fn evaluate_typeof_import_meta_hot(for_name: &str) -> Option<&'static str> {
-  if is_import_meta_hot(for_name) {
-    Some("object")
-  } else if is_import_meta_hot_accept(for_name) || is_import_meta_hot_decline(for_name) {
-    Some("function")
-  } else {
-    None
-  }
 }
 
 fn extract_deps(
@@ -234,25 +224,6 @@ impl ImportMetaHotReplacementParserPlugin {
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPlugin {
-  fn evaluate_typeof(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &'a UnaryExpr<'a>,
-    for_name: &str,
-  ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'a>> {
-    if !parser
-      .javascript_options
-      .import_meta()
-      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-    {
-      return None;
-    }
-
-    evaluate_typeof_import_meta_hot(for_name).map(|res| {
-      eval::evaluate_to_string(res.to_string(), expr.span.real_lo(), expr.span.real_hi())
-    })
-  }
-
   fn evaluate_identifier(
     &self,
     parser: &mut JavascriptParser<'p>,
@@ -323,28 +294,5 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     } else {
       None
     }
-  }
-
-  fn r#typeof(
-    &self,
-    parser: &mut JavascriptParser<'p>,
-    expr: &UnaryExpr,
-    for_name: &str,
-  ) -> Option<bool> {
-    if !parser
-      .javascript_options
-      .import_meta()
-      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-    {
-      return None;
-    }
-
-    evaluate_typeof_import_meta_hot(for_name).map(|res| {
-      parser.add_presentational_dependency(Box::new(ConstDependency::new(
-        expr.span.into(),
-        format!("'{res}'").into(),
-      )));
-      true
-    })
   }
 }
