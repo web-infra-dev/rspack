@@ -391,15 +391,15 @@ pub async fn render_runtime_modules(
   }
 }
 
-pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlobals);
+pub(crate) type RuntimeModuleSourceItem = (BoxSource, RuntimeGlobals, RuntimeGlobals, bool);
 
 pub(crate) async fn render_runtime_module_sources(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_template: &ChunkCodeTemplate,
   reject_custom_runtime_modules: bool,
-  isolate_runtime_modules: bool,
 ) -> Result<Vec<RuntimeModuleSourceItem>> {
+  let runtime_mode = compilation.options.experiments.runtime_mode;
   let runtime_module_sources = rspack_parallel::scope::<_, Result<_>>(|token| {
     compilation
       .build_chunk_graph_artifact
@@ -423,6 +423,7 @@ pub(crate) async fn render_runtime_module_sources(
                 ConcatSource::default().boxed(),
                 RuntimeGlobals::default(),
                 RuntimeGlobals::default(),
+                false,
               ));
             }
             let runtime_requirements = module.runtime_requirements(compilation);
@@ -469,13 +470,22 @@ pub(crate) async fn render_runtime_module_sources(
                 }
               }
             };
+            let should_isolate = module.should_isolate(runtime_mode);
+            let needs_top_level = matches!(runtime_mode, RuntimeMode::Rspack)
+              && module.get_constructor_name() == "ExportRequireRuntimeModule";
             let sources = render_runtime_module_source(
               module.identifier(),
               source,
-              isolate_runtime_modules && module.should_isolate(),
+              should_isolate,
               supports_arrow_function,
+              matches!(runtime_mode, RuntimeMode::Rspack) && !should_isolate,
             );
-            Ok((sources, generated_requirements, context_requirements))
+            Ok((
+              sources,
+              generated_requirements,
+              context_requirements,
+              needs_top_level,
+            ))
           },
         );
       })
@@ -494,10 +504,10 @@ async fn render_webpack_runtime_modules(
   runtime_template: &ChunkCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources =
-    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false, true).await?;
+    render_runtime_module_sources(compilation, chunk_ukey, runtime_template, false).await?;
   let mut sources = ConcatSource::default();
 
-  for (runtime_module_source, _, _) in runtime_module_sources {
+  for (runtime_module_source, _, _, _) in runtime_module_sources {
     sources.add(runtime_module_source);
   }
 

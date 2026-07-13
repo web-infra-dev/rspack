@@ -316,6 +316,46 @@ impl From<&str> for ImportMeta {
 }
 
 #[cacheable]
+#[derive(Debug, Clone, Copy, MergeFrom, PartialEq, Eq, Hash)]
+pub enum JavascriptParserWorkerUrl {
+  NewUrlRelative,
+}
+
+impl JavascriptParserWorkerUrl {
+  pub fn from(value: &str) -> Option<Self> {
+    match value {
+      "new-url-relative" => Some(Self::NewUrlRelative),
+      _ => None,
+    }
+  }
+}
+
+impl RspackHash for JavascriptParserWorkerUrl {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::NewUrlRelative => "new-url-relative",
+    }
+    .hash(state);
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, MergeFrom, Default)]
+pub struct JavascriptParserWorkerOptions {
+  pub alias: Option<Vec<String>>,
+  pub url: Option<JavascriptParserWorkerUrl>,
+}
+
+impl JavascriptParserWorkerOptions {
+  pub fn new(alias: Vec<String>, url: Option<JavascriptParserWorkerUrl>) -> Self {
+    Self {
+      alias: Some(alias),
+      url,
+    }
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, MergeFrom, Default)]
 pub struct JavascriptParserOptions {
   pub dynamic_import_mode: Option<DynamicImportMode>,
@@ -332,7 +372,7 @@ pub struct JavascriptParserOptions {
   pub import_exports_presence: Option<ExportPresenceMode>,
   pub reexport_exports_presence: Option<ExportPresenceMode>,
   pub type_reexports_presence: Option<TypeReexportPresenceMode>,
-  pub worker: Option<Vec<String>>,
+  pub worker: Option<JavascriptParserWorkerOptions>,
   pub override_strict: Option<OverrideStrict>,
   pub import_meta: Option<ImportMeta>,
   pub require_alias: Option<bool>,

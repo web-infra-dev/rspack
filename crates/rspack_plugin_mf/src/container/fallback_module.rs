@@ -39,7 +39,7 @@ impl FallbackModule {
     let mut requests_len_buffer = itoa::Buffer::new();
     let requests_len_minus_one = requests_len_buffer.format(requests.len() - 1);
     let lib_ident = format!(
-      "webpack/container/fallback/{}/and {} more",
+      "rspack/container/fallback/{}/and {} more",
       requests
         .first()
         .expect("should have at one more requests in FallbackModule"),

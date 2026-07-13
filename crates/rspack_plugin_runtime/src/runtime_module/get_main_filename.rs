@@ -88,7 +88,7 @@ impl RuntimeModule for GetMainFilenameRuntimeModule {
             return \"{}\";
          }};
         ",
-        runtime_template.render_runtime_globals(&self.global),
+        runtime_template.render_runtime_global_definition(&self.global),
         filename,
       ))
     } else {

@@ -1,4 +1,4 @@
-var uniqueName = "<%- _unique_name %>";
+var cssLoadingUniqueName = "<%- _unique_name %>";
 function handleCssComposes(exports, composes) {
 	for (var i = 0; i < composes.length; i += 3) {
 		var moduleId = composes[i];
@@ -9,7 +9,7 @@ function handleCssComposes(exports, composes) {
 	}
 }
 var loadingAttribute = "data-rspack-loading";
-var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
+var cssLoadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority") %> {
 	var link,
 		needAttach,
 		key = "chunk-" + chunkId;
@@ -25,7 +25,7 @@ var loadStylesheet = <%- basicFunction("chunkId, url, done, hmr, fetchPriority")
 			if (
 				l.rel == "stylesheet" &&
 				((href && href.startsWith(url)) ||
-					l.getAttribute("data-rspack") == uniqueName + ":" + key)
+					l.getAttribute("data-rspack") == cssLoadingUniqueName + ":" + key)
 			) {
 				link = l;
 				break;

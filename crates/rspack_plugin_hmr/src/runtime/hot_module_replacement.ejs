@@ -1,5 +1,5 @@
 var currentModuleData = {};
-var installedModules = <%- MODULE_CACHE %>;
+var hmrInstalledModules = <%- MODULE_CACHE %>;
 
 // module and require creation
 var currentChildModule;
@@ -18,6 +18,8 @@ var currentUpdateApplyHandlers;
 var queuedInvalidatedModules;
 
 <%- define(HMR_MODULE_DATA) %> = currentModuleData;
+<% if (_is_rspack_runtime_mode) { %><%- define(INTERCEPT_MODULE_EXECUTION) %> = [];
+<% } %>
 <%- INTERCEPT_MODULE_EXECUTION %>.push(function (options) {
 	var module = options.module;
 	var require = createRequire(options.require, options.id<% if (_is_rspack_runtime_mode) { %>, options.context<% } %>);
@@ -33,12 +35,12 @@ var queuedInvalidatedModules;
 <%- define(HMR_INVALIDATE_MODULE_HANDLERS) %> = {};
 
 function createRequire(require, moduleId<% if (_is_rspack_runtime_mode) { %>, context<% } %>) {
-	var me = installedModules[moduleId];
+	var me = hmrInstalledModules[moduleId];
 	if (!me) return require;
 	var fn = function (request) {
 		if (me.hot.active) {
-			if (installedModules[request]) {
-				var parents = installedModules[request].parents;
+			if (hmrInstalledModules[request]) {
+				var parents = hmrInstalledModules[request].parents;
 				if (parents.indexOf(moduleId) === -1) {
 					parents.push(moduleId);
 				}

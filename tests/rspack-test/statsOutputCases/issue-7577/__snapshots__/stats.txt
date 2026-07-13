@@ -1,16 +1,16 @@
-asset a-runtime~main-89d37a4a40b85501.js xx KiB [emitted] [immutable] (name: runtime~main)
+asset a-runtime~main-11cd436bbbc1c116.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset a-main-c77a3d065156afc1.js xx bytes [emitted] [immutable] (name: main)
 asset a-all-a_js-51f880c5bf774503.js xx bytes [emitted] [immutable] (id hint: all)
-Entrypoint main xx KiB = a-runtime~main-89d37a4a40b85501.js xx KiB a-all-a_js-51f880c5bf774503.js xx bytes a-main-c77a3d065156afc1.js xx bytes
+Entrypoint main xx KiB = a-runtime~main-11cd436bbbc1c116.js xx KiB a-all-a_js-51f880c5bf774503.js xx bytes a-main-c77a3d065156afc1.js xx bytes
 runtime modules xx KiB 3 modules
 ./a.js xx bytes [built] [code generated]
 Rspack x.x.x compiled successfully in X s
 
-asset b-runtime~main-5ec620e8a6a95605.js xx KiB [emitted] [immutable] (name: runtime~main)
+asset b-runtime~main-22cf12a92560e0a4.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset b-main-e089c161fcafa0a5.js xx bytes [emitted] [immutable] (name: main)
 asset b-all-b_js-63ff151d1000e301.js xx bytes [emitted] [immutable] (id hint: all)
 asset b-vendors-node_modules_vendor_js-927ca68fe3cfdb29.js xx bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main xx KiB = b-runtime~main-5ec620e8a6a95605.js xx KiB b-vendors-node_modules_vendor_js-927ca68fe3cfdb29.js xx bytes b-all-b_js-63ff151d1000e301.js xx bytes b-main-e089c161fcafa0a5.js xx bytes
+Entrypoint main xx KiB = b-runtime~main-22cf12a92560e0a4.js xx KiB b-vendors-node_modules_vendor_js-927ca68fe3cfdb29.js xx bytes b-all-b_js-63ff151d1000e301.js xx bytes b-main-e089c161fcafa0a5.js xx bytes
 runtime modules xx KiB 5 modules
 cacheable modules xx bytes
   ./b.js xx bytes [built] [code generated]
@@ -20,10 +20,10 @@ Rspack x.x.x compiled successfully in X s
 assets by chunk xx bytes (id hint: all)
   asset c-all-b_js-e3933abfcccbcbe8.js xx bytes [emitted] [immutable] (id hint: all)
   asset c-all-c_js-e739a3749165ad2d.js xx bytes [emitted] [immutable] (id hint: all)
-asset c-runtime~main-82b8d871fff5ef32.js xx KiB [emitted] [immutable] (name: runtime~main)
+asset c-runtime~main-2a2946b44c8c50c3.js xx KiB [emitted] [immutable] (name: runtime~main)
 asset c-main-98aad2badde92840.js xx bytes [emitted] [immutable] (name: main)
 asset c-vendors-node_modules_vendor_js-927ca68fe3cfdb29.js xx bytes [emitted] [immutable] (id hint: vendors)
-Entrypoint main xx KiB = c-runtime~main-82b8d871fff5ef32.js xx KiB c-all-c_js-e739a3749165ad2d.js xx bytes c-main-98aad2badde92840.js xx bytes
+Entrypoint main xx KiB = c-runtime~main-2a2946b44c8c50c3.js xx KiB c-all-c_js-e739a3749165ad2d.js xx bytes c-main-98aad2badde92840.js xx bytes
 runtime modules xx KiB 13 modules
 cacheable modules xx bytes
   ./c.js xx bytes [built] [code generated]

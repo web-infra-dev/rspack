@@ -26,6 +26,7 @@ impl RuntimeModule for AsyncRuntimeModule {
       self.id(),
       Some(serde_json::json!({
         "_module_cache": runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache),
+        "_uses_lexical_runtime_globals": runtime_template.uses_lexical_runtime_globals(),
       })),
     )
   }

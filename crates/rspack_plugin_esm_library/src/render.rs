@@ -3,16 +3,16 @@ use std::{borrow::Cow, sync::Arc};
 use rspack_collections::IdentifierIndexSet;
 use rspack_core::{
   AssetInfo, Chunk, ChunkCodeTemplate, ChunkGraph, ChunkGroup, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataFilename, Compilation, ConcatenatedModuleInfo, DependencyId, InitFragment,
-  ModuleIdentifier, PathData, PathInfo, RuntimeGlobals, RuntimeVariable, SourceType, export_name,
-  get_js_chunk_filename_template, get_undo_path, render_imports, render_init_fragments,
+  Compilation, ConcatenatedModuleInfo, InitFragment, ModuleIdentifier, PathData, PathInfo,
+  RuntimeGlobals, RuntimeVariable, SourceType, export_name, get_js_chunk_filename_template,
+  get_undo_path, render_imports, render_init_fragments,
   rspack_sources::{ConcatSource, RawStringSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::Result;
 use rspack_plugin_javascript::{
   JsPlugin, RenderSource,
-  dependency::{URL_STATIC_PLACEHOLDER, URL_STATIC_PLACEHOLDER_RE},
   runtime::{AUTO_PUBLIC_PATH_PLACEHOLDER, render_module, render_runtime_modules},
+  url_plugin::replace_static_url_placeholders,
 };
 use rspack_util::{
   SpanExt,
@@ -23,7 +23,6 @@ use rspack_util::{
 use crate::{
   chunk_link::{ChunkLinkContext, RawImportSource, ReExportFrom, Ref},
   plugin::RSPACK_ESM_RUNTIME_CHUNK,
-  runtime::EsmRegisterModuleRuntimeModule,
 };
 
 /// Returns `true` when the module produces only CSS output (native CSS via
@@ -226,12 +225,13 @@ impl EsmLibraryPlugin {
       }
 
       if !decl_inner.source().is_empty() {
-        // __rspack_require.add({ "./src/main.js"(require, exports) { ... } })
+        let register_modules = if runtime_template.uses_runtime_context() {
+          runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES)
+        } else {
+          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+        };
         decl_source.add(RawStringSource::from(format!(
-          "{}({{\n",
-          EsmRegisterModuleRuntimeModule::runtime_id(
-            &compilation.runtime_template.create_runtime_code_template()
-          )
+          "{register_modules}.add({{\n"
         )));
         decl_source.add(decl_inner);
         decl_source.add(RawStringSource::from_static("});\n"));
@@ -803,38 +803,10 @@ var {} = {{}};
     };
 
     let final_source = if replace_static_url {
-      let content = final_source.source().into_string_lossy();
-      let mut replace_source = ReplaceSource::new(final_source.clone());
-      let replacement = URL_STATIC_PLACEHOLDER_RE
-        .find_iter(&content)
-        .map(|cap| (cap.start(), cap.end()));
-
-      for (start, end) in replacement {
-        let dep_id = &content[start + URL_STATIC_PLACEHOLDER.len()..end];
-        let dep_id: DependencyId = dep_id
-          .parse::<u32>()
-          .unwrap_or_else(|_| panic!("should be valid dependency id \"{dep_id}\""))
-          .into();
-        let Some(module) = module_graph.module_identifier_by_dependency_id(&dep_id) else {
-          continue;
-        };
-        let codegen_result = compilation.code_generation_results.get(module, None);
-        let Some(filename) = codegen_result.data.get::<CodeGenerationDataFilename>() else {
-          unreachable!()
-        };
-
-        replace_source.replace(
-          start as u32,
-          end as u32,
-          filename.filename().to_string(),
-          None,
-        );
-      }
-
       // concate module does this by render_module()
       // however esm module does not have concate module,
       // some replacement needs to be done here
-      replace_source.boxed()
+      replace_static_url_placeholders(compilation, None, &output_path, final_source).await?
     } else {
       final_source
     };
@@ -902,12 +874,12 @@ var {} = {{}};
     {
       let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
       source.add(RawStringSource::from(format!(
-        "var {runtime_context} = typeof {runtime_context} !== \"undefined\" ? {runtime_context} : {{}};\n"
+        "var {runtime_context} = {{}};\n"
       )));
       if runtime_requirements.contains(RuntimeGlobals::REQUIRE) {
         let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
         source.add(RawStringSource::from(format!(
-          "if (!{runtime_context}.r && typeof {require} !== \"undefined\") {runtime_context}.r = {require};\n"
+          "{runtime_context}.r = {require};\n"
         )));
       }
     }

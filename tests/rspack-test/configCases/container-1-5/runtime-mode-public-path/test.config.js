@@ -10,6 +10,8 @@ module.exports = {
     );
 
     expect(source).toContain("__rspack_context.p =");
+    expect(source).toContain("var prevStartup = startup;");
+    expect(source).not.toMatch(/\nvar startup = function/);
     expect(source).not.toContain("__webpack_require__.p =");
   },
 };

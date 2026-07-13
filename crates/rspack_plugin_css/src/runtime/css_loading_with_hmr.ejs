@@ -1,28 +1,28 @@
-var oldTags = [];
-var newTags = [];
-var applyHandler = <%- basicFunction("options") %> {
+var cssOldTags = [];
+var cssNewTags = [];
+var cssApplyHandler = <%- basicFunction("options") %> {
 	return {
 		dispose: <%- basicFunction("") %> { },
 		apply: <%- basicFunction("") %> {
-			newTags.forEach(<%- basicFunction("newTag") %> {
+			cssNewTags.forEach(<%- basicFunction("newTag") %> {
 				newTag.sheet.disabled = false;
 			});
-			while (oldTags.length) {
-				var oldTag = oldTags.pop();
+			while (cssOldTags.length) {
+				var oldTag = cssOldTags.pop();
 				if (oldTag.parentNode) oldTag.parentNode.removeChild(oldTag);
 			}
-			while (newTags.length) {
-				newTags.pop();
+			while (cssNewTags.length) {
+				cssNewTags.pop();
 			}
 		}
 	};
 };
-var cssTextKey = <%- basicFunction("link") %> {
+var cssTextKeyOfLink = <%- basicFunction("link") %> {
 	return Array.from(link.sheet.cssRules, <%- returningFunction("r.cssText", "r") %>).join();
 };
 <%- HMR_DOWNLOAD_UPDATE_HANDLERS %>.css = <%- basicFunction("chunkIds, removedChunks, removedModules, promises, applyHandlers, updatedModulesList") %> {
 	if (typeof document === 'undefined') return;
-	applyHandlers.push(applyHandler);
+	applyHandlers.push(cssApplyHandler);
 	var seen = {};
 	chunkIds.forEach(<%- basicFunction("chunkId") %> {
 		var filename = <%- GET_CHUNK_CSS_FILENAME %>(chunkId);
@@ -32,11 +32,11 @@ var cssTextKey = <%- basicFunction("link") %> {
 			return;
 		}
 		seen[url] = true;
-		var oldTag = loadStylesheet(chunkId, url);
+		var oldTag = cssLoadStylesheet(chunkId, url);
 		if (!oldTag) return;
 		promises.push(
 			new Promise(<%- basicFunction("resolve, reject") %> {
-				var link = loadStylesheet(
+				var link = cssLoadStylesheet(
 					chunkId,
 					url + (url.indexOf("?") < 0 ? "?" : "&") + "hmr=" + Date.now(),
 					<%- basicFunction("event") %> {
@@ -58,14 +58,14 @@ var cssTextKey = <%- basicFunction("link") %> {
 							reject(error);
 						} else {
 							try {
-								if (cssTextKey(oldTag) == cssTextKey(link)) {
+								if (cssTextKeyOfLink(oldTag) == cssTextKeyOfLink(link)) {
 									if (link.parentNode) link.parentNode.removeChild(link);
 									return resolve();
 								}
 							} catch (e) {}
+							cssOldTags.push(oldTag);
+							cssNewTags.push(link);
 							link.sheet.disabled = true;
-							oldTags.push(oldTag);
-							newTags.push(link);
 							resolve();
 						}
 					},

@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
+import { loadConfig as baseLoadConfig } from '@rstackjs/load-config';
 import type { MultiRspackOptions, RspackOptions } from '@rspack/core';
-import { merge } from 'rspack-merge';
 import findConfig from './findConfig';
 import type { CommonOptions } from './options';
 
@@ -11,132 +11,36 @@ const require = createRequire(import.meta.url);
 
 const DEFAULT_CONFIG_NAME = 'rspack.config' as const;
 
-const JS_CONFIG_EXTENSION_REGEXP = /\.(?:js|mjs|cjs)$/;
-const CONFIG_LOADER_VALUES = ['auto', 'jiti', 'native'] as const;
-type ConfigLoader = (typeof CONFIG_LOADER_VALUES)[number];
-type JitiFactory = (
-  id: string,
-  opts: {
-    moduleCache: boolean;
-    interopDefault: boolean;
-    nativeModules: string[];
-  },
-) => {
-  import<T = unknown>(
-    path: string,
-    opts: {
-      default: boolean;
-    },
-  ): Promise<T>;
-};
+export type LoadedRspackConfig = RspackOptions | MultiRspackOptions;
 
-const PREBUNDLED_JITI_PATH = new URL(
-  '../compiled/jiti/index.js',
-  import.meta.url,
-).href;
+type ConfigParams = [
+  Record<string, unknown> | string[] | undefined,
+  CommonOptions,
+];
 
-const supportsNativeTypeScript = () => {
-  const features = process.features as NodeJS.ProcessFeatures & {
-    typescript?: boolean;
-  };
-
-  return Boolean(
-    features.typescript || process.versions.bun || process.versions.deno,
-  );
-};
-
-const normalizeConfigLoader = (
-  configLoader: CommonOptions['configLoader'],
-): ConfigLoader => {
-  const normalizedLoader = configLoader ?? 'auto';
-
-  if (CONFIG_LOADER_VALUES.includes(normalizedLoader as ConfigLoader)) {
-    return normalizedLoader as ConfigLoader;
-  }
-
-  throw new Error(
-    `config loader "${normalizedLoader}" is not supported. Expected one of: ${CONFIG_LOADER_VALUES.join(
-      ', ',
-    )}.`,
-  );
-};
-
-const resolveDefaultExport = <T>(result: T): T =>
-  result &&
-  typeof result === 'object' &&
-  'default' in (result as Record<string, unknown>)
-    ? ((result as Record<string, unknown>).default as T)
-    : result;
-
-const loadConfigWithNativeLoader = async <T = unknown>(
-  configPath: string,
-): Promise<T> => {
-  const configFileURL = pathToFileURL(configPath).href;
-  const loadedModule = await import(`${configFileURL}?t=${Date.now()}`);
-  return resolveDefaultExport(loadedModule as T);
-};
-
-let jitiInstancePromise: Promise<ReturnType<JitiFactory>> | undefined;
-
-const getJiti = async () => {
-  if (!jitiInstancePromise) {
-    jitiInstancePromise = import(
-      /* webpackIgnore: true */ PREBUNDLED_JITI_PATH
-    ).then((module) => {
-      const createJiti =
-        'createJiti' in module
-          ? (module.createJiti as JitiFactory)
-          : (module.default as JitiFactory);
-
-      return createJiti(import.meta.filename, {
-        moduleCache: false,
-        interopDefault: true,
-        nativeModules: ['typescript'],
-      });
-    });
-  }
-  return jitiInstancePromise;
-};
-
-const loadConfigWithJiti = async <T = unknown>(configPath: string) => {
-  const jiti = await getJiti();
-  return jiti.import(configPath, { default: true }) as Promise<T>;
-};
-
-const loadConfigByPath = async <T = unknown>(
+const loadConfigByPath = async (
   configPath: string,
   options: CommonOptions,
-): Promise<T> => {
-  const configLoader = normalizeConfigLoader(options.configLoader);
-  const useNative = Boolean(
-    configLoader === 'native' ||
-    (configLoader === 'auto' && supportsNativeTypeScript()),
-  );
+): Promise<LoadedRspackConfig> => {
+  const configParams: ConfigParams = [options.env, options];
 
-  if (useNative || JS_CONFIG_EXTENSION_REGEXP.test(configPath)) {
-    try {
-      return await loadConfigWithNativeLoader<T>(configPath);
-    } catch (error) {
-      if (configLoader === 'native') {
-        throw error;
-      }
-    }
+  const { content } = await baseLoadConfig<LoadedRspackConfig, ConfigParams>({
+    path: configPath,
+    loader: options.configLoader,
+    configParams,
+    fresh: true,
+  });
+
+  if (!isRspackConfig(content)) {
+    throw new Error(
+      `[rspack-cli:loadConfig] The config at "${configPath}" must be an object or an array, got ${String(
+        content,
+      )}`,
+    );
   }
 
-  return loadConfigWithJiti<T>(configPath);
+  return content;
 };
-
-export type LoadedRspackConfig =
-  | undefined
-  | RspackOptions
-  | MultiRspackOptions
-  | ((
-      env: Record<string, any>,
-      argv?: Record<string, any>,
-    ) =>
-      | RspackOptions
-      | MultiRspackOptions
-      | Promise<RspackOptions | MultiRspackOptions>);
 
 const isConfigObject = (value: unknown): value is Record<string, unknown> =>
   Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -145,42 +49,6 @@ const isRspackConfig = (
   value: unknown,
 ): value is RspackOptions | MultiRspackOptions =>
   Array.isArray(value) || isConfigObject(value);
-
-export const resolveRspackConfigExport = async (
-  configExport: LoadedRspackConfig,
-  options: CommonOptions,
-): Promise<RspackOptions | MultiRspackOptions> => {
-  let loadedConfig: unknown = configExport;
-
-  if (typeof loadedConfig === 'function') {
-    let functionResult = loadedConfig(
-      options.env as Record<string, any>,
-      options,
-    );
-
-    if (typeof (functionResult as Promise<unknown>).then === 'function') {
-      functionResult = await functionResult;
-    }
-
-    if (functionResult === undefined) {
-      throw new Error(
-        '[rspack-cli:loadConfig] The config function must return a config object.',
-      );
-    }
-
-    loadedConfig = functionResult;
-  }
-
-  if (!isRspackConfig(loadedConfig)) {
-    throw new Error(
-      `[rspack-cli:loadConfig] The config must be an object, an array, or a function that returns one, get ${String(
-        loadedConfig,
-      )}`,
-    );
-  }
-
-  return loadedConfig;
-};
 
 const checkIsMultiRspackOptions = (
   config: RspackOptions | MultiRspackOptions,
@@ -335,19 +203,13 @@ export async function loadExtendedConfig(
     }
 
     // Load the extended configuration
-    const loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
-      resolvedPath,
-      options,
-    );
-    const resolvedConfig = await resolveRspackConfigExport(
-      loadedConfig,
-      options,
-    );
+    const loadedConfig = await loadConfigByPath(resolvedPath, options);
+    const { merge } = await import('rspack-merge');
 
     // Recursively load extended configurations from the extended config
     const { config: extendedConfig, pathMap: extendedPathMap } =
       (await loadExtendedConfig(
-        resolvedConfig,
+        loadedConfig,
         resolvedPath,
         cwd,
         options,
@@ -392,10 +254,7 @@ export async function loadRspackConfig(
   }
 
   // load config
-  const loadedConfig = await loadConfigByPath<LoadedRspackConfig>(
-    configPath,
-    options,
-  );
+  const loadedConfig = await loadConfigByPath(configPath, options);
 
   return { loadedConfig, configPath };
 }

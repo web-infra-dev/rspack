@@ -1167,6 +1167,20 @@ export type JavascriptParserCommonjsOption =
       exports?: JavascriptParserCommonjsExports;
     };
 
+export type JavascriptParserWorkerOptions =
+  | boolean
+  | string[]
+  | {
+      /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
+      alias?: string[];
+
+      /**
+       * Controls how Worker URLs are generated.
+       * Set to 'new-url-relative' to emit a static new URL(..., import.meta.url) expression.
+       */
+      url?: 'new-url-relative';
+    };
+
 export type JavascriptParserOptions = {
   /**
    * Specifies global mode for dynamic import.
@@ -1241,8 +1255,8 @@ export type JavascriptParserOptions = {
   /** Handle the this context correctly according to the spec for namespace objects. */
   strictThisContextOnImports?: boolean;
 
-  /** Provide custom syntax for Worker parsing, commonly used to support Worklet */
-  worker?: string[] | boolean;
+  /** Configure Worker parsing and URL generation. */
+  worker?: JavascriptParserWorkerOptions;
 
   /** Override the module to strict or non-strict. */
   overrideStrict?: 'strict' | 'non-strict';

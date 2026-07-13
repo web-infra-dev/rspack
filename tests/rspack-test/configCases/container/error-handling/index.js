@@ -57,7 +57,7 @@ it("should allow to handle invalid remote module error with import()", async () 
 	await expect(import("./invalid-module")).rejects.toEqual(
 		expect.objectContaining({
 			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from rspack/container/reference/remote'
 		})
 	);
 	// at this point sharing initialization runs and triggers a warning that 'invalid' remote can't be loaded
@@ -69,7 +69,7 @@ it("should allow to handle invalid remote module error with require", async () =
 	expect(error).toEqual(
 		expect.objectContaining({
 			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from rspack/container/reference/remote'
 		})
 	);
 });
@@ -79,7 +79,7 @@ it("should allow to handle invalid remote module error with top-level-await impo
 	expect(error).toEqual(
 		expect.objectContaining({
 			message:
-				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from webpack/container/reference/remote'
+				'Module "./invalid" does not exist in container.\nwhile loading "./invalid" from rspack/container/reference/remote'
 		})
 	);
 });

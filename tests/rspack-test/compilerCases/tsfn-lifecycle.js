@@ -80,6 +80,20 @@ module.exports = [
     },
   },
   {
+    description:
+      "should garbage collect chunks after compiler is garbage collected",
+    async build() {
+      await runChild(
+        path.join(
+          __dirname,
+          "fixtures",
+          "tsfn-lifecycle",
+          "gc-check-chunk.cjs",
+        ),
+      );
+    },
+  },
+  {
     description: "should report a clear error when APIs are called after close",
     async build() {
       await runChild(

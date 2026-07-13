@@ -612,9 +612,6 @@ pub async fn process_chunks_runtime_requirements(
           .tree_runtime_requirements
           .insert(runtime_requirements.lexical_requirements());
         metadata
-          .context_setter_fields
-          .insert(runtime_requirements.define);
-        metadata
           .force_context_fields
           .insert(runtime_requirements.force_context);
       }

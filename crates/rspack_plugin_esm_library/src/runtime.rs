@@ -1,6 +1,6 @@
 use rspack_core::{
-  Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleStage, RuntimeTemplate, RuntimeVariable, impl_runtime_module, property_access,
+  Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage,
+  RuntimeTemplate, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
 use rspack_util::json_stringify_str;
@@ -12,23 +12,6 @@ pub(crate) struct EsmRegisterModuleRuntimeModule {}
 impl EsmRegisterModuleRuntimeModule {
   pub(crate) fn new(runtime_template: &RuntimeTemplate) -> Self {
     Self::with_default(runtime_template)
-  }
-  pub(crate) fn runtime_id(runtime_template: &RuntimeCodeTemplate) -> String {
-    if runtime_template.uses_runtime_context() {
-      let modules_key = RuntimeGlobals::MODULE_FACTORIES
-        .property_name()
-        .expect("module factories should have a property name");
-      return format!(
-        "{}{}.add",
-        runtime_template.render_runtime_variable(&RuntimeVariable::Context),
-        property_access([modules_key], 0)
-      );
-    }
-
-    format!(
-      "{}.add",
-      runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-    )
   }
 }
 
@@ -48,12 +31,18 @@ impl RuntimeModule for EsmRegisterModuleRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = function registerModules(modules) {{ Object.assign({}, modules) }}\n",
-      Self::runtime_id(context.runtime_template),
+    let module_factories = context
+      .runtime_template
+      .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
+    let register_modules = if context.runtime_template.uses_runtime_context() {
+      module_factories.clone()
+    } else {
       context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES),
+        .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    };
+    Ok(format!(
+      "{register_modules}.add = function registerModules(modules) {{ Object.assign({module_factories}, modules) }}\n"
     ))
   }
 }
@@ -75,20 +64,23 @@ impl RuntimeModule for EsmEnsureChunkRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     Ok(format!(
-      r#"{ensure_chunk_handlers} = {{}};
-{ensure_chunk} = function(chunkId, fetchPriority) {{
+      r#"{ensure_chunk_handlers_definition} = {{}};
+{ensure_chunk_definition} = function(chunkId, fetchPriority) {{
 	return Promise.all(Object.keys({ensure_chunk_handlers}).reduce(function(promises, key) {{
 		{ensure_chunk_handlers}[key](chunkId, promises, fetchPriority);
 		return promises;
 	}}, []));
 }};
 "#,
-      ensure_chunk = context
+      ensure_chunk_definition = context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
+        .render_runtime_global_definition(&RuntimeGlobals::ENSURE_CHUNK),
       ensure_chunk_handlers = context
         .runtime_template
-        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
+        .render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+      ensure_chunk_handlers_definition = context
+        .runtime_template
+        .render_runtime_global_definition(&RuntimeGlobals::ENSURE_CHUNK_HANDLERS)
     ))
   }
   fn runtime_requirements(
@@ -154,26 +146,26 @@ impl RuntimeModule for EsmChunkLoadingRuntimeModule {
     chunk_imports.sort_unstable();
 
     Ok(format!(
-      r#"var installedChunks = {{}};
-var chunkMap = {{
+      r#"var esmInstalledChunks = {{}};
+var esmChunkMap = {{
 {chunk_imports}
 }};
 {ensure_chunk_handlers}.j = function(chunkId, promises) {{
-	var installedChunkData = installedChunks[chunkId];
+	var installedChunkData = esmInstalledChunks[chunkId];
 	if(installedChunkData === 0) return;
 	if(installedChunkData) {{
 		promises.push(installedChunkData);
 		return;
 	}}
-	var loadChunk = chunkMap[chunkId];
+	var loadChunk = esmChunkMap[chunkId];
 	if(!loadChunk) return;
 	var promise = loadChunk().then(function() {{
-		installedChunks[chunkId] = 0;
+		esmInstalledChunks[chunkId] = 0;
 	}}, function(error) {{
-		delete installedChunks[chunkId];
+		delete esmInstalledChunks[chunkId];
 		throw error;
 	}});
-	installedChunks[chunkId] = promise;
+	esmInstalledChunks[chunkId] = promise;
 	promises.push(promise);
 }};
 "#,

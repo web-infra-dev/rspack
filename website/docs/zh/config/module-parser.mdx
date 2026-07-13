@@ -536,7 +536,7 @@ export default {
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-<PropertyType type="string[] | boolean" />
+<PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 为 Worker 解析提供自定义的语法，常用于支持 Worklet：
 
@@ -559,6 +559,37 @@ export default {
     },
   },
 };
+```
+
+`string[]` 写法等价于将相同的值配置到 `worker.alias`。
+不配置 `worker.url` 时，Rspack 会保留已有的 Worker URL 输出。
+当 `worker.url` 设置为 `'new-url-relative'` 且启用 `output.module` 时，
+Rspack 会为 `new Worker(new URL(..., import.meta.url))` 输出静态的 `new URL()`
+表达式。对于非 ESM 输出，Rspack 会保留已有的运行时 Worker URL 输出：
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+    chunkFilename: '[name].bundle.js',
+  },
+  module: {
+    parser: {
+      javascript: {
+        worker: {
+          url: 'new-url-relative',
+        },
+      },
+    },
+  },
+};
+```
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+
+// 将转换为 👇
+new Worker(new URL('./worker.bundle.js', import.meta.url));
 ```
 
 > 查看 [Web Workers](/guide/features/web-workers) 了解更多。

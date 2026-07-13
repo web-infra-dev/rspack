@@ -5,7 +5,7 @@ use futures::future::BoxFuture;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate,
-  impl_runtime_module,
+  impl_runtime_module, runtime_mode::RuntimeMode,
 };
 
 type GenerateFn = Arc<dyn Fn() -> BoxFuture<'static, rspack_error::Result<String>> + Send + Sync>;
@@ -59,7 +59,7 @@ impl RuntimeModule for RuntimeModuleFromJs {
     self.dependent_hash
   }
 
-  fn should_isolate(&self) -> bool {
+  fn should_isolate(&self, _runtime_mode: RuntimeMode) -> bool {
     self.isolate
   }
 

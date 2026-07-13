@@ -231,7 +231,13 @@ impl<'a> LocalIdentOptions<'a> {
       hasher.write(b"source");
       hasher.write(b"OriginalSource");
       hasher.write(self.source.as_bytes());
-      hasher.write(format!("webpack://{}|{}", self.module_type, self.relative_resource).as_bytes());
+      hasher.write(
+        format!(
+          "{}://{}|{}",
+          self.compiler_options.experiments.runtime_mode, self.module_type, self.relative_resource
+        )
+        .as_bytes(),
+      );
       hasher.write(b"meta");
       if module_hash_options.named_exports {
         hasher.write(br#"{"isCSSModule":true,"exportsType":"namespace","defaultObject":false}"#);

@@ -536,7 +536,7 @@ Please refer to [type reexports presence example](https://github.com/rstackjs/rs
 
 <ApiMeta addedVersion="1.0.0-alpha.0" />
 
-<PropertyType type="string[] | boolean" />
+<PropertyType type="string[] | boolean | { alias?: string[], url?: 'new-url-relative' }" />
 
 Provide custom syntax for Worker parsing, commonly used to support Worklet:
 
@@ -559,6 +559,38 @@ export default {
     },
   },
 };
+```
+
+The `string[]` form is equivalent to setting the same values on `worker.alias`.
+When `worker.url` is unset, Rspack keeps the existing Worker URL output. When
+`worker.url` is set to `'new-url-relative'` and `output.module` is enabled,
+Rspack emits a static `new URL()` expression for
+`new Worker(new URL(..., import.meta.url))`. For non-ESM output, Rspack keeps
+the existing runtime Worker URL output:
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    module: true,
+    chunkFilename: '[name].bundle.js',
+  },
+  module: {
+    parser: {
+      javascript: {
+        worker: {
+          url: 'new-url-relative',
+        },
+      },
+    },
+  },
+};
+```
+
+```js
+new Worker(new URL('./worker.js', import.meta.url));
+
+// would become 👇
+new Worker(new URL('./worker.bundle.js', import.meta.url));
 ```
 
 > See [Web Workers](/guide/features/web-workers) for more details.

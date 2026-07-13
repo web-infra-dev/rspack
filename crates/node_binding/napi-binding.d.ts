@@ -2492,7 +2492,7 @@ export interface RawJavascriptParserOptions {
   exportsPresence?: string
   importExportsPresence?: string
   reexportExportsPresence?: string
-  worker?: Array<string>
+  worker?: boolean | Array<string> | RawJavascriptParserWorkerOptions
   overrideStrict?: string
   importMeta?: string
   commonjsMagicComments?: boolean
@@ -2546,6 +2546,11 @@ importMetaResolve?: boolean
  * @experimental
  */
 pureFunctions?: Array<string>
+}
+
+export interface RawJavascriptParserWorkerOptions {
+  alias?: Array<string>
+  url?: string
 }
 
 export interface RawJsonGeneratorOptions {

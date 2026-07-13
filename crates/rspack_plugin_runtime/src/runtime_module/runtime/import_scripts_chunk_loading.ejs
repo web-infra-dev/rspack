@@ -1,5 +1,5 @@
 // importScripts chunk loading
-var installChunk = <%- basicFunction("data") %> {
+var importScriptsInstallChunk = <%- basicFunction("data") %> {
     <%- destructureArray("chunkIds, moreModules, runtime", "data") %>
     for (var moduleId in moreModules) {
         if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
@@ -7,10 +7,10 @@ var installChunk = <%- basicFunction("data") %> {
         }
     }
     if (runtime) runtime(<%- REQUIRE_SCOPE %>);
-    while (chunkIds.length) installedChunks[chunkIds.pop()] = 1;
-    parentChunkLoadingFunction(data);
+    while (chunkIds.length) importScriptsInstalledChunks[chunkIds.pop()] = 1;
+    importScriptsParentChunkLoadingFunction(data);
 };
 
-var chunkLoadingGlobal = <%- _chunk_loading_global_init_expr %>;
-var parentChunkLoadingFunction = chunkLoadingGlobal.push.bind(chunkLoadingGlobal);
-chunkLoadingGlobal.push = installChunk;
+var importScriptsChunkLoadingGlobal = <%- _chunk_loading_global_init_expr %>;
+var importScriptsParentChunkLoadingFunction = importScriptsChunkLoadingGlobal.push.bind(importScriptsChunkLoadingGlobal);
+importScriptsChunkLoadingGlobal.push = importScriptsInstallChunk;

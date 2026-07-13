@@ -78,7 +78,7 @@ impl ConsumeSharedModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
-        "webpack/sharing/consume/{}/{}{}",
+        "rspack/sharing/consume/{}/{}{}",
         &scopes_key,
         &options.share_key,
         options

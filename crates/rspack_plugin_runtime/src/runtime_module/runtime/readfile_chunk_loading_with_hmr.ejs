@@ -1,4 +1,4 @@
-function loadUpdateChunk(chunkId, updatedModulesList) {
+function readFileVmLoadUpdateChunk(chunkId, updatedModulesList) {
 	return new Promise(function(resolve, reject) {
 		var filename = require('path').join(__dirname, "" + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId));
 		require('fs').readFile(filename, 'utf-8', function(err, content) {
@@ -9,11 +9,11 @@ function loadUpdateChunk(chunkId, updatedModulesList) {
 			var runtime = update.runtime;
 			for(var moduleId in updatedModules) {
 				if(<%- HAS_OWN_PROPERTY %>(updatedModules, moduleId)) {
-					currentUpdate[moduleId] = updatedModules[moduleId];
+					hotCurrentUpdate[moduleId] = updatedModules[moduleId];
 					if(updatedModulesList) updatedModulesList.push(moduleId);
 				}
 			}
-			if(runtime) currentUpdateRuntime.push(runtime);
+			if(runtime) hotCurrentUpdateRuntime.push(runtime);
 			resolve();
 		});
 	});

@@ -47,65 +47,14 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
     }
     let mut modules = mutations.get_affected_modules_with_chunk_graph(compilation);
 
-    // check if module runtime changes
-    let mg = compilation.get_module_graph();
-    for mi in mg.modules_keys() {
-      let module_runtimes = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
-      let module_runtime_keys = module_runtimes
-        .values()
-        .map(get_runtime_key)
-        .collect::<HashSet<_>>();
-
-      if let Some(runtime_map) = compilation.cgm_hash_artifact.get_runtime_map(mi) {
-        if module_runtimes.is_empty() {
-          // module has no runtime, skip
-          continue;
-        }
-        if module_runtimes.len() == 1 {
-          // single runtime
-          if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
-            || runtime_map
-              .single_runtime
-              .as_ref()
-              .expect("should have single runtime for single entry")
-              != module_runtimes
-                .values()
-                .next()
-                .expect("should have at least one runtime")
-          {
-            modules.insert(*mi);
-          }
-        } else {
-          // multiple runtimes
-          if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
-            modules.insert(*mi);
-            continue;
-          }
-
-          if runtime_map.map.len() != module_runtimes.len() {
-            modules.insert(*mi);
-            continue;
-          }
-
-          for runtime_key in runtime_map.map.keys() {
-            if !module_runtime_keys.contains(runtime_key) {
-              modules.insert(*mi);
-              break;
-            }
-          }
-        }
-      }
-    }
+    add_modules_with_changed_runtimes(compilation, &mut modules);
 
     tracing::debug!(target: incremental::TRACING_TARGET, passes = %IncrementalPasses::MODULES_HASHES, %mutations, ?modules);
     let logger = compilation.get_logger("rspack.incremental.modulesHashes");
     logger.log(format!(
       "{} modules are affected, {} in total",
       modules.len(),
-      mg.modules_len()
+      compilation.get_module_graph().modules_len()
     ));
 
     modules
@@ -117,6 +66,61 @@ async fn create_module_hashes_pass_impl(compilation: &mut Compilation) -> Result
       .collect()
   };
   create_module_hashes(compilation, create_module_hashes_modules).await
+}
+
+fn add_modules_with_changed_runtimes(compilation: &Compilation, modules: &mut IdentifierSet) {
+  let mg = compilation.get_module_graph();
+  for mi in mg.modules_keys() {
+    let module_runtimes = compilation
+      .build_chunk_graph_artifact
+      .chunk_graph
+      .get_module_runtimes(*mi, &compilation.build_chunk_graph_artifact.chunk_by_ukey);
+
+    if let Some(runtime_map) = compilation.cgm_hash_artifact.get_runtime_map(mi) {
+      if module_runtimes.is_empty() {
+        // module has no runtime, skip
+        continue;
+      }
+
+      if module_runtimes.len() == 1 {
+        // single runtime
+        if !matches!(runtime_map.mode, RuntimeMode::SingleEntry)
+          || runtime_map
+            .single_runtime
+            .as_ref()
+            .expect("should have single runtime for single entry")
+            != module_runtimes
+              .values()
+              .next()
+              .expect("should have at least one runtime")
+        {
+          modules.insert(*mi);
+        }
+      } else {
+        // multiple runtimes
+        if matches!(runtime_map.mode, RuntimeMode::SingleEntry) {
+          modules.insert(*mi);
+          continue;
+        }
+
+        if runtime_map.map.len() != module_runtimes.len() {
+          modules.insert(*mi);
+          continue;
+        }
+
+        let module_runtime_keys = module_runtimes
+          .values()
+          .map(get_runtime_key)
+          .collect::<HashSet<_>>();
+        for runtime_key in runtime_map.map.keys() {
+          if !module_runtime_keys.contains(runtime_key) {
+            modules.insert(*mi);
+            break;
+          }
+        }
+      }
+    }
+  }
 }
 
 #[instrument("Compilation:create_module_hashes", skip_all)]

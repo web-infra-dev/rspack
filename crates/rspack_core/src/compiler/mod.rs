@@ -21,7 +21,7 @@ use crate::{
   cache::{Cache, new_cache},
   compilation::build_module_graph::ModuleExecutor,
   fast_set, include_hash,
-  incremental::{Incremental, IncrementalPasses},
+  incremental::{Incremental, IncrementalOptions, IncrementalPasses},
   logger::Logger,
   trim_dir,
 };
@@ -271,12 +271,20 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    let _is_hot = self.cache.before_compile(&mut self.compilation).await;
-    // TODO: disable it for now, enable it once persistent cache is added to all artifacts
-    // if is_hot {
-    //   // If it's a hot start, we can use incremental
-    //   self.compilation.incremental = Incremental::new_hot(self.options.incremental);
-    // }
+    let is_hot = self.cache.before_compile(&mut self.compilation).await;
+    if is_hot {
+      let passes = self
+        .options
+        .incremental
+        .passes
+        .intersection(IncrementalPasses::BUILD_MODULE_GRAPH | IncrementalPasses::MODULES_HASHES);
+      if !passes.is_empty() {
+        self.compilation.incremental = Incremental::new_hot(IncrementalOptions {
+          silent: self.options.incremental.silent,
+          passes,
+        });
+      }
+    }
 
     self.compile().await?;
     self.compile_done().await?;

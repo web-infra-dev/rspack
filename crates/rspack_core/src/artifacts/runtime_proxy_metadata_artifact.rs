@@ -9,6 +9,36 @@ use crate::{
   ArtifactExt, ChunkUkey, RuntimeGlobals, incremental::IncrementalPasses, property_access,
 };
 
+pub fn render_lexical_declarations(
+  fields: RuntimeGlobals,
+  render_runtime_global: Option<&dyn Fn(RuntimeGlobals) -> Option<String>>,
+) -> String {
+  let names = fields
+    .renderable_require_scope()
+    .difference(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE)
+    .iter_names()
+    .filter_map(|(_, runtime_global)| {
+      let lexical_name = runtime_global.to_lexical_name()?;
+      if let Some(render_runtime_global) = render_runtime_global
+        && let Some(value) = render_runtime_global(runtime_global)
+      {
+        Some(format!("{lexical_name}={value}"))
+      } else if runtime_global.should_initialize_as_object() {
+        Some(format!("{lexical_name}={{}}"))
+      } else if runtime_global.should_initialize_as_array() {
+        Some(format!("{lexical_name}=[]"))
+      } else {
+        Some(lexical_name.to_string())
+      }
+    })
+    .collect::<Vec<_>>();
+  if names.is_empty() {
+    String::new()
+  } else {
+    format!("var {};\n", names.join(", "))
+  }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct RuntimeProxyMetadata {
   pub tree_runtime_requirements: RuntimeGlobals,
@@ -47,29 +77,7 @@ impl RuntimeProxyMetadata {
     &self,
     render_runtime_global: Option<&dyn Fn(RuntimeGlobals) -> Option<String>>,
   ) -> String {
-    let names = self
-      .lexical_fields()
-      .iter_names()
-      .filter_map(|(_, runtime_global)| {
-        let lexical_name = runtime_global.to_lexical_name()?;
-        if let Some(render_runtime_global) = render_runtime_global
-          && let Some(value) = render_runtime_global(runtime_global)
-        {
-          Some(format!("{lexical_name}={value}"))
-        } else if runtime_global.should_initialize_as_object() {
-          Some(format!("{lexical_name}={{}}"))
-        } else if runtime_global.should_initialize_as_array() {
-          Some(format!("{lexical_name}=[]"))
-        } else {
-          Some(lexical_name.to_string())
-        }
-      })
-      .collect::<Vec<_>>();
-    if names.is_empty() {
-      String::new()
-    } else {
-      format!("var {};\n", names.join(", "))
-    }
+    render_lexical_declarations(self.lexical_fields(), render_runtime_global)
   }
 
   pub fn render_context_setter_assignments(&self, runtime_context: &str) -> String {
