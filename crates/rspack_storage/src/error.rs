@@ -49,7 +49,8 @@ impl Error {
   /// Returns true if the error is caused by a missing file or directory.
   pub fn is_not_found(&self) -> bool {
     match self {
-      Error::FS(FSError::Io(e)) => {
+      Error::FS(e) => {
+        let e = e.io_error();
         if matches!(e.kind(), ErrorKind::NotFound) {
           return true;
         }
