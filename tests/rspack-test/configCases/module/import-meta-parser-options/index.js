@@ -18,7 +18,6 @@ it("should preserve disabled import.meta fields for runtime evaluation", () => {
 	expect(disabledFields.main).toBeUndefined();
 	expect(disabledFields.contextType).toBe("undefined");
 	expect(disabledFields.globType).toBe("undefined");
-	expect(disabledFields.hotAliasType).toBe("undefined");
 	expect(disabledFields.hotType).toBe("undefined");
 	expect(disabledFields.destructuredUrl).toBe(disabledFields.url);
 	expect(disabledFields.destructuredWebpack).toBeUndefined();
@@ -28,7 +27,6 @@ it("should preserve disabled import.meta fields for runtime evaluation", () => {
 	expect(source).toContain(`${importMeta}.url`);
 	expect(source).toContain(`${importMeta}.webpackContext`);
 	expect(source).toContain(`${importMeta}.glob`);
-	expect(source).toContain(`${importMeta}.hot`);
 	expect(source).toContain(`${importMeta}.webpackHot`);
 
 	if (typeof disabledFields.filename === "string") {

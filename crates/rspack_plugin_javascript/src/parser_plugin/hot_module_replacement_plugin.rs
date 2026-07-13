@@ -37,6 +37,27 @@ fn is_import_meta_hot_decline(for_name: &str) -> bool {
   )
 }
 
+fn import_meta_hot_property(for_name: &str) -> Option<ImportMetaKnownProperties> {
+  match for_name {
+    expr_name::IMPORT_META_HOT
+    | expr_name::IMPORT_META_HOT_ACCEPT
+    | expr_name::IMPORT_META_HOT_DECLINE => Some(ImportMetaKnownProperties::WEBPACK_HOT),
+    expr_name::IMPORT_META_HOT_ALIAS
+    | expr_name::IMPORT_META_HOT_ALIAS_ACCEPT
+    | expr_name::IMPORT_META_HOT_ALIAS_DECLINE => Some(ImportMetaKnownProperties::HOT),
+    _ => None,
+  }
+}
+
+fn is_import_meta_hot_enabled(parser: &JavascriptParser, for_name: &str) -> bool {
+  import_meta_hot_property(for_name).is_some_and(|property| {
+    parser
+      .javascript_options
+      .import_meta()
+      .is_known_property_enabled(property)
+  })
+}
+
 fn extract_deps(
   parser: &mut JavascriptParser,
   call_expr: &CallExpr,
@@ -232,12 +253,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
-    if is_import_meta_hot(for_name)
-      && parser
-        .javascript_options
-        .import_meta()
-        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-    {
+    if is_import_meta_hot(for_name) && is_import_meta_hot_enabled(parser, for_name) {
       Some(eval::evaluate_to_identifier(
         for_name.into(),
         expr_name::IMPORT_META.into(),
@@ -256,12 +272,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     expr: &MemberExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if is_import_meta_hot(for_name)
-      && parser
-        .javascript_options
-        .import_meta()
-        .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-    {
+    if is_import_meta_hot(for_name) && is_import_meta_hot_enabled(parser, for_name) {
       parser.create_hmr_expression_handler(expr.span());
       Some(true)
     } else {
@@ -275,11 +286,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportMetaHotReplacementParserPl
     call_expr: &CallExpr,
     for_name: &str,
   ) -> Option<bool> {
-    if !parser
-      .javascript_options
-      .import_meta()
-      .is_known_property_enabled(ImportMetaKnownProperties::WEBPACK_HOT)
-    {
+    if !is_import_meta_hot_enabled(parser, for_name) {
       return None;
     }
 

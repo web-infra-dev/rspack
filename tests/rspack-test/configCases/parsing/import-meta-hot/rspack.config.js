@@ -1,13 +1,47 @@
 const { HotModuleReplacementPlugin } = require('@rspack/core');
 
-/** @type {import("@rspack/core").Configuration} */
-module.exports = {
-  devtool: false,
-  externals: {
-    fs: 'node-commonjs fs',
+/** @type {import("@rspack/core").Configuration[]} */
+module.exports = [
+  {
+    entry: './index.js',
+    devtool: false,
+    externals: {
+      fs: 'node-commonjs fs',
+    },
+    node: {
+      __filename: false,
+    },
+    plugins: [new HotModuleReplacementPlugin()],
   },
-  node: {
-    __filename: false,
+  {
+    entry: './production.js',
+    mode: 'production',
+    target: 'web',
+    devServer: {
+      hot: true,
+    },
   },
-  plugins: [new HotModuleReplacementPlugin()],
-};
+  {
+    entry: './parser-options.js',
+    mode: 'development',
+    devtool: false,
+    target: 'node',
+    experiments: {
+      outputModule: true,
+    },
+    output: {
+      module: true,
+      chunkFormat: 'module',
+    },
+    module: {
+      parser: {
+        javascript: {
+          importMeta: {
+            hot: false,
+          },
+        },
+      },
+    },
+    plugins: [new HotModuleReplacementPlugin()],
+  },
+];
