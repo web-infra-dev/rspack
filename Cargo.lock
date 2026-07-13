@@ -1658,6 +1658,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs-err"
+version = "3.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b91aa448ca50d7e79433bdf3ee8d99215430d2ec02ade5aefab2a073a1822e8a"
+dependencies = [
+ "autocfg",
+ "tokio",
+]
+
+[[package]]
 name = "fs-set-times"
 version = "0.20.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4018,10 +4028,12 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "dunce",
+ "fs-err",
  "pnp",
  "rspack_error",
  "rspack_paths",
  "rspack_util",
+ "tempfile",
  "tokio",
  "tracing",
 ]

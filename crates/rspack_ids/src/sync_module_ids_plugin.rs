@@ -111,7 +111,7 @@ async fn revive_modules(
   let path = rspack_paths::Utf8Path::new(&self.path);
   let Some(data) = (match compilation.intermediate_filesystem.read_file(path).await {
     Ok(buffer) => Some(parse_module_ids(&buffer)?),
-    Err(err) if err.io_error().kind() == std::io::ErrorKind::NotFound => None,
+    Err(rspack_fs::Error::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => None,
     Err(err) => return Err(err.into()),
   }) else {
     let mut state = self

@@ -3,7 +3,7 @@ use std::{
   sync::Arc,
 };
 
-use rspack_fs::{FsResultToIoResultExt, ReadableFileSystem};
+use rspack_fs::{Error, FsResultToIoResultExt, ReadableFileSystem};
 use rspack_paths::AssertUtf8;
 use rspack_resolver::{FileMetadata, FileSystem as ResolverFileSystem};
 
@@ -23,7 +23,7 @@ impl ResolverFileSystem for BoxFS {
   async fn read_to_string(&self, path: &std::path::Path) -> std::io::Result<String> {
     match self.0.read(path.assert_utf8()).await {
       Ok(x) => String::from_utf8(x).map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err)),
-      Err(e) => Err(e.into_io_error()),
+      Err(Error::Io(e)) => Err(e),
     }
   }
   async fn metadata(&self, path: &std::path::Path) -> io::Result<FileMetadata> {
@@ -33,7 +33,7 @@ impl ResolverFileSystem for BoxFS {
         is_file: meta.is_file,
         is_symlink: meta.is_symlink,
       }),
-      Err(e) => Err(e.into_io_error()),
+      Err(Error::Io(e)) => Err(e),
     }
   }
 
@@ -44,14 +44,14 @@ impl ResolverFileSystem for BoxFS {
         is_file: meta.is_file,
         is_symlink: meta.is_symlink,
       }),
-      Err(e) => Err(e.into_io_error()),
+      Err(Error::Io(e)) => Err(e),
     }
   }
 
   async fn canonicalize(&self, path: &std::path::Path) -> io::Result<std::path::PathBuf> {
     match self.0.canonicalize(path.assert_utf8()).await {
       Ok(path) => Ok(path.into()),
-      Err(e) => Err(e.into_io_error()),
+      Err(Error::Io(e)) => Err(e),
     }
   }
 }
