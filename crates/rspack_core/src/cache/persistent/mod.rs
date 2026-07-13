@@ -22,10 +22,7 @@ use self::{
   build_dependencies::{BuildDeps, BuildDepsOptions},
   codec::CacheCodec,
   context::CacheContext,
-  occasion::{
-    MakeOccasion, MetaOccasion, MinimizeOccasion, ModuleHashesOccasion,
-    SourceMapDevToolPluginOccasion,
-  },
+  occasion::{MakeOccasion, MetaOccasion, MinimizeOccasion, SourceMapDevToolPluginOccasion},
   snapshot::{Snapshot, SnapshotOptions},
   storage::{StorageOptions, Version, create_storage},
 };
@@ -64,7 +61,6 @@ pub struct PersistentCache {
   snapshot: Arc<Snapshot>,
   make_occasion: MakeOccasion,
   meta_occasion: MetaOccasion,
-  module_hashes_occasion: ModuleHashesOccasion,
   minimize_occasion: MinimizeOccasion,
   source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion,
 }
@@ -126,7 +122,6 @@ impl PersistentCache {
       snapshot,
       make_occasion: MakeOccasion::new(codec.clone()),
       meta_occasion: MetaOccasion::new(codec.clone()),
-      module_hashes_occasion: ModuleHashesOccasion::new(codec.clone()),
       minimize_occasion: MinimizeOccasion::new(codec.clone()),
       source_map_dev_tool_plugin_occasion: SourceMapDevToolPluginOccasion::new(codec),
     }
@@ -232,22 +227,6 @@ impl Cache for PersistentCache {
       &self.make_occasion,
       &compilation.build_module_graph_artifact,
     );
-  }
-
-  async fn before_modules_hashes(&mut self, compilation: &mut Compilation) {
-    if compilation.is_rebuild {
-      return;
-    }
-
-    if let Some(artifact) = self.ctx.load_occasion(&self.module_hashes_occasion).await {
-      *compilation.cgm_hash_artifact = artifact;
-    }
-  }
-
-  async fn after_modules_hashes(&mut self, compilation: &Compilation) {
-    self
-      .ctx
-      .save_occasion(&self.module_hashes_occasion, &compilation.cgm_hash_artifact);
   }
 
   async fn before_process_assets(&mut self, compilation: &mut Compilation) {

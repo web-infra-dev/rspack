@@ -64,6 +64,7 @@ impl Cache for MixedCache {
   async fn before_finish_modules(&mut self, compilation: &mut Compilation) {
     // Use memory cache for rebuild
     self.memory.before_finish_modules(compilation).await;
+    // Persistent cache currently doesn't implement this
     self.persistent.before_finish_modules(compilation).await;
   }
 
@@ -140,7 +141,7 @@ impl Cache for MixedCache {
     self.persistent.before_modules_hashes(compilation).await;
   }
 
-  async fn after_modules_hashes(&mut self, compilation: &Compilation) {
+  async fn after_modules_hashes(&self, compilation: &Compilation) {
     self.persistent.after_modules_hashes(compilation).await;
   }
 

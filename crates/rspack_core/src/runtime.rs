@@ -180,7 +180,6 @@ pub type RuntimeKey = String;
 
 pub type RuntimeKeyMap<T> = FxHashMap<RuntimeKey, T>;
 
-#[cacheable]
 #[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RuntimeMode {
   #[default]
@@ -338,7 +337,6 @@ pub fn compare_runtime(a: &RuntimeSpec, b: &RuntimeSpec) -> Ordering {
   a.key.cmp(&b.key)
 }
 
-#[cacheable]
 #[derive(Default, Clone, Debug, PartialEq, Eq)]
 pub struct RuntimeSpecMap<T> {
   pub mode: RuntimeMode,

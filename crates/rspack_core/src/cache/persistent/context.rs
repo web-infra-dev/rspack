@@ -319,7 +319,6 @@ fn read_occasion_timing_label(name: &'static str) -> &'static str {
   match name {
     "make" => "read make from persistent cache",
     "meta" => "read meta from persistent cache",
-    "module hashes" => "read module hashes from persistent cache",
     "minimize" => "read minimize from persistent cache",
     "source map" => "read source map from persistent cache",
     _ => "read occasion from persistent cache",
@@ -330,7 +329,6 @@ fn write_occasion_timing_label(name: &'static str) -> &'static str {
   match name {
     "make" => "write make to persistent cache",
     "meta" => "write meta to persistent cache",
-    "module hashes" => "write module hashes to persistent cache",
     "minimize" => "write minimize to persistent cache",
     "source map" => "write source map to persistent cache",
     _ => "write occasion to persistent cache",

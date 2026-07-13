@@ -8,7 +8,5 @@ DEBUG LOG from rspack.persistentCache
 <i> snapshot restored with no changed dependencies
 <i> make persistent cache recovery succeeded
 <t> read make from persistent cache: xx ms
-<i> module hashes persistent cache recovery succeeded
-<t> read module hashes from persistent cache: xx ms
 <i> minimize persistent cache recovery succeeded
 <t> read minimize from persistent cache: xx ms
