@@ -1,15 +1,18 @@
 use std::{
   collections::{BTreeMap, BTreeSet},
   fmt::{Debug, Display, Formatter},
-  hash::BuildHasherDefault,
-  sync::atomic::AtomicU32,
+  hash::{BuildHasherDefault, Hash, Hasher},
+  sync::Arc,
 };
 
 use dyn_clone::{DynClone, clone_trait_object};
 use hashlink::LinkedHashSet;
 use indexmap::IndexMap;
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsInner, AsPreset, AsTuple2, AsVec},
+};
 use rspack_error::Result;
-use rspack_hash::{RspackHash, RspackHasher};
 use rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt};
 use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
@@ -20,16 +23,41 @@ use crate::{
   merge_runtime, property_name,
 };
 
-static NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID: AtomicU32 = AtomicU32::new(0);
-
 pub struct InitFragmentContents {
   pub start: String,
   pub end: Option<String>,
 }
 
+/// Runtime-only identity: clones share it, while deserialization creates a fresh allocation.
+#[doc(hidden)]
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct UniqueInitFragmentKey(#[cacheable(with=AsInner)] Arc<u8>);
+
+impl UniqueInitFragmentKey {
+  fn new() -> Self {
+    Self(Arc::new(0))
+  }
+}
+
+impl PartialEq for UniqueInitFragmentKey {
+  fn eq(&self, other: &Self) -> bool {
+    Arc::ptr_eq(&self.0, &other.0)
+  }
+}
+
+impl Eq for UniqueInitFragmentKey {}
+
+impl Hash for UniqueInitFragmentKey {
+  fn hash<H: Hasher>(&self, state: &mut H) {
+    std::ptr::hash(Arc::as_ptr(&self.0), state);
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
-  Unique(u32),
+  Unique(UniqueInitFragmentKey),
   ESMImport(String),
   ESMExportStar(String), // TODO: align with webpack and remove this
   ESMExports,
@@ -46,67 +74,12 @@ pub enum InitFragmentKey {
 
 impl InitFragmentKey {
   pub fn unique() -> Self {
-    Self::Unique(
-      NEXT_INIT_FRAGMENT_KEY_UNIQUE_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed),
-    )
-  }
-}
-
-impl RspackHash for InitFragmentKey {
-  fn hash(&self, state: &mut RspackHasher) {
-    match self {
-      InitFragmentKey::Unique(id) => {
-        "unique".hash(state);
-        id.hash(state);
-      }
-      InitFragmentKey::ESMImport(value) => {
-        "esm-import".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMExportStar(value) => {
-        "esm-export-star".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMExports => "esm-exports".hash(state),
-      InitFragmentKey::CommonJsExports(value) => {
-        "commonjs-exports".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ModuleExternal(value) => {
-        "module-external".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ExternalModule(value) => {
-        "external-module".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::AwaitDependencies => "await-dependencies".hash(state),
-      InitFragmentKey::ESMCompatibility => "esm-compatibility".hash(state),
-      InitFragmentKey::ModuleDecorator(value) => {
-        "module-decorator".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMFakeNamespaceObjectFragment(value) => {
-        "esm-fake-namespace-object".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::ESMDeferImportNamespaceObjectFragment(value) => {
-        "esm-defer-import-namespace-object".hash(state);
-        value.hash(state);
-      }
-      InitFragmentKey::Const(value) => {
-        "const".hash(state);
-        value.hash(state);
-      }
-    }
+    Self::Unique(UniqueInitFragmentKey::new())
   }
 }
 
 impl InitFragmentKey {
-  pub fn merge_fragments<C: InitFragmentRenderContext>(
-    &self,
-    fragments: Vec<Box<dyn InitFragment<C>>>,
-  ) -> Box<dyn InitFragment<C>> {
+  pub fn merge_fragments(&self, fragments: Vec<BoxInitFragment>) -> BoxInitFragment {
     match self {
       InitFragmentKey::ESMImport(_) => {
         let mut iter = fragments.into_iter();
@@ -203,7 +176,7 @@ impl InitFragmentKey {
   }
 }
 
-fn first<C>(fragments: Vec<Box<dyn InitFragment<C>>>) -> Box<dyn InitFragment<C>> {
+fn first(fragments: Vec<BoxInitFragment>) -> BoxInitFragment {
   fragments
     .into_iter()
     .next()
@@ -215,9 +188,13 @@ pub trait InitFragmentRenderContext {
   fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
 }
 
-pub trait InitFragment<C>: IntoAny + RspackHash + DynClone + Debug + Sync + Send {
+#[cacheable_dyn]
+pub trait InitFragment: IntoAny + DynClone + Debug + Sync + Send {
   /// getContent + getEndContent
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents>;
+  fn contents(
+    self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents>;
 
   fn stage(&self) -> InitFragmentStage;
 
@@ -230,19 +207,19 @@ pub trait InitFragment<C>: IntoAny + RspackHash + DynClone + Debug + Sync + Send
   }
 }
 
-clone_trait_object!(InitFragment<GenerateContext<'_>>);
-clone_trait_object!(InitFragment<ChunkRenderContext>);
+clone_trait_object!(InitFragment);
 
-pub trait InitFragmentExt<C> {
-  fn boxed(self) -> Box<dyn InitFragment<C>>;
+pub trait InitFragmentExt {
+  fn boxed(self) -> BoxInitFragment;
 }
 
-impl<C, T: InitFragment<C> + 'static> InitFragmentExt<C> for T {
-  fn boxed(self) -> Box<dyn InitFragment<C>> {
+impl<T: InitFragment + 'static> InitFragmentExt for T {
+  fn boxed(self) -> BoxInitFragment {
     Box::new(self)
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InitFragmentStage {
   StageConstants,
@@ -252,12 +229,6 @@ pub enum InitFragmentStage {
   StageProvides,
   StageAsyncDependencies,
   StageAsyncESMImports,
-}
-
-impl RspackHash for InitFragmentStage {
-  fn hash(&self, state: &mut RspackHasher) {
-    self.as_str().hash(state);
-  }
 }
 
 impl InitFragmentStage {
@@ -281,10 +252,10 @@ impl Display for InitFragmentStage {
 }
 
 /// InitFragment.addToSource
-pub fn render_init_fragments<C: InitFragmentRenderContext>(
+pub fn render_init_fragments(
   source: BoxSource,
-  mut fragments: Vec<Box<dyn InitFragment<C>>>,
-  context: &mut C,
+  mut fragments: Vec<BoxInitFragment>,
+  context: &mut dyn InitFragmentRenderContext,
 ) -> Result<BoxSource> {
   // here use sort_by_key because need keep order equal stage fragments
   fragments.sort_by(|a, b| {
@@ -297,7 +268,7 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
 
   let mut keyed_fragments: IndexMap<
     InitFragmentKey,
-    Vec<Box<dyn InitFragment<C>>>,
+    Vec<BoxInitFragment>,
     BuildHasherDefault<FxHasher>,
   > = IndexMap::default();
   for fragment in fragments {
@@ -330,10 +301,10 @@ pub fn render_init_fragments<C: InitFragmentRenderContext>(
   Ok(concat_source.boxed())
 }
 
-pub type BoxInitFragment<C> = Box<dyn InitFragment<C>>;
-pub type BoxModuleInitFragment<'a> = BoxInitFragment<GenerateContext<'a>>;
-pub type BoxChunkInitFragment = BoxInitFragment<ChunkRenderContext>;
-pub type ModuleInitFragments<'a> = Vec<BoxModuleInitFragment<'a>>;
+pub type BoxInitFragment = Box<dyn InitFragment>;
+pub type BoxModuleInitFragment = BoxInitFragment;
+pub type BoxChunkInitFragment = BoxInitFragment;
+pub type ModuleInitFragments = Vec<BoxModuleInitFragment>;
 pub type ChunkInitFragments = Vec<BoxChunkInitFragment>;
 
 impl InitFragmentRenderContext for GenerateContext<'_> {
@@ -362,13 +333,15 @@ impl InitFragmentRenderContext for ChunkRenderContext {
   }
 }
 
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct NormalInitFragment {
   content: String,
   stage: InitFragmentStage,
   position: i32,
   key: InitFragmentKey,
   end_content: Option<String>,
+  #[cacheable(with=AsVec<AsPreset>)]
   top_level_decl_symbols: Vec<Atom>,
 }
 
@@ -396,8 +369,12 @@ impl NormalInitFragment {
   }
 }
 
-impl<C> InitFragment<C> for NormalInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for NormalInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     Ok(InitFragmentContents {
       start: self.content,
       end: self.end_content,
@@ -421,31 +398,19 @@ impl<C> InitFragment<C> for NormalInitFragment {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub enum ESMExportBinding {
-  Getter(Atom),
-  Value(Atom),
+  Getter(#[cacheable(with=AsPreset)] Atom),
+  Value(#[cacheable(with=AsPreset)] Atom),
 }
 
-impl RspackHash for ESMExportBinding {
-  fn hash(&self, state: &mut RspackHasher) {
-    match self {
-      ESMExportBinding::Getter(value) => {
-        "getter".hash(state);
-        value.hash(state);
-      }
-      ESMExportBinding::Value(value) => {
-        "value".hash(state);
-        value.hash(state);
-      }
-    }
-  }
-}
-
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ESMExportInitFragment {
   exports_argument: ExportsArgument,
   // TODO: should be a map
+  #[cacheable(with=AsVec<AsTuple2<AsPreset>>)]
   export_map: Vec<(Atom, ESMExportBinding)>,
   is_circular_module: Option<bool>,
 }
@@ -464,8 +429,12 @@ impl ESMExportInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
-  fn contents(mut self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ESMExportInitFragment {
+  fn contents(
+    mut self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     let runtime_template = context.runtime_template();
 
     self.export_map.sort_by(|a, b| a.0.cmp(&b.0));
@@ -553,8 +522,10 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for ESMExportInitFragment {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct AwaitDependenciesInitFragment {
+  #[cacheable(with=AsVec)]
   promises: LinkedHashSet<String, BuildHasherDefault<FxHasher>>,
 }
 
@@ -570,16 +541,12 @@ impl AwaitDependenciesInitFragment {
   }
 }
 
-impl RspackHash for AwaitDependenciesInitFragment {
-  fn hash(&self, state: &mut RspackHasher) {
-    for promise in &self.promises {
-      promise.hash(state);
-    }
-  }
-}
-
-impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for AwaitDependenciesInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     if self.promises.is_empty() {
       Ok(InitFragmentContents {
         start: String::new(),
@@ -617,7 +584,8 @@ impl<C: InitFragmentRenderContext> InitFragment<C> for AwaitDependenciesInitFrag
   }
 }
 
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ConditionalInitFragment {
   content: String,
   stage: InitFragmentStage,
@@ -680,8 +648,12 @@ impl ConditionalInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ConditionalInitFragment {
-  fn contents(self: Box<Self>, context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ConditionalInitFragment {
+  fn contents(
+    self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     Ok(
       if matches!(self.runtime_condition, RuntimeCondition::Boolean(false))
         || self.content.is_empty()
@@ -733,7 +705,8 @@ fn wrap_in_condition(condition: &str, source: &str) -> String {
   )
 }
 
-#[derive(Debug, Clone, rspack_hash::RspackHash)]
+#[cacheable]
+#[derive(Debug, Clone)]
 pub struct ExternalModuleInitFragment {
   imported_module: String,
   // webpack also supports `ImportSpecifiers` but not ever used.
@@ -804,8 +777,12 @@ impl ExternalModuleInitFragment {
   }
 }
 
-impl<C: InitFragmentRenderContext> InitFragment<C> for ExternalModuleInitFragment {
-  fn contents(self: Box<Self>, _context: &mut C) -> Result<InitFragmentContents> {
+#[cacheable_dyn]
+impl InitFragment for ExternalModuleInitFragment {
+  fn contents(
+    self: Box<Self>,
+    _context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
     let mut named_imports = vec![];
 
     for (name, specifiers) in self.import_specifiers {

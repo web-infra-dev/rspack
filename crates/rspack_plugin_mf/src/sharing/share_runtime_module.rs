@@ -1,9 +1,11 @@
 use std::sync::LazyLock;
 
 use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  Compilation, ModuleId, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
-  RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType, impl_runtime_module,
+  CodeGenerationDataItem, Compilation, ModuleId, RuntimeGlobals, RuntimeModule,
+  RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rspack_util::{
@@ -178,11 +180,13 @@ impl RuntimeModule for ShareRuntimeModule {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataShareInit {
   pub items: Vec<ShareInitData>,
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ShareInitData {
   pub share_scope: ShareScope,
@@ -192,12 +196,14 @@ pub struct ShareInitData {
 
 pub type DataInitStage = i8;
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum DataInitInfo {
   ExternalModuleId(Option<ModuleId>),
   ProvideSharedInfo(ProvideSharedInfo),
 }
 
+#[cacheable]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ProvideSharedInfo {
   pub name: String,
@@ -209,3 +215,6 @@ pub struct ProvideSharedInfo {
   pub strict_version: Option<bool>,
   pub tree_shaking_mode: Option<String>,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataShareInit {}

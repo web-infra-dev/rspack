@@ -952,7 +952,7 @@ impl ESMExportImportedSpecifierDependency {
 
   fn get_conditional_reexport_statement(
     &self,
-    ctxt: &mut TemplateContext<'_, '_, '_>,
+    ctxt: &mut TemplateContext<'_, '_>,
     key: Atom,
     name: &String,
     first_value_key: Atom,

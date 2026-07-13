@@ -23,6 +23,7 @@ mod napi_binding {
     bindgen_prelude::{Object, ToNapiValue},
   };
   use once_cell::sync::OnceCell;
+  use rspack_cacheable::with::AsInnerConverter;
   use rspack_napi::{ThreadsafeOneShotRef, object_assign};
   use rspack_sources::BoxSource;
   use rustc_hash::FxHashMap;
@@ -357,6 +358,18 @@ mod napi_binding {
     fn default() -> Self {
       let value: T = Default::default();
       value.into()
+    }
+  }
+
+  impl<T: Into<BindingCell<T>>> AsInnerConverter for BindingCell<T> {
+    type Inner = T;
+
+    fn to_inner(&self) -> &Self::Inner {
+      self.as_ref()
+    }
+
+    fn from_inner(data: Self::Inner) -> Self {
+      data.into()
     }
   }
 

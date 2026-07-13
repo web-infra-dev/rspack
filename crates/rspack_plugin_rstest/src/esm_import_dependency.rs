@@ -98,7 +98,7 @@ fn hoist_new_esm_import_fragments(
       continue;
     };
 
-    let cloned: Box<dyn InitFragment<_>> = fragment.clone();
+    let cloned: Box<dyn InitFragment> = fragment.clone();
     let Ok(conditional_fragment) = cloned
       .into_any()
       .downcast::<rspack_core::ConditionalInitFragment>()

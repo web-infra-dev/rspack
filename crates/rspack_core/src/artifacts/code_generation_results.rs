@@ -1,14 +1,18 @@
-use std::{
-  collections::hash_map::Entry,
-  ops::{Deref, DerefMut},
-  sync::atomic::AtomicU32,
-};
+use std::{collections::hash_map::Entry, fmt::Debug};
 
-use anymap::CloneAny;
+use dyn_clone::{DynClone, clone_trait_object};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsCacheable, AsInner, AsMap, AsOption, AsPreset, AsVec, Unsupported},
+};
 use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_sources::BoxSource;
-use rspack_util::atom::Atom;
+use rspack_tasks::fetch_new_code_generation_result_id;
+use rspack_util::{
+  atom::Atom,
+  ext::{AsAny, IntoAny},
+};
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use serde::Serialize;
 
@@ -17,6 +21,7 @@ use crate::{
   RuntimeGlobals, RuntimeSpec, RuntimeSpecMap, SourceType, incremental::IncrementalPasses,
 };
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataUrl {
   inner: String,
@@ -33,12 +38,15 @@ impl CodeGenerationDataUrl {
 }
 
 // For performance, mark the js modules containing AUTO_PUBLIC_PATH_PLACEHOLDER
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationPublicPathAutoReplace(pub bool);
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct URLStaticMode;
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataFilename {
   filename: String,
@@ -62,6 +70,7 @@ impl CodeGenerationDataFilename {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataAssetInfo {
   inner: AssetInfo,
@@ -77,8 +86,10 @@ impl CodeGenerationDataAssetInfo {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationDataTopLevelDeclarations {
+  #[cacheable(with=AsVec<AsPreset>)]
   inner: FxHashSet<Atom>,
 }
 
@@ -92,6 +103,7 @@ impl CodeGenerationDataTopLevelDeclarations {
   }
 }
 
+#[cacheable]
 #[derive(Clone, Debug)]
 pub struct CodeGenerationExportsFinalNames {
   inner: HashMap<String, String>,
@@ -107,34 +119,116 @@ impl CodeGenerationExportsFinalNames {
   }
 }
 
+#[cacheable_dyn]
+pub trait CodeGenerationDataItem: Debug + DynClone + AsAny + IntoAny + Send + Sync {}
+
+clone_trait_object!(CodeGenerationDataItem);
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
-pub struct CodeGenerationData {
-  inner: anymap::Map<dyn CloneAny + Send + Sync>,
+pub struct CodeGenerationDataChunkInitFragments {
+  inner: ChunkInitFragments,
 }
 
-impl Deref for CodeGenerationData {
-  type Target = anymap::Map<dyn CloneAny + Send + Sync>;
-
-  fn deref(&self) -> &Self::Target {
+impl CodeGenerationDataChunkInitFragments {
+  pub fn inner(&self) -> &ChunkInitFragments {
     &self.inner
   }
-}
 
-impl DerefMut for CodeGenerationData {
-  fn deref_mut(&mut self) -> &mut Self::Target {
+  pub fn inner_mut(&mut self) -> &mut ChunkInitFragments {
     &mut self.inner
   }
 }
 
+impl From<ChunkInitFragments> for CodeGenerationDataChunkInitFragments {
+  fn from(inner: ChunkInitFragments) -> Self {
+    Self { inner }
+  }
+}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataUrl {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationPublicPathAutoReplace {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for URLStaticMode {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataFilename {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataAssetInfo {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationExportsFinalNames {}
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {}
+
+#[cacheable]
+#[derive(Debug, Default, Clone)]
+pub struct CodeGenerationData {
+  inner: Vec<Box<dyn CodeGenerationDataItem>>,
+}
+
+impl CodeGenerationData {
+  pub fn insert<T: CodeGenerationDataItem + 'static>(&mut self, item: T) -> Option<T> {
+    if let Some(index) = self
+      .inner
+      .iter()
+      .position(|item| item.as_ref().as_any().is::<T>())
+    {
+      let old = std::mem::replace(&mut self.inner[index], Box::new(item));
+      old.into_any().downcast::<T>().ok().map(|item| *item)
+    } else {
+      self.inner.push(Box::new(item));
+      None
+    }
+  }
+
+  pub fn get<T: CodeGenerationDataItem + 'static>(&self) -> Option<&T> {
+    self
+      .inner
+      .iter()
+      .find_map(|item| item.as_ref().as_any().downcast_ref::<T>())
+  }
+
+  pub fn get_mut<T: CodeGenerationDataItem + 'static>(&mut self) -> Option<&mut T> {
+    self
+      .inner
+      .iter_mut()
+      .find_map(|item| item.as_mut().as_any_mut().downcast_mut::<T>())
+  }
+
+  pub fn contains<T: CodeGenerationDataItem + 'static>(&self) -> bool {
+    self.get::<T>().is_some()
+  }
+
+  pub fn len(&self) -> usize {
+    self.inner.len()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.inner.is_empty()
+  }
+}
+
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResult {
+  #[cacheable(with=AsInner<AsMap<AsCacheable, AsPreset>>)]
   pub inner: BindingCell<HashMap<SourceType, BoxSource>>,
   /// [definition in webpack](https://github.com/webpack/webpack/blob/4b4ca3bb53f36a5b8fc6bc1bd976ed7af161bd80/lib/Module.js#L75)
   pub data: CodeGenerationData,
-  pub chunk_init_fragments: ChunkInitFragments,
   pub runtime_requirements: RuntimeGlobals,
   pub hash: Option<RspackHashDigest>,
   pub id: CodeGenResultId,
+  #[cacheable(with=AsOption<Unsupported>)]
   pub concatenation_scope: Option<ConcatenationScope>,
 }
 
@@ -168,7 +262,6 @@ impl CodeGenerationResult {
       source_type.hash(&mut hasher);
       std::hash::Hash::hash(source, &mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
@@ -189,25 +282,25 @@ impl CodeGenerationResult {
     for source_type in self.inner.as_ref().keys() {
       source_type.hash(&mut hasher);
     }
-    self.chunk_init_fragments.hash(&mut hasher);
     self.runtime_requirements.hash(&mut hasher);
     self.hash = Some(hasher.digest(hash_digest));
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone, Copy, Hash, Eq, PartialEq, Ord, PartialOrd, Serialize)]
 pub struct CodeGenResultId(u32);
 
 impl Default for CodeGenResultId {
   fn default() -> Self {
-    Self(CODE_GEN_RESULT_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+    Self(fetch_new_code_generation_result_id())
   }
 }
 
-pub static CODE_GEN_RESULT_ID: AtomicU32 = AtomicU32::new(0);
-
+#[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CodeGenerationResults {
+  #[cacheable(with=AsMap<AsCacheable, AsInner<AsCacheable>>)]
   module_generation_result_map: HashMap<CodeGenResultId, BindingCell<CodeGenerationResult>>,
   map: IdentifierMap<RuntimeSpecMap<CodeGenResultId>>,
 }

@@ -5,12 +5,13 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, BoxDependency, BoxModule, BuildContext,
-  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions, CodeGenerationResult,
-  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock, Dependency,
-  DependencyId, DependencyType, ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions,
-  Module, ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleDependency, ModuleGraph,
-  ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency,
-  StaticExportsSpec, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  BuildInfo, BuildMeta, BuildMetaExportsType, BuildResult, ChunkGroupOptions,
+  CodeGenerationDataItem, CodeGenerationResult, CodeGenerationRuntimeRequirementsWrite,
+  Compilation, Context, DependenciesBlock, Dependency, DependencyId, DependencyType,
+  ExportsArgument, FactoryMeta, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals,
+  RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, impl_module_meta_info,
+  impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -441,6 +442,7 @@ var init = function(shareScope, initScope) {{
 
 impl_empty_diagnosable_trait!(ContainerEntryModule);
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct ExposeModuleMap(Vec<(String, String)>);
 
@@ -515,9 +517,13 @@ impl ExposeModuleMap {
   }
 }
 
+#[cacheable]
 #[derive(Debug, Clone)]
 pub struct CodeGenerationDataExpose {
   pub module_map: ExposeModuleMap,
   pub module_map_runtime_requirements: RuntimeGlobals,
   pub share_scope: ShareScope,
 }
+
+#[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataExpose {}
