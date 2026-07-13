@@ -1,9 +1,10 @@
 use concat_string::concat_string;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation,
-  CompilationParams, CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
+  ChunkInitFragments, ChunkUkey, CodeGenerationDataFilename, Compilation, CompilationParams,
+  CompilerCompilation, DependencyId, JavascriptParserUrl, Module, ModuleType,
   NormalModuleFactoryParser, ParserAndGenerator, ParserOptions, PathData, Plugin, PublicPath,
-  RuntimeSpec, SourceType, URLStaticMode, get_js_chunk_filename_template, get_undo_path,
+  RuntimeCodeTemplate, RuntimeSpec, SourceType, URLStaticMode, get_js_chunk_filename_template,
+  get_undo_path,
   rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::Result;
@@ -196,7 +197,7 @@ async fn render_module_content(
   module: &dyn Module,
   render_source: &mut RenderSource,
   _init_fragments: &mut ChunkInitFragments,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   let runtime = compilation
     .build_chunk_graph_artifact

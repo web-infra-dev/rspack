@@ -1,8 +1,8 @@
 use rayon::prelude::*;
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey,
-  CodeGenerationPublicPathAutoReplace, Compilation, Module, RuntimeGlobals,
-  RuntimeModuleGenerateContext, SourceType,
+  ChunkGraph, ChunkInitFragments, ChunkKind, ChunkUkey, CodeGenerationPublicPathAutoReplace,
+  Compilation, Module, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModuleGenerateContext,
+  SourceType,
   chunk_graph_chunk::ChunkIdSet,
   get_undo_path, render_runtime_module_source,
   rspack_sources::{
@@ -29,7 +29,7 @@ pub async fn render_chunk_modules(
   all_strict: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<(BoxSource, ChunkInitFragments)>> {
   let module_sources = rspack_parallel::scope::<_, _>(|token| {
     ordered_modules.iter().for_each(|module| {
@@ -118,7 +118,7 @@ pub async fn render_module(
   factory: bool,
   output_path: &str,
   hooks: &JavascriptModulesPluginHooks,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<Option<(BoxSource, ChunkInitFragments, ChunkInitFragments)>> {
   let chunk = compilation
     .build_chunk_graph_artifact
@@ -332,7 +332,7 @@ pub async fn render_module(
 pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_modules_sources =
     if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
@@ -382,7 +382,7 @@ pub async fn render_chunk_runtime_modules(
 pub async fn render_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   if compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
     render_rspack_runtime_modules(compilation, chunk_ukey, runtime_template).await

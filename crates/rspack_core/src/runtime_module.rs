@@ -15,13 +15,13 @@ use tokio::sync::OnceCell;
 
 use crate::{
   ChunkUkey, CodeGenerationResult, Compilation, Module, ModuleCodeGenerationContext,
-  RuntimeGlobals, RuntimeModuleCodeTemplate, RuntimeSpec, RuntimeTemplate, SourceType,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeSpec, RuntimeTemplate, SourceType,
   runtime_mode::RuntimeMode,
 };
 
 pub struct RuntimeModuleGenerateContext<'a> {
   pub compilation: &'a Compilation,
-  pub runtime_template: &'a RuntimeModuleCodeTemplate<'a>,
+  pub runtime_template: &'a RuntimeCodeTemplate,
 }
 
 pub fn runtime_module_owned_define_fields(

@@ -1,7 +1,7 @@
 use std::sync::LazyLock;
 
 use rspack_core::{
-  ChunkCodeTemplate, ChunkKind, ChunkUkey, Compilation, RuntimeGlobals, RuntimeProxyMetadata,
+  ChunkKind, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeProxyMetadata,
   RuntimeVariable, SourceType, property_access, render_lexical_declarations,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
   runtime_module_owned_define_fields,
@@ -59,12 +59,12 @@ fn filter_unused_module_runtime_bindings(
   fields
 }
 
-pub fn render_runtime_context_declaration(runtime_template: &ChunkCodeTemplate) -> String {
+pub fn render_runtime_context_declaration(runtime_template: &RuntimeCodeTemplate) -> String {
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   format!("var {runtime_context}={{}};\n")
 }
 
-pub fn render_runtime_context_require_assignment(runtime_template: &ChunkCodeTemplate) -> String {
+pub fn render_runtime_context_require_assignment(runtime_template: &RuntimeCodeTemplate) -> String {
   format!(
     "{} = {};\n",
     runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
@@ -75,7 +75,7 @@ pub fn render_runtime_context_require_assignment(runtime_template: &ChunkCodeTem
 pub async fn render_runtime_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
@@ -221,7 +221,7 @@ pub async fn render_runtime_chunk_runtime_modules(
 pub async fn render_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
@@ -306,7 +306,7 @@ pub async fn render_chunk_runtime_modules(
 pub async fn render_hot_update_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
   let mut sources = ConcatSource::default();
@@ -410,7 +410,7 @@ Object.defineProperty({runtime_context}, {json_key}, {{ configurable: true, get:
 pub async fn render_rspack_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
-  runtime_template: &ChunkCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
   let chunk = compilation
     .build_chunk_graph_artifact

@@ -1,5 +1,5 @@
 use rspack_core::{
-  Compilation, OutputOptions, PathData, RuntimeGlobals, RuntimeModule, RuntimeModuleCodeTemplate,
+  Compilation, OutputOptions, PathData, RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   RuntimeModuleGenerateContext, RuntimeModuleStage, RuntimeTemplate, SourceType,
   get_js_chunk_filename_template, get_undo_path, impl_runtime_module,
 };
@@ -85,7 +85,7 @@ impl RuntimeModule for AutoPublicPathRuntimeModule {
 }
 
 fn auto_public_path_template(
-  runtime_template: &RuntimeModuleCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
   id: &str,
   filename: &str,
   output: &OutputOptions,

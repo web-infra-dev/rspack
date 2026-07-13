@@ -1,7 +1,7 @@
 use rspack_core::{
-  ChunkCodeTemplate, ChunkInitFragments, ChunkUkey, Compilation, CompilationParams,
-  CompilerCompilation, InitFragmentExt, InitFragmentKey, InitFragmentStage, Module,
-  NormalInitFragment, Plugin,
+  ChunkInitFragments, ChunkUkey, Compilation, CompilationParams, CompilerCompilation,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, Module, NormalInitFragment, Plugin,
+  RuntimeCodeTemplate,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -35,7 +35,7 @@ async fn render_module_content(
   module: &dyn Module,
   _source: &mut RenderSource,
   init_fragments: &mut ChunkInitFragments,
-  _runtime_template: &ChunkCodeTemplate,
+  _runtime_template: &RuntimeCodeTemplate,
 ) -> Result<()> {
   if module.build_info().need_create_require {
     let need_prefix = compilation

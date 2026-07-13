@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkCodeTemplate, ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module, RuntimeGlobals,
-  RuntimeVariable, SourceType, property_access, render_init_fragments,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
+  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable, SourceType, property_access,
+  render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
@@ -21,7 +22,7 @@ impl JsPlugin {
   pub fn render_rspack_require<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Vec<Cow<'me, str>> {
     let runtime_requirements = compilation
       .cgc_runtime_requirements_artifact
@@ -127,7 +128,7 @@ var module = ({module_cache}[moduleId] = {{"#,
   pub async fn render_rspack_bootstrap<'me>(
     chunk_ukey: &ChunkUkey,
     compilation: &'me Compilation,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<RenderBootstrapResult<'me>> {
     let runtime_requirements = compilation
       .cgc_runtime_requirements_artifact
@@ -579,7 +580,7 @@ impl JsPlugin {
     compilation: &Compilation,
     chunk_ukey: &ChunkUkey,
     output_path: &str,
-    runtime_template: &ChunkCodeTemplate,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> Result<BoxSource> {
     let js_plugin_hooks = Self::get_compilation_hooks(compilation.id());
     let hooks = js_plugin_hooks
@@ -693,13 +694,15 @@ impl JsPlugin {
       header.push('\n');
       sources.add(RawStringSource::from(header));
     }
+    let should_render_runtime_context =
+      !runtime_template.render_mode().is_legacy() && !has_bootstrap_runtime_context;
     if compilation
       .build_chunk_graph_artifact
       .chunk_graph
       .has_chunk_runtime_modules(chunk_ukey)
     {
       sources.add(render_runtime_modules(compilation, chunk_ukey, runtime_template).await?);
-    } else if runtime_template.uses_runtime_context() && !has_bootstrap_runtime_context {
+    } else if should_render_runtime_context {
       sources.add(RawStringSource::from(render_runtime_context_declaration(
         runtime_template,
       )));

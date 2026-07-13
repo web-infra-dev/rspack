@@ -1,8 +1,8 @@
 use std::{borrow::Cow, sync::LazyLock};
 
 use rspack_core::{
-  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeGlobals, RuntimeModule,
-  RuntimeModuleCodeTemplate, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
+  BooleanMatcher, Chunk, ChunkGroupOrderKey, Compilation, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
   RuntimeModuleStage, RuntimeTemplate, compile_boolean_matcher, impl_runtime_module,
 };
 use rspack_plugin_javascript::impl_plugin_for_js_plugin::chunk_has_js;
@@ -109,7 +109,7 @@ impl JsonpChunkLoadingRuntimeModule {
     &self,
     chunk: &Chunk,
     compilation: &Compilation,
-    runtime_template: &RuntimeModuleCodeTemplate<'_>,
+    runtime_template: &RuntimeCodeTemplate,
   ) -> String {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)

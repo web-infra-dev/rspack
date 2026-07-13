@@ -34,12 +34,12 @@ impl RuntimeModule for EsmRegisterModuleRuntimeModule {
     let module_factories = context
       .runtime_template
       .render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
-    let register_modules = if context.runtime_template.uses_runtime_context() {
-      module_factories.clone()
-    } else {
+    let register_modules = if context.runtime_template.render_mode().is_legacy() {
       context
         .runtime_template
         .render_runtime_globals(&RuntimeGlobals::REQUIRE)
+    } else {
+      module_factories.clone()
     };
     Ok(format!(
       "{register_modules}.add = function registerModules(modules) {{ Object.assign({module_factories}, modules) }}\n"

@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeGlobals, RuntimeModuleCodeTemplate,
-  SourceType,
+  Chunk, ChunkLoading, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -63,16 +63,17 @@ pub fn stringify_chunks(chunks: &ChunkIdSet, value: u8) -> String {
 }
 
 pub fn render_hmr_runtime_state_expression(
-  runtime_template: &RuntimeModuleCodeTemplate<'_>,
+  runtime_template: &RuntimeCodeTemplate,
   key: &str,
 ) -> String {
-  let state_prefix = if runtime_template.uses_lexical_runtime_globals() {
-    RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
+  let state_prefix = match runtime_template.render_mode() {
+    RuntimeGlobalsRenderMode::RspackLexical => RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX
       .property_name()
       .expect("hmr runtime state prefix should have property name")
-      .to_string()
-  } else {
-    runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+      .to_string(),
+    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::HMR_RUNTIME_STATE_PREFIX)
+    }
   };
   format!("{state_prefix}_{key}")
 }
@@ -249,7 +250,7 @@ fn stringify_map<T: std::fmt::Display>(entries: &mut [(&ChunkId, T)]) -> String 
 pub fn generate_javascript_hmr_runtime(
   key: &str,
   method: &str,
-  runtime_template: &RuntimeModuleCodeTemplate,
+  runtime_template: &RuntimeCodeTemplate,
 ) -> Result<String> {
   runtime_template.render(
     key,
