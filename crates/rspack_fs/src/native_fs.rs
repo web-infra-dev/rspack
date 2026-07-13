@@ -3,7 +3,9 @@ use std::{
   path::{Path, PathBuf},
 };
 
-use fs_err::{self as fs, File, tokio as tokio_fs};
+#[cfg(not(target_family = "wasm"))]
+use fs_err::tokio as tokio_fs;
+use fs_err::{self as fs, File};
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use tracing::instrument;
