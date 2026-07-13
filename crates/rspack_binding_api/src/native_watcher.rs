@@ -2,6 +2,7 @@ use std::{
   boxed::Box,
   panic::AssertUnwindSafe,
   path::{Path, PathBuf},
+  sync::Arc,
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
@@ -59,6 +60,8 @@ pub struct NativeWatchUndelayedEvent {
 pub struct NativeWatcher {
   watcher: FsWatcher,
   closed: bool,
+  watch_task: Option<tokio::task::JoinHandle<()>>,
+  watcher_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 fn timestamp_to_system_time(millis: u64) -> SystemTime {
@@ -81,6 +84,8 @@ impl NativeWatcher {
     Self {
       watcher,
       closed: false,
+      watch_task: None,
+      watcher_lock: Arc::new(tokio::sync::Mutex::new(())),
     }
   }
 
@@ -110,8 +115,15 @@ impl NativeWatcher {
 
     let start_time = start_time.get_u64().1;
 
+    if let Some(prev) = self.watch_task.take() {
+      prev.abort();
+    }
+
+    let watcher_lock = Arc::clone(&self.watcher_lock);
+    let mut watch_task = None;
     reference.share_with(env, |native_watcher| {
-      rspack_napi::runtime::spawn(async move {
+      watch_task = Some(rspack_napi::runtime::spawn_handle(async move {
+        let _guard = watcher_lock.lock_owned().await;
         native_watcher
           .watcher
           .watch(
@@ -123,9 +135,10 @@ impl NativeWatcher {
             Box::new(js_event_handler_undelayed),
           )
           .await
-      });
+      }));
       Ok(())
     })?;
+    self.watch_task = watch_task;
 
     Ok(())
   }
@@ -160,6 +173,10 @@ impl NativeWatcher {
     let shared_reference = reference.share_with(Env::from_raw(env.raw()), |native_watcher| {
       rspack_napi::runtime::spawn(async move {
         let result = AssertUnwindSafe(async {
+          if let Some(task) = native_watcher.watch_task.take() {
+            task.abort();
+          }
+          let _guard = Arc::clone(&native_watcher.watcher_lock).lock_owned().await;
           native_watcher
             .watcher
             .close()

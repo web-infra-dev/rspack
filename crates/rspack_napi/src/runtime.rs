@@ -38,6 +38,14 @@ where
   std::mem::drop(spawn_inner(future));
 }
 
+pub fn spawn_handle<F>(future: F) -> tokio::task::JoinHandle<F::Output>
+where
+  F: Future + Send + 'static,
+  F::Output: Send + 'static,
+{
+  spawn_inner(future)
+}
+
 pub fn block_on<F: Future>(future: F) -> F::Output {
   with_runtime(|runtime| runtime.block_on(future))
 }
