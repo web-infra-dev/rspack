@@ -89,7 +89,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
                 } else {
                   Default::default()
                 };
-                format!("rspack/container/reference/{key}{fallback_suffix}")
+                format!("webpack/container/reference/{key}{fallback_suffix}")
               }
             })
             .collect(),

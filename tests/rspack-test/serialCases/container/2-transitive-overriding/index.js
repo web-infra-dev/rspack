@@ -19,26 +19,26 @@ it("should have good module ids", async () => {
 	expect(m0).toEqual([
 		"./b.js",
 		"./modules.js",
-		"rspack/container/entry/container-with-shared",
-		"rspack/sharing/consume/default/shared/./shared"
+		"webpack/container/entry/container-with-shared",
+		"webpack/sharing/consume/default/shared/./shared"
 	]);
 	expect(m1).toEqual([
 		"./a.js",
 		"./b.js",
 		"./modules-from-remote.js",
 		"./modules.js",
-		"rspack/container/entry/container-no-shared",
-		"rspack/container/reference/container-with-shared",
-		"rspack/container/remote/container-with-shared/b",
-		"rspack/container/remote/container-with-shared/modules"
+		"webpack/container/entry/container-no-shared",
+		"webpack/container/reference/container-with-shared",
+		"webpack/container/remote/container-with-shared/b",
+		"webpack/container/remote/container-with-shared/modules"
 	]);
 	expect(m2).toEqual([
 		"./index.js",
 		"./shared.js",
-		"rspack/container/reference/container-no-shared",
-		"rspack/container/remote/container-no-shared/a",
-		"rspack/container/remote/container-no-shared/b",
-		"rspack/container/remote/container-no-shared/modules",
-		"rspack/container/remote/container-no-shared/modules-from-remote"
+		"webpack/container/reference/container-no-shared",
+		"webpack/container/remote/container-no-shared/a",
+		"webpack/container/remote/container-no-shared/b",
+		"webpack/container/remote/container-no-shared/modules",
+		"webpack/container/remote/container-no-shared/modules-from-remote"
 	]);
 });

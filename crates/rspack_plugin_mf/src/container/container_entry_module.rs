@@ -53,7 +53,7 @@ impl ContainerEntryModule {
     share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
-    let lib_ident = format!("rspack/container/entry/{}", &name);
+    let lib_ident = format!("webpack/container/entry/{}", &name);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),
@@ -82,7 +82,7 @@ impl ContainerEntryModule {
   }
 
   pub fn new_share_container_entry(name: String, request: String, version: String) -> Self {
-    let lib_ident = format!("rspack/share/container/{}", &name);
+    let lib_ident = format!("webpack/share/container/{}", &name);
     Self {
       blocks: Vec::new(),
       dependencies: Vec::new(),

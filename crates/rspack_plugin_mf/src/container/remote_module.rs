@@ -52,7 +52,7 @@ impl RemoteModule {
     remote_key: String,
   ) -> Self {
     let readable_identifier = format!("remote {}", &request);
-    let lib_ident = format!("rspack/container/remote/{}", &request);
+    let lib_ident = format!("webpack/container/remote/{}", &request);
     Self {
       blocks: Default::default(),
       dependencies: Default::default(),

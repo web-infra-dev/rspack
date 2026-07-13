@@ -68,7 +68,7 @@ impl ProvideSharedModule {
       blocks: Vec::new(),
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
-      lib_ident: format!("rspack/sharing/provide/{}/{}", &scopes_key, &name),
+      lib_ident: format!("webpack/sharing/provide/{}/{}", &scopes_key, &name),
       readable_identifier: identifier,
       name,
       share_scope,
