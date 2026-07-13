@@ -12,10 +12,10 @@ pub struct ExportRequireRuntimeModule {}
 
 impl ExportRequireRuntimeModule {
   pub fn new(runtime_template: &RuntimeTemplate) -> Self {
-    let name = if runtime_template.runtime_module_prefix() == "rspack/runtime/" {
-      EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID
-    } else {
+    let name = if runtime_template.render_mode().is_legacy() {
       EXPORT_REQUIRE_RUNTIME_MODULE_ID
+    } else {
+      EXPORT_REQUIRE_RSPACK_RUNTIME_MODULE_ID
     };
     Self::with_name(runtime_template, name)
   }

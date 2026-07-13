@@ -1489,6 +1489,11 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
       runtime_template: &runtime_template,
     };
     let source_string = module.generate(&context).await?;
+    let runtime_module_prefix = if compilation.runtime_template.render_mode().is_legacy() {
+      "webpack/runtime/"
+    } else {
+      "rspack/runtime/"
+    };
     let arg = JsRuntimeModuleArg {
       module: JsRuntimeModule {
         source: Some(JsSourceToJs::from(source_string)),
@@ -1497,7 +1502,7 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
         name: module
           .name()
           .as_str()
-          .cow_replace(compilation.runtime_template.runtime_module_prefix(), "")
+          .cow_replace(runtime_module_prefix, "")
           .into_owned(),
         stage: module.stage().into(),
         isolate: module.should_isolate(compilation.options.experiments.runtime_mode),

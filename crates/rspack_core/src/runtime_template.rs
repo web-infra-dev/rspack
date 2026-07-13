@@ -100,6 +100,11 @@ pub enum RuntimeTemplateRenderMode {
 }
 
 impl RuntimeTemplateRenderMode {
+  /// Returns whether all runtime globals use webpack-compatible identifiers.
+  pub fn is_legacy(self) -> bool {
+    matches!(self, Self::Webpack)
+  }
+
   /// Returns the runtime-global render mode for ordinary module code generation.
   pub fn module_render_mode(self) -> RuntimeGlobalsRenderMode {
     match self {
@@ -121,13 +126,6 @@ impl RuntimeTemplateRenderMode {
     match self {
       Self::Webpack => RuntimeGlobalsRenderMode::Webpack,
       Self::Rspack => RuntimeGlobalsRenderMode::RspackContext,
-    }
-  }
-
-  fn runtime_module_prefix(self) -> &'static str {
-    match self {
-      Self::Webpack => "webpack/runtime/",
-      Self::Rspack => "rspack/runtime/",
     }
   }
 }
@@ -256,7 +254,7 @@ impl RuntimeTemplate {
       })),
     );
 
-    let runtime_globals_cloned = runtime_globals.clone();
+    let runtime_globals_cloned = runtime_globals;
     dojang.functions.insert(
       "weak".into(),
       FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
@@ -283,8 +281,9 @@ impl RuntimeTemplate {
     }
   }
 
-  pub fn runtime_module_prefix(&self) -> &'static str {
-    self.render_mode.runtime_module_prefix()
+  /// Returns the render-mode combination selected for this compilation.
+  pub fn render_mode(&self) -> RuntimeTemplateRenderMode {
+    self.render_mode
   }
 
   pub fn create_runtime_module_identifier(&self, name: &str) -> Identifier {
@@ -293,15 +292,16 @@ impl RuntimeTemplate {
     } else {
       name
     };
-    Identifier::from(format!(
-      "{}{}",
-      self.runtime_module_prefix(),
-      module_name.to_snake_case()
-    ))
+    self.create_custom_runtime_module_identifier(&module_name.to_snake_case())
   }
 
   pub fn create_custom_runtime_module_identifier(&self, custom: &str) -> Identifier {
-    Identifier::from(format!("{}{custom}", self.runtime_module_prefix()))
+    let prefix = if self.render_mode.is_legacy() {
+      "webpack/runtime/"
+    } else {
+      "rspack/runtime/"
+    };
+    Identifier::from(format!("{prefix}{custom}"))
   }
 
   /// Creates the template used to render runtime globals referenced by ordinary modules.
