@@ -128,12 +128,17 @@ impl Scanner {
 }
 
 /// Reclassify paths that are absent from the real filesystem as missing deps.
+/// Paths already tracked as missing are skipped, so `missing.added` keeps
+/// meaning "newly missing" for the analyzer and for the `Create` backfill in
+/// [`Scanner::scan`].
 /// No events are emitted: the watcher waits for them to appear (either via an
 /// OS event on the watched parent directory or an explicit `trigger_event`
 /// from the owning plugin).
 fn scan_path_missing(paths: &[ArcPath], path_manager: &PathManager) {
+  let accessor = path_manager.access();
+  let missing = accessor.missing().0;
   for path in paths {
-    if !path.exists() {
+    if !path.exists() && !missing.contains(path) {
       path_manager.promote_to_missing(path.clone());
     }
   }
