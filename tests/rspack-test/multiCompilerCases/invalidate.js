@@ -27,7 +27,6 @@ module.exports = [
         };
       },
       compiler(context, compiler) {
-        const lazyCompilationCurrent = Symbol.for("rspack.lazyCompilationCurrent");
         compiler.compilers.forEach(c => {
           c.hooks.invalid.tap("test", () => {
             events.push(`${c.name} invalid`);
@@ -38,9 +37,9 @@ module.exports = [
           c.hooks.done.tap("test", () => {
             events.push(`${c.name} done`);
           });
-          c.hooks.thisCompilation.tap("test", () => {
+          c.hooks.thisCompilation.tap("test", compilation => {
             if (c.name === "a") {
-              lazyCompilationCycles.push(c[lazyCompilationCurrent] === true);
+              lazyCompilationCycles.push(compilation.watchInvalidationKind);
             }
           });
         });
@@ -68,9 +67,7 @@ module.exports = [
 			`);
             events.length = 0;
 
-            const lazyCompilationInvalidation = Symbol.for("rspack.lazyCompilationInvalidation");
-            compiler.compilers[0][lazyCompilationInvalidation] = true;
-            watching.invalidate(err => {
+            watching.__internal__invalidate("lazy", err => {
               try {
                 if (err) return reject(err);
 
@@ -84,18 +81,17 @@ module.exports = [
 					  a done,
 					]
 				`);
-                expect(lazyCompilationCycles).toEqual([false, true]);
+                expect(lazyCompilationCycles).toEqual([undefined, "lazy"]);
                 events.length = 0;
                 expect(state).toBe(1);
                 setTimeout(() => {
-                  compiler.close(resolve);
+                  compiler.close(error => (error ? reject(error) : resolve()));
                 }, 1000);
               } catch (e) {
                 console.error(e);
                 reject(e);
               }
             });
-            compiler.compilers[0][lazyCompilationInvalidation] = false;
           });
         });
       }

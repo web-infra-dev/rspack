@@ -533,7 +533,7 @@ export class MultiCompiler {
         },
         (compiler, watching, _done) => {
           if (compiler.watching !== watching) return;
-          if (!watching.running) watching.resumeFromMultiCompiler();
+          if (!watching.running) watching.__internal__resumeFromMultiCompiler();
         },
         handler,
       );

@@ -1,5 +1,6 @@
 const { createFsFromVolume, Volume } = require("memfs");
-const path = require("path");
+const { lazyCompilationMiddleware } = require("@rspack/core");
+const path = require("node:path");
 const { start } = require("@rspack/test-tools/helper/legacy/deprecationTracking");
 let tracker = null;
 
@@ -50,56 +51,111 @@ module.exports = [{
   options(context) {
     return {
       entry: "./c",
+      lazyCompilation: {
+        entries: false,
+        imports: false,
+      },
     };
   },
   async compiler(context, compiler) {
     compiler.outputFileSystem = createFsFromVolume(new Volume());
   },
   async build(context, compiler) {
-    const current = Symbol.for("rspack.lazyCompilationCurrent");
-    const invalidation = Symbol.for("rspack.lazyCompilationInvalidation");
     const cycles = [];
-    compiler.hooks.thisCompilation.tap("test lazy invalidation provenance", () => {
-      cycles.push(compiler[current] === true);
-    });
+    let coalesceNormalInvalidation = false;
+    let emitNormalFileChange;
+    let watching;
+    compiler.watchFileSystem = {
+      watch(
+        files,
+        dirs,
+        missing,
+        startTime,
+        options,
+        callback,
+        callbackUndelayed,
+      ) {
+        emitNormalFileChange = () => {
+          const file = path.join(compiler.context, "c.js");
+          callbackUndelayed(file, Date.now());
+          callback(null, new Map(), new Map(), new Set([file]), new Set());
+        };
+        return {
+          close() {},
+          getInfo() {
+            return {
+              changes: new Set(),
+              removals: new Set(),
+              fileTimeInfoEntries: new Map(),
+              contextTimeInfoEntries: new Map(),
+            };
+          },
+          pause() {},
+        };
+      },
+    };
+    compiler.hooks.thisCompilation.tap(
+      "test lazy invalidation provenance",
+      compilation => {
+        cycles.push(compilation.watchInvalidationKind);
+      },
+    );
+    compiler.hooks.make.tapAsync(
+      "coalesce normal invalidation",
+      (compilation, callback) => {
+        if (
+          coalesceNormalInvalidation &&
+          compilation.watchInvalidationKind === "lazy"
+        ) {
+          coalesceNormalInvalidation = false;
+          emitNormalFileChange();
+        }
+        callback();
+      },
+    );
+
+    const middleware = lazyCompilationMiddleware(compiler);
+    const activate = module =>
+      new Promise((resolve, reject) => {
+        middleware(
+          {
+            body: [module],
+            method: "POST",
+            url: "/_rspack/lazy/trigger",
+          },
+          {
+            end: resolve,
+            write() {},
+            writeHead(status) {
+              expect(status).toBe(200);
+            },
+          },
+          reject,
+        ).catch(reject);
+      });
 
     return new Promise((resolve, reject) => {
       let builds = 0;
-      const watching = compiler.watch({}, err => {
+      watching = compiler.watch({}, err => {
         if (err) return reject(err);
         builds++;
         if (builds === 1) {
-          compiler[invalidation] = true;
-          watching.invalidate();
+          setImmediate(() => activate("first-lazy-module").catch(reject));
           return;
         }
         if (builds === 2) {
-          watching.invalidate();
+          coalesceNormalInvalidation = true;
+          setImmediate(() => activate("coalesced-lazy-module").catch(reject));
           return;
         }
         if (builds === 3) {
-          compiler[invalidation] = true;
-          watching.invalidate();
-          return;
-        }
-        if (builds === 4) {
-          compiler[invalidation] = true;
-          watching.invalidate();
-          return;
-        }
-        if (builds === 5) {
-          const getInfo = watching.watcher.getInfo;
-          watching.watcher.getInfo = () => ({
-            ...getInfo(),
-            changes: new Set([path.join(compiler.context, "c.js")]),
-          });
-          compiler[invalidation] = true;
-          watching.invalidate();
-          return;
-        }
-        if (builds === 6) {
-          expect(cycles).toEqual([false, true, false, true, true, false]);
-          watching.close(resolve);
+          try {
+            expect(cycles).toEqual([undefined, "lazy", "lazy", "normal"]);
+          } catch (error) {
+            watching.close(() => reject(error));
+            return;
+          }
+          watching.close(error => (error ? reject(error) : resolve()));
         }
       });
     });

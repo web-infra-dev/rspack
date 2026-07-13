@@ -9,9 +9,6 @@ import { BuiltinLazyCompilationPlugin } from './lazyCompilation';
 const require = createRequire(import.meta.url);
 
 export const LAZY_COMPILATION_PREFIX = '/_rspack/lazy/trigger';
-const LAZY_COMPILATION_INVALIDATION = Symbol.for(
-  'rspack.lazyCompilationInvalidation',
-);
 
 const getDefaultClient = (compiler: Compiler): string =>
   require.resolve(
@@ -76,7 +73,6 @@ export const lazyCompilationMiddleware = (
       middlewareByCompiler.set(
         options.prefix,
         lazyCompilationMiddlewareInternal(
-          c,
           compiler,
           activeModules,
           options.prefix,
@@ -113,7 +109,6 @@ export const lazyCompilationMiddleware = (
 
   const lazyCompilationPrefix = options.prefix || LAZY_COMPILATION_PREFIX;
   return lazyCompilationMiddlewareInternal(
-    compiler,
     compiler,
     activeModules,
     lazyCompilationPrefix,
@@ -234,12 +229,11 @@ function readModuleIdsFromBody(
 }
 
 const lazyCompilationMiddlewareInternal = (
-  lazyCompiler: Compiler,
   compiler: Compiler | MultiCompiler,
   activeModules: Set<string>,
   lazyCompilationPrefix: string,
 ): DevServerMiddlewareHandler => {
-  const logger = lazyCompiler.getInfrastructureLogger('LazyCompilation');
+  const logger = compiler.getInfrastructureLogger('LazyCompilation');
 
   return async (
     req: IncomingMessage,
@@ -271,21 +265,7 @@ const lazyCompilationMiddlewareInternal = (
     }
 
     if (moduleActivated.length && compiler.watching) {
-      const invalidatedCompilers =
-        compiler instanceof MultiCompiler ? compiler.compilers : [lazyCompiler];
-      const compilerStates = invalidatedCompilers.map(
-        (compiler) => compiler as unknown as Record<PropertyKey, unknown>,
-      );
-      for (const compilerState of compilerStates) {
-        compilerState[LAZY_COMPILATION_INVALIDATION] = true;
-      }
-      try {
-        compiler.watching.invalidate();
-      } finally {
-        for (const compilerState of compilerStates) {
-          compilerState[LAZY_COMPILATION_INVALIDATION] = false;
-        }
-      }
+      compiler.watching.__internal__invalidate('lazy');
     }
 
     res.writeHead(200);
