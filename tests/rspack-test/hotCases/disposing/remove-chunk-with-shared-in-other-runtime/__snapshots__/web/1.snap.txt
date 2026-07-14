@@ -8,7 +8,7 @@
 - Bundle: chunk1_js.chunk.CURRENT_HASH.js
 - Manifest: [runtime of chunk2_js].LAST_HASH.hot-update.json, size: 60
 - Manifest: main.LAST_HASH.hot-update.json, size: 41
-- Update: main.LAST_HASH.hot-update.js, size: 20218
+- Update: main.LAST_HASH.hot-update.js, size: 20256
 
 ## Manifest
 
@@ -455,6 +455,7 @@ function hotApplyHandler(options, moduleFactoryTransaction) {
 									if (__webpack_require__.o(preservedModuleFactories, moduleId)) {
 										var module = __webpack_require__.c[moduleId];
 										if (module) {
+											module.hot.active = false;
 											for (var i = 0; i < module.children.length; i++) {
 												var child = __webpack_require__.c[module.children[i]];
 												if (!child) continue;
