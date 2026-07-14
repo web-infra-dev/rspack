@@ -144,6 +144,8 @@ impl BuildChunkGraphArtifact {
       // and async-block connections separate; all_dependencies contains both.
       let mut ordered_dependencies = vec![];
       let mut unordered_dependencies = vec![];
+      let mut ordered_dependencies_sorted = true;
+      let mut last_source_order = None;
       for dep_id in module_graph_module.all_dependencies() {
         let dependency = module_graph.dependency_by_id(dep_id);
         let module_dependency = dependency.as_module_dependency();
@@ -155,12 +157,20 @@ impl BuildChunkGraphArtifact {
         }
 
         if let Some(source_order) = dependency.source_order() {
+          if let Some(previous) = last_source_order
+            && source_order < previous
+          {
+            ordered_dependencies_sorted = false;
+          }
+          last_source_order = Some(source_order);
           ordered_dependencies.push((source_order, *dep_id));
         } else {
           unordered_dependencies.push(*dep_id);
         }
       }
-      ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
+      if !ordered_dependencies_sorted {
+        ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
+      }
 
       let mut active_modules_by_block =
         HashMap::<DependenciesBlockIdentifier, IdentifierIndexMap<Vec<_>>>::default();
