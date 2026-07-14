@@ -702,5 +702,9 @@ impl Plugin for RsdoctorPlugin {
 
   fn clear_cache(&self, id: CompilationId) {
     COMPILATION_HOOKS_MAP.remove(&id);
+    MODULE_UKEY_MAP.remove(&id);
+    ENTRYPOINT_UKEY_MAP.remove(&id);
+    JSON_MODULE_SIZE_MAP.remove(&id);
+    ACTIVE_EXPORT_USAGE_DEPENDENCY_MAP.remove(&id);
   }
 }
