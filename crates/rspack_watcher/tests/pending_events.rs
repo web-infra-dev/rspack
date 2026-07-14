@@ -60,7 +60,7 @@ async fn watch(
     .watch(
       empty_paths(),
       empty_paths(),
-      (paths.to_vec().into_iter(), std::iter::empty()),
+      (paths.iter().cloned(), std::iter::empty()),
       SystemTime::now(),
       Box::new(AggregateHandler(aggregate_tx.clone())),
       Box::new(ChangeHandler(change_tx.clone())),
