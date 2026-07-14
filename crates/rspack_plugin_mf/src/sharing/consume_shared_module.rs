@@ -9,6 +9,7 @@ use rspack_core::{
   DependencyId, ExportsType, FactoryMeta, LibIdentOptions, Module, ModuleCodeGenerationContext,
   ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
   impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
+  runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -18,7 +19,7 @@ use super::{
   consume_shared_fallback_dependency::ConsumeSharedFallbackDependency,
   consume_shared_runtime_module::CodeGenerationDataConsumeShared,
 };
-use crate::{ConsumeOptions, ShareScope};
+use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 
 #[impl_source_map_config]
 #[cacheable]
@@ -42,8 +43,9 @@ impl ConsumeSharedModule {
     &self.options.share_scope
   }
 
-  pub fn new(context: Context, options: ConsumeOptions) -> Self {
+  pub fn new(context: Context, options: ConsumeOptions, runtime_mode: RuntimeMode) -> Self {
     let scopes_key = options.share_scope.key();
+    let namespace = module_identifier_namespace(runtime_mode);
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
       &scopes_key,
@@ -78,7 +80,7 @@ impl ConsumeSharedModule {
       dependencies: Vec::new(),
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
-        "webpack/sharing/consume/{}/{}{}",
+        "{namespace}/sharing/consume/{}/{}{}",
         &scopes_key,
         &options.share_key,
         options

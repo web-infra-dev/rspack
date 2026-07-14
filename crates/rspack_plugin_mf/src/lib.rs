@@ -90,6 +90,13 @@ mod utils {
     simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
   }
 
+  pub fn module_identifier_namespace(runtime_mode: RuntimeMode) -> &'static str {
+    match runtime_mode {
+      RuntimeMode::Webpack => "webpack",
+      RuntimeMode::Rspack => "rspack",
+    }
+  }
+
   pub fn runtime_require_scope_name(runtime_template: &RuntimeCodeTemplate) -> String {
     if runtime_template.render_mode().is_legacy() {
       runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
