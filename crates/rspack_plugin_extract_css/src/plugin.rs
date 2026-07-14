@@ -25,7 +25,7 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin, parser_and_generator::JavaScriptParserAndGenerator,
 };
-use rspack_plugin_runtime::GetChunkFilenameRuntimeModule;
+use rspack_plugin_runtime::{ChunkFilenameKind, GetChunkFilenameRuntimeModule};
 use rustc_hash::{FxHashMap, FxHashSet};
 use ustr::Ustr;
 
@@ -555,8 +555,10 @@ async fn runtime_requirement_in_tree(
       *chunk_ukey,
       Box::new(GetChunkFilenameRuntimeModule::new(
         &compilation.runtime_template,
-        "css",
-        "mini-css",
+        ChunkFilenameKind {
+          content_type: "css",
+          runtime_module_name: "mini-css",
+        },
         SOURCE_TYPE[0],
         global,
         move |runtime_requirements| {

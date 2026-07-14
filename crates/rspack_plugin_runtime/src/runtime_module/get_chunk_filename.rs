@@ -19,6 +19,11 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
+pub struct ChunkFilenameKind {
+  pub content_type: &'static str,
+  pub runtime_module_name: &'static str,
+}
+
 #[impl_runtime_module]
 pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
@@ -54,8 +59,7 @@ impl GetChunkFilenameRuntimeModule {
     T: Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send + 'static,
   >(
     runtime_template: &RuntimeTemplate,
-    content_type: &'static str,
-    name: &'static str,
+    kind: ChunkFilenameKind,
     source_type: SourceType,
     global: String,
     all_chunks: F,
@@ -64,8 +68,8 @@ impl GetChunkFilenameRuntimeModule {
   ) -> Self {
     Self::with_name(
       runtime_template,
-      &format!("get {name} chunk filename"),
-      content_type,
+      &format!("get {} chunk filename", kind.runtime_module_name),
+      kind.content_type,
       source_type,
       global,
       Box::new(all_chunks),
