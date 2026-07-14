@@ -17,9 +17,11 @@ import {
 	extraArgRequired,
 	inlineExtraArgResolved
 } from "./with-extra-create-require-args.js";
+import { conditionalCopyResolved } from "./with-conditional-copy.js";
 
 export {
 	cacheType,
+	conditionalCopyResolved,
 	escapedRequireType,
 	extraArgEffects,
 	extraArgRequired,
@@ -52,4 +54,5 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(extraArgRequired).toBe("dep");
 	expect(inlineExtraArgResolved).toBe("path");
 	expect(extraArgEffects).toEqual([true, true]);
+	expect(conditionalCopyResolved).toEqual(["path", "path"]);
 });

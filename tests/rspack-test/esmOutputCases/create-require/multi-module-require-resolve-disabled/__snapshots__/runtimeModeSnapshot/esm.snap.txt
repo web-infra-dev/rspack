@@ -101,7 +101,26 @@ const inlineExtraArgResolved = external_node_module_namespaceObject.createRequir
 ).resolve("path");
 const extraArgEffects = [variableExtraArgRan, inlineExtraArgRan];
 
+// ./with-conditional-copy.js
+
+
+let directRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const directReplacement = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+globalThis.__RSPACK_USE_REPLACEMENT_REQUIRE__ &&
+	(directRequire = directReplacement);
+
+let renamedRequire = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+const renamedReplacement = (0,external_node_module_namespaceObject.createRequire)(import.meta.url);
+globalThis.__RSPACK_USE_REPLACEMENT_REQUIRE__ &&
+	(renamedRequire = (0, renamedReplacement));
+
+const conditionalCopyResolved = [
+	directRequire.resolve("path"),
+	renamedRequire.resolve("path")
+];
+
 // ./index.js
+
 
 
 
@@ -132,9 +151,10 @@ it("preserves only modules with runtime created-require usages when requireResol
 	expect(extraArgRequired).toBe("dep");
 	expect(inlineExtraArgResolved).toBe("path");
 	expect(extraArgEffects).toEqual([true, true]);
+	expect(conditionalCopyResolved).toEqual(["path", "path"]);
 });
 
-export { cacheType, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
+export { cacheType, conditionalCopyResolved, escapedRequireType, extraArgEffects, extraArgRequired, inlineExtraArgResolved, inlineResolved, mixedDisabledRequired, mixedDisabledResolved, mixedDisabledUnknownMember, required, resolvePaths, resolveWithOptions, resolved, sequenceResolved, unknownMember };
 
 ```
 

@@ -795,6 +795,7 @@ impl JavascriptParser<'_> {
       self.mark_created_require_must_keep(&rhs_name);
       Some(data)
     }) {
+      self.mark_created_require_must_keep(&ident_name);
       self.tag_variable(
         ident_name.clone(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
@@ -817,6 +818,7 @@ impl JavascriptParser<'_> {
         .map(|data| (data.context.clone(), data.decl_span))
     {
       self.mark_created_require_must_keep(&rename_identifier);
+      self.mark_created_require_must_keep(&ident_name);
       self.tag_variable(
         ident_name.clone(),
         CREATED_REQUIRE_IDENTIFIER_TAG,
