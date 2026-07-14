@@ -548,6 +548,7 @@ async fn runtime_requirement_in_tree(
   if has_hot_update || runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
     let filename = self.options.filename.clone();
     let chunk_filename = self.options.chunk_filename.clone();
+    let needs_full_hash = filename.has_hash_placeholder() || chunk_filename.has_hash_placeholder();
     let runtime_template = compilation.runtime_template.create_chunk_code_template();
     let global = format!("{}.miniCssF", runtime_template.render_runtime_argument());
 
@@ -558,6 +559,7 @@ async fn runtime_requirement_in_tree(
         ChunkFilenameKind {
           content_type: "css",
           runtime_module_name: "mini-css",
+          needs_full_hash,
         },
         SOURCE_TYPE[0],
         global,

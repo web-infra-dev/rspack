@@ -22,6 +22,7 @@ type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> 
 pub struct ChunkFilenameKind {
   pub content_type: &'static str,
   pub runtime_module_name: &'static str,
+  pub needs_full_hash: bool,
 }
 
 #[impl_runtime_module]
@@ -35,6 +36,7 @@ pub struct GetChunkFilenameRuntimeModule {
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
   chunk_ukey: ChunkUkey,
+  needs_full_hash: bool,
 }
 
 impl fmt::Debug for GetChunkFilenameRuntimeModule {
@@ -47,6 +49,7 @@ impl fmt::Debug for GetChunkFilenameRuntimeModule {
       .field("global", &self.global)
       .field("all_chunks", &"...")
       .field("chunk_ukey", &self.chunk_ukey)
+      .field("needs_full_hash", &self.needs_full_hash)
       .finish()
   }
 }
@@ -75,14 +78,16 @@ impl GetChunkFilenameRuntimeModule {
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
       chunk_ukey,
+      kind.needs_full_hash,
     )
   }
 
   fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
+    let chunk_ukey = self.chunk().unwrap_or(self.chunk_ukey);
     compilation
       .build_chunk_graph_artifact
       .chunk_by_ukey
-      .get(&self.chunk_ukey)
+      .get(&chunk_ukey)
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
         let mut chunks = if (self.all_chunks)(runtime_requirements) {
@@ -126,24 +131,11 @@ impl GetChunkFilenameRuntimeModule {
 impl RuntimeModule for GetChunkFilenameRuntimeModule {
   fn runtime_requirements(
     &self,
-    compilation: &Compilation,
+    _compilation: &Compilation,
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
-    let needs_full_hash = self
-      .get_filename_chunks(compilation)
-      .into_iter()
-      .flatten()
-      .filter_map(|chunk_ukey| {
-        compilation
-          .build_chunk_graph_artifact
-          .chunk_by_ukey
-          .get(&chunk_ukey)
-      })
-      .filter_map(|chunk| (self.filename_for_chunk)(chunk, compilation))
-      .any(|filename| filename.has_hash_placeholder());
-
     rspack_core::RuntimeModuleRuntimeRequirements {
       dependencies: {
-        if needs_full_hash {
+        if self.needs_full_hash {
           RuntimeGlobals::GET_FULL_HASH
         } else {
           RuntimeGlobals::default()
