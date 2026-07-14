@@ -8,8 +8,8 @@ module.exports = {
     buildChunkGraph: true,
   },
   stats: {
-    preset: "verbose",
-    logging: "verbose",
+    preset: 'verbose',
+    logging: 'verbose',
     loggingDebug: [/codeSplittingCache/, /incremental/],
   },
 };
