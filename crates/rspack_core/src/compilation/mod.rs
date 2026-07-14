@@ -525,7 +525,7 @@ impl Compilation {
       .build_module_graph_artifact
       .context_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.context_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .context_dependencies
@@ -554,7 +554,7 @@ impl Compilation {
       .build_module_graph_artifact
       .missing_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.missing_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .missing_dependencies
@@ -583,7 +583,7 @@ impl Compilation {
       .build_module_graph_artifact
       .build_dependencies
       .added_files()
-      .chain(&self.file_dependencies);
+      .chain(&self.build_dependencies);
     let updated_files = self
       .build_module_graph_artifact
       .build_dependencies
