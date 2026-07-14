@@ -14,6 +14,8 @@ const ENV_BENCH_MODE: &str = "BENCH_MODE";
 const SIMULATION_BENCHMARK_BLOCKING_THREADS: usize = 8;
 const SIMULATION_BENCHMARK_RAYON_THREADS: usize = 1;
 const WALLTIME_BENCHMARK_THREAD_LIMIT: usize = 16;
+const DEFAULT_WORKER_THREAD_STACK_SIZE: usize = 2 * 1024 * 1024;
+const WORKER_THREAD_STACK_SIZE: usize = DEFAULT_WORKER_THREAD_STACK_SIZE + 20_000_000;
 
 static RAYON_FOR_BENCHMARK: Once = Once::new();
 
@@ -107,6 +109,7 @@ fn build_multi_thread_tokio_rt(worker_threads: usize, blocking_threads: usize) -
   builder
     .worker_threads(worker_threads)
     .max_blocking_threads(blocking_threads)
+    .thread_stack_size(WORKER_THREAD_STACK_SIZE)
     .build()
     .expect("should not fail to build tokio runtime")
 }
@@ -122,6 +125,7 @@ pub fn configure_rayon_for_benchmark() {
     rayon::ThreadPoolBuilder::new()
       .use_current_thread()
       .num_threads(BenchMode::current().rayon_threads())
+      .stack_size(WORKER_THREAD_STACK_SIZE)
       .build_global()
       .expect("rayon global thread pool should be configured before rayon is used");
   });
@@ -141,6 +145,7 @@ pub fn build_tokio_rt() -> Runtime {
   {
     return Builder::new_current_thread()
       .max_blocking_threads(bench_mode.blocking_threads())
+      .thread_stack_size(WORKER_THREAD_STACK_SIZE)
       .build()
       .expect("should not fail to build tokio runtime");
   }

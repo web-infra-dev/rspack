@@ -17,6 +17,11 @@ static RUNTIME: LazyLock<RwLock<Option<tokio::runtime::Runtime>>> =
   LazyLock::new(|| RwLock::new(None));
 static ACTIVE_ENVS: AtomicUsize = AtomicUsize::new(0);
 
+const DEFAULT_WORKER_THREAD_STACK_SIZE: usize = 2 * 1024 * 1024;
+const ADDITIONAL_WORKER_THREAD_STACK_SIZE: usize = 20_000_000;
+pub const WORKER_THREAD_STACK_SIZE: usize =
+  DEFAULT_WORKER_THREAD_STACK_SIZE + ADDITIONAL_WORKER_THREAD_STACK_SIZE;
+
 thread_local! {
   static RUNTIME_CLEANUP_HOOK: RefCell<Option<CleanupEnvHook<()>>> = Default::default();
 }
@@ -151,6 +156,7 @@ fn create_runtime() -> tokio::runtime::Runtime {
   let mut builder = tokio::runtime::Builder::new_multi_thread();
   builder
     .max_blocking_threads(blocking_threads())
+    .thread_stack_size(WORKER_THREAD_STACK_SIZE)
     .thread_name_fn(|| {
       static ATOMIC_ID: AtomicUsize = AtomicUsize::new(0);
       let id = ATOMIC_ID.fetch_add(1, Ordering::SeqCst);

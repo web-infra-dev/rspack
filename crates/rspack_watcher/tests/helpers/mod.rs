@@ -126,6 +126,7 @@ pub struct WatchResult {
 static TOKIO_RUNTIME: std::sync::LazyLock<tokio::runtime::Runtime> =
   std::sync::LazyLock::new(|| {
     tokio::runtime::Builder::new_multi_thread()
+      .thread_stack_size(2 * 1024 * 1024 + 20_000_000)
       .enable_all()
       .build()
       .expect("Failed to create Tokio runtime")

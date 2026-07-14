@@ -102,6 +102,8 @@ mod trace_event;
 mod utils;
 mod virtual_modules;
 
+#[cfg(not(target_family = "wasm"))]
+use std::sync::Once;
 use std::{
   cell::RefCell,
   mem::ManuallyDrop,
@@ -625,6 +627,18 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
   Ok(())
 }
 
+#[cfg(not(target_family = "wasm"))]
+fn configure_rayon_thread_pool() {
+  static RAYON_THREAD_POOL: Once = Once::new();
+
+  RAYON_THREAD_POOL.call_once(|| {
+    rayon::ThreadPoolBuilder::new()
+      .stack_size(rspack_napi::runtime::WORKER_THREAD_STACK_SIZE)
+      .build_global()
+      .expect("Create Rayon global thread pool failed");
+  });
+}
+
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
   #[cfg(target_family = "wasm")]
@@ -632,6 +646,8 @@ fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
     panic::install_panic_handler();
   }
 
+  #[cfg(not(target_family = "wasm"))]
+  configure_rayon_thread_pool();
   rspack_napi::runtime::ensure_runtime(&env)?;
   node_init(exports, env)?;
   module::export_symbols(exports, env)?;
