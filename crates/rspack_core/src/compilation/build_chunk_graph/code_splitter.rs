@@ -35,17 +35,17 @@ pub(crate) type DependenciesBlockIdentifierSet =
   std::collections::HashSet<DependenciesBlockIdentifier, BuildHasherDefault<FxHasher>>;
 
 type ConnectionIdList = Arc<Vec<DependencyId>>;
-type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
+pub(crate) type PreparedBlockConnectionMap = Vec<PreparedBlockConnection>;
 type BlockModules = Vec<(ModuleIdentifier, ConnectionState, ConnectionIdList)>;
 type BlockConnectionMap = DependenciesBlockIdentifierMap<Arc<BlockModules>>;
 
 static EMPTY_BLOCK_MODULES: LazyLock<Arc<BlockModules>> = LazyLock::new(|| Arc::new(Vec::new()));
 
 #[derive(Debug, Clone)]
-struct PreparedBlockConnection {
-  block: DependenciesBlockIdentifier,
-  module: ModuleIdentifier,
-  connections: ConnectionIdList,
+pub(crate) struct PreparedBlockConnection {
+  pub(crate) block: DependenciesBlockIdentifier,
+  pub(crate) module: ModuleIdentifier,
+  pub(crate) connections: ConnectionIdList,
 }
 
 struct PreparedBlockConnectionBuilder {
@@ -85,6 +85,76 @@ fn finalize_prepared_connection_map(
   }
 
   groups
+}
+
+pub(crate) fn prepare_module_connection_map(
+  module: ModuleIdentifier,
+  module_graph: &ModuleGraph,
+) -> Option<PreparedBlockConnectionMap> {
+  let all_dependencies = module_graph
+    .module_graph_module_by_identifier(&module)
+    .map(|module| module.all_dependencies())
+    .unwrap_or_default();
+  let dependency_count = all_dependencies.len();
+  if dependency_count == 0 {
+    return None;
+  }
+
+  let mut ordered_dependencies = Vec::new();
+  let mut unordered_dependencies = Vec::with_capacity(dependency_count);
+  let mut ordered_dependencies_sorted = true;
+  let mut last_source_order = None;
+  for dependency_id in all_dependencies {
+    let dependency = module_graph.dependency_by_id(dependency_id);
+    let module_dependency = dependency.as_module_dependency();
+    if module_dependency.is_none() && dependency.as_context_dependency().is_none() {
+      continue;
+    }
+    if module_dependency.is_some_and(|dependency| dependency.weak()) {
+      continue;
+    }
+    let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+      continue;
+    };
+
+    let block = module_graph
+      .get_parent_block(dependency_id)
+      .map_or(DependenciesBlockIdentifier::Module(module), |block| {
+        DependenciesBlockIdentifier::AsyncDependenciesBlock(*block)
+      });
+    let connection = PreparedBlockConnectionBuilder {
+      block,
+      module: *connection.module_identifier(),
+      dependency: *dependency_id,
+    };
+    if let Some(source_order) = dependency.source_order() {
+      if let Some(previous) = last_source_order
+        && source_order < previous
+      {
+        ordered_dependencies_sorted = false;
+      }
+      last_source_order = Some(source_order);
+      ordered_dependencies.push((source_order, connection));
+    } else {
+      unordered_dependencies.push(connection);
+    }
+  }
+  if !ordered_dependencies_sorted {
+    ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
+  }
+
+  let connection_count = ordered_dependencies.len() + unordered_dependencies.len();
+  if connection_count == 0 {
+    return None;
+  }
+
+  Some(finalize_prepared_connection_map(
+    ordered_dependencies
+      .into_iter()
+      .map(|(_, connection)| connection)
+      .chain(unordered_dependencies),
+    connection_count,
+  ))
 }
 
 #[derive(Debug, Clone, Default)]
@@ -337,7 +407,7 @@ fn add_chunk_in_group(
   chunk_group
 }
 
-fn get_active_state_of_connections(
+pub(crate) fn get_active_state_of_connections(
   connections: &[DependencyId],
   runtime: Option<&RuntimeSpec>,
   module_graph: &ModuleGraph,
@@ -2362,83 +2432,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let mg = compilation.get_module_graph();
     self.prepared_connection_map = all_modules
       .par_iter()
-      .filter_map(|module| {
-        let all_dependencies = mg
-          .module_graph_module_by_identifier(module)
-          .map(|mgm| mgm.all_dependencies())
-          .unwrap_or_default();
-        let dependency_count = all_dependencies.len();
-        if dependency_count == 0 {
-          return None;
-        }
-
-        let mut ordered_deps = Vec::new();
-        let mut unordered_deps = Vec::with_capacity(dependency_count);
-        let mut ordered_deps_sorted = true;
-        let mut last_source_order = None;
-        for dep_id in all_dependencies {
-          let dep = mg.dependency_by_id(dep_id);
-          let module_dep = dep.as_module_dependency();
-          if module_dep.is_none() && dep.as_context_dependency().is_none() {
-            continue;
-          }
-          if matches!(module_dep.map(|d| d.weak()), Some(true)) {
-            continue;
-          }
-          let Some(connection) = mg.connection_by_dependency_id(dep_id) else {
-            continue;
-          };
-
-          let module_identifier = *connection.module_identifier();
-          let block_id = if let Some(block) = mg.get_parent_block(dep_id) {
-            (*block).into()
-          } else {
-            (*module).into()
-          };
-          if let Some(source_order) = dep.source_order() {
-            if let Some(last_source_order) = last_source_order
-              && source_order < last_source_order
-            {
-              ordered_deps_sorted = false;
-            }
-            last_source_order = Some(source_order);
-            ordered_deps.push((source_order, block_id, *dep_id, module_identifier));
-          } else {
-            unordered_deps.push((block_id, *dep_id, module_identifier));
-          }
-        }
-        if !ordered_deps_sorted {
-          ordered_deps.sort_by_key(|(source_order, _, _, _)| *source_order);
-        }
-
-        let connection_count = ordered_deps.len() + unordered_deps.len();
-        if connection_count == 0 {
-          return None;
-        }
-        let ordered_deps = ordered_deps
-          .into_iter()
-          .map(
-            |(_, block, dependency, module)| PreparedBlockConnectionBuilder {
-              block,
-              module,
-              dependency,
-            },
-          );
-        let unordered_deps = unordered_deps
-          .into_iter()
-          .map(
-            |(block, dependency, module)| PreparedBlockConnectionBuilder {
-              block,
-              module,
-              dependency,
-            },
-          );
-
-        Some((
-          *module,
-          finalize_prepared_connection_map(ordered_deps.chain(unordered_deps), connection_count),
-        ))
-      })
+      .filter_map(|module| prepare_module_connection_map(*module, mg).map(|map| (*module, map)))
       .collect::<IdentifierMap<_>>();
 
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<

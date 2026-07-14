@@ -10,7 +10,10 @@ use tracing::instrument;
 use crate::{
   ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupKind, ChunkGroupUkey,
   ChunkUkey, Compilation, DependenciesBlock, GroupOptions, Logger,
-  build_chunk_graph::code_splitter::{CodeSplitter, DependenciesBlockIdentifier},
+  build_chunk_graph::code_splitter::{
+    CodeSplitter, DependenciesBlockIdentifier, get_active_state_of_connections,
+    prepare_module_connection_map,
+  },
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
@@ -86,9 +89,6 @@ impl BuildChunkGraphArtifact {
     }
 
     for module in affected_modules {
-      let module_graph_module = module_graph
-        .module_graph_module_by_identifier(&module)
-        .expect("should have module");
       let current_blocks = module_graph
         .module_by_identifier(&module)
         .expect("should have module")
@@ -139,59 +139,11 @@ impl BuildChunkGraphArtifact {
         }
       }
 
-      // Match CodeSplitter::prepare: ESM dependencies are ordered by source
-      // order and unordered dependencies are appended afterwards. Keep root
-      // and async-block connections separate; all_dependencies contains both.
-      let mut ordered_dependencies = vec![];
-      let mut unordered_dependencies = vec![];
-      let mut ordered_dependencies_sorted = true;
-      let mut last_source_order = None;
-      for dep_id in module_graph_module.all_dependencies() {
-        let dependency = module_graph.dependency_by_id(dep_id);
-        let module_dependency = dependency.as_module_dependency();
-        if (module_dependency.is_none() && dependency.as_context_dependency().is_none())
-          || module_dependency.is_some_and(|module_dep| module_dep.weak())
-          || module_graph.connection_by_dependency_id(dep_id).is_none()
-        {
-          continue;
-        }
-
-        if let Some(source_order) = dependency.source_order() {
-          if let Some(previous) = last_source_order
-            && source_order < previous
-          {
-            ordered_dependencies_sorted = false;
-          }
-          last_source_order = Some(source_order);
-          ordered_dependencies.push((source_order, *dep_id));
-        } else {
-          unordered_dependencies.push(*dep_id);
-        }
-      }
-      if !ordered_dependencies_sorted {
-        ordered_dependencies.sort_by_key(|(source_order, _)| *source_order);
-      }
-
-      let mut active_modules_by_block =
-        HashMap::<DependenciesBlockIdentifier, IdentifierIndexMap<Vec<_>>>::default();
-      for dep_id in ordered_dependencies
-        .into_iter()
-        .map(|(_, dep_id)| dep_id)
-        .chain(unordered_dependencies)
-      {
-        let block = module_graph
-          .get_parent_block(&dep_id)
-          .map_or(DependenciesBlockIdentifier::Module(module), |block| {
-            DependenciesBlockIdentifier::AsyncDependenciesBlock(*block)
-          });
-        let connection = module_graph
-          .connection_by_dependency_id(&dep_id)
-          .expect("should have connection");
-        active_modules_by_block
-          .entry(block)
-          .or_default()
-          .entry(*connection.module_identifier())
-          .or_default()
+      let mut prepared_connections_by_block = HashMap::default();
+      for connection in prepare_module_connection_map(module, module_graph).unwrap_or_default() {
+        prepared_connections_by_block
+          .entry(connection.block)
+          .or_insert_with(Vec::new)
           .push(connection);
       }
 
@@ -201,29 +153,25 @@ impl BuildChunkGraphArtifact {
           .copied()
           .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
       ) {
-        let mut outgoings = vec![];
-        let active_modules = active_modules_by_block.remove(&block).unwrap_or_default();
-
-        'outer: for (m, connections) in active_modules {
-          let side_effects_state_artifact = &this_compilation
-            .build_module_graph_artifact
-            .side_effects_state_artifact;
-          for conn in connections {
-            if conn
-              .active_state(
-                module_graph,
-                None,
-                module_graph_cache,
-                side_effects_state_artifact,
-                &this_compilation.exports_info_artifact,
-              )
-              .is_not_false()
-            {
-              outgoings.push(m);
-              continue 'outer;
-            }
-          }
-        }
+        let outgoings = prepared_connections_by_block
+          .remove(&block)
+          .unwrap_or_default()
+          .into_iter()
+          .filter(|connection| {
+            get_active_state_of_connections(
+              &connection.connections,
+              None,
+              module_graph,
+              module_graph_cache,
+              &this_compilation
+                .build_module_graph_artifact
+                .side_effects_state_artifact,
+              &this_compilation.exports_info_artifact,
+            )
+            .is_not_false()
+          })
+          .map(|connection| connection.module)
+          .collect::<Vec<_>>();
 
         let mut previous_modules = IdentifierIndexMap::default();
         let mut miss_in_previous = true;
@@ -246,17 +194,20 @@ impl BuildChunkGraphArtifact {
           }
         }
 
-        if miss_in_previous {
+        if miss_in_previous
+          && !(matches!(block, DependenciesBlockIdentifier::Module(_))
+            && outgoings.is_empty()
+            && self.chunk_graph.try_get_module_chunks(&module).is_some())
+        {
           logger.log("new module detected, rebuilding chunk graph");
           return false;
         }
 
-        if previous_modules
+        if !previous_modules
           .iter()
           .filter(|(_, conn_state)| conn_state.is_not_false())
           .map(|(m, _)| *m)
-          .collect::<Vec<_>>()
-          != outgoings
+          .eq(outgoings)
         {
           logger.log(format!("module outgoings change detected: {module}"));
           return false;

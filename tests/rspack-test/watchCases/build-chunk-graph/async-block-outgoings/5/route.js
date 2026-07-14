@@ -6,6 +6,7 @@ export { value } from "./leaf";
 export const sync = `${first}:${second}`;
 export const load = () =>
   Promise.all([
-    import(/* webpackChunkName: "lazy" */ "./lazy"),
-    import(/* webpackChunkName: "lazy" */ "./lazy"),
+    import(/* webpackChunkName: "inserted" */ "./extra"),
+    import(/* webpackChunkName: "next" */ "./other"),
+    import(/* webpackChunkName: "next" */ "./lazy"),
   ]);
